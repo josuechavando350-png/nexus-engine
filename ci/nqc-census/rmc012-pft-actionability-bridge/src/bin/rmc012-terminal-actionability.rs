@@ -16,8 +16,8 @@ use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_portfolio::{
     actionability::{
         evaluate_protocol_native_flash_promotion, promote_protocol_native_flash_liquidation,
-        ActionabilityCoverage, ActionabilityPair, ActionabilityRecord, ActionabilityRejectionReason,
-        ActionableLiquidation,
+        ActionabilityCoverage, ActionabilityPair, ActionabilityRecord,
+        ActionabilityRejectionReason, ActionableLiquidation,
     },
     evaluate_portfolio, ConflictResource,
 };

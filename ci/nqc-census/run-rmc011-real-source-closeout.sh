@@ -11,7 +11,7 @@ D09_DIR="$2"
 AUTHORITY_LOCK="$3"
 OUTPUT_DIR="$4"
 
-SCRIPT_DIR="$(cd -- "$(dirname -- "\${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd -- "$SCRIPT_DIR/../.." && pwd)"
 CENSUS_ROOT="$REPO_ROOT/nqc-census"
 
@@ -77,13 +77,13 @@ EXPECTED_FILES=(
   capital-real-source-closeout.json
 )
 
-for name in "\${EXPECTED_FILES[@]}"; do
+for name in "${EXPECTED_FILES[@]}"; do
   test -f "$OUTPUT_DIR/$name"
 done
 
 (
   cd "$OUTPUT_DIR"
-  sha256sum "\${EXPECTED_FILES[@]}" > capital-archive.sha256
+  sha256sum "${EXPECTED_FILES[@]}" > capital-archive.sha256
   sha256sum -c capital-archive.sha256
 )
 

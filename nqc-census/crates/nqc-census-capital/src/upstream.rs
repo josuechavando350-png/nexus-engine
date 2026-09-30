@@ -566,36 +566,32 @@ fn import_d08_capital_sources_unbound(
                 let token_blockers = execution_blockers(&tokens, asset_address)?.to_vec();
 
                 let facts = field(&row, "protocol_facts")?;
-                if !bool_field(facts, "active")? || bool_field(facts, "paused")? {
-                    push_rejection(
-                        &mut rejections,
-                        &mut outcomes,
-                        protocol,
-                        &market_id,
-                        asset,
-                        CapitalImportRejectionReason::ReserveInactiveOrPaused,
-                    );
-                    continue;
-                }
-                if !bool_field(facts, "flash_loan_enabled")? {
-                    push_rejection(
-                        &mut rejections,
-                        &mut outcomes,
-                        protocol,
-                        &market_id,
-                        asset,
-                        CapitalImportRejectionReason::FlashLoanDisabled,
-                    );
-                    continue;
-                }
+                let active = bool_field(facts, "active")?;
+                let paused = bool_field(facts, "paused")?;
+                let flash_loan_enabled = bool_field(facts, "flash_loan_enabled")?;
                 let available = Amount256::parse_decimal(text(facts, "available_liquidity")?)?;
+                let mut source_blockers = token_blockers;
+                if !active || paused {
+                    source_blockers.push(
+                        CapitalImportRejectionReason::ReserveInactiveOrPaused
+                            .code()
+                            .to_owned(),
+                    );
+                }
+                if !flash_loan_enabled {
+                    source_blockers.push(
+                        CapitalImportRejectionReason::FlashLoanDisabled
+                            .code()
+                            .to_owned(),
+                    );
+                }
                 let source = AaveV3FlashObservation {
                     anchor: context.anchor.clone(),
                     pool: aave_pool,
                     asset: asset_address,
                     available_underlying: available,
                     premium_total_bps: aave_premium_total_bps,
-                    flash_loan_enabled: true,
+                    flash_loan_enabled,
                     provider_locator_hash: protocol_contract_locator_hash(
                         AAVE_V3_PROVIDER_NAMESPACE,
                         aave_pool,
@@ -603,7 +599,7 @@ fn import_d08_capital_sources_unbound(
                     evidence: context.evidence.clone(),
                 }
                 .into_capital_source()?
-                .with_execution_blockers(token_blockers)?;
+                .with_execution_blockers(source_blockers)?;
                 push_source(
                     &mut sources,
                     &mut outcomes,
@@ -664,24 +660,9 @@ fn import_d08_capital_sources_unbound(
                     }
                     continue;
                 }
-                if text(&row, "liquidity_state")? != "LIQUID" {
-                    for token in [token0, token1] {
-                        let asset = CapitalAsset::Token(token);
-                        if !candidate_keys.insert((protocol.to_owned(), market_id.clone(), asset)) {
-                            return Err(CapitalError::InvalidCanonical(
-                                "duplicate D08 capital source candidate",
-                            ));
-                        }
-                        push_rejection(
-                            &mut rejections,
-                            &mut outcomes,
-                            protocol,
-                            &market_id,
-                            asset,
-                            CapitalImportRejectionReason::V2LiquidityUnavailable,
-                        );
-                    }
-                    continue;
+                let liquidity_state = text(&row, "liquidity_state")?;
+                if !matches!(liquidity_state, "LIQUID" | "ZERO_LIQUIDITY_NOT_ROUTABLE") {
+                    return Err(CapitalError::InvalidCanonical("unknown V2 liquidity state"));
                 }
                 let reserves = array(&row, "reserves")?;
                 if reserves.len() != 3 {
@@ -689,19 +670,42 @@ fn import_d08_capital_sources_unbound(
                         "V2 reserve row is not three fields",
                     ));
                 }
+                let reserve0 = reserves[0]
+                    .as_str()
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "V2 reserve0 is not decimal text",
+                    ))
+                    .and_then(Amount256::parse_decimal)?;
+                let reserve1 = reserves[1]
+                    .as_str()
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "V2 reserve1 is not decimal text",
+                    ))
+                    .and_then(Amount256::parse_decimal)?;
+                let total_supply = Amount256::parse_decimal(text(&row, "total_supply")?)?;
+                let derived_liquid =
+                    !reserve0.is_zero() && !reserve1.is_zero() && !total_supply.is_zero();
+                if (liquidity_state == "LIQUID") != derived_liquid {
+                    return Err(CapitalError::InvalidCanonical(
+                        "V2 liquidity state disagrees with reserves/total supply",
+                    ));
+                }
 
-                for (token, reserve) in [(token0, &reserves[0]), (token1, &reserves[1])] {
+                for (token, reserve_amount) in [(token0, reserve0), (token1, reserve1)] {
                     let asset = CapitalAsset::Token(token);
                     if !candidate_keys.insert((protocol.to_owned(), market_id.clone(), asset)) {
                         return Err(CapitalError::InvalidCanonical(
                             "duplicate D08 capital source candidate",
                         ));
                     }
-                    let token_blockers = execution_blockers(&tokens, token)?.to_vec();
-                    let reserve_text = reserve.as_str().ok_or(CapitalError::InvalidCanonical(
-                        "V2 reserve amount is not decimal text",
-                    ))?;
-                    let reserve_amount = Amount256::parse_decimal(reserve_text)?;
+                    let mut source_blockers = execution_blockers(&tokens, token)?.to_vec();
+                    if liquidity_state == "ZERO_LIQUIDITY_NOT_ROUTABLE" {
+                        source_blockers.push(
+                            CapitalImportRejectionReason::V2LiquidityUnavailable
+                                .code()
+                                .to_owned(),
+                        );
+                    }
                     let source = UniswapV2FlashSwapObservation {
                         anchor: context.anchor.clone(),
                         pair,
@@ -714,7 +718,7 @@ fn import_d08_capital_sources_unbound(
                         evidence: context.evidence.clone(),
                     }
                     .into_capital_source()?
-                    .with_execution_blockers(token_blockers)?;
+                    .with_execution_blockers(source_blockers)?;
                     push_source(
                         &mut sources,
                         &mut outcomes,
