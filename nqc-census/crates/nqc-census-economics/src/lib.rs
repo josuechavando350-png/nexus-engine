@@ -17,8 +17,9 @@ use std::{
 };
 
 pub const WAD: u64 = 1_000_000_000_000_000_000;
-const QUOTE_DOMAIN: &[u8] = b"NQC-RMC013-EXECUTION-QUOTE-V1";
-const CURVE_DOMAIN: &[u8] = b"NQC-RMC013-CAPACITY-CURVE-V1";
+const QUOTE_DOMAIN: &[u8] = b"NQC-RMC013-EXECUTION-QUOTE-V2";
+const CURVE_DOMAIN: &[u8] = b"NQC-RMC013-CAPACITY-CURVE-V2";
+const USD_WAD_UNIT_DOMAIN: &[u8] = b"NQC-RMC013-USD-WAD-VALUATION-UNIT-V1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum EconomicsError {
@@ -31,6 +32,9 @@ pub enum EconomicsError {
     AmountOverflow,
     ProbabilityArithmeticOverflow,
     CaptureSamplesRequired,
+    InvalidCaptureInterval,
+    InvalidTailBound,
+    ProfitBucketRequiresUsdWad,
     CurveEmpty,
     CurveCandidateMismatch,
     CurveAnchorMismatch,
@@ -55,6 +59,13 @@ impl Display for EconomicsError {
             }
             Self::CaptureSamplesRequired => {
                 f.write_str("empirical capture calibration requires observations")
+            }
+            Self::InvalidCaptureInterval => {
+                f.write_str("capture probability interval is not ordered")
+            }
+            Self::InvalidTailBound => f.write_str("tail-risk bound is internally inconsistent"),
+            Self::ProfitBucketRequiresUsdWad => {
+                f.write_str("profit buckets require the canonical USD-WAD valuation unit")
             }
             Self::CurveEmpty => f.write_str("capacity curve is empty"),
             Self::CurveCandidateMismatch => {
@@ -91,6 +102,15 @@ impl ValuationUnitId {
         Self(*commitment.as_bytes())
     }
 
+    /// Canonical cross-market valuation unit: USD with 18 decimal places.
+    /// The identity is domain-separated rather than a human-readable symbol.
+    pub fn usd_wad() -> Self {
+        let mut hasher = Sha256::new();
+        hasher.update(USD_WAD_UNIT_DOMAIN);
+        hasher.update([0]);
+        Self(hasher.finalize().into())
+    }
+
     pub const fn as_bytes(&self) -> &[u8; 32] {
         &self.0
     }
@@ -118,7 +138,11 @@ impl ProbabilityWad {
         Self(WAD - self.0)
     }
 
-    /// Conservative exact integer weighting: floor(amount * p / 1e18).
+    pub const fn is_zero(self) -> bool {
+        self.0 == 0
+    }
+
+    /// Exact integer weighting rounded down: floor(amount * p / 1e18).
     ///
     /// This works across the full uint256 domain without floating point.
     pub fn apply_floor(self, amount: Amount256) -> Result<Amount256, EconomicsError> {
@@ -128,6 +152,28 @@ impl ProbabilityWad {
             .checked_mul(u128::from(self.0))
             .ok_or(EconomicsError::ProbabilityArithmeticOverflow)?;
         let minor = minor_numerator / u128::from(WAD);
+        major
+            .checked_add(Amount256::from_u128(minor))
+            .map_err(|_| EconomicsError::AmountOverflow)
+    }
+
+    /// Exact integer weighting rounded up. Costs and losses use this so
+    /// integer rounding can never make an opportunity look more profitable.
+    pub fn apply_ceil(self, amount: Amount256) -> Result<Amount256, EconomicsError> {
+        let (quotient, remainder) = div_mod_u64(amount, WAD)?;
+        let major = mul_u64_checked(quotient, self.0)?;
+        let numerator = u128::from(remainder)
+            .checked_mul(u128::from(self.0))
+            .ok_or(EconomicsError::ProbabilityArithmeticOverflow)?;
+        let divisor = u128::from(WAD);
+        let minor = if numerator == 0 {
+            0
+        } else {
+            numerator
+                .checked_add(divisor - 1)
+                .ok_or(EconomicsError::ProbabilityArithmeticOverflow)?
+                / divisor
+        };
         major
             .checked_add(Amount256::from_u128(minor))
             .map_err(|_| EconomicsError::AmountOverflow)
@@ -212,12 +258,27 @@ impl SignedAmount {
     }
 
     pub fn weighted(self, probability: ProbabilityWad) -> Result<Self, EconomicsError> {
-        let magnitude = probability.apply_floor(self.magnitude)?;
+        let magnitude = if self.negative {
+            probability.apply_ceil(self.magnitude)?
+        } else {
+            probability.apply_floor(self.magnitude)?
+        };
         Ok(if self.negative {
             Self::negative(magnitude)
         } else {
             Self::positive(magnitude)
         })
+    }
+
+    pub fn subtract_unsigned(self, rhs: Amount256) -> Result<Self, EconomicsError> {
+        if self.negative {
+            return Ok(Self::negative(
+                self.magnitude
+                    .checked_add(rhs)
+                    .map_err(|_| EconomicsError::AmountOverflow)?,
+            ));
+        }
+        Self::from_difference(self.magnitude, rhs)
     }
 }
 
