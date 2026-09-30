@@ -279,6 +279,86 @@ fn capacity_curve_selects_observed_best_point_without_linear_extrapolation() -> 
 }
 
 #[test]
+fn capacity_curve_rejects_mixed_opportunity_plan_or_model_identity() -> TestResult {
+    let anchor = anchor(100, 10);
+    let candidate = candidate_at(&anchor)?;
+    let costs = complete_costs(10, 0, 0)?;
+    let capture = empirical(WAD)?;
+
+    let baseline = ExecutionQuote::new(
+        &candidate,
+        hash(47),
+        hash(48),
+        hash(49),
+        anchor.clone(),
+        ValuationUnitId::usd_wad(),
+        Amount256::from_u128(1_000),
+        Amount256::from_u128(100),
+        costs.clone(),
+        capture.clone(),
+        tail(0)?,
+        vec![hash(51), hash(52)],
+    )?;
+    let opportunity_changed = ExecutionQuote::new(
+        &candidate,
+        hash(57),
+        hash(48),
+        hash(49),
+        anchor.clone(),
+        ValuationUnitId::usd_wad(),
+        Amount256::from_u128(2_000),
+        Amount256::from_u128(120),
+        costs.clone(),
+        capture.clone(),
+        tail(0)?,
+        vec![hash(51), hash(52)],
+    )?;
+    assert!(matches!(
+        CapacityCurve::new(vec![baseline.clone(), opportunity_changed]),
+        Err(EconomicsError::CurveOpportunityMismatch)
+    ));
+
+    let plan_changed = ExecutionQuote::new(
+        &candidate,
+        hash(47),
+        hash(58),
+        hash(49),
+        anchor.clone(),
+        ValuationUnitId::usd_wad(),
+        Amount256::from_u128(2_000),
+        Amount256::from_u128(120),
+        costs.clone(),
+        capture.clone(),
+        tail(0)?,
+        vec![hash(51), hash(52)],
+    )?;
+    assert!(matches!(
+        CapacityCurve::new(vec![baseline.clone(), plan_changed]),
+        Err(EconomicsError::CurveExecutionPlanMismatch)
+    ));
+
+    let model_changed = ExecutionQuote::new(
+        &candidate,
+        hash(47),
+        hash(48),
+        hash(59),
+        anchor,
+        ValuationUnitId::usd_wad(),
+        Amount256::from_u128(2_000),
+        Amount256::from_u128(120),
+        costs,
+        capture,
+        tail(0)?,
+        vec![hash(51), hash(52)],
+    )?;
+    assert!(matches!(
+        CapacityCurve::new(vec![baseline, model_changed]),
+        Err(EconomicsError::CurveEconomicModelMismatch)
+    ));
+    Ok(())
+}
+
+#[test]
 fn capacity_curve_rejects_duplicate_trade_size() -> TestResult {
     let anchor = anchor(100, 10);
     let candidate = candidate_at(&anchor)?;
@@ -630,6 +710,39 @@ fn duplicate_scenario_evidence_is_rejected() -> TestResult {
         ]),
         Err(EconomicsError::DuplicateEvidence)
     ));
+    Ok(())
+}
+
+#[test]
+fn tail_reserve_cannot_understate_declared_loss_at_confidence() -> TestResult {
+    assert!(matches!(
+        TailRiskBound::new(
+            ProbabilityWad::new(WAD * 99 / 100)?,
+            Amount256::from_u128(100),
+            Amount256::from_u128(1_000),
+            Amount256::from_u128(99),
+            hash(119),
+        ),
+        Err(EconomicsError::InvalidTailBound)
+    ));
+    Ok(())
+}
+
+#[test]
+fn gas_valuation_requires_nonzero_price_evidence() -> TestResult {
+    let zero = Hash32::new([0_u8; 32]);
+    assert!(zero.is_err());
+
+    // Hash32 itself is non-zero by construction in the core type, so this
+    // regression verifies the public helper continues to bind explicit price
+    // evidence rather than introducing a raw/unvalidated bypass.
+    let gas = GasValuation::new(
+        21_000,
+        Amount256::from_u128(1_000_000_000),
+        Amount256::from_u128(2_000 * u128::from(WAD)),
+        hash(118),
+    )?;
+    assert_eq!(gas.price_evidence(), hash(118));
     Ok(())
 }
 
