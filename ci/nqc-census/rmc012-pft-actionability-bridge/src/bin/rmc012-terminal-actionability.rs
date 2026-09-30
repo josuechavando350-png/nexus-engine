@@ -7,11 +7,14 @@
 
 use alloy::primitives::U256;
 use nqc_census_capital::{
+    artifacts::parse_capital_sources_artifact,
     replay::{UpstreamAuthorityLock, UpstreamAuthorityLockEntry},
-    Amount256, UpstreamCensusStage,
+    upstream::d08_aave_flash_terms,
+    Amount256, CapitalFeasibility, UpstreamCensusStage,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_portfolio::actionability::{
+    evaluate_protocol_native_flash_promotion, promote_protocol_native_flash_liquidation,
     ActionabilityCoverage, ActionabilityPair, ActionabilityRecord, ActionabilityRejectionReason,
     ActionableLiquidation,
 };
@@ -60,6 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let d08 = PathBuf::from(required(&flags, "--d08")?);
     let d09 = PathBuf::from(required(&flags, "--d09")?);
     let authority_lock_path = PathBuf::from(required(&flags, "--authority-lock")?);
+    let d11_sources_path = PathBuf::from(required(&flags, "--d11-sources")?);
     let code_commit = git_object(required(&flags, "--code-commit")?, "code commit")?;
     let code_tree = git_object(required(&flags, "--code-tree")?, "code tree")?;
     let out = PathBuf::from(required(&flags, "--out")?);
@@ -71,6 +75,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     let anchor = authority_lock.observation_anchor().clone();
     let d08_authority = locked_stage(&authority_lock, UpstreamCensusStage::Rmc008StateAdmission)?;
     let d09_authority = locked_stage(&authority_lock, UpstreamCensusStage::Rmc009PositionUniverse)?;
+    let d11_sources_bytes = fs::read(&d11_sources_path)?;
+    let capital_sources = parse_capital_sources_artifact(&d11_sources_bytes)?;
+    if capital_sources.iter().any(|source| source.anchor() != &anchor) {
+        return Err("D11 capital source artifact mixes a foreign observation anchor".into());
+    }
+    let d11_sources_sha256 = sha256_hex(&d11_sources_bytes);
 
     let d08_required = [
         "state-summary.json",
@@ -109,11 +119,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     let market_snapshot = market_snapshot_commitment(&d08, &d08_required)?;
     let (reserves, base_unit) = reserves(&d08, anchor.timestamp())?;
     let emodes = emodes(&d08)?;
-    let flash_premium_bps = flash_premium_bps(&d08)?;
+    let pool_facts_bytes = fs::read(d08.join("pool-and-factory-facts.json"))?;
+    let (aave_pool, flash_premium_bps_u16) = d08_aave_flash_terms(&pool_facts_bytes)?;
+    let flash_premium_bps = u32::from(flash_premium_bps_u16);
     let accounts = jsonl(d09.join("account-manifest.jsonl"))?;
 
     let mut records = Vec::new();
     let mut output_rows = Vec::new();
+    let mut capital_rows = Vec::new();
+    let mut principal_capital_feasible = 0_u64;
+    let mut principal_capital_rejected = 0_u64;
     let mut below_one_borrowers = 0_u64;
     let mut expected_pairs = 0_u64;
 
@@ -273,6 +288,53 @@ fn main() -> Result<(), Box<dyn Error>> {
                             candidate.clone(),
                             vec![market_snapshot, account_snapshot, result_hash],
                         )?);
+
+                        let promotion = promote_protocol_native_flash_liquidation(&candidate)?;
+                        let feasibility = evaluate_protocol_native_flash_promotion(
+                            &promotion,
+                            aave_pool,
+                            &capital_sources,
+                        )?;
+                        let (capital_status, capital_reason, allocations) = match &feasibility {
+                            CapitalFeasibility::Feasible { allocations, .. } => {
+                                principal_capital_feasible = principal_capital_feasible
+                                    .checked_add(1)
+                                    .ok_or("principal capital feasible count overflow")?;
+                                let rows = allocations
+                                    .iter()
+                                    .map(|allocation| {
+                                        json!({
+                                            "source_id": allocation.source_id.to_hex(),
+                                            "leg_kind": allocation.leg_kind.code(),
+                                            "amount": allocation.amount.to_string()
+                                        })
+                                    })
+                                    .collect::<Vec<_>>();
+                                ("FEASIBLE", Value::Null, rows)
+                            }
+                            CapitalFeasibility::Rejected { reason, .. } => {
+                                principal_capital_rejected = principal_capital_rejected
+                                    .checked_add(1)
+                                    .ok_or("principal capital rejection count overflow")?;
+                                ("REJECTED", Value::String(reason.code().to_owned()), Vec::new())
+                            }
+                        };
+                        capital_rows.push(json!({
+                            "actionable_candidate_id": candidate.id().to_hex(),
+                            "requirement_id": promotion.requirement().id().to_hex(),
+                            "portfolio_candidate_id": promotion.portfolio_candidate().id().to_hex(),
+                            "funding_scope": promotion.scope().code(),
+                            "gas_funding_certified": promotion.scope().gas_funding_certified(),
+                            "aave_pool": aave_pool.to_hex(),
+                            "debt_asset": candidate.pair().debt_asset().to_hex(),
+                            "principal": candidate.debt_to_liquidate().to_string(),
+                            "flash_premium": candidate.flash_loan_premium().to_string(),
+                            "repayment_principal": candidate.debt_to_liquidate().to_string(),
+                            "capital_status": capital_status,
+                            "rejection_reason": capital_reason,
+                            "allocations": allocations
+                        }));
+
                         output_rows.push(json!({
                             "pair_id": pair.id().to_hex(),
                             "pair_key": pair.key().to_hex(),
@@ -343,6 +405,28 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     fs::write(&records_path, &records_bytes)?;
 
+    capital_rows.sort_by(|left, right| {
+        left.get("actionable_candidate_id")
+            .and_then(Value::as_str)
+            .cmp(&right.get("actionable_candidate_id").and_then(Value::as_str))
+    });
+    let capital_path = out.join("capital-promotions.jsonl");
+    let mut capital_bytes = Vec::new();
+    for row in &capital_rows {
+        capital_bytes.extend(serde_json::to_vec(row)?);
+        capital_bytes.push(b'\n');
+    }
+    fs::write(&capital_path, &capital_bytes)?;
+
+    if u64::try_from(capital_rows.len())? != coverage.admitted_count()
+        || principal_capital_feasible
+            .checked_add(principal_capital_rejected)
+            .ok_or("principal capital conservation overflow")?
+            != coverage.admitted_count()
+    {
+        return Err("admitted actionability to capital promotion is not conserved".into());
+    }
+
     let summary = json!({
         "schema": SCHEMA,
         "status": "RMC_012_ACTIONABILITY_PASS",
@@ -364,6 +448,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         "upstream_authority_lock_sha256": authority_lock_sha256,
         "d08_authority_artifact_sha256": d08_authority.artifact_sha256.to_hex(),
         "d09_authority_artifact_sha256": d09_authority.artifact_sha256.to_hex(),
+        "d11_capital_sources_sha256": d11_sources_sha256,
+        "d11_capital_source_count": capital_sources.len(),
+        "aave_pool": aave_pool.to_hex(),
+        "aave_flash_premium_bps": flash_premium_bps,
+        "funding_scope": "PRINCIPAL_AND_FLASH_SETTLEMENT_ONLY_GAS_UNCERTIFIED",
+        "principal_capital_promoted": capital_rows.len(),
+        "principal_capital_feasible": principal_capital_feasible,
+        "principal_capital_rejected": principal_capital_rejected,
+        "principal_capital_conserved": true,
+        "gas_funding_certified": false,
+        "portfolio_concurrent_capacity_certified": false,
         "below_one_borrowers": coverage.below_one_borrowers(),
         "expected_pairs": coverage.expected_pairs(),
         "admitted": coverage.admitted_count(),
@@ -373,6 +468,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "d09_inputs": d09_digests,
         "market_snapshot_commitment": market_snapshot.to_hex(),
         "records_sha256": sha256_hex(&records_bytes),
+        "capital_promotions_sha256": sha256_hex(&capital_bytes),
         "economic_filters_applied": false
     });
     let summary_bytes = serde_json::to_vec_pretty(&summary)?;
@@ -386,6 +482,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         "upstream_authority_lock_sha256": authority_lock_sha256,
         "d08_authority_artifact_sha256": d08_authority.artifact_sha256.to_hex(),
         "d09_authority_artifact_sha256": d09_authority.artifact_sha256.to_hex(),
+        "d11_capital_sources_sha256": d11_sources_sha256,
+        "funding_scope": "PRINCIPAL_AND_FLASH_SETTLEMENT_ONLY_GAS_UNCERTIFIED",
+        "gas_funding_certified": false,
+        "portfolio_concurrent_capacity_certified": false,
         "artifacts": [
             {
                 "path": "actionability-records.jsonl",
@@ -396,6 +496,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 "path": "actionability-summary.json",
                 "sha256": sha256_hex(&summary_bytes),
                 "bytes": summary_bytes.len()
+            },
+            {
+                "path": "capital-promotions.jsonl",
+                "sha256": sha256_hex(&capital_bytes),
+                "bytes": capital_bytes.len()
             }
         ]
     });
@@ -700,20 +805,6 @@ fn emodes(d08: &Path) -> Result<BTreeMap<u8, EMode>, Box<dyn Error>> {
         }
     }
     Ok(out)
-}
-
-fn flash_premium_bps(d08: &Path) -> Result<u32, Box<dyn Error>> {
-    let facts = read_json(d08.join("pool-and-factory-facts.json"))?;
-    let value = facts
-        .get("aave_pool")
-        .and_then(|pool| pool.get("flashloan_premium_total"))
-        .and_then(Value::as_str)
-        .ok_or("D08 closeout does not expose FLASHLOAN_PREMIUM_TOTAL")?;
-    let raw = parse_u256(value)?;
-    if raw > U256::from(u32::MAX) {
-        return Err("flashloan premium exceeds uint32".into());
-    }
-    Ok(raw.to::<u32>())
 }
 
 fn bool_field(value: &Value, key: &str) -> Result<bool, Box<dyn Error>> {
