@@ -30,6 +30,7 @@ pub enum ActionabilityError {
     InvalidLiquidationBonus,
     ZeroDebtToLiquidate,
     ZeroCollateralToLiquidator,
+    ZeroValuationInput,
     ZeroSnapshotCommitment,
     ConservationMismatch,
     BelowOneBorrowerCoverageMismatch,
@@ -55,6 +56,9 @@ impl Display for ActionabilityError {
             }
             Self::ZeroCollateralToLiquidator => {
                 f.write_str("admitted liquidation has zero collateral output")
+            }
+            Self::ZeroValuationInput => {
+                f.write_str("admitted liquidation has zero price or token unit")
             }
             Self::ZeroSnapshotCommitment => {
                 f.write_str("PFT market/account snapshot commitment must be non-zero")
@@ -242,8 +246,8 @@ pub struct ActionableLiquidation {
     pft_account_snapshot: Hash32,
 }
 
-#[allow(clippy::too_many_arguments)]
 impl ActionableLiquidation {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         pair: ActionabilityPair,
         health_factor_wad: Amount256,
@@ -272,7 +276,7 @@ impl ActionableLiquidation {
             || debt_price_base_wad.is_zero()
             || debt_asset_unit.is_zero()
         {
-            return Err(ActionabilityError::ZeroCollateralToLiquidator);
+            return Err(ActionabilityError::ZeroValuationInput);
         }
         if pft_market_snapshot.as_bytes().iter().all(|byte| *byte == 0)
             || pft_account_snapshot
