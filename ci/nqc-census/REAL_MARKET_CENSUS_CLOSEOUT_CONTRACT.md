@@ -206,6 +206,32 @@ The terminal commitment is input-order independent and binds:
 Changing any admitted artifact, code identity, coverage commitment, count or
 economic boundary must change the terminal commitment.
 
+## Certification scope boundary
+
+RMC-014 certifies **Conservative Realizable Capacity over the exact
+evidence-admitted universe**. It MUST NOT silently upgrade that lower bound into
+a claim that every economically relevant capital source or routing venue on the
+chain has been exhaustively enumerated.
+
+The terminal economic boundary therefore MUST bind:
+
+```
+conservative_realizable_capacity_only = true
+global_capital_source_completeness_claimed = false
+global_route_venue_completeness_claimed = false
+```
+
+These flags are part of the terminal commitment. RMC-011 currently states
+`GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED`, and the current physical
+execution producer admits Uniswap V2 routes rather than every possible venue
+family. Until separate authenticated discovery/admission paths close those
+gaps, any global-completeness claim MUST fail closed.
+
+This does not weaken the certified capacity: admitted opportunities must still
+be fully executable under the exact certified capital, route, gas, conflict and
+cost evidence. It prevents an admitted conservative lower bound from being
+misrepresented as a global maximum.
+
 ## Formal marker
 
 The literal marker:
