@@ -23,7 +23,8 @@ use std::{
 
 const RESOURCE_KEY_DOMAIN: &[u8] = b"NQC-RMC012-SHARED-RESOURCE-KEY-V1";
 const RESOURCE_ID_DOMAIN: &[u8] = b"NQC-RMC012-SHARED-RESOURCE-ID-V1";
-const PORTFOLIO_COMMITMENT_DOMAIN: &[u8] = b"NQC-RMC012-PORTFOLIO-COMMITMENT-V1";
+const PORTFOLIO_COMMITMENT_DOMAIN: &[u8] = b"NQC-RMC012-PORTFOLIO-COMMITMENT-V2";
+const PORTFOLIO_CANDIDATE_DOMAIN: &[u8] = b"NQC-RMC012-PORTFOLIO-CANDIDATE-V1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PortfolioError {
@@ -109,6 +110,7 @@ pub enum SharedResourceKind {
     PrivateRelaySlot,
     RpcQuota,
     BridgeLiquidity,
+    Opportunity,
     Custom,
 }
 
@@ -130,6 +132,7 @@ impl SharedResourceKind {
             Self::PrivateRelaySlot => 13,
             Self::RpcQuota => 14,
             Self::BridgeLiquidity => 15,
+            Self::Opportunity => 16,
             Self::Custom => 0xffff,
         }
     }
@@ -322,16 +325,56 @@ impl ResourceClaim {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct PortfolioCandidateId([u8; 32]);
+
+impl PortfolioCandidateId {
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+
+    pub fn to_hex(&self) -> String {
+        hex_encode(&self.0)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortfolioCandidate {
+    id: PortfolioCandidateId,
     requirement_id: CapitalRequirementId,
+    variant_hash: Option<Hash32>,
     anchor: StateAnchor,
     claims: Vec<ResourceClaim>,
 }
 
 impl PortfolioCandidate {
+    /// Construct the canonical single execution variant for a capital
+    /// requirement. Downstream route/venue alternatives must use
+    /// `new_variant` so they retain distinct candidate identity while sharing
+    /// the same independently certified capital requirement.
     pub fn new(
         requirement_id: CapitalRequirementId,
+        anchor: StateAnchor,
+        claims: Vec<ResourceClaim>,
+    ) -> Result<Self, PortfolioError> {
+        Self::build(requirement_id, None, anchor, claims)
+    }
+
+    /// Construct an explicitly distinct execution variant for one capital
+    /// requirement. Variant identity is evidence-bound by the caller (for
+    /// example route, venue, calldata or execution-plan commitment).
+    pub fn new_variant(
+        requirement_id: CapitalRequirementId,
+        variant_hash: Hash32,
+        anchor: StateAnchor,
+        claims: Vec<ResourceClaim>,
+    ) -> Result<Self, PortfolioError> {
+        Self::build(requirement_id, Some(variant_hash), anchor, claims)
+    }
+
+    fn build(
+        requirement_id: CapitalRequirementId,
+        variant_hash: Option<Hash32>,
         anchor: StateAnchor,
         mut claims: Vec<ResourceClaim>,
     ) -> Result<Self, PortfolioError> {
@@ -342,15 +385,35 @@ impl PortfolioCandidate {
         {
             return Err(PortfolioError::DuplicateResourceClaim);
         }
+        let mut bytes = Vec::with_capacity(65);
+        bytes.extend_from_slice(requirement_id.as_bytes());
+        match variant_hash {
+            Some(hash) => {
+                bytes.push(1);
+                bytes.extend_from_slice(hash.as_bytes());
+            }
+            None => bytes.push(0),
+        }
+        let id = PortfolioCandidateId(domain_hash(PORTFOLIO_CANDIDATE_DOMAIN, &bytes));
         Ok(Self {
+            id,
             requirement_id,
+            variant_hash,
             anchor,
             claims,
         })
     }
 
+    pub const fn id(&self) -> PortfolioCandidateId {
+        self.id
+    }
+
     pub const fn requirement_id(&self) -> CapitalRequirementId {
         self.requirement_id
+    }
+
+    pub const fn variant_hash(&self) -> Option<Hash32> {
+        self.variant_hash
     }
 
     pub const fn anchor(&self) -> &StateAnchor {
@@ -373,18 +436,19 @@ pub struct PortfolioConflict {
     pub resource: ConflictResource,
     pub capacity: Amount256,
     pub claimed: Amount256,
-    pub claimants: Vec<CapitalRequirementId>,
+    pub claimants: Vec<PortfolioCandidateId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CapitalBlockedCandidate {
+    pub candidate_id: PortfolioCandidateId,
     pub requirement_id: CapitalRequirementId,
     pub reason: FeasibilityRejection,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortfolioComponent {
-    pub candidates: Vec<CapitalRequirementId>,
+    pub candidates: Vec<PortfolioCandidateId>,
     pub resources: Vec<ConflictResource>,
 }
 
@@ -439,20 +503,20 @@ impl PortfolioReport {
 #[derive(Default)]
 struct Aggregate {
     claimed: Amount256,
-    claimants: BTreeSet<CapitalRequirementId>,
+    claimants: BTreeSet<PortfolioCandidateId>,
 }
 
 impl Aggregate {
     fn add(
         &mut self,
-        requirement_id: CapitalRequirementId,
+        candidate_id: PortfolioCandidateId,
         amount: Amount256,
     ) -> Result<(), PortfolioError> {
         self.claimed = self
             .claimed
             .checked_add(amount)
             .map_err(|_| PortfolioError::AmountOverflow)?;
-        self.claimants.insert(requirement_id);
+        self.claimants.insert(candidate_id);
         Ok(())
     }
 }
@@ -509,7 +573,7 @@ pub fn evaluate_portfolio(
     let mut capital_feasible_count = 0_usize;
 
     for candidate in candidates {
-        if !seen_candidates.insert(candidate.requirement_id()) {
+        if !seen_candidates.insert(candidate.id()) {
             return Err(PortfolioError::DuplicateCandidate);
         }
         let requirement = requirement_map
@@ -527,6 +591,7 @@ pub fn evaluate_portfolio(
         match result {
             CapitalFeasibility::Rejected { reason, .. } => {
                 capital_rejected.push(CapitalBlockedCandidate {
+                    candidate_id: candidate.id(),
                     requirement_id: candidate.requirement_id(),
                     reason: *reason,
                 });
@@ -561,7 +626,7 @@ pub fn evaluate_portfolio(
                     source_claims
                         .entry(key)
                         .or_default()
-                        .add(candidate.requirement_id(), amount)?;
+                        .add(candidate.id(), amount)?;
                 }
             }
         }
@@ -582,7 +647,7 @@ pub fn evaluate_portfolio(
             shared_claims
                 .entry(claim.resource_key)
                 .or_default()
-                .add(candidate.requirement_id(), claim.amount)?;
+                .add(candidate.id(), claim.amount)?;
         }
     }
 
@@ -623,7 +688,7 @@ pub fn evaluate_portfolio(
         }
     }
 
-    capital_rejected.sort_by_key(|entry| entry.requirement_id);
+    capital_rejected.sort_by_key(|entry| entry.candidate_id);
     conflicts.sort_by_key(|conflict| conflict.resource);
     let commitment = report_commitment(
         candidates,
@@ -653,11 +718,11 @@ fn contention_components(
 ) -> Vec<PortfolioComponent> {
     let rejected_ids = rejected
         .iter()
-        .map(|entry| entry.requirement_id)
+        .map(|entry| entry.candidate_id)
         .collect::<BTreeSet<_>>();
     let mut ids = candidates
         .iter()
-        .map(PortfolioCandidate::requirement_id)
+        .map(PortfolioCandidate::id)
         .filter(|id| !rejected_ids.contains(id))
         .collect::<Vec<_>>();
     ids.sort_unstable();
@@ -729,8 +794,8 @@ fn contention_components(
 }
 
 fn union_claimants(
-    index: &BTreeMap<CapitalRequirementId, usize>,
-    claimants: &BTreeSet<CapitalRequirementId>,
+    index: &BTreeMap<PortfolioCandidateId, usize>,
+    claimants: &BTreeSet<PortfolioCandidateId>,
     parent: &mut [usize],
     rank: &mut [u8],
 ) {
@@ -870,7 +935,15 @@ fn report_commitment(
             .to_be_bytes(),
     );
     for candidate in ordered_candidates {
+        hasher.update(candidate.id().as_bytes());
         hasher.update(candidate.requirement_id().as_bytes());
+        match candidate.variant_hash() {
+            Some(hash) => {
+                hasher.update([1]);
+                hasher.update(hash.as_bytes());
+            }
+            None => hasher.update([0]),
+        }
         encode_anchor_hash(candidate.anchor(), &mut hasher);
         hasher.update(
             u64::try_from(candidate.claims().len())
@@ -935,6 +1008,7 @@ fn report_commitment(
             .to_be_bytes(),
     );
     for item in rejected {
+        hasher.update(item.candidate_id.as_bytes());
         hasher.update(item.requirement_id.as_bytes());
         hasher.update(item.reason.code().as_bytes());
         hasher.update([0]);
