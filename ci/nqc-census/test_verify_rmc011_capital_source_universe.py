@@ -16,14 +16,42 @@ SPEC.loader.exec_module(mod)
 BASE = json.loads(Path("ci/nqc-census/rmc011-capital-source-universe.json").read_text())
 
 
+def evidence(kind: str, byte: str) -> dict:
+    return {
+        "kind": kind,
+        "locator": f"evidence/{byte}",
+        "sha256": byte * 64,
+    }
+
+
+def resolve_all_families(doc: dict) -> None:
+    for index, row in enumerate(doc["families"], start=1):
+        digit = format((index % 15) + 1, "x")
+        if row["real_source_path"] is None:
+            row["status"] = "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE"
+            row["resolution_evidence"] = evidence("EXHAUSTIVE_REJECTION", digit)
+        else:
+            row["status"] = "AUTHENTICATED_REAL_SOURCE"
+            row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", digit)
+        row["terminally_resolved"] = True
+
+
 class SourceUniverseTests(unittest.TestCase):
     def test_current_blocked_contract_is_valid(self) -> None:
         result = mod.validate_document(copy.deepcopy(BASE))
         self.assertEqual(result["family_count"], 13)
         self.assertEqual(result["resolved_count"], 0)
         self.assertEqual(result["unresolved_count"], 13)
+        self.assertFalse(result["family_universe_discovery_complete"])
         self.assertFalse(result["terminal_claim_allowed"])
+        self.assertFalse(result["d11_terminal_closed"])
         self.assertEqual(result["status"], "BLOCKED_INCOMPLETE_SOURCE_UNIVERSE")
+
+    def test_schema_must_be_v2(self) -> None:
+        doc = copy.deepcopy(BASE)
+        doc["schema_version"] = 1
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
 
     def test_implemented_parser_is_not_terminal_evidence(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -33,33 +61,65 @@ class SourceUniverseTests(unittest.TestCase):
         with self.assertRaises(mod.UniverseError):
             mod.validate_document(doc)
 
-    def test_only_authenticated_or_exhaustively_rejected_can_close(self) -> None:
+    def test_authenticated_family_requires_hash_bound_evidence(self) -> None:
         doc = copy.deepcopy(BASE)
-        for row in doc["families"]:
-            if row["real_source_path"] is None:
-                row["status"] = "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE"
-            else:
-                row["status"] = "AUTHENTICATED_REAL_SOURCE"
-            row["terminally_resolved"] = True
-            if row["real_source_path"] is None:
-                row["real_source_path"] = None
-        doc["status"] = "D11_TERMINAL_CLOSED"
+        row = doc["families"][0]
+        row["status"] = "AUTHENTICATED_REAL_SOURCE"
+        row["terminally_resolved"] = True
+        row["resolution_evidence"] = None
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+    def test_exhaustive_rejection_requires_hash_bound_evidence(self) -> None:
+        doc = copy.deepcopy(BASE)
+        row = next(row for row in doc["families"] if row["real_source_path"] is None)
+        row["status"] = "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE"
+        row["terminally_resolved"] = True
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+    def test_all_families_resolved_is_not_enough_without_discovery_authority(self) -> None:
+        doc = copy.deepcopy(BASE)
+        resolve_all_families(doc)
+        result = mod.validate_document(doc)
+        self.assertEqual(result["resolved_count"], 13)
+        self.assertFalse(result["family_universe_discovery_complete"])
+        self.assertFalse(result["terminal_claim_allowed"])
+        self.assertEqual(result["status"], "BLOCKED_INCOMPLETE_SOURCE_UNIVERSE")
+
+    def test_authenticated_discovery_and_resolved_families_complete_universe_only(self) -> None:
+        doc = copy.deepcopy(BASE)
+        resolve_all_families(doc)
+        doc["family_universe_discovery"] = {
+            "status": "AUTHENTICATED_COMPLETE",
+            "evidence": evidence("AUTHENTICATED_DISCOVERY", "a"),
+            "terminal_requirement": "AUTHENTICATED_COMPLETE",
+        }
+        doc["status"] = "CAPITAL_SOURCE_UNIVERSE_COMPLETE"
         doc["terminal_claim_allowed"] = True
         result = mod.validate_document(doc)
+        self.assertTrue(result["family_universe_discovery_complete"])
         self.assertTrue(result["terminal_claim_allowed"])
-        self.assertEqual(result["resolved_count"], 13)
-        self.assertEqual(result["unresolved_count"], 0)
+        self.assertFalse(result["d11_terminal_closed"])
+        self.assertEqual(result["status"], "CAPITAL_SOURCE_UNIVERSE_COMPLETE")
+
+    def test_source_universe_contract_can_never_emit_d11_terminal_closed(self) -> None:
+        doc = copy.deepcopy(BASE)
+        resolve_all_families(doc)
+        doc["family_universe_discovery"] = {
+            "status": "AUTHENTICATED_COMPLETE",
+            "evidence": evidence("AUTHENTICATED_DISCOVERY", "b"),
+            "terminal_requirement": "AUTHENTICATED_COMPLETE",
+        }
+        doc["status"] = "D11_TERMINAL_CLOSED"
+        doc["terminal_claim_allowed"] = True
+        doc["d11_terminal_closed"] = True
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
 
     def test_unknown_family_fails(self) -> None:
         doc = copy.deepcopy(BASE)
         doc["families"][0]["id"] = "UNKNOWN_CAPITAL_FAMILY"
-        with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
-
-    def test_terminal_claim_cannot_be_forced_while_unresolved(self) -> None:
-        doc = copy.deepcopy(BASE)
-        doc["terminal_claim_allowed"] = True
-        doc["status"] = "D11_TERMINAL_CLOSED"
         with self.assertRaises(mod.UniverseError):
             mod.validate_document(doc)
 
