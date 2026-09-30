@@ -106,5 +106,29 @@ class DiscoveryContractTests(unittest.TestCase):
             validate(copy.deepcopy(DISCOVERY), deployment=deployment)
 
 
+    def test_collateralized_borrowing_requires_permissionless_catalog(self) -> None:
+        doc = copy.deepcopy(DISCOVERY)
+        row = next(
+            row for row in doc["families"]
+            if row["id"] == "COLLATERALIZED_BORROWING"
+        )
+        row["implementation"] = "nqc-census/crates/nqc-census-capital/src/external_debt.rs"
+        with self.assertRaises(mod.DiscoveryError):
+            validate(doc)
+
+    def test_persistent_debt_requires_permissionless_catalog_verifier(self) -> None:
+        doc = copy.deepcopy(DISCOVERY)
+        row = next(
+            row for row in doc["families"]
+            if row["id"] == "PERSISTENT_DEBT"
+        )
+        row["implementation"] = (
+            "nqc-census/crates/nqc-census-capital/src/external_debt.rs + "
+            "ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json"
+        )
+        with self.assertRaises(mod.DiscoveryError):
+            validate(doc)
+
+
 if __name__ == "__main__":
     unittest.main()
