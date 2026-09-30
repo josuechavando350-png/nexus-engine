@@ -60,6 +60,12 @@ This means a successful RMC-011 real-source closeout proves the identity, terms,
 
 Any later phase that needs a source family outside this live-import basis MUST either add an evidence-backed discovery/admission path and recertify D11, or fail closed. Absence from the current source ledger MUST NOT be interpreted as authoritative proof that no such source exists.
 
+The exhaustive family-discovery specification is `ci/nqc-census/rmc011-capital-family-discovery.json`. It defines, for each required family, the authoritative discovery surface, anchor semantics, completeness condition, negative-proof requirement, and implementation path. The discovery plan itself is not evidence. Terminal source-universe readiness requires an authenticated discovery result proving that every declared surface was actually executed to its completeness condition.
+
+A family may be labeled `EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE` only when its declared discovery surface was completed and the rejection evidence is content-addressed. “No result was found,” absence from an index, a historical test, or a model-only adapter is never an exhaustive rejection. Permissioned/off-chain capital families are exhaustive only relative to the authenticated NQC external-provider registry and supported execution-plan catalog; uncontracted third-party credit is not treated as capital available to NQC.
+
+Balancer V2 and Uniswap V3 are permissionless on-chain discovery surfaces and therefore require fresh block-pinned D11 acquisition at the certified anchor. Historical T36 Balancer callback parity may justify implementation semantics but MUST NOT serve as current D11 availability/capacity evidence.
+
 ## Required source fields
 
 Every admitted capital source record MUST bind:
