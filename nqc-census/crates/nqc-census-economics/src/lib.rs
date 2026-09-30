@@ -1112,6 +1112,7 @@ pub fn evaluate_scenarios(scenarios: &[PnlScenario]) -> Result<ScenarioRiskRepor
     })
 }
 
+#[allow(clippy::too_many_arguments)]
 fn quote_commitment(
     candidate_id: PortfolioCandidateId,
     opportunity_id: Hash32,
