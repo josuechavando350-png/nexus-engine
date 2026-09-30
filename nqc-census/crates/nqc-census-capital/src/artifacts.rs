@@ -100,6 +100,10 @@ pub struct CapitalArtifactFile {
 }
 
 impl CapitalArtifactFile {
+    pub fn from_bytes(name: &'static str, bytes: Vec<u8>) -> Self {
+        Self::new(name, bytes)
+    }
+
     fn new(name: &'static str, bytes: Vec<u8>) -> Self {
         let sha256 = sha256(&bytes);
         Self {
@@ -945,7 +949,13 @@ fn upstream_authority_json(
     ])
 }
 
-pub(crate) fn parse_upstream_authority(
+pub fn decode_upstream_authority_artifact(
+    bytes: &[u8],
+) -> Result<(CapitalCertificationContext, ArtifactProvenance), CapitalError> {
+    parse_upstream_authority(bytes)
+}
+
+fn parse_upstream_authority(
     bytes: &[u8],
 ) -> Result<(CapitalCertificationContext, ArtifactProvenance), CapitalError> {
     let parsed = Json::parse(bytes)
