@@ -20,7 +20,7 @@ use nqc_census_chain::testkit::{Faults, SimChain, SimLog, SimNetwork, SimProvide
 use nqc_census_chain::transport::{InterruptAfter, RetryPolicy, Transport};
 use nqc_census_core::{Address, CallOutcome};
 use nqc_census_refresh::base::{read_base, BaseCensus};
-use nqc_census_refresh::canonical::base_canonicality_stage;
+use nqc_census_refresh::canonical::{base_canonicality_stage, reorg_control};
 use nqc_census_refresh::parity::census_parity;
 use nqc_census_refresh::refresh::{
     delta_plan, reconcile_incremental, refreshed_candidates, Providers,
@@ -679,6 +679,63 @@ fn a_reorged_base_refuses_the_refresh_while_a_full_census_succeeds() -> TestResu
         .ok_or("reorged base accepted")?;
     assert!(error.to_string().contains("BASE_REORGED"), "{error}");
     run.full(&target, &dirs.0[1])?;
+    Ok(())
+}
+
+/// The live negative control: a real block hash that is not canonical at the
+/// base height (the block before it) must be refused as a reorged base that
+/// needs a full census, while both providers still observe the certified base.
+/// On a chain where the certified base itself was reorged, the control fails:
+/// it proves nothing about a base that is no longer canonical.
+#[test]
+fn the_reorg_control_refuses_a_non_canonical_base_hash_and_names_a_full_census() -> TestResult {
+    let scenario = scenario();
+    let run = prepare(&scenario, &Options::default(), "reorg-control")?;
+    let dirs = Dirs::new(&run, &["base"]);
+    let base = base(&run, &dirs.0[0])?;
+    let target = plan(&run.sim, A1, 3)?;
+    let report = reorg_control(
+        &run.acquisition(&run.network),
+        &run.state_specs,
+        &target.anchor,
+        &base,
+    )?;
+    assert_eq!(report.str_field("status")?, "RMC010_REORG_CONTROL_REFUSED");
+    assert_eq!(
+        report.str_field("certified_base_hash")?,
+        base.anchor_hash.to_hex()
+    );
+    assert_eq!(
+        Some(report.str_field("declared_control_hash")?.to_owned()),
+        run.sim.hash_of(A0 - 1).map(|hash| hash.to_hex())
+    );
+    assert!(report
+        .str_field("refusal")?
+        .contains("a full census is required"));
+
+    let reorged = prepare(
+        &scenario,
+        &Options {
+            reorg_from: Some((BASE + 30, 7)),
+            ..Options::default()
+        },
+        "reorg-control-after",
+    )?;
+    let target = plan(&reorged.sim, A1, 3)?;
+    let error = reorg_control(
+        &reorged.acquisition(&reorged.network),
+        &reorged.state_specs,
+        &target.anchor,
+        &base,
+    )
+    .err()
+    .ok_or("a control on a reorged chain must fail")?;
+    assert!(
+        error
+            .to_string()
+            .contains("does not observe the certified base hash"),
+        "{error}"
+    );
     Ok(())
 }
 

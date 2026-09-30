@@ -16,6 +16,7 @@ use nqc_census_chain::{
     transport::{ReplayTransport, RetryPolicy},
     ChainError,
 };
+use nqc_census_core::Hash32;
 use nqc_census_state::replay::{manifests, owner};
 use nqc_census_state::stage::{stage_anchor, AnchorPlan};
 use nqc_census_state::v2_verify::ReplayedStage;
@@ -113,6 +114,119 @@ pub fn replay_canonicality(
         manifests: ids,
         rows,
     })
+}
+
+const CONTROL_NAMESPACE: u16 = 0x0a02;
+const CONTROL_FAMILY: &str = "rmc010-reorg-control-parent";
+
+/// Live negative control of `BASE_CANONICALITY`.
+///
+/// Declares the certified base height with a real block hash that is not
+/// canonical there: the hash of the block before it, read on every provider
+/// at the target anchor (they must agree). The unchanged canonicality stage
+/// and verifier then run on that declaration and must refuse the refresh as
+/// `BASE_REORGED`, naming a full census, while every provider still observes
+/// the certified base hash at the base height. Anything else fails.
+pub fn reorg_control(
+    acquisition: &Acquisition<'_>,
+    providers: &[ProviderSpec],
+    target: &AnchorPlan,
+    base: &BaseCensus,
+) -> Result<Json, ChainError> {
+    let parent_height = base
+        .anchor_number
+        .checked_sub(1)
+        .ok_or_else(|| ChainError::Config("the base anchor has no parent block".into()))?;
+    let mut parent: Option<String> = None;
+    for provider in providers {
+        let (chain, anchor, _) = stage_anchor(acquisition, provider, target)?;
+        let spec = JobSpec::new(
+            CONTROL_FAMILY,
+            1,
+            CONTROL_NAMESPACE,
+            Json::object([
+                ("height", Json::uint(parent_height)),
+                ("target", Json::uint(target.number)),
+            ]),
+        )?;
+        let output = acquisition.point(provider, &chain, None, &spec, &anchor, |ctx| {
+            let header = ctx.header_by_number(parent_height)?;
+            Ok(Json::object([(
+                "hash",
+                Json::string(header.envelope().anchor().block_hash().to_hex()),
+            )]))
+        })?;
+        let hash = output.result_json()?.str_field("hash")?.to_owned();
+        if *parent.get_or_insert_with(|| hash.clone()) != hash {
+            return Err(ChainError::Evidence(format!(
+                "providers disagree on block {parent_height}: the control has no real hash"
+            )));
+        }
+    }
+    let control_hash =
+        Hash32::parse_hex(&parent.ok_or_else(|| ChainError::Config("no provider".into()))?)?;
+    if control_hash == base.anchor_hash {
+        return Err(ChainError::Evidence(
+            "the control hash equals the certified base hash".into(),
+        ));
+    }
+    let declared = BaseCensus {
+        anchor_hash: control_hash,
+        ..base.clone()
+    };
+    let mut stages = Vec::with_capacity(providers.len());
+    for provider in providers {
+        let (record, rows) = base_canonicality_stage(acquisition, provider, target, &declared)?;
+        for row in &rows {
+            if row.str_field("observed_hash")? != base.anchor_hash.to_hex() {
+                return Err(ChainError::Evidence(format!(
+                    "{} does not observe the certified base hash at block {}",
+                    provider.label(),
+                    base.anchor_number
+                )));
+            }
+        }
+        stages.push(ReplayedStage {
+            provider: provider.label().to_owned(),
+            parameters: record
+                .get("parameters")
+                .cloned()
+                .ok_or_else(|| ChainError::Evidence("record without parameters".into()))?,
+            manifests: manifests(&record)?,
+            rows,
+        });
+    }
+    match verify_canonicality(&stages, &declared) {
+        Ok(_) => Err(ChainError::Evidence(
+            "RMC010_REORG_CONTROL_ACCEPTED: a base hash that is not canonical was accepted".into(),
+        )),
+        Err(error)
+            if error.to_string().contains("BASE_REORGED")
+                && error.to_string().contains("a full census is required") =>
+        {
+            Ok(Json::object([
+                ("status", Json::string("RMC010_REORG_CONTROL_REFUSED")),
+                ("base_number", Json::uint(base.anchor_number)),
+                (
+                    "certified_base_hash",
+                    Json::string(base.anchor_hash.to_hex()),
+                ),
+                ("declared_control_hash", Json::string(control_hash.to_hex())),
+                ("control_hash_source", Json::uint(parent_height)),
+                ("target", Json::uint(target.number)),
+                (
+                    "providers",
+                    Json::array(
+                        stages
+                            .iter()
+                            .map(|stage| Json::string(stage.provider.clone())),
+                    ),
+                ),
+                ("refusal", Json::string(error.to_string())),
+            ]))
+        }
+        Err(error) => Err(error),
+    }
 }
 
 /// Requires at least two providers, each observing the certified base hash

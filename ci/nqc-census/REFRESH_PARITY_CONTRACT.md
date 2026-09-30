@@ -135,9 +135,18 @@ The incremental path then acquires only what differs from the full path:
 6. `census_parity` requires every census artifact to be byte-identical to
    the certified full-A1 closeout. Only the two documented provenance
    artifacts are excluded.
-7. The final parity report, incremental evidence manifest, full evidence
-   manifest, exact commit/tree and all upstream identities are hashed into a
-   retained RMC-010 certification record.
+7. A live negative control (`reorg-control`, required by the reconcile
+   job) declares the certified base height with a real hash that is not
+   canonical there: the hash of the block before it, read on both state
+   providers at A1, which must agree. The unchanged canonicality stage and
+   verifier run on that declaration and must refuse the refresh as
+   `BASE_REORGED`, naming a full census. Both providers must still observe
+   the certified base hash at the base height. The control fails if the
+   wrong hash is accepted, if it is refused for any other reason, or if the
+   certified base is no longer canonical.
+8. The final parity report, incremental evidence manifest, full evidence
+   manifest, reorg-control report, exact commit/tree and all upstream
+   identities are hashed into a retained RMC-010 certification record.
 
 Synthetic tests remain implementation evidence only. A live certification is
 valid only when that exact-head workflow succeeds and its final artifact is

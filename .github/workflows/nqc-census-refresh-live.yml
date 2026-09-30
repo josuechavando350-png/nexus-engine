@@ -235,6 +235,62 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  # Live negative control: the certified base height declared with a real
+  # hash that is not canonical there (the block before it, read in the same
+  # job) must be refused by the unchanged canonicality check as BASE_REORGED,
+  # naming a full census, while both providers observe the certified base.
+  reorg-control:
+    needs: inputs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      TARGET_NUMBER: ${{ needs.inputs.outputs.target_number }}
+      TARGET_HASH: ${{ needs.inputs.outputs.target_hash }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Fetch verified inputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d10-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc010-inputs
+
+      - name: A non-canonical base hash must be refused
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D10_EVIDENCE"
+          cargo build --release --locked -p nqc-census-refresh --bin nqc-rmc010-reorg-control
+          target/release/nqc-rmc010-reorg-control \
+            --providers ../ci/nqc-census/state-providers.json --labels blastapi-public,mevblocker-rpc \
+            --pins "$D10_INPUTS/target/account-inputs.json" --pin-root "$D10_INPUTS/target" \
+            --base "$D10_INPUTS/base/closeout" \
+            --anchor-number "$TARGET_NUMBER" --anchor-hash "$TARGET_HASH" \
+            --store "$D10_EVIDENCE/store" --out "$D10_EVIDENCE/reorg-control.json" \
+            | tee "$D10_EVIDENCE/reorg-control.log"
+          grep -F RMC010_REORG_CONTROL_REFUSED "$D10_EVIDENCE/reorg-control.log"
+          grep -F '"status":"RMC010_REORG_CONTROL_REFUSED"' "$D10_EVIDENCE/reorg-control.json"
+
+      - name: Preserve reorg control evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d10-reorg-control-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc010-evidence
+          if-no-files-found: error
+          retention-days: 30
+
   canonicality-replay:
     needs: [inputs, canonicality]
     runs-on: ubuntu-24.04
@@ -480,7 +536,7 @@ jobs:
           retention-days: 30
 
   reconcile:
-    needs: [inputs, candidates, canonicality-replay, delta-replay]
+    needs: [inputs, candidates, canonicality-replay, delta-replay, reorg-control]
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     env:
@@ -513,6 +569,13 @@ jobs:
         with:
           name: d10-candidates-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc010-candidates
+
+      - name: Fetch the reorg control report
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d10-reorg-control-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-*
+          path: /tmp/nqc-rmc010-reorg-control
+          merge-multiple: true
 
       - name: Fetch canonicality extracts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
@@ -593,6 +656,12 @@ jobs:
               "incremental_evidence_manifest_sha256": sha(os.path.join(root, "closeout", "evidence-manifest.json")),
               "full_evidence_manifest_sha256": sha(os.path.join(os.environ["D10_INPUTS"], "full", "closeout", "evidence-manifest.json")),
           }
+          control_path = "/tmp/nqc-rmc010-reorg-control/reorg-control.json"
+          control = json.load(open(control_path))
+          assert control["status"] == "RMC010_REORG_CONTROL_REFUSED", control["status"]
+          assert control["certified_base_hash"] == cfg["base_anchor"]["block_hash"], control
+          report["reorg_control"] = {"status": control["status"], "sha256": sha(control_path),
+                                     "declared_control_hash": control["declared_control_hash"]}
           out = os.path.join(root, "rmc010-certification.json")
           with open(out, "w") as handle:
               json.dump(report, handle, indent=2, sort_keys=True)
