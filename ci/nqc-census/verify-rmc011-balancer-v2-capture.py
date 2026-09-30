@@ -50,11 +50,28 @@ def validate_capture(doc: dict) -> dict:
     require(doc.get("family") == "BALANCER_V2_FLASH_LOAN", "unexpected capture family")
     provider_id = doc.get("provider_id")
     require(isinstance(provider_id, str) and provider_id, "provider_id required")
+    provider_operator = doc.get("provider_operator")
+    require(
+        isinstance(provider_operator, str) and provider_operator,
+        "provider_operator required",
+    )
     endpoint_hash = doc.get("rpc_endpoint_hash")
     require(isinstance(endpoint_hash, str) and SHA_RE.fullmatch(endpoint_hash) is not None, "rpc endpoint hash invalid")
+    for key in ("provider_manifest", "bootstrap_manifest", "anchor_manifest"):
+        value = doc.get(key)
+        require(
+            isinstance(value, str) and HASH_RE.fullmatch(value) is not None,
+            f"{key} invalid",
+        )
 
     validate_anchor(doc.get("anchor"))
-    for key in ("authority_lock_sha256", "d08_market_state_sha256", "d08_token_admission_sha256"):
+    for key in (
+        "authority_lock_sha256",
+        "d08_market_state_sha256",
+        "d08_token_admission_sha256",
+        "d08_evidence_manifest_sha256",
+        "asset_universe_sha256",
+    ):
         value = doc.get(key)
         require(isinstance(value, str) and SHA_RE.fullmatch(value) is not None, f"{key} invalid")
 
@@ -88,8 +105,15 @@ def validate_capture(doc: dict) -> dict:
     require(len(observed) == len(set(observed)), "assets must be unique")
 
     semantic = dict(doc)
-    semantic.pop("provider_id", None)
-    semantic.pop("rpc_endpoint_hash", None)
+    for key in (
+        "provider_id",
+        "provider_operator",
+        "rpc_endpoint_hash",
+        "provider_manifest",
+        "bootstrap_manifest",
+        "anchor_manifest",
+    ):
+        semantic.pop(key, None)
     return semantic
 
 
@@ -97,7 +121,12 @@ def reconcile(a: dict, b: dict) -> dict:
     semantic_a = validate_capture(a)
     semantic_b = validate_capture(b)
     require(a["provider_id"] != b["provider_id"], "providers must be distinct")
+    require(
+        a["provider_operator"].casefold() != b["provider_operator"].casefold(),
+        "provider operators must be distinct",
+    )
     require(a["rpc_endpoint_hash"] != b["rpc_endpoint_hash"], "RPC endpoints must be distinct")
+    require(a["provider_manifest"] != b["provider_manifest"], "provider manifests must be distinct")
     require(semantic_a == semantic_b, "dual-provider Balancer captures disagree")
 
     capture_a_sha = hashlib.sha256(canonical_bytes(a)).hexdigest()
