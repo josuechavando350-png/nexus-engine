@@ -553,8 +553,16 @@ impl RealSourceCloseout {
 
     fn payload_json(&self) -> Result<Json, CapitalError> {
         Ok(Json::object([
-            ("schema_version", Json::uint(1)),
+            ("schema_version", Json::uint(2)),
             ("status", Json::string("RMC_011_REAL_SOURCE_CLOSEOUT_PASS")),
+            (
+                "source_universe_basis",
+                Json::string("RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY"),
+            ),
+            (
+                "global_capital_source_completeness_claimed",
+                Json::Bool(false),
+            ),
             ("generated_at", Json::string(self.generated_at.clone())),
             (
                 "generated_at_basis",
@@ -681,6 +689,7 @@ impl RealSourceCloseout {
                         "SHADOW_NOT_CERTIFIED",
                         "CANARY_NOT_CERTIFIED",
                         "REAL_PNL_NOT_CERTIFIED",
+                        "GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED",
                     ]
                     .into_iter()
                     .chain(
@@ -735,7 +744,7 @@ fn real_source_closeout_commitment(payload: &Json) -> Result<Hash32, CapitalErro
         .canonical()
         .map_err(|_| CapitalError::InvalidCanonical("real-source closeout payload"))?;
     let mut hasher = Sha256::new();
-    hasher.update(b"NQC-RMC011-REAL-SOURCE-CLOSEOUT-V1");
+    hasher.update(b"NQC-RMC011-REAL-SOURCE-CLOSEOUT-V2");
     hasher.update([0]);
     hasher.update(
         u64::try_from(bytes.len())
