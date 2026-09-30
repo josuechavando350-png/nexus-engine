@@ -164,6 +164,41 @@ pub fn external_gas_credit_terms_commitment(
         .map_err(|_| CapitalError::InvalidCanonical("zero gas credit terms commitment"))
 }
 
+pub fn external_gas_credit_facts_commitment(
+    anchor: &StateAnchor,
+    facility: Address,
+    borrower: Address,
+    lender: Address,
+    runtime_sha256: Hash32,
+    terms: Hash32,
+    facility_balance: Amount256,
+    credit_limit: Amount256,
+    outstanding: Amount256,
+) -> Result<Hash32, CapitalError> {
+    let mut hasher = Sha256::new();
+    hasher.update(b"NQC-RMC011-EXTERNAL-GAS-CREDIT-FACTS-V1");
+    hasher.update([0]);
+    hasher.update(anchor.chain().chain_id().to_be_bytes());
+    hasher.update(anchor.chain().genesis_hash().as_bytes());
+    hasher.update(anchor.chain().fork_lineage().as_bytes());
+    hasher.update(anchor.block_number().to_be_bytes());
+    hasher.update(anchor.block_hash().as_bytes());
+    hasher.update(anchor.parent_hash().as_bytes());
+    hasher.update(anchor.timestamp().to_be_bytes());
+    hasher.update(anchor.state_root().as_bytes());
+    hasher.update(facility.as_bytes());
+    hasher.update(borrower.as_bytes());
+    hasher.update(lender.as_bytes());
+    hasher.update(runtime_sha256.as_bytes());
+    hasher.update(terms.as_bytes());
+    hasher.update(facility_balance.as_be_bytes());
+    hasher.update(credit_limit.as_be_bytes());
+    hasher.update(outstanding.as_be_bytes());
+    let digest: [u8; 32] = hasher.finalize().into();
+    Hash32::new(digest)
+        .map_err(|_| CapitalError::InvalidCanonical("zero gas credit facts commitment"))
+}
+
 fn locator_hash(
     facility: Address,
     borrower: Address,
@@ -185,7 +220,10 @@ fn locator_hash(
         .map_err(|_| CapitalError::InvalidCanonical("zero gas credit locator hash"))
 }
 
-fn provider_evidence(row: &Json) -> Result<Vec<CapitalEvidenceRef>, CapitalError> {
+fn provider_evidence(
+    row: &Json,
+    expected_facts: Hash32,
+) -> Result<Vec<CapitalEvidenceRef>, CapitalError> {
     let providers = array(row, "provider_observations")?;
     if providers.len() != 2 {
         return Err(CapitalError::InvalidCanonical(
@@ -208,6 +246,10 @@ fn provider_evidence(row: &Json) -> Result<Vec<CapitalEvidenceRef>, CapitalError
             ));
         }
         previous = Some(provider_id);
+        let facts = hash32(provider, "facts_commitment")?;
+        if facts != expected_facts {
+            return Err(CapitalError::CanonicalDigestMismatch);
+        }
         let digest = hash32(provider, "transcript_sha256")?;
         evidence.push(CapitalEvidenceRef::Observation(*digest.as_bytes()));
     }
@@ -312,7 +354,18 @@ pub fn import_external_gas_credit_observation(
         return Err(CapitalError::CanonicalDigestMismatch);
     }
 
-    let evidence = provider_evidence(&row)?;
+    let facts_commitment = external_gas_credit_facts_commitment(
+        &anchor,
+        facility,
+        borrower,
+        lender,
+        runtime_sha256,
+        recomputed_terms,
+        facility_balance,
+        credit_limit,
+        outstanding,
+    )?;
+    let evidence = provider_evidence(&row, facts_commitment)?;
     let provider_locator_hash =
         locator_hash(facility, borrower, lender, runtime_sha256, recomputed_terms)?;
 
