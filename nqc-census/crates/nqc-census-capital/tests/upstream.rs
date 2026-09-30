@@ -539,17 +539,33 @@ fn d08_import_rejects_noncanonical_fee_or_liquidity_semantics() -> TestResult {
         &d08_facts(),
         &context(),
     )?;
-    assert_eq!(liquidity_import.sources.len(), 0);
-    assert_eq!(liquidity_import.rejected_count, 2);
-    assert!(liquidity_import
-        .rejections
-        .iter()
-        .all(|row| row.reason == CapitalImportRejectionReason::V2LiquidityUnavailable));
+    assert_eq!(liquidity_import.sources.len(), 2);
+    assert_eq!(liquidity_import.rejected_count, 0);
+    assert!(liquidity_import.rejections.is_empty());
+    assert!(liquidity_import.sources.iter().all(|source| {
+        !source.execution_eligible()
+            && source.executable_capacity() == Ok(Amount256::ZERO)
+            && source.execution_blockers()
+                == &["V2_LIQUIDITY_UNAVAILABLE".to_owned()]
+    }));
+    assert!(liquidity_import.is_conserved());
+
+    let unknown_liquidity = no_liquidity.replace(
+        "\"liquidity_state\":\"ZERO_LIQUIDITY_NOT_ROUTABLE\"",
+        "\"liquidity_state\":\"UNKNOWN_LIQUIDITY_STATE\"",
+    );
+    assert!(import_d08_capital_sources(
+        unknown_liquidity.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )
+    .is_err());
     Ok(())
 }
 
 #[test]
-fn d08_import_rejects_inactive_or_paused_aave_reserve() -> TestResult {
+fn d08_import_preserves_inactive_or_paused_aave_reserve_as_blocked_capital() -> TestResult {
     let asset = address(20);
     let tokens = format!("{}\n", token_row(asset, true));
     for (active, paused) in [(false, false), (true, true)] {
@@ -563,11 +579,24 @@ fn d08_import_rejects_inactive_or_paused_aave_reserve() -> TestResult {
             &d08_facts(),
             &context(),
         )?;
-        assert_eq!(imported.sources.len(), 0);
+        assert_eq!(imported.sources.len(), 1);
+        assert!(imported.rejections.is_empty());
+        assert_eq!(imported.admitted_count, 1);
+        assert_eq!(imported.rejected_count, 0);
         assert_eq!(
-            imported.rejections[0].reason,
-            CapitalImportRejectionReason::ReserveInactiveOrPaused
+            imported.sources[0].maximum_available(),
+            Amount256::from_u128(10_000)
         );
+        assert_eq!(
+            imported.sources[0].effective_capacity()?,
+            Amount256::from_u128(10_000)
+        );
+        assert_eq!(imported.sources[0].executable_capacity()?, Amount256::ZERO);
+        assert_eq!(
+            imported.sources[0].execution_blockers(),
+            &["RESERVE_INACTIVE_OR_PAUSED".to_owned()]
+        );
+        assert!(imported.is_conserved());
     }
     Ok(())
 }
