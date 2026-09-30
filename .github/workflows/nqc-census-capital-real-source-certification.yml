@@ -162,7 +162,7 @@ jobs:
           cargo fmt --all -- --check
           cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
           cargo test --locked -p nqc-census-capital
-          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-balancer-v2-capture --bin nqc-rmc011-balancer-v2-reconcile --bin nqc-rmc011-expanded-ledger-replay
+          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-balancer-v2-capture --bin nqc-rmc011-balancer-v2-reconcile --bin nqc-rmc011-uniswap-v3-capture --bin nqc-rmc011-uniswap-v3-reconcile --bin nqc-rmc011-expanded-ledger-replay
           cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
           cargo build --release --locked -p nqc-census-capital
 
