@@ -10,7 +10,8 @@
 use crate::{
     uniswap_v3_live::{
         decode_uniswap_v3_pool_created, uniswap_v3_factory_interface,
-        verify_uniswap_v3_factory_runtime, UniswapV3PoolIdentity, UNISWAP_V3_DEPLOYMENT_BLOB,
+        verify_uniswap_v3_factory_runtime, verify_uniswap_v3_pool_runtime,
+        UniswapV3PoolIdentity, UNISWAP_V3_DEPLOYMENT_BLOB,
         UNISWAP_V3_DEPLOYMENT_COMMIT, UNISWAP_V3_DEPLOYMENT_PATH,
         UNISWAP_V3_DEPLOYMENT_REPOSITORY, UNISWAP_V3_FACTORY,
     },
@@ -700,6 +701,7 @@ fn provider_capture(
                             "Uniswap V3 PoolCreated pool has no runtime code at anchor".into(),
                         ));
                     }
+                    verify_uniswap_v3_pool_runtime(code.payload().code())?;
                     if asset_balances.is_empty() {
                         return Err(ChainError::Evidence(
                             "Uniswap V3 relevant pool has no D08 asset balance".into(),
