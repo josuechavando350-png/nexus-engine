@@ -7,17 +7,112 @@
 //! upstream artifact.
 
 use crate::{
+    adapters::{BALANCER_V2_PROVIDER_NAMESPACE, UNISWAP_V3_PROVIDER_NAMESPACE},
     validate_settlement_requirements, CapitalCensusCommitment, CapitalCensusLedger,
-    CapitalCensusSummary, CapitalCertificationContext, CapitalError, CapitalEvidenceRef,
-    CapitalFeasibility, CapitalLedgerMode, CapitalSource, UpstreamCensusStage,
-    UpstreamConsumptionReceipt,
+    CapitalCensusSummary, CapitalCertificationContext, CapitalClass, CapitalError,
+    CapitalEvidenceRef, CapitalFeasibility, CapitalLedgerMode, CapitalProviderKind,
+    CapitalSource, UpstreamCensusStage, UpstreamConsumptionReceipt,
 };
 use nqc_census_core::{Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 const SOURCE_SET_DOMAIN: &[u8] = b"NQC-RMC011-NATIVE-SOURCE-SET-V1";
-const AUTHORITY_DOMAIN: &[u8] = b"NQC-RMC011-NATIVE-SOURCE-AUTHORITY-V1";
+const AUTHORITY_DOMAIN: &[u8] = b"NQC-RMC011-NATIVE-SOURCE-AUTHORITY-V2";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum D11SourceFamily {
+    BalancerV2FlashLoan,
+    UniswapV3Flash,
+    ExternalGasCredit,
+    ExternalGasSponsor,
+    TransientExternalCredit,
+    CollateralizedBorrowing,
+    PersistentDebt,
+    InventoryRequirement,
+    BondOrStake,
+    SolverOrBuilderDeposit,
+    IntraBlockTemporaryLock,
+}
+
+impl D11SourceFamily {
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::BalancerV2FlashLoan => "BALANCER_V2_FLASH_LOAN",
+            Self::UniswapV3Flash => "UNISWAP_V3_FLASH",
+            Self::ExternalGasCredit => "EXTERNAL_GAS_CREDIT",
+            Self::ExternalGasSponsor => "EXTERNAL_GAS_SPONSOR",
+            Self::TransientExternalCredit => "TRANSIENT_EXTERNAL_CREDIT",
+            Self::CollateralizedBorrowing => "COLLATERALIZED_BORROWING",
+            Self::PersistentDebt => "PERSISTENT_DEBT",
+            Self::InventoryRequirement => "INVENTORY_REQUIREMENT",
+            Self::BondOrStake => "BOND_OR_STAKE",
+            Self::SolverOrBuilderDeposit => "SOLVER_OR_BUILDER_DEPOSIT",
+            Self::IntraBlockTemporaryLock => "INTRA_BLOCK_TEMPORARY_LOCK",
+        }
+    }
+
+    const fn tag(self) -> u8 {
+        match self {
+            Self::BalancerV2FlashLoan => 1,
+            Self::UniswapV3Flash => 2,
+            Self::ExternalGasCredit => 3,
+            Self::ExternalGasSponsor => 4,
+            Self::TransientExternalCredit => 5,
+            Self::CollateralizedBorrowing => 6,
+            Self::PersistentDebt => 7,
+            Self::InventoryRequirement => 8,
+            Self::BondOrStake => 9,
+            Self::SolverOrBuilderDeposit => 10,
+            Self::IntraBlockTemporaryLock => 11,
+        }
+    }
+
+    fn classify(source: &CapitalSource) -> Result<Self, CapitalError> {
+        if source.provider_namespace() == BALANCER_V2_PROVIDER_NAMESPACE {
+            if source.class() == CapitalClass::AtomicFlashLiquidity
+                && source.provider_kind() == CapitalProviderKind::ProtocolContract
+            {
+                return Ok(Self::BalancerV2FlashLoan);
+            }
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "Balancer namespace carries incompatible capital semantics",
+            ));
+        }
+        if source.provider_namespace() == UNISWAP_V3_PROVIDER_NAMESPACE {
+            if source.class() == CapitalClass::AtomicFlashLiquidity
+                && source.provider_kind() == CapitalProviderKind::DexLiquidityPool
+            {
+                return Ok(Self::UniswapV3Flash);
+            }
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "Uniswap V3 namespace carries incompatible capital semantics",
+            ));
+        }
+
+        match source.class() {
+            CapitalClass::GasFunding => match source.provider_kind() {
+                CapitalProviderKind::ExternalCreditFacility => Ok(Self::ExternalGasCredit),
+                CapitalProviderKind::ExternalSponsor => Ok(Self::ExternalGasSponsor),
+                _ => Err(CapitalError::InvalidUpstreamAuthority(
+                    "gas funding source has unsupported provider kind",
+                )),
+            },
+            CapitalClass::TransientCredit => Ok(Self::TransientExternalCredit),
+            CapitalClass::CollateralizedBorrowing => Ok(Self::CollateralizedBorrowing),
+            CapitalClass::PersistentDebt => Ok(Self::PersistentDebt),
+            CapitalClass::InventoryRequirement => Ok(Self::InventoryRequirement),
+            CapitalClass::BondOrStake => Ok(Self::BondOrStake),
+            CapitalClass::SolverOrBuilderDeposit => Ok(Self::SolverOrBuilderDeposit),
+            CapitalClass::IntraBlockTemporaryLock => Ok(Self::IntraBlockTemporaryLock),
+            CapitalClass::ProtocolNativeFlashLoan
+            | CapitalClass::FlashSwap
+            | CapitalClass::AtomicFlashLiquidity => Err(CapitalError::InvalidUpstreamAuthority(
+                "source is not classifiable as a D11-native family",
+            )),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct D11ExpandedCapitalCensusCertificate {
@@ -31,6 +126,7 @@ pub struct D11ExpandedCapitalCensusCertificate {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct D11SourceAuthority {
+    family: D11SourceFamily,
     observation_anchor: StateAnchor,
     reconciliation_artifact_sha256: Hash32,
     evidence: BTreeSet<CapitalEvidenceRef>,
@@ -43,6 +139,26 @@ impl D11SourceAuthority {
     /// Build authority directly from the exact reconciled artifact bytes and
     /// the canonical source records decoded/derived from those bytes.
     pub fn from_reconciliation_artifact(
+        observation_anchor: StateAnchor,
+        artifact_bytes: &[u8],
+        sources: &[CapitalSource],
+    ) -> Result<Self, CapitalError> {
+        let family = sources
+            .first()
+            .ok_or(CapitalError::InvalidUpstreamAuthority(
+                "D11 native source authority cannot bind an empty source set",
+            ))
+            .and_then(D11SourceFamily::classify)?;
+        Self::from_family_reconciliation_artifact(
+            family,
+            observation_anchor,
+            artifact_bytes,
+            sources,
+        )
+    }
+
+    pub fn from_family_reconciliation_artifact(
+        family: D11SourceFamily,
         observation_anchor: StateAnchor,
         artifact_bytes: &[u8],
         sources: &[CapitalSource],
@@ -62,6 +178,14 @@ impl D11SourceAuthority {
             .any(|source| source.anchor() != &observation_anchor)
         {
             return Err(CapitalError::AnchorMismatch);
+        }
+        if sources
+            .iter()
+            .any(|source| D11SourceFamily::classify(source) != Ok(family))
+        {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "D11 native source set mixes or mislabels source families",
+            ));
         }
 
         let reconciliation_artifact_sha256 = nonzero_sha256(artifact_bytes)?;
@@ -84,6 +208,7 @@ impl D11SourceAuthority {
 
         let (source_count, source_set_commitment) = source_set_commitment(sources)?;
         let commitment = authority_commitment(
+            family,
             &observation_anchor,
             reconciliation_artifact_sha256,
             &evidence,
@@ -92,6 +217,7 @@ impl D11SourceAuthority {
         )?;
 
         Ok(Self {
+            family,
             observation_anchor,
             reconciliation_artifact_sha256,
             evidence,
@@ -109,7 +235,8 @@ impl D11SourceAuthority {
         if nonzero_sha256(artifact_bytes)? != self.reconciliation_artifact_sha256 {
             return Err(CapitalError::CanonicalDigestMismatch);
         }
-        let rebuilt = Self::from_reconciliation_artifact(
+        let rebuilt = Self::from_family_reconciliation_artifact(
+            self.family,
             self.observation_anchor.clone(),
             artifact_bytes,
             sources,
@@ -120,6 +247,10 @@ impl D11SourceAuthority {
             ));
         }
         Ok(())
+    }
+
+    pub const fn family(&self) -> D11SourceFamily {
+        self.family
     }
 
     pub const fn observation_anchor(&self) -> &StateAnchor {
@@ -160,6 +291,14 @@ impl D11SourceAuthority {
             .any(|source| source.anchor() != &self.observation_anchor)
         {
             return Err(CapitalError::AnchorMismatch);
+        }
+        if sources
+            .iter()
+            .any(|source| D11SourceFamily::classify(source) != Ok(self.family))
+        {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "D11 native source set differs from authority family",
+            ));
         }
         if sources.iter().any(|source| {
             source.evidence().is_empty()
@@ -217,6 +356,7 @@ fn source_set_commitment_refs(
 }
 
 fn authority_commitment(
+    family: D11SourceFamily,
     anchor: &StateAnchor,
     artifact_sha256: Hash32,
     evidence: &BTreeSet<CapitalEvidenceRef>,
@@ -226,6 +366,7 @@ fn authority_commitment(
     let mut hasher = Sha256::new();
     hasher.update(AUTHORITY_DOMAIN);
     hasher.update([0]);
+    hasher.update([family.tag()]);
     encode_anchor(anchor, &mut hasher);
     hasher.update(artifact_sha256.as_bytes());
     hasher.update(
