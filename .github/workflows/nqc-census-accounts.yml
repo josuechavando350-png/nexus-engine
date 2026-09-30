@@ -402,17 +402,18 @@ jobs:
             last=$(tail -n 1 "$D09_EVIDENCE/stage-attempt-$attempt.err")
             echo "RMC009_ATTEMPT_FAILED attempt=$attempt $last"
             # A result-cap refusal at the log-window ladder's floor, or the same
-            # JSON-RPC request error (-32600/-32601/-32602) on two attempts with
-            # no new committed checkpoint, belongs to the request, not to an
-            # outage: retrying cannot change it, so the stage stops now and the
-            # range stays an error. Transport failures and rate limits keep the
-            # full retry budget.
+            # JSON-RPC request error (-32600/-32601/-32602), EVM execution error
+            # or malformed batch on two attempts with no new committed
+            # checkpoint, belongs to the request, not to an outage: retrying
+            # cannot change it, so the stage stops now and the range stays an
+            # error. Transport failures and rate limits keep the full retry
+            # budget.
             progress=$( (find "$D09_EVIDENCE/store/streams" -path '*/checkpoints/*' -type f 2>/dev/null || true) | wc -l)
             if grep -qF RMC009_RESULT_CAP_FLOOR <<<"$last"; then
               echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
               exit 1
             fi
-            if grep -qE 'ProviderError \{[^}]*code: -3260[012],' <<<"$last" \
+            if grep -qE 'ProviderError \{[^}]*code: -3260[012],|ProviderError \{[^}]*message: "EVM error|Rpc\("duplicate call in batch"\)' <<<"$last" \
                 && [ "$last" = "${previous_error:-}" ] && [ "$progress" = "${previous_progress:-}" ]; then
               echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
               exit 1
@@ -653,17 +654,18 @@ jobs:
             last=$(tail -n 1 "$D09_EVIDENCE/stage-attempt-$attempt.err")
             echo "RMC009_ATTEMPT_FAILED attempt=$attempt $last"
             # A result-cap refusal at the log-window ladder's floor, or the same
-            # JSON-RPC request error (-32600/-32601/-32602) on two attempts with
-            # no new committed checkpoint, belongs to the request, not to an
-            # outage: retrying cannot change it, so the stage stops now and the
-            # range stays an error. Transport failures and rate limits keep the
-            # full retry budget.
+            # JSON-RPC request error (-32600/-32601/-32602), EVM execution error
+            # or malformed batch on two attempts with no new committed
+            # checkpoint, belongs to the request, not to an outage: retrying
+            # cannot change it, so the stage stops now and the range stays an
+            # error. Transport failures and rate limits keep the full retry
+            # budget.
             progress=$( (find "$D09_EVIDENCE/store/streams" -path '*/checkpoints/*' -type f 2>/dev/null || true) | wc -l)
             if grep -qF RMC009_RESULT_CAP_FLOOR <<<"$last"; then
               echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
               exit 1
             fi
-            if grep -qE 'ProviderError \{[^}]*code: -3260[012],' <<<"$last" \
+            if grep -qE 'ProviderError \{[^}]*code: -3260[012],|ProviderError \{[^}]*message: "EVM error|Rpc\("duplicate call in batch"\)' <<<"$last" \
                 && [ "$last" = "${previous_error:-}" ] && [ "$progress" = "${previous_progress:-}" ]; then
               echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
               exit 1

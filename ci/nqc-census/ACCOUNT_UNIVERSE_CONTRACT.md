@@ -212,9 +212,9 @@ in RMC-004, and emits a record that the reconciler replays byte for byte.
       different rungs still reconcile exactly.
   - **Deterministic refusals stop a stage.** In both stage loops:
     - `RMC009_RESULT_CAP_FLOOR` ends the stage on its first occurrence.
-    - The same `-32600`/`-32601`/`-32602` error on two consecutive attempts,
-      with no new committed checkpoint, ends it as
-      `RMC009_DETERMINISTIC_PROVIDER_REFUSAL`.
+    - The same `-32600`/`-32601`/`-32602` error, EVM execution error or
+      malformed batch on two consecutive attempts, with no new committed
+      checkpoint, ends it as `RMC009_DETERMINISTIC_PROVIDER_REFUSAL`.
     - Transport failures and rate limits keep the full retry budget.
 - **Candidates (offline).** Every index record is replayed. Both providers'
   partitions must tile the grid, and both providers must return identical
