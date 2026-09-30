@@ -11,6 +11,12 @@ on:
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - "ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json"
+      - "ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/acquire_rmc011_balancer_v2.py"
       - "ci/nqc-census/test_acquire_rmc011_balancer_v2.py"
@@ -40,6 +46,12 @@ on:
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - "ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json"
+      - "ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/acquire_rmc011_balancer_v2.py"
       - "ci/nqc-census/test_acquire_rmc011_balancer_v2.py"
@@ -90,6 +102,12 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
           python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
           python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py
           python3 -m py_compile ci/nqc-census/acquire_rmc011_balancer_v2.py ci/nqc-census/test_acquire_rmc011_balancer_v2.py
           python3 ci/nqc-census/test_acquire_rmc011_balancer_v2.py -v
       - name: Enforce terminal claim boundary
