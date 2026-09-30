@@ -539,9 +539,7 @@ impl CaptureCalibration {
         match self {
             Self::Uncalibrated { model_commitment } => {
                 if is_zero_hash(*model_commitment) {
-                    return Err(EconomicsError::MissingEvidenceCommitment(
-                        "capture_model",
-                    ));
+                    return Err(EconomicsError::MissingEvidenceCommitment("capture_model"));
                 }
             }
             Self::ShadowCalibrated {

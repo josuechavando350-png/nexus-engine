@@ -468,7 +468,10 @@ fn quote_rejects_candidate_anchor_mismatch() -> TestResult {
         tail(0)?,
         vec![hash(51), hash(52)],
     );
-    assert!(matches!(result, Err(EconomicsError::CandidateAnchorMismatch)));
+    assert!(matches!(
+        result,
+        Err(EconomicsError::CandidateAnchorMismatch)
+    ));
     Ok(())
 }
 
