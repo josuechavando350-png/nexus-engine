@@ -243,11 +243,14 @@ jobs:
           bash ci/nqc-census/run-rmc011-real-source-closeout.sh             "$RUNNER_TEMP/d08"             "$RUNNER_TEMP/d09"             "$AUTHORITY_LOCK"             "$OUTPUT"
 
           jq -e '
-            .schema_version == 2 and
+            .schema_version == 3 and
             .real_source_certification == true and
             .source_universe_basis == "RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY" and
             .global_capital_source_completeness_claimed == false and
             .repayment_cashflow_sufficiency_claimed == false and
+            (.zero_own_capital_proven == false or
+              (.feasible_count > 0 and
+               .feasible_external_gas_count == .feasible_count)) and
             .profitability_claimed == false and
             .shadow_eligibility_claimed == false and
             .canary_claimed == false and
