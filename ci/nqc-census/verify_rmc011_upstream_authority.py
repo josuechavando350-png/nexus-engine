@@ -524,18 +524,44 @@ def verify_d10(
         and authority.get("code_tree") == tree,
         "D10 certification code identity mismatch",
     )
+    base = authority.get("base_anchor")
     target = authority.get("target_anchor")
+    require(
+        isinstance(base, dict),
+        "D10 certification lacks base_anchor",
+    )
     require(
         isinstance(target, dict),
         "D10 certification lacks target_anchor",
     )
+    base_number = base.get("block_number")
+    target_number = target.get("block_number")
+    require(
+        isinstance(base_number, int) and not isinstance(base_number, bool),
+        "D10 base block number is not an integer",
+    )
+    require(
+        isinstance(target_number, int) and not isinstance(target_number, bool),
+        "D10 target block number is not an integer",
+    )
+    require(
+        base_number >= 0 and target_number > base_number,
+        "D10 does not prove a strict A0-to-A1 transition",
+    )
+    base_hash = plain_hash32(base.get("block_hash"), "D10 base block hash")
+    target_hash = plain_hash32(target.get("block_hash"), "D10 target block hash")
+    require(
+        base_hash != target_hash,
+        "D10 base and target block hashes are identical",
+    )
     expected = lock_anchor(row)
     require(
-        target.get("block_number") == expected["block_number"],
+        target_number == expected["block_number"],
         "D10 target block number differs from lock",
     )
     require(
-        target.get("block_hash") == expected["block_hash"],
+        target_hash
+        == plain_hash32(expected["block_hash"], "locked D10 target block hash"),
         "D10 target block hash differs from lock",
     )
 

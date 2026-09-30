@@ -1,4 +1,5 @@
 name: NQC RMC-011 Capital Census
+# Exact-head validation marker: D11 integrated hardening.
 
 on:
   pull_request:

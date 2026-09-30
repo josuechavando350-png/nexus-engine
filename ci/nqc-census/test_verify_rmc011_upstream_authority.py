@@ -332,6 +332,10 @@ class SemanticAuthorityTests(unittest.TestCase):
             "status": "RMC_010_LIVE_PARITY_CERTIFIED",
             "code_commit": commit,
             "code_tree": tree,
+            "base_anchor": {
+                "block_number": self.anchor["block_number"] - 1,
+                "block_hash": "66" * 32,
+            },
             "target_anchor": {
                 "block_number": self.anchor["block_number"],
                 "block_hash": self.anchor["block_hash"],
@@ -375,6 +379,27 @@ class SemanticAuthorityTests(unittest.TestCase):
         self.lock.write_text(json.dumps(lock))
         with self.assertRaises(MOD.VerificationError):
             self.run_doc("RMC-007")
+
+    def test_d10_must_prove_strict_anchor_transition(self):
+        cert = self.root / "d10" / "rmc010-certification.json"
+        doc = json.loads(cert.read_text())
+        doc["base_anchor"] = {
+            "block_number": self.anchor["block_number"],
+            "block_hash": self.anchor["block_hash"],
+        }
+        cert.write_bytes(enc(doc))
+
+        lock = json.loads(self.lock.read_text())
+        row = next(
+            row
+            for row in lock["stages"]
+            if row["stage"] == "RMC-010"
+        )
+        row["artifact_sha256"] = "0x" + MOD.sha256_file(cert)
+        self.lock.write_text(json.dumps(lock))
+
+        with self.assertRaises(MOD.VerificationError):
+            self.run_doc("RMC-010")
 
     def test_d10_must_bind_locked_d09_authority(self):
         cert = self.root / "d10" / "rmc010-certification.json"
