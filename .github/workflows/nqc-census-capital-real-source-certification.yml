@@ -9,6 +9,9 @@ on:
       - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -38,6 +41,9 @@ on:
       - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -97,6 +103,9 @@ jobs:
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
           python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
           python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
           python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py
@@ -184,6 +193,9 @@ jobs:
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
           python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/rmc011-execution-plan-requirement-catalog.json /tmp/rmc011-execution-plan-requirement-catalog-report.json
           python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
           python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
           python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/rmc011-external-capital-provider-registry.json /tmp/rmc011-external-provider-registry-report.json
