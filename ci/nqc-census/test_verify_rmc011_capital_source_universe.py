@@ -117,6 +117,28 @@ class SourceUniverseTests(unittest.TestCase):
         with self.assertRaises(mod.UniverseError):
             mod.validate_document(doc)
 
+    def test_zero_digest_is_not_terminal_evidence(self) -> None:
+        doc = copy.deepcopy(BASE)
+        row = doc["families"][0]
+        row["status"] = "AUTHENTICATED_REAL_SOURCE"
+        row["terminally_resolved"] = True
+        row["resolution_evidence"] = {
+            "kind": "AUTHENTICATED_REAL_SOURCE",
+            "locator": "evidence/zero",
+            "sha256": "0" * 64,
+        }
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+    def test_scope_cannot_omit_required_family(self) -> None:
+        scope_path = Path("ci/nqc-census/capital-census-scope.json")
+        scope = json.loads(scope_path.read_text())
+        original = scope["required_source_families"]
+        scope["required_source_families"] = original[:-1]
+
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_scope(scope, copy.deepcopy(BASE["families"]))
+
     def test_unknown_family_fails(self) -> None:
         doc = copy.deepcopy(BASE)
         doc["families"][0]["id"] = "UNKNOWN_CAPITAL_FAMILY"
