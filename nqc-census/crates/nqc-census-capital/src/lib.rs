@@ -7,6 +7,7 @@
 pub mod adapters;
 pub mod artifacts;
 pub mod demands;
+pub mod gas_credit;
 pub mod replay;
 pub mod upstream;
 
