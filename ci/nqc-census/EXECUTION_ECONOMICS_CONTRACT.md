@@ -315,3 +315,28 @@ If terminal RMC-013 reports any execution-simulatable candidate, it MUST prove:
 Without that proof, the candidate remains non-executable for terminal Census
 purposes even if its flash principal, route and nominal P&L are otherwise
 positive.
+
+### Gas-funding binding artifact
+
+Terminal execution evidence MUST include `gas-funding-bindings.jsonl`, with
+exactly one row per execution-simulatable candidate. Each row binds:
+
+- `candidate_id`;
+- `required_native_gas_amount` as canonical uint256 hex;
+- a non-empty `allocations` array of exact D11 `source_id` plus uint256
+  `amount`;
+- non-empty evidence commitments.
+
+The terminal verifier independently re-downloads the exact D11 package carried
+by the authenticated D12 certificate and refuses any gas allocation unless the
+referenced D11 source is `GAS_FUNDING`, denominated in `NATIVE_GAS`,
+non-operator-owned, execution-eligible, blocker-free and anchored to the exact
+D12 state anchor. Per candidate, allocated gas MUST equal the exact declared gas
+requirement. Across all candidates, aggregate allocation against each source
+MUST NOT exceed that source's exact D11 `executable_capacity`.
+
+The candidate set in `gas-funding-bindings.jsonl` MUST equal the candidate set
+in `execution-economics.jsonl` exactly. This prevents an economically positive
+quote from becoming Shadow-eligible while silently relying on unfunded
+transaction gas or reusing the same external gas capacity beyond its admitted
+limit.
