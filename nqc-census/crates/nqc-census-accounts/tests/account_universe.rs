@@ -443,6 +443,7 @@ fn closeout(reconciled: &Reconciled, dir: &std::path::Path) -> Result<Json, Box<
             code_commit: &"a".repeat(40),
             code_tree: &"b".repeat(40),
             pins: &[],
+            upstream_sources: Json::Array(Vec::new()),
             store_evidence_root: "root",
             stage_stores: Vec::new(),
             record_manifests: Vec::new(),
@@ -729,6 +730,52 @@ fn declared_provider_files_parse_as_two_distinct_providers() -> TestResult {
         let found: Vec<&str> = set.iter().map(ProviderSpec::label).collect();
         assert_eq!(found, labels, "{file}");
     }
+    Ok(())
+}
+
+#[test]
+fn the_committed_pins_bind_certified_d06_with_complete_identity() -> TestResult {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../ci/nqc-census");
+    let pins = Json::parse(&std::fs::read(root.join("account-inputs.json"))?)?;
+    assert_eq!(pins.str_field("status")?, "PINNED");
+    let [source] = pins
+        .get("sources")
+        .and_then(Json::as_array)
+        .ok_or("sources")?
+    else {
+        return Err("exactly one upstream source".into());
+    };
+    assert_eq!(source.str_field("node")?, "D06");
+    assert_eq!(
+        source.str_field("code_commit")?,
+        "a33a012591cd6625ddb921d995bb1bd95b4a5406"
+    );
+    assert_eq!(
+        source.str_field("code_tree")?,
+        "eda36fdc07e82ccdcc9666799fa8fe21aacc7f1d"
+    );
+    assert_eq!(
+        source.str_field("evidence_manifest_sha256")?,
+        "81e53c6f76ff71c47df6186afddef05756dbb4ed1261fa3b694183ecefdce44b"
+    );
+    let mut roles: Vec<&str> = pins
+        .get("files")
+        .and_then(Json::as_array)
+        .ok_or("files")?
+        .iter()
+        .map(|file| file.str_field("role"))
+        .collect::<Result<_, _>>()?;
+    roles.sort_unstable();
+    assert_eq!(
+        roles,
+        [
+            "d06_current_surface",
+            "d06_deployment_manifest",
+            "d06_evidence_manifest",
+            "d06_history",
+            "d06_reserve_manifest",
+        ]
+    );
     Ok(())
 }
 

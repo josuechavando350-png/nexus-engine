@@ -20,7 +20,7 @@ use nqc_census_accounts::tokens::account_tokens_stage;
 use nqc_census_chain::acquire::Acquisition;
 use nqc_census_chain::provider::ProviderSet;
 use nqc_census_chain::transport::{CurlTransport, RetryPolicy};
-use nqc_census_state::inputs::verify_pins;
+use nqc_census_state::inputs::{verify_pins, verify_upstream};
 use nqc_census_store::{Store, StoreConfig};
 use std::collections::BTreeMap;
 use std::{env, error::Error, fs, path::PathBuf};
@@ -50,10 +50,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .find(|provider| provider.label() == label)
         .ok_or_else(|| format!("provider {label} is not declared"))?
         .clone();
-    let pins = verify_pins(
-        &PathBuf::from(flag("--pins")?),
-        &PathBuf::from(flag("--pin-root")?),
-    )?;
+    let pins_path = PathBuf::from(flag("--pins")?);
+    let pins = verify_pins(&pins_path, &PathBuf::from(flag("--pin-root")?))?;
+    verify_upstream(&pins_path, &pins)?;
     let mut plan = plan_at(
         &pins,
         anchor_from_flags(

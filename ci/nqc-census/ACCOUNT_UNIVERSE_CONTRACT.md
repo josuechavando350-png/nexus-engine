@@ -16,19 +16,34 @@ No core, store, chain or RMC-008 code changes in this node.
 
 ## 1. Inputs
 
-`ci/nqc-census/account-inputs.json` pins the D06 source by exact identity:
-code commit, workflow run id, artifact id, name and digest. It also pins by
-sha256 each consumed file:
+`ci/nqc-census/account-inputs.json` pins the certified D06 source by exact
+identity. That source is PR 521, commit `a33a0125` (tree `eda36fdc`), run
+36627517591, artifact 11062164175. The pin records:
+- the PR, code commit and tree, and workflow run id;
+- the artifact id and name;
+- the artifact ZIP digest;
+- the sha256 of D06's closeout `evidence-manifest.json`.
+
+It also pins by sha256 each consumed file:
 - the current surface;
 - the deployment manifest;
 - the reserve manifest;
 - the history report, whose `ReserveInitialized` records are the only source
-  of token addresses and index start blocks.
+  of token addresses and index start blocks;
+- the evidence manifest.
 
 Validation:
-- The live workflow checks through the GitHub API that the run's head is the
-  pinned commit and concluded `success`, and that the artifact matches, before
-  any file is used.
+- The live workflow checks, through the GitHub API and before any file is
+  used, that the run's head is the pinned commit and concluded `success`. It
+  also checks that the commit's tree is the pinned tree, and that the
+  artifact belongs to that run and has the pinned name and digest.
+- Offline, both the workflow and every Rust stage, replay, candidates and
+  reconcile binary (`inputs::verify_upstream`, shared with RMC-008) check
+  the evidence manifest. It must be the declared one, it must have been
+  written by the pinned commit and tree, and it must list every consumed
+  closeout file with its pinned digest.
+- The closeout's `evidence-manifest.json` records the sources as
+  `upstream_sources` (provenance).
 - The Rust readers require the D06 schemas, `HISTORY_RECONCILIATION_PASS`
   with zero unexplained deltas and zero provider mismatches, and the declared
   anchor.
@@ -40,8 +55,10 @@ For RMC-010's later-anchor full census, `workflow_dispatch` also accepts an
 explicit alternate anchor plus the complete D06 run/artifact identity
 (run id, artifact id/name/digest and D06 exact-head commit). All seven fields
 are required together. The workflow verifies that identity through the GitHub
-API, downloads only that artifact, hashes the four consumed D06 files, and
-materializes a run-local `account-inputs.json`. Every stage, replay and
+API, including the commit's tree and that the artifact belongs to the run.
+It downloads only that artifact and hashes the five consumed D06 files, the
+evidence manifest among them. It then binds them to that manifest exactly as
+above and materializes a run-local `account-inputs.json`. Every stage, replay and
 closeout consumes that immutable run-local pin file and is explicitly bound to
 the supplied anchor. This path never resolves a "latest" run or artifact.
 
