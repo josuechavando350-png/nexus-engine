@@ -23,7 +23,7 @@ pub const TRANSIENT_CREDIT_FAMILY: &str = "NQC_TRANSIENT_EXTERNAL_CREDIT_V1";
 pub const TRANSIENT_CREDIT_STATUS: &str = "RMC_011_TRANSIENT_EXTERNAL_CREDIT_OBSERVED";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum RepaymentMode {
+pub enum TransientCreditRepaymentMode {
     SameBlock,
     DeadlineBlocks(u32),
 }
@@ -162,7 +162,7 @@ fn observation_anchor(row: &Json) -> Result<StateAnchor, CapitalError> {
     .map_err(|_| CapitalError::InvalidCanonical("invalid transient credit observation anchor"))
 }
 
-fn repayment_mode(row: &Json) -> Result<RepaymentMode, CapitalError> {
+fn repayment_mode(row: &Json) -> Result<TransientCreditRepaymentMode, CapitalError> {
     let deadline = u64_field(row, "repayment_deadline_blocks")?;
     match text_field(row, "repayment_mode")? {
         "SAME_BLOCK" => {
@@ -171,7 +171,7 @@ fn repayment_mode(row: &Json) -> Result<RepaymentMode, CapitalError> {
                     "same-block transient credit must declare zero deadline blocks",
                 ));
             }
-            Ok(RepaymentMode::SameBlock)
+            Ok(TransientCreditRepaymentMode::SameBlock)
         }
         "DEADLINE_BLOCKS" => {
             let deadline = u32::try_from(deadline)
@@ -179,7 +179,7 @@ fn repayment_mode(row: &Json) -> Result<RepaymentMode, CapitalError> {
             if deadline == 0 {
                 return Err(CapitalError::ZeroValue("repayment_deadline_blocks"));
             }
-            Ok(RepaymentMode::DeadlineBlocks(deadline))
+            Ok(TransientCreditRepaymentMode::DeadlineBlocks(deadline))
         }
         _ => Err(CapitalError::InvalidCanonical(
             "unsupported transient credit repayment mode",
@@ -222,7 +222,7 @@ pub fn transient_credit_terms_commitment(
     provider_identity: Hash32,
     asset: CapitalAsset,
     fee_bps: u16,
-    repayment: RepaymentMode,
+    repayment: TransientCreditRepaymentMode,
     max_utilization_bps: u16,
     min_remaining: Amount256,
     protocol_cap: Option<Amount256>,
@@ -242,11 +242,11 @@ pub fn transient_credit_terms_commitment(
     encode_asset(&mut hasher, asset);
     hasher.update(fee_bps.to_be_bytes());
     match repayment {
-        RepaymentMode::SameBlock => {
+        TransientCreditRepaymentMode::SameBlock => {
             hasher.update([1]);
             hasher.update(0_u32.to_be_bytes());
         }
-        RepaymentMode::DeadlineBlocks(blocks) => {
+        TransientCreditRepaymentMode::DeadlineBlocks(blocks) => {
             if blocks == 0 {
                 return Err(CapitalError::ZeroValue("repayment_deadline_blocks"));
             }
@@ -432,8 +432,8 @@ pub fn import_transient_credit_observation(
     let provider_locator_hash = locator_hash(provider_identity, facility_contract, asset)?;
 
     let repayment = match repayment {
-        RepaymentMode::SameBlock => RepaymentSemantics::SameBlock,
-        RepaymentMode::DeadlineBlocks(blocks) => RepaymentSemantics::DeadlineBlocks(blocks),
+        TransientCreditRepaymentMode::SameBlock => RepaymentSemantics::SameBlock,
+        TransientCreditRepaymentMode::DeadlineBlocks(blocks) => RepaymentSemantics::DeadlineBlocks(blocks),
     };
     let source = CapitalSource::new(CapitalSourceSpec {
         class: CapitalClass::TransientCredit,
