@@ -9,6 +9,11 @@ on:
       - ci/nqc-census/account-index-providers.json
       - ci/nqc-census/state-providers.json
       - nqc-census/crates/nqc-census-accounts/**
+  push:
+    branches:
+      - nqc/rmc-009-aave-account-universe-20260929
+    paths:
+      - ci/nqc-census/rmc009-certification-trigger.txt
   workflow_dispatch:
     inputs:
       anchor_number:
@@ -44,8 +49,9 @@ permissions:
   contents: read
   actions: read
 
-# Live acquisition runs only from a workflow_dispatch on the exact branch
-# head, in RMC-009's own live group: one D09 acquisition per ref at a time,
+# Live acquisition itself runs only from workflow_dispatch on the exact branch
+# head. A deliberately-scoped push trigger may only dispatch that exact-head
+# workflow; it does not acquire inline. The live run stays in RMC-009's own group: one D09 acquisition per ref at a time,
 # never cancelled while running. GitHub keeps one pending run per group and a
 # newer pending run replaces an older one, so a group shared across Census
 # nodes let one node's dispatch silently evict another's pending
@@ -297,7 +303,7 @@ jobs:
 
   dispatch-certification:
     needs: inputs
-    if: ${{ github.event_name == 'pull_request' && needs.inputs.result == 'success' }}
+    if: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && needs.inputs.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -308,8 +314,8 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           repo="${{ github.repository }}"
@@ -396,17 +402,18 @@ jobs:
             last=$(tail -n 1 "$D09_EVIDENCE/stage-attempt-$attempt.err")
             echo "RMC009_ATTEMPT_FAILED attempt=$attempt $last"
             # A result-cap refusal at the log-window ladder's floor, or the same
-            # JSON-RPC request error (-32600/-32601/-32602) on two attempts with
-            # no new committed checkpoint, belongs to the request, not to an
-            # outage: retrying cannot change it, so the stage stops now and the
-            # range stays an error. Transport failures and rate limits keep the
-            # full retry budget.
+            # JSON-RPC request error (-32600/-32601/-32602), EVM execution error
+            # or malformed batch on two attempts with no new committed
+            # checkpoint, belongs to the request, not to an outage: retrying
+            # cannot change it, so the stage stops now and the range stays an
+            # error. Transport failures and rate limits keep the full retry
+            # budget.
             progress=$( (find "$D09_EVIDENCE/store/streams" -path '*/checkpoints/*' -type f 2>/dev/null || true) | wc -l)
             if grep -qF RMC009_RESULT_CAP_FLOOR <<<"$last"; then
               echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
               exit 1
             fi
-            if grep -qE 'ProviderError \{[^}]*code: -3260[012],' <<<"$last" \
+            if grep -qE 'ProviderError \{[^}]*code: -3260[012],|ProviderError \{[^}]*message: "EVM error|Rpc\("duplicate call in batch"\)' <<<"$last" \
                 && [ "$last" = "${previous_error:-}" ] && [ "$progress" = "${previous_progress:-}" ]; then
               echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
               exit 1
@@ -647,17 +654,18 @@ jobs:
             last=$(tail -n 1 "$D09_EVIDENCE/stage-attempt-$attempt.err")
             echo "RMC009_ATTEMPT_FAILED attempt=$attempt $last"
             # A result-cap refusal at the log-window ladder's floor, or the same
-            # JSON-RPC request error (-32600/-32601/-32602) on two attempts with
-            # no new committed checkpoint, belongs to the request, not to an
-            # outage: retrying cannot change it, so the stage stops now and the
-            # range stays an error. Transport failures and rate limits keep the
-            # full retry budget.
+            # JSON-RPC request error (-32600/-32601/-32602), EVM execution error
+            # or malformed batch on two attempts with no new committed
+            # checkpoint, belongs to the request, not to an outage: retrying
+            # cannot change it, so the stage stops now and the range stays an
+            # error. Transport failures and rate limits keep the full retry
+            # budget.
             progress=$( (find "$D09_EVIDENCE/store/streams" -path '*/checkpoints/*' -type f 2>/dev/null || true) | wc -l)
             if grep -qF RMC009_RESULT_CAP_FLOOR <<<"$last"; then
               echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
               exit 1
             fi
-            if grep -qE 'ProviderError \{[^}]*code: -3260[012],' <<<"$last" \
+            if grep -qE 'ProviderError \{[^}]*code: -3260[012],|ProviderError \{[^}]*message: "EVM error|Rpc\("duplicate call in batch"\)' <<<"$last" \
                 && [ "$last" = "${previous_error:-}" ] && [ "$progress" = "${previous_progress:-}" ]; then
               echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
               exit 1
