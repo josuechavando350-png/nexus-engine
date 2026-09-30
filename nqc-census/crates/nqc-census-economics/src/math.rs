@@ -99,6 +99,23 @@ impl SignedValue {
         Self::from_difference(self.magnitude, rhs)
     }
 
+    pub fn checked_add(self, rhs: Self) -> Result<Self, EconomicsError> {
+        match (self.negative, rhs.negative) {
+            (false, false) => Ok(Self::positive(
+                self.magnitude
+                    .checked_add(rhs.magnitude)
+                    .map_err(|_| EconomicsError::ArithmeticOverflow)?,
+            )),
+            (true, true) => Ok(Self::negative(
+                self.magnitude
+                    .checked_add(rhs.magnitude)
+                    .map_err(|_| EconomicsError::ArithmeticOverflow)?,
+            )),
+            (false, true) => Self::from_difference(self.magnitude, rhs.magnitude),
+            (true, false) => Self::from_difference(rhs.magnitude, self.magnitude),
+        }
+    }
+
     pub fn scale(self, probability: ProbabilityPpb) -> Result<Self, EconomicsError> {
         let magnitude = scale_probability(self.magnitude, probability)?;
         Ok(if self.negative {
@@ -188,8 +205,8 @@ pub fn mul_div_floor(
             .checked_mul(256)
             .and_then(|value| value.checked_add(u128::from(*byte)))
             .ok_or(EconomicsError::ArithmeticOverflow)?;
-        quotient[index] = u8::try_from(expanded / divisor)
-            .map_err(|_| EconomicsError::ArithmeticOverflow)?;
+        quotient[index] =
+            u8::try_from(expanded / divisor).map_err(|_| EconomicsError::ArithmeticOverflow)?;
         remainder = expanded % divisor;
     }
 
