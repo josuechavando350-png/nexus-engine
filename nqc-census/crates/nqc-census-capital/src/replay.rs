@@ -522,6 +522,7 @@ pub struct RealSourceCloseout {
     pub source_count: usize,
     pub requirement_count: usize,
     pub feasible_count: usize,
+    pub feasible_external_gas_count: usize,
     pub rejected_count: usize,
     pub d08_candidate_count: usize,
     pub d08_source_count: usize,
@@ -553,7 +554,7 @@ impl RealSourceCloseout {
 
     fn payload_json(&self) -> Result<Json, CapitalError> {
         Ok(Json::object([
-            ("schema_version", Json::uint(2)),
+            ("schema_version", Json::uint(3)),
             ("status", Json::string("RMC_011_REAL_SOURCE_CLOSEOUT_PASS")),
             (
                 "source_universe_basis",
@@ -586,6 +587,10 @@ impl RealSourceCloseout {
             (
                 "feasible_count",
                 Json::uint(closeout_count(self.feasible_count)?),
+            ),
+            (
+                "feasible_external_gas_count",
+                Json::uint(closeout_count(self.feasible_external_gas_count)?),
             ),
             (
                 "rejected_count",
@@ -746,7 +751,7 @@ fn real_source_closeout_commitment(payload: &Json) -> Result<Hash32, CapitalErro
         .canonical()
         .map_err(|_| CapitalError::InvalidCanonical("real-source closeout payload"))?;
     let mut hasher = Sha256::new();
-    hasher.update(b"NQC-RMC011-REAL-SOURCE-CLOSEOUT-V2");
+    hasher.update(b"NQC-RMC011-REAL-SOURCE-CLOSEOUT-V3");
     hasher.update([0]);
     hasher.update(
         u64::try_from(bytes.len())
@@ -803,6 +808,7 @@ pub fn verify_real_source_closeout_for_code(
         source_count: verified.capital.source_count,
         requirement_count: verified.capital.requirement_count,
         feasible_count: verified.capital.feasible_count,
+        feasible_external_gas_count: verified.capital.feasible_external_gas_count,
         rejected_count: verified.capital.rejection_count,
         d08_candidate_count: verified.upstream.d08_candidate_count,
         d08_source_count: verified.upstream.d08_source_count,
