@@ -9,6 +9,7 @@ on:
       - "ci/nqc-census/rmc011-real-source-inputs.json"
       - "ci/nqc-census/rmc011-authority-lock.json"
       - "ci/nqc-census/verify-rmc011-upstream-coherence.py"
+      - "ci/nqc-census/test-rmc011-upstream-coherence.py"
       - "nqc-census/crates/nqc-census-capital/**"
   push:
     branches:
@@ -20,6 +21,7 @@ on:
       - "ci/nqc-census/rmc011-real-source-inputs.json"
       - "ci/nqc-census/rmc011-authority-lock.json"
       - "ci/nqc-census/verify-rmc011-upstream-coherence.py"
+      - "ci/nqc-census/test-rmc011-upstream-coherence.py"
       - "nqc-census/crates/nqc-census-capital/**"
 
 permissions:
@@ -46,7 +48,8 @@ jobs:
         run: |
           set -euo pipefail
           bash -n ci/nqc-census/run-rmc011-real-source-closeout.sh
-          python3 -m py_compile ci/nqc-census/verify-rmc011-upstream-coherence.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-upstream-coherence.py ci/nqc-census/test-rmc011-upstream-coherence.py
+          python3 ci/nqc-census/test-rmc011-upstream-coherence.py
           grep -F 'capital-real-source-closeout.json' ci/nqc-census/run-rmc011-real-source-closeout.sh
           grep -F 'sha256sum -c capital-archive.sha256' ci/nqc-census/run-rmc011-real-source-closeout.sh
           test -f ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
