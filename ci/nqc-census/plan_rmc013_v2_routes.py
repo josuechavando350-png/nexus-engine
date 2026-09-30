@@ -399,8 +399,8 @@ def plan(
 ) -> dict:
     if max_hops not in {1, 2, 3}:
         raise ValueError("max_hops must be 1, 2, or 3")
-    if keep_routes <= 0:
-        raise ValueError("keep_routes must be positive")
+    if keep_routes < 0:
+        raise ValueError("keep_routes must be zero (exhaustive) or positive")
 
     pair_rows = load_pairs(d08_state)
     graph = Graph(pair_rows)
@@ -471,8 +471,21 @@ def plan(
                 row["route_id"],
             )
         )
-        for rank, row in enumerate(evaluated[:keep_routes], 1):
+        positive = [
+            row for row in evaluated
+            if int(row["pre_gas_success_net_debt_units"]) > 0
+        ]
+        if positive:
+            selected = positive if keep_routes == 0 else positive[:keep_routes]
+        else:
+            # Preserve one explicit best non-positive route so a candidate is
+            # rejected from measured economics rather than disappearing.
+            selected = evaluated[:1]
+        omitted_positive = max(0, len(positive) - len(selected))
+        for rank, row in enumerate(selected, 1):
             row["route_rank"] = rank
+            row["positive_route_count"] = len(positive)
+            row["positive_routes_omitted"] = omitted_positive
             output.append(row)
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -481,12 +494,20 @@ def plan(
     plans_path.write_bytes(b"".join(canonical(row) for row in output))
     rejected_path.write_bytes(b"".join(canonical(row) for row in rejections))
 
+    positive_omitted = sum(int(row.get("positive_routes_omitted", 0)) for row in output)
     summary = {
         "schema_version": 1,
         "status": "RMC_013_V2_ROUTE_PLANNING_PASS",
         "algorithm": ALGORITHM,
         "max_hops": max_hops,
         "keep_routes_per_candidate": keep_routes,
+        "route_execution_coverage_complete": positive_omitted == 0,
+        "positive_routes_omitted": positive_omitted,
+        "emission_policy": (
+            "ALL_POSITIVE_ELSE_BEST_NONPOSITIVE"
+            if keep_routes == 0
+            else "CAPPED_POSITIVE_ELSE_BEST_NONPOSITIVE"
+        ),
         "v2_pair_count": len(pair_rows),
         "capital_feasible_candidate_count": len(promotions),
         "candidate_with_route_count": len(
@@ -523,7 +544,7 @@ def main() -> None:
     parser.add_argument("--d12-promotions", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--max-hops", type=int, default=3)
-    parser.add_argument("--keep-routes", type=int, default=8)
+    parser.add_argument("--keep-routes", type=int, default=0)
     args = parser.parse_args()
     summary = plan(
         args.d08_state,
