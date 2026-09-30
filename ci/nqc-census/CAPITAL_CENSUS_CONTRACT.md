@@ -172,6 +172,22 @@ At minimum:
 
 The ordinary `NQC RMC-011 Capital Census` foundation workflow is a code/fixture/invariant gate only and MUST NOT be interpreted as final RMC-011 certification. Final certification requires the separate `NQC RMC-011 Real Source Certification` workflow to bind **every** RMC-006..RMC-010 authority to an exact successful GitHub Actions workflow run and immutable transport tuple: workflow name, run id, exact head SHA, exact Git tree SHA, artifact id, artifact name, GitHub artifact SHA-256 digest, authority-file path, and SHA-256 of that authority file. The authority-file SHA-256 MUST equal the corresponding `artifact_sha256` in the external RMC-006..RMC-010 lock, and its embedded code commit/tree MUST equal the observed run head/tree. D08/D09 consumed bytes are then taken from those same verified artifacts, `run-rmc011-real-source-closeout.sh` is executed, `capital-archive.sha256` is re-verified, and the resulting closeout is archived. A lock written by hand without this transport/content proof is not certification authority. If any authoritative input is absent or inconsistent, the final certification workflow MUST fail closed with `RMC011_BLOCKED_UPSTREAM_REAL_SOURCE`.
 
+### Temporal coherence of final upstream authority
+
+RMC-011 final certification is a **single-snapshot claim**, not a union of independently valid stages observed at different blocks. The external RMC-006..RMC-010 authority lock therefore MUST carry one exact `StateAnchor` shared by all five stages.
+
+RMC-010 is a transition/parity proof from A0 to a strictly later A1. For RMC-011, its `target_anchor` is the required final snapshot. The final certification gate MUST prove all of the following from the exact downloaded authority artifacts:
+
+- RMC-006 discovery carries the exact A1 chain domain, block header, state root and timestamp.
+- RMC-007 discovery independently carries the same exact A1 anchor.
+- RMC-008 state/oracle/token admission carries the same exact A1 `observation_anchor`.
+- RMC-009 account census carries the same A1 block number/hash/timestamp.
+- RMC-010 is `RMC_010_LIVE_PARITY_CERTIFIED`, has `base_anchor < target_anchor`, and its target number/hash equal the D11 A1 anchor.
+- RMC-010's `target_d06` and `full_d09` source identities are exactly the same D06 and D09 workflow artifacts transported into RMC-011.
+- RMC-010's committed full-D09 evidence-manifest SHA-256 equals the RMC-009 authority SHA-256 admitted by RMC-011.
+
+A valid RMC-006 artifact from A0, a valid RMC-007 artifact from A0, a valid RMC-008 artifact from A0, and valid RMC-009/RMC-010 artifacts from A1 MUST NOT be composed into one D11 certificate. If D10 advances the target to A1, D06-D09 must be re-certified at A1 as necessary before RMC-011 can certify.
+
 Foundation artifacts MUST encode `real_source_certification=false` until every real source class used by feasibility has a semantic admission path that proves the source terms from content-addressed evidence. An admitted artifact hash alone is not proof that arbitrary source semantics (especially external gas funding, credit, collateral facilities, builder deposits, or persistent debt risk terms) were present in that artifact.
 
 RMC-011 may be certified only when:
