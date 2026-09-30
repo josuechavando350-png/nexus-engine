@@ -290,11 +290,42 @@ jobs:
           echo "RMC011_EXACT_HEAD=$(git rev-parse HEAD)"
           echo "RMC011_EXACT_TREE=$(git rev-parse 'HEAD^{tree}')"
 
+      - name: Build self-contained certification evidence package
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE="$RUNNER_TEMP/rmc011-certification-package"
+          rm -rf "$PACKAGE"
+          mkdir -p "$PACKAGE/d11" "$PACKAGE/upstream"
+
+          cp -a "$RUNNER_TEMP/rmc011-real-source/." "$PACKAGE/d11/"
+          cp -- "$INPUTS" "$PACKAGE/rmc011-real-source-inputs.json"
+          for stage in d06 d07 d08 d09 d10; do
+            test -d "$RUNNER_TEMP/$stage-raw"
+            cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
+          done
+
+          (
+            cd "$PACKAGE"
+            LC_ALL=C find . -type f ! -name CERTIFICATION-PACKAGE-SHA256SUMS -print0 \
+              | LC_ALL=C sort -z \
+              | xargs -0 sha256sum > CERTIFICATION-PACKAGE-SHA256SUMS
+            test -s CERTIFICATION-PACKAGE-SHA256SUMS
+            sha256sum -c CERTIFICATION-PACKAGE-SHA256SUMS
+            (
+              cd d11
+              sha256sum -c capital-archive.sha256
+            )
+          )
+
+          echo "RMC011_SELF_CONTAINED_EVIDENCE_PACKAGE=PASS"
+          echo "RMC011_EVIDENCE_PACKAGE_SHA256=$(sha256sum "$PACKAGE/CERTIFICATION-PACKAGE-SHA256SUMS" | awk '{print $1}')"
+
       - name: Upload immutable D11 certification archive
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: rmc011-real-source-certification-${{ github.sha }}
-          path: ${{ runner.temp }}/rmc011-real-source/
+          path: ${{ runner.temp }}/rmc011-certification-package/
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
           compression-level: 0
