@@ -32,6 +32,7 @@ pub struct UniswapV3AuthenticatedObservation {
     pub pool: Address,
     pub asset: Address,
     pub available_pool_balance: Amount256,
+    pub active_liquidity: Amount256,
     pub fee_pips: u32,
 }
 
@@ -116,6 +117,7 @@ pub fn admit_uniswap_v3_dual_provider(
         pool: first.pool,
         asset: first.asset,
         available_pool_balance: first.available_pool_balance,
+        active_liquidity: first.active_liquidity,
         fee_pips: first.fee_pips,
         provider_locator_hash: protocol_contract_locator_hash(
             UNISWAP_V3_PROVIDER_NAMESPACE,
@@ -168,6 +170,7 @@ mod tests {
             pool: address("0x3333333333333333333333333333333333333333"),
             asset: address("0x4444444444444444444444444444444444444444"),
             available_pool_balance: Amount256::from_u128(2_000_000),
+            active_liquidity: Amount256::from_u128(1_000_000),
             fee_pips: 3_000,
         }
     }
@@ -200,6 +203,21 @@ mod tests {
         let mut second = first.clone();
         second.fee_pips = 500;
         assert!(admit_uniswap_v3_dual_provider(&first, &second, &hash(8), &hash(9)).is_err());
+    }
+
+    #[test]
+    fn uniswap_v3_zero_active_liquidity_preserves_balance_but_blocks_execution() {
+        let mut first = uniswap_v3();
+        first.active_liquidity = Amount256::ZERO;
+        let source = admit_uniswap_v3_dual_provider(&first, &first, &hash(8), &hash(9))
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(source.maximum_available(), Amount256::from_u128(2_000_000));
+        assert_eq!(source.executable_capacity().unwrap_or(Amount256::MAX), Amount256::ZERO);
+        assert!(!source.execution_eligible());
+        assert_eq!(
+            source.execution_blockers(),
+            &["UNISWAP_V3_ZERO_ACTIVE_LIQUIDITY".to_owned()]
+        );
     }
 
     #[test]
