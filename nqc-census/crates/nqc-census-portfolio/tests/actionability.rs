@@ -160,5 +160,8 @@ fn admitted_candidate_cannot_have_zero_principal() {
         hash(90),
         hash(91),
     );
-    assert!(matches!(result, Err(ActionabilityError::ZeroDebtToLiquidate)));
+    assert!(matches!(
+        result,
+        Err(ActionabilityError::ZeroDebtToLiquidate)
+    ));
 }
