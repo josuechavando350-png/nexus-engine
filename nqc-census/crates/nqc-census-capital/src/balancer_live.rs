@@ -665,6 +665,105 @@ pub fn run_balancer_capture(
 mod tests {
     use super::*;
 
+    fn test_anchor_json() -> Json {
+        Json::object([
+            ("chain_id", Json::uint(1)),
+            ("genesis_hash", Json::string(format!("0x{}", "11".repeat(32)))),
+            ("fork_lineage", Json::string(format!("0x{}", "22".repeat(32)))),
+            ("block_number", Json::uint(25_437_474)),
+            ("block_hash", Json::string(format!("0x{}", "33".repeat(32)))),
+            ("parent_hash", Json::string(format!("0x{}", "44".repeat(32)))),
+            ("timestamp", Json::uint(1_700_000_000)),
+            ("state_root", Json::string(format!("0x{}", "55".repeat(32)))),
+        ])
+    }
+
+    fn test_capture(
+        provider_id: &str,
+        provider_operator: &str,
+        endpoint_hash: &str,
+        balance: &str,
+    ) -> Json {
+        Json::object([
+            ("schema_version", Json::uint(1)),
+            ("stage", Json::string("RMC-011")),
+            ("family", Json::string("BALANCER_V2_FLASH_LOAN")),
+            ("provider_id", Json::string(provider_id.to_owned())),
+            (
+                "provider_operator",
+                Json::string(provider_operator.to_owned()),
+            ),
+            ("rpc_endpoint_hash", Json::string(endpoint_hash.to_owned())),
+            ("anchor", test_anchor_json()),
+            ("authority_lock_sha256", Json::string("aa".repeat(32))),
+            ("d08_market_state_sha256", Json::string("bb".repeat(32))),
+            ("d08_token_admission_sha256", Json::string("cc".repeat(32))),
+            (
+                "d08_evidence_manifest_sha256",
+                Json::string("dd".repeat(32)),
+            ),
+            ("asset_universe_sha256", Json::string("ee".repeat(32))),
+            (
+                "vault",
+                Json::object([
+                    ("address", Json::string(BALANCER_V2_VAULT)),
+                    ("code_sha256", Json::string("12".repeat(32))),
+                    (
+                        "fee_collector",
+                        Json::string("0x6666666666666666666666666666666666666666"),
+                    ),
+                    (
+                        "fee_collector_code_sha256",
+                        Json::string("34".repeat(32)),
+                    ),
+                    ("paused", Json::Bool(false)),
+                    ("pause_window_end_time", Json::string("1")),
+                    ("buffer_period_end_time", Json::string("2")),
+                    (
+                        "flash_loan_fee_percentage_1e18",
+                        Json::string("500000000000000"),
+                    ),
+                ]),
+            ),
+            (
+                "assets",
+                Json::array([Json::object([
+                    (
+                        "asset",
+                        Json::string("0x7777777777777777777777777777777777777777"),
+                    ),
+                    ("vault_balance", Json::string(balance.to_owned())),
+                    ("code_sha256", Json::string("56".repeat(32))),
+                ])]),
+            ),
+        ])
+    }
+
+    #[test]
+    fn dual_provider_reconcile_emits_exact_balancer_source() {
+        let first = test_capture("provider-a", "operator-a", &"ab".repeat(32), "123456");
+        let second = test_capture("provider-b", "operator-b", &"cd".repeat(32), "123456");
+        let sources = reconcile_balancer_captures(&first, &second)
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].maximum_available(), Amount256::from_u128(123_456));
+        assert!(sources[0].execution_eligible());
+    }
+
+    #[test]
+    fn dual_provider_reconcile_rejects_economic_mismatch() {
+        let first = test_capture("provider-a", "operator-a", &"ab".repeat(32), "123456");
+        let second = test_capture("provider-b", "operator-b", &"cd".repeat(32), "123455");
+        assert!(reconcile_balancer_captures(&first, &second).is_err());
+    }
+
+    #[test]
+    fn dual_provider_reconcile_rejects_same_operator() {
+        let first = test_capture("provider-a", "same-operator", &"ab".repeat(32), "123456");
+        let second = test_capture("provider-b", "same-operator", &"cd".repeat(32), "123456");
+        assert!(reconcile_balancer_captures(&first, &second).is_err());
+    }
+
     #[test]
     fn uint256_decimal_is_exact_at_boundaries() {
         assert_eq!(amount_decimal([0; 32]), "0");
