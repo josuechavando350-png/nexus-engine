@@ -550,3 +550,31 @@ No V4 cognitive crate may directly emit EdgeTask or bypass nexus-policy/simulati
 - Offline reconciliation must never invent permission or duplicate a committed physical effect.
 - Update staging requires verified artifact identity plus rollback protection; rollout health gates are NEXUS semantics.
 - Consensus, discovery, mesh, scheduler and update providers remain replaceable adapters.
+
+## NQC permanent design rule: Z over A
+
+Applies to every NQC phase (Census, Shadow, Canary, production) and to every
+agent working on it.
+
+- Anticipate failures before they appear. Do not wait for Shadow, Canary or
+  production to reveal a failure that can already be foreseen and modelled.
+- If A is a good solution but Z is objectively better for NQC's context, and
+  nothing is better than Z, implement Z. Judge alternatives on correctness,
+  determinism, security, latency, throughput, operating cost,
+  maintainability and scalability. Do the extra work when Z removes an
+  important structural limit.
+- Do not optimise for convenience, speed of implementation or "good enough".
+  Optimise for truth, robustness, capacity, reproducibility, competitive
+  advantage and scalability. "Z" means better for NQC, not more complex:
+  avoid over-engineering that has no measurable benefit.
+- The initial NQC target of $1,500–$3,000 net per day ($45k+ per month) is an
+  evaluation threshold to falsify, not a ceiling. Design every phase so that
+  larger measured economic capacity can be discovered and captured without a
+  fundamental rewrite. Report what the evidence shows, whether larger or
+  smaller than the target, and never tune a model toward a desired figure.
+- Document a decision only where its trade-off is material.
+
+The census and safety rules still bind: no invented evidence, no unobserved
+P&L, no own capital to rescue an opportunity, no weakened test or gate, no
+bypass of fail-closed semantics, and no certification of a head with
+another head's evidence.
