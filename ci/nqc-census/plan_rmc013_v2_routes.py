@@ -135,10 +135,12 @@ def spot_out(amount_in: int, reserve_in: int, reserve_out: int) -> int:
     return amount_in * reserve_out // reserve_in
 
 
-def route_output(amount: int, route: tuple[Hop, ...], mode: str) -> int:
+def route_trace(amount: int, route: tuple[Hop, ...], mode: str) -> list[tuple[int, int]]:
     current = amount
+    trace: list[tuple[int, int]] = []
     for hop in route:
         rin, rout = hop.pair.directed(hop.token_in, hop.token_out)
+        amount_in = current
         if mode == "actual":
             current = amount_out(current, rin, rout, hop.pair.fee_bps)
         elif mode == "zero_fee":
@@ -147,9 +149,15 @@ def route_output(amount: int, route: tuple[Hop, ...], mode: str) -> int:
             current = spot_out(current, rin, rout)
         else:
             raise ValueError(f"unknown route mode {mode}")
+        trace.append((amount_in, current))
         if current == 0:
             break
-    return current
+    return trace
+
+
+def route_output(amount: int, route: tuple[Hop, ...], mode: str) -> int:
+    trace = route_trace(amount, route, mode)
+    return amount if not route else (trace[-1][1] if trace else 0)
 
 
 class Graph:
@@ -278,6 +286,7 @@ def route_record(
     route: tuple[Hop, ...],
     action: dict,
     promotion: dict,
+    anchor: dict,
     route_rank: int,
     topology_count: int,
 ) -> dict:
@@ -296,11 +305,12 @@ def route_record(
     if debt_unit <= 0:
         raise ValueError("debt_asset_unit is zero")
 
+    actual_trace = route_trace(net_collateral, route, "actual")
     if not route:
         actual = zero_fee = spot_net = net_collateral
         spot_gross = gross_collateral
     else:
-        actual = route_output(net_collateral, route, "actual")
+        actual = actual_trace[-1][1]
         zero_fee = route_output(net_collateral, route, "zero_fee")
         spot_net = route_output(net_collateral, route, "spot")
         spot_gross = route_output(gross_collateral, route, "spot")
@@ -334,9 +344,24 @@ def route_record(
         "route_id": "0x" + route_key,
         "route_rank": route_rank,
         "evaluated_topology_count": topology_count,
+        "anchor": anchor,
+        "borrower": address(action["borrower"]),
+        "aave_pool": address(promotion["aave_pool"]),
         "collateral_asset": collateral,
         "debt_asset": debt,
-        "hops": [hop.json() for hop in route],
+        "executor_compatibility": (
+            "PFT_AAVE_V3_EXECUTOR_V2_ROUTE"
+            if route
+            else "SAME_ASSET_DIRECT_SETTLEMENT_REQUIRES_DISTINCT_HARNESS"
+        ),
+        "hops": [
+            {
+                **hop.json(),
+                "amount_in": str(actual_trace[index][0]),
+                "amount_out": str(actual_trace[index][1]),
+            }
+            for index, hop in enumerate(route)
+        ],
         "trade_size_collateral_units": str(net_collateral),
         "gross_collateral_before_protocol_fee_units": str(gross_collateral),
         "principal_debt_units": str(principal),
@@ -368,6 +393,7 @@ def route_record(
 def plan(
     d08_state: Path,
     d12_actionability: Path,
+    d12_summary: Path,
     d12_promotions: Path,
     out_dir: Path,
     max_hops: int,
@@ -380,6 +406,15 @@ def plan(
 
     pair_rows = load_pairs(d08_state)
     graph = Graph(pair_rows)
+    summary_doc = json.loads(d12_summary.read_text(encoding="utf-8"))
+    if not isinstance(summary_doc, dict) or summary_doc.get("status") != "RMC_012_ACTIONABILITY_PASS":
+        raise ValueError("D12 actionability summary is not a PASS candidate")
+    anchor = summary_doc.get("anchor")
+    if not isinstance(anchor, dict):
+        raise ValueError("D12 actionability summary has no anchor")
+    for field in ("chain_id", "block_number", "block_hash", "parent_hash", "timestamp", "state_root"):
+        if field not in anchor:
+            raise ValueError(f"D12 anchor missing {field}")
     action_rows = rows(d12_actionability)
     actions = {
         hex256(row["candidate_id"], "candidate_id"): row
@@ -390,6 +425,11 @@ def plan(
         row for row in rows(d12_promotions) if row.get("capital_status") == "FEASIBLE"
     ]
     promotions.sort(key=lambda row: hex256(row["portfolio_candidate_id"], "portfolio_candidate_id"))
+    expected_feasible = summary_doc.get("principal_capital_feasible")
+    if not isinstance(expected_feasible, int) or expected_feasible != len(promotions):
+        raise ValueError(
+            f"D12 feasible candidate count mismatch: summary={expected_feasible!r} rows={len(promotions)}"
+        )
 
     output: list[dict] = []
     rejections: list[dict] = []
@@ -424,7 +464,7 @@ def plan(
             continue
 
         evaluated = [
-            route_record(route, action, promotion, 0, len(routes)) for route in routes
+            route_record(route, action, promotion, anchor, 0, len(routes)) for route in routes
         ]
         evaluated.sort(
             key=lambda row: (
@@ -460,6 +500,7 @@ def plan(
         "input_sha256": {
             "d08_market_state_manifest": sha256_file(d08_state),
             "d12_actionability_records": sha256_file(d12_actionability),
+            "d12_actionability_summary": sha256_file(d12_summary),
             "d12_capital_promotions": sha256_file(d12_promotions),
         },
         "output_sha256": {
@@ -480,6 +521,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--d08-state", type=Path, required=True)
     parser.add_argument("--d12-actionability", type=Path, required=True)
+    parser.add_argument("--d12-summary", type=Path, required=True)
     parser.add_argument("--d12-promotions", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--max-hops", type=int, default=3)
@@ -488,6 +530,7 @@ def main() -> None:
     summary = plan(
         args.d08_state,
         args.d12_actionability,
+        args.d12_summary,
         args.d12_promotions,
         args.out,
         args.max_hops,
