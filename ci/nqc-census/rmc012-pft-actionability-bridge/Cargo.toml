@@ -7,6 +7,10 @@ publish = false
 [dependencies]
 alloy = { version = "=2.5.0", default-features = false, features = ["std"] }
 pft-nqc-aave-math = { package = "nqc-aave-math", path = "../../nqc-protocol-fork/recovered-source/crates/nqc-aave-math" }
+pft-nqc-core = { package = "nqc-core", path = "../../nqc-protocol-fork/recovered-source/crates/nqc-core" }
+nqc-census-capital = { path = "../../../nqc-census/crates/nqc-census-capital" }
+nqc-census-core = { path = "../../../nqc-census/crates/nqc-census-core" }
+nqc-census-portfolio = { path = "../../../nqc-census/crates/nqc-census-portfolio" }
 serde_json = "=1.0.151"
 sha2 = "=0.10.9"
 
