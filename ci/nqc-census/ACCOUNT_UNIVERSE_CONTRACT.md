@@ -124,6 +124,35 @@ anchor (probe run 36590720390 measured 67/67). Otherwise
 `STABLE_DEBT_POSITIONS_PRESENT` blocks, because the universe does not cover
 stable positions.
 
+Stable rate borrowing is deprecated in Aave V3, and the pool's stable debt
+token field no longer names each reserve's own token. Probe run 36712062094
+(read-only, anchor 25,437,474) found that `getReserveData` reports one stable
+debt token for all 67 reserves: `0x1026…949a`, which WETH was initialized
+with. Only WETH's initialization token equals it. 36 other reserves were
+initialized with their own stable debt token, and the rest with none. Every
+one of those tokens, and the reported one, has `totalSupply` 0 and names the
+pool and its own asset.
+
+The earlier check compared all three `getReserveData` token addresses with
+the initialization ones. It would have raised an unexplained mismatch for 66
+reserves on a real protocol change, so the design was corrected:
+- `RESERVE_TOKEN_ADDRESSES` compares the aToken and the variable debt token,
+  the tokens that carry every covered position, exactly;
+- `ACCOUNT_TOKENS` (version 3) also reads the stable debt token each current
+  reserve's data reports, and that token's `totalSupply` once per distinct
+  token;
+- every stable debt token named for a reserve, at initialization or in its
+  current data, must hold no supply. Otherwise
+  `STABLE_DEBT_POSITIONS_PRESENT` blocks, and an unreadable supply is an
+  unexplained mismatch;
+- `reserve-tokens.jsonl` records the reported token and a status per
+  reserve (`MATCHES_INITIALIZATION`, `DIVERGES_FROM_INITIALIZATION`,
+  `NONE_REPORTED`, `NOT_CURRENT`). The count of diverging reserves is the
+  metric `stable_debt_token_divergent_reserves`.
+
+A batch never holds one read twice (the chain layer refuses it): each
+distinct read is made once and fanned back out.
+
 ## 3. Acquisition
 
 Every stage runs on one provider, persists every exchange and observation
@@ -238,6 +267,7 @@ Metrics (`account-metrics.json`):
 | `actionable_accounts` | accounts carrying variable debt, with exact, conserved state |
 | `health_factor_below_one` | of those, the protocol's own `getUserAccountData` health factor < 1e18 |
 | `zero_address_holding_tokens` | tokens whose `scaledBalanceOf(0x0)` is nonzero at the anchor (a conservation term, never an account) |
+| `stable_debt_token_divergent_reserves` | current reserves whose reported stable debt token is not their initialization token (every one must hold no supply) |
 
 `actionable` means "in scope for a later liquidation-truth layer". It is not
 a claim that a liquidation is possible or profitable.

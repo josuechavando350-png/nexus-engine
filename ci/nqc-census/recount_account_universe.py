@@ -31,6 +31,7 @@ def main():
 
     accounts = rows(root, "account-manifest.jsonl")
     conservation = rows(root, "token-conservation.jsonl")
+    reserve_tokens = rows(root, "reserve-tokens.jsonl")
     mismatches = rows(root, "mismatch-ledger.jsonl")
     metrics = json.load(open(os.path.join(root, "account-metrics.json")))
     summary = json.load(open(os.path.join(root, "account-summary.json")))
@@ -67,6 +68,17 @@ def main():
     assert len({(ref["block"], ref["log_index"]) for ref in refs}) == len(refs), "duplicate zero-address log"
     census_tokens = {row["token"] for row in conservation}
     assert all(ref["token"] in census_tokens for ref in refs), "zero-address log of a non-census token"
+
+    # Every stable debt token named for a reserve, at initialization and in
+    # its current data, holds no supply; divergences are counted, not hidden.
+    divergent = 0
+    for reserve in reserve_tokens:
+        for key in ("stable_debt_total_supply", "reported_stable_debt_total_supply"):
+            assert reserve[key] is None or reserve[key] == "0", (reserve["asset"], key, reserve[key])
+        divergent += reserve["stable_debt_token_status"] == "DIVERGES_FROM_INITIALIZATION"
+        if reserve["stable_debt_token_status"] == "MATCHES_INITIALIZATION":
+            assert reserve["stable_debt_token"] == reserve["reported_stable_debt_token"], reserve["asset"]
+    assert metrics["stable_debt_token_divergent_reserves"] == divergent
 
     classes = collections.Counter(account["classification"] for account in accounts)
     borrowers = sum(1 for account in accounts if account["debt_positions"])

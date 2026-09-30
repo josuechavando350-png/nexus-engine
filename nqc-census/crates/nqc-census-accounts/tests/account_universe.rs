@@ -81,6 +81,12 @@ struct World {
     zero_holdings: Vec<(Address, u64)>,
     /// (token, raw reply) replacing a token's `scaledBalanceOf(0x0)` answer.
     zero_replies: Vec<(Address, CallOutcome)>,
+    /// The stable debt token every reserve's `getReserveData` reports, and
+    /// that token's `totalSupply()` reply, when it is not the one each
+    /// reserve was initialized with (mainnet: one shared token).
+    reported_stable: Option<(Address, CallOutcome)>,
+    /// An aToken address `getReserveData` reports instead of the admitted one.
+    reported_a_token: Option<Address>,
     /// (account, configuration, health factor).
     accounts: Vec<(Address, u64, u64)>,
     logs: Vec<SimLog>,
@@ -127,6 +133,8 @@ fn world() -> World {
         stable_total: 0,
         zero_holdings: Vec::new(),
         zero_replies: Vec::new(),
+        reported_stable: None,
+        reported_a_token: None,
         accounts: vec![
             // collateral on reserve 0 (bit 1), borrowing reserve 1 (bit 2)
             (user(1), 0b110, UNDERWATER),
@@ -157,8 +165,13 @@ fn chain(world: &World) -> Result<SimChain, Box<dyn Error>> {
         let [asset, a_token, stable, v_token] = reserve(k);
         let mut words = vec![word(0); 15];
         words[7] = word(u64::from(k));
-        words[8] = word_a(a_token);
-        words[9] = word_a(stable);
+        words[8] = word_a(world.reported_a_token.unwrap_or(a_token));
+        words[9] = word_a(
+            world
+                .reported_stable
+                .as_ref()
+                .map_or(stable, |(token, _)| *token),
+        );
         words[10] = word_a(v_token);
         sim.set_call(
             pool(),
@@ -203,6 +216,17 @@ fn chain(world: &World) -> Result<SimChain, Box<dyn Error>> {
                 from,
                 None,
                 reply,
+            );
+        }
+    }
+    if let Some((token, reply)) = &world.reported_stable {
+        if ![reserve(0)[2], reserve(1)[2]].contains(token) {
+            sim.set_call(
+                *token,
+                call("totalSupply()", &[]),
+                from,
+                None,
+                reply.clone(),
             );
         }
     }
@@ -1508,5 +1532,111 @@ fn a_zero_address_term_that_is_unaccounted_disputed_malformed_missing_or_duplica
         error.to_string().contains("duplicate log coordinates"),
         "{error}"
     );
+    Ok(())
+}
+
+/// Stable rate borrowing is deprecated in Aave V3: at the census anchor
+/// `getReserveData` names one stable debt token (WETH's) for all 67 mainnet
+/// reserves, not the one each was initialized with (probe run 36712062094).
+/// That is protocol state, not a missing position: the aToken and variable
+/// debt token still must match exactly, every stable debt token named must
+/// hold no supply, and the divergence is recorded.
+#[test]
+fn a_reported_stable_debt_token_diverging_from_initialization_is_recorded_and_bounded() -> TestResult
+{
+    let shared = reserve(0)[2];
+    let mut setup = Setup::clean();
+    for world in [&mut setup.world_a, &mut setup.world_b] {
+        world.reported_stable = Some((shared, returned(&[word(0)])));
+    }
+    let run = prepare(&setup, "stable-shared")?;
+    let (records, candidates) = run.full()?;
+    let reconciled = run.reconcile(&records, &candidates)?;
+    let outcome = &reconciled.outcome;
+    assert!(outcome.conserved, "{:?}", outcome.mismatches.sorted());
+    assert_eq!(outcome.mismatches.unexplained(), 0);
+    assert!(outcome.findings.is_empty(), "{:?}", outcome.findings);
+    assert_eq!(
+        metric(&reconciled, "stable_debt_token_divergent_reserves"),
+        1
+    );
+    let statuses: Vec<&str> = outcome
+        .reserves
+        .iter()
+        .map(|row| row.str_field("stable_debt_token_status"))
+        .collect::<Result<_, _>>()?;
+    assert_eq!(
+        statuses,
+        ["MATCHES_INITIALIZATION", "DIVERGES_FROM_INITIALIZATION"]
+    );
+    assert_eq!(
+        outcome.reserves[1].str_field("reported_stable_debt_token")?,
+        shared.to_hex()
+    );
+
+    // A reported stable debt token holding supply is a stable position the
+    // universe does not cover: it blocks.
+    let other = address(0x77);
+    for (tag, reply, finding, mismatch) in [
+        ("stable-supply", returned(&[word(5)]), true, None),
+        (
+            "stable-unreadable",
+            CallOutcome::Reverted(Vec::new()),
+            false,
+            Some("REPORTED_STABLE_DEBT_TOTAL_SUPPLY"),
+        ),
+    ] {
+        let mut setup = Setup::clean();
+        for world in [&mut setup.world_a, &mut setup.world_b] {
+            world.reported_stable = Some((other, reply.clone()));
+        }
+        let run = prepare(&setup, tag)?;
+        let (records, candidates) = run.full()?;
+        let reconciled = run.reconcile(&records, &candidates)?;
+        let outcome = &reconciled.outcome;
+        assert_eq!(
+            outcome
+                .findings
+                .iter()
+                .any(|f| f.starts_with("STABLE_DEBT_POSITIONS_PRESENT")
+                    && f.contains("token=reported")),
+            finding,
+            "{tag}: {:?}",
+            outcome.findings
+        );
+        if let Some(dimension) = mismatch {
+            assert!(
+                outcome
+                    .mismatches
+                    .sorted()
+                    .iter()
+                    .any(|m| m.dimension == dimension),
+                "{tag}"
+            );
+        }
+        let dir = temp_root(tag)?;
+        assert!(closeout(&reconciled, &dir).is_err(), "{tag} must block");
+        std::fs::remove_dir_all(dir)?;
+    }
+
+    // The aToken and variable debt token are still checked exactly.
+    let mut setup = Setup::clean();
+    for world in [&mut setup.world_a, &mut setup.world_b] {
+        world.reported_stable = Some((shared, returned(&[word(0)])));
+        world.reported_a_token = Some(address(0x78));
+    }
+    let run = prepare(&setup, "stable-atoken")?;
+    let (records, candidates) = run.full()?;
+    let reconciled = run.reconcile(&records, &candidates)?;
+    assert!(reconciled
+        .outcome
+        .mismatches
+        .sorted()
+        .iter()
+        .any(|m| m.dimension == "RESERVE_TOKEN_ADDRESSES"
+            && m.observed.starts_with(&address(0x78).to_hex())));
+    let dir = temp_root("stable-atoken-closeout")?;
+    assert!(closeout(&reconciled, &dir).is_err());
+    std::fs::remove_dir_all(dir)?;
     Ok(())
 }
