@@ -597,6 +597,96 @@ pub fn reconcile_balancer_captures(
     Ok(sources)
 }
 
+/// Build the canonical Balancer dual-provider reconciliation artifact.
+///
+/// Both input captures must themselves be canonical JSON. The returned bytes
+/// are immediately re-parsed through the independent authority decoder before
+/// being released, so producer and verifier cannot silently drift.
+pub fn build_balancer_reconciliation_artifact(
+    first_bytes: &[u8],
+    second_bytes: &[u8],
+) -> Result<Vec<u8>, Box<dyn Error>> {
+    let first = Json::parse(first_bytes)?;
+    let second = Json::parse(second_bytes)?;
+    if first.canonical()? != first_bytes || second.canonical()? != second_bytes {
+        return Err("Balancer provider capture is not canonical JSON".into());
+    }
+
+    let sources = reconcile_balancer_captures(&first, &second)?;
+    let mut rows = Vec::with_capacity(sources.len());
+    for source in &sources {
+        rows.push(Json::object([
+            ("source_id", Json::string(source.id().to_hex())),
+            ("source_key_id", Json::string(source.key_id().to_hex())),
+            ("capital_class", Json::string(source.class().code())),
+            ("asset", Json::string(source.asset().code())),
+            (
+                "maximum_available",
+                Json::string(source.maximum_available().to_hex()),
+            ),
+            (
+                "executable_capacity",
+                Json::string(source.executable_capacity()?.to_hex()),
+            ),
+            (
+                "execution_eligible",
+                Json::Bool(source.execution_eligible()),
+            ),
+            (
+                "execution_blockers",
+                Json::array(
+                    source
+                        .execution_blockers()
+                        .iter()
+                        .cloned()
+                        .map(Json::string),
+                ),
+            ),
+            (
+                "canonical_record",
+                Json::string(hex::plain(&source.canonical_encode())),
+            ),
+        ]));
+    }
+
+    let report = Json::object([
+        ("schema_version", Json::uint(1)),
+        ("stage", Json::string("RMC-011")),
+        ("family", Json::string("BALANCER_V2_FLASH_LOAN")),
+        (
+            "status",
+            Json::string("RMC011_BALANCER_V2_DUAL_PROVIDER_RECONCILED"),
+        ),
+        ("provider_count", Json::uint(2)),
+        (
+            "first_capture_sha256",
+            Json::string(sha256_plain(first_bytes)),
+        ),
+        (
+            "second_capture_sha256",
+            Json::string(sha256_plain(second_bytes)),
+        ),
+        (
+            "source_count",
+            Json::uint(u64::try_from(sources.len())?),
+        ),
+        ("sources", Json::Array(rows)),
+    ]);
+    let bytes = report.canonical()?;
+
+    let (authority, decoded) = source_authority_from_balancer_reconcile_artifact(&bytes)?;
+    if authority.family().code() != "BALANCER_V2_FLASH_LOAN"
+        || decoded.len() != sources.len()
+        || decoded
+            .iter()
+            .zip(&sources)
+            .any(|(left, right)| left != right)
+    {
+        return Err("Balancer reconciliation self-verification failed".into());
+    }
+    Ok(bytes)
+}
+
 /// Decode and independently verify the Rust reconciliation artifact, then bind
 /// its exact bytes to a D11-native source authority.
 ///
