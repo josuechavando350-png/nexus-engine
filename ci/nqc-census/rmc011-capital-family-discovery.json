@@ -75,7 +75,7 @@
       "anchor_mode": "EXACT_STATE_ANCHOR",
       "completeness": "EVERY_DECLARED_FACILITY_EVALUATED_FOR_COLLATERAL_ASSET_RATIO_ORACLE_LIQUIDATION_HEALTH_FACTOR_INTEREST_LIMITS_AND_CAPS",
       "negative_proof": "CATALOG_COVERAGE_AND_FACILITY_REJECTION_LEDGER",
-      "implementation": "nqc-census/crates/nqc-census-capital/src/external_debt.rs + PENDING_D11_AUTHENTICATED_ACQUISITION"
+      "implementation": "nqc-census/crates/nqc-census-capital/src/external_debt.rs + ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json + ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py + PENDING_D11_AUTHENTICATED_ACQUISITION"
     },
     {
       "id": "PERSISTENT_DEBT",
@@ -84,7 +84,7 @@
       "anchor_mode": "EXACT_STATE_ANCHOR_PLUS_TERMS_VALIDITY_WINDOW",
       "completeness": "EVERY_DECLARED_PERSISTENT_DEBT_FACILITY_EVALUATED_FOR_INTEREST_COLLATERAL_LIQUIDATION_SOLVENCY_ORACLE_LIQUIDITY_WITHDRAWAL_AND_DISAPPEARANCE_RISK",
       "negative_proof": "CATALOG_COVERAGE_AND_FACILITY_REJECTION_LEDGER",
-      "implementation": "nqc-census/crates/nqc-census-capital/src/external_debt.rs + PENDING_D11_AUTHENTICATED_ACQUISITION"
+      "implementation": "nqc-census/crates/nqc-census-capital/src/external_debt.rs + ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json + ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py + PENDING_D11_AUTHENTICATED_ACQUISITION"
     },
     {
       "id": "INVENTORY_REQUIREMENT",
