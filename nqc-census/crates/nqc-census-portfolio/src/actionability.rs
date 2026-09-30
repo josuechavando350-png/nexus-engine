@@ -607,6 +607,28 @@ pub fn promote_protocol_native_flash_liquidation(
     })
 }
 
+/// Reconstruct the exact D12 portfolio candidate identity from an
+/// authenticated promotion record. The promotion artifact remains the
+/// semantic authority for the requirement; this helper only recomputes the
+/// deterministic variant/candidate identity and anchor binding.
+pub fn reconstruct_protocol_native_flash_candidate(
+    requirement_id: nqc_census_capital::CapitalRequirementId,
+    actionable_candidate_hash: Hash32,
+    anchor: StateAnchor,
+) -> Result<PortfolioCandidate, LiquidationPromotionError> {
+    let variant_hash = Hash32::new(domain_hash(
+        CAPITAL_PROMOTION_VARIANT_DOMAIN,
+        actionable_candidate_hash.as_bytes(),
+    ))
+    .map_err(|_| LiquidationPromotionError::InvalidCandidateCommitment)?;
+    Ok(PortfolioCandidate::new_variant(
+        requirement_id,
+        variant_hash,
+        anchor,
+        Vec::new(),
+    )?)
+}
+
 /// Evaluate the promoted liquidation only against the exact Aave V3 Pool that
 /// supplied the premium semantics used by the PFT bridge. A different
 /// protocol-native flash provider is not interchangeable evidence.

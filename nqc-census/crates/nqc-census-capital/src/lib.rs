@@ -1752,6 +1752,13 @@ impl CapitalRequirementLeg {
 pub struct CapitalRequirementId([u8; 32]);
 
 impl CapitalRequirementId {
+    /// Reconstruct an already-certified requirement identity from its exact
+    /// non-zero content hash. This does not certify requirement semantics;
+    /// callers must bind the hash to an authenticated upstream artifact.
+    pub fn from_hash(hash: Hash32) -> Self {
+        Self(*hash.as_bytes())
+    }
+
     pub const fn as_bytes(&self) -> &[u8; 32] {
         &self.0
     }
