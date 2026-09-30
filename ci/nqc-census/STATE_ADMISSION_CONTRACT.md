@@ -81,6 +81,26 @@ recorded exchanges, so replay retraces the same requests. Rows keep only
 the status `REVERTED` / `HALTED` (revert data is not material and providers
 differ on transporting it). Any other provider error fails the stage.
 
+Clients name the same halt differently. geth and erigon use phrases
+(`invalid jump destination`). revm-based nodes use the `InstructionResult`
+variant: live run 36682467619 saw blastapi-public answer `-32003 "EVM error:
+InvalidJump"` for one v2-state-8 call on all ten attempts. The halt list
+therefore carries both vocabularies. It lists only halts that are a pure
+function of code, input and the fixed gas bound; a node-configured limit
+(revm `MemoryLimitOOG`) is not one of them and still fails the stage. Both
+providers must still report the same `HALTED` fact, or the census fails
+closed.
+
+Mainnet reserves share contracts. Probe run 36686929285 read, at the
+anchor, one stable debt token (`0x1026…949a`) and one interest rate
+strategy (`0x9ec6…fdfb`) named by all 67 reserves. A JSON-RPC batch holding
+one call twice is refused by the chain layer (responses match by
+position): live run 36682467619 failed every AAVE_STATE attempt on both
+providers with `duplicate call in batch`. Each distinct call or code read
+of a batch is therefore made once, and its outcome is kept for every
+request that named it. A read pinned to one block is deterministic, so no
+row changes.
+
 ## 3. Exact checks
 
 Integer arithmetic only (256-bit, checked, 512-bit intermediate for
@@ -174,7 +194,12 @@ are not pinned, and certifies nothing. Within an acquisition the stage
 matrix is bounded (`max-parallel: 6`, providers interleaved). Transient provider failures (rate limit, "temporarily
 unavailable", transport) are retried by the chain layer and then by up to ten
 resumable attempts from committed RMC-004 checkpoints; a semantic
-disagreement is never retried, it fails closed. Stage evidence is uploaded
+disagreement is never retried, it fails closed. A refusal that belongs to
+the request stops the stage as `RMC008_DETERMINISTIC_PROVIDER_REFUSAL` after
+two identical attempts with no new committed checkpoint. Such refusals are a
+JSON-RPC request error (`-32600`/`-32601`/`-32602`), an EVM execution error,
+or a malformed batch; retrying cannot change them (run 36682467619 spent
+about two hours per stage retrying two of them). Stage evidence is uploaded
 even when a stage fails, under names carrying stage, provider, exact head,
 run id and attempt; re-running a failed stage adds evidence beside the failed
 attempt's, and the reconciler consumes each stage's latest attempt and lists

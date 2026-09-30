@@ -51,7 +51,15 @@ impl Untrusted {
     }
 }
 
-const EVM_HALTS: [&str; 12] = [
+/// Deterministic EVM exceptional halts, in each client's own words (matched
+/// on the lowercased provider message). geth/erigon use spaced phrases;
+/// revm-based nodes name the halt by its `InstructionResult` variant: live
+/// run 36682467619 saw blastapi-public answer `-32003 "EVM error:
+/// InvalidJump"` on every attempt for a call geth reports as `invalid jump
+/// destination`. Only halts that are a pure function of code, input and the
+/// fixed gas bound are listed; a node-configured limit (revm
+/// `MemoryLimitOOG`) is not, so it still fails the job.
+const EVM_HALTS: [&str; 20] = [
     "invalid opcode",
     "invalid jump",
     "stack underflow",
@@ -64,6 +72,15 @@ const EVM_HALTS: [&str; 12] = [
     "badjumpdestination",
     "outofgas",
     "stackunderflow",
+    // revm InstructionResult names
+    "invalidjump",
+    "opcodenotfound",
+    "invalidfeopcode",
+    "stackoverflow",
+    "memoryoog",
+    "invalidoperandoog",
+    "outofoffset",
+    "statechangeduringstaticcall",
 ];
 
 fn tolerated(error: &ChainError) -> Option<Untrusted> {
