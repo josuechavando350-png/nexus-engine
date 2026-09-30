@@ -8,7 +8,7 @@ on:
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
-      - "ci/nqc-census/validate-rmc011-terminal-readiness.py"
+      - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
       - "ci/nqc-census/rmc011-real-source-inputs.json"
       - "ci/nqc-census/rmc011-authority-lock.json"
@@ -26,7 +26,7 @@ on:
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
-      - "ci/nqc-census/validate-rmc011-terminal-readiness.py"
+      - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
       - "ci/nqc-census/rmc011-real-source-inputs.json"
       - "ci/nqc-census/rmc011-authority-lock.json"
@@ -71,7 +71,7 @@ jobs:
           grep -F 'rmc011-certification-package' .github/workflows/nqc-census-capital-real-source-certification.yml
           grep -F 'CERTIFICATION-PACKAGE-SHA256SUMS' .github/workflows/nqc-census-capital-real-source-certification.yml
           test -f ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
-          python3 ci/nqc-census/validate-rmc011-terminal-readiness.py
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           jq -e '.terminal_claim_allowed == false and .status != "D11_TERMINAL_CLOSED"' ci/nqc-census/rmc011-capital-source-universe.json >/dev/null
 
           INPUTS=ci/nqc-census/rmc011-real-source-inputs.json
