@@ -1155,6 +1155,11 @@ impl CapitalSource {
         }
         spec.evidence.sort_unstable();
         spec.evidence.dedup();
+        if spec.evidence.len() > usize::from(u16::MAX) {
+            return Err(CapitalError::InvalidCanonical(
+                "too many capital source evidence references",
+            ));
+        }
         if spec.evidence.is_empty() {
             return Err(CapitalError::MissingEvidence);
         }
@@ -1789,8 +1794,18 @@ impl CapitalRequirement {
         if legs.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(CapitalError::DuplicateLeg);
         }
+        if legs.len() > usize::from(u16::MAX) {
+            return Err(CapitalError::InvalidCanonical(
+                "too many capital requirement legs",
+            ));
+        }
         evidence.sort_unstable();
         evidence.dedup();
+        if evidence.len() > usize::from(u16::MAX) {
+            return Err(CapitalError::InvalidCanonical(
+                "too many capital requirement evidence references",
+            ));
+        }
         if evidence.is_empty() {
             return Err(CapitalError::MissingEvidence);
         }
