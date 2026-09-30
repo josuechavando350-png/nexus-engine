@@ -1,0 +1,266 @@
+name: NQC RMC-013 Terminal Economics Authority
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc013-terminal-inputs.json"
+      - "ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md"
+      - ".github/workflows/nqc-census-economics-terminal.yml"
+  push:
+    branches:
+      - "nqc/rmc-013-execution-economics-capture-20260929"
+    paths:
+      - "ci/nqc-census/rmc013-terminal-inputs.json"
+      - "ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md"
+      - ".github/workflows/nqc-census-economics-terminal.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc013-terminal-economics-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  INPUTS: ci/nqc-census/rmc013-terminal-inputs.json
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      status: ${{ steps.inputs.outputs.status }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Validate terminal input contract
+        id: inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == 1 and
+            .repository == env.GITHUB_REPOSITORY and
+            (.status == "BLOCKED_AWAITING_CERTIFIED_RMC012_AND_EXECUTION_EVIDENCE" or .status == "PINNED") and
+            (if .status == "PINNED" then
+              (.d12 | type == "object") and
+              (.execution_evidence | type == "object") and
+              ([.d12,.execution_evidence] | all(
+                (.run_id | type == "number") and
+                (.head_sha | type == "string") and
+                (.tree_sha | type == "string") and
+                (.workflow_name | type == "string") and
+                (.artifact_id | type == "number") and
+                (.artifact_name | type == "string") and
+                (.artifact_digest | type == "string")
+              ))
+            else
+              .d12 == null and .execution_evidence == null
+            end)
+          ' "$INPUTS" >/dev/null
+          STATUS="$(jq -r '.status' "$INPUTS")"
+          if [[ "$STATUS" == "PINNED" ]]; then
+            jq -e '
+              (.d12.head_sha | test("^[0-9a-f]{40}$")) and
+              (.d12.tree_sha | test("^[0-9a-f]{40}$")) and
+              (.d12.artifact_digest | test("^sha256:[0-9a-f]{64}$")) and
+              (.d12.workflow_name == "NQC RMC-012 Terminal Actionability Authority") and
+              (.d12.artifact_name | startswith("rmc012-terminal-actionability-")) and
+              (.execution_evidence.head_sha | test("^[0-9a-f]{40}$")) and
+              (.execution_evidence.tree_sha | test("^[0-9a-f]{40}$")) and
+              (.execution_evidence.artifact_digest | test("^sha256:[0-9a-f]{64}$"))
+            ' "$INPUTS" >/dev/null
+          fi
+          echo "status=$STATUS" >> "$GITHUB_OUTPUT"
+          grep -F 'Synthetic fixtures, detached candidate ids, mutable latest'             ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md
+
+  terminal:
+    needs: preflight
+    if: ${{ needs.preflight.outputs.status == 'PINNED' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Checkout exact D13 head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Authenticate pinned D12 and execution-evidence artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          authenticate() {
+            local key="$1"
+            local out="$2"
+            local run head tree workflow artifact name digest
+            run="$(jq -r --arg key "$key" '.[$key].run_id' "$INPUTS")"
+            head="$(jq -r --arg key "$key" '.[$key].head_sha' "$INPUTS")"
+            tree="$(jq -r --arg key "$key" '.[$key].tree_sha' "$INPUTS")"
+            workflow="$(jq -r --arg key "$key" '.[$key].workflow_name' "$INPUTS")"
+            artifact="$(jq -r --arg key "$key" '.[$key].artifact_id' "$INPUTS")"
+            name="$(jq -r --arg key "$key" '.[$key].artifact_name' "$INPUTS")"
+            digest="$(jq -r --arg key "$key" '.[$key].artifact_digest' "$INPUTS")"
+
+            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run")"
+            test "$(jq -r '.status' <<<"$run_json")" = completed
+            test "$(jq -r '.conclusion' <<<"$run_json")" = success
+            test "$(jq -r '.head_sha' <<<"$run_json")" = "$head"
+            test "$(jq -r '.name' <<<"$run_json")" = "$workflow"
+            test "$(gh api "repos/$REPOSITORY/git/commits/$head" --jq '.tree.sha')" = "$tree"
+
+            artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact")"
+            test "$(jq -r '.expired' <<<"$artifact_json")" = false
+            test "$(jq -r '.name' <<<"$artifact_json")" = "$name"
+            test "$(jq -r '.digest' <<<"$artifact_json")" = "$digest"
+            test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run"
+
+            rm -rf "$out"
+            mkdir -p "$out"
+            gh run download "$run" --repo "$REPOSITORY" --name "$name" --dir "$out"
+            if find "$out" -type l -print -quit | grep -q .; then
+              echo "RMC013_SYMLINK_PACKAGE_REJECTED key=$key" >&2
+              exit 1
+            fi
+          }
+
+          authenticate d12 "$RUNNER_TEMP/d12"
+          authenticate execution_evidence "$RUNNER_TEMP/execution"
+
+      - name: Verify D12 terminal authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          D12="$RUNNER_TEMP/d12"
+          test -f "$D12/terminal-archive.sha256"
+          (
+            cd "$D12"
+            sha256sum -c terminal-archive.sha256
+          )
+          CERT="$D12/terminal-actionability-certification.json"
+          test -f "$CERT"
+          jq -e '
+            .schema_version == 1 and
+            .status == "RMC_012_TERMINAL_ACTIONABILITY_CERTIFIED" and
+            .principal_capital_promotion_certified == true and
+            .principal_capital_promoted == (.principal_capital_feasible + .principal_capital_rejected) and
+            .economics_certified == false and
+            .realized_pnl_certified == false
+          ' "$CERT" >/dev/null
+          echo "D12_CERT=$CERT" >> "$GITHUB_ENV"
+
+      - name: Verify exact execution-evidence coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXEC="$RUNNER_TEMP/execution"
+          test -f "$EXEC/archive.sha256"
+          (
+            cd "$EXEC"
+            sha256sum -c archive.sha256
+          )
+          for name in             execution-evidence-summary.json             execution-economics.jsonl             execution-rejection-ledger.jsonl             capacity-curves.jsonl             shadow-predictions.jsonl             evidence-manifest.json
+          do
+            test -f "$EXEC/$name"
+          done
+
+          SUMMARY="$EXEC/execution-evidence-summary.json"
+          D12_FEASIBLE="$(jq '.principal_capital_feasible' "$D12_CERT")"
+          D12_DIGEST="$(jq -r '.d12.artifact_digest' "$INPUTS")"
+          jq -e             --argjson d12_feasible "$D12_FEASIBLE"             --arg d12_digest "$D12_DIGEST" '
+            .schema_version == 1 and
+            .status == "RMC_013_REAL_EXECUTION_ECONOMICS_PASS" and
+            .coverage_complete == true and
+            .unresolved_mismatch_count == 0 and
+            .unknown_rejection_count == 0 and
+            .d12_artifact_digest == $d12_digest and
+            .input_candidate_count == $d12_feasible and
+            .input_candidate_count == (.execution_simulatable_count + .explicit_rejection_count) and
+            .economics_candidate_count == .execution_simulatable_count and
+            .positive_gross_value_count <= .execution_simulatable_count and
+            .positive_success_path_net_count <= .positive_gross_value_count and
+            .capacity_material_count <= .positive_success_path_net_count and
+            .shadow_prediction_count <= .capacity_material_count and
+            .capture_calibrated_count <= .economics_candidate_count and
+            .gas_funding_candidate_count == .execution_simulatable_count and
+            .operator_owned_gas_funding_count == 0 and
+            (.execution_simulatable_count == 0 or .zero_own_capital_proven == true) and
+            .realized_profitability_proven == false and
+            .monthly_target_probability_proven == false
+          ' "$SUMMARY" >/dev/null
+
+          jq -e -s 'all(.[]; .reason != "UNKNOWN")'             "$EXEC/execution-rejection-ledger.jsonl" >/dev/null
+          test "$(wc -l < "$EXEC/execution-economics.jsonl")" -eq             "$(jq '.economics_candidate_count' "$SUMMARY")"
+          test "$(wc -l < "$EXEC/shadow-predictions.jsonl")" -eq             "$(jq '.shadow_prediction_count' "$SUMMARY")"
+
+          echo "EXEC_SUMMARY=$SUMMARY" >> "$GITHUB_ENV"
+          echo "EXEC_ROOT=$EXEC" >> "$GITHUB_ENV"
+
+      - name: Build terminal RMC-013 certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/rmc013-terminal"
+          rm -rf "$OUT"
+          mkdir -p "$OUT"
+          cp "$EXEC_ROOT/"{execution-evidence-summary.json,execution-economics.jsonl,execution-rejection-ledger.jsonl,capacity-curves.jsonl,shadow-predictions.jsonl,evidence-manifest.json} "$OUT/"
+
+          HEAD="$(git rev-parse HEAD)"
+          TREE="$(git rev-parse 'HEAD^{tree}')"
+          SUMMARY="$EXEC_SUMMARY"
+          jq -S -c -n             --arg head "$HEAD"             --arg tree "$TREE"             --arg d12_digest "$(jq -r '.d12.artifact_digest' "$INPUTS")"             --arg exec_digest "$(jq -r '.execution_evidence.artifact_digest' "$INPUTS")"             --arg coverage "$(jq -r '.coverage_commitment' "$SUMMARY")"             --arg authority "$(jq -r '.authority_commitment' "$SUMMARY")"             --argjson input "$(jq '.input_candidate_count' "$SUMMARY")"             --argjson simulatable "$(jq '.execution_simulatable_count' "$SUMMARY")"             --argjson rejected "$(jq '.explicit_rejection_count' "$SUMMARY")"             --argjson gross "$(jq '.positive_gross_value_count' "$SUMMARY")"             --argjson success_net "$(jq '.positive_success_path_net_count' "$SUMMARY")"             --argjson material "$(jq '.capacity_material_count' "$SUMMARY")"             --argjson shadow "$(jq '.shadow_prediction_count' "$SUMMARY")"             --argjson calibrated "$(jq '.capture_calibrated_count' "$SUMMARY")" \
+            --argjson gas_funded "$(jq '.gas_funding_candidate_count' "$SUMMARY")" \
+            --argjson operator_gas "$(jq '.operator_owned_gas_funding_count' "$SUMMARY")" \
+            --argjson zero_own "$(jq '.zero_own_capital_proven' "$SUMMARY")" '
+            {
+              schema_version:1,
+              status:"RMC_013_TERMINAL_ECONOMICS_CERTIFIED",
+              code_commit:$head,
+              code_tree:$tree,
+              d12_artifact_digest:$d12_digest,
+              execution_evidence_artifact_digest:$exec_digest,
+              authority_commitment:$authority,
+              coverage_commitment:$coverage,
+              input_candidate_count:$input,
+              execution_simulatable_count:$simulatable,
+              explicit_rejection_count:$rejected,
+              economics_candidate_count:$simulatable,
+              positive_gross_value_count:$gross,
+              positive_success_path_net_count:$success_net,
+              capacity_material_count:$material,
+              shadow_prediction_count:$shadow,
+              capture_calibrated_count:$calibrated,
+              gas_funding_candidate_count:$gas_funded,
+              operator_owned_gas_funding_count:$operator_gas,
+              zero_own_capital_proven:$zero_own,
+              coverage_complete:true,
+              unresolved_mismatch_count:0,
+              unknown_failure_count:0,
+              blocker_count:0,
+              admitted:true,
+              realized_profitability_proven:false,
+              monthly_target_probability_proven:false
+            }' > "$OUT/terminal-economics-certification.json"
+
+          (
+            cd "$OUT"
+            LC_ALL=C find . -maxdepth 1 -type f ! -name terminal-archive.sha256 -printf '%f\n'               | LC_ALL=C sort               | xargs sha256sum > terminal-archive.sha256
+            sha256sum -c terminal-archive.sha256
+          )
+          echo "RMC013_TERMINAL_ECONOMICS_AUTHORITY=PASS"
+
+      - name: Upload immutable RMC-013 terminal authority
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc013-terminal-economics-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc013-terminal/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

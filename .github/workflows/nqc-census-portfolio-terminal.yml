@@ -285,6 +285,10 @@ jobs:
             .principal_capital_conserved == true and
             .principal_capital_promoted == .admitted and
             .principal_capital_promoted == (.principal_capital_feasible + .principal_capital_rejected) and
+            .portfolio_concurrent_principal_capacity_certified == true and
+            .portfolio_conflict_count >= 0 and
+            .portfolio_component_count >= 0 and
+            (.portfolio_commitment | type == "string") and
             .gas_funding_certified == false and
             .portfolio_concurrent_capacity_certified == false and
             (.expected_pairs == (.admitted + .rejected))
@@ -304,10 +308,11 @@ jobs:
           cp -- "$ACTIONABILITY_OUT/actionability-records.jsonl" "$CERT/"
           cp -- "$ACTIONABILITY_OUT/actionability-summary.json" "$CERT/"
           cp -- "$ACTIONABILITY_OUT/capital-promotions.jsonl" "$CERT/"
+          cp -- "$ACTIONABILITY_OUT/portfolio-capacity.json" "$CERT/"
           cp -- "$ACTIONABILITY_OUT/evidence-manifest.json" "$CERT/"
 
           SUMMARY="$ACTIONABILITY_OUT/actionability-summary.json"
-          jq -S -c -n             --arg head "$D12_EXACT_HEAD"             --arg tree "$D12_EXACT_TREE"             --arg d11_head "$D11_HEAD_SHA"             --arg d11_tree "$D11_TREE_SHA"             --argjson d11_run "$D11_RUN_ID"             --argjson d11_artifact "$D11_ARTIFACT_ID"             --arg d11_artifact_name "$D11_ARTIFACT_NAME"             --arg d11_artifact_digest "$D11_ARTIFACT_DIGEST"             --arg d11_package_inventory_sha256 "$D11_PACKAGE_INVENTORY_SHA256"             --arg d11_closeout_sha256 "$D11_CLOSEOUT_SHA256"             --arg lock_commitment "$(jq -r '.upstream_authority_lock_commitment' "$SUMMARY")"             --arg lock_sha256 "$(jq -r '.upstream_authority_lock_sha256' "$SUMMARY")"             --arg coverage "$(jq -r '.coverage_commitment' "$SUMMARY")"             --argjson below_one "$(jq '.below_one_borrowers' "$SUMMARY")"             --argjson pairs "$(jq '.expected_pairs' "$SUMMARY")"             --argjson admitted "$(jq '.admitted' "$SUMMARY")"             --argjson rejected "$(jq '.rejected' "$SUMMARY")"             --argjson principal_promoted "$(jq '.principal_capital_promoted' "$SUMMARY")"             --argjson principal_feasible "$(jq '.principal_capital_feasible' "$SUMMARY")"             --argjson principal_rejected "$(jq '.principal_capital_rejected' "$SUMMARY")"             --arg d11_sources_sha256 "$(jq -r '.d11_capital_sources_sha256' "$SUMMARY")"             --arg promotions_sha256 "$(sha256sum "$CERT/capital-promotions.jsonl" | awk '{print $1}')"             --arg records_sha256 "$(sha256sum "$CERT/actionability-records.jsonl" | awk '{print $1}')"             --arg summary_sha256 "$(sha256sum "$CERT/actionability-summary.json" | awk '{print $1}')"             --arg evidence_sha256 "$(sha256sum "$CERT/evidence-manifest.json" | awk '{print $1}')"             '{
+          jq -S -c -n             --arg head "$D12_EXACT_HEAD"             --arg tree "$D12_EXACT_TREE"             --arg d11_head "$D11_HEAD_SHA"             --arg d11_tree "$D11_TREE_SHA"             --argjson d11_run "$D11_RUN_ID"             --argjson d11_artifact "$D11_ARTIFACT_ID"             --arg d11_artifact_name "$D11_ARTIFACT_NAME"             --arg d11_artifact_digest "$D11_ARTIFACT_DIGEST"             --arg d11_package_inventory_sha256 "$D11_PACKAGE_INVENTORY_SHA256"             --arg d11_closeout_sha256 "$D11_CLOSEOUT_SHA256"             --arg lock_commitment "$(jq -r '.upstream_authority_lock_commitment' "$SUMMARY")"             --arg lock_sha256 "$(jq -r '.upstream_authority_lock_sha256' "$SUMMARY")"             --arg coverage "$(jq -r '.coverage_commitment' "$SUMMARY")"             --argjson below_one "$(jq '.below_one_borrowers' "$SUMMARY")"             --argjson pairs "$(jq '.expected_pairs' "$SUMMARY")"             --argjson admitted "$(jq '.admitted' "$SUMMARY")"             --argjson rejected "$(jq '.rejected' "$SUMMARY")"             --argjson principal_promoted "$(jq '.principal_capital_promoted' "$SUMMARY")"             --argjson principal_feasible "$(jq '.principal_capital_feasible' "$SUMMARY")"             --argjson principal_rejected "$(jq '.principal_capital_rejected' "$SUMMARY")"             --argjson portfolio_conflicts "$(jq '.portfolio_conflict_count' "$SUMMARY")"             --argjson portfolio_components "$(jq '.portfolio_component_count' "$SUMMARY")"             --argjson portfolio_simultaneous "$(jq '.portfolio_simultaneously_feasible' "$SUMMARY")"             --arg portfolio_commitment "$(jq -r '.portfolio_commitment' "$SUMMARY")"             --arg d11_sources_sha256 "$(jq -r '.d11_capital_sources_sha256' "$SUMMARY")"             --arg promotions_sha256 "$(sha256sum "$CERT/capital-promotions.jsonl" | awk '{print $1}')"             --arg portfolio_sha256 "$(sha256sum "$CERT/portfolio-capacity.json" | awk '{print $1}')"             --arg records_sha256 "$(sha256sum "$CERT/actionability-records.jsonl" | awk '{print $1}')"             --arg summary_sha256 "$(sha256sum "$CERT/actionability-summary.json" | awk '{print $1}')"             --arg evidence_sha256 "$(sha256sum "$CERT/evidence-manifest.json" | awk '{print $1}')"             '{
               schema_version: 1,
               status: "RMC_012_TERMINAL_ACTIONABILITY_CERTIFIED",
               scope: "ACTIONABILITY_AND_PRINCIPAL_FLASH_CAPITAL",
@@ -335,6 +340,11 @@ jobs:
               principal_capital_feasible: $principal_feasible,
               principal_capital_rejected: $principal_rejected,
               d11_capital_sources_sha256: $d11_sources_sha256,
+              portfolio_concurrent_principal_capacity_certified: true,
+              portfolio_conflict_count: $portfolio_conflicts,
+              portfolio_component_count: $portfolio_components,
+              portfolio_simultaneously_feasible: $portfolio_simultaneous,
+              portfolio_commitment: $portfolio_commitment,
               gas_funding_certified: false,
               portfolio_concurrent_capacity_certified: false,
               economics_certified: false,
@@ -343,13 +353,14 @@ jobs:
                 {path:"actionability-records.jsonl", sha256:$records_sha256},
                 {path:"actionability-summary.json", sha256:$summary_sha256},
                 {path:"capital-promotions.jsonl", sha256:$promotions_sha256},
+                {path:"portfolio-capacity.json", sha256:$portfolio_sha256},
                 {path:"evidence-manifest.json", sha256:$evidence_sha256}
               ]
             }' > "$CERT/terminal-actionability-certification.json"
 
           (
             cd "$CERT"
-            for name in actionability-records.jsonl actionability-summary.json capital-promotions.jsonl evidence-manifest.json terminal-actionability-certification.json; do
+            for name in actionability-records.jsonl actionability-summary.json capital-promotions.jsonl portfolio-capacity.json evidence-manifest.json terminal-actionability-certification.json; do
               printf '%s  %s\n' "$(sha256sum "$name" | awk '{print $1}')" "$name"
             done > terminal-archive.sha256
             sha256sum -c terminal-archive.sha256

@@ -13,10 +13,13 @@ use nqc_census_capital::{
     Amount256, CapitalFeasibility, UpstreamCensusStage,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
-use nqc_census_portfolio::actionability::{
-    evaluate_protocol_native_flash_promotion, promote_protocol_native_flash_liquidation,
-    ActionabilityCoverage, ActionabilityPair, ActionabilityRecord, ActionabilityRejectionReason,
-    ActionableLiquidation,
+use nqc_census_portfolio::{
+    actionability::{
+        evaluate_protocol_native_flash_promotion, promote_protocol_native_flash_liquidation,
+        ActionabilityCoverage, ActionabilityPair, ActionabilityRecord, ActionabilityRejectionReason,
+        ActionableLiquidation,
+    },
+    evaluate_portfolio, ConflictResource,
 };
 use nqc_rmc012_pft_actionability_bridge::{
     classify_pair, PairDecision, PairInput, PairRejection, PFT_CERTIFIED_COMMIT, PFT_CERTIFIED_TREE,
@@ -127,6 +130,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut records = Vec::new();
     let mut output_rows = Vec::new();
     let mut capital_rows = Vec::new();
+    let mut portfolio_candidates = Vec::new();
+    let mut portfolio_requirements = Vec::new();
+    let mut portfolio_feasibility = Vec::new();
     let mut principal_capital_feasible = 0_u64;
     let mut principal_capital_rejected = 0_u64;
     let mut below_one_borrowers = 0_u64;
@@ -299,6 +305,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                             aave_pool,
                             &capital_sources,
                         )?;
+                        portfolio_candidates.push(promotion.portfolio_candidate().clone());
+                        portfolio_requirements.push(promotion.requirement().clone());
+                        portfolio_feasibility.push(feasibility.clone());
+
                         let (capital_status, capital_reason, allocations) = match &feasibility {
                             CapitalFeasibility::Feasible { allocations, .. } => {
                                 principal_capital_feasible = principal_capital_feasible
@@ -435,6 +445,94 @@ fn main() -> Result<(), Box<dyn Error>> {
         return Err("admitted actionability to capital promotion is not conserved".into());
     }
 
+    let portfolio = evaluate_portfolio(
+        &portfolio_candidates,
+        &portfolio_requirements,
+        &portfolio_feasibility,
+        &capital_sources,
+        &[],
+    )?;
+    if u64::try_from(portfolio.candidate_count())? != coverage.admitted_count()
+        || u64::try_from(portfolio.capital_feasible_count())? != principal_capital_feasible
+        || u64::try_from(portfolio.capital_rejected().len())? != principal_capital_rejected
+    {
+        return Err("portfolio report does not conserve terminal actionability promotion".into());
+    }
+
+    let conflict_rows = portfolio
+        .conflicts()
+        .iter()
+        .map(|conflict| {
+            let (kind, key) = match conflict.resource {
+                ConflictResource::Requirement(id) => ("REQUIREMENT", id.to_hex()),
+                ConflictResource::CapitalSource(id) => ("CAPITAL_SOURCE", id.to_hex()),
+                ConflictResource::Shared(id) => ("SHARED_RESOURCE", id.to_hex()),
+            };
+            json!({
+                "resource_kind": kind,
+                "resource_key": key,
+                "capacity": conflict.capacity.to_hex(),
+                "claimed": conflict.claimed.to_hex(),
+                "claimants": conflict
+                    .claimants
+                    .iter()
+                    .map(|id| id.to_hex())
+                    .collect::<Vec<_>>()
+            })
+        })
+        .collect::<Vec<_>>();
+    let component_rows = portfolio
+        .components()
+        .iter()
+        .map(|component| {
+            let resources = component
+                .resources
+                .iter()
+                .map(|resource| match resource {
+                    ConflictResource::Requirement(id) => {
+                        json!({"kind":"REQUIREMENT","key":id.to_hex()})
+                    }
+                    ConflictResource::CapitalSource(id) => {
+                        json!({"kind":"CAPITAL_SOURCE","key":id.to_hex()})
+                    }
+                    ConflictResource::Shared(id) => {
+                        json!({"kind":"SHARED_RESOURCE","key":id.to_hex()})
+                    }
+                })
+                .collect::<Vec<_>>();
+            json!({
+                "candidates": component
+                    .candidates
+                    .iter()
+                    .map(|id| id.to_hex())
+                    .collect::<Vec<_>>(),
+                "resources": resources
+            })
+        })
+        .collect::<Vec<_>>();
+    let portfolio_json = json!({
+        "schema": "nqc-rmc-012-terminal-principal-capacity-v1",
+        "code_commit": code_commit,
+        "code_tree": code_tree,
+        "anchor": {
+            "chain_id": anchor.chain().chain_id(),
+            "block_number": anchor.block_number(),
+            "block_hash": anchor.block_hash().to_hex(),
+            "state_root": anchor.state_root().to_hex()
+        },
+        "candidate_count": portfolio.candidate_count(),
+        "capital_feasible_count": portfolio.capital_feasible_count(),
+        "capital_rejected_count": portfolio.capital_rejected().len(),
+        "conflict_count": portfolio.conflicts().len(),
+        "component_count": portfolio.components().len(),
+        "simultaneously_feasible": portfolio.simultaneously_feasible(),
+        "portfolio_commitment": portfolio.commitment_hex(),
+        "conflicts": conflict_rows,
+        "components": component_rows
+    });
+    let portfolio_bytes = serde_json::to_vec_pretty(&portfolio_json)?;
+    fs::write(out.join("portfolio-capacity.json"), &portfolio_bytes)?;
+
     let summary = json!({
         "schema": SCHEMA,
         "status": "RMC_012_ACTIONABILITY_PASS",
@@ -466,7 +564,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         "principal_capital_rejected": principal_capital_rejected,
         "principal_capital_conserved": true,
         "gas_funding_certified": false,
+        "portfolio_concurrent_principal_capacity_certified": true,
         "portfolio_concurrent_capacity_certified": false,
+        "portfolio_conflict_count": portfolio.conflicts().len(),
+        "portfolio_component_count": portfolio.components().len(),
+        "portfolio_simultaneously_feasible": portfolio.simultaneously_feasible(),
+        "portfolio_commitment": portfolio.commitment_hex(),
         "below_one_borrowers": coverage.below_one_borrowers(),
         "expected_pairs": coverage.expected_pairs(),
         "admitted": coverage.admitted_count(),
@@ -509,6 +612,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                 "path": "capital-promotions.jsonl",
                 "sha256": sha256_hex(&capital_bytes),
                 "bytes": capital_bytes.len()
+            },
+            {
+                "path": "portfolio-capacity.json",
+                "sha256": sha256_hex(&portfolio_bytes),
+                "bytes": portfolio_bytes.len()
             }
         ]
     });
