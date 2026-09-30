@@ -202,6 +202,23 @@ def validate_document(
         "D11 Uniswap V3 completeness must not claim D12 actionability",
     )
     for family_id in {
+        "INVENTORY_REQUIREMENT",
+        "BOND_OR_STAKE",
+        "SOLVER_OR_BUILDER_DEPOSIT",
+        "INTRA_BLOCK_TEMPORARY_LOCK",
+    }:
+        require(
+            "rmc011-execution-plan-requirement-catalog.json"
+            in by_id[family_id]["implementation"],
+            f"{family_id}: execution-plan family must bind the requirement catalog",
+        )
+        require(
+            "verify-rmc011-execution-plan-requirement-catalog.py"
+            in by_id[family_id]["implementation"],
+            f"{family_id}: execution-plan family must bind the catalog verifier",
+        )
+
+    for family_id in {
         "EXTERNAL_GAS_CREDIT",
         "EXTERNAL_GAS_SPONSOR",
         "TRANSIENT_EXTERNAL_CREDIT",
