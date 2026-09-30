@@ -23,11 +23,13 @@
     "RMC011_REAL_SOURCE_CERTIFICATION_NOT_PINNED",
     "RMC012_REAL_ACTIONABILITY_BRIDGE_NOT_CERTIFIED",
     "RMC013_REAL_ECONOMICS_COVERAGE_NOT_CERTIFIED",
-    "TERMINAL_STAGE_ARTIFACTS_NOT_ALL_PINNED"
+    "TERMINAL_STAGE_ARTIFACTS_NOT_ALL_PINNED",
+    "CONSERVATIVE_SCOPE_BOUNDARY_NOT_PINNED"
   ],
   "notes": [
     "Synthetic or foundation-only D12/D13 evidence cannot satisfy RMC-014.",
     "Set status=PINNED only after exact terminal artifacts are independently verified.",
-    "When PINNED, every stage row must include a non-empty content-addressed evidence array; pipeline_counts, economic_boundary and terminal_evidence must be populated from authenticated terminal artifacts."
+    "When PINNED, every stage row must include a non-empty content-addressed evidence array; pipeline_counts, economic_boundary and terminal_evidence must be populated from authenticated terminal artifacts.",
+    "Terminal economic_boundary must bind conservative_realizable_capacity_only=true and both global completeness claims=false."
   ]
 }
