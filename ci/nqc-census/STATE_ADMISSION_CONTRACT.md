@@ -144,11 +144,14 @@ anchor when the source exposes `latestRoundData`, otherwise
 ## 5. Public RPC load
 
 Live acquisition runs only from a `workflow_dispatch` on the exact branch
-head, in the repository-wide concurrency group `nqc-census-public-rpc`
-(`cancel-in-progress: false`): at most one live Census acquisition runs at a
-time and a running one is never cancelled. GitHub keeps one pending run per
-group, and a newer pending run replaces an older one, so a `pull_request` run
-of the live workflow never enters the group: it verifies the pinned inputs
+head, in RMC-008's own concurrency group `nqc-rmc008-live-<ref>`
+(`cancel-in-progress: false`): at most one D08 acquisition runs per ref and a
+running one is never cancelled. GitHub keeps one pending run per group, and a
+newer pending run replaces an older one. The repository-wide group
+`nqc-census-public-rpc` therefore let one Census node's dispatch evict another
+node's pending certification; RMC-009 and RMC-010 left it for the same reason.
+A `pull_request` run of the live workflow never enters the live group: it
+verifies the pinned inputs
 through the GitHub API only (no RPC), stops at `RMC008_BLOCKED` while they
 are not pinned, and certifies nothing. Within an acquisition the stage
 matrix is bounded (`max-parallel: 6`, providers interleaved). Transient provider failures (rate limit, "temporarily

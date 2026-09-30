@@ -17,16 +17,16 @@ permissions:
   contents: read
   actions: read
 
-# Every live Census acquisition that loads the shared public RPC endpoints
-# joins one repository-wide group: at most one runs at a time and none is
-# cancelled while running. GitHub keeps at most one pending run per group, so
-# a newer pending run replaces an older one. RMC-008 therefore acquires only
-# from a workflow_dispatch on the exact branch head, inside the group; a
-# pull_request run verifies the pinned inputs through the GitHub API (no RPC)
-# in its own per-ref group, so it can never displace another node's pending
-# acquisition.
+# RMC-008 acquires only from a workflow_dispatch on the exact branch head, in
+# its own live group: one D08 acquisition per ref at a time, never cancelled
+# while running. GitHub keeps one pending run per group and a newer pending
+# run replaces an older one, so a group shared across Census nodes let one
+# node's dispatch silently evict another's pending certification (RMC-010 and
+# RMC-009 moved to their own groups for the same reason). A pull_request run
+# verifies the pinned inputs through the GitHub API (no RPC) in its own
+# per-ref group.
 concurrency:
-  group: ${{ github.event_name == 'workflow_dispatch' && 'nqc-census-public-rpc' || format('nqc-rmc008-inputs-{0}', github.ref) }}
+  group: ${{ github.event_name == 'workflow_dispatch' && format('nqc-rmc008-live-{0}', github.ref) || format('nqc-rmc008-inputs-{0}', github.ref) }}
   cancel-in-progress: false
 
 env:
@@ -145,7 +145,7 @@ jobs:
           set -euo pipefail
           if [ "${{ github.event_name }}" = workflow_dispatch ]; then
             echo "acquire=true" >> "$GITHUB_OUTPUT"
-            echo "RMC008_ACQUISITION head=$(git rev-parse HEAD) group=nqc-census-public-rpc"
+            echo "RMC008_ACQUISITION head=$(git rev-parse HEAD) group=nqc-rmc008-live-${{ github.ref }}"
           else
             echo "acquire=false" >> "$GITHUB_OUTPUT"
             echo "RMC008_INPUTS_VERIFIED; live acquisition runs only from workflow_dispatch on the exact head (not certified by this run)"
