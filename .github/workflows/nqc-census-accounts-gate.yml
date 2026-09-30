@@ -21,6 +21,7 @@ env:
   PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
   PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
   RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+  RMC001_FREEZE_MANIFEST_SHA256: a0e5280175cfebadbbb225783873fde5d85364e3985224b20ba797fda0529842
   RUST_TOOLCHAIN: "1.98.1"
   D09_TESTS_EXPECTED: "17"
 
@@ -47,7 +48,12 @@ jobs:
             ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks
           git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- \
             nqc-census/crates/nqc-census-core nqc-census/crates/nqc-census-store \
-            nqc-census/crates/nqc-census-chain
+            nqc-census/crates/nqc-census-chain \
+            ':(exclude)nqc-census/crates/nqc-census-core/src/identity.rs' \
+            ':(exclude)nqc-census/crates/nqc-census-core/tests/identity_amendment_1.rs' \
+            ':(exclude)nqc-census/crates/nqc-census-core/tests/support/identity_corpus.rs'
+          echo "$RMC001_FREEZE_MANIFEST_SHA256  ci/nqc-census/rmc001-freeze-manifest.json" | sha256sum --check --strict
+          python3 ci/nqc-census/verify_rmc001_freeze.py
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
             test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
