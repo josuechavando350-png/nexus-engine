@@ -697,4 +697,139 @@ mod tests {
         assert!(verify_uniswap_v3_factory_runtime(&code).is_ok());
         assert!(verify_uniswap_v3_factory_runtime(&[]).is_err());
     }
+
+    fn digest_hex(byte: u8) -> String {
+        format!("{byte:02x}").repeat(32)
+    }
+
+    fn reconciliation_anchor_json() -> Json {
+        Json::object([
+            ("chain_id", Json::uint(1)),
+            ("genesis_hash", Json::string(hash(1).to_hex())),
+            ("fork_lineage", Json::string(hash(2).to_hex())),
+            ("block_number", Json::uint(25_437_474)),
+            ("block_hash", Json::string(hash(3).to_hex())),
+            ("parent_hash", Json::string(hash(4).to_hex())),
+            ("timestamp", Json::uint(1_700_000_000)),
+            ("state_root", Json::string(hash(5).to_hex())),
+        ])
+    }
+
+    fn reconciliation_capture(
+        provider: &str,
+        operator: &str,
+        endpoint_hash: &str,
+        balance: &str,
+    ) -> Json {
+        Json::object([
+            ("schema_version", Json::uint(1)),
+            ("stage", Json::string("RMC-011")),
+            ("family", Json::string("UNISWAP_V3_FLASH")),
+            ("provider_id", Json::string(provider.to_owned())),
+            ("provider_operator", Json::string(operator.to_owned())),
+            ("rpc_endpoint_hash", Json::string(endpoint_hash.to_owned())),
+            ("anchor", reconciliation_anchor_json()),
+            ("authority_lock_sha256", Json::string(digest_hex(0xa1))),
+            ("d08_market_state_sha256", Json::string(digest_hex(0xb1))),
+            ("d08_token_admission_sha256", Json::string(digest_hex(0xc1))),
+            (
+                "d08_evidence_manifest_sha256",
+                Json::string(digest_hex(0xd1)),
+            ),
+            ("deployment_sha256", Json::string(digest_hex(0xe1))),
+            (
+                "factory",
+                Json::object([
+                    ("address", Json::string(UNISWAP_V3_FACTORY)),
+                    ("runtime_sha256", Json::string(digest_hex(0xf1))),
+                ]),
+            ),
+            (
+                "pool_event_history_sha256",
+                Json::string(digest_hex(0x61)),
+            ),
+            ("pool_universe_sha256", Json::string(digest_hex(0x71))),
+            (
+                "pools",
+                Json::array([Json::object([
+                    (
+                        "pool",
+                        Json::string("0x3333333333333333333333333333333333333333"),
+                    ),
+                    (
+                        "token0",
+                        Json::string("0x1111111111111111111111111111111111111111"),
+                    ),
+                    (
+                        "token1",
+                        Json::string("0x2222222222222222222222222222222222222222"),
+                    ),
+                    ("fee_pips", Json::uint(3_000)),
+                    ("pool_runtime_sha256", Json::string(digest_hex(0x81))),
+                    (
+                        "asset_balances",
+                        Json::array([Json::object([
+                            (
+                                "asset",
+                                Json::string(
+                                    "0x1111111111111111111111111111111111111111",
+                                ),
+                            ),
+                            ("balance", Json::string(balance.to_owned())),
+                        ])]),
+                    ),
+                ])]),
+            ),
+        ])
+    }
+
+    #[test]
+    fn dual_provider_reconciliation_emits_exact_flash_source() -> Result<(), Box<dyn Error>> {
+        let first =
+            reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
+        let second =
+            reconciliation_capture("provider-b", "operator-b", &digest_hex(0x92), "123456");
+        let sources = reconcile_uniswap_v3_captures(&first, &second)?;
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].maximum_available(), Amount256::from_u128(123_456));
+        assert!(sources[0].execution_eligible());
+        Ok(())
+    }
+
+    #[test]
+    fn dual_provider_reconciliation_rejects_balance_mismatch() {
+        let first =
+            reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
+        let second =
+            reconciliation_capture("provider-b", "operator-b", &digest_hex(0x92), "123455");
+        assert!(reconcile_uniswap_v3_captures(&first, &second).is_err());
+    }
+
+    #[test]
+    fn uniswap_v3_reconciliation_artifact_roundtrips_authority(
+    ) -> Result<(), Box<dyn Error>> {
+        let first =
+            reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456")
+                .canonical()?;
+        let second =
+            reconciliation_capture("provider-b", "operator-b", &digest_hex(0x92), "123456")
+                .canonical()?;
+        let artifact = build_uniswap_v3_reconciliation_artifact(&first, &second)?;
+        let (authority, sources) =
+            source_authority_from_uniswap_v3_reconcile_artifact(&artifact)?;
+        assert_eq!(authority.family().code(), "UNISWAP_V3_FLASH");
+        assert_eq!(authority.source_count(), 1);
+        assert_eq!(sources.len(), 1);
+        Ok(())
+    }
+
+    #[test]
+    fn uniswap_v3_reconciliation_rejects_same_operator() {
+        let first =
+            reconciliation_capture("provider-a", "same-operator", &digest_hex(0x91), "123456");
+        let second =
+            reconciliation_capture("provider-b", "same-operator", &digest_hex(0x92), "123456");
+        assert!(reconcile_uniswap_v3_captures(&first, &second).is_err());
+    }
+
 }
