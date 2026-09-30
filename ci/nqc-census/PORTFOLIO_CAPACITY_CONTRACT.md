@@ -44,7 +44,13 @@ Identical locators on distinct chain domains MUST never alias.
 
 Portfolio candidate identity is separate from capital-requirement identity. A single certified capital requirement may have multiple deterministic execution variants. Each variant is bound to the requirement plus an execution-variant commitment.
 
-Mutually exclusive variants of one economic opportunity must claim the same EXCLUSIVE `Opportunity` shared resource. Route enumeration therefore cannot multiply portfolio capacity.
+Execution variants that share one certified capital requirement are implicitly
+exclusive with unit capacity one. RMC-012 creates that conflict itself; a
+caller cannot omit it. An explicit EXCLUSIVE `Opportunity` shared resource is
+still required when distinct capital requirements represent alternatives for
+the same economic opportunity. Route enumeration therefore cannot multiply
+portfolio capacity through either same-requirement variants or separately
+sized/encoded requirements.
 
 ## Exact capacity rules
 
@@ -68,6 +74,8 @@ to the same StateAnchor as the requirement that claims it.
 
 The evaluator MUST fail closed on:
 - duplicate candidate ids;
+- any attempt to count multiple execution variants of one capital requirement
+  as additive capacity;
 - duplicate requirements or feasibility results;
 - a feasibility result that differs from exact RMC-011 recomputation;
 - failure to recompute RMC-011 feasibility from the supplied requirement/source state;
@@ -90,7 +98,7 @@ For every over-subscribed resource, the report MUST include:
 - canonical resource identity;
 - exact capacity;
 - exact aggregate claim;
-- deterministically ordered claimant requirement ids.
+- deterministically ordered claimant candidate ids.
 
 The report commitment MUST be independent of input ordering and MUST bind
 the full evaluated candidate set, exact capital-source observation ids, exact
@@ -98,8 +106,8 @@ shared-resource observation ids, candidate claims, and feasibility outcomes.
 A conflict-free report is not allowed to collapse to a count-only commitment.
 
 The engine MUST also emit deterministic contention components. Two candidates
-belong to the same component whenever they share any capital-source key or
-shared-resource key. Components with no edge between them are independent and
+belong to the same component whenever they share a capital requirement,
+capital-source key, or shared-resource key. Components with no edge between them are independent and
 may be solved in parallel by downstream portfolio optimization. Construction
 must be near-linear in claims (union-find / equivalent), rather than an
 all-pairs O(n^2) scan, so millions of positions remain tractable.
