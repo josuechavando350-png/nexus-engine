@@ -55,7 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ]);
     let extract = {
         let store = Store::open_existing(&root)?;
-        stage_extract(&store, &providers, &V2Plan::mainnet()?, &record, summary)?
+        stage_extract(&store, &providers, &V2Plan::from_env_or_mainnet()?, &record, summary)?
     };
     let after = verified(&root)?;
     if after.evidence_root != before.evidence_root || after.streams != before.streams {
