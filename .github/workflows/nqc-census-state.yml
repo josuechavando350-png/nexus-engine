@@ -36,6 +36,7 @@ env:
   RUST_TOOLCHAIN: "1.98.1"
   D08_TESTS_EXPECTED_V2: "7"
   D08_TESTS_EXPECTED_AAVE: "6"
+  D08_TESTS_EXPECTED_PINS: "6"
   D08_INPUTS: /tmp/nqc-rmc008-inputs
   D08_EVIDENCE: /tmp/nqc-rmc008-evidence
 
@@ -70,18 +71,23 @@ jobs:
           pins = json.load(open("ci/nqc-census/state-inputs.json"))
           for source in pins["sources"]:
               print(source["node"].lower(), source["workflow_run_id"], source["artifact_id"],
-                    source["artifact"], source["code_commit"], source["artifact_digest"])
+                    source["artifact"], source["code_commit"], source["code_tree"],
+                    source["artifact_digest"])
           PY
-          while read -r node run artifact_id artifact commit digest; do
+          while read -r node run artifact_id artifact commit tree digest; do
             head=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)
             conclusion=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .conclusion)
+            observed_tree=$(gh api "repos/${{ github.repository }}/git/commits/$commit" --jq .tree.sha)
             observed=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .digest)
             name=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .name)
+            run_of_artifact=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .workflow_run.id)
             test "$head" = "$commit" || { echo "$node run $run head $head is not pinned $commit"; exit 1; }
             test "$conclusion" = success || { echo "$node run $run concluded $conclusion"; exit 1; }
+            test "$observed_tree" = "$tree" || { echo "$node commit $commit tree $observed_tree is not pinned $tree"; exit 1; }
             test "$observed" = "$digest" || { echo "$node artifact digest $observed is not pinned $digest"; exit 1; }
             test "$name" = "$artifact" || { echo "$node artifact name $name is not pinned $artifact"; exit 1; }
-            echo "RMC008_UPSTREAM_PINNED node=$node run=$run commit=$commit artifact=$artifact_id digest=$digest"
+            test "$run_of_artifact" = "$run" || { echo "$node artifact $artifact_id belongs to run $run_of_artifact, not $run"; exit 1; }
+            echo "RMC008_UPSTREAM_PINNED node=$node run=$run commit=$commit tree=$tree artifact=$artifact_id digest=$digest"
             echo "${node}_run=$run" >> "$GITHUB_OUTPUT"
             echo "${node}_artifact=$artifact" >> "$GITHUB_OUTPUT"
           done < /tmp/nqc-rmc008-sources.txt
@@ -127,6 +133,22 @@ jobs:
               os.makedirs(os.path.dirname(target), exist_ok=True)
               shutil.copyfile(source, target)
               print(f"RMC008_INPUT_PINNED role={entry['role']} sha256={digest}")
+          # Each upstream closeout evidence manifest is the declared one, was
+          # written by the pinned commit and tree, and lists every consumed
+          # closeout file with its pinned digest (the Rust readers re-check).
+          files = {entry["role"]: entry for entry in pins["files"]}
+          for source in pins["sources"]:
+              node = source["node"].lower()
+              pin = files[f"{node}_evidence_manifest"]
+              assert pin["sha256"] == source["evidence_manifest_sha256"], f"{node} evidence manifest"
+              manifest = json.load(open(os.path.join(root, pin["path"])))
+              assert (manifest["code_commit"], manifest["code_tree"]) == (source["code_commit"], source["code_tree"]), node
+              listed = {(item["name"], item["sha256"]) for item in manifest["artifacts"]}
+              for entry in pins["files"]:
+                  name = entry["path"].removeprefix(f"{node}/closeout/")
+                  if entry["role"].startswith(f"{node}_") and name != entry["path"] and name != "evidence-manifest.json":
+                      assert (name, entry["sha256"]) in listed, f"{entry['role']} not in the {node} evidence manifest"
+                      print(f"RMC008_INPUT_BOUND role={entry['role']} manifest={source['evidence_manifest_sha256']}")
           PY
 
       - name: Preserve pinned inputs
@@ -460,6 +482,9 @@ jobs:
           rejections = rows("rejection-ledger.jsonl")
           summary = json.load(open(os.path.join(root, "state-summary.json")))
           evidence = json.load(open(os.path.join(root, "evidence-manifest.json")))
+          pins = json.load(open("ci/nqc-census/state-inputs.json"))
+          assert evidence["upstream_sources"] == pins["sources"], "upstream authorities differ from the pins"
+          assert {i["role"]: i["sha256"] for i in evidence["inputs"]} == {f["role"]: f["sha256"] for f in pins["files"]}
           assert all(m["classification"] != "UNEXPLAINED" for m in mismatches), "unexplained mismatch"
           assert all(r["reason"] != "UNKNOWN" for r in rejections), "UNKNOWN rejection"
           protocols = collections.Counter(s["protocol"] for s in states)

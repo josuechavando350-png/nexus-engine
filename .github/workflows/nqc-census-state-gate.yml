@@ -26,6 +26,7 @@ env:
   RUST_TOOLCHAIN: "1.98.1"
   D08_TESTS_EXPECTED_V2: "7"
   D08_TESTS_EXPECTED_AAVE: "6"
+  D08_TESTS_EXPECTED_PINS: "6"
   D08_INPUTS: /tmp/nqc-rmc008-inputs
   D08_EVIDENCE: /tmp/nqc-rmc008-evidence
 
@@ -116,6 +117,8 @@ jobs:
           test "$count" = "$D08_TESTS_EXPECTED_V2"
           count=$(cargo test --locked -p nqc-census-state --test aave_state -- --list 2>/dev/null | grep -c ': test$')
           test "$count" = "$D08_TESTS_EXPECTED_AAVE"
+          count=$(cargo test --locked -p nqc-census-state --test upstream_pins -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$D08_TESTS_EXPECTED_PINS"
           cargo test --locked -p nqc-census-state -- --nocapture
           cargo test --workspace --all-targets --locked
           echo RMC008_CORE_PASS

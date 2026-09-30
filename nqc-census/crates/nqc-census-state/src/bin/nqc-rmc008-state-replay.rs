@@ -9,7 +9,7 @@
 use nqc_census_chain::json::Json;
 use nqc_census_chain::provider::ProviderSet;
 use nqc_census_state::extract::stage_extract;
-use nqc_census_state::inputs::{pinned, verify_pins, D06Inputs, D07Inputs};
+use nqc_census_state::inputs::{pinned, verify_pins, verify_upstream, D06Inputs, D07Inputs};
 use nqc_census_state::replay::StagePlans;
 use nqc_census_state::stage::AnchorPlan;
 use nqc_census_state::v2_stage::V2Plan;
@@ -44,10 +44,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .iter()
         .cloned()
         .collect();
-    let pins = verify_pins(
-        &PathBuf::from(flag("--pins")?),
-        &PathBuf::from(flag("--pin-root")?),
-    )?;
+    let pins_path = PathBuf::from(flag("--pins")?);
+    let pins = verify_pins(&pins_path, &PathBuf::from(flag("--pin-root")?))?;
+    verify_upstream(&pins_path, &pins)?;
     let anchor = AnchorPlan::mainnet()?;
     let d06 = D06Inputs::read(
         pinned(&pins, "d06_current_surface")?,

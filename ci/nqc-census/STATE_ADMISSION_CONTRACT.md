@@ -18,15 +18,32 @@ PFT-SRC-002). No core, store or chain code changes in this node.
 ## 1. Inputs
 
 `ci/nqc-census/state-inputs.json` pins each upstream source by exact
-identity — upstream code commit, workflow run id, artifact id, artifact name
-and artifact digest — and every consumed file by sha256: the D06 current
-surface, deployment manifest and reserve manifest, and the D07 current
-surface, admission and pair manifest. Before any file is used the live
-workflow checks, through the GitHub API, that the run's head is the pinned
-commit and concluded `success`, and that the artifact's name and digest are
-the pinned ones; then every file digest. The Rust readers additionally
-require the upstream schemas and that both current surfaces were acquired at
-the declared D08 anchor. "Latest successful artifact" is never consumed.
+identity — PR, upstream code commit and tree, workflow run id, artifact id,
+artifact name, artifact ZIP digest (`sha256:`, GitHub's digest of the
+artifact archive) and the sha256 of the upstream closeout
+`evidence-manifest.json` — and every consumed file by sha256: the D06
+current surface, deployment manifest, reserve manifest and evidence
+manifest, and the D07 current surface, admission, pair manifest and
+evidence manifest. The pinned authorities are the certified runs: D06
+`a33a0125` / run 36627517591 / artifact 11062164175 (PR 521) and D07
+`7e223cc5` / run 36673249129 / artifact 11081537391 (PR 520).
+
+Before any file is used the live workflow checks, through the GitHub API,
+that the run's head is the pinned commit and concluded `success`, that the
+commit's tree is the pinned tree, and that the artifact belongs to that run
+and has the pinned name and digest; then every file digest. Offline, both
+the workflow and the Rust readers (`inputs::verify_upstream`, in every stage,
+replay and reconcile) require that each pinned evidence manifest is the
+declared one, was written by the pinned commit and tree, and lists every
+consumed closeout file with its pinned digest; that every pinned file
+belongs to exactly one declared source; and that identities are well formed.
+Files outside an upstream closeout (the current surfaces) are bound by the
+artifact digest only. The Rust readers additionally require the upstream
+schemas and that both current surfaces were acquired at the declared D08
+anchor. The closeout's `evidence-manifest.json` records the declared
+sources as `upstream_sources` next to the consumed file digests, and the
+independent recount requires both to equal the pins. "Latest successful
+artifact" is never consumed.
 While `status` is not `PINNED` the live workflow stops at its first step
 (`RMC008_BLOCKED`). Every market id is recomputed through D01 from the
 admitted deployment key and must equal the admitted id.
