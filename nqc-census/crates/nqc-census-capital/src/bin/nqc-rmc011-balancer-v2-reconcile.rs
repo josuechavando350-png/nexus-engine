@@ -1,6 +1,7 @@
-use nqc_census_capital::balancer_live::reconcile_balancer_captures;
-use nqc_census_chain::{hex, json::Json};
-use sha2::{Digest, Sha256};
+use nqc_census_capital::balancer_live::{
+    build_balancer_reconciliation_artifact, source_authority_from_balancer_reconcile_artifact,
+};
+use nqc_census_chain::json::Json;
 use std::{env, error::Error, fs, path::PathBuf};
 
 struct Args {
@@ -32,87 +33,25 @@ fn parse_args() -> Result<Args, Box<dyn Error>> {
     })
 }
 
-fn sha256_hex(bytes: &[u8]) -> String {
-    hex::plain(&Sha256::digest(bytes))
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     let args = parse_args()?;
     let first_bytes = fs::read(&args.first)?;
     let second_bytes = fs::read(&args.second)?;
-    let first = Json::parse(&first_bytes)?;
-    let second = Json::parse(&second_bytes)?;
-    let sources = reconcile_balancer_captures(&first, &second)?;
-
-    let mut rows = Vec::with_capacity(sources.len());
-    for source in &sources {
-        rows.push(Json::object([
-            ("source_id", Json::string(source.id().to_hex())),
-            ("source_key_id", Json::string(source.key_id().to_hex())),
-            ("capital_class", Json::string(source.class().code())),
-            ("asset", Json::string(source.asset().code())),
-            (
-                "maximum_available",
-                Json::string(source.maximum_available().to_hex()),
-            ),
-            (
-                "executable_capacity",
-                Json::string(source.executable_capacity()?.to_hex()),
-            ),
-            (
-                "execution_eligible",
-                Json::Bool(source.execution_eligible()),
-            ),
-            (
-                "execution_blockers",
-                Json::array(
-                    source
-                        .execution_blockers()
-                        .iter()
-                        .cloned()
-                        .map(Json::string),
-                ),
-            ),
-            (
-                "canonical_record",
-                Json::string(hex::plain(&source.canonical_encode())),
-            ),
-        ]));
-    }
-
-    let report = Json::object([
-        ("schema_version", Json::uint(1)),
-        ("stage", Json::string("RMC-011")),
-        ("family", Json::string("BALANCER_V2_FLASH_LOAN")),
-        (
-            "status",
-            Json::string("RMC011_BALANCER_V2_DUAL_PROVIDER_RECONCILED"),
-        ),
-        ("provider_count", Json::uint(2)),
-        (
-            "first_capture_sha256",
-            Json::string(sha256_hex(&first_bytes)),
-        ),
-        (
-            "second_capture_sha256",
-            Json::string(sha256_hex(&second_bytes)),
-        ),
-        (
-            "source_count",
-            Json::uint(u64::try_from(sources.len())?),
-        ),
-        ("sources", Json::Array(rows)),
-    ]);
+    let report_bytes = build_balancer_reconciliation_artifact(&first_bytes, &second_bytes)?;
+    let report = Json::parse(&report_bytes)?;
+    let (authority, sources) =
+        source_authority_from_balancer_reconcile_artifact(&report_bytes)?;
 
     if let Some(parent) = args.out.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(&args.out, report.canonical()?)?;
+    fs::write(&args.out, &report_bytes)?;
     println!(
-        "RMC011_BALANCER_V2_RUST_RECONCILE_PASS sources={} first_sha256={} second_sha256={}",
+        "RMC011_BALANCER_V2_RUST_RECONCILE_PASS sources={} first_sha256={} second_sha256={} source_authority_commitment={}",
         sources.len(),
-        sha256_hex(&first_bytes),
-        sha256_hex(&second_bytes),
+        report.str_field("first_capture_sha256")?,
+        report.str_field("second_capture_sha256")?,
+        authority.commitment().to_hex(),
     );
     Ok(())
 }
