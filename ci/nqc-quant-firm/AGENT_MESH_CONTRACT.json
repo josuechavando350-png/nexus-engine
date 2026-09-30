@@ -148,5 +148,18 @@
     "TOP_ONE_PERCENT_NOT_PROVEN",
     "CAPTURE_ADVANTAGE_NOT_PROVEN",
     "PRODUCTION_AUTHORITY_NOT_ISSUED"
-  ]
+  ],
+  "operational_agent_count": 350,
+  "hard_agent_cap": 350,
+  "full_fleet_readiness_requires_exact_count": true,
+  "degraded_mode_below_350": "ALLOWED_ONLY_IF_EXPLICIT_AND_NOT_FULL_FLEET_READY",
+  "agent_351_behavior": "FAIL_CLOSED",
+  "deterministic_workers_count_toward_agent_cap": false,
+  "runtime_reuse": {
+    "capability_bounded_delegation": "runtime/crates/nexus-agents-v4",
+    "evidence_grounded_cognition": "runtime/crates/nexus-intelligence",
+    "event_contract": "runtime/crates/nexus-event",
+    "observability": "runtime/crates/nexus-observability",
+    "distributed_runtime": "V6_PLACEMENT_DISCOVERY_REPLICATION_FEDERATION"
+  }
 }
