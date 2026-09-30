@@ -41,6 +41,22 @@ The model MUST represent, without collapsing distinct semantics:
 
 Persistent debt MUST remain distinct from atomic liquidity and MUST carry interest, collateral, liquidation, health-factor / solvency, oracle, liquidity-withdrawal, and facility-disappearance risk where applicable.
 
+## Source-universe truth
+
+RMC-011 distinguishes **semantic capability** from **live censused coverage**.
+
+The crate may model additional provider families or capital classes before a live discovery/import path exists for them. An adapter, enum variant, unit test, or synthetic fixture is never evidence that such a source was actually available at the certified block.
+
+The current authoritative real-source build imports capital observations only through the exact RMC-008 admitted market/state bytes and the D11 deterministic capital importer. Therefore the real-source closeout MUST state:
+
+- `source_universe_basis = RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY`;
+- `global_capital_source_completeness_claimed = false`;
+- `GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED` in its non-claims.
+
+This means a successful RMC-011 closeout proves the identity, terms, capacity and provenance of the sources it actually imported; it does **not** prove that every possible flash-liquidity venue, gas sponsor, credit facility, collateral facility, builder deposit facility, or persistent-debt provider on the chain has been enumerated.
+
+Any later phase that needs a source family outside this live-import basis MUST either add an evidence-backed discovery/admission path and recertify D11, or fail closed. Absence from the current source ledger MUST NOT be interpreted as authoritative proof that no such source exists.
+
 ## Required source fields
 
 Every admitted capital source record MUST bind:
