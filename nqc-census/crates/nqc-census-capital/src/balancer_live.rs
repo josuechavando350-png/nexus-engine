@@ -966,6 +966,69 @@ mod tests {
     }
 
     #[test]
+    fn reconcile_artifact_roundtrips_into_source_authority() -> Result<(), Box<dyn Error>> {
+        let first =
+            test_capture("provider-a", "operator-a", &"ab".repeat(32), "123456").canonical()?;
+        let second =
+            test_capture("provider-b", "operator-b", &"cd".repeat(32), "123456").canonical()?;
+        let report = build_balancer_reconciliation_artifact(&first, &second)?;
+        let (authority, sources) =
+            source_authority_from_balancer_reconcile_artifact(&report)?;
+        assert_eq!(authority.family().code(), "BALANCER_V2_FLASH_LOAN");
+        assert_eq!(authority.source_count(), 1);
+        assert_eq!(sources.len(), 1);
+        assert_eq!(sources[0].maximum_available(), Amount256::from_u128(123_456));
+        Ok(())
+    }
+
+    #[test]
+    fn reconcile_artifact_rejects_readable_projection_tamper() -> Result<(), Box<dyn Error>> {
+        let first =
+            test_capture("provider-a", "operator-a", &"ab".repeat(32), "123456").canonical()?;
+        let second =
+            test_capture("provider-b", "operator-b", &"cd".repeat(32), "123456").canonical()?;
+        let report = build_balancer_reconciliation_artifact(&first, &second)?;
+        let parsed = Json::parse(&report)?;
+        let source_id = parsed
+            .get("sources")
+            .and_then(Json::as_array)
+            .and_then(|rows| rows.first())
+            .ok_or("missing source row")?
+            .str_field("source_id")?
+            .to_owned();
+        let text = String::from_utf8(report)?;
+        let tampered = text.replacen(&source_id, &"00".repeat(32), 1);
+        assert!(source_authority_from_balancer_reconcile_artifact(tampered.as_bytes()).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn reconcile_artifact_rejects_capture_digest_tamper() -> Result<(), Box<dyn Error>> {
+        let first =
+            test_capture("provider-a", "operator-a", &"ab".repeat(32), "123456").canonical()?;
+        let second =
+            test_capture("provider-b", "operator-b", &"cd".repeat(32), "123456").canonical()?;
+        let report = build_balancer_reconciliation_artifact(&first, &second)?;
+        let parsed = Json::parse(&report)?;
+        let digest = parsed.str_field("first_capture_sha256")?.to_owned();
+        let text = String::from_utf8(report)?;
+        let tampered = text.replacen(&digest, &"ff".repeat(32), 1);
+        assert!(source_authority_from_balancer_reconcile_artifact(tampered.as_bytes()).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn reconcile_builder_rejects_noncanonical_provider_capture() -> Result<(), Box<dyn Error>> {
+        let mut first =
+            test_capture("provider-a", "operator-a", &"ab".repeat(32), "123456").canonical()?;
+        first.push(b'\n');
+        let second =
+            test_capture("provider-b", "operator-b", &"cd".repeat(32), "123456").canonical()?;
+        assert!(build_balancer_reconciliation_artifact(&first, &second).is_err());
+        Ok(())
+    }
+
+    #[test]
     fn uint256_decimal_is_exact_at_boundaries() {
         assert_eq!(amount_decimal([0; 32]), "0");
         let mut one = [0_u8; 32];
