@@ -5,6 +5,8 @@ on:
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
+      - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - ".github/workflows/nqc-census-capital-terminal-readiness.yml"
   push:
@@ -13,6 +15,8 @@ on:
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
+      - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - ".github/workflows/nqc-census-capital-terminal-readiness.yml"
 
@@ -23,7 +27,18 @@ jobs:
   source-universe-contract:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify exact head identity
+        shell: bash
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXACT_HEAD"
       - name: Validate D11 source-universe truth
         run: |
           python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
@@ -41,5 +56,7 @@ jobs:
             ' "$FILE" >/dev/null
             echo RMC011_TERMINAL_READINESS=PASS
           else
-            echo RMC011_TERMINAL_READINESS=BLOCKED_INCOMPLETE_SOURCE_UNIVERSE
+            echo "RMC011_TERMINAL_READINESS=BLOCKED_INCOMPLETE_SOURCE_UNIVERSE" >&2
+            jq -r '.families[] | select(.terminally_resolved == false) | "RMC011_UNRESOLVED_FAMILY=" + .id + " status=" + .status' "$FILE" >&2
+            exit 1
           fi
