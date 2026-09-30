@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "status": "BLOCKED",
   "real_market_census_closed": false,
   "pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
@@ -24,12 +24,14 @@
     "RMC012_REAL_ACTIONABILITY_BRIDGE_NOT_CERTIFIED",
     "RMC013_REAL_ECONOMICS_COVERAGE_NOT_CERTIFIED",
     "TERMINAL_STAGE_ARTIFACTS_NOT_ALL_PINNED",
-    "CONSERVATIVE_SCOPE_BOUNDARY_NOT_PINNED"
+    "CONSERVATIVE_SCOPE_BOUNDARY_NOT_PINNED",
+    "TERMINAL_STAGE_WORKFLOW_ARTIFACT_BINDING_NOT_PINNED"
   ],
   "notes": [
     "Synthetic or foundation-only D12/D13 evidence cannot satisfy RMC-014.",
     "Set status=PINNED only after exact terminal artifacts are independently verified.",
     "When PINNED, every stage row must include a non-empty content-addressed evidence array; pipeline_counts, economic_boundary and terminal_evidence must be populated from authenticated terminal artifacts.",
-    "Terminal economic_boundary must bind conservative_realizable_capacity_only=true and both global completeness claims=false."
+    "Terminal economic_boundary must bind conservative_realizable_capacity_only=true and both global completeness claims=false.",
+    "Schema v3 requires each pinned stage to bind its canonical workflow_name and a stage-specific artifact_name containing the exact code_commit."
   ]
 }
