@@ -559,6 +559,18 @@ fn d08_import_rejects_noncanonical_fee_or_liquidity_semantics() -> TestResult {
     }
     assert!(liquidity_import.is_conserved());
 
+    let contradictory_liquid = no_liquidity.replace(
+        "\"liquidity_state\":\"ZERO_LIQUIDITY_NOT_ROUTABLE\"",
+        "\"liquidity_state\":\"LIQUID\"",
+    );
+    assert!(import_d08_capital_sources(
+        contradictory_liquid.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )
+    .is_err());
+
     let unknown_liquidity = no_liquidity.replace(
         "\"liquidity_state\":\"ZERO_LIQUIDITY_NOT_ROUTABLE\"",
         "\"liquidity_state\":\"UNKNOWN_LIQUIDITY_STATE\"",
