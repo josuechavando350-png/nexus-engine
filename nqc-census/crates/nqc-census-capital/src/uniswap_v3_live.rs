@@ -404,12 +404,31 @@ pub fn reconcile_uniswap_v3_captures(
                 active_liquidity: Amount256::parse_decimal(row.str_field("active_liquidity")?)?,
                 fee_pips,
             };
-            sources.push(admit_uniswap_v3_dual_provider(
+            let mut source = admit_uniswap_v3_dual_provider(
                 &observation,
                 &observation,
                 &first_digest,
                 &second_digest,
-            )?);
+            )?;
+            let blocker_rows = balance
+                .get("execution_blockers")
+                .and_then(Json::as_array)
+                .ok_or("Uniswap V3 balance has no execution_blockers array")?;
+            let mut blockers = source.execution_blockers().to_vec();
+            for blocker in blocker_rows {
+                blockers.push(
+                    blocker
+                        .as_str()
+                        .ok_or("Uniswap V3 execution blocker is not text")?
+                        .to_owned(),
+                );
+            }
+            blockers.sort();
+            blockers.dedup();
+            if !blockers.is_empty() {
+                source = source.with_execution_blockers(blockers)?;
+            }
+            sources.push(source);
         }
     }
 
@@ -836,6 +855,7 @@ mod tests {
                                 ),
                             ),
                             ("balance", Json::string(balance.to_owned())),
+                            ("execution_blockers", Json::array(Vec::<Json>::new())),
                         ])]),
                     ),
                 ])]),
@@ -928,6 +948,90 @@ mod tests {
             ("pools", Json::array([replacement])),
         ]);
         assert!(reconcile_uniswap_v3_captures(&first, &second).is_err());
+    }
+
+    #[test]
+    fn reconciliation_preserves_d08_execution_blockers() -> Result<(), Box<dyn Error>> {
+        let first =
+            reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
+        let mut second =
+            reconciliation_capture("provider-b", "operator-b", &digest_hex(0x92), "123456");
+
+        fn with_blocker(capture: &Json) -> Json {
+            let pools = capture
+                .get("pools")
+                .and_then(Json::as_array)
+                .unwrap_or_else(|| unreachable!());
+            let pool = &pools[0];
+            let balances = pool
+                .get("asset_balances")
+                .and_then(Json::as_array)
+                .unwrap_or_else(|| unreachable!());
+            let balance = &balances[0];
+            let blocked_balance = Json::object([
+                ("asset", balance.get("asset").cloned().unwrap_or(Json::Null)),
+                (
+                    "balance",
+                    balance.get("balance").cloned().unwrap_or(Json::Null),
+                ),
+                (
+                    "execution_blockers",
+                    Json::array([Json::string("TRANSFER_HOOKS_UNPROVEN")]),
+                ),
+            ]);
+            let blocked_pool = Json::object([
+                ("pool", pool.get("pool").cloned().unwrap_or(Json::Null)),
+                ("token0", pool.get("token0").cloned().unwrap_or(Json::Null)),
+                ("token1", pool.get("token1").cloned().unwrap_or(Json::Null)),
+                ("fee_pips", pool.get("fee_pips").cloned().unwrap_or(Json::Null)),
+                (
+                    "active_liquidity",
+                    pool.get("active_liquidity").cloned().unwrap_or(Json::Null),
+                ),
+                (
+                    "pool_runtime_sha256",
+                    pool.get("pool_runtime_sha256").cloned().unwrap_or(Json::Null),
+                ),
+                ("asset_balances", Json::array([blocked_balance])),
+            ]);
+            let mut members = Vec::new();
+            for key in [
+                "schema_version",
+                "stage",
+                "family",
+                "provider_id",
+                "provider_operator",
+                "rpc_endpoint_hash",
+                "anchor",
+                "authority_lock_sha256",
+                "d08_market_state_sha256",
+                "d08_token_admission_sha256",
+                "d08_evidence_manifest_sha256",
+                "deployment_sha256",
+                "factory",
+                "pool_event_history_sha256",
+                "pool_universe_sha256",
+            ] {
+                members.push((
+                    key,
+                    capture.get(key).cloned().unwrap_or(Json::Null),
+                ));
+            }
+            members.push(("pools", Json::array([blocked_pool])));
+            Json::object(members)
+        }
+
+        let first = with_blocker(&first);
+        second = with_blocker(&second);
+        let sources = reconcile_uniswap_v3_captures(&first, &second)?;
+        assert_eq!(sources.len(), 1);
+        assert_eq!(
+            sources[0].execution_blockers(),
+            &["TRANSFER_HOOKS_UNPROVEN".to_owned()]
+        );
+        assert_eq!(sources[0].maximum_available(), Amount256::from_u128(123_456));
+        assert_eq!(sources[0].executable_capacity()?, Amount256::ZERO);
+        Ok(())
     }
 
     #[test]
