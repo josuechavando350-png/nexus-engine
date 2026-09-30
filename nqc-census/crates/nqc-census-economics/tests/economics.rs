@@ -130,7 +130,7 @@ fn quote(
     capture: CaptureCalibration,
 ) -> Result<ExecutionQuote, EconomicsError> {
     ExecutionQuote::new(
-        &candidate,
+        candidate,
         hash(47),
         hash(48),
         hash(49),
