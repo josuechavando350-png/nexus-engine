@@ -290,3 +290,28 @@ execution-simulatable candidates
 with zero UNKNOWN rejections, zero unexplained mismatches and zero uncovered
 candidate ids. Synthetic fixtures, detached candidate ids, mutable latest
 artifacts, hand-entered P&L and foundation-only CI MUST NOT satisfy this gate.
+
+### Zero-own-capital gas closure
+
+RMC-012 intentionally leaves gas funding uncertified because exact gas belongs
+to a concrete execution plan. RMC-013 is therefore the first stage allowed to
+close that remaining capital obligation, but it may do so only by reusing the
+exact D11 capital-source authority referenced by the authenticated D12
+certificate.
+
+For every execution-simulatable candidate, terminal RMC-013 MUST bind the
+measured/simulated gas requirement to an eligible external gas-funding source
+or reject the candidate. Flash principal available only after EVM execution
+MUST NOT be counted as transaction gas funding. Operator-owned ETH or any other
+operator-owned prefund is forbidden by the `OWN_CAPITAL = 0` constraint.
+
+If terminal RMC-013 reports any execution-simulatable candidate, it MUST prove:
+
+- gas-funding candidate count equals execution-simulatable candidate count;
+- operator-owned gas-funding count is zero;
+- external gas funding is evidence-bound at the same execution authority; and
+- `zero_own_capital_proven=true` for the resulting executable candidate set.
+
+Without that proof, the candidate remains non-executable for terminal Census
+purposes even if its flash principal, route and nominal P&L are otherwise
+positive.
