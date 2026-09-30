@@ -5,6 +5,9 @@ on:
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
+      - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
+      - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/acquire_rmc011_balancer_v2.py"
       - "ci/nqc-census/test_acquire_rmc011_balancer_v2.py"
@@ -26,6 +29,9 @@ on:
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
+      - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
+      - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/acquire_rmc011_balancer_v2.py"
       - "ci/nqc-census/test_acquire_rmc011_balancer_v2.py"
@@ -68,6 +74,9 @@ jobs:
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
           python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
+          python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
+          python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py
           python3 -m py_compile ci/nqc-census/acquire_rmc011_balancer_v2.py ci/nqc-census/test_acquire_rmc011_balancer_v2.py
           python3 ci/nqc-census/test_acquire_rmc011_balancer_v2.py -v
       - name: Enforce terminal claim boundary
