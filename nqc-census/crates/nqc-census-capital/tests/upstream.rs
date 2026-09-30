@@ -280,7 +280,7 @@ fn d08_import_preserves_unproven_token_capital_but_excludes_it_from_execution() 
 }
 
 #[test]
-fn d08_import_preserves_zero_aave_capacity_but_rejects_disabled_flash() -> TestResult {
+fn d08_import_preserves_zero_and_disabled_aave_capital_observations() -> TestResult {
     let enabled = address(20);
     let disabled = address(21);
     let tokens = format!(
@@ -306,13 +306,33 @@ fn d08_import_preserves_zero_aave_capacity_but_rejects_disabled_flash() -> TestR
         &d08_facts(),
         &context(),
     )?;
-    assert_eq!(imported.sources.len(), 1);
-    assert_eq!(imported.sources[0].effective_capacity()?, Amount256::ZERO);
-    assert_eq!(imported.rejections.len(), 1);
+    assert_eq!(imported.sources.len(), 2);
+    assert!(imported.rejections.is_empty());
+    assert_eq!(imported.admitted_count, 2);
+    assert_eq!(imported.rejected_count, 0);
+
+    let zero = imported
+        .sources
+        .iter()
+        .find(|source| source.asset() == CapitalAsset::Token(enabled))
+        .ok_or("missing zero-capacity Aave source")?;
+    assert_eq!(zero.maximum_available(), Amount256::ZERO);
+    assert_eq!(zero.effective_capacity()?, Amount256::ZERO);
+
+    let blocked = imported
+        .sources
+        .iter()
+        .find(|source| source.asset() == CapitalAsset::Token(disabled))
+        .ok_or("missing disabled Aave source")?;
+    assert_eq!(blocked.maximum_available(), Amount256::from_u128(10));
+    assert_eq!(blocked.effective_capacity()?, Amount256::from_u128(10));
+    assert_eq!(blocked.executable_capacity()?, Amount256::ZERO);
+    assert!(!blocked.execution_eligible());
     assert_eq!(
-        imported.rejections[0].reason,
-        CapitalImportRejectionReason::FlashLoanDisabled
+        blocked.execution_blockers(),
+        &["FLASH_LOAN_DISABLED".to_owned()]
     );
+    assert!(imported.is_conserved());
     Ok(())
 }
 
