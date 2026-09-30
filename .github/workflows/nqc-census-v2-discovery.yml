@@ -14,7 +14,7 @@ on:
     branches:
       - nqc/rmc-007-v2-reconciled-discovery-20260929
     paths:
-      - ci/nqc-census/v2-discovery-scope.json
+      - ci/nqc-census/v2-discovery-refresh-scope.json
   workflow_dispatch:
     inputs:
       stages_run_id:
@@ -22,6 +22,18 @@ on:
           Replay and reconcile the stage evidence of an earlier run of this
           workflow instead of re-acquiring it (every record is still replayed
           byte-for-byte from its evidence by the exact-head binaries).
+        required: false
+        default: ""
+      anchor_number:
+        description: >-
+          Optional exact observation anchor number. Both anchor_number and
+          anchor_hash must be supplied together. Empty means the certified A0
+          anchor.
+        required: false
+        default: ""
+      anchor_hash:
+        description: >-
+          Canonical 0x-prefixed lowercase block hash of anchor_number.
         required: false
         default: ""
 
@@ -149,6 +161,8 @@ jobs:
       mode: ${{ steps.mode.outputs.mode }}
       stages_run: ${{ steps.mode.outputs.stages_run }}
       stages_head: ${{ steps.mode.outputs.stages_head }}
+      anchor_number: ${{ steps.mode.outputs.anchor_number }}
+      anchor_hash: ${{ steps.mode.outputs.anchor_hash }}
     steps:
       - name: Checkout exact head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -161,22 +175,48 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           STAGES_RUN_ID: ${{ github.event.inputs.stages_run_id }}
+          INPUT_ANCHOR_NUMBER: ${{ github.event.inputs.anchor_number }}
+          INPUT_ANCHOR_HASH: ${{ github.event.inputs.anchor_hash }}
         run: |
           set -euo pipefail
           mkdir -p /tmp/nqc-rmc007-plan
           head="$(git rev-parse HEAD)"
+          A0_NUMBER=25437474
+          A0_HASH=0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8
+
           if [ "${{ github.event_name }}" = pull_request ]; then
             STAGES_RUN_ID=36589054151
+            anchor_number="$A0_NUMBER"
+            anchor_hash="$A0_HASH"
             echo "RMC007_PR_OFFLINE_REPLAY acquisition_run=$STAGES_RUN_ID replay_head=$head"
           elif [ "${{ github.event_name }}" = push ]; then
             STAGES_RUN_ID=""
-            echo "RMC007_EXACT_HEAD_PUSH_ACQUISITION head=$head ref=${{ github.ref }}"
+            anchor_number="$(jq -r '.observation_anchor.block_number' ci/nqc-census/v2-discovery-refresh-scope.json)"
+            anchor_hash="$(jq -r '.observation_anchor.block_hash' ci/nqc-census/v2-discovery-refresh-scope.json)"
+            echo "RMC007_EXACT_HEAD_PUSH_ACQUISITION head=$head ref=${{ github.ref }} anchor=$anchor_number"
+          else
+            if [ -z "$INPUT_ANCHOR_NUMBER" ] && [ -z "$INPUT_ANCHOR_HASH" ]; then
+              anchor_number="$A0_NUMBER"
+              anchor_hash="$A0_HASH"
+            elif [[ "$INPUT_ANCHOR_NUMBER" =~ ^[0-9]+$ ]] && [[ "$INPUT_ANCHOR_HASH" =~ ^0x[0-9a-f]{64}$ ]]; then
+              anchor_number="$INPUT_ANCHOR_NUMBER"
+              anchor_hash="$INPUT_ANCHOR_HASH"
+            else
+              echo "anchor_number and anchor_hash must both be empty or both be valid"
+              exit 1
+            fi
           fi
+
+          [[ "$anchor_number" =~ ^[0-9]+$ ]]
+          [[ "$anchor_hash" =~ ^0x[0-9a-f]{64}$ ]]
+          echo "anchor_number=$anchor_number" >> "$GITHUB_OUTPUT"
+          echo "anchor_hash=$anchor_hash" >> "$GITHUB_OUTPUT"
+
           if [ -z "$STAGES_RUN_ID" ]; then
             echo "mode=acquire" >> "$GITHUB_OUTPUT"
             echo "stages_run=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
             echo "stages_head=$head" >> "$GITHUB_OUTPUT"
-            echo "RMC007_ACQUISITION head=$head run=${{ github.run_id }} group=nqc-census-public-rpc"
+            echo "RMC007_ACQUISITION head=$head run=${{ github.run_id }} anchor=$anchor_number hash=$anchor_hash group=nqc-census-public-rpc"
             exit 0
           fi
           case "$STAGES_RUN_ID" in *[!0-9]*) echo "stages_run_id is not a run id"; exit 1 ;; esac
@@ -230,6 +270,8 @@ jobs:
       D07_TESTS_EXPECTED: "11"
       D07_PIPELINE_TESTS_EXPECTED: "10"
       D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+      NQC_RMC007_ANCHOR_NUMBER: ${{ needs.plan.outputs.anchor_number }}
+      NQC_RMC007_ANCHOR_HASH: ${{ needs.plan.outputs.anchor_hash }}
 
     steps:
       - name: Checkout exact head
@@ -298,6 +340,8 @@ jobs:
       D07_TESTS_EXPECTED: "11"
       D07_PIPELINE_TESTS_EXPECTED: "10"
       D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+      NQC_RMC007_ANCHOR_NUMBER: ${{ needs.plan.outputs.anchor_number }}
+      NQC_RMC007_ANCHOR_HASH: ${{ needs.plan.outputs.anchor_hash }}
 
     steps:
       - name: Checkout exact head
@@ -374,6 +418,8 @@ jobs:
       D07_TESTS_EXPECTED: "11"
       D07_PIPELINE_TESTS_EXPECTED: "10"
       D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+      NQC_RMC007_ANCHOR_NUMBER: ${{ needs.plan.outputs.anchor_number }}
+      NQC_RMC007_ANCHOR_HASH: ${{ needs.plan.outputs.anchor_hash }}
 
     steps:
       - name: Checkout exact head
@@ -462,6 +508,8 @@ jobs:
       D07_REPLAY: /tmp/nqc-rmc007-replay
       STAGES_RUN: ${{ needs.plan.outputs.stages_run }}
       STAGES_HEAD: ${{ needs.plan.outputs.stages_head }}
+      NQC_RMC007_ANCHOR_NUMBER: ${{ needs.plan.outputs.anchor_number }}
+      NQC_RMC007_ANCHOR_HASH: ${{ needs.plan.outputs.anchor_hash }}
 
     steps:
       - name: Checkout exact head
@@ -563,6 +611,8 @@ jobs:
       D07_EVIDENCE: /tmp/nqc-rmc007-evidence
       STAGES_RUN: ${{ needs.plan.outputs.stages_run }}
       STAGES_HEAD: ${{ needs.plan.outputs.stages_head }}
+      NQC_RMC007_ANCHOR_NUMBER: ${{ needs.plan.outputs.anchor_number }}
+      NQC_RMC007_ANCHOR_HASH: ${{ needs.plan.outputs.anchor_hash }}
 
     steps:
       - name: Checkout exact head
