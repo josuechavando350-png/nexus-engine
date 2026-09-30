@@ -6,13 +6,28 @@
 //! receipt or admitted merely because they reference some already-admitted
 //! upstream artifact.
 
-use crate::{CapitalError, CapitalEvidenceRef, CapitalSource};
+use crate::{
+    validate_settlement_requirements, CapitalCensusCommitment, CapitalCensusLedger,
+    CapitalCensusSummary, CapitalCertificationContext, CapitalError, CapitalEvidenceRef,
+    CapitalFeasibility, CapitalLedgerMode, CapitalSource, UpstreamCensusStage,
+    UpstreamConsumptionReceipt,
+};
 use nqc_census_core::{Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 const SOURCE_SET_DOMAIN: &[u8] = b"NQC-RMC011-NATIVE-SOURCE-SET-V1";
 const AUTHORITY_DOMAIN: &[u8] = b"NQC-RMC011-NATIVE-SOURCE-AUTHORITY-V1";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct D11ExpandedCapitalCensusCertificate {
+    pub capital_commitment: CapitalCensusCommitment,
+    pub upstream_authority_commitment: Hash32,
+    pub d11_source_authority_commitment: Hash32,
+    pub d08_source_count: usize,
+    pub d11_native_source_count: usize,
+    pub summary: CapitalCensusSummary,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct D11SourceAuthority {
@@ -270,6 +285,130 @@ fn nonzero_sha256(bytes: &[u8]) -> Result<Hash32, CapitalError> {
     let digest: [u8; 32] = Sha256::digest(bytes).into();
     Hash32::new(digest)
         .map_err(|_| CapitalError::InvalidUpstreamAuthority("zero SHA-256 digest"))
+}
+
+
+pub fn certify_with_d11_sources(
+    ledger: &CapitalCensusLedger,
+    upstream: &CapitalCertificationContext,
+    d11_sources: &D11SourceAuthority,
+) -> Result<D11ExpandedCapitalCensusCertificate, CapitalError> {
+    if ledger.mode() != CapitalLedgerMode::Evidentiary {
+        return Err(CapitalError::NonEvidentiaryLedger);
+    }
+    if d11_sources.observation_anchor() != upstream.observation_anchor() {
+        return Err(CapitalError::AnchorMismatch);
+    }
+
+    let d08_receipt = upstream
+        .consumption_receipts()
+        .copied()
+        .find(|receipt| receipt.stage() == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or(CapitalError::InvalidUpstreamAuthority(
+            "RMC-008 consumption receipt missing",
+        ))?;
+    let d09_receipt = upstream
+        .consumption_receipts()
+        .copied()
+        .find(|receipt| receipt.stage() == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or(CapitalError::InvalidUpstreamAuthority(
+            "RMC-009 consumption receipt missing",
+        ))?;
+
+    let d08_marker = CapitalEvidenceRef::Artifact(d08_receipt.authority_artifact_sha256());
+    let mut d08_source_refs = Vec::new();
+    let mut native_source_refs = Vec::new();
+
+    for source in ledger.sources() {
+        if source.anchor() != upstream.observation_anchor() {
+            return Err(CapitalError::AnchorMismatch);
+        }
+        if source.evidence().contains(&d08_marker) {
+            if source
+                .evidence()
+                .iter()
+                .any(|reference| !upstream.admits_evidence(reference))
+            {
+                return Err(CapitalError::UnresolvedEvidenceRef);
+            }
+            d08_source_refs.push(source);
+        } else {
+            if source
+                .evidence()
+                .iter()
+                .any(|reference| !d11_sources.admits_evidence(reference))
+            {
+                return Err(CapitalError::UnresolvedEvidenceRef);
+            }
+            native_source_refs.push(source);
+        }
+    }
+
+    let rebuilt_d08 = UpstreamConsumptionReceipt::for_sources(
+        d08_receipt.authority_artifact_sha256(),
+        d08_receipt.coverage_commitment(),
+        d08_source_refs.iter().copied(),
+    )?;
+    if rebuilt_d08 != d08_receipt {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "D08 source subset differs from committed RMC-008 receipt",
+        ));
+    }
+
+    d11_sources.verify_source_set(native_source_refs.iter().copied())?;
+
+    let requirements = ledger.requirements().collect::<Vec<_>>();
+    if requirements.iter().any(|requirement| {
+        requirement.anchor() != upstream.observation_anchor()
+            || requirement
+                .evidence()
+                .iter()
+                .any(|reference| !upstream.admits_evidence(reference))
+    }) {
+        return Err(CapitalError::UnresolvedEvidenceRef);
+    }
+    let rebuilt_d09 = UpstreamConsumptionReceipt::for_requirements(
+        d09_receipt.authority_artifact_sha256(),
+        d09_receipt.coverage_commitment(),
+        requirements.iter().copied(),
+    )?;
+    if rebuilt_d09 != d09_receipt {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "capital requirement ledger differs from committed RMC-009 receipt",
+        ));
+    }
+
+    let all_sources = ledger.sources().cloned().collect::<Vec<_>>();
+    let requirement_by_id = ledger
+        .requirements()
+        .map(|requirement| (requirement.id(), requirement))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    for result in ledger.results() {
+        if let CapitalFeasibility::Feasible { requirement_id, .. } = result {
+            let requirement = requirement_by_id
+                .get(requirement_id)
+                .copied()
+                .ok_or(CapitalError::InvalidCanonical(
+                    "feasible result references missing requirement",
+                ))?;
+            validate_settlement_requirements(requirement, result, &all_sources)?;
+        }
+    }
+
+    let summary = ledger.summary()?;
+    if summary.source_count == 0 {
+        return Err(CapitalError::EmptyCapitalCensus);
+    }
+    let capital_commitment = ledger.commitment()?;
+
+    Ok(D11ExpandedCapitalCensusCertificate {
+        capital_commitment,
+        upstream_authority_commitment: upstream.commitment(),
+        d11_source_authority_commitment: d11_sources.commitment(),
+        d08_source_count: d08_source_refs.len(),
+        d11_native_source_count: native_source_refs.len(),
+        summary,
+    })
 }
 
 #[cfg(test)]
