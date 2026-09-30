@@ -9,6 +9,11 @@ on:
       - ci/nqc-census/account-index-providers.json
       - ci/nqc-census/state-providers.json
       - nqc-census/crates/nqc-census-accounts/**
+  push:
+    branches:
+      - nqc/rmc-009-aave-account-universe-20260929
+    paths:
+      - ci/nqc-census/rmc009-certification-trigger.txt
   workflow_dispatch:
     inputs:
       anchor_number:
@@ -44,8 +49,9 @@ permissions:
   contents: read
   actions: read
 
-# Live acquisition runs only from a workflow_dispatch on the exact branch
-# head, in RMC-009's own live group: one D09 acquisition per ref at a time,
+# Live acquisition itself runs only from workflow_dispatch on the exact branch
+# head. A deliberately-scoped push trigger may only dispatch that exact-head
+# workflow; it does not acquire inline. The live run stays in RMC-009's own group: one D09 acquisition per ref at a time,
 # never cancelled while running. GitHub keeps one pending run per group and a
 # newer pending run replaces an older one, so a group shared across Census
 # nodes let one node's dispatch silently evict another's pending
@@ -266,7 +272,7 @@ jobs:
 
   dispatch-certification:
     needs: inputs
-    if: ${{ github.event_name == 'pull_request' && needs.inputs.result == 'success' }}
+    if: ${{ (github.event_name == 'pull_request' || github.event_name == 'push') && needs.inputs.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -277,8 +283,8 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          HEAD_REF: ${{ github.event.pull_request.head.ref }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
           set -euo pipefail
           repo="${{ github.repository }}"
