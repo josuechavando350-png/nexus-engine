@@ -3249,3 +3249,73 @@ fn operator_treasury_cannot_claim_external_ownership() -> TestResult {
     ));
     Ok(())
 }
+
+#[test]
+fn canonical_objects_reject_evidence_counts_above_u16() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let oversized_evidence = (1_u32..=u32::from(u16::MAX) + 1)
+        .map(|index| {
+            let mut digest = [0_u8; 32];
+            digest[28..].copy_from_slice(&index.to_be_bytes());
+            CapitalEvidenceRef::Observation(digest)
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(oversized_evidence.len(), usize::from(u16::MAX) + 1);
+
+    let source_result = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: oversized_evidence.clone(),
+    });
+    assert!(matches!(
+        source_result,
+        Err(nqc_census_capital::CapitalError::InvalidCanonical(
+            "too many capital source evidence references"
+        ))
+    ));
+
+    let requirement_result = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(50)),
+        anchor(100),
+        RequiredAtomicity::SameTransaction,
+        false,
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(1),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(1),
+                vec![CapitalClass::FlashSwap],
+            )?,
+        ],
+        oversized_evidence,
+    );
+    assert!(matches!(
+        requirement_result,
+        Err(nqc_census_capital::CapitalError::InvalidCanonical(
+            "too many capital requirement evidence references"
+        ))
+    ));
+    Ok(())
+}
+
