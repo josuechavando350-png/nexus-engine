@@ -25,6 +25,11 @@ pub const UNISWAP_V3_DEPLOYMENT_PATH: &str = "deploys.md";
 
 const GET_POOL: &str = "getPool(address,address,uint24)";
 const POOL_CREATED: &str = "PoolCreated(address,address,uint24,int24,address)";
+const POOL_TOKEN0: &str = "token0()";
+const POOL_TOKEN1: &str = "token1()";
+const POOL_FEE: &str = "fee()";
+const POOL_LIQUIDITY: &str = "liquidity()";
+const POOL_FLASH: &str = "flash(address,uint256,uint256,bytes)";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UniswapV3FactoryInterface {
@@ -61,6 +66,34 @@ pub fn verify_uniswap_v3_factory_runtime(code: &[u8]) -> Result<(), ChainError> 
         return Err(ChainError::Evidence(
             "Uniswap V3 factory runtime does not evidence PoolCreated topic".into(),
         ));
+    }
+    Ok(())
+}
+
+pub fn verify_uniswap_v3_pool_runtime(code: &[u8]) -> Result<(), ChainError> {
+    if code.is_empty() {
+        return Err(ChainError::Evidence(
+            "Uniswap V3 pool has no runtime code".into(),
+        ));
+    }
+    let scan = CodeScan::new(code);
+    if scan.truncated_push() {
+        return Err(ChainError::Evidence(
+            "Uniswap V3 pool runtime has truncated PUSH data".into(),
+        ));
+    }
+    for signature in [
+        POOL_TOKEN0,
+        POOL_TOKEN1,
+        POOL_FEE,
+        POOL_LIQUIDITY,
+        POOL_FLASH,
+    ] {
+        if !scan.has_selector(abi::selector(signature)) {
+            return Err(ChainError::Evidence(format!(
+                "Uniswap V3 pool runtime does not evidence {signature}"
+            )));
+        }
     }
     Ok(())
 }
@@ -684,6 +717,31 @@ mod tests {
         let factory = address(9);
         let log = pool_log(address(2), address(1), 3_000, 60, address(3));
         assert!(decode_uniswap_v3_pool_created(factory, &log).is_err());
+    }
+
+    #[test]
+    fn pool_runtime_requires_flash_and_state_selectors() {
+        let mut code = Vec::new();
+        for signature in [
+            POOL_TOKEN0,
+            POOL_TOKEN1,
+            POOL_FEE,
+            POOL_LIQUIDITY,
+            POOL_FLASH,
+        ] {
+            code.push(0x63);
+            code.extend_from_slice(&abi::selector(signature));
+        }
+        code.push(0x00);
+        assert!(verify_uniswap_v3_pool_runtime(&code).is_ok());
+
+        let mut missing_flash = Vec::new();
+        for signature in [POOL_TOKEN0, POOL_TOKEN1, POOL_FEE, POOL_LIQUIDITY] {
+            missing_flash.push(0x63);
+            missing_flash.extend_from_slice(&abi::selector(signature));
+        }
+        missing_flash.push(0x00);
+        assert!(verify_uniswap_v3_pool_runtime(&missing_flash).is_err());
     }
 
     #[test]
