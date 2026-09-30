@@ -896,7 +896,9 @@ fn report_commitment(
                         hasher.update(allocation.amount.as_be_bytes());
                     }
                 }
-                CapitalFeasibility::Rejected {\n                    reason, failed_leg, ..\n                } => {
+                CapitalFeasibility::Rejected {
+                    reason, failed_leg, ..
+                } => {
                     hasher.update([2]);
                     hasher.update(reason.code().as_bytes());
                     hasher.update([0]);
