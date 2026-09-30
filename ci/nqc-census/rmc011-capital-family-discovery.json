@@ -93,7 +93,7 @@
       "anchor_mode": "PLAN_VERSION_PLUS_EXACT_STATE_ANCHOR_WHERE_ASSET_BALANCE_IS_OBSERVED",
       "completeness": "EVERY_EXECUTION_PLAN_INVENTORY_LEG_CLASSIFIED_AND_ANY_EXTERNAL_INVENTORY_PROVIDER_EVALUATED; OPERATOR_INVENTORY_IS_ALWAYS_INELIGIBLE_FOR_ZERO_OWN_CAPITAL",
       "negative_proof": "EXECUTION_PLAN_REQUIREMENT_RECOUNT_AND_PROVIDER_REJECTION_LEDGER",
-      "implementation": "PENDING_D11_REQUIREMENT_CATALOG_ADMISSION"
+      "implementation": "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json + ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
     },
     {
       "id": "BOND_OR_STAKE",
@@ -102,7 +102,7 @@
       "anchor_mode": "PLAN_VERSION_PLUS_EXACT_STATE_ANCHOR_WHERE_ONCHAIN",
       "completeness": "EVERY_BOND_OR_STAKE_REQUIREMENT_IN_SUPPORTED_EXECUTION_PLANS_ENUMERATED_AND_ITS_EXTERNAL_FUNDING_PATH_ADMITTED_OR_REJECTED",
       "negative_proof": "EXECUTION_PLAN_REQUIREMENT_RECOUNT_AND_PROVIDER_REJECTION_LEDGER",
-      "implementation": "PENDING_D11_REQUIREMENT_CATALOG_ADMISSION"
+      "implementation": "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json + ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
     },
     {
       "id": "SOLVER_OR_BUILDER_DEPOSIT",
@@ -111,7 +111,7 @@
       "anchor_mode": "PLAN_VERSION_PLUS_TERMS_VALIDITY_WINDOW",
       "completeness": "EVERY_SUPPORTED_BUILDER_OR_SOLVER_DEPOSIT_REQUIREMENT_AND_FUNDING_PROVIDER_ENUMERATED",
       "negative_proof": "EXECUTION_PLAN_REQUIREMENT_RECOUNT_AND_PROVIDER_REJECTION_LEDGER",
-      "implementation": "PENDING_D11_REQUIREMENT_CATALOG_ADMISSION"
+      "implementation": "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json + ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
     },
     {
       "id": "INTRA_BLOCK_TEMPORARY_LOCK",
@@ -120,7 +120,7 @@
       "anchor_mode": "EXACT_STATE_ANCHOR",
       "completeness": "EVERY_TEMPORARY_LOCK_REQUIREMENT_ENUMERATED_WITH_ASSET_AMOUNT_RELEASE_SEMANTICS_AND_EXTERNAL_FUNDING_PATH",
       "negative_proof": "EXECUTION_PLAN_REQUIREMENT_RECOUNT_AND_PROVIDER_REJECTION_LEDGER",
-      "implementation": "PENDING_D11_REQUIREMENT_CATALOG_ADMISSION"
+      "implementation": "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json + ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
     }
   ],
   "non_claims": [
