@@ -4,8 +4,17 @@
 //! PoolCreated history, direct factory membership and pool balances remain
 //! block-pinned chain evidence obligations.
 
-use nqc_census_chain::{abi, evm::CodeScan, ChainError};
-use nqc_census_core::{Address, LogTopic, RawLogEnvelope};
+use crate::{
+    permissionless_atomic::{
+        admit_uniswap_v3_dual_provider, UniswapV3AuthenticatedObservation,
+    },
+    source_authority::D11SourceAuthority,
+    Amount256, CapitalEvidenceRef, CapitalSource,
+};
+use nqc_census_chain::{abi, evm::CodeScan, hex, json::Json, ChainError};
+use nqc_census_core::{Address, ChainDomain, Hash32, LogTopic, RawLogEnvelope, StateAnchor};
+use sha2::{Digest, Sha256};
+use std::{collections::BTreeSet, error::Error};
 
 pub const UNISWAP_V3_FACTORY: &str = "0x1f98431c8ad98523631ae4a59f267346ea31f984";
 pub const UNISWAP_V3_DEPLOYMENT_REPOSITORY: &str = "Uniswap/v3-periphery";
@@ -178,10 +187,398 @@ pub fn decode_uniswap_v3_pool_created(
     })
 }
 
+
+fn reconciliation_sha256(bytes: &[u8]) -> String {
+    hex::plain(&Sha256::digest(bytes))
+}
+
+fn reconciliation_u64(value: &Json, key: &str) -> Result<u64, Box<dyn Error>> {
+    value
+        .get(key)
+        .and_then(Json::as_i64)
+        .and_then(|number| u64::try_from(number).ok())
+        .ok_or_else(|| format!("missing unsigned integer field {key}").into())
+}
+
+fn parse_capture_anchor(value: &Json) -> Result<StateAnchor, Box<dyn Error>> {
+    let chain = ChainDomain::new(
+        reconciliation_u64(value, "chain_id")?,
+        Hash32::parse_hex(value.str_field("genesis_hash")?)?,
+        Hash32::parse_hex(value.str_field("fork_lineage")?)?,
+    )?;
+    Ok(StateAnchor::new(
+        chain,
+        reconciliation_u64(value, "block_number")?,
+        Hash32::parse_hex(value.str_field("block_hash")?)?,
+        Hash32::parse_hex(value.str_field("parent_hash")?)?,
+        reconciliation_u64(value, "timestamp")?,
+        Hash32::parse_hex(value.str_field("state_root")?)?,
+    )?)
+}
+
+fn capture_digest(capture: &Json) -> Result<Hash32, Box<dyn Error>> {
+    let digest: [u8; 32] = Sha256::digest(capture.canonical()?).into();
+    Ok(Hash32::new(digest)?)
+}
+
+fn validate_sha256_text(value: &str, label: &str) -> Result<(), Box<dyn Error>> {
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err(format!("{label} must be 64 lowercase hex").into());
+    }
+    Ok(())
+}
+
+fn capture_semantics(capture: &Json) -> Result<Json, Box<dyn Error>> {
+    let mut members = Vec::new();
+    for key in [
+        "schema_version",
+        "stage",
+        "family",
+        "anchor",
+        "authority_lock_sha256",
+        "d08_market_state_sha256",
+        "d08_token_admission_sha256",
+        "d08_evidence_manifest_sha256",
+        "deployment_sha256",
+        "factory",
+        "pool_event_history_sha256",
+        "pool_universe_sha256",
+        "pools",
+    ] {
+        members.push((
+            key,
+            capture
+                .get(key)
+                .ok_or_else(|| format!("Uniswap V3 capture missing {key}"))?
+                .clone(),
+        ));
+    }
+    Ok(Json::object(members))
+}
+
+fn validate_capture_identity(capture: &Json) -> Result<(), Box<dyn Error>> {
+    if reconciliation_u64(capture, "schema_version")? != 1
+        || capture.str_field("stage")? != "RMC-011"
+        || capture.str_field("family")? != "UNISWAP_V3_FLASH"
+    {
+        return Err("Uniswap V3 capture identity mismatch".into());
+    }
+    for key in [
+        "authority_lock_sha256",
+        "d08_market_state_sha256",
+        "d08_token_admission_sha256",
+        "d08_evidence_manifest_sha256",
+        "deployment_sha256",
+        "pool_event_history_sha256",
+        "pool_universe_sha256",
+    ] {
+        validate_sha256_text(capture.str_field(key)?, key)?;
+    }
+    let factory = capture
+        .get("factory")
+        .ok_or("Uniswap V3 capture has no factory object")?;
+    if factory.str_field("address")? != UNISWAP_V3_FACTORY {
+        return Err("Uniswap V3 capture factory address differs".into());
+    }
+    validate_sha256_text(factory.str_field("runtime_sha256")?, "factory runtime_sha256")?;
+    Ok(())
+}
+
+/// Reconcile two independent exact-state provider captures into canonical
+/// Uniswap V3 flash-capital sources.
+pub fn reconcile_uniswap_v3_captures(
+    first: &Json,
+    second: &Json,
+) -> Result<Vec<CapitalSource>, Box<dyn Error>> {
+    validate_capture_identity(first)?;
+    validate_capture_identity(second)?;
+
+    for key in ["provider_id", "provider_operator", "rpc_endpoint_hash"] {
+        if first.str_field(key)? == second.str_field(key)? {
+            return Err(format!("Uniswap V3 captures are not independent: {key} matches").into());
+        }
+    }
+
+    if capture_semantics(first)?.canonical()? != capture_semantics(second)?.canonical()? {
+        return Err("Uniswap V3 dual-provider semantic observations disagree".into());
+    }
+
+    let anchor = parse_capture_anchor(
+        first
+            .get("anchor")
+            .ok_or("Uniswap V3 capture has no anchor")?,
+    )?;
+    let first_digest = capture_digest(first)?;
+    let second_digest = capture_digest(second)?;
+    if first_digest == second_digest {
+        return Err("Uniswap V3 captures have identical full capture digests".into());
+    }
+
+    let pools = first
+        .get("pools")
+        .and_then(Json::as_array)
+        .ok_or("Uniswap V3 capture has no pools array")?;
+    if pools.is_empty() {
+        return Err("Uniswap V3 capture contains no D08-intersecting pools".into());
+    }
+
+    let mut seen_pools = BTreeSet::new();
+    let mut seen_pool_assets = BTreeSet::new();
+    let mut sources = Vec::new();
+
+    for row in pools {
+        let pool = Address::parse_hex(row.str_field("pool")?)?;
+        let token0 = Address::parse_hex(row.str_field("token0")?)?;
+        let token1 = Address::parse_hex(row.str_field("token1")?)?;
+        if token0 >= token1 {
+            return Err("Uniswap V3 pool token order is not canonical".into());
+        }
+        if !seen_pools.insert(pool) {
+            return Err("Uniswap V3 capture repeats pool".into());
+        }
+        let fee_pips = u32::try_from(reconciliation_u64(row, "fee_pips")?)?;
+        if fee_pips == 0 || fee_pips >= 1_000_000 {
+            return Err("Uniswap V3 pool fee is outside flash-fee domain".into());
+        }
+        validate_sha256_text(row.str_field("pool_runtime_sha256")?, "pool runtime_sha256")?;
+
+        let balances = row
+            .get("asset_balances")
+            .and_then(Json::as_array)
+            .ok_or("Uniswap V3 pool has no asset_balances array")?;
+        if balances.is_empty() {
+            return Err("Uniswap V3 intersecting pool has no admitted asset balances".into());
+        }
+
+        let mut seen_assets = BTreeSet::new();
+        for balance in balances {
+            let asset = Address::parse_hex(balance.str_field("asset")?)?;
+            if asset != token0 && asset != token1 {
+                return Err("Uniswap V3 balance asset is not one of pool tokens".into());
+            }
+            if !seen_assets.insert(asset) || !seen_pool_assets.insert((pool, asset)) {
+                return Err("Uniswap V3 capture repeats pool/asset balance".into());
+            }
+            let observation = UniswapV3AuthenticatedObservation {
+                anchor: anchor.clone(),
+                pool,
+                asset,
+                available_pool_balance: Amount256::parse_decimal(balance.str_field("balance")?)?,
+                fee_pips,
+            };
+            sources.push(admit_uniswap_v3_dual_provider(
+                &observation,
+                &observation,
+                &first_digest,
+                &second_digest,
+            )?);
+        }
+    }
+
+    sources.sort_by_key(|source| source.key_id());
+    Ok(sources)
+}
+
+pub fn build_uniswap_v3_reconciliation_artifact(
+    first_bytes: &[u8],
+    second_bytes: &[u8],
+) -> Result<Vec<u8>, Box<dyn Error>> {
+    let first = Json::parse(first_bytes)?;
+    let second = Json::parse(second_bytes)?;
+    if first.canonical()? != first_bytes || second.canonical()? != second_bytes {
+        return Err("Uniswap V3 provider capture is not canonical JSON".into());
+    }
+
+    let sources = reconcile_uniswap_v3_captures(&first, &second)?;
+    let mut rows = Vec::with_capacity(sources.len());
+    for source in &sources {
+        rows.push(Json::object([
+            ("source_id", Json::string(source.id().to_hex())),
+            ("source_key_id", Json::string(source.key_id().to_hex())),
+            ("capital_class", Json::string(source.class().code())),
+            ("asset", Json::string(source.asset().code())),
+            (
+                "maximum_available",
+                Json::string(source.maximum_available().to_hex()),
+            ),
+            (
+                "executable_capacity",
+                Json::string(source.executable_capacity()?.to_hex()),
+            ),
+            ("execution_eligible", Json::Bool(source.execution_eligible())),
+            (
+                "execution_blockers",
+                Json::array(
+                    source
+                        .execution_blockers()
+                        .iter()
+                        .cloned()
+                        .map(Json::string),
+                ),
+            ),
+            (
+                "canonical_record",
+                Json::string(hex::plain(&source.canonical_encode())),
+            ),
+        ]));
+    }
+
+    let report = Json::object([
+        ("schema_version", Json::uint(1)),
+        ("stage", Json::string("RMC-011")),
+        ("family", Json::string("UNISWAP_V3_FLASH")),
+        (
+            "status",
+            Json::string("RMC011_UNISWAP_V3_DUAL_PROVIDER_RECONCILED"),
+        ),
+        ("provider_count", Json::uint(2)),
+        (
+            "first_capture_sha256",
+            Json::string(reconciliation_sha256(first_bytes)),
+        ),
+        (
+            "second_capture_sha256",
+            Json::string(reconciliation_sha256(second_bytes)),
+        ),
+        ("source_count", Json::uint(u64::try_from(sources.len())?)),
+        ("sources", Json::Array(rows)),
+    ]);
+    let bytes = report.canonical()?;
+
+    let (authority, decoded) = source_authority_from_uniswap_v3_reconcile_artifact(&bytes)?;
+    if authority.family().code() != "UNISWAP_V3_FLASH"
+        || decoded.len() != sources.len()
+        || decoded
+            .iter()
+            .zip(&sources)
+            .any(|(left, right)| left != right)
+    {
+        return Err("Uniswap V3 reconciliation self-verification failed".into());
+    }
+    Ok(bytes)
+}
+
+pub fn source_authority_from_uniswap_v3_reconcile_artifact(
+    bytes: &[u8],
+) -> Result<(D11SourceAuthority, Vec<CapitalSource>), Box<dyn Error>> {
+    let report = Json::parse(bytes)?;
+    if report.canonical()? != bytes {
+        return Err("Uniswap V3 reconciliation artifact is not canonical JSON".into());
+    }
+    if reconciliation_u64(&report, "schema_version")? != 1
+        || report.str_field("stage")? != "RMC-011"
+        || report.str_field("family")? != "UNISWAP_V3_FLASH"
+        || report.str_field("status")? != "RMC011_UNISWAP_V3_DUAL_PROVIDER_RECONCILED"
+        || reconciliation_u64(&report, "provider_count")? != 2
+    {
+        return Err("Uniswap V3 reconciliation artifact identity mismatch".into());
+    }
+
+    let first_digest =
+        Hash32::parse_hex(&format!("0x{}", report.str_field("first_capture_sha256")?))?;
+    let second_digest =
+        Hash32::parse_hex(&format!("0x{}", report.str_field("second_capture_sha256")?))?;
+    if first_digest == second_digest {
+        return Err("Uniswap V3 reconciliation names duplicate capture digests".into());
+    }
+    let expected_evidence = BTreeSet::from([
+        CapitalEvidenceRef::Artifact(first_digest),
+        CapitalEvidenceRef::Artifact(second_digest),
+    ]);
+
+    let rows = report
+        .get("sources")
+        .and_then(Json::as_array)
+        .ok_or("Uniswap V3 reconciliation has no sources array")?;
+    let declared_count = usize::try_from(reconciliation_u64(&report, "source_count")?)?;
+    if rows.is_empty() || rows.len() != declared_count {
+        return Err("Uniswap V3 reconciliation source count mismatch".into());
+    }
+
+    let mut source_ids = BTreeSet::new();
+    let mut source_key_ids = BTreeSet::new();
+    let mut sources = Vec::with_capacity(rows.len());
+    for row in rows {
+        let encoded = hex::decode_data(&format!(
+            "0x{}",
+            row.str_field("canonical_record")?
+        ))?;
+        let source = CapitalSource::decode_canonical(&encoded)?;
+
+        if row.str_field("source_id")? != source.id().to_hex()
+            || row.str_field("source_key_id")? != source.key_id().to_hex()
+            || row.str_field("capital_class")? != source.class().code()
+            || row.str_field("asset")? != source.asset().code()
+            || row.str_field("maximum_available")? != source.maximum_available().to_hex()
+            || row.str_field("executable_capacity")? != source.executable_capacity()?.to_hex()
+            || row
+                .get("execution_eligible")
+                .and_then(Json::as_bool)
+                .ok_or("Uniswap V3 source projection lacks execution_eligible")?
+                != source.execution_eligible()
+        {
+            return Err(
+                "Uniswap V3 readable source projection differs from canonical record".into(),
+            );
+        }
+
+        let blockers = row
+            .get("execution_blockers")
+            .and_then(Json::as_array)
+            .ok_or("Uniswap V3 source projection has no execution_blockers")?
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(ToOwned::to_owned)
+                    .ok_or("Uniswap V3 execution blocker is not text")
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if blockers != source.execution_blockers() {
+            return Err("Uniswap V3 execution blockers differ from canonical record".into());
+        }
+
+        let observed_evidence = source
+            .evidence()
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
+        if observed_evidence != expected_evidence || source.evidence().len() != 2 {
+            return Err(
+                "Uniswap V3 source evidence does not equal the two provider capture digests".into(),
+            );
+        }
+        if !source_ids.insert(source.id()) {
+            return Err("Uniswap V3 reconciliation repeats source id".into());
+        }
+        if !source_key_ids.insert(source.key_id()) {
+            return Err("Uniswap V3 reconciliation repeats source key".into());
+        }
+        sources.push(source);
+    }
+
+    let anchor = sources
+        .first()
+        .ok_or("Uniswap V3 reconciliation decoded no sources")?
+        .anchor()
+        .clone();
+    if sources.iter().any(|source| source.anchor() != &anchor) {
+        return Err("Uniswap V3 reconciliation mixes observation anchors".into());
+    }
+
+    let authority =
+        D11SourceAuthority::from_reconciliation_artifact(anchor, bytes, &sources)?;
+    authority.verify(bytes, &sources)?;
+    Ok((authority, sources))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nqc_census_core::Hash32;
 
     fn address(byte: u8) -> Address {
         Address::new([byte; 20]).unwrap_or_else(|_| unreachable!())
