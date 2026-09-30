@@ -1085,7 +1085,6 @@ impl CapacityCurve {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShadowPrediction {
     candidate_id: PortfolioCandidateId,
@@ -1123,7 +1122,9 @@ impl ShadowPrediction {
             return Err(EconomicsError::MissingEvidence);
         }
         if evidence.iter().copied().any(is_zero_hash) {
-            return Err(EconomicsError::MissingEvidenceCommitment("shadow_prediction"));
+            return Err(EconomicsError::MissingEvidenceCommitment(
+                "shadow_prediction",
+            ));
         }
         evidence.sort_unstable();
         if evidence.windows(2).any(|pair| pair[0] == pair[1]) {
