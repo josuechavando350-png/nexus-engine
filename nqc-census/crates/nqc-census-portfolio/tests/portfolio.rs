@@ -3,7 +3,7 @@ use nqc_census_capital::{
     CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility, CapitalOwnership,
     CapitalProviderKind, CapitalRequirement, CapitalRequirementLeg, CapitalSource,
     CapitalSourceSpec, CapitalTargetId, CollateralRequirement, FeeModel, RepaymentSemantics,
-    RequiredAtomicity, RequirementKind, TemporaryLock, UtilizationConstraints,
+    RequiredAtomicity, RequirementKind, SourceAllocation, TemporaryLock, UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_portfolio::{
@@ -123,6 +123,28 @@ fn individually_feasible_candidates_cannot_double_spend_one_source() -> TestResu
     assert_eq!(report.conflicts()[0].capacity, Amount256::from_u128(100));
     assert_eq!(report.conflicts()[0].claimed, Amount256::from_u128(140));
     assert_eq!(report.conflicts()[0].claimants.len(), 2);
+    Ok(())
+}
+
+#[test]
+fn forged_capital_feasibility_is_rejected_by_exact_rmc011_recomputation() -> TestResult {
+    let anchor = anchor_on(chain(1, 1), 100, 10);
+    let limited = source(anchor.clone(), 30, 50, CapitalOwnership::External)?;
+    let req = requirement(anchor.clone(), 40, 100)?;
+    let candidate = PortfolioCandidate::new(req.id(), anchor, vec![])?;
+    let forged = CapitalFeasibility::Feasible {
+        requirement_id: req.id(),
+        allocations: vec![SourceAllocation {
+            source_id: limited.id(),
+            leg_kind: RequirementKind::ActionPrincipal,
+            amount: Amount256::from_u128(100),
+        }],
+    };
+
+    assert!(matches!(
+        evaluate_portfolio(&[candidate], &[req], &[forged], &[limited], &[],),
+        Err(PortfolioError::CapitalFeasibilityMismatch)
+    ));
     Ok(())
 }
 
@@ -525,5 +547,50 @@ fn route_variants_share_requirement_but_keep_distinct_candidate_identity() -> Te
         ) && conflict.claimants.contains(&route_a.id())
             && conflict.claimants.contains(&route_b.id())
     }));
+    Ok(())
+}
+
+#[test]
+fn route_variants_are_implicitly_exclusive_even_without_opportunity_claim() -> TestResult {
+    let anchor = anchor_on(chain(1, 1), 100, 10);
+    let funding = source(anchor.clone(), 30, 500, CapitalOwnership::External)?;
+    let req = requirement(anchor.clone(), 40, 50)?;
+    let feasibility = evaluate_capital_feasibility(&req, std::slice::from_ref(&funding));
+
+    let route_a = PortfolioCandidate::new_variant(req.id(), hash(96), anchor.clone(), vec![])?;
+    let route_b = PortfolioCandidate::new_variant(req.id(), hash(97), anchor, vec![])?;
+
+    let report = evaluate_portfolio(
+        &[route_a.clone(), route_b.clone()],
+        &[req.clone()],
+        &[feasibility.clone()],
+        std::slice::from_ref(&funding),
+        &[],
+    )?;
+    assert!(!report.simultaneously_feasible());
+    assert!(report.conflicts().iter().any(|conflict| {
+        matches!(
+            conflict.resource,
+            ConflictResource::Requirement(id) if id == req.id()
+        ) && conflict.capacity == Amount256::from_u128(1)
+            && conflict.claimed == Amount256::from_u128(2)
+            && conflict.claimants == vec![route_a.id(), route_b.id()]
+    }));
+
+    let reversed =
+        evaluate_portfolio(&[route_b, route_a], &[req], &[feasibility], &[funding], &[])?;
+    assert_eq!(report.commitment(), reversed.commitment());
+    Ok(())
+}
+
+#[test]
+fn same_variant_hash_on_distinct_requirements_never_aliases_candidate_identity() -> TestResult {
+    let anchor = anchor_on(chain(1, 1), 100, 10);
+    let a = requirement(anchor.clone(), 40, 50)?;
+    let b = requirement(anchor.clone(), 41, 50)?;
+    let variant = hash(98);
+    let candidate_a = PortfolioCandidate::new_variant(a.id(), variant, anchor.clone(), vec![])?;
+    let candidate_b = PortfolioCandidate::new_variant(b.id(), variant, anchor, vec![])?;
+    assert_ne!(candidate_a.id(), candidate_b.id());
     Ok(())
 }
