@@ -35,7 +35,7 @@ env:
   RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
   RUST_TOOLCHAIN: "1.98.1"
   D08_TESTS_EXPECTED_V2: "7"
-  D08_TESTS_EXPECTED_AAVE: "6"
+  D08_TESTS_EXPECTED_AAVE: "8"
   D08_TESTS_EXPECTED_PINS: "6"
   D08_INPUTS: /tmp/nqc-rmc008-inputs
   D08_EVIDENCE: /tmp/nqc-rmc008-evidence
@@ -260,7 +260,23 @@ jobs:
               echo "RMC008_ATTEMPT_PASS attempt=$attempt"
               break
             fi
-            echo "RMC008_ATTEMPT_FAILED attempt=$attempt $(tail -n 1 "$D08_EVIDENCE/stage-attempt-$attempt.err")"
+            last=$(tail -n 1 "$D08_EVIDENCE/stage-attempt-$attempt.err")
+            echo "RMC008_ATTEMPT_FAILED attempt=$attempt $last"
+            # A refusal that belongs to the request, not to an outage, is
+            # retried once and then stops the stage: the same JSON-RPC request
+            # error (-32600/-32601/-32602), an EVM execution error, or a
+            # malformed batch on two attempts with no new committed
+            # checkpoint. Run 36682467619 spent ten attempts (about two hours
+            # per stage) on two such refusals. Transport failures and rate
+            # limits keep the full retry budget.
+            progress=$( (find "$D08_EVIDENCE/store/streams" -path '*/checkpoints/*' -type f 2>/dev/null || true) | wc -l)
+            if grep -qE 'ProviderError \{[^}]*code: -3260[012],|ProviderError \{[^}]*message: "EVM error|Rpc\("duplicate call in batch"\)' <<<"$last" \
+                && [ "$last" = "${previous_error:-}" ] && [ "$progress" = "${previous_progress:-}" ]; then
+              echo "RMC008_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
+              exit 1
+            fi
+            previous_error=$last
+            previous_progress=$progress
             if [ "$attempt" = 10 ]; then
               exit 1
             fi

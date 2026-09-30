@@ -136,6 +136,17 @@ struct Variant {
     price_off: bool,
     /// Reserve 0 underlying balance of the aToken is below virtual balance.
     balance_below_virtual: bool,
+    /// Reserve 1 names reserve 0's stable debt token and interest rate
+    /// strategy: probe run 36686929285 read one stable debt token and one
+    /// strategy shared by all 67 mainnet reserves at the anchor.
+    shared_contracts: bool,
+    /// Providers batch 100 calls, as both declared state providers do, so
+    /// both reserves' token reads share one JSON-RPC batch.
+    live_batch: bool,
+    /// Provider A reports halts in geth's words and provider B in revm's, as
+    /// blastapi-public did in live run 36682467619 (`-32003 "EVM error:
+    /// InvalidJump"`).
+    revm_halts_on_b: bool,
 }
 
 fn chain(variant: &Variant) -> Result<SimChain, Box<dyn Error>> {
@@ -227,7 +238,11 @@ fn chain(variant: &Variant) -> Result<SimChain, Box<dyn Error>> {
         returned(&[[0; 32]]),
     );
     for k in 0..2u8 {
-        let [asset, a_token, stable, variable, strategy, source] = reserve(k);
+        let [asset, a_token, mut stable, variable, mut strategy, source] = reserve(k);
+        if variant.shared_contracts && k == 1 {
+            stable = reserve(0)[2];
+            strategy = reserve(0)[4];
+        }
         let decimals = if k == 0 { 18 } else { 6 };
         let config = configuration(decimals);
         let liquidity_index = dec("1067536594946887619941860510");
@@ -496,6 +511,8 @@ struct Scripted {
     storage: BTreeMap<(String, String), [u8; 32]>,
     strip_revert_data: BTreeSet<u16>,
     halts: BTreeSet<(u16, Address, [u8; 4])>,
+    /// Provider namespace -> (code, message) of its halt replies.
+    halt_replies: BTreeMap<u16, (i64, &'static str)>,
 }
 
 impl Scripted {
@@ -541,14 +558,19 @@ impl Scripted {
                 .halts
                 .contains(&(provider.namespace(), target, selector))
             {
+                let (code, message) = self
+                    .halt_replies
+                    .get(&provider.namespace())
+                    .copied()
+                    .unwrap_or((-32000, "invalid opcode: INVALID"));
                 return Ok(Json::object([
                     ("jsonrpc", Json::string("2.0")),
                     ("id", id),
                     (
                         "error",
                         Json::object([
-                            ("code", Json::int(-32000)),
-                            ("message", Json::string("invalid opcode: INVALID")),
+                            ("code", Json::int(code)),
+                            ("message", Json::string(message)),
                         ]),
                     ),
                 ]));
@@ -637,10 +659,23 @@ fn run(
             .iter()
             .map(|(namespace, target, signature)| (*namespace, *target, abi::selector(signature)))
             .collect(),
+        halt_replies: if variant.revm_halts_on_b {
+            BTreeMap::from([
+                (A, (-32000, "invalid jump destination")),
+                (B, (-32003, "EVM error: InvalidJump")),
+            ])
+        } else {
+            BTreeMap::new()
+        },
+    };
+    let (batch_a, batch_b) = if variant.live_batch {
+        (100, 100)
+    } else {
+        (9, 4)
     };
     let specs = vec![
-        SimProvider::spec(A, "aave-a", 100, 9)?,
-        SimProvider::spec(B, "aave-b", 100, 4)?,
+        SimProvider::spec(A, "aave-a", 100, batch_a)?,
+        SimProvider::spec(B, "aave-b", 100, batch_b)?,
     ];
     let plan = AavePlan {
         anchor: AnchorPlan {
@@ -962,5 +997,104 @@ fn aave_extracts_bind_to_the_admitted_reserves_and_addresses() -> TestResult {
         aave: Some(&moved),
     };
     assert!(extract_stages(&run.specs, &wrong, &run.plan.anchor, extracts).is_err());
+    Ok(())
+}
+
+/// Mainnet reserves share contracts. The frozen chain layer refuses a batch
+/// holding one call twice (live run 36682467619 failed every AAVE_STATE
+/// attempt on both providers with `duplicate call in batch`); each distinct
+/// call is made once and its outcome kept for every reserve that names it.
+#[test]
+fn reserves_sharing_contracts_are_read_once_and_reconcile_exactly() -> TestResult {
+    let variant = Variant {
+        shared_contracts: true,
+        live_batch: true,
+        ..Variant::default()
+    };
+    let run = run(&variant, &[], &[])?;
+    let outcome = verify(&run)?;
+    assert_eq!(
+        outcome.mismatches.unexplained(),
+        0,
+        "{:?}",
+        outcome.mismatches.sorted()
+    );
+    let plans = StagePlans {
+        v2: None,
+        pairs: &[],
+        aave: Some(&run.plan),
+    };
+    for record in &run.records {
+        let stage = replay_stage(&run.store, &run.specs, &plans, record)?;
+        let reserves: Vec<&Json> = stage
+            .rows
+            .iter()
+            .filter(|row| row.get("kind").and_then(Json::as_str) == Some("RESERVE"))
+            .collect();
+        assert_eq!(reserves.len(), 2);
+        for row in &reserves {
+            assert_eq!(
+                row.str_field("stable_debt_token")?,
+                reserve(0)[2].to_hex(),
+                "shared stable debt token"
+            );
+            assert_eq!(
+                row.str_field("interest_rate_strategy")?,
+                reserve(0)[4].to_hex(),
+                "shared strategy"
+            );
+            assert_eq!(
+                row.get("stable_debt_total_supply"),
+                Some(&Json::string("0"))
+            );
+        }
+    }
+    Ok(())
+}
+
+/// The same deterministic halt in two providers' vocabularies: geth says
+/// "invalid jump destination", revm-based blastapi-public says `-32003 "EVM
+/// error: InvalidJump"` (live run 36682467619, stage v2-state-8, every
+/// attempt). Both are one `HALTED` fact, never an unknown provider failure.
+#[test]
+fn a_halt_in_revm_words_is_the_same_halt() -> TestResult {
+    let source = reserve(0)[5];
+    let variant = Variant {
+        revm_halts_on_b: true,
+        ..Variant::default()
+    };
+    let run = run(
+        &variant,
+        &[],
+        &[
+            (A, source, "latestRoundData()"),
+            (B, source, "latestRoundData()"),
+        ],
+    )?;
+    let outcome = verify(&run)?;
+    assert_eq!(outcome.mismatches.unexplained(), 0);
+    let plans = StagePlans {
+        v2: None,
+        pairs: &[],
+        aave: Some(&run.plan),
+    };
+    for record in &run.records {
+        let stage = replay_stage(&run.store, &run.specs, &plans, record)?;
+        let oracle = stage
+            .rows
+            .iter()
+            .find(|row| row.get("kind").and_then(Json::as_str) == Some("ORACLE"))
+            .ok_or("oracle row")?;
+        let halted = oracle
+            .get("sources")
+            .and_then(Json::as_array)
+            .ok_or("sources")?
+            .iter()
+            .find(|row| row.str_field("source").ok() == Some(source.to_hex().as_str()))
+            .and_then(|row| row.get("getters"))
+            .and_then(|getters| getters.get("latestRoundData()"))
+            .ok_or("halted getter")?;
+        assert_eq!(halted.str_field("status")?, "HALTED");
+    }
     Ok(())
 }

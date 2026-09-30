@@ -222,6 +222,7 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
     let tokens = plan.tokens();
     let mut supplies: BTreeMap<Address, Supply> = BTreeMap::new();
     let mut reserves = Vec::new();
+    let mut stable_divergences = 0_u64;
     for (reserve, row) in plan.reserves.iter().zip(&token_rows) {
         let unit = format!("reserve:{}", reserve.asset.to_hex());
         if Address::parse_hex(row.str_field("asset")?)? != reserve.asset {
@@ -249,25 +250,39 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
                         .unwrap_or_else(|_| "0x0".into())
                 })
             };
+            // The aToken and variable debt token carry every position the
+            // universe covers and must be the D06 ones exactly. The stable
+            // debt token field is deprecated protocol state: at the anchor it
+            // names one token for every mainnet reserve (probe run
+            // 36712062094), so it is checked below as a supply fact, and its
+            // divergence from the initialization token is recorded.
             let observed = if returned && bytes.len() >= 11 * 32 {
                 format!(
-                    "{}/{}/{}",
+                    "{}/{}",
                     address_at(8).unwrap_or_default(),
-                    address_at(9).unwrap_or_default(),
                     address_at(10).unwrap_or_default()
                 )
             } else {
                 "UNREADABLE".into()
             };
             let expected = format!(
-                "{}/{}/{}",
+                "{}/{}",
                 reserve.a_token.to_hex(),
-                reserve
-                    .stable_debt_token
-                    .map_or_else(|| "0x0".into(), |token| token.to_hex()),
                 reserve.variable_debt_token.to_hex()
             );
             mismatches.check(&unit, "RESERVE_TOKEN_ADDRESSES", expected, observed);
+            let reported = row
+                .get("reported_stable_debt_token")
+                .ok_or_else(|| ChainError::Evidence("reported stable debt token missing".into()))?;
+            let in_data = if returned && bytes.len() >= 11 * 32 {
+                address_at(9).unwrap_or_default()
+            } else {
+                "UNREADABLE".into()
+            };
+            let recorded = reported
+                .as_str()
+                .map_or_else(|| "0x0".to_owned(), str::to_owned);
+            mismatches.check(&unit, "REPORTED_STABLE_DEBT_TOKEN", in_data, recorded);
         }
         for (token, key, zero_key) in [
             (
@@ -316,23 +331,52 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
             );
         }
         let stable = row.get("stable_debt_total_supply").unwrap_or(&Json::Null);
-        if reserve.stable_debt_token.is_some() {
-            match decimal(stable) {
+        let reported_token = row.get("reported_stable_debt_token").unwrap_or(&Json::Null);
+        let reported_total = row
+            .get("reported_stable_debt_total_supply")
+            .unwrap_or(&Json::Null);
+        // Every stable debt token the protocol names for the reserve, at
+        // initialization and in its current data, must hold no supply: the
+        // universe does not cover stable positions.
+        for (present, total, dimension, which) in [
+            (
+                reserve.stable_debt_token.is_some(),
+                stable,
+                "STABLE_DEBT_TOTAL_SUPPLY",
+                "initialized",
+            ),
+            (
+                !matches!(reported_token, Json::Null),
+                reported_total,
+                "REPORTED_STABLE_DEBT_TOTAL_SUPPLY",
+                "reported",
+            ),
+        ] {
+            if !present {
+                continue;
+            }
+            match decimal(total) {
                 Some(value) if value.is_zero() => {}
                 Some(value) => findings.push(format!(
-                    "STABLE_DEBT_POSITIONS_PRESENT asset={} total={}",
+                    "STABLE_DEBT_POSITIONS_PRESENT asset={} token={which} total={}",
                     reserve.asset.to_hex(),
                     value.to_decimal()
                 )),
                 None => {
-                    mismatches.check(
-                        &unit,
-                        "STABLE_DEBT_TOTAL_SUPPLY",
-                        "uint256",
-                        describe(stable),
-                    );
+                    mismatches.check(&unit, dimension, "uint256", describe(total));
                 }
             }
+        }
+        let stable_status = match (reserve.stable_debt_token, reported_token.as_str()) {
+            (_, None) if reserve.reserve_id.is_none() => "NOT_CURRENT",
+            (_, None) => "NONE_REPORTED",
+            (Some(initialized), Some(current)) if initialized.to_hex() == current => {
+                "MATCHES_INITIALIZATION"
+            }
+            _ => "DIVERGES_FROM_INITIALIZATION",
+        };
+        if stable_status == "DIVERGES_FROM_INITIALIZATION" {
+            stable_divergences += 1;
         }
         reserves.push(Json::object([
             ("asset", Json::string(reserve.asset.to_hex())),
@@ -368,6 +412,9 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
                     .unwrap_or(Json::Null),
             ),
             ("stable_debt_total_supply", stable.clone()),
+            ("reported_stable_debt_token", reported_token.clone()),
+            ("reported_stable_debt_total_supply", reported_total.clone()),
+            ("stable_debt_token_status", Json::string(stable_status)),
         ]));
     }
 
@@ -663,6 +710,10 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
         (
             "zero_address_holding_tokens",
             Json::uint(zero_holding_tokens),
+        ),
+        (
+            "stable_debt_token_divergent_reserves",
+            Json::uint(stable_divergences),
         ),
         ("tokens", Json::uint(conservation.len() as u64)),
         (
