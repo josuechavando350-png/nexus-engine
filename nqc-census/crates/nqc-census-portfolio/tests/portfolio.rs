@@ -494,12 +494,13 @@ fn contention_graph_decomposes_into_independent_components() -> TestResult {
 
     assert!(report.simultaneously_feasible());
     assert_eq!(report.components().len(), 2);
-    let sizes = report
+    let mut sizes = report
         .components()
         .iter()
         .map(|component| component.candidates.len())
         .collect::<Vec<_>>();
-    assert_eq!(sizes, vec![2, 1]);
+    sizes.sort_unstable();
+    assert_eq!(sizes, vec![1, 2]);
     assert!(report.components().iter().any(|component| {
         component.candidates.contains(&candidate_a_id)
             && component.candidates.contains(&candidate_b_id)
