@@ -91,6 +91,7 @@ jobs:
               (.d06.anchor_file | type == "string") and
               (.d07.anchor_file | type == "string") and
               (.d08.market_state_manifest | type == "string") and
+              (.d08.oracle_manifest | type == "string") and
               (.d08.token_admission | type == "string") and
               (.d08.pool_and_factory_facts | type == "string") and
               (.d09.account_manifest | type == "string") and
@@ -311,6 +312,7 @@ jobs:
           D09_ROOT="$RUNNER_TEMP/d09-raw"
 
           copy_exact "$D08_ROOT" "$(jq -r '.d08.market_state_manifest' "$INPUTS")" "$RUNNER_TEMP/d08"
+          copy_exact "$D08_ROOT" "$(jq -r '.d08.oracle_manifest' "$INPUTS")" "$RUNNER_TEMP/d08"
           copy_exact "$D08_ROOT" "$(jq -r '.d08.token_admission' "$INPUTS")" "$RUNNER_TEMP/d08"
           copy_exact "$D08_ROOT" "$(jq -r '.d08.pool_and_factory_facts' "$INPUTS")" "$RUNNER_TEMP/d08"
           copy_exact "$D08_ROOT" "$(jq -r '.d08.authority_file' "$INPUTS")" "$RUNNER_TEMP/d08"
@@ -320,6 +322,7 @@ jobs:
           copy_exact "$D09_ROOT" "$(jq -r '.d09.authority_file' "$INPUTS")" "$RUNNER_TEMP/d09"
 
           test -f "$RUNNER_TEMP/d08/market-state-manifest.jsonl"
+          test -f "$RUNNER_TEMP/d08/oracle-manifest.jsonl"
           test -f "$RUNNER_TEMP/d08/token-admission.jsonl"
           test -f "$RUNNER_TEMP/d08/pool-and-factory-facts.json"
           test -f "$RUNNER_TEMP/d08/evidence-manifest.json"
