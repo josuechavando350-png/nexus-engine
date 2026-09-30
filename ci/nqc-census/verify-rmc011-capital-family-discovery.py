@@ -28,6 +28,7 @@ EXPECTED_NON_CLAIMS = {
     "MODEL_OR_IMPLEMENTATION_IS_NOT_SOURCE_AVAILABILITY",
     "HISTORICAL_T36_BALANCER_PARITY_IS_NOT_CURRENT_D11_SOURCE_EVIDENCE",
     "PUBLIC_WEB_SEARCH_IS_NOT_CAPITAL_SOURCE_AUTHORITY",
+    "D11_DOES_NOT_CLAIM_ACTIONABILITY",
 }
 
 EXPECTED_UNISWAP_V3_DEPLOYMENT = {
@@ -143,7 +144,11 @@ def validate_document(
         == "EVERY_REQUIRED_FAMILY_HAS_ONE_EXHAUSTIVE_DISCOVERY_SURFACE_AND_EVERY_SURFACE_IS_AUTHENTICATED_AT_OR_FOR_THE_CERTIFIED_ANCHOR",
         "unexpected completeness rule",
     )
-    text(doc, "observation_scope", "document")
+    require(
+        doc.get("observation_scope")
+        == "ETHEREUM_MAINNET_RMC008_CURRENT_ASSET_UNIVERSE_PLUS_AUTHENTICATED_EXTERNAL_PROVIDER_REGISTRY_AND_EXECUTION_PLAN_REQUIREMENT_CATALOG",
+        "unexpected D11 discovery observation_scope",
+    )
 
     rows = doc.get("families")
     require(isinstance(rows, list), "families must be an array")
@@ -182,6 +187,19 @@ def validate_document(
     require(
         "permissionless_atomic.rs" in by_id["UNISWAP_V3_FLASH"]["implementation"],
         "Uniswap V3 discovery must bind the D11 permissionless atomic implementation",
+    )
+    for required_component in {
+        "uniswap_v3_live.rs",
+        "uniswap_v3_acquire.rs",
+        "nqc-census-capital-real-source-certification.yml",
+    }:
+        require(
+            required_component in by_id["UNISWAP_V3_FLASH"]["implementation"],
+            f"Uniswap V3 discovery implementation omits {required_component}",
+        )
+    require(
+        "ACTIONABLE" not in by_id["UNISWAP_V3_FLASH"]["completeness"],
+        "D11 Uniswap V3 completeness must not claim D12 actionability",
     )
     for family_id in {
         "EXTERNAL_GAS_CREDIT",
