@@ -142,13 +142,7 @@ fn forged_capital_feasibility_is_rejected_by_exact_rmc011_recomputation() -> Tes
     };
 
     assert!(matches!(
-        evaluate_portfolio(
-            &[candidate],
-            &[req],
-            &[forged],
-            &[limited],
-            &[],
-        ),
+        evaluate_portfolio(&[candidate], &[req], &[forged], &[limited], &[],),
         Err(PortfolioError::CapitalFeasibilityMismatch)
     ));
     Ok(())
