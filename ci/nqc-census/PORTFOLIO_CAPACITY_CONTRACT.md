@@ -87,6 +87,44 @@ Synthetic actionability fixtures are foundation evidence only. Terminal
 RMC-012 authority requires the isolated PFT bridge to consume exact admitted
 RMC-006/RMC-008/RMC-009 bytes and prove its complete coverage commitment.
 
+## Liquidation capital promotion boundary
+
+RMC-011 deliberately imports the RMC-009 position universe with zero certified
+liquidation requirements because RMC-009 does not prove liquidatability.
+Therefore an admitted PFT liquidation MUST be promoted in RMC-012 into a new
+capital requirement; no pre-existing RMC-011 requirement id may be invented or
+reused for it.
+
+For the Aave V3 protocol-native flash path, the promotion MUST bind:
+- the exact actionable-candidate commitment as the capital target/evidence;
+- debt-to-liquidate as `ACTION_PRINCIPAL`;
+- the same principal as the exact `REPAYMENT` obligation;
+- the PFT/D08-derived flash premium as `FUNDING_FEE` when non-zero;
+- same-transaction atomicity;
+- only `PROTOCOL_NATIVE_FLASH_LOAN` as an allowed class;
+- the PFT market/account commitments as capital evidence.
+
+The premium semantics are provider-specific. Feasibility MUST be recomputed
+only against the exact Aave V3 Pool authenticated by RMC-008/D11, with the
+matching debt asset, provider namespace, source contract, repayment semantics,
+StateAnchor and canonical D11 source state. A different flash provider is not
+interchangeable merely because it has the same capital class.
+
+This promotion has scope
+`PRINCIPAL_AND_FLASH_SETTLEMENT_ONLY_GAS_UNCERTIFIED`. It MUST set
+`requires_native_gas=false` only because gas amount depends on the downstream
+execution plan; this is not permission to assume free/operator-funded gas.
+Every retained artifact MUST carry `gas_funding_certified=false` until D13
+has an exact gas requirement and proves an external gas funding source. D14
+MUST NOT interpret principal-only feasibility as full `OWN_CAPITAL=0`
+execution feasibility.
+
+Every admitted actionability candidate MUST produce exactly one capital
+promotion record. The promoted count MUST equal the actionability admitted
+count, and feasible + rejected promotions MUST equal that same count. Capital
+rejections remain explicit; they do not retroactively erase protocol
+actionability.
+
 ## Exact capacity rules
 
 All resource amounts use exact uint256 arithmetic. No floating point is
@@ -213,13 +251,22 @@ Before actionability runs, terminal CI MUST:
 
 The terminal bridge then re-hashes the consumed D08/D09 evidence manifests,
 requires their code identity and full/available anchor fields to equal the
-external authority lock, and runs twice from the same bytes. The two output
-trees MUST be byte-identical.
+external authority lock, decodes `d11/capital-sources.jsonl` back into
+canonical `CapitalSource` values, and runs twice from the same bytes. The two
+output trees MUST be byte-identical. It MUST reuse the RMC-011 parser for the
+D08 Aave Pool/premium facts rather than maintaining a second JSON
+interpretation.
 
 The retained RMC-012 certification record MUST bind the exact D12 commit/tree,
 the exact D11 run/artifact/package identity, external authority-lock
 commitment/SHA-256, actionability coverage commitment, admitted/rejected
-counts, and the SHA-256/byte length of every emitted terminal artifact.
+counts, principal-capital promotion counts, D11 capital-source SHA-256 and the
+SHA-256/byte length of every emitted terminal artifact.
+
+The terminal actionability/principal-capital certificate is NOT a concurrent
+portfolio-capacity certificate. Until the explicit shared-resource conflict
+graph has been evaluated for the promoted candidate set, it MUST retain
+`portfolio_concurrent_capacity_certified=false`.
 
 ## Non-claims
 
@@ -231,5 +278,9 @@ RMC-012 does not prove:
 - realized P&L;
 - optimal portfolio selection.
 
-It proves only simultaneous resource/capital consistency for the explicit
-candidate set.
+The portfolio engine can prove simultaneous resource/capital consistency for
+an explicit fully declared candidate/resource set. The current terminal
+actionability/principal-capital artifact proves only conserved PFT
+actionability plus exact provider-bound principal/flash-settlement feasibility;
+it does not claim concurrent portfolio capacity or complete zero-own-capital
+execution while gas funding remains uncertified.
