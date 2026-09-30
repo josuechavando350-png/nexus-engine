@@ -156,6 +156,61 @@ jobs:
           ' "$CERT" >/dev/null
           echo "D12_CERT=$CERT" >> "$GITHUB_ENV"
 
+
+      - name: Authenticate exact D11 capital authority carried by D12
+        shell: bash
+        run: |
+          set -euo pipefail
+          D12_CERT="$RUNNER_TEMP/d12/terminal-actionability-certification.json"
+          RUN_ID="$(jq -r '.d11.run_id' "$D12_CERT")"
+          HEAD_SHA="$(jq -r '.d11.head_sha' "$D12_CERT")"
+          TREE_SHA="$(jq -r '.d11.tree_sha' "$D12_CERT")"
+          ARTIFACT_ID="$(jq -r '.d11.artifact_id' "$D12_CERT")"
+          ARTIFACT_NAME="$(jq -r '.d11.artifact_name' "$D12_CERT")"
+          ARTIFACT_DIGEST="$(jq -r '.d11.artifact_digest' "$D12_CERT")"
+
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]]
+          [[ "$ARTIFACT_ID" =~ ^[0-9]+$ ]]
+          [[ "$HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$TREE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$ARTIFACT_NAME" == rmc011-real-source-certification-* ]]
+
+          RUN_JSON="$(gh api "repos/$REPOSITORY/actions/runs/$RUN_ID")"
+          test "$(jq -r '.status' <<<"$RUN_JSON")" = completed
+          test "$(jq -r '.conclusion' <<<"$RUN_JSON")" = success
+          test "$(jq -r '.head_sha' <<<"$RUN_JSON")" = "$HEAD_SHA"
+          test "$(jq -r '.name' <<<"$RUN_JSON")" = "NQC RMC-011 Real Source Certification"
+          test "$(gh api "repos/$REPOSITORY/git/commits/$HEAD_SHA" --jq '.tree.sha')" = "$TREE_SHA"
+
+          ARTIFACT_JSON="$(gh api "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
+          test "$(jq -r '.expired' <<<"$ARTIFACT_JSON")" = false
+          test "$(jq -r '.name' <<<"$ARTIFACT_JSON")" = "$ARTIFACT_NAME"
+          test "$(jq -r '.digest' <<<"$ARTIFACT_JSON")" = "$ARTIFACT_DIGEST"
+          test "$(jq -r '.workflow_run.id' <<<"$ARTIFACT_JSON")" = "$RUN_ID"
+
+          D11="$RUNNER_TEMP/d11"
+          rm -rf "$D11"
+          mkdir -p "$D11"
+          gh run download "$RUN_ID" --repo "$REPOSITORY" --name "$ARTIFACT_NAME" --dir "$D11"
+          if find "$D11" -type l -print -quit | grep -q .; then
+            echo "RMC013_D11_PACKAGE_SYMLINK_REJECTED" >&2
+            exit 1
+          fi
+          test -f "$D11/CERTIFICATION-PACKAGE-SHA256SUMS"
+          (
+            cd "$D11"
+            sha256sum -c CERTIFICATION-PACKAGE-SHA256SUMS
+          )
+          test -f "$D11/d11/capital-archive.sha256"
+          (
+            cd "$D11/d11"
+            sha256sum -c capital-archive.sha256
+          )
+          test -f "$D11/d11/capital-sources.jsonl"
+          echo "D11_ROOT=$D11" >> "$GITHUB_ENV"
+          echo "D11_SOURCES=$D11/d11/capital-sources.jsonl" >> "$GITHUB_ENV"
+
       - name: Verify exact execution-evidence coverage
         shell: bash
         run: |
@@ -166,7 +221,7 @@ jobs:
             cd "$EXEC"
             sha256sum -c archive.sha256
           )
-          for name in             execution-evidence-summary.json             execution-economics.jsonl             execution-rejection-ledger.jsonl             capacity-curves.jsonl             shadow-predictions.jsonl             evidence-manifest.json
+          for name in             execution-evidence-summary.json             execution-economics.jsonl             execution-rejection-ledger.jsonl             capacity-curves.jsonl             shadow-predictions.jsonl             gas-funding-bindings.jsonl             evidence-manifest.json
           do
             test -f "$EXEC/$name"
           done
@@ -200,6 +255,98 @@ jobs:
           test "$(wc -l < "$EXEC/execution-economics.jsonl")" -eq             "$(jq '.economics_candidate_count' "$SUMMARY")"
           test "$(wc -l < "$EXEC/shadow-predictions.jsonl")" -eq             "$(jq '.shadow_prediction_count' "$SUMMARY")"
 
+          python3 - "$D11_SOURCES" "$EXEC/execution-economics.jsonl" "$EXEC/gas-funding-bindings.jsonl" "$RUNNER_TEMP/d12/actionability-summary.json" "$SUMMARY" <<'PY'
+          import collections
+          import json
+          import sys
+
+          sources_path, economics_path, bindings_path, d12_summary_path, summary_path = sys.argv[1:]
+
+          def rows(path):
+              with open(path, encoding="utf-8") as handle:
+                  return [json.loads(line) for line in handle if line.strip()]
+
+          def amount(value):
+              assert isinstance(value, str), value
+              text = value[2:] if value.startswith("0x") else value
+              assert len(text) == 64 and all(ch in "0123456789abcdefABCDEF" for ch in text), value
+              return int(text, 16)
+
+          sources_rows = rows(sources_path)
+          sources = {}
+          for source in sources_rows:
+              source_id = source["source_id"]
+              assert source_id not in sources, source_id
+              sources[source_id] = source
+
+          economics = rows(economics_path)
+          economics_ids = [row["candidate_id"] for row in economics]
+          assert len(economics_ids) == len(set(economics_ids)), "duplicate economics candidate"
+          economics_set = set(economics_ids)
+
+          bindings = rows(bindings_path)
+          binding_ids = [row["candidate_id"] for row in bindings]
+          assert len(binding_ids) == len(set(binding_ids)), "duplicate gas funding candidate"
+          assert set(binding_ids) == economics_set, (
+              "gas funding candidate set differs from exact economics candidate set",
+              len(binding_ids), len(economics_ids)
+          )
+
+          d12_anchor = json.load(open(d12_summary_path, encoding="utf-8"))["anchor"]
+          aggregate = collections.Counter()
+          operator_owned = 0
+
+          for binding in bindings:
+              required = amount(binding["required_native_gas_amount"])
+              assert required > 0, binding["candidate_id"]
+              allocations = binding["allocations"]
+              assert isinstance(allocations, list) and allocations, binding["candidate_id"]
+              evidence = binding.get("evidence")
+              assert isinstance(evidence, list) and evidence, binding["candidate_id"]
+              assert all(isinstance(item, str) and item for item in evidence)
+
+              allocated = 0
+              seen = set()
+              for allocation in allocations:
+                  source_id = allocation["source_id"]
+                  assert source_id not in seen, (binding["candidate_id"], source_id)
+                  seen.add(source_id)
+                  source = sources[source_id]
+                  assert source["capital_class"] == "GAS_FUNDING", source_id
+                  assert source["asset"] == "NATIVE_GAS", source_id
+                  if source["capital_ownership"] == "OPERATOR_OWNED":
+                      operator_owned += 1
+                      raise AssertionError(("operator-owned gas source", source_id))
+                  assert source["execution_eligible"] is True, source_id
+                  assert not source["execution_blockers"], source_id
+                  assert source["anchor"] == d12_anchor, source_id
+                  value = amount(allocation["amount"])
+                  assert value > 0, (binding["candidate_id"], source_id)
+                  allocated += value
+                  aggregate[source_id] += value
+              assert allocated == required, (
+                  "gas funding allocation differs from exact requirement",
+                  binding["candidate_id"], allocated, required
+              )
+
+          for source_id, claimed in aggregate.items():
+              capacity_text = sources[source_id]["executable_capacity"]
+              assert capacity_text is not None, source_id
+              capacity = amount(capacity_text)
+              assert claimed <= capacity, ("gas source oversubscribed", source_id, claimed, capacity)
+
+          summary = json.load(open(summary_path, encoding="utf-8"))
+          assert summary["gas_funding_candidate_count"] == len(bindings)
+          assert summary["operator_owned_gas_funding_count"] == operator_owned == 0
+          if economics:
+              assert summary["zero_own_capital_proven"] is True
+          print(
+              "RMC013_EXTERNAL_GAS_CAPACITY_PASS",
+              f"candidates={len(bindings)}",
+              f"sources={len(aggregate)}",
+          )
+          PY
+
           echo "EXEC_SUMMARY=$SUMMARY" >> "$GITHUB_ENV"
           echo "EXEC_ROOT=$EXEC" >> "$GITHUB_ENV"
 
@@ -210,7 +357,7 @@ jobs:
           OUT="$RUNNER_TEMP/rmc013-terminal"
           rm -rf "$OUT"
           mkdir -p "$OUT"
-          cp "$EXEC_ROOT/"{execution-evidence-summary.json,execution-economics.jsonl,execution-rejection-ledger.jsonl,capacity-curves.jsonl,shadow-predictions.jsonl,evidence-manifest.json} "$OUT/"
+          cp "$EXEC_ROOT/"{execution-evidence-summary.json,execution-economics.jsonl,execution-rejection-ledger.jsonl,capacity-curves.jsonl,shadow-predictions.jsonl,gas-funding-bindings.jsonl,evidence-manifest.json} "$OUT/"
 
           HEAD="$(git rev-parse HEAD)"
           TREE="$(git rev-parse 'HEAD^{tree}')"
