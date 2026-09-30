@@ -11,6 +11,34 @@ fn hex(byte: u8, bytes: usize) -> String {
     format!("{byte:02x}").repeat(bytes)
 }
 
+fn workflow_name(stage: u8) -> &'static str {
+    match stage {
+        6 => "NQC RMC-006 Aave Discovery",
+        7 => "NQC RMC-007 V2 Discovery",
+        8 => "NQC RMC-008 State Oracle Token Admission",
+        9 => "NQC RMC-009 Aave Account Universe",
+        10 => "NQC RMC-010 Live Full Incremental Parity",
+        11 => "NQC RMC-011 Real Source Certification",
+        12 => "NQC RMC-012 Terminal Actionability Authority",
+        13 => "NQC RMC-013 Terminal Economics Authority",
+        _ => unreachable!(),
+    }
+}
+
+fn artifact_prefix(stage: u8) -> &'static str {
+    match stage {
+        6 => "nqc-rmc006-evidence-",
+        7 => "nqc-rmc007-closeout-",
+        8 => "nqc-rmc008-closeout-",
+        9 => "nqc-rmc009-closeout-",
+        10 => "nqc-rmc010-live-closeout-",
+        11 => "rmc011-real-source-certification-",
+        12 => "rmc012-terminal-actionability-",
+        13 => "rmc013-terminal-economics-",
+        _ => unreachable!(),
+    }
+}
+
 fn valid_lock() -> String {
     let stages = (6_u8..=13)
         .map(|stage| {
@@ -19,7 +47,8 @@ fn valid_lock() -> String {
   "stage":"RMC-{stage:03}",
   "workflow_run_id":{run_id},
   "artifact_id":{artifact_id},
-  "artifact_name":"rmc-{stage:03}-terminal",
+  "workflow_name":"{workflow}",
+  "artifact_name":"{artifact_name}",
   "artifact_digest":"sha256:{artifact}",
   "code_commit":"{commit}",
   "code_tree":"{tree}",
@@ -34,6 +63,8 @@ fn valid_lock() -> String {
 }}"#,
                 run_id = 1000_u64 + u64::from(stage),
                 artifact_id = 2000_u64 + u64::from(stage),
+                workflow = workflow_name(stage),
+                artifact_name = format!("{}{}", artifact_prefix(stage), hex(stage, 20)),
                 artifact = hex(stage, 32),
                 commit = hex(stage, 20),
                 tree = hex(stage.saturating_add(16), 20),
@@ -47,7 +78,7 @@ fn valid_lock() -> String {
 
     format!(
         r#"{{
-  "schema_version":2,
+  "schema_version":3,
   "status":"PINNED",
   "real_market_census_closed":false,
   "required_terminal_stages":["RMC-006","RMC-007","RMC-008","RMC-009","RMC-010","RMC-011","RMC-012","RMC-013"],
@@ -163,6 +194,32 @@ fn source_lock_cannot_self_certify_or_smuggle_profitability() -> Result<()> {
             "global-route-overclaim",
             r#""global_route_venue_completeness_claimed":false"#,
             r#""global_route_venue_completeness_claimed":true"#,
+        ),
+    ] {
+        let root = workdir(name);
+        let _ = fs::remove_dir_all(&root);
+        fs::create_dir_all(&root)?;
+        let lock = root.join("lock.json");
+        fs::write(&lock, valid_lock().replace(needle, replacement))?;
+        let output = run(&lock, &root.join("out"))?;
+        assert!(!output.status.success(), "{name} unexpectedly passed");
+        fs::remove_dir_all(root)?;
+    }
+    Ok(())
+}
+
+#[test]
+fn wrong_workflow_or_artifact_name_fails_closed() -> Result<()> {
+    for (name, needle, replacement) in [
+        (
+            "wrong-workflow",
+            r#""workflow_name":"NQC RMC-012 Terminal Actionability Authority""#,
+            r#""workflow_name":"NQC RMC-013 Terminal Economics Authority""#,
+        ),
+        (
+            "wrong-artifact",
+            r#""artifact_name":"rmc012-terminal-actionability-0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c""#,
+            r#""artifact_name":"rmc012-terminal-actionability-wrong""#,
         ),
     ] {
         let root = workdir(name);
