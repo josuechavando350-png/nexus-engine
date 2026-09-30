@@ -69,8 +69,10 @@ def validate_evidence(value: object, expected_kind: str, label: str) -> None:
     require(isinstance(locator, str) and locator, f"{label}: evidence locator is required")
     sha256 = value.get("sha256")
     require(
-        isinstance(sha256, str) and SHA256_RE.fullmatch(sha256) is not None,
-        f"{label}: evidence sha256 must be 64 lowercase hex",
+        isinstance(sha256, str)
+        and SHA256_RE.fullmatch(sha256) is not None
+        and sha256 != "0" * 64,
+        f"{label}: evidence sha256 must be nonzero 64 lowercase hex",
     )
 
 
@@ -155,12 +157,33 @@ def validate_document(doc: dict) -> dict:
     scope = json.loads(
         Path("ci/nqc-census/capital-census-scope.json").read_text(encoding="utf-8")
     )
+    require(scope.get("schema_version") == 2, "capital census scope schema mismatch")
     require(scope.get("stage") == "RMC-011", "capital census scope stage mismatch")
+    required_family_ids = scope.get("required_source_families")
+    require(
+        isinstance(required_family_ids, list)
+        and len(required_family_ids) == len(set(required_family_ids)),
+        "capital census scope required_source_families is missing or duplicated",
+    )
+    require(
+        set(required_family_ids) == set(REQUIRED_FAMILIES),
+        "capital census scope required source-family set differs",
+    )
+    require(
+        scope.get("source_family_universe_discovery_required") is True,
+        "capital census scope must require source-family-universe discovery",
+    )
+    require(
+        scope.get("source_universe_contract")
+        == "ci/nqc-census/rmc011-capital-source-universe.json",
+        "capital census scope source-universe contract path differs",
+    )
     required_classes = set(scope.get("required_classes", []))
     covered_classes = {row["capital_class"] for row in families}
     require(
-        required_classes <= covered_classes,
-        "source universe does not cover every required capital class",
+        required_classes == set(REQUIRED_FAMILIES.values())
+        and required_classes <= covered_classes,
+        "source universe does not exactly cover every required capital class",
     )
 
     invariants = doc.get("terminal_invariants")
