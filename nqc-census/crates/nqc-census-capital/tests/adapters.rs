@@ -331,6 +331,7 @@ fn uniswap_v3_flash_binds_pool_balance_and_ceil_fee() -> TestResult {
         pool: address(61),
         asset,
         available_pool_balance: Amount256::from_u128(1_000_000),
+        active_liquidity: Amount256::from_u128(1_000_000),
         fee_pips: 500,
         provider_locator_hash: hash(62),
         evidence: evidence(),
@@ -363,6 +364,7 @@ fn uniswap_v3_zero_balance_remains_an_observed_source() -> TestResult {
         pool: address(61),
         asset: address(60),
         available_pool_balance: Amount256::ZERO,
+        active_liquidity: Amount256::from_u128(1_000_000),
         fee_pips: 3_000,
         provider_locator_hash: hash(62),
         evidence: evidence(),
@@ -374,12 +376,37 @@ fn uniswap_v3_zero_balance_remains_an_observed_source() -> TestResult {
 }
 
 #[test]
+fn uniswap_v3_zero_active_liquidity_blocks_execution_without_erasing_balance() -> TestResult {
+    let source = UniswapV3FlashObservation {
+        anchor: anchor(),
+        pool: address(61),
+        asset: address(60),
+        available_pool_balance: Amount256::from_u128(100_000),
+        active_liquidity: Amount256::ZERO,
+        fee_pips: 3_000,
+        provider_locator_hash: hash(62),
+        evidence: evidence(),
+    }
+    .into_capital_source()?;
+
+    assert_eq!(source.maximum_available(), Amount256::from_u128(100_000));
+    assert_eq!(source.executable_capacity()?, Amount256::ZERO);
+    assert!(!source.execution_eligible());
+    assert_eq!(
+        source.execution_blockers(),
+        &["UNISWAP_V3_ZERO_ACTIVE_LIQUIDITY".to_owned()]
+    );
+    Ok(())
+}
+
+#[test]
 fn uniswap_v3_rejects_impossible_fee_scale() -> TestResult {
     let result = UniswapV3FlashObservation {
         anchor: anchor(),
         pool: address(61),
         asset: address(60),
         available_pool_balance: Amount256::from_u128(100),
+        active_liquidity: Amount256::from_u128(1_000_000),
         fee_pips: 1_000_001,
         provider_locator_hash: hash(62),
         evidence: evidence(),
