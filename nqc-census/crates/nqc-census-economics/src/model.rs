@@ -6,8 +6,9 @@ use nqc_census_capital::{Amount256, CapitalAsset};
 use nqc_census_core::{Hash32, StateAnchor};
 use nqc_census_portfolio::PortfolioCandidateId;
 use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 
-const ECONOMIC_QUOTE_DOMAIN: &[u8] = b"NQC-RMC013-ECONOMIC-QUOTE-V1";
+const ECONOMIC_QUOTE_DOMAIN: &[u8] = b"NQC-RMC013-ECONOMIC-QUOTE-V2";
 const WEI_PER_NATIVE: u64 = 1_000_000_000_000_000_000;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -17,6 +18,8 @@ pub enum CalibrationState {
     },
     ShadowCalibrated {
         sample_count: u64,
+        window_commitment: Hash32,
+        model_commitment: Hash32,
         calibration_commitment: Hash32,
     },
 }
@@ -24,6 +27,53 @@ pub enum CalibrationState {
 impl CalibrationState {
     pub const fn is_shadow_calibrated(self) -> bool {
         matches!(self, Self::ShadowCalibrated { .. })
+    }
+
+    fn validate(self) -> Result<(), EconomicsError> {
+        let nonzero = |value: Hash32| value.as_bytes().iter().any(|byte| *byte != 0);
+        match self {
+            Self::PriorOnly { prior_commitment } => {
+                if !nonzero(prior_commitment) {
+                    return Err(EconomicsError::InvalidCalibration);
+                }
+            }
+            Self::ShadowCalibrated {
+                sample_count,
+                window_commitment,
+                model_commitment,
+                calibration_commitment,
+            } => {
+                if sample_count == 0
+                    || !nonzero(window_commitment)
+                    || !nonzero(model_commitment)
+                    || !nonzero(calibration_commitment)
+                {
+                    return Err(EconomicsError::InvalidCalibration);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn encode(self, out: &mut Vec<u8>) {
+        match self {
+            Self::PriorOnly { prior_commitment } => {
+                out.push(1);
+                out.extend_from_slice(prior_commitment.as_bytes());
+            }
+            Self::ShadowCalibrated {
+                sample_count,
+                window_commitment,
+                model_commitment,
+                calibration_commitment,
+            } => {
+                out.push(2);
+                out.extend_from_slice(&sample_count.to_be_bytes());
+                out.extend_from_slice(window_commitment.as_bytes());
+                out.extend_from_slice(model_commitment.as_bytes());
+                out.extend_from_slice(calibration_commitment.as_bytes());
+            }
+        }
     }
 }
 
@@ -45,15 +95,7 @@ impl CaptureEstimate {
         if lower > point || point > upper {
             return Err(EconomicsError::InvalidProbabilityInterval);
         }
-        if matches!(
-            calibration,
-            CalibrationState::ShadowCalibrated {
-                sample_count: 0,
-                ..
-            }
-        ) {
-            return Err(EconomicsError::InvalidCalibration);
-        }
+        calibration.validate()?;
         Ok(Self {
             lower,
             point,
@@ -77,6 +119,13 @@ impl CaptureEstimate {
     pub const fn calibration(self) -> CalibrationState {
         self.calibration
     }
+
+    fn encode(self, out: &mut Vec<u8>) {
+        out.extend_from_slice(&self.lower.get().to_be_bytes());
+        out.extend_from_slice(&self.point.get().to_be_bytes());
+        out.extend_from_slice(&self.upper.get().to_be_bytes());
+        self.calibration.encode(out);
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -85,68 +134,166 @@ pub enum ValueUnit {
     Asset(CapitalAsset),
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct ExecutionCostVector {
-    pub protocol_fee: Amount256,
-    pub capital_fee: Amount256,
-    pub swap_fee: Amount256,
-    pub price_impact: Amount256,
-    pub gas: Amount256,
-    pub priority_fee: Amount256,
-    pub builder_payment: Amount256,
-    pub financing: Amount256,
-    pub hedging: Amount256,
-    pub inventory: Amount256,
-    pub opportunity_cost: Amount256,
-    pub mev: Amount256,
-    pub chain_other: Amount256,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CostKind {
+    ProtocolFee,
+    CapitalFee,
+    SwapFee,
+    PriceImpact,
+    Gas,
+    PriorityFee,
+    BuilderPayment,
+    Financing,
+    Hedging,
+    Inventory,
+    ExpectedFailureRevert,
+    OpportunityCost,
+    Mev,
+    ChainSpecific,
 }
 
-impl ExecutionCostVector {
-    pub fn total(self) -> Result<Amount256, EconomicsError> {
-        let values = [
-            self.protocol_fee,
-            self.capital_fee,
-            self.swap_fee,
-            self.price_impact,
-            self.gas,
-            self.priority_fee,
-            self.builder_payment,
-            self.financing,
-            self.hedging,
-            self.inventory,
-            self.opportunity_cost,
-            self.mev,
-            self.chain_other,
-        ];
-        let mut total = Amount256::ZERO;
-        for value in values {
-            total = total
-                .checked_add(value)
-                .map_err(|_| EconomicsError::ArithmeticOverflow)?;
+impl CostKind {
+    pub const ALL: [Self; 14] = [
+        Self::ProtocolFee,
+        Self::CapitalFee,
+        Self::SwapFee,
+        Self::PriceImpact,
+        Self::Gas,
+        Self::PriorityFee,
+        Self::BuilderPayment,
+        Self::Financing,
+        Self::Hedging,
+        Self::Inventory,
+        Self::ExpectedFailureRevert,
+        Self::OpportunityCost,
+        Self::Mev,
+        Self::ChainSpecific,
+    ];
+
+    const fn tag(self) -> u8 {
+        match self {
+            Self::ProtocolFee => 1,
+            Self::CapitalFee => 2,
+            Self::SwapFee => 3,
+            Self::PriceImpact => 4,
+            Self::Gas => 5,
+            Self::PriorityFee => 6,
+            Self::BuilderPayment => 7,
+            Self::Financing => 8,
+            Self::Hedging => 9,
+            Self::Inventory => 10,
+            Self::ExpectedFailureRevert => 11,
+            Self::OpportunityCost => 12,
+            Self::Mev => 13,
+            Self::ChainSpecific => 14,
         }
-        Ok(total)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CostComponent {
+    pub kind: CostKind,
+    pub unconditional: Amount256,
+    pub on_capture: Amount256,
+    pub on_failure: Amount256,
+    pub evidence: Hash32,
+}
+
+impl CostComponent {
+    pub fn new(
+        kind: CostKind,
+        unconditional: Amount256,
+        on_capture: Amount256,
+        on_failure: Amount256,
+        evidence: Hash32,
+    ) -> Result<Self, EconomicsError> {
+        if evidence.as_bytes().iter().all(|byte| *byte == 0) {
+            return Err(EconomicsError::EmptyEvidence);
+        }
+        Ok(Self {
+            kind,
+            unconditional,
+            on_capture,
+            on_failure,
+            evidence,
+        })
     }
 
     fn encode(self, out: &mut Vec<u8>) {
-        for value in [
-            self.protocol_fee,
-            self.capital_fee,
-            self.swap_fee,
-            self.price_impact,
-            self.gas,
-            self.priority_fee,
-            self.builder_payment,
-            self.financing,
-            self.hedging,
-            self.inventory,
-            self.opportunity_cost,
-            self.mev,
-            self.chain_other,
-        ] {
-            out.extend_from_slice(value.as_be_bytes());
+        out.push(self.kind.tag());
+        out.extend_from_slice(self.unconditional.as_be_bytes());
+        out.extend_from_slice(self.on_capture.as_be_bytes());
+        out.extend_from_slice(self.on_failure.as_be_bytes());
+        out.extend_from_slice(self.evidence.as_bytes());
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExecutionCostVector {
+    components: Vec<CostComponent>,
+}
+
+impl ExecutionCostVector {
+    pub fn new(mut components: Vec<CostComponent>) -> Result<Self, EconomicsError> {
+        components.sort_by_key(|component| component.kind);
+        for kind in CostKind::ALL {
+            let count = components.iter().filter(|component| component.kind == kind).count();
+            match count {
+                0 => return Err(EconomicsError::MissingCostKind(kind)),
+                1 => {}
+                _ => return Err(EconomicsError::DuplicateCostKind(kind)),
+            }
+        }
+        if components.len() != CostKind::ALL.len() {
+            return Err(EconomicsError::DuplicateCostKind(
+                components
+                    .first()
+                    .map(|component| component.kind)
+                    .unwrap_or(CostKind::ChainSpecific),
+            ));
+        }
+        Ok(Self { components })
+    }
+
+    pub fn components(&self) -> &[CostComponent] {
+        &self.components
+    }
+
+    pub fn total_unconditional(&self) -> Result<Amount256, EconomicsError> {
+        sum_costs(self.components.iter().map(|component| component.unconditional))
+    }
+
+    pub fn total_on_capture(&self) -> Result<Amount256, EconomicsError> {
+        sum_costs(self.components.iter().map(|component| component.on_capture))
+    }
+
+    pub fn total_on_failure(&self) -> Result<Amount256, EconomicsError> {
+        sum_costs(self.components.iter().map(|component| component.on_failure))
+    }
+
+    fn encode(&self, out: &mut Vec<u8>) {
+        out.extend_from_slice(
+            &u32::try_from(self.components.len())
+                .unwrap_or(u32::MAX)
+                .to_be_bytes(),
+        );
+        for component in &self.components {
+            component.encode(out);
         }
     }
+}
+
+fn sum_costs<I>(values: I) -> Result<Amount256, EconomicsError>
+where
+    I: IntoIterator<Item = Amount256>,
+{
+    let mut total = Amount256::ZERO;
+    for value in values {
+        total = total
+            .checked_add(value)
+            .map_err(|_| EconomicsError::ArithmeticOverflow)?;
+    }
+    Ok(total)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -253,16 +400,24 @@ impl GasValuation {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum EconomicDecision {
+    NonPositiveSuccessNet,
+    CaptureUncalibrated,
+    NonPositiveTailAdjustedNet,
+    Admitted,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EconomicQuote {
     candidate_id: PortfolioCandidateId,
     opportunity_id: Hash32,
     anchor: StateAnchor,
     unit: ValueUnit,
+    trade_size: Amount256,
     gross_value: Amount256,
-    success_costs: ExecutionCostVector,
+    costs: ExecutionCostVector,
     capture: CaptureEstimate,
-    failure_cost_if_lost: Amount256,
     tail: TailRiskBound,
     execution_plan_commitment: Hash32,
     model_commitment: Hash32,
@@ -277,15 +432,18 @@ impl EconomicQuote {
         opportunity_id: Hash32,
         anchor: StateAnchor,
         unit: ValueUnit,
+        trade_size: Amount256,
         gross_value: Amount256,
-        success_costs: ExecutionCostVector,
+        costs: ExecutionCostVector,
         capture: CaptureEstimate,
-        failure_cost_if_lost: Amount256,
         tail: TailRiskBound,
         execution_plan_commitment: Hash32,
         model_commitment: Hash32,
         mut evidence: Vec<Hash32>,
     ) -> Result<Self, EconomicsError> {
+        if trade_size.is_zero() {
+            return Err(EconomicsError::ZeroValue("trade_size"));
+        }
         if evidence.is_empty() {
             return Err(EconomicsError::EmptyEvidence);
         }
@@ -293,15 +451,23 @@ impl EconomicQuote {
         if evidence.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(EconomicsError::DuplicateEvidence);
         }
+        if execution_plan_commitment
+            .as_bytes()
+            .iter()
+            .all(|byte| *byte == 0)
+            || model_commitment.as_bytes().iter().all(|byte| *byte == 0)
+        {
+            return Err(EconomicsError::EmptyEvidence);
+        }
         let commitment = quote_commitment(
             candidate_id,
             opportunity_id,
             &anchor,
             unit,
+            trade_size,
             gross_value,
-            success_costs,
+            &costs,
             capture,
-            failure_cost_if_lost,
             tail,
             execution_plan_commitment,
             model_commitment,
@@ -312,10 +478,10 @@ impl EconomicQuote {
             opportunity_id,
             anchor,
             unit,
+            trade_size,
             gross_value,
-            success_costs,
+            costs,
             capture,
-            failure_cost_if_lost,
             tail,
             execution_plan_commitment,
             model_commitment,
@@ -340,20 +506,20 @@ impl EconomicQuote {
         self.unit
     }
 
+    pub const fn trade_size(&self) -> Amount256 {
+        self.trade_size
+    }
+
     pub const fn gross_value(&self) -> Amount256 {
         self.gross_value
     }
 
-    pub const fn success_costs(&self) -> ExecutionCostVector {
-        self.success_costs
+    pub const fn costs(&self) -> &ExecutionCostVector {
+        &self.costs
     }
 
     pub const fn capture(&self) -> CaptureEstimate {
         self.capture
-    }
-
-    pub const fn failure_cost_if_lost(&self) -> Amount256 {
-        self.failure_cost_if_lost
     }
 
     pub const fn tail(&self) -> TailRiskBound {
@@ -377,29 +543,54 @@ impl EconomicQuote {
     }
 
     pub fn success_net(&self) -> Result<SignedValue, EconomicsError> {
-        SignedValue::from_difference(self.gross_value, self.success_costs.total()?)
+        let success_costs = self
+            .costs
+            .total_unconditional()?
+            .checked_add(self.costs.total_on_capture()?)
+            .map_err(|_| EconomicsError::ArithmeticOverflow)?;
+        SignedValue::from_difference(self.gross_value, success_costs)
+    }
+
+    fn expected_at(&self, probability: ProbabilityPpb) -> Result<SignedValue, EconomicsError> {
+        let expected_gross = scale_probability(self.gross_value, probability)?;
+        let expected_capture_cost =
+            scale_probability(self.costs.total_on_capture()?, probability)?;
+        let expected_failure_cost = scale_probability(
+            self.costs.total_on_failure()?,
+            probability.complement(),
+        )?;
+        let expected_costs = self
+            .costs
+            .total_unconditional()?
+            .checked_add(expected_capture_cost)
+            .and_then(|value| value.checked_add(expected_failure_cost))
+            .map_err(|_| EconomicsError::ArithmeticOverflow)?;
+        SignedValue::from_difference(expected_gross, expected_costs)
     }
 
     pub fn expected_realized_ev(&self) -> Result<SignedValue, EconomicsError> {
-        let success = self.success_net()?.scale(self.capture.point())?;
-        let loss = scale_probability(
-            self.failure_cost_if_lost,
-            self.capture.point().complement(),
-        )?;
-        success.subtract_unsigned(loss)
+        self.expected_at(self.capture.point())
     }
 
+    /// Conservative bound over the declared capture interval.
+    ///
+    /// Expected value is affine in capture probability, so the interval
+    /// minimum must occur at one of the two endpoints. We evaluate both
+    /// rather than assuming that "lower probability" is always worse.
     pub fn lower_bound_realized_ev(&self) -> Result<SignedValue, EconomicsError> {
-        let success = self.success_net()?.scale(self.capture.lower())?;
-        let loss = scale_probability(
-            self.failure_cost_if_lost,
-            self.capture.lower().complement(),
-        )?;
-        success.subtract_unsigned(loss)
+        let lower = self.expected_at(self.capture.lower())?;
+        let upper = self.expected_at(self.capture.upper())?;
+        Ok(lower.min(upper))
+    }
+
+    pub fn point_tail_adjusted_ev(&self) -> Result<SignedValue, EconomicsError> {
+        self.expected_realized_ev()?
+            .subtract_unsigned(self.tail.reserve())
     }
 
     pub fn tail_adjusted_ev(&self) -> Result<SignedValue, EconomicsError> {
-        self.expected_realized_ev()?.subtract_unsigned(self.tail.reserve())
+        self.lower_bound_realized_ev()?
+            .subtract_unsigned(self.tail.reserve())
     }
 
     pub fn require_positive_success_net(&self) -> Result<Amount256, EconomicsError> {
@@ -414,7 +605,20 @@ impl EconomicQuote {
         if !self.capture.calibration().is_shadow_calibrated() {
             return Err(EconomicsError::UncalibratedCapture);
         }
-        self.expected_realized_ev()
+        self.lower_bound_realized_ev()
+    }
+
+    pub fn decision(&self) -> Result<EconomicDecision, EconomicsError> {
+        if !self.success_net()?.is_positive() {
+            return Ok(EconomicDecision::NonPositiveSuccessNet);
+        }
+        if !self.capture.calibration().is_shadow_calibrated() {
+            return Ok(EconomicDecision::CaptureUncalibrated);
+        }
+        if !self.tail_adjusted_ev()?.is_positive() {
+            return Ok(EconomicDecision::NonPositiveTailAdjustedNet);
+        }
+        Ok(EconomicDecision::Admitted)
     }
 
     pub fn profit_bucket(&self) -> Result<Option<ProfitBucket>, EconomicsError> {
@@ -473,10 +677,10 @@ fn quote_commitment(
     opportunity_id: Hash32,
     anchor: &StateAnchor,
     unit: ValueUnit,
+    trade_size: Amount256,
     gross_value: Amount256,
-    success_costs: ExecutionCostVector,
+    costs: &ExecutionCostVector,
     capture: CaptureEstimate,
-    failure_cost_if_lost: Amount256,
     tail: TailRiskBound,
     execution_plan_commitment: Hash32,
     model_commitment: Hash32,
@@ -488,26 +692,10 @@ fn quote_commitment(
     bytes.extend_from_slice(opportunity_id.as_bytes());
     encode_anchor(anchor, &mut bytes);
     encode_unit(unit, &mut bytes);
+    bytes.extend_from_slice(trade_size.as_be_bytes());
     bytes.extend_from_slice(gross_value.as_be_bytes());
-    success_costs.encode(&mut bytes);
-    bytes.extend_from_slice(&capture.lower().get().to_be_bytes());
-    bytes.extend_from_slice(&capture.point().get().to_be_bytes());
-    bytes.extend_from_slice(&capture.upper().get().to_be_bytes());
-    match capture.calibration() {
-        CalibrationState::PriorOnly { prior_commitment } => {
-            bytes.push(1);
-            bytes.extend_from_slice(prior_commitment.as_bytes());
-        }
-        CalibrationState::ShadowCalibrated {
-            sample_count,
-            calibration_commitment,
-        } => {
-            bytes.push(2);
-            bytes.extend_from_slice(&sample_count.to_be_bytes());
-            bytes.extend_from_slice(calibration_commitment.as_bytes());
-        }
-    }
-    bytes.extend_from_slice(failure_cost_if_lost.as_be_bytes());
+    costs.encode(&mut bytes);
+    capture.encode(&mut bytes);
     tail.encode(&mut bytes);
     bytes.extend_from_slice(execution_plan_commitment.as_bytes());
     bytes.extend_from_slice(model_commitment.as_bytes());
