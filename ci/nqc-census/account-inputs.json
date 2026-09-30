@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "status": "PINNED",
+  "expected_anchor": {
+    "block_number": 25437474,
+    "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8"
+  },
+  "sources": [
+    {
+      "node": "D06",
+      "workflow_run_id": 36627517591,
+      "artifact_id": 11062164175,
+      "artifact": "nqc-rmc006-evidence-25437474-a33a012591cd6625ddb921d995bb1bd95b4a5406-36627517591-1",
+      "code_commit": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
+      "artifact_digest": "sha256:5f9a9bbd2182d9d65e22ad9b25f94abd5152baef7d1c2d559bda4e5a77433b03"
+    }
+  ],
+  "files": [
+    {
+      "role": "d06_current_surface",
+      "path": "d06/aave-current-surface.json",
+      "sha256": "643d39289467ff2b88a03a575c0d9fed3e5a9333cd66d7245ea43025054c714f"
+    },
+    {
+      "role": "d06_deployment_manifest",
+      "path": "d06/closeout/aave-deployment-manifest.jsonl",
+      "sha256": "2b93076630dfab9953858669b02b838032c7e787f1520ea53f014ac313c36eee"
+    },
+    {
+      "role": "d06_reserve_manifest",
+      "path": "d06/closeout/aave-reserve-manifest.jsonl",
+      "sha256": "9f931f32c28a47cd0c73856c5a02e81bcb3db00a52abaa5a083283b4abf0a5c7"
+    },
+    {
+      "role": "d06_history",
+      "path": "d06/aave-history.json",
+      "sha256": "297f642608eaeaedb7e9c56ed150e18f8036aae3861d611d3fcbf7c21dae7a6f"
+    }
+  ]
+}
