@@ -1,14 +1,15 @@
 name: NQC probe RMC-008 duplicate batch calls
 
-# Read-only diagnosis of RMC-008 live run 36682467619: rebuilds the address
-# sets its AAVE_STATE stage batches at the census anchor and prints every
-# duplicate. Nothing is written anywhere.
+# Read-only diagnosis of RMC-008 live run 36682467619 (AAVE_STATE batch
+# address sets) and of the stable debt token addresses RMC-009 compares with
+# D06's history. Nothing is written anywhere.
 on:
   push:
     branches: [claude/handoff-mercados-execution-xmkiwm]
     paths:
       - .github/workflows/nqc-probe-d08.yml
       - ci/nqc-probe/d08_duplicate_call_probe.py
+      - ci/nqc-probe/d09_stable_debt_probe.py
 
 permissions:
   contents: read
@@ -28,7 +29,13 @@ jobs:
           run-id: "36627517591"
           github-token: ${{ github.token }}
           path: /tmp/d06
+      - name: Probe the stable debt token addresses (RMC-009 token check)
+        run: |
+          set -euo pipefail
+          echo "297f642608eaeaedb7e9c56ed150e18f8036aae3861d611d3fcbf7c21dae7a6f  /tmp/d06/aave-history.json" | sha256sum --check --strict
+          python3 ci/nqc-probe/d09_stable_debt_probe.py /tmp/d06/aave-history.json | tee /tmp/stable.log
       - name: Probe the AAVE_STATE batch address sets
+        if: false
         run: |
           set -euo pipefail
           echo "9f931f32c28a47cd0c73856c5a02e81bcb3db00a52abaa5a083283b4abf0a5c7  /tmp/d06/closeout/aave-reserve-manifest.jsonl" | sha256sum --check --strict
