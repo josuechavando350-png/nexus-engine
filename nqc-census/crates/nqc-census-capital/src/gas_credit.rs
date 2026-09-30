@@ -238,7 +238,12 @@ fn provider_evidence(
     }
 
     let mut previous: Option<&str> = None;
-    let mut evidence = Vec::with_capacity(providers.len());
+    // Bind the reconciled semantic facts directly into CapitalSource identity.
+    // Provider transcript digests prove transport/provenance, while this digest
+    // guarantees that runtime/config/state changes alter the observation-specific
+    // source ID even if the economic terms happen to remain identical.
+    let mut evidence = Vec::with_capacity(providers.len() + 1);
+    evidence.push(CapitalEvidenceRef::Observation(*expected_facts.as_bytes()));
     for provider in providers {
         let provider_id = text_field(provider, "provider_id")?;
         if provider_id.is_empty() {
