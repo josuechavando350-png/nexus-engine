@@ -75,7 +75,11 @@ jobs:
           test -f ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
           python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
-          jq -e '.terminal_claim_allowed == false and .status != "D11_TERMINAL_CLOSED"' ci/nqc-census/rmc011-capital-source-universe.json >/dev/null
+          jq -e '
+            .claim_scope == "SOURCE_UNIVERSE_READINESS_ONLY" and
+            .d11_terminal_closed == false and
+            .status != "D11_TERMINAL_CLOSED"
+          ' ci/nqc-census/rmc011-capital-source-universe.json >/dev/null
 
           INPUTS=ci/nqc-census/rmc011-real-source-inputs.json
           LOCK=ci/nqc-census/rmc011-authority-lock.json
