@@ -3,12 +3,14 @@ import importlib.util
 import json
 import tempfile
 import unittest
+import sys
 from pathlib import Path
 
 MODULE_PATH = Path(__file__).with_name("plan_rmc013_v2_routes.py")
 SPEC = importlib.util.spec_from_file_location("rmc013_routes", MODULE_PATH)
 assert SPEC and SPEC.loader
 routes = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = routes
 SPEC.loader.exec_module(routes)
 
 A = "0x" + "11" * 20
