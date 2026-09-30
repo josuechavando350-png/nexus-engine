@@ -169,6 +169,18 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
             economics_json,
             "monthly_target_probability_proven",
         )?,
+        conservative_realizable_capacity_only: require_bool(
+            economics_json,
+            "conservative_realizable_capacity_only",
+        )?,
+        global_capital_source_completeness_claimed: require_bool(
+            economics_json,
+            "global_capital_source_completeness_claimed",
+        )?,
+        global_route_venue_completeness_claimed: require_bool(
+            economics_json,
+            "global_route_venue_completeness_claimed",
+        )?,
     };
 
     let terminal_evidence = require_array(&root, "terminal_evidence")?
@@ -215,6 +227,18 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
         ),
         ("realized_profitability_proven", Json::Bool(false)),
         ("monthly_target_probability_proven", Json::Bool(false)),
+        (
+            "conservative_realizable_capacity_only",
+            Json::Bool(certificate.economics().conservative_realizable_capacity_only),
+        ),
+        (
+            "global_capital_source_completeness_claimed",
+            Json::Bool(certificate.economics().global_capital_source_completeness_claimed),
+        ),
+        (
+            "global_route_venue_completeness_claimed",
+            Json::Bool(certificate.economics().global_route_venue_completeness_claimed),
+        ),
     ]);
     let bytes = certificate_json.canonical()?;
     let certificate_path = out_dir.join("real-market-census-certificate.json");
@@ -312,6 +336,18 @@ fn economics_to_json(economics: EconomicBoundary) -> Json {
         (
             "monthly_target_probability_proven",
             Json::Bool(economics.monthly_target_probability_proven),
+        ),
+        (
+            "conservative_realizable_capacity_only",
+            Json::Bool(economics.conservative_realizable_capacity_only),
+        ),
+        (
+            "global_capital_source_completeness_claimed",
+            Json::Bool(economics.global_capital_source_completeness_claimed),
+        ),
+        (
+            "global_route_venue_completeness_claimed",
+            Json::Bool(economics.global_route_venue_completeness_claimed),
         ),
     ])
 }
