@@ -1,7 +1,8 @@
 use nqc_census_capital::{
     adapters::{
-        AaveV3FlashObservation, BalancerV2FlashObservation, ExternalGasSponsorObservation,
-        UniswapV2FlashSwapObservation, UniswapV3FlashObservation, AAVE_V3_PROVIDER_NAMESPACE,
+        AaveV3FlashObservation, BalancerV2FlashObservation, ExternalGasCreditObservation,
+        ExternalGasSponsorObservation, UniswapV2FlashSwapObservation, UniswapV3FlashObservation,
+        AAVE_V3_PROVIDER_NAMESPACE,
         BALANCER_V2_PROVIDER_NAMESPACE, UNISWAP_V2_PROVIDER_NAMESPACE,
         UNISWAP_V3_PROVIDER_NAMESPACE,
     },
@@ -332,3 +333,144 @@ fn uniswap_v3_rejects_impossible_fee_scale() -> TestResult {
     assert!(matches!(result, Err(CapitalError::InvalidRatio)));
     Ok(())
 }
+
+#[test]
+fn external_gas_credit_is_external_native_gas_with_bounded_capacity() -> TestResult {
+    let source = ExternalGasCreditObservation {
+        anchor: anchor(),
+        provider_namespace: 0x2202,
+        provider_locator_hash: hash(60),
+        facility_contract: address(61),
+        maximum_native_gas: Amount256::from_u128(1_000),
+        fee_model: nqc_census_capital::FeeModel::basis_points(100)?,
+        repayment_deadline_blocks: 64,
+        max_utilization_bps: 8_000,
+        min_remaining_native_gas: Amount256::from_u128(100),
+        protocol_cap: Some(Amount256::from_u128(900)),
+        market_cap: Some(Amount256::from_u128(700)),
+        active: true,
+        evidence: evidence(),
+    }
+    .into_capital_source()?;
+
+    assert_eq!(source.class(), CapitalClass::GasFunding);
+    assert_eq!(source.asset(), CapitalAsset::NativeGas);
+    assert_eq!(
+        source.provider_kind(),
+        nqc_census_capital::CapitalProviderKind::ExternalCreditFacility
+    );
+    assert_eq!(
+        source.ownership(),
+        nqc_census_capital::CapitalOwnership::External
+    );
+    assert_eq!(
+        source.repayment(),
+        nqc_census_capital::RepaymentSemantics::DeadlineBlocks(64)
+    );
+    assert_eq!(source.effective_capacity()?, Amount256::from_u128(700));
+    assert_eq!(source.executable_capacity()?, Amount256::from_u128(700));
+    let fee = source
+        .quote_fee(Amount256::from_u128(100))?
+        .ok_or("missing gas credit fee")?;
+    assert_eq!(fee.asset, CapitalAsset::NativeGas);
+    assert_eq!(fee.amount, Amount256::from_u128(1));
+    Ok(())
+}
+
+#[test]
+fn inactive_external_gas_credit_preserves_observed_capacity_but_blocks_execution() -> TestResult {
+    let source = ExternalGasCreditObservation {
+        anchor: anchor(),
+        provider_namespace: 0x2202,
+        provider_locator_hash: hash(60),
+        facility_contract: address(61),
+        maximum_native_gas: Amount256::from_u128(1_000),
+        fee_model: nqc_census_capital::FeeModel::None,
+        repayment_deadline_blocks: 64,
+        max_utilization_bps: 10_000,
+        min_remaining_native_gas: Amount256::ZERO,
+        protocol_cap: None,
+        market_cap: None,
+        active: false,
+        evidence: evidence(),
+    }
+    .into_capital_source()?;
+
+    assert_eq!(source.effective_capacity()?, Amount256::from_u128(1_000));
+    assert_eq!(source.executable_capacity()?, Amount256::ZERO);
+    assert_eq!(
+        source.execution_blockers(),
+        &["GAS_CREDIT_FACILITY_INACTIVE".to_owned()]
+    );
+    Ok(())
+}
+
+#[test]
+fn external_gas_credit_rejects_zero_deadline_and_foreign_fixed_fee_asset() -> TestResult {
+    let zero_deadline = ExternalGasCreditObservation {
+        anchor: anchor(),
+        provider_namespace: 0x2202,
+        provider_locator_hash: hash(60),
+        facility_contract: address(61),
+        maximum_native_gas: Amount256::from_u128(1_000),
+        fee_model: nqc_census_capital::FeeModel::None,
+        repayment_deadline_blocks: 0,
+        max_utilization_bps: 10_000,
+        min_remaining_native_gas: Amount256::ZERO,
+        protocol_cap: None,
+        market_cap: None,
+        active: true,
+        evidence: evidence(),
+    }
+    .into_capital_source();
+    assert!(matches!(
+        zero_deadline,
+        Err(CapitalError::ZeroValue("repayment_deadline_blocks"))
+    ));
+
+    let foreign_fee = ExternalGasCreditObservation {
+        anchor: anchor(),
+        provider_namespace: 0x2202,
+        provider_locator_hash: hash(60),
+        facility_contract: address(61),
+        maximum_native_gas: Amount256::from_u128(1_000),
+        fee_model: nqc_census_capital::FeeModel::Fixed {
+            asset: CapitalAsset::Token(address(62)),
+            amount: Amount256::from_u128(1),
+        },
+        repayment_deadline_blocks: 64,
+        max_utilization_bps: 10_000,
+        min_remaining_native_gas: Amount256::ZERO,
+        protocol_cap: None,
+        market_cap: None,
+        active: true,
+        evidence: evidence(),
+    }
+    .into_capital_source();
+    assert!(matches!(foreign_fee, Err(CapitalError::InvalidCanonical(_))));
+    Ok(())
+}
+
+#[test]
+fn external_gas_credit_requires_evidence() -> TestResult {
+    let result = ExternalGasCreditObservation {
+        anchor: anchor(),
+        provider_namespace: 0x2202,
+        provider_locator_hash: hash(60),
+        facility_contract: address(61),
+        maximum_native_gas: Amount256::from_u128(1_000),
+        fee_model: nqc_census_capital::FeeModel::None,
+        repayment_deadline_blocks: 64,
+        max_utilization_bps: 10_000,
+        min_remaining_native_gas: Amount256::ZERO,
+        protocol_cap: None,
+        market_cap: None,
+        active: true,
+        evidence: Vec::new(),
+    }
+    .into_capital_source();
+
+    assert!(matches!(result, Err(CapitalError::MissingEvidence)));
+    Ok(())
+}
+
