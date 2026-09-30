@@ -37,7 +37,9 @@ permissions:
 
 concurrency:
   group: rmc011-real-source-certification-${{ github.ref }}
-  cancel-in-progress: false
+  # PR preflights are superseded by newer heads; authoritative push
+  # certification is never cancelled once it starts.
+  cancel-in-progress: ${{ github.event_name != 'push' }}
 
 jobs:
   certification-contract-preflight:
