@@ -91,6 +91,7 @@ dependencies = [
 name = "nqc-census-closeout"
 version = "0.1.0"
 dependencies = [
+ "nqc-census-chain",
  "nqc-census-core",
  "sha2",
 ]
