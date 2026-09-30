@@ -68,6 +68,9 @@ fn economics() -> EconomicBoundary {
         zero_own_capital_proven: true,
         realized_profitability_proven: false,
         monthly_target_probability_proven: false,
+        conservative_realizable_capacity_only: true,
+        global_capital_source_completeness_claimed: false,
+        global_route_venue_completeness_claimed: false,
     }
 }
 
@@ -159,6 +162,9 @@ fn opportunity_count_may_exceed_borrowable_market_count_without_aliasing_domains
         zero_own_capital_proven: true,
         realized_profitability_proven: false,
         monthly_target_probability_proven: false,
+        conservative_realizable_capacity_only: true,
+        global_capital_source_completeness_claimed: false,
+        global_route_venue_completeness_claimed: false,
     };
     let certificate =
         CloseoutCertificate::certify(proofs()?, independent, boundary, vec![hash(200)])?;
@@ -188,6 +194,31 @@ fn rmc_cannot_smuggle_realized_or_monthly_target_profitability_claim() -> TestRe
             Err(CloseoutError::ProfitabilityClaimForbidden)
         ));
     }
+    Ok(())
+}
+
+#[test]
+fn rmc_scope_cannot_overclaim_global_completeness() -> TestResult {
+    let mut boundary = economics();
+    boundary.conservative_realizable_capacity_only = false;
+    assert!(matches!(
+        CloseoutCertificate::certify(proofs()?, counts(), boundary, vec![hash(200)]),
+        Err(CloseoutError::ScopeClaimForbidden)
+    ));
+
+    let mut boundary = economics();
+    boundary.global_capital_source_completeness_claimed = true;
+    assert!(matches!(
+        CloseoutCertificate::certify(proofs()?, counts(), boundary, vec![hash(200)]),
+        Err(CloseoutError::ScopeClaimForbidden)
+    ));
+
+    let mut boundary = economics();
+    boundary.global_route_venue_completeness_claimed = true;
+    assert!(matches!(
+        CloseoutCertificate::certify(proofs()?, counts(), boundary, vec![hash(200)]),
+        Err(CloseoutError::ScopeClaimForbidden)
+    ));
     Ok(())
 }
 
