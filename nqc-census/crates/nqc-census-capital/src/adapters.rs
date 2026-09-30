@@ -75,13 +75,15 @@ pub struct BalancerV2FlashObservation {
     pub asset: Address,
     pub available_vault_balance: Amount256,
     pub fee_percentage_1e18: u64,
+    pub paused: bool,
     pub provider_locator_hash: Hash32,
     pub evidence: Vec<CapitalEvidenceRef>,
 }
 
 impl BalancerV2FlashObservation {
     pub fn into_capital_source(self) -> Result<CapitalSource, CapitalError> {
-        CapitalSource::new(CapitalSourceSpec {
+        let paused = self.paused;
+        let source = CapitalSource::new(CapitalSourceSpec {
             class: CapitalClass::AtomicFlashLiquidity,
             anchor: self.anchor,
             provider_namespace: BALANCER_V2_PROVIDER_NAMESPACE,
@@ -110,7 +112,12 @@ impl BalancerV2FlashObservation {
                 CapitalFailureMode::CallbackOrHookRevert,
             ],
             evidence: self.evidence,
-        })
+        })?;
+        if paused {
+            source.with_execution_blockers(vec!["BALANCER_VAULT_PAUSED".to_owned()])
+        } else {
+            Ok(source)
+        }
     }
 }
 
