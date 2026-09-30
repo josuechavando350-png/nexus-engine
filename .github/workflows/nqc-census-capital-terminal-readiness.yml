@@ -5,6 +5,7 @@ on:
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/acquire_rmc011_balancer_v2.py"
       - "ci/nqc-census/test_acquire_rmc011_balancer_v2.py"
       - "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs"
@@ -21,6 +22,7 @@ on:
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/acquire_rmc011_balancer_v2.py"
       - "ci/nqc-census/test_acquire_rmc011_balancer_v2.py"
       - "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs"
