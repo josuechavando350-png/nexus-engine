@@ -10,7 +10,8 @@
 //! ranking belongs downstream once net-EV and capture evidence exist.
 
 use nqc_census_capital::{
-    Amount256, CapitalAsset, CapitalEvidenceRef, CapitalFeasibility, CapitalOwnership,
+    evaluate_capital_feasibility_checked, Amount256, CapitalAsset, CapitalEvidenceRef,
+    CapitalFeasibility, CapitalOwnership,
     CapitalRequirement, CapitalRequirementId, CapitalSource, CapitalSourceId, CapitalSourceKeyId,
     FeasibilityRejection,
 };
@@ -42,6 +43,8 @@ pub enum PortfolioError {
     MissingRequirement,
     CandidateAnchorMismatch,
     MissingFeasibility,
+    CapitalFeasibilityEvaluationFailed,
+    CapitalFeasibilityMismatch,
     MissingSource,
     MissingResource,
     ResourceAnchorMismatch,
@@ -75,6 +78,12 @@ impl Display for PortfolioError {
                 f.write_str("candidate anchor differs from its capital requirement")
             }
             Self::MissingFeasibility => f.write_str("candidate has no capital feasibility result"),
+            Self::CapitalFeasibilityEvaluationFailed => {
+                f.write_str("capital feasibility could not be independently recomputed")
+            }
+            Self::CapitalFeasibilityMismatch => {
+                f.write_str("supplied capital feasibility differs from exact RMC-011 recomputation")
+            }
             Self::MissingSource => f.write_str("allocation references an unknown capital source"),
             Self::MissingResource => f.write_str("candidate claims an undeclared shared resource"),
             Self::ResourceAnchorMismatch => {
@@ -556,6 +565,18 @@ pub fn evaluate_portfolio(
             if existing.id() != source.id() {
                 return Err(PortfolioError::ConflictingSourceState);
             }
+        }
+    }
+
+    for (requirement_id, supplied) in &feasibility_map {
+        let requirement = requirement_map
+            .get(requirement_id)
+            .copied()
+            .ok_or(PortfolioError::MissingRequirement)?;
+        let recomputed = evaluate_capital_feasibility_checked(requirement, sources)
+            .map_err(|_| PortfolioError::CapitalFeasibilityEvaluationFailed)?;
+        if &recomputed != *supplied {
+            return Err(PortfolioError::CapitalFeasibilityMismatch);
         }
     }
 
