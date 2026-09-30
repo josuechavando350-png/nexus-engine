@@ -110,8 +110,8 @@ jobs:
       REPOSITORY: ${{ github.repository }}
       INPUTS: ci/nqc-census/rmc011-real-source-inputs.json
       DECLARED_AUTHORITY_LOCK: ci/nqc-census/rmc011-authority-lock.json
-      AUTHORITY_CANDIDATE: ${{ runner.temp }}/rmc011-authority-lock-candidate.json
-      AUTHORITY_LOCK: ${{ runner.temp }}/rmc011-authority-lock.json
+      AUTHORITY_CANDIDATE: /tmp/rmc011-authority-lock-candidate.json
+      AUTHORITY_LOCK: /tmp/rmc011-authority-lock.json
     steps:
       - name: Checkout exact D11 head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
