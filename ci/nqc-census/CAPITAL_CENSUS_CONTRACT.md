@@ -122,6 +122,7 @@ A source may be used only when:
 - executable capacity, not merely observed capacity, is sufficient at the requested size
 - no execution blocker remains on any allocated source
 - fee/cap semantics are explicit
+- Aave V3 `flashLoanSimple` premium uses the deployed ceiling semantics certified by PFT-COMPAT-009; half-up percentage rounding is forbidden because it can understate repayment by one atomic unit
 - repayment semantics, asset, deadline and exact source-derived settlement obligations are structurally compatible with the candidate declaration; RMC-011 does **not** prove that execution output cash-flow will contain enough of the repayment asset to satisfy those obligations
 - exact repayment and funding-fee settlement obligations derived from the actual source allocations equal the declared settlement legs before the candidate may be labeled `FEASIBLE`
 - settlement legs must authorize the actual capital-source classes that generated those obligations, and the declared settlement amounts must be exactly assignable across those authorized classes; matching only aggregate kind, asset, and amount is insufficient
@@ -195,6 +196,7 @@ At minimum:
 - collateral and temporary-lock dependencies are aggregated across all distinct sources used by one candidate; one declared leg cannot be reused to satisfy multiple source dependencies
 - gas funding is independently required when execution needs native gas, and the `requires_native_gas` flag must equal the presence of a native-gas requirement leg in both directions
 - insufficient source capacity fails closed
+- Aave V3 flash-premium regression MUST include the exact PFT-COMPAT-009 callback witnesses (`83727306811 @ 5 bps -> 41863654` and `186298226 @ 5 bps -> 93150`)
 - incompatible repayment asset/semantics fails closed
 - exact repayment/funding-fee settlement mismatch, including source-class provenance or per-class amount-assignment mismatch, is classified as a feasibility rejection rather than surviving as a provisional `FEASIBLE` result until certification
 - protocol and market caps bind maximum executable size
