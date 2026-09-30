@@ -78,7 +78,8 @@ reported net value look better.
 
 ## Gas valuation
 
-Gas cost conversion is exact. For an anchor-pinned native/USD WAD price:
+Gas cost conversion is exact. Gas-price evidence MUST be a non-zero
+content-addressed commitment. For an anchor-pinned native/USD WAD price:
 
 `gas_usd_wad = floor(gas_used × effective_gas_price_wei × native_usd_wad / 1e18)`.
 
@@ -120,6 +121,7 @@ Multiple trade sizes for the same execution variant form a capacity curve.
 The curve MUST:
 
 - bind one candidate id, anchor and valuation unit;
+- bind one opportunity id, execution-plan commitment and economic-model commitment;
 - use strictly increasing trade size;
 - preserve every point, including negative-net points;
 - never extrapolate beyond observed/simulated points;
@@ -149,8 +151,9 @@ The initial risk primitive is intentionally conservative:
 
 Each quote also carries an explicit tail bound: confidence, loss at that
 confidence, absolute maximum modeled loss, reserve and evidence. The reserve
-may not exceed the declared absolute maximum and is subtracted after the
-capture-interval worst case.
+MUST be at least the declared loss at confidence and MUST NOT exceed the
+declared absolute maximum. It is subtracted after the capture-interval worst
+case.
 
 Shadow may add richer empirical distributions/CVaR after observed outcomes
 exist. RMC-013 MUST NOT fabricate a distribution to satisfy a target.
