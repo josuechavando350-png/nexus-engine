@@ -7,7 +7,13 @@
 //! opportunity or one explicit rejection; nothing may disappear because the
 //! expected profit looks unattractive.
 
-use nqc_census_capital::Amount256;
+use crate::{PortfolioCandidate, PortfolioError};
+use nqc_census_capital::{
+    adapters::AAVE_V3_PROVIDER_NAMESPACE, evaluate_capital_feasibility_checked, Amount256,
+    CapitalAsset, CapitalClass, CapitalError, CapitalEvidenceRef, CapitalFeasibility,
+    CapitalProviderKind, CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalTargetId,
+    RepaymentSemantics, RequiredAtomicity, RequirementKind,
+};
 use nqc_census_core::{Address, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
 use std::{
@@ -19,6 +25,7 @@ const PAIR_KEY_DOMAIN: &[u8] = b"NQC-RMC012-ACTION-PAIR-KEY-V1";
 const PAIR_ID_DOMAIN: &[u8] = b"NQC-RMC012-ACTION-PAIR-ID-V1";
 const CANDIDATE_DOMAIN: &[u8] = b"NQC-RMC012-ACTIONABLE-LIQUIDATION-V1";
 const COVERAGE_DOMAIN: &[u8] = b"NQC-RMC012-ACTIONABILITY-COVERAGE-V1";
+const CAPITAL_PROMOTION_VARIANT_DOMAIN: &[u8] = b"NQC-RMC012-PRINCIPAL-FLASH-PROMOTION-V1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionabilityError {
@@ -443,6 +450,194 @@ impl ActionableLiquidation {
     pub const fn pft_account_snapshot(&self) -> Hash32 {
         self.pft_account_snapshot
     }
+}
+
+#[derive(Debug)]
+pub enum LiquidationPromotionError {
+    InvalidCandidateCommitment,
+    Capital(CapitalError),
+    Portfolio(PortfolioError),
+}
+
+impl Display for LiquidationPromotionError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidCandidateCommitment => {
+                f.write_str("actionable candidate promotion produced an invalid commitment")
+            }
+            Self::Capital(error) => write!(f, "capital promotion failed: {error}"),
+            Self::Portfolio(error) => write!(f, "portfolio promotion failed: {error}"),
+        }
+    }
+}
+
+impl std::error::Error for LiquidationPromotionError {}
+
+impl From<CapitalError> for LiquidationPromotionError {
+    fn from(value: CapitalError) -> Self {
+        Self::Capital(value)
+    }
+}
+
+impl From<PortfolioError> for LiquidationPromotionError {
+    fn from(value: PortfolioError) -> Self {
+        Self::Portfolio(value)
+    }
+}
+
+/// The D12 promotion deliberately certifies only the same-transaction
+/// liquidation principal and its exact flash-loan settlement. Gas is execution
+/// plan dependent and therefore remains a downstream D13 obligation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LiquidationFundingScope {
+    PrincipalAndFlashSettlementOnlyGasUncertified,
+}
+
+impl LiquidationFundingScope {
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::PrincipalAndFlashSettlementOnlyGasUncertified => {
+                "PRINCIPAL_AND_FLASH_SETTLEMENT_ONLY_GAS_UNCERTIFIED"
+            }
+        }
+    }
+
+    pub const fn gas_funding_certified(self) -> bool {
+        false
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LiquidationCapitalPromotion {
+    actionable_candidate_id: ActionableCandidateId,
+    debt_asset: Address,
+    requirement: CapitalRequirement,
+    portfolio_candidate: PortfolioCandidate,
+    scope: LiquidationFundingScope,
+}
+
+impl LiquidationCapitalPromotion {
+    pub const fn actionable_candidate_id(&self) -> ActionableCandidateId {
+        self.actionable_candidate_id
+    }
+
+    pub const fn debt_asset(&self) -> Address {
+        self.debt_asset
+    }
+
+    pub const fn requirement(&self) -> &CapitalRequirement {
+        &self.requirement
+    }
+
+    pub const fn portfolio_candidate(&self) -> &PortfolioCandidate {
+        &self.portfolio_candidate
+    }
+
+    pub const fn scope(&self) -> LiquidationFundingScope {
+        self.scope
+    }
+}
+
+/// Promote one PFT-certified Aave liquidation into the exact capital semantics
+/// implied by the actionability record. Repayment and flash premium are
+/// settlement obligations, not additional upfront principal.
+pub fn promote_protocol_native_flash_liquidation(
+    liquidation: &ActionableLiquidation,
+) -> Result<LiquidationCapitalPromotion, LiquidationPromotionError> {
+    let actionable_hash = Hash32::new(*liquidation.id().as_bytes())
+        .map_err(|_| LiquidationPromotionError::InvalidCandidateCommitment)?;
+    let debt_asset = CapitalAsset::Token(liquidation.pair().debt_asset());
+    let allowed = vec![CapitalClass::ProtocolNativeFlashLoan];
+
+    let mut legs = vec![
+        CapitalRequirementLeg::new(
+            RequirementKind::ActionPrincipal,
+            debt_asset,
+            liquidation.debt_to_liquidate(),
+            allowed.clone(),
+        )?,
+        CapitalRequirementLeg::new(
+            RequirementKind::Repayment,
+            debt_asset,
+            liquidation.debt_to_liquidate(),
+            allowed.clone(),
+        )?,
+    ];
+    if !liquidation.flash_loan_premium().is_zero() {
+        legs.push(CapitalRequirementLeg::new(
+            RequirementKind::FundingFee,
+            debt_asset,
+            liquidation.flash_loan_premium(),
+            allowed,
+        )?);
+    }
+
+    let evidence = vec![
+        CapitalEvidenceRef::Observation(*liquidation.id().as_bytes()),
+        CapitalEvidenceRef::Observation(*liquidation.pft_market_snapshot().as_bytes()),
+        CapitalEvidenceRef::Observation(*liquidation.pft_account_snapshot().as_bytes()),
+    ];
+    let requirement = CapitalRequirement::new(
+        CapitalTargetId::from_hash(actionable_hash),
+        liquidation.pair().anchor().clone(),
+        RequiredAtomicity::SameTransaction,
+        false,
+        legs,
+        evidence,
+    )?;
+
+    let variant_hash = Hash32::new(domain_hash(
+        CAPITAL_PROMOTION_VARIANT_DOMAIN,
+        liquidation.id().as_bytes(),
+    ))
+    .map_err(|_| LiquidationPromotionError::InvalidCandidateCommitment)?;
+    let portfolio_candidate = PortfolioCandidate::new_variant(
+        requirement.id(),
+        variant_hash,
+        liquidation.pair().anchor().clone(),
+        Vec::new(),
+    )?;
+
+    Ok(LiquidationCapitalPromotion {
+        actionable_candidate_id: liquidation.id(),
+        debt_asset: liquidation.pair().debt_asset(),
+        requirement,
+        portfolio_candidate,
+        scope: LiquidationFundingScope::PrincipalAndFlashSettlementOnlyGasUncertified,
+    })
+}
+
+/// Evaluate the promoted liquidation only against the exact Aave V3 Pool that
+/// supplied the premium semantics used by the PFT bridge. A different
+/// protocol-native flash provider is not interchangeable evidence.
+pub fn evaluate_protocol_native_flash_promotion(
+    promotion: &LiquidationCapitalPromotion,
+    aave_pool: Address,
+    sources: &[CapitalSource],
+) -> Result<CapitalFeasibility, LiquidationPromotionError> {
+    let debt_asset = CapitalAsset::Token(promotion.debt_asset());
+    let exact_provider_sources = sources
+        .iter()
+        .filter(|source| {
+            source.class() == CapitalClass::ProtocolNativeFlashLoan
+                && source.provider_namespace() == AAVE_V3_PROVIDER_NAMESPACE
+                && source.provider_kind() == CapitalProviderKind::ProtocolContract
+                && source.source_contract() == Some(aave_pool)
+                && source.asset() == debt_asset
+                && source.repayment_asset() == debt_asset
+                && matches!(
+                    source.repayment(),
+                    RepaymentSemantics::AtomicSameTransaction
+                )
+                && source.anchor() == promotion.requirement().anchor()
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+
+    Ok(evaluate_capital_feasibility_checked(
+        promotion.requirement(),
+        &exact_provider_sources,
+    )?)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
