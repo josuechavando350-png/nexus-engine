@@ -9,6 +9,7 @@ use pft_nqc_aave_math::{
     calculate_available_collateral_to_liquidate, max_liquidatable_debt, AvailableCollateralInput,
     LiquidationSizingInput, LIQUIDATION_HF_WAD,
 };
+use pft_nqc_core::mul_div_ceil;
 use sha2::{Digest, Sha256};
 use std::fmt::{Display, Formatter};
 
@@ -106,6 +107,18 @@ pub enum PairDecision {
 
 fn zero32(value: &[u8; 32]) -> bool {
     value.iter().all(|byte| *byte == 0)
+}
+
+/// Exact deployed Aave V3 flashLoanSimple premium semantics certified by
+/// PFT-COMPAT-009. The historical callback witness proved that the deployed
+/// pool rounds positive fractional basis-point fees upward; half-up is wrong.
+pub fn aave_flash_premium_ceil(principal: U256, premium_bps: u32) -> Result<U256, BridgeError> {
+    mul_div_ceil(
+        principal,
+        U256::from(premium_bps),
+        U256::from(10_000_u64),
+    )
+    .map_err(|_| BridgeError::PftMath)
 }
 
 /// Execute the immutable certified PFT liquidation sizing for one exact
@@ -254,6 +267,29 @@ mod tests {
             pft_market_snapshot: [1; 32],
             pft_account_snapshot: [2; 32],
         }
+    }
+
+    #[test]
+    fn aave_flash_premium_matches_pft_compat_009_callback_witnesses() -> TestResult {
+        assert_eq!(
+            aave_flash_premium_ceil(U256::from(83_727_306_811_u64), 5)?,
+            U256::from(41_863_654_u64)
+        );
+        assert_eq!(
+            aave_flash_premium_ceil(U256::from(186_298_226_u64), 5)?,
+            U256::from(93_150_u64)
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn aave_flash_premium_zero_principal_or_zero_bps_is_zero() -> TestResult {
+        assert_eq!(aave_flash_premium_ceil(U256::ZERO, 5)?, U256::ZERO);
+        assert_eq!(
+            aave_flash_premium_ceil(U256::from(83_727_306_811_u64), 0)?,
+            U256::ZERO
+        );
+        Ok(())
     }
 
     #[test]
