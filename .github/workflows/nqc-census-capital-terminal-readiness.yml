@@ -19,6 +19,8 @@ on:
       - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
       - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
       - ".github/workflows/nqc-census-capital-bounded-family-rejections.yml"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/acquire_rmc011_balancer_v2.py"
@@ -57,6 +59,8 @@ on:
       - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
       - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
       - ".github/workflows/nqc-census-capital-bounded-family-rejections.yml"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/acquire_rmc011_balancer_v2.py"
@@ -117,6 +121,9 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-rejections.py ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
           python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
           python3 ci/nqc-census/verify-rmc011-bounded-family-rejections.py /tmp/rmc011-bounded-family-rejections.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-promotion.py ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-promotion.py
           python3 -m py_compile ci/nqc-census/acquire_rmc011_balancer_v2.py ci/nqc-census/test_acquire_rmc011_balancer_v2.py
           python3 ci/nqc-census/test_acquire_rmc011_balancer_v2.py -v
       - name: Enforce terminal claim boundary
