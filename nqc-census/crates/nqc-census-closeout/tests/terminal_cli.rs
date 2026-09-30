@@ -83,10 +83,7 @@ fn valid_lock() -> String {
 }
 
 fn workdir(name: &str) -> PathBuf {
-    std::env::temp_dir().join(format!(
-        "nqc-rmc014-{name}-{}",
-        std::process::id()
-    ))
+    std::env::temp_dir().join(format!("nqc-rmc014-{name}-{}", std::process::id()))
 }
 
 fn run(lock: &Path, out: &Path) -> Result<std::process::Output> {
