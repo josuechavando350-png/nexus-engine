@@ -6,8 +6,8 @@
 
 use alloy::primitives::U256;
 use pft_nqc_aave_math::{
-    calculate_available_collateral_to_liquidate, max_liquidatable_debt,
-    AvailableCollateralInput, LiquidationSizingInput, LIQUIDATION_HF_WAD,
+    calculate_available_collateral_to_liquidate, max_liquidatable_debt, AvailableCollateralInput,
+    LiquidationSizingInput, LIQUIDATION_HF_WAD,
 };
 use sha2::{Digest, Sha256};
 use std::fmt::{Display, Formatter};
@@ -132,9 +132,7 @@ pub fn classify_pair(input: PairInput) -> Result<PairDecision, BridgeError> {
         ));
     }
     if !input.debt_reserve_eligible {
-        return Ok(PairDecision::Rejected(
-            PairRejection::DebtReserveIneligible,
-        ));
+        return Ok(PairDecision::Rejected(PairRejection::DebtReserveIneligible));
     }
     if !input.emode_resolved {
         return Ok(PairDecision::Rejected(PairRejection::UnknownEmodeCategory));
