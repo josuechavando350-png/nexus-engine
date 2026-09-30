@@ -248,3 +248,45 @@ RMC-013 does not prove:
 - Canary safety.
 
 Those require Shadow/Canary evidence.
+
+## Terminal authority
+
+The foundation crate and its unit tests are not terminal RMC-013 evidence.
+Terminal RMC-013 is controlled by `ci/nqc-census/rmc013-terminal-inputs.json`
+and remains blocked until it pins both:
+
+- one exact successful immutable RMC-012 terminal actionability artifact; and
+- one exact successful content-addressed execution-evidence package produced
+  from the same candidate/anchor authority.
+
+A terminal execution-evidence package MUST conserve the complete D12
+capital-feasible input set. Every input candidate is either:
+
+- execution-simulatable and covered by exact economics; or
+- rejected with an explicit non-UNKNOWN reason.
+
+The package MUST bind, for every execution-simulatable candidate, measured or
+simulated points sufficient to prove the complete cost taxonomy, gas evidence,
+route/fee/price-impact evidence where applicable, exact size points and an
+ex-ante Shadow prediction commitment. It MUST NOT interpolate or extrapolate
+between points and MUST NOT invent capture probability. Capture may remain
+`UNCALIBRATED` at Census close.
+
+Terminal conservation is therefore:
+
+```
+D12 capital-feasible candidates
+  = execution-simulatable candidates
+  + explicitly rejected execution candidates
+```
+
+and:
+
+```
+execution-simulatable candidates
+  = exact economics candidate coverage
+```
+
+with zero UNKNOWN rejections, zero unexplained mismatches and zero uncovered
+candidate ids. Synthetic fixtures, detached candidate ids, mutable latest
+artifacts, hand-entered P&L and foundation-only CI MUST NOT satisfy this gate.
