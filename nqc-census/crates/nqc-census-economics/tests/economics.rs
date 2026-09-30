@@ -4,9 +4,10 @@ use nqc_census_capital::{
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_economics::{
-    mul_div_floor, CalibrationState, CapacityCurve, CapacityCurvePoint, CaptureEstimate,
-    EconomicQuote, EconomicsError, ExecutionCostVector, GasValuation, ProbabilityPpb,
-    ProfitBucket, TailRiskBound, ValueUnit,
+    evaluate_scenarios, mul_div_floor, CalibrationState, CapacityCurve, CapacityCurvePoint,
+    CaptureEstimate, CostComponent, CostKind, EconomicDecision, EconomicQuote, EconomicsError,
+    ExecutionCostVector, GasValuation, PnlScenario, ProbabilityPpb, ProfitBucket, SignedValue,
+    TailRiskBound, ValueUnit,
 };
 use nqc_census_portfolio::PortfolioCandidate;
 
@@ -50,7 +51,7 @@ fn candidate(
         RequirementKind::ActionPrincipal,
         CapitalAsset::Token(address(20)),
         Amount256::from_u128(1),
-        vec![CapitalClass::FlashLoan],
+        vec![CapitalClass::ProtocolNativeFlashLoan],
     )?;
     let requirement = CapitalRequirement::new(
         CapitalTargetId::from_hash(hash(target)),
@@ -72,10 +73,47 @@ fn wad(dollars: u128) -> Amount256 {
     Amount256::from_u128(dollars * 1_000_000_000_000_000_000)
 }
 
+fn complete_costs(
+    gas_unconditional: u128,
+    protocol_on_capture: u128,
+    failure_on_failure: u128,
+) -> Result<ExecutionCostVector, EconomicsError> {
+    let mut components = Vec::new();
+    for (index, kind) in CostKind::ALL.into_iter().enumerate() {
+        let evidence_byte =
+            u8::try_from(index + 60).map_err(|_| EconomicsError::ArithmeticOverflow)?;
+        let unconditional = if kind == CostKind::Gas {
+            wad(gas_unconditional)
+        } else {
+            Amount256::ZERO
+        };
+        let on_capture = if kind == CostKind::ProtocolFee {
+            wad(protocol_on_capture)
+        } else {
+            Amount256::ZERO
+        };
+        let on_failure = if kind == CostKind::ExpectedFailureRevert {
+            wad(failure_on_failure)
+        } else {
+            Amount256::ZERO
+        };
+        components.push(CostComponent::new(
+            kind,
+            unconditional,
+            on_capture,
+            on_failure,
+            hash(evidence_byte),
+        )?);
+    }
+    ExecutionCostVector::new(components)
+}
+
 fn capture(calibrated: bool) -> Result<CaptureEstimate, EconomicsError> {
     let calibration = if calibrated {
         CalibrationState::ShadowCalibrated {
             sample_count: 10_000,
+            window_commitment: hash(208),
+            model_commitment: hash(209),
             calibration_commitment: hash(210),
         }
     } else {
@@ -95,8 +133,9 @@ fn quote(
     anchor: StateAnchor,
     target: u8,
     variant: u8,
+    trade_size: u128,
     gross: u128,
-    cost: u128,
+    costs: ExecutionCostVector,
     calibrated: bool,
 ) -> Result<EconomicQuote, Box<dyn std::error::Error>> {
     let candidate = candidate(anchor.clone(), target, variant)?;
@@ -105,13 +144,10 @@ fn quote(
         hash(90),
         anchor,
         ValueUnit::UsdWad,
+        Amount256::from_u128(trade_size),
         wad(gross),
-        ExecutionCostVector {
-            gas: wad(cost),
-            ..ExecutionCostVector::default()
-        },
+        costs,
         capture(calibrated)?,
-        wad(4),
         TailRiskBound::new(
             ProbabilityPpb::new(990_000_000)?,
             wad(8),
@@ -153,26 +189,98 @@ fn gas_is_valued_exactly_in_usd_wad() -> TestResult {
 }
 
 #[test]
-fn expected_ev_separates_success_value_from_loss_path() -> TestResult {
-    let quote = quote(anchor(), 40, 41, 100, 20, true)?;
-    assert_eq!(quote.require_positive_success_net()?, wad(80));
-
-    let expected = quote.expected_realized_ev()?;
-    assert!(expected.is_positive());
-    assert_eq!(expected.magnitude(), wad(59));
-
-    let tail = quote.tail_adjusted_ev()?;
-    assert!(tail.is_positive());
-    assert_eq!(tail.magnitude(), wad(54));
-    assert_eq!(quote.profit_bucket()?, Some(ProfitBucket::Usd50To100));
-    assert_eq!(quote.certified_expected_realized_ev()?, expected);
+fn complete_cost_taxonomy_is_mandatory_and_evidence_bound() -> TestResult {
+    let mut components = complete_costs(20, 20, 20)?.components().to_vec();
+    components.retain(|component| component.kind != CostKind::Mev);
+    assert!(matches!(
+        ExecutionCostVector::new(components),
+        Err(EconomicsError::MissingCostKind(CostKind::Mev))
+    ));
+    assert!(matches!(
+        CostComponent::new(
+            CostKind::Mev,
+            Amount256::ZERO,
+            Amount256::ZERO,
+            Amount256::ZERO,
+            Hash32::new([0; 32]).unwrap_or_else(|_| unreachable!())
+        ),
+        Err(EconomicsError::EmptyEvidence)
+    ));
     Ok(())
 }
 
 #[test]
-fn prior_capture_can_drive_shadow_prediction_but_not_certified_capture_ev() -> TestResult {
-    let quote = quote(anchor(), 40, 41, 100, 20, false)?;
+fn expected_ev_weights_cost_incidence_instead_of_scaling_all_costs_by_capture() -> TestResult {
+    let quote = quote(
+        anchor(),
+        40,
+        41,
+        1_000,
+        100,
+        complete_costs(20, 20, 20)?,
+        true,
+    )?;
+    assert_eq!(quote.require_positive_success_net()?, wad(60));
+
+    // p=0.75: 75 expected gross - 20 unconditional gas
+    // - 15 capture-only protocol fee - 5 failure-only reserve = 35.
+    assert_eq!(quote.expected_realized_ev()?, SignedValue::positive(wad(35)));
+    // Interval endpoint values are 30 at p=.70 and 40 at p=.80.
+    assert_eq!(
+        quote.lower_bound_realized_ev()?,
+        SignedValue::positive(wad(30))
+    );
+    assert_eq!(quote.tail_adjusted_ev()?, SignedValue::positive(wad(25)));
+    assert_eq!(quote.profit_bucket()?, Some(ProfitBucket::Usd20To50));
+    assert_eq!(
+        quote.certified_expected_realized_ev()?,
+        SignedValue::positive(wad(30))
+    );
+    assert_eq!(quote.decision()?, EconomicDecision::Admitted);
+    Ok(())
+}
+
+#[test]
+fn capture_interval_bound_checks_both_endpoints_not_just_lower_probability() -> TestResult {
+    let mut components = complete_costs(0, 0, 0)?.components().to_vec();
+    for component in &mut components {
+        if component.kind == CostKind::BuilderPayment {
+            component.on_capture = wad(200);
+        }
+        if component.kind == CostKind::ExpectedFailureRevert {
+            component.on_failure = wad(10);
+        }
+    }
+    let quote = quote(
+        anchor(),
+        40,
+        41,
+        1_000,
+        100,
+        ExecutionCostVector::new(components)?,
+        true,
+    )?;
+    // EV is decreasing with capture probability in this deliberately bad plan.
+    assert!(
+        quote.expected_realized_ev()? > quote.lower_bound_realized_ev()?,
+        "the conservative interval bound must select the worse endpoint"
+    );
+    Ok(())
+}
+
+#[test]
+fn prior_capture_can_drive_shadow_prediction_but_never_certified_profitability() -> TestResult {
+    let quote = quote(
+        anchor(),
+        40,
+        41,
+        1_000,
+        100,
+        complete_costs(20, 20, 20)?,
+        false,
+    )?;
     assert!(quote.expected_realized_ev()?.is_positive());
+    assert_eq!(quote.decision()?, EconomicDecision::CaptureUncalibrated);
     assert!(matches!(
         quote.certified_expected_realized_ev(),
         Err(EconomicsError::UncalibratedCapture)
@@ -190,13 +298,10 @@ fn evidence_order_does_not_change_quote_commitment() -> TestResult {
             hash(90),
             anchor.clone(),
             ValueUnit::UsdWad,
+            Amount256::from_u128(1_000),
             wad(100),
-            ExecutionCostVector {
-                gas: wad(20),
-                ..ExecutionCostVector::default()
-            },
+            complete_costs(20, 20, 20)?,
             capture(true)?,
-            wad(4),
             TailRiskBound::new(
                 ProbabilityPpb::new(990_000_000)?,
                 wad(8),
@@ -215,19 +320,43 @@ fn evidence_order_does_not_change_quote_commitment() -> TestResult {
 }
 
 #[test]
-fn capacity_curve_selects_best_tail_adjusted_size_not_largest_trade() -> TestResult {
+fn capacity_curve_selects_best_conservative_size_not_largest_trade() -> TestResult {
     let anchor = anchor();
     let small = CapacityCurvePoint::new(
         Amount256::from_u128(10),
-        quote(anchor.clone(), 40, 41, 100, 20, true)?,
+        quote(
+            anchor.clone(),
+            40,
+            41,
+            10,
+            100,
+            complete_costs(20, 20, 20)?,
+            true,
+        )?,
     )?;
     let best = CapacityCurvePoint::new(
         Amount256::from_u128(20),
-        quote(anchor.clone(), 40, 42, 120, 30, true)?,
+        quote(
+            anchor.clone(),
+            40,
+            41,
+            20,
+            140,
+            complete_costs(20, 20, 20)?,
+            true,
+        )?,
     )?;
     let too_large = CapacityCurvePoint::new(
         Amount256::from_u128(30),
-        quote(anchor, 40, 43, 80, 90, true)?,
+        quote(
+            anchor,
+            40,
+            41,
+            30,
+            80,
+            complete_costs(70, 40, 20)?,
+            true,
+        )?,
     )?;
 
     let curve = CapacityCurve::new(vec![too_large, small, best])?;
@@ -246,7 +375,59 @@ fn capacity_curve_selects_best_tail_adjusted_size_not_largest_trade() -> TestRes
 }
 
 #[test]
-fn probability_interval_and_tail_bound_fail_closed() -> TestResult {
+fn quote_commitment_binds_trade_size_and_curve_rejects_mismatch() -> TestResult {
+    let quote = quote(
+        anchor(),
+        40,
+        41,
+        10,
+        100,
+        complete_costs(20, 20, 20)?,
+        true,
+    )?;
+    assert!(matches!(
+        CapacityCurvePoint::new(Amount256::from_u128(11), quote),
+        Err(EconomicsError::TradeSizeMismatch)
+    ));
+    Ok(())
+}
+
+#[test]
+fn capacity_curve_rejects_mixed_execution_variants() -> TestResult {
+    let anchor = anchor();
+    let a = CapacityCurvePoint::new(
+        Amount256::from_u128(10),
+        quote(
+            anchor.clone(),
+            40,
+            41,
+            10,
+            100,
+            complete_costs(20, 20, 20)?,
+            true,
+        )?,
+    )?;
+    let b = CapacityCurvePoint::new(
+        Amount256::from_u128(20),
+        quote(
+            anchor,
+            40,
+            42,
+            20,
+            120,
+            complete_costs(20, 20, 20)?,
+            true,
+        )?,
+    )?;
+    assert!(matches!(
+        CapacityCurve::new(vec![a, b]),
+        Err(EconomicsError::CandidateMismatch)
+    ));
+    Ok(())
+}
+
+#[test]
+fn probability_interval_tail_and_calibration_fail_closed() -> TestResult {
     assert!(matches!(
         CaptureEstimate::new(
             ProbabilityPpb::new(800_000_000)?,
@@ -259,6 +440,20 @@ fn probability_interval_and_tail_bound_fail_closed() -> TestResult {
         Err(EconomicsError::InvalidProbabilityInterval)
     ));
     assert!(matches!(
+        CaptureEstimate::new(
+            ProbabilityPpb::new(700_000_000)?,
+            ProbabilityPpb::new(750_000_000)?,
+            ProbabilityPpb::new(800_000_000)?,
+            CalibrationState::ShadowCalibrated {
+                sample_count: 0,
+                window_commitment: hash(2),
+                model_commitment: hash(3),
+                calibration_commitment: hash(4),
+            }
+        ),
+        Err(EconomicsError::InvalidCalibration)
+    ));
+    assert!(matches!(
         TailRiskBound::new(
             ProbabilityPpb::new(990_000_000)?,
             wad(30),
@@ -266,6 +461,40 @@ fn probability_interval_and_tail_bound_fail_closed() -> TestResult {
             wad(5)
         ),
         Err(EconomicsError::InvalidTailBound)
+    ));
+    Ok(())
+}
+
+#[test]
+fn exact_scenario_distribution_reports_expected_worst_and_loss_probability() -> TestResult {
+    let scenarios = [
+        PnlScenario::new(
+            hash(1),
+            ProbabilityPpb::new(750_000_000)?,
+            SignedValue::positive(wad(100)),
+            hash(11),
+        )?,
+        PnlScenario::new(
+            hash(2),
+            ProbabilityPpb::new(250_000_000)?,
+            SignedValue::negative(wad(20)),
+            hash(12),
+        )?,
+    ];
+    let report = evaluate_scenarios(&scenarios)?;
+    assert_eq!(report.expected_pnl(), SignedValue::positive(wad(70)));
+    assert_eq!(report.worst_case(), SignedValue::negative(wad(20)));
+    assert_eq!(report.loss_probability(), ProbabilityPpb::new(250_000_000)?);
+
+    let incomplete = [PnlScenario::new(
+        hash(3),
+        ProbabilityPpb::new(900_000_000)?,
+        SignedValue::positive(wad(1)),
+        hash(13),
+    )?];
+    assert!(matches!(
+        evaluate_scenarios(&incomplete),
+        Err(EconomicsError::ScenarioProbabilityNotOne)
     ));
     Ok(())
 }
