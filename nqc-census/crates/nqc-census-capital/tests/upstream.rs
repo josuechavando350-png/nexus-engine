@@ -190,7 +190,7 @@ fn d08_import_builds_aave_and_v2_sources_only_for_proven_compatible_tokens() -> 
             "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
             "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":30}},",
             "\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",",
-            "\"reserves\":[\"5000\",\"7000\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n"
+            "\"reserves\":[\"5000\",\"7000\",1],\"total_supply\":\"1000\",\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n"
         ),
         aave_asset.to_hex(),
         pair.to_hex(),
@@ -346,7 +346,7 @@ fn d08_import_rejects_v2_reserve_without_strict_flash_swap_headroom() -> TestRes
         concat!(
             "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":30}},",
             "\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",",
-            "\"reserves\":[\"1\",\"2\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n"
+            "\"reserves\":[\"1\",\"2\",1],\"total_supply\":\"1\",\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n"
         ),
         pair.to_hex(),
         token0.to_hex(),
@@ -408,7 +408,7 @@ fn d08_import_coverage_is_order_independent_and_conserved() -> TestResult {
         concat!(
             "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":30}},",
             "\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",",
-            "\"reserves\":[\"5000\",\"7000\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}"
+            "\"reserves\":[\"5000\",\"7000\",1],\"total_supply\":\"1000\",\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}"
         ),
         pair.to_hex(),
         token0.to_hex(),
@@ -511,7 +511,7 @@ fn d08_import_rejects_noncanonical_fee_or_liquidity_semantics() -> TestResult {
     let pair = address(32);
     let tokens = format!("{}\n{}\n", token_row(token0, true), token_row(token1, true));
     let bad_fee = format!(
-        "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":25}},\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",\"reserves\":[\"5000\",\"7000\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n",
+        "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":25}},\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",\"reserves\":[\"5000\",\"7000\",1],\"total_supply\":\"1000\",\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n",
         pair.to_hex(), token0.to_hex(), token1.to_hex()
     );
     let fee_import = import_d08_capital_sources(
@@ -532,7 +532,12 @@ fn d08_import_rejects_noncanonical_fee_or_liquidity_semantics() -> TestResult {
         .replace(
             "\"liquidity_state\":\"LIQUID\"",
             "\"liquidity_state\":\"ZERO_LIQUIDITY_NOT_ROUTABLE\"",
-        );
+        )
+        .replace(
+            "\"reserves\":[\"5000\",\"7000\",1]",
+            "\"reserves\":[\"0\",\"0\",1]",
+        )
+        .replace("\"total_supply\":\"1000\"", "\"total_supply\":\"0\"");
     let liquidity_import = import_d08_capital_sources(
         no_liquidity.as_bytes(),
         tokens.as_bytes(),
@@ -542,12 +547,16 @@ fn d08_import_rejects_noncanonical_fee_or_liquidity_semantics() -> TestResult {
     assert_eq!(liquidity_import.sources.len(), 2);
     assert_eq!(liquidity_import.rejected_count, 0);
     assert!(liquidity_import.rejections.is_empty());
-    assert!(liquidity_import.sources.iter().all(|source| {
-        !source.execution_eligible()
-            && source.executable_capacity() == Ok(Amount256::ZERO)
-            && source.execution_blockers()
-                == &["V2_LIQUIDITY_UNAVAILABLE".to_owned()]
-    }));
+    for source in &liquidity_import.sources {
+        assert!(!source.execution_eligible());
+        assert_eq!(source.maximum_available(), Amount256::ZERO);
+        assert_eq!(source.effective_capacity()?, Amount256::ZERO);
+        assert_eq!(source.executable_capacity()?, Amount256::ZERO);
+        assert_eq!(
+            source.execution_blockers(),
+            &["V2_LIQUIDITY_UNAVAILABLE".to_owned()]
+        );
+    }
     assert!(liquidity_import.is_conserved());
 
     let unknown_liquidity = no_liquidity.replace(
