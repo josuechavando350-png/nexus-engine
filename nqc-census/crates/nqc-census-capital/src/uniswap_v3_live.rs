@@ -808,7 +808,7 @@ mod tests {
             .get("pools")
             .and_then(Json::as_array)
             .unwrap_or_else(|| unreachable!());
-        let mut pool = pools[0].clone();
+        let pool = pools[0].clone();
         let replacement = Json::object([
             ("pool", pool.get("pool").cloned().unwrap_or(Json::Null)),
             ("token0", pool.get("token0").cloned().unwrap_or(Json::Null)),
