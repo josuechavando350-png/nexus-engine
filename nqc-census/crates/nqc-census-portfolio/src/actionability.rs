@@ -31,6 +31,7 @@ pub enum ActionabilityError {
     ZeroDebtToLiquidate,
     ZeroCollateralToLiquidator,
     ZeroValuationInput,
+    ValuationOverflow,
     ZeroSnapshotCommitment,
     ConservationMismatch,
     BelowOneBorrowerCoverageMismatch,
@@ -58,7 +59,10 @@ impl Display for ActionabilityError {
                 f.write_str("admitted liquidation has zero collateral output")
             }
             Self::ZeroValuationInput => {
-                f.write_str("admitted liquidation has zero price or token unit")
+                f.write_str("admitted liquidation has zero price, token unit or oracle value")
+            }
+            Self::ValuationOverflow => {
+                f.write_str("admitted liquidation value arithmetic overflow")
             }
             Self::ZeroSnapshotCommitment => {
                 f.write_str("PFT market/account snapshot commitment must be non-zero")
@@ -237,11 +241,17 @@ pub struct ActionableLiquidation {
     debt_to_liquidate: Amount256,
     collateral_to_liquidator: Amount256,
     liquidation_protocol_fee_collateral: Amount256,
+    flash_loan_premium: Amount256,
+    flash_loan_repayment: Amount256,
     liquidation_bonus_bps: u32,
     collateral_price_base_wad: Amount256,
     collateral_asset_unit: Amount256,
     debt_price_base_wad: Amount256,
     debt_asset_unit: Amount256,
+    oracle_collateral_value_base_wad: Amount256,
+    oracle_repayment_value_base_wad: Amount256,
+    oracle_edge_negative: bool,
+    oracle_edge_base_wad: Amount256,
     pft_market_snapshot: Hash32,
     pft_account_snapshot: Hash32,
 }
@@ -254,11 +264,14 @@ impl ActionableLiquidation {
         debt_to_liquidate: Amount256,
         collateral_to_liquidator: Amount256,
         liquidation_protocol_fee_collateral: Amount256,
+        flash_loan_premium: Amount256,
         liquidation_bonus_bps: u32,
         collateral_price_base_wad: Amount256,
         collateral_asset_unit: Amount256,
         debt_price_base_wad: Amount256,
         debt_asset_unit: Amount256,
+        oracle_collateral_value_base_wad: Amount256,
+        oracle_repayment_value_base_wad: Amount256,
         pft_market_snapshot: Hash32,
         pft_account_snapshot: Hash32,
     ) -> Result<Self, ActionabilityError> {
@@ -275,9 +288,30 @@ impl ActionableLiquidation {
             || collateral_asset_unit.is_zero()
             || debt_price_base_wad.is_zero()
             || debt_asset_unit.is_zero()
+            || oracle_collateral_value_base_wad.is_zero()
+            || oracle_repayment_value_base_wad.is_zero()
         {
             return Err(ActionabilityError::ZeroValuationInput);
         }
+        let flash_loan_repayment = debt_to_liquidate
+            .checked_add(flash_loan_premium)
+            .map_err(|_| ActionabilityError::ValuationOverflow)?;
+        let (oracle_edge_negative, oracle_edge_base_wad) =
+            if oracle_collateral_value_base_wad >= oracle_repayment_value_base_wad {
+                (
+                    false,
+                    oracle_collateral_value_base_wad
+                        .checked_sub(oracle_repayment_value_base_wad)
+                        .map_err(|_| ActionabilityError::ValuationOverflow)?,
+                )
+            } else {
+                (
+                    true,
+                    oracle_repayment_value_base_wad
+                        .checked_sub(oracle_collateral_value_base_wad)
+                        .map_err(|_| ActionabilityError::ValuationOverflow)?,
+                )
+            };
         if pft_market_snapshot.as_bytes().iter().all(|byte| *byte == 0)
             || pft_account_snapshot
                 .as_bytes()
@@ -294,14 +328,20 @@ impl ActionableLiquidation {
             debt_to_liquidate,
             collateral_to_liquidator,
             liquidation_protocol_fee_collateral,
+            flash_loan_premium,
+            flash_loan_repayment,
             collateral_price_base_wad,
             collateral_asset_unit,
             debt_price_base_wad,
             debt_asset_unit,
+            oracle_collateral_value_base_wad,
+            oracle_repayment_value_base_wad,
+            oracle_edge_base_wad,
         ] {
             bytes.extend_from_slice(amount.as_be_bytes());
         }
         bytes.extend_from_slice(&liquidation_bonus_bps.to_be_bytes());
+        bytes.push(u8::from(oracle_edge_negative));
         bytes.extend_from_slice(pft_market_snapshot.as_bytes());
         bytes.extend_from_slice(pft_account_snapshot.as_bytes());
         let id = ActionableCandidateId(domain_hash(CANDIDATE_DOMAIN, &bytes));
@@ -312,11 +352,17 @@ impl ActionableLiquidation {
             debt_to_liquidate,
             collateral_to_liquidator,
             liquidation_protocol_fee_collateral,
+            flash_loan_premium,
+            flash_loan_repayment,
             liquidation_bonus_bps,
             collateral_price_base_wad,
             collateral_asset_unit,
             debt_price_base_wad,
             debt_asset_unit,
+            oracle_collateral_value_base_wad,
+            oracle_repayment_value_base_wad,
+            oracle_edge_negative,
+            oracle_edge_base_wad,
             pft_market_snapshot,
             pft_account_snapshot,
         })
@@ -346,6 +392,14 @@ impl ActionableLiquidation {
         self.liquidation_protocol_fee_collateral
     }
 
+    pub const fn flash_loan_premium(&self) -> Amount256 {
+        self.flash_loan_premium
+    }
+
+    pub const fn flash_loan_repayment(&self) -> Amount256 {
+        self.flash_loan_repayment
+    }
+
     pub const fn liquidation_bonus_bps(&self) -> u32 {
         self.liquidation_bonus_bps
     }
@@ -364,6 +418,22 @@ impl ActionableLiquidation {
 
     pub const fn debt_asset_unit(&self) -> Amount256 {
         self.debt_asset_unit
+    }
+
+    pub const fn oracle_collateral_value_base_wad(&self) -> Amount256 {
+        self.oracle_collateral_value_base_wad
+    }
+
+    pub const fn oracle_repayment_value_base_wad(&self) -> Amount256 {
+        self.oracle_repayment_value_base_wad
+    }
+
+    pub const fn oracle_edge_negative(&self) -> bool {
+        self.oracle_edge_negative
+    }
+
+    pub const fn oracle_edge_base_wad(&self) -> Amount256 {
+        self.oracle_edge_base_wad
     }
 
     pub const fn pft_market_snapshot(&self) -> Hash32 {

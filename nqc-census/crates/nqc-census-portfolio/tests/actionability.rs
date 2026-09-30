@@ -49,11 +49,14 @@ fn candidate(pair: ActionabilityPair) -> Result<ActionableLiquidation, Actionabi
         Amount256::from_u128(1_000),
         Amount256::from_u128(550),
         Amount256::from_u128(5),
+        Amount256::from_u128(1),
         10_500,
         Amount256::from_u128(2_000),
         Amount256::from_u128(1_000_000_000_000_000_000),
         Amount256::from_u128(1),
         Amount256::from_u128(1_000_000),
+        Amount256::from_u128(1_100),
+        Amount256::from_u128(1_001),
         hash(90),
         hash(91),
     )
@@ -150,11 +153,14 @@ fn admitted_candidate_cannot_have_zero_principal() {
         Amount256::ZERO,
         Amount256::from_u128(550),
         Amount256::ZERO,
+        Amount256::ZERO,
         10_500,
         Amount256::from_u128(2_000),
         Amount256::from_u128(1_000_000_000_000_000_000),
         Amount256::from_u128(1),
         Amount256::from_u128(1_000_000),
+        Amount256::from_u128(1_100),
+        Amount256::from_u128(1_000),
         hash(90),
         hash(91),
     );
@@ -162,4 +168,47 @@ fn admitted_candidate_cannot_have_zero_principal() {
         result,
         Err(ActionabilityError::ZeroDebtToLiquidate)
     ));
+}
+
+
+#[test]
+fn admitted_candidate_binds_flash_repayment_and_signed_oracle_edge() -> TestResult {
+    let value = candidate(pair(anchor(100, 10), 20, 30, 40))?;
+    assert_eq!(value.flash_loan_premium(), Amount256::from_u128(1));
+    assert_eq!(value.flash_loan_repayment(), Amount256::from_u128(1_001));
+    assert_eq!(
+        value.oracle_collateral_value_base_wad(),
+        Amount256::from_u128(1_100)
+    );
+    assert_eq!(
+        value.oracle_repayment_value_base_wad(),
+        Amount256::from_u128(1_001)
+    );
+    assert!(!value.oracle_edge_negative());
+    assert_eq!(value.oracle_edge_base_wad(), Amount256::from_u128(99));
+    Ok(())
+}
+
+#[test]
+fn negative_oracle_edge_is_preserved_instead_of_erasing_actionability() -> TestResult {
+    let value = ActionableLiquidation::new(
+        pair(anchor(100, 10), 20, 30, 40),
+        Amount256::from_u128(900_000_000_000_000_000),
+        Amount256::from_u128(1_000),
+        Amount256::from_u128(550),
+        Amount256::from_u128(5),
+        Amount256::from_u128(10),
+        10_500,
+        Amount256::from_u128(2_000),
+        Amount256::from_u128(1_000_000_000_000_000_000),
+        Amount256::from_u128(1),
+        Amount256::from_u128(1_000_000),
+        Amount256::from_u128(900),
+        Amount256::from_u128(1_010),
+        hash(90),
+        hash(91),
+    )?;
+    assert!(value.oracle_edge_negative());
+    assert_eq!(value.oracle_edge_base_wad(), Amount256::from_u128(110));
+    Ok(())
 }
