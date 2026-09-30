@@ -565,20 +565,18 @@ fn import_d08_capital_sources_unbound(
                 let token_blockers = execution_blockers(&tokens, asset_address)?.to_vec();
 
                 let facts = field(&row, "protocol_facts")?;
-                if !bool_field(facts, "active")? || bool_field(facts, "paused")? {
-                    push_rejection(
-                        &mut rejections,
-                        &mut outcomes,
-                        protocol,
-                        &market_id,
-                        asset,
-                        CapitalImportRejectionReason::ReserveInactiveOrPaused,
-                    );
-                    continue;
-                }
+                let active = bool_field(facts, "active")?;
+                let paused = bool_field(facts, "paused")?;
                 let flash_loan_enabled = bool_field(facts, "flash_loan_enabled")?;
                 let available = Amount256::parse_decimal(text(facts, "available_liquidity")?)?;
                 let mut source_blockers = token_blockers;
+                if !active || paused {
+                    source_blockers.push(
+                        CapitalImportRejectionReason::ReserveInactiveOrPaused
+                            .code()
+                            .to_owned(),
+                    );
+                }
                 if !flash_loan_enabled {
                     source_blockers.push(
                         CapitalImportRejectionReason::FlashLoanDisabled
@@ -661,24 +659,11 @@ fn import_d08_capital_sources_unbound(
                     }
                     continue;
                 }
-                if text(&row, "liquidity_state")? != "LIQUID" {
-                    for token in [token0, token1] {
-                        let asset = CapitalAsset::Token(token);
-                        if !candidate_keys.insert((protocol.to_owned(), market_id.clone(), asset)) {
-                            return Err(CapitalError::InvalidCanonical(
-                                "duplicate D08 capital source candidate",
-                            ));
-                        }
-                        push_rejection(
-                            &mut rejections,
-                            &mut outcomes,
-                            protocol,
-                            &market_id,
-                            asset,
-                            CapitalImportRejectionReason::V2LiquidityUnavailable,
-                        );
-                    }
-                    continue;
+                let liquidity_state = text(&row, "liquidity_state")?;
+                if !matches!(liquidity_state, "LIQUID" | "ZERO_LIQUIDITY_NOT_ROUTABLE") {
+                    return Err(CapitalError::InvalidCanonical(
+                        "unknown V2 liquidity state",
+                    ));
                 }
                 let reserves = array(&row, "reserves")?;
                 if reserves.len() != 3 {
@@ -694,7 +679,14 @@ fn import_d08_capital_sources_unbound(
                             "duplicate D08 capital source candidate",
                         ));
                     }
-                    let token_blockers = execution_blockers(&tokens, token)?.to_vec();
+                    let mut source_blockers = execution_blockers(&tokens, token)?.to_vec();
+                    if liquidity_state == "ZERO_LIQUIDITY_NOT_ROUTABLE" {
+                        source_blockers.push(
+                            CapitalImportRejectionReason::V2LiquidityUnavailable
+                                .code()
+                                .to_owned(),
+                        );
+                    }
                     let reserve_text = reserve.as_str().ok_or(CapitalError::InvalidCanonical(
                         "V2 reserve amount is not decimal text",
                     ))?;
@@ -711,7 +703,7 @@ fn import_d08_capital_sources_unbound(
                         evidence: context.evidence.clone(),
                     }
                     .into_capital_source()?
-                    .with_execution_blockers(token_blockers)?;
+                    .with_execution_blockers(source_blockers)?;
                     push_source(
                         &mut sources,
                         &mut outcomes,
