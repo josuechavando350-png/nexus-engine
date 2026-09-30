@@ -10,6 +10,8 @@ on:
       - "ci/nqc-census/rmc011-authority-lock.json"
       - "ci/nqc-census/verify-rmc011-upstream-coherence.py"
       - "ci/nqc-census/test-rmc011-upstream-coherence.py"
+      - "ci/nqc-census/verify_rmc011_upstream_authority.py"
+      - "ci/nqc-census/test_verify_rmc011_upstream_authority.py"
       - "nqc-census/crates/nqc-census-capital/**"
   push:
     branches:
@@ -22,6 +24,8 @@ on:
       - "ci/nqc-census/rmc011-authority-lock.json"
       - "ci/nqc-census/verify-rmc011-upstream-coherence.py"
       - "ci/nqc-census/test-rmc011-upstream-coherence.py"
+      - "ci/nqc-census/verify_rmc011_upstream_authority.py"
+      - "ci/nqc-census/test_verify_rmc011_upstream_authority.py"
       - "nqc-census/crates/nqc-census-capital/**"
 
 permissions:
@@ -50,6 +54,8 @@ jobs:
           bash -n ci/nqc-census/run-rmc011-real-source-closeout.sh
           python3 -m py_compile ci/nqc-census/verify-rmc011-upstream-coherence.py ci/nqc-census/test-rmc011-upstream-coherence.py
           python3 ci/nqc-census/test-rmc011-upstream-coherence.py
+          python3 -m py_compile ci/nqc-census/verify_rmc011_upstream_authority.py ci/nqc-census/test_verify_rmc011_upstream_authority.py
+          python3 ci/nqc-census/test_verify_rmc011_upstream_authority.py -v
           grep -F 'capital-real-source-closeout.json' ci/nqc-census/run-rmc011-real-source-closeout.sh
           grep -F 'sha256sum -c capital-archive.sha256' ci/nqc-census/run-rmc011-real-source-closeout.sh
           test -f ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
@@ -121,7 +127,7 @@ jobs:
             local stage_code="$2"
             local out="$3"
             local run_id head_sha workflow_name artifact_id artifact_name artifact_digest authority_file
-            local run_json artifact_json tree_sha lock_row authority_path authority_sha
+            local run_json artifact_json tree_sha lock_row authority_path authority_sha locked_authority_sha
 
             run_id="$(jq -r --arg key "$key" '.[$key].run_id' "$INPUTS")"
             head_sha="$(jq -r --arg key "$key" '.[$key].head_sha' "$INPUTS")"
@@ -174,13 +180,19 @@ jobs:
             authority_path="$out/$authority_file"
             test -f "$authority_path"
             authority_sha="$(sha256sum "$authority_path" | awk '{print $1}')"
-            test "$authority_sha" = "$(jq -r '.artifact_sha256' <<<"$lock_row")"
+            locked_authority_sha="$(jq -r '.artifact_sha256' <<<"$lock_row")"
+            [[ "$locked_authority_sha" =~ ^(0x)?[0-9a-fA-F]{64}$ ]]
+            test "$authority_sha" = "${locked_authority_sha#0x}"
 
-            jq -e --arg commit "$head_sha" --arg tree "$tree_sha" '
-              .code_commit == $commit and .code_tree == $tree
-            ' "$authority_path" >/dev/null
+            python3 ci/nqc-census/verify_rmc011_upstream_authority.py \
+              --stage "$stage_code" \
+              --artifact-root "$out" \
+              --authority-file "$authority_file" \
+              --lock "$AUTHORITY_LOCK" \
+              --expected-code-commit "$head_sha" \
+              --expected-code-tree "$tree_sha"
 
-            echo "RMC011_UPSTREAM_TRANSPORT_PASS stage=$stage_code run=$run_id artifact=$artifact_id head=$head_sha tree=$tree_sha authority_sha256=$authority_sha"
+            echo "RMC011_UPSTREAM_TRANSPORT_PASS stage=$stage_code run=$run_id artifact=$artifact_id head=$head_sha tree=$tree_sha authority_sha256=$locked_authority_sha"
           }
 
           verify_and_download d06 RMC-006 "$RUNNER_TEMP/d06-raw"
