@@ -73,7 +73,10 @@ fn valid_lock() -> String {
     "capture_calibrated_count":0,
     "zero_own_capital_proven":true,
     "realized_profitability_proven":false,
-    "monthly_target_probability_proven":false
+    "monthly_target_probability_proven":false,
+    "conservative_realizable_capacity_only":true,
+    "global_capital_source_completeness_claimed":false,
+    "global_route_venue_completeness_claimed":false
   }},
   "terminal_evidence":["0x{terminal}"],
   "blocking_reasons":[]
@@ -145,6 +148,21 @@ fn source_lock_cannot_self_certify_or_smuggle_profitability() -> Result<()> {
             "monthly-target",
             r#""monthly_target_probability_proven":false"#,
             r#""monthly_target_probability_proven":true"#,
+        ),
+        (
+            "non-conservative-scope",
+            r#""conservative_realizable_capacity_only":true"#,
+            r#""conservative_realizable_capacity_only":false"#,
+        ),
+        (
+            "global-capital-overclaim",
+            r#""global_capital_source_completeness_claimed":false"#,
+            r#""global_capital_source_completeness_claimed":true"#,
+        ),
+        (
+            "global-route-overclaim",
+            r#""global_route_venue_completeness_claimed":false"#,
+            r#""global_route_venue_completeness_claimed":true"#,
         ),
     ] {
         let root = workdir(name);
