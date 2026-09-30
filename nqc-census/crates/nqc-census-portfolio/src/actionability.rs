@@ -30,6 +30,7 @@ pub enum ActionabilityError {
     InvalidLiquidationBonus,
     ZeroDebtToLiquidate,
     ZeroCollateralToLiquidator,
+    ZeroValuationInput,
     ZeroSnapshotCommitment,
     ConservationMismatch,
     BelowOneBorrowerCoverageMismatch,
@@ -55,6 +56,9 @@ impl Display for ActionabilityError {
             }
             Self::ZeroCollateralToLiquidator => {
                 f.write_str("admitted liquidation has zero collateral output")
+            }
+            Self::ZeroValuationInput => {
+                f.write_str("admitted liquidation has zero price or token unit")
             }
             Self::ZeroSnapshotCommitment => {
                 f.write_str("PFT market/account snapshot commitment must be non-zero")
@@ -115,13 +119,9 @@ pub enum ActionabilityRejectionReason {
     CollateralNotEnabled,
     CollateralReserveIneligible,
     DebtReserveIneligible,
-    DebtFlashLiquidityUnavailable,
-    CollateralTokenExecutionBlocked,
-    DebtTokenExecutionBlocked,
     UnknownEmodeCategory,
     SnapshotMismatch,
     PftMathRejected,
-    PftPolicyRejected,
     UnsupportedPosition,
 }
 
@@ -131,13 +131,9 @@ impl ActionabilityRejectionReason {
             Self::CollateralNotEnabled => "COLLATERAL_NOT_ENABLED",
             Self::CollateralReserveIneligible => "COLLATERAL_RESERVE_INELIGIBLE",
             Self::DebtReserveIneligible => "DEBT_RESERVE_INELIGIBLE",
-            Self::DebtFlashLiquidityUnavailable => "DEBT_FLASH_LIQUIDITY_UNAVAILABLE",
-            Self::CollateralTokenExecutionBlocked => "COLLATERAL_TOKEN_EXECUTION_BLOCKED",
-            Self::DebtTokenExecutionBlocked => "DEBT_TOKEN_EXECUTION_BLOCKED",
             Self::UnknownEmodeCategory => "UNKNOWN_EMODE_CATEGORY",
             Self::SnapshotMismatch => "SNAPSHOT_MISMATCH",
             Self::PftMathRejected => "PFT_MATH_REJECTED",
-            Self::PftPolicyRejected => "PFT_POLICY_REJECTED",
             Self::UnsupportedPosition => "UNSUPPORTED_POSITION",
         }
     }
@@ -147,14 +143,10 @@ impl ActionabilityRejectionReason {
             Self::CollateralNotEnabled => 1,
             Self::CollateralReserveIneligible => 2,
             Self::DebtReserveIneligible => 3,
-            Self::DebtFlashLiquidityUnavailable => 4,
-            Self::CollateralTokenExecutionBlocked => 5,
-            Self::DebtTokenExecutionBlocked => 6,
-            Self::UnknownEmodeCategory => 7,
-            Self::SnapshotMismatch => 8,
-            Self::PftMathRejected => 9,
-            Self::PftPolicyRejected => 10,
-            Self::UnsupportedPosition => 11,
+            Self::UnknownEmodeCategory => 4,
+            Self::SnapshotMismatch => 5,
+            Self::PftMathRejected => 6,
+            Self::UnsupportedPosition => 7,
         }
     }
 }
@@ -245,30 +237,28 @@ pub struct ActionableLiquidation {
     debt_to_liquidate: Amount256,
     collateral_to_liquidator: Amount256,
     liquidation_protocol_fee_collateral: Amount256,
-    flash_loan_premium: Amount256,
-    flash_loan_repayment: Amount256,
     liquidation_bonus_bps: u32,
-    oracle_collateral_value_wad: Amount256,
-    oracle_repayment_value_wad: Amount256,
-    oracle_edge_wad: Amount256,
+    collateral_price_base_wad: Amount256,
+    collateral_asset_unit: Amount256,
+    debt_price_base_wad: Amount256,
+    debt_asset_unit: Amount256,
     pft_market_snapshot: Hash32,
     pft_account_snapshot: Hash32,
 }
 
-#[allow(clippy::too_many_arguments)]
 impl ActionableLiquidation {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         pair: ActionabilityPair,
         health_factor_wad: Amount256,
         debt_to_liquidate: Amount256,
         collateral_to_liquidator: Amount256,
         liquidation_protocol_fee_collateral: Amount256,
-        flash_loan_premium: Amount256,
-        flash_loan_repayment: Amount256,
         liquidation_bonus_bps: u32,
-        oracle_collateral_value_wad: Amount256,
-        oracle_repayment_value_wad: Amount256,
-        oracle_edge_wad: Amount256,
+        collateral_price_base_wad: Amount256,
+        collateral_asset_unit: Amount256,
+        debt_price_base_wad: Amount256,
+        debt_asset_unit: Amount256,
         pft_market_snapshot: Hash32,
         pft_account_snapshot: Hash32,
     ) -> Result<Self, ActionabilityError> {
@@ -280,6 +270,13 @@ impl ActionableLiquidation {
         }
         if liquidation_bonus_bps < 10_000 {
             return Err(ActionabilityError::InvalidLiquidationBonus);
+        }
+        if collateral_price_base_wad.is_zero()
+            || collateral_asset_unit.is_zero()
+            || debt_price_base_wad.is_zero()
+            || debt_asset_unit.is_zero()
+        {
+            return Err(ActionabilityError::ZeroValuationInput);
         }
         if pft_market_snapshot.as_bytes().iter().all(|byte| *byte == 0)
             || pft_account_snapshot
@@ -297,11 +294,10 @@ impl ActionableLiquidation {
             debt_to_liquidate,
             collateral_to_liquidator,
             liquidation_protocol_fee_collateral,
-            flash_loan_premium,
-            flash_loan_repayment,
-            oracle_collateral_value_wad,
-            oracle_repayment_value_wad,
-            oracle_edge_wad,
+            collateral_price_base_wad,
+            collateral_asset_unit,
+            debt_price_base_wad,
+            debt_asset_unit,
         ] {
             bytes.extend_from_slice(amount.as_be_bytes());
         }
@@ -316,12 +312,11 @@ impl ActionableLiquidation {
             debt_to_liquidate,
             collateral_to_liquidator,
             liquidation_protocol_fee_collateral,
-            flash_loan_premium,
-            flash_loan_repayment,
             liquidation_bonus_bps,
-            oracle_collateral_value_wad,
-            oracle_repayment_value_wad,
-            oracle_edge_wad,
+            collateral_price_base_wad,
+            collateral_asset_unit,
+            debt_price_base_wad,
+            debt_asset_unit,
             pft_market_snapshot,
             pft_account_snapshot,
         })
@@ -351,28 +346,24 @@ impl ActionableLiquidation {
         self.liquidation_protocol_fee_collateral
     }
 
-    pub const fn flash_loan_premium(&self) -> Amount256 {
-        self.flash_loan_premium
-    }
-
-    pub const fn flash_loan_repayment(&self) -> Amount256 {
-        self.flash_loan_repayment
-    }
-
     pub const fn liquidation_bonus_bps(&self) -> u32 {
         self.liquidation_bonus_bps
     }
 
-    pub const fn oracle_collateral_value_wad(&self) -> Amount256 {
-        self.oracle_collateral_value_wad
+    pub const fn collateral_price_base_wad(&self) -> Amount256 {
+        self.collateral_price_base_wad
     }
 
-    pub const fn oracle_repayment_value_wad(&self) -> Amount256 {
-        self.oracle_repayment_value_wad
+    pub const fn collateral_asset_unit(&self) -> Amount256 {
+        self.collateral_asset_unit
     }
 
-    pub const fn oracle_edge_wad(&self) -> Amount256 {
-        self.oracle_edge_wad
+    pub const fn debt_price_base_wad(&self) -> Amount256 {
+        self.debt_price_base_wad
+    }
+
+    pub const fn debt_asset_unit(&self) -> Amount256 {
+        self.debt_asset_unit
     }
 
     pub const fn pft_market_snapshot(&self) -> Hash32 {

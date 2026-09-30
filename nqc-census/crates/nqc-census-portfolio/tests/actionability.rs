@@ -49,12 +49,11 @@ fn candidate(pair: ActionabilityPair) -> Result<ActionableLiquidation, Actionabi
         Amount256::from_u128(1_000),
         Amount256::from_u128(550),
         Amount256::from_u128(5),
-        Amount256::from_u128(1),
-        Amount256::from_u128(1_001),
         10_500,
-        Amount256::from_u128(1_100),
-        Amount256::from_u128(1_001),
-        Amount256::from_u128(99),
+        Amount256::from_u128(2_000),
+        Amount256::from_u128(1_000_000_000_000_000_000),
+        Amount256::from_u128(1),
+        Amount256::from_u128(1_000_000),
         hash(90),
         hash(91),
     )
@@ -77,7 +76,7 @@ fn every_below_one_pair_is_conserved_as_admitted_or_rejected() -> TestResult {
         ActionabilityRecord::admitted(candidate(admitted_pair)?, vec![hash(100)])?,
         ActionabilityRecord::rejected(
             rejected_pair,
-            ActionabilityRejectionReason::DebtFlashLiquidityUnavailable,
+            ActionabilityRejectionReason::DebtReserveIneligible,
             vec![hash(101)],
         )?,
     ];
@@ -95,7 +94,7 @@ fn disappearing_pair_fails_closed() -> TestResult {
     let anchor = anchor(100, 10);
     let record = ActionabilityRecord::rejected(
         pair(anchor.clone(), 20, 30, 40),
-        ActionabilityRejectionReason::PftPolicyRejected,
+        ActionabilityRejectionReason::PftMathRejected,
         vec![hash(100)],
     )?;
     assert!(matches!(
@@ -111,7 +110,7 @@ fn disappearing_below_one_borrower_fails_closed() -> TestResult {
     let records = vec![
         ActionabilityRecord::rejected(
             pair(anchor.clone(), 20, 30, 40),
-            ActionabilityRejectionReason::PftPolicyRejected,
+            ActionabilityRejectionReason::PftMathRejected,
             vec![hash(100)],
         )?,
         ActionabilityRecord::rejected(
@@ -132,7 +131,7 @@ fn cross_anchor_record_fails_closed() -> TestResult {
     let expected = anchor(100, 10);
     let record = ActionabilityRecord::rejected(
         pair(anchor(101, 20), 20, 30, 40),
-        ActionabilityRejectionReason::PftPolicyRejected,
+        ActionabilityRejectionReason::PftMathRejected,
         vec![hash(100)],
     )?;
     assert!(matches!(
@@ -151,12 +150,11 @@ fn admitted_candidate_cannot_have_zero_principal() {
         Amount256::ZERO,
         Amount256::from_u128(550),
         Amount256::ZERO,
-        Amount256::ZERO,
-        Amount256::from_u128(1_001),
         10_500,
-        Amount256::from_u128(1_100),
-        Amount256::from_u128(1_001),
-        Amount256::from_u128(99),
+        Amount256::from_u128(2_000),
+        Amount256::from_u128(1_000_000_000_000_000_000),
+        Amount256::from_u128(1),
+        Amount256::from_u128(1_000_000),
         hash(90),
         hash(91),
     );
