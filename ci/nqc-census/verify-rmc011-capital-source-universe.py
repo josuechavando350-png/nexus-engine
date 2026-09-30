@@ -24,10 +24,11 @@ REQUIRED_FAMILIES = {
 }
 
 RESOLVED_STATUSES = {
-    "SEMANTIC_ADMISSION_IMPLEMENTED",
+    "AUTHENTICATED_REAL_SOURCE",
     "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE",
 }
 UNRESOLVED_STATUSES = {
+    "SEMANTIC_ADMISSION_IMPLEMENTED",
     "SEMANTIC_ADMISSION_READY_NOT_AUTHENTICATED",
     "MODEL_ONLY",
 }
@@ -94,10 +95,14 @@ def validate_document(doc: dict) -> dict:
         )
 
         real_source_path = row.get("real_source_path")
-        if status == "SEMANTIC_ADMISSION_IMPLEMENTED":
+        if status in {
+            "SEMANTIC_ADMISSION_IMPLEMENTED",
+            "SEMANTIC_ADMISSION_READY_NOT_AUTHENTICATED",
+            "AUTHENTICATED_REAL_SOURCE",
+        }:
             require(
                 isinstance(real_source_path, str) and real_source_path,
-                f"{family_id}: implemented admission requires real_source_path",
+                f"{family_id}: admission status requires real_source_path",
             )
         if status == "MODEL_ONLY":
             require(
