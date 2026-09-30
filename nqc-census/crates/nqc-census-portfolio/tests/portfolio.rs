@@ -201,6 +201,50 @@ fn stable_resource_key_changes_observation_id_when_capacity_changes() -> TestRes
 }
 
 #[test]
+fn zero_capacity_shared_resource_is_preserved_and_positive_claim_conflicts() -> TestResult {
+    let anchor = anchor_on(chain(1, 1), 100, 10);
+    let funding = source(anchor.clone(), 30, 100, CapitalOwnership::External)?;
+    let req = requirement(anchor.clone(), 40, 50)?;
+    let feasibility = evaluate_capital_feasibility(&req, std::slice::from_ref(&funding));
+
+    let exhausted = SharedResource::new(
+        anchor.clone(),
+        SharedResourceKind::DexLiquidity,
+        hash(69),
+        ResourceUnit::AssetUnits(CapitalAsset::Token(address(20))),
+        ResourceLimit::Capacity(Amount256::ZERO),
+        evidence(),
+    )?;
+    assert_eq!(exhausted.limit().capacity(), Amount256::ZERO);
+
+    let candidate = PortfolioCandidate::new(
+        req.id(),
+        anchor,
+        vec![ResourceClaim::new(
+            exhausted.key_id(),
+            Amount256::from_u128(1),
+        )?],
+    )?;
+    let report = evaluate_portfolio(
+        &[candidate],
+        &[req],
+        &[feasibility],
+        &[funding],
+        std::slice::from_ref(&exhausted),
+    )?;
+
+    assert!(!report.simultaneously_feasible());
+    assert!(report.conflicts().iter().any(|conflict| {
+        matches!(
+            conflict.resource,
+            ConflictResource::Shared(key) if key == exhausted.key_id()
+        ) && conflict.capacity == Amount256::ZERO
+            && conflict.claimed == Amount256::from_u128(1)
+    }));
+    Ok(())
+}
+
+#[test]
 fn exclusive_borrower_position_creates_conflict_set() -> TestResult {
     let anchor = anchor_on(chain(1, 1), 100, 10);
     let funding = source(anchor.clone(), 30, 200, CapitalOwnership::External)?;
