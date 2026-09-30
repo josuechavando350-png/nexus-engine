@@ -1,0 +1,182 @@
+name: NQC RMC-014 Final Census Closeout
+
+on:
+  pull_request:
+    paths:
+      - "nqc-census/crates/nqc-census-closeout/**"
+      - "nqc-census/crates/nqc-census-economics/**"
+      - "nqc-census/crates/nqc-census-portfolio/**"
+      - "nqc-census/Cargo.toml"
+      - "nqc-census/Cargo.lock"
+      - "ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md"
+      - "ci/nqc-census/final-census-authority-lock.json"
+      - ".github/workflows/nqc-census-final-closeout.yml"
+  push:
+    branches:
+      - "nqc/rmc-014-final-census-closeout-20260930"
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  RUST_TOOLCHAIN: "1.98.1"
+
+jobs:
+  foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    outputs:
+      authority_status: ${{ steps.lock.outputs.status }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify current RMC-013 base is an ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin nqc/rmc-013-execution-economics-capture-20260929
+          RMC013_HEAD="$(git rev-parse FETCH_HEAD)"
+          git merge-base --is-ancestor "$RMC013_HEAD" HEAD
+          echo "RMC014_RMC013_ANCESTRY_PASS base=$RMC013_HEAD head=$(git rev-parse HEAD)"
+
+      - name: Verify immutable upstream authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          PFT_COMMIT=5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+          PFT_TREE=ef3498da528f85cdb9fdd82222d64773a557f853
+          test "$(git show -s --format=%T "$PFT_COMMIT")" = "$PFT_TREE"
+          git merge-base --is-ancestor "$PFT_COMMIT" HEAD
+          grep -F 'RMC-014 — Real Market Census Terminal Closeout Contract'             ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md
+          grep -F 'REAL_MARKET_CENSUS_CLOSED = false'             ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md
+
+      - name: Verify no execution or network authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -n -E             'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction|reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket'             nqc-census/crates/nqc-census-closeout             ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md
+
+      - name: Exact Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-closeout --all-targets -- -D warnings
+          cargo test --locked -p nqc-census-closeout -- --nocapture
+          cargo test --locked -p nqc-census-economics
+          cargo test --locked -p nqc-census-portfolio
+          cargo test --locked --workspace
+          cargo build --release --locked -p nqc-census-closeout
+          echo RMC014_FOUNDATION_PASS
+
+      - name: Read terminal authority state
+        id: lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          path = Path("ci/nqc-census/final-census-authority-lock.json")
+          doc = json.loads(path.read_text())
+          assert doc["schema_version"] == 1
+          assert doc["real_market_census_closed"] is False
+          required = [f"RMC-{n:03d}" for n in range(6, 14)]
+          assert doc["required_terminal_stages"] == required
+          status = doc["status"]
+          assert status in {"BLOCKED", "PINNED"}
+          print(f"status={status}")
+          if status == "BLOCKED":
+              blockers = doc.get("blocking_reasons", [])
+              assert blockers, "BLOCKED terminal lock must enumerate blockers"
+              print("RMC014_BLOCKED=" + ",".join(blockers))
+          else:
+              assert not doc.get("blocking_reasons"), "PINNED lock cannot retain blockers"
+              stages = doc.get("pinned_stages", [])
+              assert len(stages) == len(required)
+              assert [row["stage"] for row in stages] == required
+              print("RMC014_AUTHORITY_LOCK=PINNED")
+          PY
+
+  terminal:
+    needs: foundation
+    if: ${{ needs.foundation.outputs.authority_status == 'PINNED' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify every pinned terminal artifact identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > /tmp/rmc014-pins.tsv
+          import json
+          doc=json.load(open("ci/nqc-census/final-census-authority-lock.json"))
+          assert doc["status"] == "PINNED"
+          for row in doc["pinned_stages"]:
+              required = [
+                  "stage", "workflow_run_id", "artifact_id", "artifact_name",
+                  "artifact_digest", "code_commit", "code_tree",
+                  "authority_commitment", "coverage_commitment",
+                  "unresolved_mismatch_count", "unknown_failure_count",
+                  "blocker_count", "coverage_complete", "admitted",
+              ]
+              missing=[key for key in required if key not in row]
+              assert not missing, (row.get("stage"), missing)
+              assert row["artifact_digest"].startswith("sha256:")
+              assert row["unresolved_mismatch_count"] == 0
+              assert row["unknown_failure_count"] == 0
+              assert row["blocker_count"] == 0
+              assert row["coverage_complete"] is True
+              assert row["admitted"] is True
+              print("\t".join(str(row[key]) for key in [
+                  "stage","workflow_run_id","artifact_id","artifact_name",
+                  "artifact_digest","code_commit","code_tree",
+              ]))
+          PY
+
+          while IFS=$'\t' read -r stage run artifact_id artifact_name digest commit tree; do
+            observed_head=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)
+            observed_conclusion=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .conclusion)
+            observed_artifact_run=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .workflow_run.id)
+            observed_name=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .name)
+            observed_digest=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .digest)
+            observed_tree=$(git show -s --format=%T "$commit")
+            test "$observed_head" = "$commit"
+            test "$observed_conclusion" = success
+            test "$observed_artifact_run" = "$run"
+            test "$observed_name" = "$artifact_name"
+            test "$observed_digest" = "$digest"
+            test "$observed_tree" = "$tree"
+            echo "RMC014_STAGE_PIN_PASS stage=$stage run=$run artifact=$artifact_id head=$commit tree=$tree digest=$digest"
+          done < /tmp/rmc014-pins.tsv
+
+      - name: Terminal marker precondition
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          doc=json.load(open("ci/nqc-census/final-census-authority-lock.json"))
+          assert doc["status"] == "PINNED"
+          assert doc["real_market_census_closed"] is False, (
+              "the source lock never self-certifies closure; the generated "
+              "content-addressed certificate owns the terminal marker"
+          )
+          print("RMC014_TERMINAL_AUTHORITY_VERIFIED")
+          PY
