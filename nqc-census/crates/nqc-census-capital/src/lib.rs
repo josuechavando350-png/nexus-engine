@@ -14,6 +14,7 @@ pub mod permissionless_atomic;
 pub mod replay;
 pub mod source_authority;
 pub mod upstream;
+pub mod uniswap_v3_acquire;
 pub mod uniswap_v3_live;
 
 use nqc_census_core::{
