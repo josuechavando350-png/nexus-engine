@@ -4,10 +4,9 @@ use nqc_census_capital::{
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_economics::{
-    evaluate_scenarios, mul_div_floor, CapacityCurve, CaptureCalibration, CostComponent,
-    CostKind, EconomicsError, ExecutionCostVector, ExecutionQuote, GasValuation, PnlScenario,
-    ProbabilityWad, ProfitBucket, QuoteDecision, SignedAmount, TailRiskBound, ValuationUnitId,
-    WAD,
+    evaluate_scenarios, mul_div_floor, CapacityCurve, CaptureCalibration, CostComponent, CostKind,
+    EconomicsError, ExecutionCostVector, ExecutionQuote, GasValuation, PnlScenario, ProbabilityWad,
+    ProfitBucket, QuoteDecision, SignedAmount, TailRiskBound, ValuationUnitId, WAD,
 };
 use nqc_census_portfolio::PortfolioCandidate;
 
@@ -63,8 +62,7 @@ fn complete_costs(
 ) -> Result<ExecutionCostVector, EconomicsError> {
     let mut components = Vec::new();
     for (index, kind) in CostKind::ALL.into_iter().enumerate() {
-        let evidence_byte =
-            u8::try_from(index + 60).map_err(|_| EconomicsError::AmountOverflow)?;
+        let evidence_byte = u8::try_from(index + 60).map_err(|_| EconomicsError::AmountOverflow)?;
         let unconditional = if kind == CostKind::Gas {
             Amount256::from_u128(gas_unconditional)
         } else {
@@ -101,11 +99,7 @@ fn empirical(probability: u64) -> Result<CaptureCalibration, EconomicsError> {
     )
 }
 
-fn interval(
-    lower: u64,
-    point: u64,
-    upper: u64,
-) -> Result<CaptureCalibration, EconomicsError> {
+fn interval(lower: u64, point: u64, upper: u64) -> Result<CaptureCalibration, EconomicsError> {
     CaptureCalibration::shadow_calibrated(
         ProbabilityWad::new(lower)?,
         ProbabilityWad::new(point)?,
@@ -478,7 +472,6 @@ fn anchor_change_changes_quote_commitment() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn capture_interval_admission_uses_worst_endpoint_not_point_estimate() -> TestResult {
     let anchor = anchor(100, 10);
@@ -560,10 +553,7 @@ fn expected_cost_rounding_never_understates_one_atomic_unit() -> TestResult {
     )?;
     let report = quote.evaluate()?;
     // floor(4p)=1 while ceil(1p)=1, so conservative EV is exactly zero.
-    assert_eq!(
-        report.capture_adjusted_net,
-        Some(SignedAmount::ZERO)
-    );
+    assert_eq!(report.capture_adjusted_net, Some(SignedAmount::ZERO));
     assert_eq!(
         report.decision,
         QuoteDecision::NonPositiveCaptureAdjustedNet
