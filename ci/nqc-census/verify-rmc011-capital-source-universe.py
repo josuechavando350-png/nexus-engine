@@ -121,7 +121,7 @@ def validate_document(doc: dict) -> dict:
 
     all_resolved = not unresolved
     expected_status = (
-        "CAPITAL_SOURCE_UNIVERSE_COMPLETE"
+        "D11_TERMINAL_CLOSED"
         if all_resolved
         else "BLOCKED_INCOMPLETE_SOURCE_UNIVERSE"
     )
