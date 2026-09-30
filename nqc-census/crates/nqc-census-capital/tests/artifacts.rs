@@ -791,4 +791,3 @@ fn downstream_source_reader_reconstructs_exact_canonical_source_set() -> TestRes
     );
     Ok(())
 }
-
