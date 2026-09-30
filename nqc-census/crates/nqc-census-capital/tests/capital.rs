@@ -547,6 +547,148 @@ fn native_gas_flag_and_gas_leg_must_match_exactly() -> TestResult {
 }
 
 #[test]
+fn same_transaction_action_can_use_deadline_bound_external_gas_credit() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let gas = CapitalAsset::NativeGas;
+
+    let principal_source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(100),
+        provider_namespace: 101,
+        provider_locator_hash: hash(31),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(32)),
+        asset: token,
+        maximum_available: Amount256::from_u128(100),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::RepaymentFailure,
+        ],
+        evidence: evidence(),
+    })?;
+    let gas_credit = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::GasFunding,
+        anchor: anchor(100),
+        provider_namespace: 102,
+        provider_locator_hash: hash(33),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(34)),
+        asset: gas,
+        maximum_available: Amount256::from_u128(10),
+        fee_model: FeeModel::None,
+        repayment_asset: gas,
+        repayment: RepaymentSemantics::DeadlineBlocks(64),
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::RepaymentFailure,
+        ],
+        evidence: evidence(),
+    })?;
+
+    let required = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Gas,
+                gas,
+                Amount256::from_u128(10),
+                vec![CapitalClass::GasFunding],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                gas,
+                Amount256::from_u128(10),
+                vec![CapitalClass::GasFunding],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        true,
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &required,
+            &[principal_source, gas_credit],
+        )?,
+        CapitalFeasibility::Feasible { .. }
+    ));
+    Ok(())
+}
+
+#[test]
+fn deadline_bound_gas_credit_cannot_fund_same_transaction_action_principal() -> TestResult {
+    let gas = CapitalAsset::NativeGas;
+    let gas_credit = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::GasFunding,
+        anchor: anchor(100),
+        provider_namespace: 103,
+        provider_locator_hash: hash(35),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(36)),
+        asset: gas,
+        maximum_available: Amount256::from_u128(10),
+        fee_model: FeeModel::None,
+        repayment_asset: gas,
+        repayment: RepaymentSemantics::DeadlineBlocks(64),
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::RepaymentFailure,
+        ],
+        evidence: evidence(),
+    })?;
+
+    let required = requirement(
+        vec![CapitalRequirementLeg::new(
+            RequirementKind::ActionPrincipal,
+            gas,
+            Amount256::from_u128(10),
+            vec![CapitalClass::GasFunding],
+        )?],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(&required, &[gas_credit])?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::AtomicityMismatch,
+            failed_leg: Some(RequirementKind::ActionPrincipal),
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
 fn gas_is_independent_and_required() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let principal = CapitalRequirementLeg::new(
