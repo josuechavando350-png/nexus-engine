@@ -8,6 +8,7 @@ pub mod adapters;
 pub mod artifacts;
 pub mod balancer_live;
 pub mod demands;
+pub mod external_debt;
 pub mod gas_credit;
 pub mod gas_sponsor;
 pub mod permissionless_atomic;
