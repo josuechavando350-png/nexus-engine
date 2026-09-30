@@ -219,6 +219,25 @@ def validate_document(
         )
 
     for family_id in {
+        "COLLATERALIZED_BORROWING",
+        "PERSISTENT_DEBT",
+    }:
+        require(
+            "external_debt.rs" in by_id[family_id]["implementation"],
+            f"{family_id}: debt family must bind the canonical external debt importer",
+        )
+        require(
+            "rmc011-permissionless-debt-facility-catalog.json"
+            in by_id[family_id]["implementation"],
+            f"{family_id}: debt family must bind the permissionless facility catalog",
+        )
+        require(
+            "verify-rmc011-permissionless-debt-facility-catalog.py"
+            in by_id[family_id]["implementation"],
+            f"{family_id}: debt family must bind the facility catalog verifier",
+        )
+
+    for family_id in {
         "EXTERNAL_GAS_CREDIT",
         "EXTERNAL_GAS_SPONSOR",
         "TRANSIENT_EXTERNAL_CREDIT",
