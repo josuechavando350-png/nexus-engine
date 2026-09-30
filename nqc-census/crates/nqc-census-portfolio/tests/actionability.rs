@@ -9,8 +9,8 @@ use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_portfolio::actionability::{
     evaluate_protocol_native_flash_promotion, promote_protocol_native_flash_liquidation,
     reconstruct_protocol_native_flash_candidate, ActionabilityCoverage, ActionabilityError,
-    ActionabilityPair, ActionabilityRecord,
-    ActionabilityRejectionReason, ActionableLiquidation, LiquidationFundingScope,
+    ActionabilityPair, ActionabilityRecord, ActionabilityRejectionReason, ActionableLiquidation,
+    LiquidationFundingScope,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
