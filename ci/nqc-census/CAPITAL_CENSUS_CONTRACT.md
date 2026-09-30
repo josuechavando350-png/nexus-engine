@@ -73,6 +73,8 @@ No floating-point representation is permitted for protocol-governed integer amou
 
 ## Required candidate requirement fields
 
+The D09 borrower-demand boundary MUST preserve the exact account risk state needed by later liquidation sizing rather than only a boolean health-factor classification: user configuration, eMode category when available, all six `getUserAccountData` integers, configuration divergences, and exact supply/debt positions. For every borrower with a boolean `health_factor_below_one`, D11 MUST recompute that boolean from the preserved health-factor WAD and reject contradictions. These exact fields are included in the D09 demand coverage commitment even while liquidatability remains unclaimed.
+
 Every candidate capital requirement MUST enumerate all required funding legs, including:
 
 - liquidation / action principal
@@ -96,7 +98,7 @@ A source may be used only when:
 - the verified RMC-008 source import and RMC-009 borrower-demand import MUST each emit a deterministic consumption receipt binding their coverage commitment to the exact admitted upstream authority artifact
 - each receipt MUST also bind the exact consumed output set: sorted source IDs for RMC-008 and sorted certified requirement IDs for RMC-009, together with an exact output count; final certification MUST recompute those sets from the ledger and reject any missing, extra, substituted, or duplicated output
 - D08 source evidence MUST be deterministic: every source imported from RMC-008 binds exactly the admitted RMC-008 authority artifact, whose evidence manifest transitively binds every consumed D08 file; arbitrary caller-supplied extra evidence MUST NOT change source identity
-- real-source certification requires an external immutable authority lock for every RMC-006..RMC-010 stage (exact code commit, code tree, admitted artifact SHA-256, full block-pinned observation anchor including chain domain, block/parent hashes, timestamp and state root, zero unresolved mismatches, zero unknown failures, coverage-complete=true, admitted=true), plus replay of the exact consumed RMC-008 and RMC-009 bytes through the same deterministic importers and exact equality with the committed consumption receipts; self-asserted upstream identities, substituted anchors/admission truth, or internal consistency of a D11 artifact bundle alone are insufficient proof
+- real-source certification requires an external immutable authority lock for every RMC-006..RMC-010 stage (exact code commit, code tree, admitted artifact SHA-256, and the full block-pinned observation anchor including chain domain, block/parent hashes, timestamp, and state root), plus replay of the exact consumed RMC-008 and RMC-009 bytes through the same deterministic importers and exact equality with the committed consumption receipts; self-asserted upstream identities, substituted anchors, or internal consistency of a D11 artifact bundle alone are insufficient proof
 - merely listing an admitted RMC-008 or RMC-009 authority is insufficient: certification MUST fail if either consumed-input receipt is absent, duplicated, references the wrong stage, references a different authority artifact, does not equal the ledger output set, or cannot be reproduced from the consumed upstream bytes
 - deployment/source identity is admitted
 - the observation is pinned to the same canonical block context required by the candidate
@@ -137,8 +139,13 @@ Target deterministic artifacts:
 - `capital-census-summary.json`
 - `capital-upstream-authority.json`
 - `capital-evidence-manifest.json`
+- `capital-upstream-authority-lock.json` (archived canonical copy of the external lock used by the build)
+- `capital-real-source-closeout.json` (only after external authority locking plus exact upstream replay passes)
+- `capital-archive.sha256` (deterministic SHA-256 inventory over the seven D11 artifacts, archived external lock, and real-source closeout)
 
-Every artifact MUST include schema version, exact code commit/tree, observation anchor or block range, source provenance, and SHA-256/content-addressed evidence. `generated_at` is evidence time, not wall-clock time: it MUST equal the exact observation-anchor block timestamp and MUST carry `generated_at_basis=OBSERVATION_ANCHOR_BLOCK_TIMESTAMP`, so identical evidence and code regenerate byte-identical artifacts.
+The real-source build path MUST start from the external authority lock, reconstruct its certification context, replay RMC-008/RMC-009, build the D11 ledger, export the seven canonical D11 artifacts, regenerate the closeout from those exact bytes, and verify the closeout again before writing the archive. The certification runner MUST derive the D11 code commit and tree from the checked-out exact `HEAD`, require a clean tracked working tree, refuse a non-empty output directory, and finish by verifying the archive SHA-256 inventory. A manually assembled D11 bundle is not the certification path.
+
+Every artifact MUST include schema version, exact code commit/tree, observation anchor or block range, source provenance, and SHA-256/content-addressed evidence. `generated_at` is evidence time, not wall-clock time: it MUST equal the exact observation-anchor block timestamp and MUST carry `generated_at_basis=OBSERVATION_ANCHOR_BLOCK_TIMESTAMP`, so identical evidence and code regenerate byte-identical artifacts. The ordinary D11 bundle remains explicitly `real_source_certification=false`; only the separate closeout produced by the external-lock + exact-replay verifier may assert `real_source_certification=true`.
 
 ## Required tests
 
@@ -175,9 +182,11 @@ RMC-011 may be certified only when:
 - full rerun is deterministic
 - offline verifier passes
 - the D11 upstream authority equals the external RMC-006..RMC-010 authority lock exactly, and exact upstream-consumption replay passes for RMC-008 and RMC-009; without the external lock or consumed upstream bytes, the result remains internally consistent only and MUST NOT claim real-source certification
+- a deterministic `capital-real-source-closeout.json` is generated from that combined proof and binds the D11 capital commitment, upstream-authority commitment, external-lock commitment and SHA-256, exact observation anchor, source/requirement counts, zero-own-capital truth, RMC-008 candidate/admitted/rejected conservation counts, RMC-009 borrower/classification/blocker counts, and the exact RMC-008/RMC-009 authority-artifact, coverage, and output-set commitments reproduced by replay; archived closeout bytes MUST be re-verifiable only by regenerating them from the exact capital bundle, external lock, and consumed RMC-008/RMC-009 bytes
+- if no certified requirement is actually `FEASIBLE` (including an empty requirement set or a non-empty set containing only rejections), the real-source closeout MUST keep `zero_own_capital_proven=false` and MUST explicitly refuse any opportunity-level capital-feasibility claim
 - no downstream profitability, Shadow, Canary, or P&L claim is inferred from capital feasibility alone
 
-RMC-009 explicitly does not certify liquidatability. Therefore a fully admitted upstream run may legitimately contain zero actionable capital requirements. In that case RMC-011 MAY certify the observed capital-source census and the conserved D09 demand-import coverage with `requirement_count = 0`, but it MUST report `zero_own_capital_proven = false` and MUST NOT claim opportunity-level capital feasibility. A non-empty source census remains mandatory.
+RMC-009 explicitly does not certify liquidatability. Therefore a fully admitted upstream run may legitimately contain zero actionable capital requirements. In that case RMC-011 MAY certify the observed capital-source census and the conserved D09 demand-import coverage with `requirement_count = 0`, but it MUST report `zero_own_capital_proven = false` and MUST NOT claim opportunity-level capital feasibility. The same non-claim applies whenever `feasible_count = 0`, even if rejected requirements exist. A non-empty source census remains mandatory.
 
 Capital feasibility proves funding availability and constraints for each requirement independently. It does NOT prove that multiple individually feasible requirements can be funded concurrently from shared capital sources.
 

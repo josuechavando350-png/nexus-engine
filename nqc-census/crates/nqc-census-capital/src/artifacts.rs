@@ -134,6 +134,9 @@ pub struct CapitalArtifactVerification {
     pub rejection_count: usize,
     pub capital_commitment: String,
     pub upstream_authority_commitment: String,
+    pub generated_at: String,
+    pub observation_anchor: StateAnchor,
+    pub zero_own_capital_proven: bool,
     pub code_commit: String,
     pub code_tree: String,
 }
@@ -481,6 +484,12 @@ pub fn verify_capital_artifact_bundle(
     if json_u64(&summary, "unexplained_capital_failure_count")? != 0 {
         return Err(CapitalError::UnknownFailureMode);
     }
+    let zero_own_capital_proven = summary
+        .get("zero_own_capital_proven")
+        .and_then(Json::as_bool)
+        .ok_or(CapitalError::InvalidCanonical(
+            "summary zero-own-capital flag missing",
+        ))?;
     if summary
         .get("real_source_certification")
         .and_then(Json::as_bool)
@@ -568,6 +577,11 @@ pub fn verify_capital_artifact_bundle(
     if regenerated_certificate.commitment.to_hex() != capital_commitment {
         return Err(CapitalError::CanonicalDigestMismatch);
     }
+    if regenerated_certificate.summary.proves_zero_own_capital() != zero_own_capital_proven {
+        return Err(CapitalError::InvalidCanonical(
+            "summary zero-own-capital claim differs from regenerated certificate",
+        ));
+    }
 
     Ok(CapitalArtifactVerification {
         source_count,
@@ -577,6 +591,9 @@ pub fn verify_capital_artifact_bundle(
         rejection_count: rejected_count,
         capital_commitment,
         upstream_authority_commitment,
+        generated_at: provenance.generated_at,
+        observation_anchor: authority.observation_anchor().clone(),
+        zero_own_capital_proven,
         code_commit: provenance.code_commit,
         code_tree: provenance.code_tree,
     })

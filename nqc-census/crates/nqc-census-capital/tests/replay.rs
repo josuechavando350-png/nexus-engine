@@ -2,8 +2,10 @@ use nqc_census_capital::{
     artifacts::{export_capital_artifacts, ArtifactProvenance},
     demands::import_d09_borrower_demands,
     replay::{
-        verify_capital_bundle_with_upstream_replay_for_code, verify_upstream_consumption_by_replay,
-        D08ReplayInputs, D09ReplayInputs, UpstreamAuthorityLock, UpstreamAuthorityLockEntry,
+        verify_capital_bundle_with_upstream_replay_for_code,
+        verify_real_source_closeout_bytes_for_code, verify_real_source_closeout_for_code,
+        verify_upstream_consumption_by_replay, D08ReplayInputs, D09ReplayInputs,
+        RealSourceCloseout, UpstreamAuthorityLock, UpstreamAuthorityLockEntry,
     },
     upstream::{import_d08_capital_sources, D08CapitalImportContext},
     CapitalCensusLedger, CapitalCertificationContext, CapitalEvidenceRef, GitObjectId,
@@ -397,32 +399,143 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     let provenance = ArtifactProvenance::new("2023-11-14T22:13:20Z", CODE_COMMIT, CODE_TREE)?;
     let bundle = export_capital_artifacts(&ledger, &context, &provenance)?;
     let lock = authority_lock(&context)?;
+    let d08_replay = D08ReplayInputs {
+        state_manifest_jsonl: &d08_states,
+        token_admission_jsonl: &d08_tokens,
+        pool_and_factory_facts_json: &d08_facts,
+        evidence_manifest_json: &d08_manifest,
+    };
+    let d09_replay = D09ReplayInputs {
+        account_manifest_jsonl: &d09_accounts,
+        account_summary_json: &d09_summary,
+        evidence_manifest_json: &d09_manifest,
+    };
     let verified = verify_capital_bundle_with_upstream_replay_for_code(
         &bundle,
         CODE_COMMIT,
         CODE_TREE,
         &lock,
-        D08ReplayInputs {
-            state_manifest_jsonl: &d08_states,
-            token_admission_jsonl: &d08_tokens,
-            pool_and_factory_facts_json: &d08_facts,
-            evidence_manifest_json: &d08_manifest,
-        },
-        D09ReplayInputs {
-            account_manifest_jsonl: &d09_accounts,
-            account_summary_json: &d09_summary,
-            evidence_manifest_json: &d09_manifest,
-        },
+        d08_replay,
+        d09_replay,
     )?;
     assert_eq!(verified.capital.source_count, 1);
     assert_eq!(verified.capital.requirement_count, 0);
+    assert_eq!(verified.upstream.d08_candidate_count, 1);
     assert_eq!(verified.upstream.d08_source_count, 1);
+    assert_eq!(verified.upstream.d08_rejected_count, 0);
+    assert_eq!(verified.upstream.d09_borrower_count, 0);
+    assert_eq!(verified.upstream.d09_blocked_count, 0);
     assert_eq!(verified.upstream.d09_requirement_count, 0);
     assert_eq!(
         verified.upstream_authority_lock_commitment,
         lock.commitment()
     );
+
+    let closeout = verify_real_source_closeout_for_code(
+        &bundle,
+        CODE_COMMIT,
+        CODE_TREE,
+        &lock,
+        d08_replay,
+        d09_replay,
+    )?;
+    let first = closeout.canonical_json()?;
+    let second = verify_real_source_closeout_for_code(
+        &bundle,
+        CODE_COMMIT,
+        CODE_TREE,
+        &lock,
+        d08_replay,
+        d09_replay,
+    )?
+    .canonical_json()?;
+    assert_eq!(first, second);
+    let closeout_text = std::str::from_utf8(&first)?;
+    assert!(closeout_text.contains("\"status\":\"RMC_011_REAL_SOURCE_CLOSEOUT_PASS\""));
+    assert!(closeout_text.contains("\"real_source_certification\":true"));
+    assert!(closeout_text.contains("\"zero_own_capital_proven\":false"));
+    assert!(closeout_text.contains("\"opportunity_level_capital_feasibility_claimed\":false"));
+    assert!(closeout_text.contains("\"d08_candidate_count\":1"));
+    assert!(closeout_text.contains("\"d08_rejected_count\":0"));
+    assert!(closeout_text.contains("\"d09_borrower_count\":0"));
+    assert!(closeout_text.contains("\"d09_blocked_count\":0"));
+    assert!(closeout_text.contains("\"d08_authority_artifact_sha256\""));
+    assert!(closeout_text.contains("\"d08_coverage_commitment\""));
+    assert!(closeout_text.contains("\"d08_output_set_commitment\""));
+    assert!(closeout_text.contains("\"d09_authority_artifact_sha256\""));
+    assert!(closeout_text.contains("\"d09_coverage_commitment\""));
+    assert!(closeout_text.contains("\"d09_output_set_commitment\""));
+    assert!(closeout_text.contains("\"profitability_claimed\":false"));
+
+    verify_real_source_closeout_bytes_for_code(
+        &first,
+        &bundle,
+        CODE_COMMIT,
+        CODE_TREE,
+        &lock,
+        d08_replay,
+        d09_replay,
+    )?;
+    let mut tampered = first;
+    let index = tampered
+        .iter()
+        .position(|byte| *byte == b'P')
+        .ok_or("closeout fixture has no mutable byte")?;
+    tampered[index] = b'F';
+    assert!(verify_real_source_closeout_bytes_for_code(
+        &tampered,
+        &bundle,
+        CODE_COMMIT,
+        CODE_TREE,
+        &lock,
+        d08_replay,
+        d09_replay,
+    )
+    .is_err());
     Ok(())
+}
+
+#[test]
+fn closeout_opportunity_claim_requires_at_least_one_feasible_requirement() {
+    let rejected_only = RealSourceCloseout {
+        generated_at: "2023-11-14T22:13:20Z".to_owned(),
+        observation_anchor: anchor(),
+        code_commit: "7777777777777777777777777777777777777777".to_owned(),
+        code_tree: "8888888888888888888888888888888888888888".to_owned(),
+        source_count: 1,
+        requirement_count: 1,
+        feasible_count: 0,
+        rejected_count: 1,
+        d08_candidate_count: 1,
+        d08_source_count: 1,
+        d08_rejected_count: 0,
+        d09_borrower_count: 1,
+        d09_below_one_count: 1,
+        d09_not_below_one_count: 0,
+        d09_unavailable_count: 0,
+        d09_blocked_count: 1,
+        d09_requirement_count: 1,
+        d08_authority_artifact_sha256: hash(24),
+        d08_coverage_commitment: hash(25),
+        d08_output_set_commitment: hash(26),
+        d09_authority_artifact_sha256: hash(27),
+        d09_coverage_commitment: hash(28),
+        d09_output_set_commitment: hash(29),
+        zero_own_capital_proven: false,
+        capital_commitment: hash(30).to_hex(),
+        upstream_authority_commitment: hash(31).to_hex(),
+        upstream_authority_lock_commitment: hash(32),
+        upstream_authority_lock_sha256: hash(33),
+        closeout_commitment: hash(34),
+    };
+    assert!(!rejected_only.opportunity_level_capital_feasibility_claimed());
+
+    let mut one_feasible = rejected_only;
+    one_feasible.requirement_count = 2;
+    one_feasible.feasible_count = 1;
+    one_feasible.rejected_count = 1;
+    one_feasible.d09_requirement_count = 2;
+    assert!(one_feasible.opportunity_level_capital_feasibility_claimed());
 }
 
 #[test]
@@ -432,6 +545,11 @@ fn authority_lock_roundtrips_canonically_and_rejects_unconsumed_stage_substituti
     let bytes = lock.canonical_json()?;
     let decoded = UpstreamAuthorityLock::parse_json(&bytes)?;
     assert_eq!(decoded, lock);
+
+    let rebuilt_context = decoded
+        .certification_context()?
+        .with_consumption_receipts(fixture.context.consumption_receipts().copied().collect())?;
+    assert_eq!(rebuilt_context, fixture.context);
 
     let text = String::from_utf8(bytes.clone())?;
     let with_unknown_field = text.replacen("{", "{\"ignored\":1,", 1).into_bytes();

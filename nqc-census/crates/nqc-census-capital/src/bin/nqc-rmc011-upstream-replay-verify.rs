@@ -5,7 +5,7 @@ use nqc_census_capital::{
         CAPITAL_SOURCES_FILE, CAPITAL_SUMMARY_FILE, CAPITAL_UPSTREAM_AUTHORITY_FILE,
     },
     replay::{
-        verify_capital_bundle_with_upstream_replay_for_code, D08ReplayInputs, D09ReplayInputs,
+        verify_real_source_closeout_for_code, D08ReplayInputs, D09ReplayInputs,
         UpstreamAuthorityLock,
     },
 };
@@ -27,22 +27,24 @@ struct Args {
     d08_dir: PathBuf,
     d09_dir: PathBuf,
     authority_lock: PathBuf,
+    closeout_path: PathBuf,
     expected_code_commit: String,
     expected_code_tree: String,
 }
 
 fn parse_args() -> Result<Args, Box<dyn Error>> {
     let args = env::args().skip(1).collect::<Vec<_>>();
-    if args.len() != 12
+    if args.len() != 14
         || args[0] != "--capital-dir"
         || args[2] != "--d08-dir"
         || args[4] != "--d09-dir"
         || args[6] != "--authority-lock"
-        || args[8] != "--expected-code-commit"
-        || args[10] != "--expected-code-tree"
+        || args[8] != "--closeout"
+        || args[10] != "--expected-code-commit"
+        || args[12] != "--expected-code-tree"
     {
         return Err(
-            "usage: nqc-rmc011-upstream-replay-verify --capital-dir <dir> --d08-dir <dir> --d09-dir <dir> --authority-lock <json> --expected-code-commit <sha> --expected-code-tree <sha>"
+            "usage: nqc-rmc011-upstream-replay-verify --capital-dir <dir> --d08-dir <dir> --d09-dir <dir> --authority-lock <json> --closeout <json> --expected-code-commit <sha> --expected-code-tree <sha>"
                 .into(),
         );
     }
@@ -51,8 +53,9 @@ fn parse_args() -> Result<Args, Box<dyn Error>> {
         d08_dir: PathBuf::from(&args[3]),
         d09_dir: PathBuf::from(&args[5]),
         authority_lock: PathBuf::from(&args[7]),
-        expected_code_commit: args[9].clone(),
-        expected_code_tree: args[11].clone(),
+        closeout_path: PathBuf::from(&args[9]),
+        expected_code_commit: args[11].clone(),
+        expected_code_tree: args[13].clone(),
     })
 }
 
@@ -86,7 +89,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let d09_manifest = fs::read(args.d09_dir.join("evidence-manifest.json"))?;
     let authority_lock = UpstreamAuthorityLock::parse_json(&fs::read(&args.authority_lock)?)?;
 
-    let verified = verify_capital_bundle_with_upstream_replay_for_code(
+    let closeout = verify_real_source_closeout_for_code(
         &bundle,
         &args.expected_code_commit,
         &args.expected_code_tree,
@@ -104,15 +107,34 @@ fn main() -> Result<(), Box<dyn Error>> {
         },
     )?;
 
+    let closeout_bytes = closeout.canonical_json()?;
+    fs::write(&args.closeout_path, &closeout_bytes)?;
+    let closeout_sha256 = sha256(&closeout_bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+
     println!(
-        "RMC_011_UPSTREAM_REPLAY_VERIFY=PASS sources={} requirements={} d08_sources={} d09_requirements={} capital_commitment={} upstream_authority_commitment={} upstream_authority_lock_commitment={}",
-        verified.capital.source_count,
-        verified.capital.requirement_count,
-        verified.upstream.d08_source_count,
-        verified.upstream.d09_requirement_count,
-        verified.capital.capital_commitment,
-        verified.capital.upstream_authority_commitment,
-        verified.upstream_authority_lock_commitment.to_hex(),
+        "RMC_011_REAL_SOURCE_CLOSEOUT=PASS sources={} requirements={} feasible={} rejected={} d08_candidates={} d08_admitted={} d08_rejected={} d09_borrowers={} d09_below_one={} d09_blocked={} d09_requirements={} zero_own_capital_proven={} capital_commitment={} upstream_authority_commitment={} upstream_authority_lock_commitment={} upstream_authority_lock_sha256={} closeout_commitment={} closeout_sha256={} closeout_path={}",
+        closeout.source_count,
+        closeout.requirement_count,
+        closeout.feasible_count,
+        closeout.rejected_count,
+        closeout.d08_candidate_count,
+        closeout.d08_source_count,
+        closeout.d08_rejected_count,
+        closeout.d09_borrower_count,
+        closeout.d09_below_one_count,
+        closeout.d09_blocked_count,
+        closeout.d09_requirement_count,
+        closeout.zero_own_capital_proven,
+        closeout.capital_commitment,
+        closeout.upstream_authority_commitment,
+        closeout.upstream_authority_lock_commitment.to_hex(),
+        closeout.upstream_authority_lock_sha256.to_hex(),
+        closeout.closeout_commitment.to_hex(),
+        closeout_sha256,
+        args.closeout_path.display(),
     );
     Ok(())
 }
