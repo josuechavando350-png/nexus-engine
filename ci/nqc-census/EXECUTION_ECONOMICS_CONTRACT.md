@@ -15,8 +15,8 @@ prediction to the exact StateAnchor and chain domain, RMC-012 candidate id,
 underlying opportunity id, execution-plan commitment, economics-model
 commitment, evidence digests, and one common valuation unit.
 
-The output must distinguish gross value, success-path costs, loss-path costs,
-capture probability, tail reserve and final expected value.
+The output must distinguish gross value, cost incidence, capture uncertainty,
+tail reserve and final expected value.
 
 ## Exact arithmetic
 
@@ -29,60 +29,110 @@ final uint256 value overflows.
 Gas valuation uses floor(gas_used * effective_gas_price_wei *
 native_usd_wad / 1e18) with exact integer arithmetic.
 
-## Success-path cost vector
+## Complete cost taxonomy and incidence
 
-The success-path vector includes independent fields for protocol fee, capital
-fee, swap fee, price impact, gas, priority fee, builder payment, financing,
-hedging, inventory, opportunity cost, MEV and other chain-specific cost.
+Every quote carries exactly one evidence-bound component for each mandatory
+cost category:
 
-Conditional loss/revert cost is NOT hidden in that vector. It is represented
-separately as failure_cost_if_lost, preventing double counting.
+- protocol fee;
+- capital fee;
+- swap fee;
+- price impact;
+- gas;
+- priority fee;
+- builder payment;
+- financing;
+- hedging;
+- inventory;
+- expected failure/revert;
+- opportunity cost;
+- MEV;
+- chain-specific cost.
 
-## Expected realized EV
+A category may be zero, but it may not be omitted.
 
-Let S = gross_value - success_costs, p = point capture probability, and L =
-loss cost conditional on not capturing.
+Each category separately records:
 
-expected_realized_ev = p * S - (1 - p) * L
+- unconditional cost;
+- cost conditional on capture;
+- cost conditional on failure/non-capture;
+- evidence commitment.
 
-Probability scaling is integer-exact and rounded down.
+This is required because p * (gross - all costs) is generally wrong.
+For capture probability p, RMC-013 computes:
 
-A quote with negative success net is retained as evidence but cannot pass a
-positive-success admission gate.
+    expected value =
+      p * gross
+      - unconditional_costs
+      - p * capture_only_costs
+      - (1-p) * failure_only_costs
+
+No cost is silently moved between incidences to improve reported EV.
 
 ## Capture calibration
 
 A capture estimate is an ordered interval (lower, point, upper) plus one of:
 
-- PriorOnly: allowed for ex-ante Shadow predictions, but never a certified
-  capture-rate claim.
-- ShadowCalibrated: requires non-zero empirical sample count and a calibration
-  commitment.
+- PriorOnly: permitted for ex-ante Shadow prediction, never for certified
+  capture profitability;
+- ShadowCalibrated: requires a non-zero empirical sample count plus explicit
+  observation-window, model and calibration commitments.
 
-certified_expected_realized_ev MUST fail closed unless capture evidence is
+certified_expected_realized_ev fails closed unless capture evidence is
 Shadow-calibrated.
 
-This prevents invented capture probabilities from becoming profitability
-claims.
+The conservative interval bound evaluates both probability endpoints. Expected
+value is affine in capture probability, so the minimum over an interval occurs
+at an endpoint; RMC-013 MUST NOT assume that lower capture probability is always
+the worse endpoint.
 
 ## Tail risk
 
-Every quote carries an explicit tail-risk bound: confidence, loss at that
-confidence, absolute maximum modeled loss and explicit reserve.
+Every quote carries an explicit tail-risk bound:
 
-tail_adjusted_ev = expected_realized_ev - reserve.
+- confidence;
+- loss at that confidence;
+- absolute maximum modeled loss;
+- explicit reserve.
 
-The reserve is evidence/model input, not an implicit hidden risk coefficient.
-Loss-at-confidence and reserve may not exceed the declared absolute maximum.
+The reserve is evidence/model input, not a hidden coefficient.
+Loss-at-confidence and reserve may not exceed the absolute maximum.
+
+The default admission value is the conservative capture-interval lower bound
+minus the explicit tail reserve.
+
+## Scenario risk
+
+RMC-013 also supports explicit discrete P&L scenarios.
+
+- scenario probabilities must sum exactly to 1e9;
+- every scenario has an id and evidence commitment;
+- expected P&L uses exact signed probability weighting;
+- worst-case P&L is preserved;
+- loss probability is explicit.
+
+The engine does not fabricate scenarios or a distribution to satisfy a target.
+Shadow may replace prior scenarios with empirical distributions and later add
+richer CVaR/quantile estimators.
 
 ## Capacity curves
 
-A capacity curve is an ordered set of trade-size points for one opportunity,
-anchor, valuation unit and economics model.
+A capacity curve is an ordered set of trade-size points for exactly one:
 
-Trade sizes must be strictly increasing. RMC-013 selects the best positive
+- RMC-012 candidate id;
+- opportunity id;
+- StateAnchor;
+- valuation unit;
+- execution-plan commitment;
+- economics-model commitment.
+
+Trade size is included in the quote commitment itself. A curve point whose
+external size differs from the committed quote size is rejected.
+
+Trade sizes must be strictly increasing. No interpolation or extrapolation is
+treated as evidence. RMC-013 selects the best positive conservative
 tail-adjusted point by value, not the largest nominal trade, and reports the
-largest size that remains positive.
+largest observed size that remains positive.
 
 This prevents linear extrapolation of P&L through slippage, capital, gas or MEV
 capacity limits.
@@ -93,12 +143,12 @@ RMC-012 candidate identity is distinct from capital-requirement identity.
 RMC-013 therefore supports multiple routes, venues and execution plans for the
 same capital requirement without treating them as the same candidate.
 
-Mutually exclusive variants remain constrained by RMC-012 shared-resource
-claims.
+A single capacity curve may not mix those variants.
 
 ## Profit buckets
 
-Profit buckets are calculated only for USD-WAD normalized tail-adjusted EV:
+Profit buckets are calculated only for USD-WAD normalized conservative
+tail-adjusted EV:
 
 - $0–$1
 - $1–$3
@@ -112,6 +162,18 @@ Profit buckets are calculated only for USD-WAD normalized tail-adjusted EV:
 
 Asset-denominated values cannot be silently compared across markets or chains.
 
+## Fail-closed decision boundary
+
+A quote is classified as exactly one of:
+
+- NonPositiveSuccessNet;
+- CaptureUncalibrated;
+- NonPositiveTailAdjustedNet;
+- Admitted.
+
+The target $1,500–$3,000/day or $45,000/month is never used to alter a cost,
+capture estimate, tail reserve or decision.
+
 ## Multichain invariant
 
 The exact StateAnchor includes chain identity. Economics is not allowed to
@@ -124,18 +186,22 @@ economic arithmetic.
 
 ## Shadow handoff
 
-RMC-013 must be able to emit deterministic ex-ante predictions before the
-outcome is known. Shadow Execution later binds those prediction commitments to
-the observed winning transaction, route, gas and fees, inclusion latency,
-competitor outcome, capture result, net value and prediction error.
+RMC-013 emits deterministic ex-ante commitments before the outcome is known.
+Each commitment binds candidate, opportunity, anchor, trade size, valuation
+unit, gross value, every cost component and incidence, capture interval and
+calibration state, tail bound, execution plan, model and evidence.
+
+Shadow Execution later binds that commitment to the observed winning
+transaction, route, gas and fees, inclusion latency, competitor outcome,
+capture result, net value and prediction error.
 
 No hindsight-derived opportunity may be presented as an ex-ante prediction.
 
 ## Non-claims
 
-RMC-013 does not prove realized P&L, live transaction inclusion, a particular
-monthly income, that $1,500–$3,000/day exists, or that
-P(monthly net P&L >= $45,000) >= 0.90.
+RMC-013 does not prove realized P&L, live transaction inclusion, future
+stationarity of capture probability, a particular monthly income, that
+$1,500–$3,000/day exists, or that P(monthly net P&L >= $45,000) >= 0.90.
 
 Those are empirical targets to falsify with Shadow, Canary and real P&L
 evidence.
