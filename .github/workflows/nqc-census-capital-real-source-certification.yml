@@ -427,6 +427,55 @@ jobs:
           test "$(jq -r '.source_count' "$ROOT/reconciled-rust.json")" -gt 0
           echo "RMC011_BALANCER_V2_LIVE_ACQUISITION=PASS sources=$(jq -r '.source_count' "$ROOT/reconciled-rust.json")"
 
+      - name: Acquire and reconcile exact Uniswap V3 flash capital
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-uniswap-v3"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+
+          for provider in blastapi-public mevblocker-rpc; do
+            store="$ROOT/store-$provider"
+            capture="$ROOT/capture-$provider.json"
+            (
+              cd nqc-census
+              target/release/nqc-rmc011-uniswap-v3-capture \
+                --providers ../ci/nqc-census/rpc-providers.json \
+                --label "$provider" \
+                --store "$store" \
+                --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
+                --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
+                --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
+                --authority-lock "$AUTHORITY_LOCK" \
+                --deployment ../ci/nqc-census/rmc011-uniswap-v3-deployment.json \
+                --out "$capture"
+            )
+            (
+              cd nqc-census
+              target/release/nqc-census-store-verify --store "$store" \
+                | tee "$ROOT/store-$provider-verify.log"
+            )
+            grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$ROOT/store-$provider-verify.log"
+            test -s "$capture"
+          done
+
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-uniswap-v3-reconcile \
+              --first "$ROOT/capture-blastapi-public.json" \
+              --second "$ROOT/capture-mevblocker-rpc.json" \
+              --out "$ROOT/reconciled-rust.json"
+          ) | tee "$ROOT/reconcile-rust.log"
+          grep -F "RMC011_UNISWAP_V3_RUST_RECONCILE_PASS" "$ROOT/reconcile-rust.log"
+
+          test "$(jq -r '.status' "$ROOT/reconciled-rust.json")" = "RMC011_UNISWAP_V3_DUAL_PROVIDER_RECONCILED"
+          test "$(jq -r '.provider_count' "$ROOT/reconciled-rust.json")" = "2"
+          test "$(jq -r '.source_count' "$ROOT/reconciled-rust.json")" -gt 0
+          test "$(jq -r '.first_capture_sha256' "$ROOT/reconciled-rust.json")" != "$(jq -r '.second_capture_sha256' "$ROOT/reconciled-rust.json")"
+
+          echo "RMC011_UNISWAP_V3_LIVE_ACQUISITION=PASS sources=$(jq -r '.source_count' "$ROOT/reconciled-rust.json")"
+
       - name: Run authoritative D11 real-source closeout
         shell: bash
         run: |
@@ -530,6 +579,10 @@ jobs:
           test -d "$RUNNER_TEMP/rmc011-balancer-v2"
           mkdir -p "$PACKAGE/permissionless/balancer-v2"
           cp -a "$RUNNER_TEMP/rmc011-balancer-v2/." "$PACKAGE/permissionless/balancer-v2/"
+          test -d "$RUNNER_TEMP/rmc011-uniswap-v3"
+          mkdir -p "$PACKAGE/permissionless/uniswap-v3"
+          cp -a "$RUNNER_TEMP/rmc011-uniswap-v3/." "$PACKAGE/permissionless/uniswap-v3/"
+          cp -- ci/nqc-census/rmc011-uniswap-v3-deployment.json "$PACKAGE/rmc011-uniswap-v3-deployment.json"
           for stage in d06 d07 d08 d09 d10; do
             test -d "$RUNNER_TEMP/$stage-raw"
             cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
