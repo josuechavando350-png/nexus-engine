@@ -13,6 +13,7 @@ pub mod gas_sponsor;
 pub mod permissionless_atomic;
 pub mod replay;
 pub mod source_authority;
+pub mod transient_credit;
 pub mod upstream;
 pub mod uniswap_v3_acquire;
 pub mod uniswap_v3_live;
