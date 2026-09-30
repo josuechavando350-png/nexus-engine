@@ -35,7 +35,8 @@ jobs:
         run: |
           set -euo pipefail
           grep -F 'RMC-012 — Portfolio Capacity and Conflict Contract' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
-          grep -F 'isolated feasibility is not portfolio feasibility' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          grep -F 'RMC-012 exists because isolated' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          grep -F 'feasibility is not portfolio feasibility.' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
           grep -F 'Chain identity is part of every shared-resource key' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
 
       - name: Verify no execution or network authority
