@@ -13,6 +13,9 @@ on:
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
+      - "ci/nqc-census/verify-rmc011-balancer-v2-capture.py"
+      - "ci/nqc-census/test_verify_rmc011-balancer-v2-capture.py"
+      - "ci/nqc-census/rpc-providers.json"
       - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
       - "ci/nqc-census/rmc011-real-source-inputs.json"
       - "ci/nqc-census/rmc011-authority-lock.json"
@@ -35,6 +38,9 @@ on:
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
+      - "ci/nqc-census/verify-rmc011-balancer-v2-capture.py"
+      - "ci/nqc-census/test_verify_rmc011-balancer-v2-capture.py"
+      - "ci/nqc-census/rpc-providers.json"
       - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
       - "ci/nqc-census/rmc011-real-source-inputs.json"
       - "ci/nqc-census/rmc011-authority-lock.json"
@@ -83,6 +89,8 @@ jobs:
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
           python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-balancer-v2-capture.py ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py
+          python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
           jq -e '
             .claim_scope == "SOURCE_UNIVERSE_READINESS_ONLY" and
             .d11_terminal_closed == false and
@@ -152,6 +160,8 @@ jobs:
           cargo fmt --all -- --check
           cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
           cargo test --locked -p nqc-census-capital
+          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-balancer-v2-capture --bin nqc-rmc011-balancer-v2-reconcile
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
           cargo build --release --locked -p nqc-census-capital
 
       - name: Verify exact source-universe boundary
@@ -362,6 +372,59 @@ jobs:
           test -f "$RUNNER_TEMP/d09/account-summary.json"
           test -f "$RUNNER_TEMP/d09/evidence-manifest.json"
 
+      - name: Acquire and reconcile exact Balancer V2 flash capital
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-balancer-v2"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+
+          for provider in blastapi-public mevblocker-rpc; do
+            store="$ROOT/store-$provider"
+            capture="$ROOT/capture-$provider.json"
+            (
+              cd nqc-census
+              target/release/nqc-rmc011-balancer-v2-capture \
+                --providers ../ci/nqc-census/rpc-providers.json \
+                --label "$provider" \
+                --store "$store" \
+                --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
+                --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
+                --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
+                --authority-lock "$AUTHORITY_LOCK" \
+                --out "$capture"
+            )
+            (
+              cd nqc-census
+              target/release/nqc-census-store-verify --store "$store" \
+                | tee "$ROOT/store-$provider-verify.log"
+            )
+            grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$ROOT/store-$provider-verify.log"
+            test -s "$capture"
+          done
+
+          python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
+          python3 ci/nqc-census/verify-rmc011-balancer-v2-capture.py \
+            "$ROOT/capture-blastapi-public.json" \
+            "$ROOT/capture-mevblocker-rpc.json" \
+            "$ROOT/reconciled-python.json" \
+            | tee "$ROOT/reconcile-python.log"
+          grep -F "RMC011_BALANCER_V2_CAPTURE_PASS" "$ROOT/reconcile-python.log"
+
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-balancer-v2-reconcile \
+              --first "$ROOT/capture-blastapi-public.json" \
+              --second "$ROOT/capture-mevblocker-rpc.json" \
+              --out "$ROOT/reconciled-rust.json"
+          ) | tee "$ROOT/reconcile-rust.log"
+          grep -F "RMC011_BALANCER_V2_RUST_RECONCILE_PASS" "$ROOT/reconcile-rust.log"
+
+          test "$(jq -r '.status' "$ROOT/reconciled-rust.json")" = "RMC011_BALANCER_V2_DUAL_PROVIDER_RECONCILED"
+          test "$(jq -r '.source_count' "$ROOT/reconciled-rust.json")" -gt 0
+          echo "RMC011_BALANCER_V2_LIVE_ACQUISITION=PASS sources=$(jq -r '.source_count' "$ROOT/reconciled-rust.json")"
+
       - name: Run authoritative D11 real-source closeout
         shell: bash
         run: |
@@ -413,6 +476,9 @@ jobs:
           cp -- "$INPUTS" "$PACKAGE/rmc011-real-source-inputs.json"
           cp -- "$AUTHORITY_LOCK" "$PACKAGE/rmc011-authority-lock.json"
           cp -- ci/nqc-census/rmc011-capital-source-universe.json "$PACKAGE/rmc011-capital-source-universe.json"
+          test -d "$RUNNER_TEMP/rmc011-balancer-v2"
+          mkdir -p "$PACKAGE/permissionless/balancer-v2"
+          cp -a "$RUNNER_TEMP/rmc011-balancer-v2/." "$PACKAGE/permissionless/balancer-v2/"
           for stage in d06 d07 d08 d09 d10; do
             test -d "$RUNNER_TEMP/$stage-raw"
             cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
