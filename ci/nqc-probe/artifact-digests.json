@@ -1,6 +1,6 @@
 {
   "purpose": "RMC-007 certified closeout: file digests to pin into RMC-008 state inputs",
-  "run_id": 36673249129,
-  "artifact": "nqc-rmc007-closeout-7e223cc5f89374f5542ca862d2322201b46d1fc8-36673249129-1",
-  "artifact_digest": "sha256:dd4641b2f1437dc4d72e08b71d25ed42ba9245fdb8a31e900a2233c7160b1c66"
+  "run_id": 36627517591,
+  "artifact": "nqc-rmc006-evidence-25437474-a33a012591cd6625ddb921d995bb1bd95b4a5406-36627517591-1",
+  "artifact_digest": "sha256:5f9a9bbd2182d9d65e22ad9b25f94abd5152baef7d1c2d559bda4e5a77433b03"
 }
