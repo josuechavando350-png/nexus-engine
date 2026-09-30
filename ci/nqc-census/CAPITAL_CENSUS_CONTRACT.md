@@ -121,7 +121,7 @@ A source may be used only when:
 - executable capacity, not merely observed capacity, is sufficient at the requested size
 - no execution blocker remains on any allocated source
 - fee/cap semantics are explicit
-- repayment can be satisfied under the candidate's execution semantics
+- repayment semantics, asset, deadline and exact source-derived settlement obligations are structurally compatible with the candidate declaration; RMC-011 does **not** prove that execution output cash-flow will contain enough of the repayment asset to satisfy those obligations
 - exact repayment and funding-fee settlement obligations derived from the actual source allocations equal the declared settlement legs before the candidate may be labeled `FEASIBLE`
 - settlement legs must authorize the actual capital-source classes that generated those obligations, and the declared settlement amounts must be exactly assignable across those authorized classes; matching only aggregate kind, asset, and amount is insufficient
 - atomicity/collateral requirements are compatible
@@ -143,6 +143,23 @@ Feasibility MUST fail closed on:
 - non-atomic requirement where atomicity is required
 - persistent-debt solvency model absent
 - unclassified capital failure
+
+## Repayment truth boundary
+
+Capital feasibility in RMC-011 is **source-side funding feasibility**, not a proof of post-execution cash-flow.
+
+D11 proves that:
+- principal and other pre-execution funding legs can be allocated from eligible external sources under exact capacities/terms;
+- every allocation's repayment principal and funding fee are derived exactly;
+- the requirement declares exactly matching settlement obligations with compatible source-class provenance.
+
+D11 does not yet prove that seized collateral, swap proceeds, arbitrage output, or any other execution result will actually produce enough of the repayment asset at the required deadline. That requires exact execution/routing simulation downstream.
+
+Therefore the authoritative real-source closeout MUST carry:
+- `repayment_cashflow_sufficiency_claimed = false`;
+- non-claim `REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED`.
+
+No downstream stage may interpret D11 `FEASIBLE` alone as proof that a transaction can settle successfully end-to-end.
 
 ## Outputs
 
