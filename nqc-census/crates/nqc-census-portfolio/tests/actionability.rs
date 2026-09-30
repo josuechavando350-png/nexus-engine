@@ -398,4 +398,3 @@ fn operator_owned_aave_liquidity_cannot_satisfy_zero_own_capital_policy() -> Tes
     ));
     Ok(())
 }
-
