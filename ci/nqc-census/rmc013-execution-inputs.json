@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED_AWAITING_CERTIFIED_RMC012",
+  "repository": "josuechavando350-png/nexus-engine",
+  "d12": null,
+  "pft": {
+    "certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
+    "certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853",
+    "aave_flash_premium_compatibility_id": "PFT-COMPAT-009"
+  },
+  "providers": [
+    {
+      "provider_id": "blastapi-public",
+      "rpc_url": "https://eth-mainnet.public.blastapi.io"
+    },
+    {
+      "provider_id": "mevblocker-rpc",
+      "rpc_url": "https://rpc.mevblocker.io"
+    }
+  ],
+  "route_policy": {
+    "venue_family": "UNISWAP_V2",
+    "max_hops": 3,
+    "keep_routes_per_candidate": 8,
+    "discovery": "EXHAUSTIVE_SIMPLE_PATHS_OVER_EXACT_RMC008_STATE"
+  },
+  "blocking_reasons": [
+    "RMC012_TERMINAL_ACTIONABILITY_ARTIFACT_NOT_PINNED"
+  ],
+  "notes": [
+    "This file may become PINNED only to one successful immutable RMC-012 terminal actionability artifact.",
+    "The producer performs fork-local counterfactual transactions only; it has no live signing or broadcast authority.",
+    "Capture probability remains UNCALIBRATED and realized live P&L remains false."
+  ]
+}

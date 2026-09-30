@@ -104,11 +104,15 @@ For the Aave V3 protocol-native flash path, the promotion MUST bind:
 - only `PROTOCOL_NATIVE_FLASH_LOAN` as an allowed class;
 - the PFT market/account commitments as capital evidence.
 
-The premium semantics are provider-specific. Feasibility MUST be recomputed
-only against the exact Aave V3 Pool authenticated by RMC-008/D11, with the
-matching debt asset, provider namespace, source contract, repayment semantics,
-StateAnchor and canonical D11 source state. A different flash provider is not
-interchangeable merely because it has the same capital class.
+The premium semantics are provider-specific. For the Aave V3 Pool, premium
+rounding MUST follow certified PFT-COMPAT-009: positive fractional basis-point
+fees use integer ceiling, never half-up. The exact measured witnesses
+`83,727,306,811 @ 5 bps -> 41,863,654` and
+`186,298,226 @ 5 bps -> 93,150` are terminal regressions. Feasibility MUST be
+recomputed only against the exact Aave V3 Pool authenticated by RMC-008/D11,
+with the matching debt asset, provider namespace, source contract, repayment
+semantics, StateAnchor and canonical D11 source state. A different flash
+provider is not interchangeable merely because it has the same capital class.
 
 This promotion has scope
 `PRINCIPAL_AND_FLASH_SETTLEMENT_ONLY_GAS_UNCERTIFIED`. It MUST set

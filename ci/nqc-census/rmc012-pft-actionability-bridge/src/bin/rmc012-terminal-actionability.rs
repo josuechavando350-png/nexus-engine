@@ -22,9 +22,10 @@ use nqc_census_portfolio::{
     evaluate_portfolio, ConflictResource,
 };
 use nqc_rmc012_pft_actionability_bridge::{
-    classify_pair, PairDecision, PairInput, PairRejection, PFT_CERTIFIED_COMMIT, PFT_CERTIFIED_TREE,
+    aave_flash_premium_ceil, classify_pair, PairDecision, PairInput, PairRejection,
+    PFT_CERTIFIED_COMMIT, PFT_CERTIFIED_TREE,
 };
-use pft_nqc_core::{checked_add, mul_div_ceil, mul_div_floor, percent_mul_half_up, wad};
+use pft_nqc_core::{checked_add, mul_div_ceil, mul_div_floor, wad};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{
@@ -267,7 +268,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 match classify_pair(input)? {
                     PairDecision::Admitted(sized) => {
                         let premium =
-                            percent_mul_half_up(sized.debt_to_liquidate, flash_premium_bps)?;
+                            aave_flash_premium_ceil(sized.debt_to_liquidate, flash_premium_bps)?;
                         let repayment = checked_add(sized.debt_to_liquidate, premium)?;
                         let collateral_value = mul_div_floor(
                             sized.collateral_to_liquidator,

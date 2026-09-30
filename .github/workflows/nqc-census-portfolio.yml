@@ -41,7 +41,17 @@ jobs:
           grep -F 'Chain identity is part of every shared-resource key' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
           grep -F '"pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf"' ci/nqc-census/rmc012-pft-actionability-bridge/PFT_BINDING.json
           grep -F '"pft_certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853"' ci/nqc-census/rmc012-pft-actionability-bridge/PFT_BINDING.json
+          jq -e '
+            .flash_premium_semantics.compatibility_id == "PFT-COMPAT-009" and
+            .flash_premium_semantics.certified_git_blob_sha == "17eba73198f9d15e090a4099daaf1a4e099fb747" and
+            .flash_premium_semantics.rounding == "CEILING" and
+            .flash_premium_semantics.exact_witnesses == [
+              {"principal_units":"83727306811","bps":5,"expected_premium_units":"41863654"},
+              {"principal_units":"186298226","bps":5,"expected_premium_units":"93150"}
+            ]
+          ' ci/nqc-census/rmc012-pft-actionability-bridge/PFT_BINDING.json >/dev/null
           test "$(git show -s --format=%T 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf)" = ef3498da528f85cdb9fdd82222d64773a557f853
+          test "$(git rev-parse 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf:ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json)" = 17eba73198f9d15e090a4099daaf1a4e099fb747
           git diff --quiet 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf HEAD -- \
             ci/nqc-protocol-fork/recovered-source/crates/nqc-aave-math \
             ci/nqc-protocol-fork/recovered-source/crates/nqc-core

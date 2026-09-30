@@ -78,6 +78,19 @@ jobs:
           fi
           grep -F 'self-contained RMC-011' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
           grep -F 'RMC-012 MUST NOT independently choose mutable "latest successful" D08/D09' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          jq -e '
+            .pft_certified_commit == "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf" and
+            .pft_certified_tree == "ef3498da528f85cdb9fdd82222d64773a557f853" and
+            .flash_premium_semantics.compatibility_id == "PFT-COMPAT-009" and
+            .flash_premium_semantics.certified_git_blob_sha == "17eba73198f9d15e090a4099daaf1a4e099fb747" and
+            .flash_premium_semantics.rounding == "CEILING" and
+            .flash_premium_semantics.exact_witnesses == [
+              {"principal_units":"83727306811","bps":5,"expected_premium_units":"41863654"},
+              {"principal_units":"186298226","bps":5,"expected_premium_units":"93150"}
+            ]
+          ' ci/nqc-census/rmc012-pft-actionability-bridge/PFT_BINDING.json >/dev/null
+          test "$(git show -s --format=%T 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf)" = ef3498da528f85cdb9fdd82222d64773a557f853
+          test "$(git rev-parse 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf:ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json)" = 17eba73198f9d15e090a4099daaf1a4e099fb747
 
       - name: Compile terminal bridge
         working-directory: ci/nqc-census/rmc012-pft-actionability-bridge
