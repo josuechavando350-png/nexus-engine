@@ -769,6 +769,31 @@ fn sha256_hash32(bytes: &[u8]) -> Result<Hash32, CapitalError> {
     Hash32::new(digest).map_err(|_| CapitalError::InvalidCanonical("zero SHA-256 digest"))
 }
 
+fn require_nonempty_real_source_census(
+    capital_source_count: usize,
+    replay_source_count: usize,
+) -> Result<(), CapitalError> {
+    if capital_source_count == 0 || replay_source_count == 0 {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "real-source closeout requires a non-empty observed capital-source census",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod real_source_shape_tests {
+    use super::require_nonempty_real_source_census;
+
+    #[test]
+    fn real_source_closeout_rejects_empty_source_census() {
+        assert!(require_nonempty_real_source_census(0, 0).is_err());
+        assert!(require_nonempty_real_source_census(0, 1).is_err());
+        assert!(require_nonempty_real_source_census(1, 0).is_err());
+        assert!(require_nonempty_real_source_census(1, 1).is_ok());
+    }
+}
+
 pub fn verify_real_source_closeout_for_code(
     bundle: &CapitalArtifactBundle,
     expected_code_commit: &str,
@@ -792,6 +817,10 @@ pub fn verify_real_source_closeout_for_code(
             "real-source replay counts differ from capital artifacts",
         ));
     }
+    require_nonempty_real_source_census(
+        verified.capital.source_count,
+        verified.upstream.d08_source_count,
+    )?;
     if verified.capital.requirement_count == 0 && verified.capital.zero_own_capital_proven {
         return Err(CapitalError::InvalidCanonical(
             "zero-own-capital cannot be proven without a certified requirement",
