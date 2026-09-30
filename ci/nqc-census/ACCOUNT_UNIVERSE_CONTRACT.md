@@ -192,10 +192,13 @@ positions, and nothing is fabricated for them.
 ## 5. Public RPC load
 
 Live acquisition runs only from `workflow_dispatch` on the exact branch head,
-in the repository-wide concurrency group `nqc-census-public-rpc`
-(`cancel-in-progress: false`). A `pull_request` run verifies the pinned
-inputs only, in a per-ref group, and can never displace another node's
-pending acquisition.
+in RMC-009's own concurrency group `nqc-rmc009-live-<ref>`, and concurrency
+never cancels it. GitHub keeps one pending run per group, and a newer pending
+run replaces an older one. The repository-wide group `nqc-census-public-rpc`
+therefore let one Census node's dispatch evict another node's pending
+certification; RMC-010 left it for the same reason. Each provider client
+still keeps its declared request interval. A `pull_request` run verifies the
+pinned inputs only, in a per-ref group.
 
 Load limits:
 - the index matrix runs at most 4 jobs at once, and the state matrix at

@@ -45,14 +45,17 @@ permissions:
   actions: read
 
 # Live acquisition runs only from a workflow_dispatch on the exact branch
-# head, inside the repository-wide public-RPC group (one live Census
-# acquisition at a time, never cancelled while running). A pull_request run
-# verifies the pinned inputs through the GitHub API only, in a per-ref group,
-# so it can never displace another node's pending acquisition.
+# head, in RMC-009's own live group: one D09 acquisition per ref at a time,
+# never cancelled while running. GitHub keeps one pending run per group and a
+# newer pending run replaces an older one, so a group shared across Census
+# nodes let one node's dispatch silently evict another's pending
+# certification (RMC-010 moved to its own group for the same reason). A
+# pull_request run verifies the pinned inputs through the GitHub API only, in
+# a per-ref group.
 concurrency:
-  group: ${{ github.event_name == 'workflow_dispatch' && 'nqc-census-public-rpc' || format('nqc-rmc009-inputs-{0}', github.ref) }}
-  # PR/input checks supersede stale checks for the same PR. Live acquisitions
-  # never cancel another run in the repository-wide public-RPC group.
+  group: ${{ github.event_name == 'workflow_dispatch' && format('nqc-rmc009-live-{0}', github.ref) || format('nqc-rmc009-inputs-{0}', github.ref) }}
+  # PR/input checks supersede stale checks for the same PR. A live
+  # acquisition is never cancelled by concurrency.
   cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 env:
@@ -255,7 +258,7 @@ jobs:
           set -euo pipefail
           if [ "${{ github.event_name }}" = workflow_dispatch ]; then
             echo "acquire=true" >> "$GITHUB_OUTPUT"
-            echo "RMC009_ACQUISITION head=$(git rev-parse HEAD) group=nqc-census-public-rpc"
+            echo "RMC009_ACQUISITION head=$(git rev-parse HEAD) group=nqc-rmc009-live-${{ github.ref }}"
           else
             echo "acquire=false" >> "$GITHUB_OUTPUT"
             echo "RMC009_INPUTS_VERIFIED; live acquisition runs only from workflow_dispatch on the exact head (not certified by this run)"
@@ -284,8 +287,8 @@ jobs:
             echo "branch moved: PR head=$HEAD_SHA branch=$observed; refusing stale certification dispatch"
             exit 1
           }
-          # Do not waste the serialized public-RPC slot on an obsolete live
-          # head that has already failed. Healthy older runs are left alone.
+          # Do not waste the live slot on an obsolete head that has already
+          # failed. Healthy older runs are left alone.
           while read -r run head status; do
             [ -n "$run" ] || continue
             if [ "$head" != "$HEAD_SHA" ] && { [ "$status" = queued ] || [ "$status" = in_progress ]; }; then
