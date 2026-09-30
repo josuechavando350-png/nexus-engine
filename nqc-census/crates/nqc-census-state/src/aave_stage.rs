@@ -186,6 +186,40 @@ fn word_address(word: &[u8; 32]) -> Result<Option<Address>, ChainError> {
     })
 }
 
+/// Distinct requests in first-occurrence order, and for every request the
+/// position of its distinct copy.
+///
+/// The chain layer refuses a JSON-RPC batch that holds one call twice
+/// (responses are matched by position). Mainnet reserves share addresses, so
+/// live run 36682467619 failed every AAVE_STATE attempt on both providers with
+/// `duplicate call in batch`. A call or code read pinned to one block is
+/// deterministic, so each distinct request is made once and its outcome is
+/// fanned back out to every request that named it; no row changes.
+fn distinct<K: Clone + Ord>(requests: &[K]) -> (Vec<K>, Vec<usize>) {
+    let mut index: std::collections::BTreeMap<&K, usize> = std::collections::BTreeMap::new();
+    let mut unique = Vec::new();
+    let mut positions = Vec::with_capacity(requests.len());
+    for request in requests {
+        let position = *index.entry(request).or_insert_with(|| {
+            unique.push(request.clone());
+            unique.len() - 1
+        });
+        positions.push(position);
+    }
+    (unique, positions)
+}
+
+fn fan_out<T: Clone>(outcomes: &[T], positions: &[usize]) -> Result<Vec<T>, ChainError> {
+    positions
+        .iter()
+        .map(|position| {
+            outcomes.get(*position).cloned().ok_or_else(|| {
+                ChainError::Evidence("batch returned fewer outcomes than requested".into())
+            })
+        })
+        .collect()
+}
+
 struct Calls<'c, 'a> {
     ctx: &'c mut JobContext<'a>,
     anchor: &'c StateAnchor,
@@ -201,12 +235,14 @@ impl Calls<'_, '_> {
         if requests.is_empty() {
             return Ok(Vec::new());
         }
-        Ok(self
+        let (unique, positions) = distinct(requests);
+        let outcomes: Vec<CallOutcome> = self
             .ctx
-            .calls_in_context(requests, context, self.anchor, self.semantics)?
+            .calls_in_context(&unique, context, self.anchor, self.semantics)?
             .into_iter()
             .map(|call| call.payload().outcome().clone())
-            .collect())
+            .collect();
+        fan_out(&outcomes, &positions)
     }
 
     fn run_untrusted(
@@ -216,7 +252,9 @@ impl Calls<'_, '_> {
         if requests.is_empty() {
             return Ok(Vec::new());
         }
-        untrusted_calls(self.ctx, requests, self.anchor, self.semantics)
+        let (unique, positions) = distinct(requests);
+        let outcomes = untrusted_calls(self.ctx, &unique, self.anchor, self.semantics)?;
+        fan_out(&outcomes, &positions)
     }
 }
 
@@ -510,7 +548,11 @@ pub fn aave_state_stage(
             if let Some(strategy) = strategy {
                 code_accounts.push(*strategy);
             }
-            let codes = calls.ctx.codes(&code_accounts, &anchor, semantics)?;
+            let (distinct_accounts, positions) = distinct(&code_accounts);
+            let codes = fan_out(
+                &calls.ctx.codes(&distinct_accounts, &anchor, semantics)?,
+                &positions,
+            )?;
             reserve_rows.push(Json::object([
                 ("kind", Json::string("RESERVE")),
                 ("asset", address_json(reserve.asset)),
