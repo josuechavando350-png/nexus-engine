@@ -12,6 +12,11 @@ on:
       - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
       - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
       - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - "ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json"
+      - "ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -44,6 +49,11 @@ on:
       - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
       - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
       - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - "ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json"
+      - "ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -109,6 +119,12 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
           python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
           python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-rejections.py ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-rejections.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-balancer-v2-capture.py ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py
           python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
           jq -e '
@@ -199,6 +215,12 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
           python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
           python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/rmc011-external-capital-provider-registry.json /tmp/rmc011-external-provider-registry-report.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json /tmp/rmc011-permissionless-debt-catalog-report.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-rejections.py ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-rejections.py /tmp/rmc011-bounded-family-rejections.json
 
       - name: Require authoritative upstream inputs
         shell: bash
@@ -612,6 +634,12 @@ jobs:
           cp -- ci/nqc-census/rmc011-uniswap-v3-deployment.json "$PACKAGE/rmc011-uniswap-v3-deployment.json"
           cp -- ci/nqc-census/rmc011-external-capital-provider-registry.json "$PACKAGE/rmc011-external-capital-provider-registry.json"
           cp -- /tmp/rmc011-external-provider-registry-report.json "$PACKAGE/external-provider-registry-report.json"
+          cp -- ci/nqc-census/rmc011-execution-plan-requirement-catalog.json "$PACKAGE/rmc011-execution-plan-requirement-catalog.json"
+          cp -- /tmp/rmc011-execution-plan-requirement-catalog-report.json "$PACKAGE/execution-plan-requirement-catalog-report.json"
+          cp -- ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json "$PACKAGE/rmc011-permissionless-debt-facility-catalog.json"
+          cp -- /tmp/rmc011-permissionless-debt-catalog-report.json "$PACKAGE/permissionless-debt-catalog-report.json"
+          cp -- /tmp/rmc011-bounded-family-rejections.json "$PACKAGE/bounded-family-rejections.json"
+          cp -- ci/nqc-census/rmc011-capital-family-discovery.json "$PACKAGE/rmc011-capital-family-discovery.json"
           for stage in d06 d07 d08 d09 d10; do
             test -d "$RUNNER_TEMP/$stage-raw"
             cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
