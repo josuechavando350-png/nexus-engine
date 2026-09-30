@@ -607,13 +607,43 @@ fn capture_interval_admission_uses_worst_endpoint_not_point_estimate() -> TestRe
     );
     assert_eq!(
         report.interval_worst_case_net,
-        Some(SignedAmount::positive(Amount256::from_u128(274)))
+        Some(SignedAmount::positive(Amount256::from_u128(272)))
     );
     assert_eq!(
         report.tail_adjusted_net,
-        Some(SignedAmount::positive(Amount256::from_u128(254)))
+        Some(SignedAmount::positive(Amount256::from_u128(252)))
     );
     assert_eq!(report.decision, QuoteDecision::Admitted);
+    Ok(())
+}
+
+#[test]
+fn interval_rounding_guard_catches_interior_loss_hidden_by_endpoints() -> TestResult {
+    let anchor = anchor(100, 10);
+    let candidate = candidate_at(&anchor)?;
+    let quote = quote(
+        &candidate,
+        &anchor,
+        1_000,
+        11,
+        complete_costs(0, 10, 0)?,
+        interval(0, WAD / 2, WAD)?,
+    )?;
+
+    let report = quote.evaluate()?;
+
+    // Endpoint-only evaluation would see net(0)=0 and net(1)=+1. At the first
+    // positive WAD quantum, however, floor(11p)=0 while ceil(10p)=1, so the
+    // exact integer semantics contain an interior -1. The interval guard must
+    // therefore refuse admission.
+    assert_eq!(
+        report.interval_worst_case_net,
+        Some(SignedAmount::negative(Amount256::from_u128(1)))
+    );
+    assert_eq!(
+        report.decision,
+        QuoteDecision::NonPositiveCaptureAdjustedNet
+    );
     Ok(())
 }
 
