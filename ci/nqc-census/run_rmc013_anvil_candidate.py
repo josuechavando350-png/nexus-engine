@@ -28,7 +28,7 @@ EXECUTE_SIG = (
     "execute((uint256,uint256,address,address,address,uint256,uint256,"
     "(address,address,address,uint256,uint256)[]))"
 )
-OPERATOR = "0x0000000000000000000000000000000000a11ce"
+OPERATOR = "0x00000000000000000000000000000000000a11ce"
 DEPLOY_GAS = 8_000_000
 
 
