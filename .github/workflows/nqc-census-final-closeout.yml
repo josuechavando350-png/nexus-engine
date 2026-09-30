@@ -87,7 +87,7 @@ jobs:
           from pathlib import Path
           path = Path("ci/nqc-census/final-census-authority-lock.json")
           doc = json.loads(path.read_text())
-          assert doc["schema_version"] == 2
+          assert doc["schema_version"] == 3
           assert doc["real_market_census_closed"] is False
           required = [f"RMC-{n:03d}" for n in range(6, 14)]
           assert doc["required_terminal_stages"] == required
@@ -136,9 +136,19 @@ jobs:
           import json
           doc=json.load(open("ci/nqc-census/final-census-authority-lock.json"))
           assert doc["status"] == "PINNED"
+          expected = {
+              "RMC-006": ("NQC RMC-006 Aave Discovery", "nqc-rmc006-evidence-"),
+              "RMC-007": ("NQC RMC-007 V2 Discovery", "nqc-rmc007-closeout-"),
+              "RMC-008": ("NQC RMC-008 State Oracle Token Admission", "nqc-rmc008-closeout-"),
+              "RMC-009": ("NQC RMC-009 Aave Account Universe", "nqc-rmc009-closeout-"),
+              "RMC-010": ("NQC RMC-010 Live Full Incremental Parity", "nqc-rmc010-live-closeout-"),
+              "RMC-011": ("NQC RMC-011 Real Source Certification", "rmc011-real-source-certification-"),
+              "RMC-012": ("NQC RMC-012 Terminal Actionability Authority", "rmc012-terminal-actionability-"),
+              "RMC-013": ("NQC RMC-013 Terminal Economics Authority", "rmc013-terminal-economics-"),
+          }
           for row in doc["pinned_stages"]:
               required = [
-                  "stage", "workflow_run_id", "artifact_id", "artifact_name",
+                  "stage", "workflow_run_id", "artifact_id", "workflow_name", "artifact_name",
                   "artifact_digest", "code_commit", "code_tree",
                   "authority_commitment", "coverage_commitment",
                   "unresolved_mismatch_count", "unknown_failure_count",
@@ -154,26 +164,98 @@ jobs:
               assert row["admitted"] is True
               assert isinstance(row["evidence"], list) and row["evidence"]
               assert all(isinstance(value, str) for value in row["evidence"])
+              workflow, prefix = expected[row["stage"]]
+              assert row["workflow_name"] == workflow, (row["stage"], row["workflow_name"], workflow)
+              assert row["artifact_name"].startswith(prefix), (row["stage"], row["artifact_name"], prefix)
+              assert row["code_commit"] in row["artifact_name"], (row["stage"], row["artifact_name"], row["code_commit"])
               print("\t".join(str(row[key]) for key in [
                   "stage","workflow_run_id","artifact_id","artifact_name",
-                  "artifact_digest","code_commit","code_tree",
+                  "artifact_digest","code_commit","code_tree","workflow_name",
               ]))
           PY
 
-          while IFS=$'\t' read -r stage run artifact_id artifact_name digest commit tree; do
+          while IFS=
+
+      - name: Terminal marker precondition
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          doc=json.load(open("ci/nqc-census/final-census-authority-lock.json"))
+          assert doc["status"] == "PINNED"
+          assert doc["real_market_census_closed"] is False, (
+              "the source lock never self-certifies closure; the generated "
+              "content-addressed certificate owns the terminal marker"
+          )
+          print("RMC014_TERMINAL_AUTHORITY_VERIFIED")
+          PY
+
+
+      - name: Emit deterministic terminal certificate twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT_A="$RUNNER_TEMP/rmc014-a"
+          OUT_B="$RUNNER_TEMP/rmc014-b"
+          rm -rf "$OUT_A" "$OUT_B"
+          mkdir -p "$OUT_A" "$OUT_B"
+
+          cargo run --release --locked -p nqc-census-closeout --bin nqc-rmc014-closeout -- \
+            ci/nqc-census/final-census-authority-lock.json "$OUT_A"
+          cargo run --release --locked -p nqc-census-closeout --bin nqc-rmc014-closeout -- \
+            ci/nqc-census/final-census-authority-lock.json "$OUT_B"
+
+          diff -ruN "$OUT_A" "$OUT_B"
+          (
+            cd "$OUT_A"
+            sha256sum -c real-market-census-certificate.sha256
+          )
+
+          CERT="$OUT_A/real-market-census-certificate.json"
+          jq -e '
+            .schema_version == 1 and
+            .status == "REAL_MARKET_CENSUS_CLOSED" and
+            .real_market_census_closed == true and
+            .realized_profitability_proven == false and
+            .monthly_target_probability_proven == false and
+            .conservative_realizable_capacity_only == true and
+            .global_capital_source_completeness_claimed == false and
+            .global_route_venue_completeness_claimed == false and
+            .economic_boundary.conservative_realizable_capacity_only == true and
+            .economic_boundary.global_capital_source_completeness_claimed == false and
+            .economic_boundary.global_route_venue_completeness_claimed == false and
+            (.stages | length == 8) and
+            (.terminal_evidence | length > 0)
+          ' "$CERT" >/dev/null
+
+          echo "RMC014_CERTIFICATE=$CERT" >> "$GITHUB_ENV"
+          echo "RMC014_TERMINAL_CLOSEOUT=PASS"
+
+      - name: Upload immutable RMC-014 terminal certificate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc014-terminal-census-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc014-a/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+\t' read -r stage run artifact_id artifact_name digest commit tree workflow_name; do
             observed_head=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)
             observed_conclusion=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .conclusion)
+            observed_workflow=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .name)
             observed_artifact_run=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .workflow_run.id)
             observed_name=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .name)
             observed_digest=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .digest)
             observed_tree=$(git show -s --format=%T "$commit")
             test "$observed_head" = "$commit"
             test "$observed_conclusion" = success
+            test "$observed_workflow" = "$workflow_name"
             test "$observed_artifact_run" = "$run"
             test "$observed_name" = "$artifact_name"
             test "$observed_digest" = "$digest"
             test "$observed_tree" = "$tree"
-            echo "RMC014_STAGE_PIN_PASS stage=$stage run=$run artifact=$artifact_id head=$commit tree=$tree digest=$digest"
+            echo "RMC014_STAGE_PIN_PASS stage=$stage workflow=$workflow_name run=$run artifact=$artifact_id head=$commit tree=$tree digest=$digest"
           done < /tmp/rmc014-pins.tsv
 
       - name: Terminal marker precondition
