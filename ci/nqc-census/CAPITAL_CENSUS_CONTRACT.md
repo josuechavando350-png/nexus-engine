@@ -271,8 +271,10 @@ Capital feasibility does NOT prove positive net EV, capture probability, or real
 
 `RMC011_REAL_SOURCE_CERTIFICATION=PASS` proves only the authenticated, replayed source set actually consumed by D11. It is **not** the terminal Capital Census state.
 
-The machine-readable source-universe authority is `ci/nqc-census/rmc011-capital-source-universe.json`. D11 may emit `D11_TERMINAL_CLOSED` only when every required capital-source family is terminally resolved by authenticated real-source admission or exhaustive rejection, `unknown_family_count == 0`, and `terminal_claim_allowed == true`.
+The machine-readable source-universe authority is `ci/nqc-census/rmc011-capital-source-universe.json`. That file has **readiness authority only** and is forbidden from emitting `D11_TERMINAL_CLOSED`. Its strongest possible state is `CAPITAL_SOURCE_UNIVERSE_COMPLETE`, which requires every required capital-source family to be terminally resolved by authenticated real-source admission or exhaustive rejection **and** the family-universe discovery itself to be `AUTHENTICATED_COMPLETE`.
+
+Every terminally resolved family MUST carry content-addressed resolution evidence. `AUTHENTICATED_REAL_SOURCE` requires a real-source path plus an authenticated evidence locator and SHA-256; `EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE` requires an exhaustive-rejection evidence locator and SHA-256. Changing a status string without those bindings never resolves a family.
 
 Model support, an adapter implementation, or a semantic parser without authenticated acquisition evidence does not resolve a source family. In particular, `gas_credit.rs` being able to validate two-provider external gas-credit observations does not certify that such a facility exists or is available at the anchor.
 
-Until that condition is met, the terminal state is `BLOCKED_INCOMPLETE_SOURCE_UNIVERSE`, even if the narrower real-source package passes.
+`CAPITAL_SOURCE_UNIVERSE_COMPLETE` is necessary but not sufficient for D11 closure. Final D11 authority must combine that readiness proof with the authenticated D11 source/certification evidence in a separate terminal gate. Until source-universe readiness is complete, the source-universe state remains `BLOCKED_INCOMPLETE_SOURCE_UNIVERSE`, even if the narrower real-source package passes.
