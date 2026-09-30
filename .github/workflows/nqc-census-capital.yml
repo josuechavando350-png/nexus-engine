@@ -10,6 +10,8 @@ on:
       - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/rmc011-pft-math-bridge/**"
       - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
+      - "ci/nqc-census/verify_rmc011_upstream_authority.py"
+      - "ci/nqc-census/test_verify_rmc011_upstream_authority.py"
       - ".github/workflows/nqc-census-capital.yml"
   push:
     branches:
@@ -20,11 +22,11 @@ permissions:
 
 jobs:
   rmc-011-capital-foundation:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 40
     steps:
       - name: Checkout exact head
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
@@ -77,6 +79,13 @@ jobs:
           grep -F 'nqc-rmc011-capital-build' ci/nqc-census/run-rmc011-real-source-closeout.sh
           grep -F 'nqc-rmc011-upstream-replay-verify' ci/nqc-census/run-rmc011-real-source-closeout.sh
           grep -F 'sha256sum -c capital-archive.sha256' ci/nqc-census/run-rmc011-real-source-closeout.sh
+
+      - name: Verify upstream semantic authority hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/nqc-census/verify_rmc011_upstream_authority.py
+          python3 ci/nqc-census/test_verify_rmc011_upstream_authority.py -v
 
       - name: Certified PFT math bridge gates
         working-directory: ci/nqc-census/rmc011-pft-math-bridge
