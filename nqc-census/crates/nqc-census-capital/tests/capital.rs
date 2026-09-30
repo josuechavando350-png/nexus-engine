@@ -3319,3 +3319,208 @@ fn canonical_objects_reject_evidence_counts_above_u16() -> TestResult {
     Ok(())
 }
 
+
+#[test]
+fn proportional_collateral_tracks_allocated_draw_exactly() -> TestResult {
+    let debt = CapitalAsset::Token(address(60));
+    let collateral = CapitalAsset::Token(address(61));
+    let terms = PersistentDebtTerms {
+        interest_model_hash: hash(70),
+        liquidation_model_hash: hash(71),
+        solvency_model_hash: hash(72),
+        oracle_risk_hash: hash(73),
+        liquidity_withdrawal_risk_hash: hash(74),
+        facility_disappearance_risk_hash: hash(75),
+    };
+
+    let borrowing = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::CollateralizedBorrowing,
+        anchor: anchor(100),
+        provider_namespace: 201,
+        provider_locator_hash: hash(62),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(63)),
+        asset: debt,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: debt,
+        repayment: RepaymentSemantics::Persistent(terms),
+        collateral: CollateralRequirement::Proportional {
+            asset: collateral,
+            numerator: 3,
+            denominator: 2,
+            rounding: RoundingMode::Ceil,
+            liquidation_conditions_hash: hash(64),
+        },
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::CapacityChanged,
+            CapitalFailureMode::CollateralLiquidation,
+            CapitalFailureMode::OracleRisk,
+            CapitalFailureMode::LiquidityWithdrawal,
+            CapitalFailureMode::FacilityDisappearance,
+        ],
+        evidence: evidence(),
+    })?;
+
+    let collateral_funder = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::InventoryRequirement,
+        anchor: anchor(100),
+        provider_namespace: 202,
+        provider_locator_hash: hash(65),
+        provider_kind: CapitalProviderKind::OtherExternal,
+        ownership: CapitalOwnership::External,
+        source_contract: None,
+        asset: collateral,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: collateral,
+        repayment: RepaymentSemantics::NoRepayment,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::CapacityChanged,
+        ],
+        evidence: evidence(),
+    })?;
+
+    let exact = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(80)),
+        anchor(100),
+        RequiredAtomicity::Flexible,
+        false,
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                debt,
+                Amount256::from_u128(100),
+                vec![CapitalClass::CollateralizedBorrowing],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Collateral,
+                collateral,
+                Amount256::from_u128(150),
+                vec![CapitalClass::InventoryRequirement],
+            )?,
+        ],
+        evidence(),
+    )?;
+
+    assert!(matches!(
+        evaluate_capital_feasibility(
+            &exact,
+            &[borrowing.clone(), collateral_funder.clone()]
+        ),
+        CapitalFeasibility::Feasible { .. }
+    ));
+
+    let underfunded = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(81)),
+        anchor(100),
+        RequiredAtomicity::Flexible,
+        false,
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                debt,
+                Amount256::from_u128(100),
+                vec![CapitalClass::CollateralizedBorrowing],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Collateral,
+                collateral,
+                Amount256::from_u128(149),
+                vec![CapitalClass::InventoryRequirement],
+            )?,
+        ],
+        evidence(),
+    )?;
+
+    assert!(matches!(
+        evaluate_capital_feasibility(&underfunded, &[borrowing, collateral_funder]),
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::CollateralRequirementUnfunded,
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
+fn proportional_collateral_must_round_up_and_have_a_positive_ratio() -> TestResult {
+    let debt = CapitalAsset::Token(address(60));
+    let collateral = CapitalAsset::Token(address(61));
+    let terms = PersistentDebtTerms {
+        interest_model_hash: hash(70),
+        liquidation_model_hash: hash(71),
+        solvency_model_hash: hash(72),
+        oracle_risk_hash: hash(73),
+        liquidity_withdrawal_risk_hash: hash(74),
+        facility_disappearance_risk_hash: hash(75),
+    };
+    let base = CapitalSourceSpec {
+        class: CapitalClass::CollateralizedBorrowing,
+        anchor: anchor(100),
+        provider_namespace: 203,
+        provider_locator_hash: hash(66),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(67)),
+        asset: debt,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: debt,
+        repayment: RepaymentSemantics::Persistent(terms),
+        collateral: CollateralRequirement::Proportional {
+            asset: collateral,
+            numerator: 3,
+            denominator: 2,
+            rounding: RoundingMode::Ceil,
+            liquidation_conditions_hash: hash(68),
+        },
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::CollateralLiquidation,
+        ],
+        evidence: evidence(),
+    };
+
+    let mut floor = base.clone();
+    floor.collateral = CollateralRequirement::Proportional {
+        asset: collateral,
+        numerator: 3,
+        denominator: 2,
+        rounding: RoundingMode::Floor,
+        liquidation_conditions_hash: hash(68),
+    };
+    assert!(matches!(
+        CapitalSource::new(floor),
+        Err(CapitalError::InvalidCanonical(
+            "proportional collateral must round up"
+        ))
+    ));
+
+    let mut zero_ratio = base;
+    zero_ratio.collateral = CollateralRequirement::Proportional {
+        asset: collateral,
+        numerator: 0,
+        denominator: 2,
+        rounding: RoundingMode::Ceil,
+        liquidation_conditions_hash: hash(68),
+    };
+    assert!(matches!(
+        CapitalSource::new(zero_ratio),
+        Err(CapitalError::InvalidRatio)
+    ));
+    Ok(())
+}
