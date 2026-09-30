@@ -184,7 +184,10 @@ time):
 - `v2-discovery-run.json`
 - `v2-pair-manifest.jsonl` (one row per pair: D01 key, index, ordinal,
   token0, token1, creation block/log coordinate, direct lookup, runtime)
-- `v2-deltas.jsonl`, `v2-mismatch-ledger.jsonl` (must be empty for PASS)
+- `v2-deltas.jsonl`, `v2-mismatch-ledger.jsonl`: PASS requires zero
+  delta/mismatch finding entries. Each file contains exactly one canonical
+  metadata sentinel row (`status: "EMPTY"` and a zero counter), so an empty
+  ledger remains schema/version/code-bound and content-addressable.
 - `v2-deployment-admission.json`
 - `v2-discovery-summary.json`
 - `evidence-manifest.json`

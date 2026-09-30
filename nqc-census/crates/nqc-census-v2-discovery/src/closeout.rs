@@ -347,6 +347,41 @@ fn evidence_json(reference: &EvidenceRef) -> Json {
     }
 }
 
+fn validate_closeout_pass_candidate(
+    summary: &crate::ReconciliationSummary,
+    delta_count: usize,
+    pair_rows: usize,
+    agreement: &Json,
+    expected_pair_count: u64,
+) -> Result<(), ChainError> {
+    let provider_mismatches = number(agreement, "provider_mismatch_count")?;
+    let counts_match = summary.source_a_count as u64 == expected_pair_count
+        && summary.source_b_count as u64 == expected_pair_count
+        && summary.source_c_count as u64 == expected_pair_count
+        && summary.union_count as u64 == expected_pair_count
+        && summary.intersection_count as u64 == expected_pair_count
+        && pair_rows as u64 == expected_pair_count;
+    let ledgers_empty = delta_count == 0
+        && summary.enumeration_only_count == 0
+        && summary.event_only_count == 0
+        && summary.unexplained_delta_count == 0
+        && provider_mismatches == 0;
+    if expected_pair_count == 0 || !counts_match || !ledgers_empty {
+        return Err(ChainError::Evidence(format!(
+            "refusing RMC-007 PASS closeout: expected_pairs={expected_pair_count} pair_rows={pair_rows} A={} B={} C={} union={} intersection={} enumeration_only={} event_only={} unexplained={} deltas={delta_count} provider_mismatches={provider_mismatches}",
+            summary.source_a_count,
+            summary.source_b_count,
+            summary.source_c_count,
+            summary.union_count,
+            summary.intersection_count,
+            summary.enumeration_only_count,
+            summary.event_only_count,
+            summary.unexplained_delta_count,
+        )));
+    }
+    Ok(())
+}
+
 /// Writes the deterministic closeout artifacts and returns the report.
 #[allow(clippy::too_many_arguments)]
 pub fn write_closeout(
@@ -365,6 +400,14 @@ pub fn write_closeout(
             "commit/tree must be 40 hex characters".into(),
         ));
     }
+    let expected_pair_count = number(required(inputs.current, "facts")?, "pair_count")?;
+    validate_closeout_pass_candidate(
+        &reconciliation.summary,
+        reconciliation.deltas.len(),
+        reconciliation.pairs.len(),
+        agreement,
+        expected_pair_count,
+    )?;
     std::fs::create_dir_all(out_dir)
         .map_err(|error| ChainError::Config(format!("{}: {error}", out_dir.display())))?;
     let bootstrap = required(inputs.current, "bootstrap")?;
@@ -635,7 +678,9 @@ fn sha2_digest(bytes: &[u8]) -> [u8; 32] {
 
 #[cfg(test)]
 mod tests {
-    use super::{rfc3339, Occurrences, SequencedReplay};
+    use super::{
+        rfc3339, validate_closeout_pass_candidate, Occurrences, SequencedReplay,
+    };
     use nqc_census_chain::{
         provider::{PinningMode, ProviderSpec},
         transport::Transport,
@@ -652,6 +697,43 @@ mod tests {
         ] {
             assert_eq!(rfc3339(timestamp), expected);
         }
+    }
+
+    #[test]
+    fn pass_closeout_writer_rejects_non_empty_or_incomplete_ledgers() {
+        let summary = |count: usize| crate::ReconciliationSummary {
+            source_a_count: count,
+            source_b_count: count,
+            source_c_count: count,
+            union_count: count,
+            intersection_count: count,
+            enumeration_only_count: 0,
+            event_only_count: 0,
+            duplicate_observations: 0,
+            historical_only_count: 0,
+            explained_delta_count: 0,
+            unexplained_delta_count: 0,
+        };
+        let clean = nqc_census_chain::json::Json::object([(
+            "provider_mismatch_count",
+            nqc_census_chain::json::Json::uint(0),
+        )]);
+        assert!(validate_closeout_pass_candidate(&summary(3), 0, 3, &clean, 3).is_ok());
+
+        let mismatched = nqc_census_chain::json::Json::object([(
+            "provider_mismatch_count",
+            nqc_census_chain::json::Json::uint(1),
+        )]);
+        assert!(
+            validate_closeout_pass_candidate(&summary(3), 0, 3, &mismatched, 3).is_err()
+        );
+
+        let mut delta = summary(3);
+        delta.unexplained_delta_count = 1;
+        assert!(validate_closeout_pass_candidate(&delta, 1, 3, &clean, 3).is_err());
+
+        let incomplete = summary(2);
+        assert!(validate_closeout_pass_candidate(&incomplete, 0, 2, &clean, 3).is_err());
     }
 
     #[test]
