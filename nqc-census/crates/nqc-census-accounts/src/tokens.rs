@@ -3,7 +3,14 @@
 //! For each D06 initialization: the aToken and variable debt token
 //! `scaledTotalSupply()` (the right-hand side of the conservation identity)
 //! and the stable debt token's `totalSupply()`; for current reserves also
-//! `getReserveData(asset)`, whose token addresses must be the D06 ones.
+//! `getReserveData(asset)`, whose aToken and variable debt token must be the
+//! D06 ones.
+//!
+//! Stable rate borrowing is deprecated in Aave V3. At the census anchor
+//! `getReserveData` names one stable debt token for all 67 mainnet reserves
+//! (WETH's, `0x1026…949a`), not the one each reserve was initialized with
+//! (probe run 36712062094). Both are read: the initialization token and the
+//! reported token each must hold no supply, and the divergence is recorded.
 //!
 //! Aave V3 does not refuse the zero address as an aToken recipient: a
 //! transfer to it, or a supply on its behalf, credits it a scaled balance
@@ -22,13 +29,49 @@ use nqc_census_chain::{
     provider::ProviderSpec,
     ChainError,
 };
+use nqc_census_core::{Address, CallOutcome};
 use nqc_census_state::stage::{outcome_json, stage_anchor};
 use nqc_census_state::v2_stage::uint_field;
 
 const TOKENS_NAMESPACE: u16 = 0x0902;
 const TOKENS_FAMILY: &str = "rmc009-aave-token-supply";
-/// Version 2 adds each token's zero-address scaled balance.
-const TOKENS_VERSION: u16 = 2;
+/// Version 2 adds each token's zero-address scaled balance; version 3 the
+/// stable debt token `getReserveData` reports and its supply.
+const TOKENS_VERSION: u16 = 3;
+
+/// Distinct requests in first-occurrence order, and each request's position
+/// among them. A JSON-RPC batch may not hold one call twice (responses match
+/// by position) and reserves share contracts; a read pinned to one block is
+/// deterministic, so each distinct read is made once and fanned back out.
+fn distinct<K: Clone + Ord>(requests: &[K]) -> (Vec<K>, Vec<usize>) {
+    let mut index: std::collections::BTreeMap<&K, usize> = std::collections::BTreeMap::new();
+    let mut unique = Vec::new();
+    let mut positions = Vec::with_capacity(requests.len());
+    for request in requests {
+        let position = *index.entry(request).or_insert_with(|| {
+            unique.push(request.clone());
+            unique.len() - 1
+        });
+        positions.push(position);
+    }
+    (unique, positions)
+}
+
+/// The stable debt token address word 9 of a `getReserveData` reply names.
+fn reported_stable(outcome: &CallOutcome) -> Option<Address> {
+    match outcome {
+        CallOutcome::Returned(bytes) if bytes.len() >= 11 * 32 => {
+            let word = &bytes[9 * 32..10 * 32];
+            if word[..12].iter().any(|byte| *byte != 0) {
+                return None;
+            }
+            let mut raw = [0_u8; 20];
+            raw.copy_from_slice(&word[12..]);
+            Address::new(raw).ok()
+        }
+        _ => None,
+    }
+}
 
 pub fn account_tokens_stage(
     acquisition: &Acquisition<'_>,
@@ -78,8 +121,55 @@ pub fn account_tokens_stage(
                 requests.push((stable, abi::encode_call(total, &[])));
             }
         }
-        let calls = ctx.calls(&requests, &anchor, semantics)?;
-        let mut outcomes = calls.iter().map(|call| call.payload().outcome());
+        let (unique, positions) = distinct(&requests);
+        let calls = ctx.calls(&unique, &anchor, semantics)?;
+        let replies: Vec<CallOutcome> = calls
+            .iter()
+            .map(|call| call.payload().outcome().clone())
+            .collect();
+        let fanned: Vec<&CallOutcome> = positions
+            .iter()
+            .map(|position| {
+                replies.get(*position).ok_or_else(|| {
+                    ChainError::Evidence("token supply batch returned fewer replies".into())
+                })
+            })
+            .collect::<Result<_, _>>()?;
+        // The stable debt token each current reserve's data reports, and its
+        // supply, read once per distinct token.
+        let mut reported = Vec::with_capacity(plan.reserves.len());
+        let mut cursor = 0;
+        for reserve in &plan.reserves {
+            if reserve.reserve_id.is_some() {
+                reported.push(reported_stable(fanned[cursor]));
+                cursor += 1;
+            } else {
+                reported.push(None);
+            }
+            cursor += if reserve.stable_debt_token.is_some() {
+                5
+            } else {
+                4
+            };
+        }
+        let stable_requests: Vec<(Address, Vec<u8>)> = reported
+            .iter()
+            .flatten()
+            .map(|token| (*token, abi::encode_call(total, &[])))
+            .collect();
+        let (stable_unique, stable_positions) = distinct(&stable_requests);
+        let stable_replies: Vec<CallOutcome> = if stable_unique.is_empty() {
+            Vec::new()
+        } else {
+            ctx.calls(&stable_unique, &anchor, semantics)?
+                .iter()
+                .map(|call| call.payload().outcome().clone())
+                .collect()
+        };
+        let mut stable_totals = stable_positions
+            .iter()
+            .map(|position| stable_replies.get(*position));
+        let mut outcomes = fanned.into_iter();
         let mut next = || {
             outcomes
                 .next()
@@ -97,6 +187,13 @@ pub fn account_tokens_stage(
             let v_zero = uint_field(next()?);
             let stable_total = match reserve.stable_debt_token {
                 Some(_) => uint_field(next()?),
+                None => Json::Null,
+            };
+            let reported_token = reported[rows.len()];
+            let reported_total = match reported_token {
+                Some(_) => uint_field(stable_totals.next().flatten().ok_or_else(|| {
+                    ChainError::Evidence("reported stable debt supply reply missing".into())
+                })?),
                 None => Json::Null,
             };
             rows.push(Json::object([
@@ -125,6 +222,11 @@ pub fn account_tokens_stage(
                 ("a_token_zero_address_scaled_balance", a_zero),
                 ("variable_debt_zero_address_scaled_balance", v_zero),
                 ("stable_debt_total_supply", stable_total),
+                (
+                    "reported_stable_debt_token",
+                    reported_token.map_or(Json::Null, |token| Json::string(token.to_hex())),
+                ),
+                ("reported_stable_debt_total_supply", reported_total),
             ]));
         }
         Ok(Json::object([("rows", Json::Array(rows))]))
