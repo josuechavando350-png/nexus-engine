@@ -107,6 +107,16 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 0
 
+      - name: Verify exact-head D11 Rust gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd nqc-census
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
+          cargo test --locked -p nqc-census-capital
+          cargo build --release --locked -p nqc-census-capital
+
       - name: Require authoritative upstream inputs
         shell: bash
         run: |
