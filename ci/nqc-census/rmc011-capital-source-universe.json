@@ -26,16 +26,16 @@
     {
       "id": "BALANCER_V2_FLASH_LOAN",
       "capital_class": "ATOMIC_FLASH_LIQUIDITY",
-      "status": "MODEL_ONLY",
-      "real_source_path": null,
+      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
+      "real_source_path": "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs",
       "terminally_resolved": false,
       "resolution_evidence": null
     },
     {
       "id": "UNISWAP_V3_FLASH",
       "capital_class": "ATOMIC_FLASH_LIQUIDITY",
-      "status": "MODEL_ONLY",
-      "real_source_path": null,
+      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
+      "real_source_path": "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs",
       "terminally_resolved": false,
       "resolution_evidence": null
     },
