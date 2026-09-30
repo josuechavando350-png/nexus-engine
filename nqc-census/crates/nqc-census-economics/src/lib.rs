@@ -28,6 +28,7 @@ pub enum EconomicsError {
     ArithmeticOverflow,
     EmptyEvidence,
     DuplicateEvidence,
+    EmptyCurve,
     NonIncreasingTradeSize,
     AnchorMismatch,
     ValueUnitMismatch,
@@ -49,6 +50,7 @@ impl Display for EconomicsError {
             Self::ArithmeticOverflow => f.write_str("exact economics arithmetic overflow"),
             Self::EmptyEvidence => f.write_str("economic quote requires evidence"),
             Self::DuplicateEvidence => f.write_str("economic quote repeats evidence"),
+            Self::EmptyCurve => f.write_str("capacity curve must contain at least one point"),
             Self::NonIncreasingTradeSize => {
                 f.write_str("capacity curve trade sizes must increase strictly")
             }
