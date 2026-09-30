@@ -136,13 +136,8 @@ class SourceUniverseTests(unittest.TestCase):
         original = scope["required_source_families"]
         scope["required_source_families"] = original[:-1]
 
-        # validate_document reads the repository scope directly, so prove the
-        # required-family declaration itself is exact through the verifier's
-        # hard-coded authority set.
-        self.assertNotEqual(
-            set(scope["required_source_families"]),
-            set(mod.REQUIRED_FAMILIES),
-        )
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_scope(scope, copy.deepcopy(BASE["families"]))
 
     def test_unknown_family_fails(self) -> None:
         doc = copy.deepcopy(BASE)
