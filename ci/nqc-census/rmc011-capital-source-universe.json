@@ -58,8 +58,8 @@
     {
       "id": "TRANSIENT_EXTERNAL_CREDIT",
       "capital_class": "TRANSIENT_CREDIT",
-      "status": "MODEL_ONLY",
-      "real_source_path": null,
+      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
+      "real_source_path": "nqc-census/crates/nqc-census-capital/src/transient_credit.rs",
       "terminally_resolved": false,
       "resolution_evidence": null
     },
