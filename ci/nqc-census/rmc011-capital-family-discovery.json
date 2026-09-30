@@ -30,7 +30,7 @@
       "anchor_mode": "EXACT_STATE_ANCHOR",
       "completeness": "CANONICAL_VAULT_CODE_IDENTITY_PAUSE_STATE_FEE_COLLECTOR_FEE_AND_VAULT_BALANCE_EVALUATED_FOR_EVERY_RMC_ACTIONABLE_ASSET",
       "negative_proof": "DUAL_PROVIDER_EXACT_VAULT_AND_ASSET_STATE",
-      "implementation": "PENDING_D11_AUTHENTICATED_ACQUISITION"
+      "implementation": "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs"
     },
     {
       "id": "UNISWAP_V3_FLASH",
@@ -39,7 +39,7 @@
       "anchor_mode": "DEPLOYMENT_TO_EXACT_STATE_ANCHOR",
       "completeness": "ALL_FACTORY_POOLCREATED_EVENTS_THROUGH_ANCHOR_RECONCILED_AND_EVERY_POOL_CONTAINING_AN_RMC_ACTIONABLE_ASSET_EVALUATED_FOR_CODE_TOKEN_BALANCE_AND_FEE",
       "negative_proof": "FACTORY_EVENT_CENSUS_PLUS_DUAL_PROVIDER_POOL_STATE",
-      "implementation": "PENDING_D11_AUTHENTICATED_ACQUISITION"
+      "implementation": "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs"
     },
     {
       "id": "EXTERNAL_GAS_CREDIT",
