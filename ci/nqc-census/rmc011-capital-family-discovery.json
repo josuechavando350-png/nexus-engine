@@ -57,7 +57,7 @@
       "anchor_mode": "ANCHOR_AVAILABILITY_PLUS_TERMS_VALIDITY_WINDOW",
       "completeness": "EVERY_REGISTERED_GAS_SPONSOR_EVALUATED_FOR_NATIVE_GAS_LIMIT_FEE_ASSET_TERMS_AND_AVAILABILITY",
       "negative_proof": "REGISTRY_MEMBERSHIP_AND_PROVIDER_TRANSCRIPT_REJECTION_LEDGER",
-      "implementation": "PENDING_D11_AUTHENTICATED_ACQUISITION"
+      "implementation": "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs + PENDING_D11_AUTHENTICATED_ACQUISITION"
     },
     {
       "id": "TRANSIENT_EXTERNAL_CREDIT",
