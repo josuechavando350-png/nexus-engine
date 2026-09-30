@@ -40,13 +40,12 @@ fn summary(status: &str, liquidatability_nonclaim: bool) -> Vec<u8> {
     format!(
         concat!(
             "{{\"all_tokens_conserved\":true,\"anchor\":{{\"hash\":\"{}\",\"number\":25437474}},",
-            "\"blocking_findings\":[],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
+            "\"anchor_timestamp\":1700000000,\"blocking_findings\":[],",
+            "\"generated_at\":\"2023-11-14T22:13:20Z\",",
             "\"non_claims\":{},\"schema_version\":1,\"status\":\"{}\",",
             "\"unexplained_mismatches\":0,\"uniswap_v2\":{{\"reason\":\"Uniswap V2 pairs carry no borrower, debt or collateral positions; no account universe is claimed or fabricated for them\",\"status\":\"NOT_APPLICABLE\"}}}}"
         ),
         anchor().block_hash().to_hex(),
-        D09_CODE_COMMIT,
-        D09_CODE_TREE,
         nonclaims,
         status
     )
@@ -66,7 +65,8 @@ fn d09_evidence_manifest(accounts: &[u8], summary: &[u8]) -> Vec<u8> {
             "{{\"artifacts\":[",
             "{{\"bytes\":{},\"path\":\"account-manifest.jsonl\",\"sha256\":\"{}\"}},",
             "{{\"bytes\":{},\"path\":\"account-summary.json\",\"sha256\":\"{}\"}}",
-            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",\"schema_version\":1}}"
+            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
+            "\"generated_at\":\"2023-11-14T22:13:20Z\",\"schema_version\":1}}"
         ),
         accounts.len(),
         hex::plain(&account_digest),
@@ -201,6 +201,37 @@ fn below_one_borrower_is_imported_but_not_promoted_to_capital_requirement() -> T
         Amount256::from_u128(999_999_999_999_999_999)
     );
     assert_eq!(imported.borrowers[0].user_configuration, Amount256::ZERO);
+    Ok(())
+}
+
+#[test]
+fn d09_import_rejects_health_factor_classification_that_contradicts_exact_account_data(
+) -> TestResult {
+    let account = format!("0x{}", "54".repeat(20));
+    let row = format!(
+        concat!(
+            "{{\"account\":\"{}\",\"classification\":\"POSITION_HOLDER\",",
+            "\"debt_positions\":[{}],\"health_factor_below_one\":true,",
+            "\"supply_positions\":[]}}\n"
+        ),
+        account,
+        position(20, 30, "10")
+    );
+    let exact = exact_account_fixture(row.as_bytes());
+    let contradictory =
+        String::from_utf8(exact)?.replace("999999999999999999", "1000000000000000000");
+    let summary = summary("RMC_009_PASS_CANDIDATE", true);
+    let evidence_manifest = d09_evidence_manifest(contradictory.as_bytes(), &summary);
+    let authority = d09_authority(&evidence_manifest)?;
+
+    assert!(import_d09_borrower_demands_bound(
+        contradictory.as_bytes(),
+        &summary,
+        &evidence_manifest,
+        &authority,
+        &anchor(),
+    )
+    .is_err());
     Ok(())
 }
 

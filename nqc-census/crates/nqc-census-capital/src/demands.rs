@@ -119,6 +119,26 @@ fn number(value: &Json, key: &'static str) -> Result<u64, CapitalError> {
         ))
 }
 
+fn rfc3339(timestamp: u64) -> String {
+    let days = timestamp / 86_400;
+    let seconds = timestamp % 86_400;
+    let z = days + 719_468;
+    let era = z / 146_097;
+    let doe = z % 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + u64::from(month <= 2);
+    format!(
+        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
+        seconds / 3_600,
+        (seconds % 3_600) / 60,
+        seconds % 60
+    )
+}
+
 fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
     let text = std::str::from_utf8(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("RMC-009 JSONL is not UTF-8"))?;
@@ -283,6 +303,8 @@ fn verify_summary(summary: &Json, anchor: &StateAnchor) -> Result<(), CapitalErr
     let summary_anchor = required(summary, "anchor")?;
     if number(summary_anchor, "number")? != anchor.block_number()
         || text(summary_anchor, "hash")? != anchor.block_hash().to_hex()
+        || number(summary, "anchor_timestamp")? != anchor.timestamp()
+        || text(summary, "generated_at")? != rfc3339(anchor.timestamp())
     {
         return Err(CapitalError::AnchorMismatch);
     }
@@ -461,6 +483,9 @@ fn verify_d09_artifact_binding(
             "RMC-009 evidence manifest code identity mismatch",
         ));
     }
+    if text(&manifest, "generated_at")? != rfc3339(anchor.timestamp()) {
+        return Err(CapitalError::AnchorMismatch);
+    }
 
     let expected: [(&str, &[u8]); 2] = [
         ("account-manifest.jsonl", account_manifest_jsonl),
@@ -507,15 +532,12 @@ fn verify_d09_artifact_binding(
         ));
     }
 
-    let summary = Json::parse(account_summary_json)
-        .map_err(|_| CapitalError::InvalidCanonical("RMC-009 summary JSON parse failed"))?;
-    if text(&summary, "code_commit")? != authority.code_commit.to_hex()
-        || text(&summary, "code_tree")? != authority.code_tree.to_hex()
-    {
-        return Err(CapitalError::InvalidUpstreamAuthority(
-            "RMC-009 summary code identity mismatch",
-        ));
-    }
+    // D09 deliberately keeps code identity out of census-content artifacts so
+    // FULL_CENSUS and INCREMENTAL_REFRESH can remain byte-identical at the
+    // same anchor. The content-addressed evidence manifest above is the
+    // provenance authority for code commit/tree and binds these exact summary
+    // bytes, so requiring code identity inside account-summary.json would
+    // reject the real D09 closeout format.
     Ok(())
 }
 
