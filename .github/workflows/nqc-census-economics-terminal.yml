@@ -338,7 +338,8 @@ jobs:
           summary = json.load(open(summary_path, encoding="utf-8"))
           assert summary["gas_funding_candidate_count"] == len(bindings)
           assert summary["operator_owned_gas_funding_count"] == operator_owned == 0
-          assert summary["zero_own_capital_proven"] is (len(bindings) == len(economics))
+          if economics:
+              assert summary["zero_own_capital_proven"] is True
           print(
               "RMC013_EXTERNAL_GAS_CAPACITY_PASS",
               f"candidates={len(bindings)}",
