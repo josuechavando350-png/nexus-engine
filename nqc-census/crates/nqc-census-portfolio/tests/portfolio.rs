@@ -382,17 +382,10 @@ fn report_commitment_is_independent_of_input_order() -> TestResult {
         std::slice::from_ref(&funding),
         std::slice::from_ref(&resource),
     )?;
-    let right = evaluate_portfolio(
-        &[cb, ca],
-        &[b, a],
-        &[fb, fa],
-        &[funding],
-        &[resource],
-    )?;
+    let right = evaluate_portfolio(&[cb, ca], &[b, a], &[fb, fa], &[funding], &[resource])?;
     assert_eq!(left.commitment(), right.commitment());
     Ok(())
 }
-
 
 #[test]
 fn commitment_binds_candidate_identity_even_without_conflicts() -> TestResult {
@@ -443,13 +436,7 @@ fn commitment_binds_observed_capacity_even_without_conflicts() -> TestResult {
         &[source_100],
         &[],
     )?;
-    let high = evaluate_portfolio(
-        &[candidate],
-        &[req],
-        &[f200],
-        &[source_200],
-        &[],
-    )?;
+    let high = evaluate_portfolio(&[candidate], &[req], &[f200], &[source_200], &[])?;
     assert!(low.simultaneously_feasible());
     assert!(high.simultaneously_feasible());
     assert_ne!(low.commitment(), high.commitment());
@@ -519,8 +506,7 @@ fn route_variants_share_requirement_but_keep_distinct_candidate_identity() -> Te
         evidence(),
     )?;
     let claim = ResourceClaim::new(opportunity.key_id(), Amount256::from_u128(1))?;
-    let route_a =
-        PortfolioCandidate::new_variant(req.id(), hash(94), anchor.clone(), vec![claim])?;
+    let route_a = PortfolioCandidate::new_variant(req.id(), hash(94), anchor.clone(), vec![claim])?;
     let route_b = PortfolioCandidate::new_variant(req.id(), hash(95), anchor, vec![claim])?;
     assert_ne!(route_a.id(), route_b.id());
     assert_eq!(route_a.requirement_id(), route_b.requirement_id());
