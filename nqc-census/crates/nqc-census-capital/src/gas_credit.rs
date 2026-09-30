@@ -209,18 +209,19 @@ fn locator_hash(
     facility: Address,
     borrower: Address,
     lender: Address,
-    runtime_sha256: Hash32,
-    terms: Hash32,
 ) -> Result<Hash32, CapitalError> {
+    // This is the stable source locator, not an observation commitment.
+    // Runtime code, commercial terms and active/inactive state are mutable
+    // observations already bound by the facts/terms commitments and the
+    // observation-specific CapitalSourceId. Including them here would make
+    // one facility appear as a new source whenever its state changes.
     let mut hasher = Sha256::new();
-    hasher.update(b"NQC-RMC011-EXTERNAL-GAS-CREDIT-LOCATOR-V1");
+    hasher.update(b"NQC-RMC011-EXTERNAL-GAS-CREDIT-LOCATOR-V2");
     hasher.update([0]);
     hasher.update(EXTERNAL_GAS_CREDIT_PROVIDER_NAMESPACE.to_be_bytes());
     hasher.update(facility.as_bytes());
     hasher.update(borrower.as_bytes());
     hasher.update(lender.as_bytes());
-    hasher.update(runtime_sha256.as_bytes());
-    hasher.update(terms.as_bytes());
     let digest: [u8; 32] = hasher.finalize().into();
     Hash32::new(digest).map_err(|_| CapitalError::InvalidCanonical("zero gas credit locator hash"))
 }
@@ -371,8 +372,7 @@ pub fn import_external_gas_credit_observation(
         outstanding,
     )?;
     let evidence = provider_evidence(&row, facts_commitment)?;
-    let provider_locator_hash =
-        locator_hash(facility, borrower, lender, runtime_sha256, recomputed_terms)?;
+    let provider_locator_hash = locator_hash(facility, borrower, lender)?;
 
     ExternalGasCreditObservation {
         anchor,
