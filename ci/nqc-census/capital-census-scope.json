@@ -18,7 +18,8 @@
     "canary": false,
     "real_pnl": false,
     "global_capital_source_completeness": false,
-    "repayment_cashflow_sufficiency": false
+    "repayment_cashflow_sufficiency": false,
+    "terminal_capital_census_closed": false
   },
   "required_classes": [
     "PROTOCOL_NATIVE_FLASH_LOAN",
@@ -34,5 +35,7 @@
     "INTRA_BLOCK_TEMPORARY_LOCK"
   ],
   "source_universe_basis": "RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY",
-  "zero_own_capital_proof_basis": "EXTERNAL_GAS_COMPLETE_FEASIBLE_REQUIREMENTS_ONLY"
+  "zero_own_capital_proof_basis": "EXTERNAL_GAS_COMPLETE_FEASIBLE_REQUIREMENTS_ONLY",
+  "source_universe_contract": "ci/nqc-census/rmc011-capital-source-universe.json",
+  "terminal_closure_rule": "ONLY_WHEN_EVERY_REQUIRED_SOURCE_FAMILY_IS_TERMINALLY_RESOLVED_AND_AUTHENTICATED"
 }
