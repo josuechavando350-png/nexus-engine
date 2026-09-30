@@ -191,20 +191,35 @@ borrower/collateral/debt pair universe and produce the exact
 
 Terminal inputs are controlled by
 `ci/nqc-census/rmc012-terminal-inputs.json`. Until that document is
-`PINNED`, the terminal job MUST remain skipped and no terminal RMC-012
-authority may be claimed. A pinned document must name the exact successful
-RMC-008/RMC-009 workflow run, GitHub artifact id/name/digest, producer
-commit/tree, and the exact closeout path inside each artifact. It must also
-name the canonical external RMC-006..RMC-010 authority-lock bytes used by
-RMC-011. The terminal bridge re-hashes the consumed D08/D09 evidence
-manifests, requires their code identity and anchor to equal that authority
-lock, and never resolves a mutable "latest successful" artifact.
+`PINNED`, terminal certification MUST fail closed and no terminal RMC-012
+authority may be claimed.
 
-The terminal bridge runs twice from the same pinned bytes and the two output
-trees MUST be byte-identical. Its retained certification record binds the
-exact D12 commit/tree, the upstream artifact identities, external authority
-lock commitment/SHA-256, actionability coverage commitment, admitted/rejected
-counts and the SHA-256 of every emitted terminal artifact.
+A pinned document MUST name exactly one successful self-contained RMC-011
+real-source certification package by repository, workflow run id/name,
+producer commit/tree, GitHub artifact id/name/digest, and package inventory.
+RMC-012 MUST NOT independently choose mutable "latest successful" D08/D09
+artifacts. Instead it consumes the exact D08/D09 bytes and canonical
+RMC-006..RMC-010 external authority lock already authenticated and archived by
+that D11 package.
+
+Before actionability runs, terminal CI MUST:
+- verify the pinned D11 run completed successfully at the pinned head;
+- verify the artifact id/name/digest belongs to that exact run and is not expired;
+- verify the producer tree from Git against the pin;
+- verify the package-wide SHA-256 inventory and D11 capital archive inventory;
+- require the D11 real-source closeout to be canonical terminal evidence and
+  bind the same external authority-lock commitment/SHA-256 used below;
+- extract D08/D09 only from that authenticated package.
+
+The terminal bridge then re-hashes the consumed D08/D09 evidence manifests,
+requires their code identity and full/available anchor fields to equal the
+external authority lock, and runs twice from the same bytes. The two output
+trees MUST be byte-identical.
+
+The retained RMC-012 certification record MUST bind the exact D12 commit/tree,
+the exact D11 run/artifact/package identity, external authority-lock
+commitment/SHA-256, actionability coverage commitment, admitted/rejected
+counts, and the SHA-256/byte length of every emitted terminal artifact.
 
 ## Non-claims
 
