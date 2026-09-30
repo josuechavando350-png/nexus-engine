@@ -40,10 +40,6 @@ fn sha256_plain(bytes: &[u8]) -> String {
     hex::plain(&Sha256::digest(bytes))
 }
 
-fn file_sha256(path: &Path) -> Result<String, Box<dyn Error>> {
-    Ok(sha256_plain(&fs::read(path)?))
-}
-
 fn u64_field(value: &Json, key: &str) -> Result<u64, ChainError> {
     value
         .get(key)
