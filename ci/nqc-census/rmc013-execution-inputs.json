@@ -21,8 +21,9 @@
   "route_policy": {
     "venue_family": "UNISWAP_V2",
     "max_hops": 3,
-    "keep_routes_per_candidate": 8,
-    "discovery": "EXHAUSTIVE_SIMPLE_PATHS_OVER_EXACT_RMC008_STATE"
+    "keep_routes_per_candidate": 0,
+    "discovery": "EXHAUSTIVE_SIMPLE_PATHS_OVER_EXACT_RMC008_STATE",
+    "emission_policy": "ALL_POSITIVE_ELSE_BEST_NONPOSITIVE"
   },
   "blocking_reasons": [
     "RMC012_TERMINAL_ACTIONABILITY_ARTIFACT_NOT_PINNED"
