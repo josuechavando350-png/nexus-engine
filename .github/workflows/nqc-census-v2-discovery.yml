@@ -10,6 +10,11 @@ on:
       - nqc-census/Cargo.lock
       - nqc-census/crates/nqc-census-v2-discovery/**
       - ci/nqc-census/v2-discovery-providers.json
+  push:
+    branches:
+      - nqc/rmc-007-v2-reconciled-discovery-20260929
+    paths:
+      - ci/nqc-census/v2-discovery-scope.json
   workflow_dispatch:
     inputs:
       stages_run_id:
@@ -36,12 +41,14 @@ permissions:
 # certify the PR.
 concurrency:
   group: >-
-    ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.stages_run_id == ''
+    ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.stages_run_id == '')
+          || github.event_name == 'push')
         && 'nqc-census-public-rpc'
         || format('nqc-rmc007-{0}-{1}', github.event_name,
                   github.event_name == 'pull_request' && github.ref || github.run_id) }}
   cancel-in-progress: >-
-    ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.stages_run_id != '' }}
+    ${{ !((github.event_name == 'workflow_dispatch' && github.event.inputs.stages_run_id == '')
+           || github.event_name == 'push') }}
 
 jobs:
   gate:
@@ -158,9 +165,12 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/nqc-rmc007-plan
           head="$(git rev-parse HEAD)"
-          if [ "${{ github.event_name }}" != workflow_dispatch ]; then
+          if [ "${{ github.event_name }}" = pull_request ]; then
             STAGES_RUN_ID=36589054151
             echo "RMC007_PR_OFFLINE_REPLAY acquisition_run=$STAGES_RUN_ID replay_head=$head"
+          elif [ "${{ github.event_name }}" = push ]; then
+            STAGES_RUN_ID=""
+            echo "RMC007_EXACT_HEAD_PUSH_ACQUISITION head=$head ref=${{ github.ref }}"
           fi
           if [ -z "$STAGES_RUN_ID" ]; then
             echo "mode=acquire" >> "$GITHUB_OUTPUT"
