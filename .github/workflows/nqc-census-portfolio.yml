@@ -9,6 +9,8 @@ on:
       - "nqc-census/Cargo.lock"
       - "ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md"
       - "ci/nqc-census/rmc012-pft-actionability-bridge/**"
+      - "ci/nqc-census/rmc012-terminal-inputs.json"
+      - "ci/nqc-census/rmc012-upstream-authority-lock.json"
       - ".github/workflows/nqc-census-portfolio.yml"
   push:
     branches:
@@ -16,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 env:
   RUST_TOOLCHAIN: "1.98.1"
@@ -76,3 +79,226 @@ jobs:
           echo RMC012_PFT_ACTIONABILITY_BRIDGE_PASS
 
           echo RMC012_PORTFOLIO_FOUNDATION_PASS
+
+
+  terminal-inputs:
+    needs: rmc-012-portfolio
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      status: ${{ steps.inputs.outputs.status }}
+      d08_run: ${{ steps.inputs.outputs.d08_run }}
+      d08_name: ${{ steps.inputs.outputs.d08_name }}
+      d08_path: ${{ steps.inputs.outputs.d08_path }}
+      d09_run: ${{ steps.inputs.outputs.d09_run }}
+      d09_name: ${{ steps.inputs.outputs.d09_name }}
+      d09_path: ${{ steps.inputs.outputs.d09_path }}
+      authority_lock_path: ${{ steps.inputs.outputs.authority_lock_path }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Read fail-closed terminal inputs
+        id: inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os
+          path="ci/nqc-census/rmc012-terminal-inputs.json"
+          doc=json.load(open(path))
+          assert doc["schema_version"] == 1
+          status=doc["status"]
+          assert status in {"BLOCKED_AWAITING_CERTIFIED_UPSTREAM", "PINNED"}
+          print(f"status={status}")
+          if status != "PINNED":
+              assert doc.get("blocked_reason")
+              print("RMC012_TERMINAL_BLOCKED=" + doc["blocked_reason"])
+              raise SystemExit(0)
+
+          required=("workflow_run_id","artifact_id","artifact_name","artifact_digest",
+                    "code_commit","code_tree","closeout_path")
+          for role in ("d08","d09"):
+              row=doc.get(role)
+              assert isinstance(row,dict), role
+              missing=[key for key in required if key not in row]
+              assert not missing, (role,missing)
+              assert isinstance(row["workflow_run_id"],int) and row["workflow_run_id"] > 0
+              assert isinstance(row["artifact_id"],int) and row["artifact_id"] > 0
+              assert row["artifact_digest"].startswith("sha256:")
+              assert len(row["code_commit"]) == 40
+              assert len(row["code_tree"]) == 40
+              assert row["artifact_name"]
+              assert row["closeout_path"]
+              print(f"{role}_run={row['workflow_run_id']}")
+              print(f"{role}_name={row['artifact_name']}")
+              print(f"{role}_path={row['closeout_path']}")
+          lock=doc.get("authority_lock_path")
+          assert isinstance(lock,str) and lock
+          assert os.path.isfile(lock), lock
+          print(f"authority_lock_path={lock}")
+          PY
+
+  terminal-actionability:
+    needs: [rmc-012-portfolio, terminal-inputs]
+    if: ${{ needs.terminal-inputs.outputs.status == 'PINNED' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      D08_RUN: ${{ needs.terminal-inputs.outputs.d08_run }}
+      D08_NAME: ${{ needs.terminal-inputs.outputs.d08_name }}
+      D08_PATH: ${{ needs.terminal-inputs.outputs.d08_path }}
+      D09_RUN: ${{ needs.terminal-inputs.outputs.d09_run }}
+      D09_NAME: ${{ needs.terminal-inputs.outputs.d09_name }}
+      D09_PATH: ${{ needs.terminal-inputs.outputs.d09_path }}
+      AUTHORITY_LOCK_PATH: ${{ needs.terminal-inputs.outputs.authority_lock_path }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact upstream GitHub identities
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > /tmp/rmc012-pins.tsv
+          import json
+          doc=json.load(open("ci/nqc-census/rmc012-terminal-inputs.json"))
+          assert doc["status"] == "PINNED"
+          for role in ("d08","d09"):
+              r=doc[role]
+              print("\t".join(map(str,[
+                  role,r["workflow_run_id"],r["artifact_id"],r["artifact_name"],
+                  r["artifact_digest"],r["code_commit"],r["code_tree"]
+              ])))
+          PY
+          while IFS=$'\t' read -r role run artifact_id name digest commit tree; do
+            observed_head=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)
+            conclusion=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .conclusion)
+            artifact_run=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .workflow_run.id)
+            observed_name=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .name)
+            observed_digest=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .digest)
+            observed_tree=$(git show -s --format=%T "$commit")
+            test "$observed_head" = "$commit"
+            test "$conclusion" = success
+            test "$artifact_run" = "$run"
+            test "$observed_name" = "$name"
+            test "$observed_digest" = "$digest"
+            test "$observed_tree" = "$tree"
+            echo "RMC012_UPSTREAM_PIN_PASS role=$role run=$run artifact=$artifact_id head=$commit tree=$tree digest=$digest"
+          done < /tmp/rmc012-pins.tsv
+
+      - name: Download exact RMC-008 closeout
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ env.D08_NAME }}
+          run-id: ${{ env.D08_RUN }}
+          github-token: ${{ github.token }}
+          path: /tmp/rmc012-upstream/d08
+
+      - name: Download exact RMC-009 closeout
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ env.D09_NAME }}
+          run-id: ${{ env.D09_RUN }}
+          github-token: ${{ github.token }}
+          path: /tmp/rmc012-upstream/d09
+
+      - name: Execute terminal PFT actionability twice
+        working-directory: ci/nqc-census/rmc012-pft-actionability-bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          cargo build --release --locked --bin rmc012-terminal-actionability
+          HEAD_SHA="$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)"
+          TREE_SHA="$(git -C "$GITHUB_WORKSPACE" show -s --format=%T HEAD)"
+          d08="/tmp/rmc012-upstream/d08/$D08_PATH"
+          d09="/tmp/rmc012-upstream/d09/$D09_PATH"
+          test -f "$d08/evidence-manifest.json"
+          test -f "$d09/evidence-manifest.json"
+          for out in /tmp/rmc012-terminal-a /tmp/rmc012-terminal-b; do
+            rm -rf "$out"
+            target/release/rmc012-terminal-actionability \
+              --d08 "$d08" \
+              --d09 "$d09" \
+              --authority-lock "$GITHUB_WORKSPACE/$AUTHORITY_LOCK_PATH" \
+              --code-commit "$HEAD_SHA" --code-tree "$TREE_SHA" \
+              --out "$out" | tee "$out.log"
+            grep -F RMC012_TERMINAL_ACTIONABILITY_PASS "$out.log"
+          done
+          diff -r /tmp/rmc012-terminal-a /tmp/rmc012-terminal-b
+          echo RMC012_TERMINAL_DETERMINISM_PASS
+
+      - name: Independent conservation and certification record
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse HEAD)"
+          TREE_SHA="$(git show -s --format=%T HEAD)"
+          export HEAD_SHA TREE_SHA
+          python3 - <<'PY'
+          import hashlib,json,os
+          root="/tmp/rmc012-terminal-a"
+          summary=json.load(open(root+"/actionability-summary.json"))
+          records=[json.loads(line) for line in open(root+"/actionability-records.jsonl") if line.strip()]
+          admitted=sum(r["status"]=="ADMITTED" for r in records)
+          rejected=sum(r["status"]=="REJECTED" for r in records)
+          assert len(records)==summary["expected_pairs"]
+          assert admitted==summary["admitted"]
+          assert rejected==summary["rejected"]
+          assert admitted+rejected==summary["expected_pairs"]
+          assert summary["economic_filters_applied"] is False
+          cfg=json.load(open("ci/nqc-census/rmc012-terminal-inputs.json"))
+          def sha(path):
+              return hashlib.sha256(open(path,"rb").read()).hexdigest()
+          cert={
+              "schema":"nqc-rmc-012-terminal-certification-v1",
+              "status":"RMC_012_TERMINAL_CERTIFIED",
+              "code_commit":os.environ["HEAD_SHA"],
+              "code_tree":os.environ["TREE_SHA"],
+              "coverage_commitment":summary["coverage_commitment"],
+              "below_one_borrowers":summary["below_one_borrowers"],
+              "expected_pairs":summary["expected_pairs"],
+              "admitted":admitted,
+              "rejected":rejected,
+              "unexplained_omissions":0,
+              "unknown_failures":0,
+              "economic_filters_applied":False,
+              "upstream_authority_lock_commitment":summary["upstream_authority_lock_commitment"],
+              "upstream_authority_lock_sha256":summary["upstream_authority_lock_sha256"],
+              "terminal_evidence_manifest_sha256":sha(root+"/evidence-manifest.json"),
+              "records_sha256":sha(root+"/actionability-records.jsonl"),
+              "inputs":cfg,
+          }
+          with open(root+"/rmc012-certification.json","w") as handle:
+              json.dump(cert,handle,sort_keys=True,separators=(",",":"))
+              handle.write("\n")
+          print("RMC012_INDEPENDENT_CONSERVATION_PASS",len(records),admitted,rejected)
+          print("RMC012_CERTIFICATION_SHA256="+sha(root+"/rmc012-certification.json"))
+          PY
+          (
+            cd /tmp/rmc012-terminal-a
+            find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' | sort |
+              while read -r file; do sha256sum "$file"; done > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve terminal RMC-012 evidence
+        uses: actions/upload-artifact@ea165f8d65e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-rmc012-terminal-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/rmc012-terminal-a/actionability-records.jsonl
+            /tmp/rmc012-terminal-a/actionability-summary.json
+            /tmp/rmc012-terminal-a/evidence-manifest.json
+            /tmp/rmc012-terminal-a/rmc012-certification.json
+            /tmp/rmc012-terminal-a/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
