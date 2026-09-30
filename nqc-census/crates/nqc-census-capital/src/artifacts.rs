@@ -19,7 +19,7 @@ pub const CAPITAL_SUMMARY_FILE: &str = "capital-census-summary.json";
 pub const CAPITAL_UPSTREAM_AUTHORITY_FILE: &str = "capital-upstream-authority.json";
 pub const CAPITAL_EVIDENCE_MANIFEST_FILE: &str = "capital-evidence-manifest.json";
 
-const CAPITAL_SUMMARY_SCHEMA_VERSION: u64 = 5;
+const CAPITAL_SUMMARY_SCHEMA_VERSION: u64 = 6;
 const CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION: u64 = 3;
 const UPSTREAM_AUTHORITY_SCHEMA_VERSION: u64 = 7;
 const GENERATED_AT_BASIS: &str = "OBSERVATION_ANCHOR_BLOCK_TIMESTAMP";
@@ -131,6 +131,7 @@ pub struct CapitalArtifactVerification {
     pub requirement_count: usize,
     pub feasibility_count: usize,
     pub feasible_count: usize,
+    pub feasible_external_gas_count: usize,
     pub rejection_count: usize,
     pub capital_commitment: String,
     pub upstream_authority_commitment: String,
@@ -467,6 +468,7 @@ pub fn verify_capital_artifact_bundle(
     let source_count = usize_json(&summary, "source_count")?;
     let requirement_count = usize_json(&summary, "requirement_count")?;
     let feasible_count = usize_json(&summary, "feasible_count")?;
+    let feasible_external_gas_count = usize_json(&summary, "feasible_external_gas_count")?;
     let rejected_count = usize_json(&summary, "rejected_count")?;
     if source_count != sources.len()
         || requirement_count != requirements.len()
@@ -476,6 +478,7 @@ pub fn verify_capital_artifact_bundle(
             .checked_add(rejected_count)
             .ok_or(CapitalError::InvalidCanonical("summary count overflow"))?
             != requirement_count
+        || feasible_external_gas_count > feasible_count
     {
         return Err(CapitalError::InvalidCanonical(
             "capital summary counts differ from artifacts",
@@ -577,6 +580,11 @@ pub fn verify_capital_artifact_bundle(
     if regenerated_certificate.commitment.to_hex() != capital_commitment {
         return Err(CapitalError::CanonicalDigestMismatch);
     }
+    if regenerated_certificate.summary.feasible_external_gas_count != feasible_external_gas_count {
+        return Err(CapitalError::InvalidCanonical(
+            "summary external-gas feasibility count differs from regenerated certificate",
+        ));
+    }
     if regenerated_certificate.summary.proves_zero_own_capital() != zero_own_capital_proven {
         return Err(CapitalError::InvalidCanonical(
             "summary zero-own-capital claim differs from regenerated certificate",
@@ -588,6 +596,7 @@ pub fn verify_capital_artifact_bundle(
         requirement_count,
         feasibility_count: feasibility.len(),
         feasible_count,
+        feasible_external_gas_count,
         rejection_count: rejected_count,
         capital_commitment,
         upstream_authority_commitment,
@@ -691,6 +700,12 @@ pub fn export_capital_artifacts(
         (
             "feasible_count",
             Json::uint(u64_count(certificate.summary.feasible_count)),
+        ),
+        (
+            "feasible_external_gas_count",
+            Json::uint(u64_count(
+                certificate.summary.feasible_external_gas_count,
+            )),
         ),
         (
             "rejected_count",
