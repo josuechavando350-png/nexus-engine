@@ -529,6 +529,7 @@ jobs:
             target/release/nqc-rmc011-expanded-ledger-replay \
               --legacy-dir "$RUNNER_TEMP/rmc011-real-source" \
               --balancer-reconcile "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
+              --uniswap-v3-reconcile "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json" \
               --code-commit "$GITHUB_SHA" \
               --code-tree "$CODE_TREE" \
               --out "$ROOT/expanded-ledger-replay.json"
@@ -540,6 +541,7 @@ jobs:
             target/release/nqc-rmc011-expanded-ledger-replay \
               --legacy-dir "$RUNNER_TEMP/rmc011-real-source" \
               --balancer-reconcile "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
+              --uniswap-v3-reconcile "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json" \
               --code-commit "$GITHUB_SHA" \
               --code-tree "$CODE_TREE" \
               --out "$ROOT/expanded-ledger-replay-second.json"
@@ -554,6 +556,7 @@ jobs:
             .terminal_d11_closed == false and
             .code_commit == env.GITHUB_SHA and
             .d11_native_source_count > 0 and
+            (.uniswap_v3_reconciliation_sha256 | type == "string" and test("^[0-9a-f]{64}$")) and
             .d08_source_count == .legacy_source_count and
             .expanded_source_count == (.legacy_source_count + .d11_native_source_count) and
             (.non_claims | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
