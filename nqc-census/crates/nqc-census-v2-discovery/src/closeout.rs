@@ -28,6 +28,9 @@ use std::sync::Mutex;
 
 const SCHEMA_VERSION: u64 = 1;
 const SCOPE: &str = "ETHEREUM_MAINNET_UNISWAP_V2_DECLARED_FACTORY_ONLY";
+const STORE_SEGMENT_TARGET_BYTES: usize = 64 * 1024 * 1024;
+const STORE_ENCODING_SINGLE: &str = "RMC004_SINGLE_ARTIFACT_V1";
+const STORE_ENCODING_SEGMENTED: &str = "RMC004_ORDERED_SEGMENTS_V1";
 
 fn number(value: &Json, key: &str) -> Result<u64, ChainError> {
     value
@@ -382,6 +385,104 @@ fn validate_closeout_pass_candidate(
     Ok(())
 }
 
+fn store_evidence_entry(store: &Store, name: &str, bytes: &[u8]) -> Result<Json, ChainError> {
+    let logical_sha256 = nqc_census_chain::hex::plain(&sha2_digest(bytes));
+    let logical_bytes = u64::try_from(bytes.len())
+        .map_err(|_| ChainError::Evidence(format!("{name} length exceeds u64")))?;
+
+    if logical_bytes <= store.config().max_artifact_bytes() {
+        let put = store.put_artifact(bytes)?;
+        if put.id.to_hex() != logical_sha256 {
+            return Err(ChainError::Evidence(format!(
+                "{name} store identity differs from its sha256"
+            )));
+        }
+        return Ok(Json::object([
+            ("name", Json::string(name)),
+            ("sha256", Json::string(logical_sha256)),
+            ("bytes", Json::uint(logical_bytes)),
+            ("store_encoding", Json::string(STORE_ENCODING_SINGLE)),
+            ("store_artifact_id", Json::string(put.id.to_hex())),
+        ]));
+    }
+
+    let store_limit = usize::try_from(store.config().max_artifact_bytes())
+        .map_err(|_| ChainError::Evidence("store artifact bound exceeds usize".into()))?;
+    let target = STORE_SEGMENT_TARGET_BYTES.min(store_limit);
+    if target == 0 {
+        return Err(ChainError::Evidence(
+            "store artifact bound does not permit segmentation".into(),
+        ));
+    }
+
+    let mut segments = Vec::new();
+    let mut offset = 0_usize;
+    while offset < bytes.len() {
+        let end = offset.saturating_add(target).min(bytes.len());
+        if end <= offset {
+            return Err(ChainError::Evidence(
+                "segmented artifact made no forward progress".into(),
+            ));
+        }
+        let segment = &bytes[offset..end];
+        let put = store.put_artifact(segment)?;
+        let segment_sha256 = nqc_census_chain::hex::plain(&sha2_digest(segment));
+        if put.id.to_hex() != segment_sha256 {
+            return Err(ChainError::Evidence(format!(
+                "{name} segment store identity differs from its sha256"
+            )));
+        }
+        segments.push(Json::object([
+            (
+                "sequence",
+                Json::uint(
+                    u64::try_from(segments.len())
+                        .map_err(|_| ChainError::Evidence("segment count exceeds u64".into()))?,
+                ),
+            ),
+            (
+                "offset",
+                Json::uint(
+                    u64::try_from(offset)
+                        .map_err(|_| ChainError::Evidence("segment offset exceeds u64".into()))?,
+                ),
+            ),
+            (
+                "bytes",
+                Json::uint(
+                    u64::try_from(segment.len())
+                        .map_err(|_| ChainError::Evidence("segment length exceeds u64".into()))?,
+                ),
+            ),
+            ("sha256", Json::string(segment_sha256)),
+            ("store_artifact_id", Json::string(put.id.to_hex())),
+        ]));
+        offset = end;
+    }
+
+    Ok(Json::object([
+        ("name", Json::string(name)),
+        ("sha256", Json::string(logical_sha256)),
+        ("bytes", Json::uint(logical_bytes)),
+        ("store_encoding", Json::string(STORE_ENCODING_SEGMENTED)),
+        (
+            "segment_target_bytes",
+            Json::uint(
+                u64::try_from(target)
+                    .map_err(|_| ChainError::Evidence("segment target exceeds u64".into()))?,
+            ),
+        ),
+        (
+            "segment_count",
+            Json::uint(
+                u64::try_from(segments.len())
+                    .map_err(|_| ChainError::Evidence("segment count exceeds u64".into()))?,
+            ),
+        ),
+        ("store_segments", Json::Array(segments)),
+    ]))
+}
+
 /// Writes the deterministic closeout artifacts and returns the report.
 #[allow(clippy::too_many_arguments)]
 pub fn write_closeout(
@@ -625,18 +726,10 @@ pub fn write_closeout(
 
     let mut entries = Vec::with_capacity(files.len());
     for (name, bytes) in &files {
-        let put = inputs.store.put_artifact(bytes)?;
+        let entry = store_evidence_entry(inputs.store, name, bytes)?;
         std::fs::write(out_dir.join(name), bytes)
             .map_err(|error| ChainError::Config(format!("{name}: {error}")))?;
-        entries.push(Json::object([
-            ("name", Json::string(name.clone())),
-            (
-                "sha256",
-                Json::string(nqc_census_chain::hex::plain(&sha2_digest(bytes))),
-            ),
-            ("store_artifact_id", Json::string(put.id.to_hex())),
-            ("bytes", Json::uint(bytes.len() as u64)),
-        ]));
+        entries.push(entry);
     }
     let manifest = with_header(
         "RMC007_EVIDENCE_MANIFEST",
@@ -679,7 +772,8 @@ fn sha2_digest(bytes: &[u8]) -> [u8; 32] {
 #[cfg(test)]
 mod tests {
     use super::{
-        rfc3339, validate_closeout_pass_candidate, Occurrences, SequencedReplay,
+        rfc3339, store_evidence_entry, validate_closeout_pass_candidate, Occurrences,
+        SequencedReplay, STORE_ENCODING_SEGMENTED,
     };
     use nqc_census_chain::{
         provider::{PinningMode, ProviderSpec},
@@ -724,9 +818,7 @@ mod tests {
             "provider_mismatch_count",
             nqc_census_chain::json::Json::uint(1),
         )]);
-        assert!(
-            validate_closeout_pass_candidate(&summary(3), 0, 3, &mismatched, 3).is_err()
-        );
+        assert!(validate_closeout_pass_candidate(&summary(3), 0, 3, &mismatched, 3).is_err());
 
         let mut delta = summary(3);
         delta.unexplained_delta_count = 1;
@@ -734,6 +826,47 @@ mod tests {
 
         let incomplete = summary(2);
         assert!(validate_closeout_pass_candidate(&incomplete, 0, 2, &clean, 3).is_err());
+    }
+
+    #[test]
+    fn oversized_closeout_artifact_is_losslessly_segmented_in_the_store(
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        use nqc_census_store::{CompressionPolicy, StoreConfig};
+
+        let root = std::env::temp_dir().join(format!(
+            "nqc-rmc007-segment-test-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)?
+                .as_nanos()
+        ));
+        let config = StoreConfig::new(64, 4, 128, CompressionPolicy::RawOnly, 128)?;
+        let store = Store::create(&root, config)?;
+        let bytes = vec![b'x'; 300];
+        let entry = store_evidence_entry(&store, "oversized.bin", &bytes)?;
+        assert_eq!(
+            entry.str_field("store_encoding")?,
+            STORE_ENCODING_SEGMENTED
+        );
+        assert_eq!(entry.get("segment_count").and_then(Json::as_i64), Some(3));
+
+        let mut reconstructed = Vec::new();
+        for segment in entry
+            .get("store_segments")
+            .and_then(Json::as_array)
+            .ok_or("missing store segments")?
+        {
+            let id = ArtifactId::parse_hex(segment.str_field("store_artifact_id")?)?;
+            reconstructed.extend(store.get_artifact(&id)?);
+        }
+        assert_eq!(reconstructed, bytes);
+        assert_eq!(
+            entry.str_field("sha256")?,
+            nqc_census_chain::hex::plain(&sha2_digest(&reconstructed))
+        );
+
+        std::fs::remove_dir_all(root)?;
+        Ok(())
     }
 
     #[test]
