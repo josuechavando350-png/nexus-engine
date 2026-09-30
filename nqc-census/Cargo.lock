@@ -120,6 +120,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "nqc-census-v2-discovery"
+version = "0.1.0"
+dependencies = [
+ "nqc-census-chain",
+ "nqc-census-core",
+ "nqc-census-store",
+ "sha2",
+]
+
+[[package]]
 name = "sha2"
 version = "0.10.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"

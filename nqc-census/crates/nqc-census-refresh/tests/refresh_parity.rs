@@ -89,6 +89,14 @@ fn mint(block: u64, log_index: u32, token: Address, to: Address) -> SimLog {
     }
 }
 
+/// Aave V3 credits the zero address on a supply on its behalf or an aToken
+/// transfer to it (13 such mainnet logs up to A0); it is a conservation term,
+/// never an account.
+fn to_zero(mut log: SimLog) -> SimLog {
+    log.topics[2] = [0_u8; 32];
+    log
+}
+
 fn transfer(block: u64, log_index: u32, token: Address, from: Address, to: Address) -> SimLog {
     SimLog {
         block,
@@ -107,6 +115,8 @@ struct Epoch {
     balances: Vec<(Address, Address, u64, u64)>,
     totals: Vec<(Address, u64)>,
     stable_total: u64,
+    /// (token, scaled balance of the zero address) where it is not zero.
+    zero_holdings: Vec<(Address, u64)>,
     /// (account, configuration, health factor).
     accounts: Vec<(Address, u64, u64)>,
 }
@@ -134,10 +144,12 @@ fn scenario() -> Scenario {
             mint(BASE + 12, 0, v1, user(1)),
             mint(BASE + 15, 0, a1, user(2)),
             transfer(BASE + 20, 1, a1, user(2), user(3)),
+            to_zero(transfer(BASE + 22, 0, a1, user(2), user(2))),
             mint(BASE + 25, 0, a0, user(4)),
             mint(BASE + 30, 2, a0, treasury()),
             mint(BASE + 45, 0, a0, user(6)),
             mint(BASE + 47, 0, a2, user(2)),
+            to_zero(mint(BASE + 48, 0, a0, user(1))),
             transfer(BASE + 50, 3, a1, user(3), user(7)),
             mint(BASE + 52, 1, a0, treasury()),
         ],
@@ -150,8 +162,9 @@ fn scenario() -> Scenario {
                 (a0, user(4), 0, 0),
                 (a0, treasury(), 7, 7),
             ],
-            totals: vec![(a0, 1_007), (a1, 500), (v1, 500), (v0, 0)],
+            totals: vec![(a0, 1_007), (a1, 520), (v1, 500), (v0, 0)],
             stable_total: 0,
+            zero_holdings: vec![(a1, 20)],
             accounts: vec![
                 (user(1), 0b110, 900_000_000_000_000_000),
                 (user(2), 0b1000, 1_500_000_000_000_000_000),
@@ -172,8 +185,9 @@ fn scenario() -> Scenario {
                 (a0, treasury(), 9, 9),
                 (a0, user(6), 40, 40),
             ],
-            totals: vec![(a0, 1_049), (a1, 500), (v1, 0), (v0, 0), (a2, 70), (v2, 0)],
+            totals: vec![(a0, 1_054), (a1, 520), (v1, 0), (v0, 0), (a2, 70), (v2, 0)],
             stable_total: 0,
+            zero_holdings: vec![(a1, 20), (a0, 5)],
             accounts: vec![
                 (user(1), 0b10, max),
                 (user(2), 0b10_1000, 1_400_000_000_000_000_000),
@@ -209,6 +223,18 @@ fn set_epoch(sim: &mut SimChain, epoch: &Epoch, from: u64) {
                 from,
                 None,
                 returned(&[word(total)]),
+            );
+            let zero = epoch
+                .zero_holdings
+                .iter()
+                .find(|(t, _)| *t == token)
+                .map_or(0, |(_, scaled)| *scaled);
+            sim.set_call(
+                token,
+                call("scaledBalanceOf(address)", &[word(0)]),
+                from,
+                None,
+                returned(&[word(zero)]),
             );
         }
     }
@@ -518,6 +544,7 @@ fn close(reconciled: &Reconciled, mode: Json, dir: &Path) -> Result<Json, Box<dy
             code_commit: &"a".repeat(40),
             code_tree: &"b".repeat(40),
             pins: &[],
+            upstream_sources: Json::Array(Vec::new()),
             store_evidence_root: "root",
             stage_stores: Vec::new(),
             record_manifests: Vec::new(),
@@ -588,9 +615,18 @@ fn incremental_refresh_equals_a_full_census_byte_for_byte() -> TestResult {
         assert_eq!(metric(reconciled, "indexed_pairs"), 9);
         assert_eq!(metric(reconciled, "actionable_accounts"), 0);
         assert_eq!(metric(reconciled, "conserved_tokens"), 6);
+        // Both hold the zero address's A1 balances as conservation terms.
+        assert_eq!(metric(reconciled, "zero_address_holding_tokens"), 2);
     }
-    // The refresh indexed only the delta.
+    // The refresh indexed only the delta: its zero-address log history is the
+    // delta's one Mint, the full census's both logs (provenance, not census).
     assert!(incremental.index.logs < full.index.logs);
+    assert_eq!(full.index.zero_account_logs, 2);
+    assert_eq!(incremental.index.zero_account_logs, 1);
+    assert_eq!(
+        incremental.index.zero_account_log_refs[0].get("block"),
+        Some(&Json::uint(BASE + 48))
+    );
     // The base itself differs (another anchor, another state).
     assert!(census_parity(&dirs.0[0], &dirs.0[2]).is_err());
     Ok(())

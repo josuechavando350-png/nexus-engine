@@ -201,6 +201,9 @@ fn anchor_timestamp(stages: &[ReplayedStage]) -> Result<u64, ChainError> {
 
 struct Supply {
     total: Option<U256>,
+    /// The zero address's scaled balance at the anchor: never an account,
+    /// always a conservation term.
+    zero: Option<U256>,
     sum: U256,
     holders: u64,
 }
@@ -209,12 +212,6 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
     let plan = inputs.plan;
     let mut mismatches = MismatchLedger::default();
     let mut findings = Vec::new();
-    if inputs.index.zero_account_logs != 0 {
-        findings.push(format!(
-            "ZERO_ADDRESS_RECEIVED_TOKENS logs={}",
-            inputs.index.zero_account_logs
-        ));
-    }
     let anchor_timestamp = anchor_timestamp(&inputs.tokens)?;
     let token_rows = agreed_single(&inputs.tokens, "token supply")?;
     if token_rows.len() != plan.reserves.len() {
@@ -272,11 +269,16 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
             );
             mismatches.check(&unit, "RESERVE_TOKEN_ADDRESSES", expected, observed);
         }
-        for (token, key) in [
-            (reserve.a_token, "a_token_scaled_total_supply"),
+        for (token, key, zero_key) in [
+            (
+                reserve.a_token,
+                "a_token_scaled_total_supply",
+                "a_token_zero_address_scaled_balance",
+            ),
             (
                 reserve.variable_debt_token,
                 "variable_debt_scaled_total_supply",
+                "variable_debt_zero_address_scaled_balance",
             ),
         ] {
             let field = row
@@ -291,10 +293,23 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
                     describe(field),
                 );
             }
+            let zero_field = row
+                .get(zero_key)
+                .ok_or_else(|| ChainError::Evidence(format!("{zero_key} missing")))?;
+            let zero = decimal(zero_field);
+            if zero.is_none() {
+                mismatches.check(
+                    &unit,
+                    "ZERO_ADDRESS_SCALED_BALANCE",
+                    "uint256",
+                    describe(zero_field),
+                );
+            }
             supplies.insert(
                 token,
                 Supply {
                     total,
+                    zero,
                     sum: U256::ZERO,
                     holders: 0,
                 },
@@ -536,6 +551,7 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
     let mut conservation = Vec::new();
     let mut conserved = true;
     let (mut missing_tokens, mut excess_tokens) = (0_u64, 0_u64);
+    let mut zero_holding_tokens = 0_u64;
     for reserve in &plan.reserves {
         for (token, kind) in [
             (reserve.a_token, TokenKind::AToken),
@@ -544,15 +560,27 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
             let supply = supplies
                 .get(&token)
                 .ok_or_else(|| ChainError::Evidence("token supply missing".into()))?;
-            let status = match supply.total {
-                None => {
+            // Σ indexed scaled balances + the zero address's scaled balance
+            // = scaledTotalSupply.
+            let accounted = supply
+                .zero
+                .and_then(|zero| supply.sum.checked_add(zero).ok());
+            if supply.zero.is_some_and(|zero| !zero.is_zero()) {
+                zero_holding_tokens += 1;
+            }
+            let status = match (supply.total, accounted) {
+                (None, _) => {
                     conserved = false;
                     "TOTAL_UNREADABLE"
                 }
-                Some(total) if total == supply.sum => "CONSERVED",
-                Some(total) => {
+                (Some(_), None) => {
                     conserved = false;
-                    let status = if supply.sum.checked_sub(total).is_err() {
+                    "ZERO_ADDRESS_BALANCE_UNREADABLE"
+                }
+                (Some(total), Some(accounted)) if total == accounted => "CONSERVED",
+                (Some(total), Some(accounted)) => {
+                    conserved = false;
+                    let status = if accounted.checked_sub(total).is_err() {
                         missing_tokens += 1;
                         "MISSING_HOLDERS"
                     } else {
@@ -563,7 +591,7 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
                         unit: format!("token:{}", token.to_hex()),
                         dimension: format!("SCALED_SUPPLY_CONSERVATION_{status}"),
                         expected: total.to_decimal(),
-                        observed: supply.sum.to_decimal(),
+                        observed: accounted.to_decimal(),
                         explanation: None,
                     });
                     status
@@ -581,6 +609,12 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
                         .map_or(Json::Null, |total| Json::string(total.to_decimal())),
                 ),
                 ("indexed_scaled_sum", Json::string(supply.sum.to_decimal())),
+                (
+                    "zero_address_scaled_balance",
+                    supply
+                        .zero
+                        .map_or(Json::Null, |zero| Json::string(zero.to_decimal())),
+                ),
                 ("holders", Json::uint(supply.holders)),
                 ("status", Json::string(status)),
             ]));
@@ -625,6 +659,10 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
         (
             "configuration_divergences",
             Json::uint(divergences.len() as u64),
+        ),
+        (
+            "zero_address_holding_tokens",
+            Json::uint(zero_holding_tokens),
         ),
         ("tokens", Json::uint(conservation.len() as u64)),
         (

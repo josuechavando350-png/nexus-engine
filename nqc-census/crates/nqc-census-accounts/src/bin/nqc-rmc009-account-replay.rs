@@ -13,7 +13,7 @@ use nqc_census_accounts::extract::stage_extract;
 use nqc_census_accounts::inputs::{anchor_from_flags, plan_at};
 use nqc_census_chain::json::Json;
 use nqc_census_chain::provider::ProviderSet;
-use nqc_census_state::inputs::verify_pins;
+use nqc_census_state::inputs::{verify_pins, verify_upstream};
 use nqc_census_store::verify::{verify_store, VerifyReport, VerifyRequest};
 use nqc_census_store::Store;
 use std::collections::BTreeMap;
@@ -45,10 +45,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .iter()
         .cloned()
         .collect();
-    let pins = verify_pins(
-        &PathBuf::from(flag("--pins")?),
-        &PathBuf::from(flag("--pin-root")?),
-    )?;
+    let pins_path = PathBuf::from(flag("--pins")?);
+    let pins = verify_pins(&pins_path, &PathBuf::from(flag("--pin-root")?))?;
+    verify_upstream(&pins_path, &pins)?;
     let mut plan = plan_at(
         &pins,
         anchor_from_flags(

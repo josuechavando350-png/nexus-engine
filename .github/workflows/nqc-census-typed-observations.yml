@@ -16,12 +16,16 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   typed-observations:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
+      # RMC-001 recertified freeze manifest (Amendment 1), pinned by digest.
+      RMC001_FREEZE_MANIFEST_SHA256: a0e5280175cfebadbbb225783873fde5d85364e3985224b20ba797fda0529842
+      GH_TOKEN: ${{ github.token }}
       RMC003_TYPED_BASE: 8032f55011625a106cf22a109dbd6af39cb1ecc4
       RMC005_MERGE: 5e856c3dc78902b055ed9878c117d3c1469a8fda
       RMC004_MERGE: ad6cb0366b42d4acc835545f3ba6c68324cadd89
@@ -103,12 +107,14 @@ jobs:
             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
           echo RMC_003_1_PROTOCOL_FORK_IMMUTABLE_PASS
           git diff --quiet "$RMC001_MERGE" HEAD -- \
-            ci/nqc-census/IDENTITY_CONTRACT.md \
             ci/nqc-census/identity-vectors.json \
             nqc-census/rust-toolchain.toml \
             nqc-census/crates/nqc-census-core/Cargo.toml \
-            nqc-census/crates/nqc-census-core/src/identity.rs \
             nqc-census/crates/nqc-census-core/tests/identity.rs
+          # IDENTITY_CONTRACT.md and identity.rs changed only through RMC-001
+          # Amendment 1; the recertified freeze manifest pins them by content.
+          echo "$RMC001_FREEZE_MANIFEST_SHA256  ci/nqc-census/rmc001-freeze-manifest.json" | sha256sum --check --strict
+          python3 ci/nqc-census/verify_rmc001_freeze.py
           git diff --quiet "$RMC003_MERGE" HEAD -- \
             ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md \
             nqc-census/crates/nqc-census-core/src/pipeline.rs \

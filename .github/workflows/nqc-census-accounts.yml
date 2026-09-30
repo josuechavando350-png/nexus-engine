@@ -10,19 +10,53 @@ on:
       - ci/nqc-census/state-providers.json
       - nqc-census/crates/nqc-census-accounts/**
   workflow_dispatch:
+    inputs:
+      anchor_number:
+        description: "Optional alternate D06-certified anchor number"
+        required: false
+        default: ""
+      anchor_hash:
+        description: "Canonical hash of anchor_number"
+        required: false
+        default: ""
+      d06_run_id:
+        description: "Exact successful RMC-006 workflow run at the alternate anchor"
+        required: false
+        default: ""
+      d06_artifact_id:
+        description: "Exact GitHub artifact id of the RMC-006 evidence"
+        required: false
+        default: ""
+      d06_artifact_name:
+        description: "Exact RMC-006 evidence artifact name"
+        required: false
+        default: ""
+      d06_artifact_digest:
+        description: "Exact GitHub artifact digest (sha256:...)"
+        required: false
+        default: ""
+      d06_code_commit:
+        description: "Exact RMC-006 run head SHA"
+        required: false
+        default: ""
 
 permissions:
   contents: read
   actions: read
 
 # Live acquisition runs only from a workflow_dispatch on the exact branch
-# head, inside the repository-wide public-RPC group (one live Census
-# acquisition at a time, never cancelled while running). A pull_request run
-# verifies the pinned inputs through the GitHub API only, in a per-ref group,
-# so it can never displace another node's pending acquisition.
+# head, in RMC-009's own live group: one D09 acquisition per ref at a time,
+# never cancelled while running. GitHub keeps one pending run per group and a
+# newer pending run replaces an older one, so a group shared across Census
+# nodes let one node's dispatch silently evict another's pending
+# certification (RMC-010 moved to its own group for the same reason). A
+# pull_request run verifies the pinned inputs through the GitHub API only, in
+# a per-ref group.
 concurrency:
-  group: ${{ github.event_name == 'workflow_dispatch' && 'nqc-census-public-rpc' || format('nqc-rmc009-inputs-{0}', github.ref) }}
-  cancel-in-progress: false
+  group: ${{ github.event_name == 'workflow_dispatch' && format('nqc-rmc009-live-{0}', github.ref) || format('nqc-rmc009-inputs-{0}', github.ref) }}
+  # PR/input checks supersede stale checks for the same PR. A live
+  # acquisition is never cancelled by concurrency.
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' }}
 
 env:
   RUST_TOOLCHAIN: "1.98.1"
@@ -39,19 +73,67 @@ jobs:
       d06_run: ${{ steps.pins.outputs.d06_run }}
       d06_artifact: ${{ steps.pins.outputs.d06_artifact }}
       acquire: ${{ steps.decide.outputs.acquire }}
+      anchor_number: ${{ steps.pins.outputs.anchor_number }}
+      anchor_hash: ${{ steps.pins.outputs.anchor_hash }}
+      dynamic: ${{ steps.pins.outputs.dynamic }}
     steps:
       - name: Checkout exact head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Read pinned sources and verify their upstream identity
+      - name: Read exact D06 source identity
         id: pins
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          ALT_ANCHOR_NUMBER: ${{ inputs.anchor_number }}
+          ALT_ANCHOR_HASH: ${{ inputs.anchor_hash }}
+          ALT_D06_RUN: ${{ inputs.d06_run_id }}
+          ALT_D06_ARTIFACT_ID: ${{ inputs.d06_artifact_id }}
+          ALT_D06_ARTIFACT_NAME: ${{ inputs.d06_artifact_name }}
+          ALT_D06_ARTIFACT_DIGEST: ${{ inputs.d06_artifact_digest }}
+          ALT_D06_COMMIT: ${{ inputs.d06_code_commit }}
         run: |
           set -euo pipefail
+          values=("$ALT_ANCHOR_NUMBER" "$ALT_ANCHOR_HASH" "$ALT_D06_RUN" "$ALT_D06_ARTIFACT_ID" "$ALT_D06_ARTIFACT_NAME" "$ALT_D06_ARTIFACT_DIGEST" "$ALT_D06_COMMIT")
+          supplied=0
+          for value in "${values[@]}"; do
+            if [ -n "$value" ]; then supplied=$((supplied + 1)); fi
+          done
+          if [ "$supplied" != 0 ] && [ "$supplied" != 7 ]; then
+            echo "alternate-anchor dispatch must supply all seven anchor/D06 identity fields; supplied=$supplied"
+            exit 1
+          fi
+
+          if [ "$supplied" = 7 ]; then
+            test "${{ github.event_name }}" = workflow_dispatch
+            [[ "$ALT_ANCHOR_NUMBER" =~ ^[0-9]+$ ]]
+            [[ "$ALT_ANCHOR_HASH" =~ ^0x[0-9a-fA-F]{64}$ ]]
+            [[ "$ALT_D06_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$ALT_D06_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+            head=$(gh api "repos/${{ github.repository }}/actions/runs/$ALT_D06_RUN" --jq .head_sha)
+            conclusion=$(gh api "repos/${{ github.repository }}/actions/runs/$ALT_D06_RUN" --jq .conclusion)
+            observed=$(gh api "repos/${{ github.repository }}/actions/artifacts/$ALT_D06_ARTIFACT_ID" --jq .digest)
+            name=$(gh api "repos/${{ github.repository }}/actions/artifacts/$ALT_D06_ARTIFACT_ID" --jq .name)
+            run=$(gh api "repos/${{ github.repository }}/actions/artifacts/$ALT_D06_ARTIFACT_ID" --jq .workflow_run.id)
+            test "$head" = "$ALT_D06_COMMIT" || { echo "D06 run head $head != $ALT_D06_COMMIT"; exit 1; }
+            test "$conclusion" = success || { echo "D06 run $ALT_D06_RUN concluded $conclusion"; exit 1; }
+            test "$run" = "$ALT_D06_RUN" || { echo "artifact belongs to run $run, not $ALT_D06_RUN"; exit 1; }
+            test "$observed" = "$ALT_D06_ARTIFACT_DIGEST" || { echo "artifact digest $observed != $ALT_D06_ARTIFACT_DIGEST"; exit 1; }
+            test "$name" = "$ALT_D06_ARTIFACT_NAME" || { echo "artifact name $name != $ALT_D06_ARTIFACT_NAME"; exit 1; }
+            tree=$(gh api "repos/${{ github.repository }}/git/commits/$ALT_D06_COMMIT" --jq .tree.sha)
+            [[ "$tree" =~ ^[0-9a-f]{40}$ ]]
+            echo "d06_tree=$tree" >> "$GITHUB_OUTPUT"
+            echo "d06_run=$ALT_D06_RUN" >> "$GITHUB_OUTPUT"
+            echo "d06_artifact=$ALT_D06_ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+            echo "anchor_number=$ALT_ANCHOR_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "anchor_hash=$ALT_ANCHOR_HASH" >> "$GITHUB_OUTPUT"
+            echo "dynamic=true" >> "$GITHUB_OUTPUT"
+            echo "RMC009_DYNAMIC_D06_PINNED run=$ALT_D06_RUN commit=$ALT_D06_COMMIT tree=$tree artifact=$ALT_D06_ARTIFACT_ID digest=$ALT_D06_ARTIFACT_DIGEST anchor=$ALT_ANCHOR_NUMBER"
+            exit 0
+          fi
+
           status=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/account-inputs.json"))["status"])')
           if [ "$status" != "PINNED" ]; then
             python3 -c 'import json; d=json.load(open("ci/nqc-census/account-inputs.json")); print("RMC009_BLOCKED", d["status"], "-", d.get("blocked_reason", ""))'
@@ -60,20 +142,31 @@ jobs:
           python3 - <<'PY' > /tmp/nqc-rmc009-sources.txt
           import json
           pins = json.load(open("ci/nqc-census/account-inputs.json"))
+          anchor = pins["expected_anchor"]
+          print("ANCHOR", anchor["block_number"], anchor["block_hash"])
           for source in pins["sources"]:
-              print(source["node"].lower(), source["workflow_run_id"], source["artifact_id"],
-                    source["artifact"], source["code_commit"], source["artifact_digest"])
+              print("SOURCE", source["node"].lower(), source["workflow_run_id"], source["artifact_id"],
+                    source["artifact"], source["code_commit"], source["code_tree"], source["artifact_digest"])
           PY
-          while read -r node run artifact_id artifact commit digest; do
+          read -r _ anchor_number anchor_hash < <(grep '^ANCHOR ' /tmp/nqc-rmc009-sources.txt)
+          echo "anchor_number=$anchor_number" >> "$GITHUB_OUTPUT"
+          echo "anchor_hash=$anchor_hash" >> "$GITHUB_OUTPUT"
+          echo "dynamic=false" >> "$GITHUB_OUTPUT"
+          while read -r kind node run artifact_id artifact commit tree digest; do
+            [ "$kind" = SOURCE ] || continue
             head=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)
             conclusion=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .conclusion)
+            observed_tree=$(gh api "repos/${{ github.repository }}/git/commits/$commit" --jq .tree.sha)
             observed=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .digest)
             name=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .name)
+            run_of_artifact=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .workflow_run.id)
             test "$head" = "$commit" || { echo "$node run $run head $head is not pinned $commit"; exit 1; }
             test "$conclusion" = success || { echo "$node run $run concluded $conclusion"; exit 1; }
+            test "$observed_tree" = "$tree" || { echo "$node commit $commit tree $observed_tree is not pinned $tree"; exit 1; }
             test "$observed" = "$digest" || { echo "$node artifact digest $observed is not pinned $digest"; exit 1; }
             test "$name" = "$artifact" || { echo "$node artifact name $name is not pinned $artifact"; exit 1; }
-            echo "RMC009_UPSTREAM_PINNED node=$node run=$run commit=$commit artifact=$artifact_id digest=$digest"
+            test "$run_of_artifact" = "$run" || { echo "$node artifact $artifact_id belongs to run $run_of_artifact, not $run"; exit 1; }
+            echo "RMC009_UPSTREAM_PINNED node=$node run=$run commit=$commit tree=$tree artifact=$artifact_id digest=$digest"
             echo "${node}_run=$run" >> "$GITHUB_OUTPUT"
             echo "${node}_artifact=$artifact" >> "$GITHUB_OUTPUT"
           done < /tmp/nqc-rmc009-sources.txt
@@ -86,23 +179,98 @@ jobs:
           github-token: ${{ github.token }}
           path: /tmp/nqc-rmc009-inputs/d06
 
-      - name: Verify every pinned digest and keep only pinned files
+      - name: Verify every digest and materialize immutable run-local pins
         shell: bash
+        env:
+          DYNAMIC: ${{ steps.pins.outputs.dynamic }}
+          ANCHOR_NUMBER: ${{ steps.pins.outputs.anchor_number }}
+          ANCHOR_HASH: ${{ steps.pins.outputs.anchor_hash }}
+          D06_RUN: ${{ steps.pins.outputs.d06_run }}
+          D06_ARTIFACT: ${{ steps.pins.outputs.d06_artifact }}
+          D06_TREE: ${{ steps.pins.outputs.d06_tree }}
+          ALT_D06_ARTIFACT_ID: ${{ inputs.d06_artifact_id }}
+          ALT_D06_ARTIFACT_DIGEST: ${{ inputs.d06_artifact_digest }}
+          ALT_D06_COMMIT: ${{ inputs.d06_code_commit }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import hashlib, json, os, shutil
-          pins = json.load(open("ci/nqc-census/account-inputs.json"))
           root = os.environ["D09_INPUTS"]
           keep = "/tmp/nqc-rmc009-pinned"
-          for entry in pins["files"]:
-              source = os.path.join(root, entry["path"])
-              digest = hashlib.sha256(open(source, "rb").read()).hexdigest()
-              assert digest == entry["sha256"], f"{entry['path']}: {digest} != pinned {entry['sha256']}"
-              target = os.path.join(keep, entry["path"])
-              os.makedirs(os.path.dirname(target), exist_ok=True)
-              shutil.copyfile(source, target)
-              print(f"RMC009_INPUT_PINNED role={entry['role']} sha256={digest}")
+          os.makedirs(keep, exist_ok=True)
+
+          if os.environ["DYNAMIC"] == "true":
+              specs = [
+                  ("d06_current_surface", "d06/aave-current-surface.json"),
+                  ("d06_deployment_manifest", "d06/closeout/aave-deployment-manifest.jsonl"),
+                  ("d06_reserve_manifest", "d06/closeout/aave-reserve-manifest.jsonl"),
+                  ("d06_history", "d06/aave-history.json"),
+                  ("d06_evidence_manifest", "d06/closeout/evidence-manifest.json"),
+              ]
+              files = []
+              for role, path in specs:
+                  source = os.path.join(root, path)
+                  data = open(source, "rb").read()
+                  digest = hashlib.sha256(data).hexdigest()
+                  target = os.path.join(keep, path)
+                  os.makedirs(os.path.dirname(target), exist_ok=True)
+                  shutil.copyfile(source, target)
+                  files.append({"role": role, "path": path, "sha256": digest})
+                  print(f"RMC009_DYNAMIC_FILE_PINNED role={role} sha256={digest}")
+              pins = {
+                  "schema_version": 1,
+                  "status": "PINNED",
+                  "expected_anchor": {
+                      "block_number": int(os.environ["ANCHOR_NUMBER"]),
+                      "block_hash": os.environ["ANCHOR_HASH"],
+                  },
+                  "sources": [{
+                      "node": "D06",
+                      "workflow_run_id": int(os.environ["D06_RUN"]),
+                      "artifact_id": int(os.environ["ALT_D06_ARTIFACT_ID"]),
+                      "artifact": os.environ["D06_ARTIFACT"],
+                      "code_commit": os.environ["ALT_D06_COMMIT"],
+                      "code_tree": os.environ["D06_TREE"],
+                      "artifact_digest": os.environ["ALT_D06_ARTIFACT_DIGEST"],
+                      # Bound by the verified artifact digest; recorded, then
+                      # checked against the manifest like a static pin.
+                      "evidence_manifest_sha256": next(
+                          f["sha256"] for f in files if f["role"] == "d06_evidence_manifest"),
+                  }],
+                  "files": files,
+              }
+          else:
+              pins = json.load(open("ci/nqc-census/account-inputs.json"))
+              for entry in pins["files"]:
+                  source = os.path.join(root, entry["path"])
+                  data = open(source, "rb").read()
+                  digest = hashlib.sha256(data).hexdigest()
+                  assert digest == entry["sha256"], f"{entry['path']}: {digest} != pinned {entry['sha256']}"
+                  target = os.path.join(keep, entry["path"])
+                  os.makedirs(os.path.dirname(target), exist_ok=True)
+                  shutil.copyfile(source, target)
+                  print(f"RMC009_INPUT_PINNED role={entry['role']} sha256={digest}")
+
+          # Each upstream closeout evidence manifest is the declared one, was
+          # written by the pinned commit and tree, and lists every consumed
+          # closeout file with its pinned digest (the Rust readers re-check).
+          files = {entry["role"]: entry for entry in pins["files"]}
+          for source in pins["sources"]:
+              node = source["node"].lower()
+              pin = files[f"{node}_evidence_manifest"]
+              assert pin["sha256"] == source["evidence_manifest_sha256"], f"{node} evidence manifest"
+              manifest = json.load(open(os.path.join(root, pin["path"])))
+              assert (manifest["code_commit"], manifest["code_tree"]) == (source["code_commit"], source["code_tree"]), node
+              listed = {(item["name"], item["sha256"]) for item in manifest["artifacts"]}
+              for entry in pins["files"]:
+                  name = entry["path"].removeprefix(f"{node}/closeout/")
+                  if entry["role"].startswith(f"{node}_") and name != entry["path"] and name != "evidence-manifest.json":
+                      assert (name, entry["sha256"]) in listed, f"{entry['role']} not in the {node} evidence manifest"
+                      print(f"RMC009_INPUT_BOUND role={entry['role']} manifest={source['evidence_manifest_sha256']}")
+
+          with open(os.path.join(keep, "account-inputs.json"), "w") as handle:
+              json.dump(pins, handle, indent=2, sort_keys=True)
+              handle.write("\n")
           PY
 
       - name: Preserve pinned inputs
@@ -121,7 +289,7 @@ jobs:
           set -euo pipefail
           if [ "${{ github.event_name }}" = workflow_dispatch ]; then
             echo "acquire=true" >> "$GITHUB_OUTPUT"
-            echo "RMC009_ACQUISITION head=$(git rev-parse HEAD) group=nqc-census-public-rpc"
+            echo "RMC009_ACQUISITION head=$(git rev-parse HEAD) group=nqc-rmc009-live-${{ github.ref }}"
           else
             echo "acquire=false" >> "$GITHUB_OUTPUT"
             echo "RMC009_INPUTS_VERIFIED; live acquisition runs only from workflow_dispatch on the exact head (not certified by this run)"
@@ -150,6 +318,20 @@ jobs:
             echo "branch moved: PR head=$HEAD_SHA branch=$observed; refusing stale certification dispatch"
             exit 1
           }
+          # Do not waste the live slot on an obsolete head that has already
+          # failed. Healthy older runs are left alone.
+          while read -r run head status; do
+            [ -n "$run" ] || continue
+            if [ "$head" != "$HEAD_SHA" ] && { [ "$status" = queued ] || [ "$status" = in_progress ]; }; then
+              failed=$(gh api "repos/$repo/actions/runs/$run/jobs?per_page=100" \
+                --jq '[.jobs[] | select(.conclusion == "failure")] | length')
+              if [ "$failed" != 0 ]; then
+                gh api --method POST "repos/$repo/actions/runs/$run/cancel"
+                echo "RMC009_CANCELLED_STALE_FAILED_RUN run=$run head=$head failed_jobs=$failed"
+              fi
+            fi
+          done < <(gh api "repos/$repo/actions/workflows/nqc-census-accounts.yml/runs?event=workflow_dispatch&branch=$HEAD_REF&per_page=30" \
+            --jq '.workflow_runs[] | [.id, .head_sha, .status] | @tsv')
           existing=$(gh api "repos/$repo/actions/workflows/nqc-census-accounts.yml/runs?event=workflow_dispatch&branch=$HEAD_REF&per_page=30" \
             --jq "[.workflow_runs[] | select(.head_sha == \"$HEAD_SHA\" and (.status == \"queued\" or .status == \"in_progress\" or .conclusion == \"success\"))] | length")
           if [ "$existing" != 0 ]; then
@@ -204,13 +386,33 @@ jobs:
             if target/release/nqc-rmc009-account-stage index \
                 --partition "${{ matrix.partition }}" --partitions "$INDEX_PARTITIONS" \
                 --providers ../ci/nqc-census/account-index-providers.json --label "${{ matrix.provider }}" \
-                --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+                --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
                 --store "$D09_EVIDENCE/store" --out "$D09_EVIDENCE/record.json" \
                 > "$D09_EVIDENCE/stage.log" 2> "$D09_EVIDENCE/stage-attempt-$attempt.err"; then
               echo "RMC009_ATTEMPT_PASS attempt=$attempt"
               break
             fi
-            echo "RMC009_ATTEMPT_FAILED attempt=$attempt $(tail -n 1 "$D09_EVIDENCE/stage-attempt-$attempt.err")"
+            last=$(tail -n 1 "$D09_EVIDENCE/stage-attempt-$attempt.err")
+            echo "RMC009_ATTEMPT_FAILED attempt=$attempt $last"
+            # A result-cap refusal at the log-window ladder's floor, or the same
+            # JSON-RPC request error (-32600/-32601/-32602) on two attempts with
+            # no new committed checkpoint, belongs to the request, not to an
+            # outage: retrying cannot change it, so the stage stops now and the
+            # range stays an error. Transport failures and rate limits keep the
+            # full retry budget.
+            progress=$( (find "$D09_EVIDENCE/store/streams" -path '*/checkpoints/*' -type f 2>/dev/null || true) | wc -l)
+            if grep -qF RMC009_RESULT_CAP_FLOOR <<<"$last"; then
+              echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
+              exit 1
+            fi
+            if grep -qE 'ProviderError \{[^}]*code: -3260[012],' <<<"$last" \
+                && [ "$last" = "${previous_error:-}" ] && [ "$progress" = "${previous_progress:-}" ]; then
+              echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
+              exit 1
+            fi
+            previous_error=$last
+            previous_progress=$progress
             if [ "$attempt" = 10 ]; then
               exit 1
             fi
@@ -290,7 +492,8 @@ jobs:
           sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
             target/release/nqc-rmc009-account-replay \
             --providers ../ci/nqc-census/account-index-providers.json \
-            --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+            --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
             --record "$stage/record.json" --store "$stage/store" \
             --stage-artifact "$chosen" \
             --out "$D09_EVIDENCE/extract.json" | tee "$D09_EVIDENCE/replay.log"
@@ -357,11 +560,16 @@ jobs:
           sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
             target/release/nqc-rmc009-account-candidates \
             --providers ../ci/nqc-census/account-index-providers.json \
-            --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+            --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
             --extracts "$D09_EVIDENCE/index-extracts" \
             --out "$D09_EVIDENCE/candidate-accounts.jsonl" | tee "$D09_EVIDENCE/candidates.log"
           grep -F "RMC009_CANDIDATES_PASS" "$D09_EVIDENCE/candidates.log"
-          grep -F " zero_account_logs=0 " "$D09_EVIDENCE/candidates.log"
+          # Index logs naming the zero address are recorded, never a candidate:
+          # the zero address is not an account. Its scaled balance of every
+          # token is read at the anchor (ACCOUNT_TOKENS) and is a term of the
+          # exact conservation identity the reconcile enforces.
+          sed -nE 's/^RMC009_CANDIDATES_PASS .* (zero_account_logs=[0-9]+) .*/RMC009_ZERO_ADDRESS_INDEX_LOGS \1/p' "$D09_EVIDENCE/candidates.log"
 
       - name: Preserve candidates
         if: always()
@@ -429,13 +637,33 @@ jobs:
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
             if target/release/nqc-rmc009-account-stage "${args[@]}" \
                 --providers ../ci/nqc-census/state-providers.json --label "${{ matrix.provider }}" \
-                --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+                --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
                 --store "$D09_EVIDENCE/store" --out "$D09_EVIDENCE/record.json" \
                 > "$D09_EVIDENCE/stage.log" 2> "$D09_EVIDENCE/stage-attempt-$attempt.err"; then
               echo "RMC009_ATTEMPT_PASS attempt=$attempt"
               break
             fi
-            echo "RMC009_ATTEMPT_FAILED attempt=$attempt $(tail -n 1 "$D09_EVIDENCE/stage-attempt-$attempt.err")"
+            last=$(tail -n 1 "$D09_EVIDENCE/stage-attempt-$attempt.err")
+            echo "RMC009_ATTEMPT_FAILED attempt=$attempt $last"
+            # A result-cap refusal at the log-window ladder's floor, or the same
+            # JSON-RPC request error (-32600/-32601/-32602) on two attempts with
+            # no new committed checkpoint, belongs to the request, not to an
+            # outage: retrying cannot change it, so the stage stops now and the
+            # range stays an error. Transport failures and rate limits keep the
+            # full retry budget.
+            progress=$( (find "$D09_EVIDENCE/store/streams" -path '*/checkpoints/*' -type f 2>/dev/null || true) | wc -l)
+            if grep -qF RMC009_RESULT_CAP_FLOOR <<<"$last"; then
+              echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
+              exit 1
+            fi
+            if grep -qE 'ProviderError \{[^}]*code: -3260[012],' <<<"$last" \
+                && [ "$last" = "${previous_error:-}" ] && [ "$progress" = "${previous_progress:-}" ]; then
+              echo "RMC009_DETERMINISTIC_PROVIDER_REFUSAL attempt=$attempt checkpoints=$progress $last"
+              exit 1
+            fi
+            previous_error=$last
+            previous_progress=$progress
             if [ "$attempt" = 10 ]; then
               exit 1
             fi
@@ -525,7 +753,8 @@ jobs:
           sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
             target/release/nqc-rmc009-account-replay "${with[@]}" \
             --providers ../ci/nqc-census/state-providers.json \
-            --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+            --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
             --record "$stage/record.json" --store "$stage/store" \
             --stage-artifact "$chosen" \
             --out "$D09_EVIDENCE/extract.json" | tee "$D09_EVIDENCE/replay.log"
@@ -610,7 +839,8 @@ jobs:
               target/release/nqc-rmc009-account-reconcile \
               --index-providers ../ci/nqc-census/account-index-providers.json \
               --state-providers ../ci/nqc-census/state-providers.json \
-              --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+              --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
               --candidates /tmp/nqc-rmc009-candidates/candidate-accounts.jsonl \
               --extracts "$D09_EVIDENCE/extracts" \
               --out-dir "$D09_EVIDENCE/$out" \

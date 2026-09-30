@@ -14,8 +14,8 @@
       "operator": "MEV Blocker public RPC",
       "min_interval_ms": 1250,
       "max_batch": 4,
-      "log_window": 10000,
-      "log_window_basis": "Documented 10,000-block window; probe run 36589205446 scanned 915 such windows per filter with zero failed items. Probe run 36590720390 measured up to about 8,500 account logs (5.4 MB) per window, so a batch carries at most four windows.",
+      "log_window": 2500,
+      "log_window_basis": "Provider accepts at most 10,000 returned logs. Live run 36636132821 proved a 10,000-block request can exceed that result cap and the provider suggested a 7,447-block maximum for the failing density. Use 2,500 blocks (one third of that observed maximum) so bursts substantially denser than the failed range still remain bounded; four windows may still be transported in one JSON-RPC batch. A failed range is never read as empty. Probe run 36656954422 showed 2,500 blocks from 24,911,792 exceed the cap (the provider suggested 2,350); result-cap refusals descend the declared log-window ladder (ACCOUNT_UNIVERSE_CONTRACT.md).",
       "pinning": "EIP1898_BLOCK_HASH"
     },
     {
@@ -26,7 +26,7 @@
       "min_interval_ms": 250,
       "max_batch": 1,
       "log_window": 5000,
-      "log_window_basis": "Probe run 36590720390 served 10,000-block account-log windows (1,937 logs) in 0.6 s; half of that window bounds the densest measured windows below about 4,300 logs per response. Batching is not supported.",
+      "log_window_basis": "Probe run 36590720390 served 10,000-block account-log windows (1,937 logs) in 0.6 s; half of that window bounds the densest measured windows below about 4,300 logs per response. Batching is not supported. Probe run 36656954422 showed the provider caps a response at 20,000 logs (-32602 invalid params, the count in data): 5,000-block windows 24,911,792-24,921,791 exceeded it and their 2,500-block halves were answered. Result-cap refusals descend the declared log-window ladder (ACCOUNT_UNIVERSE_CONTRACT.md); they are never retried as outages or read as empty.",
       "pinning": "NUMBER_WITH_HASH_GUARDS"
     }
   ]

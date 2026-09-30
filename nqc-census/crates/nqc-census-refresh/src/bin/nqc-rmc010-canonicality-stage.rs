@@ -9,7 +9,7 @@ use nqc_census_chain::provider::ProviderSet;
 use nqc_census_chain::transport::{CurlTransport, RetryPolicy};
 use nqc_census_refresh::base::read_base;
 use nqc_census_refresh::canonical::base_canonicality_stage;
-use nqc_census_state::inputs::verify_pins;
+use nqc_census_state::inputs::{verify_pins, verify_upstream};
 use nqc_census_store::{Store, StoreConfig};
 use std::collections::BTreeMap;
 use std::{env, error::Error, fs, path::PathBuf};
@@ -38,10 +38,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .find(|provider| provider.label() == label)
         .ok_or_else(|| format!("provider {label} is not declared"))?
         .clone();
-    let pins = verify_pins(
-        &PathBuf::from(flag("--pins")?),
-        &PathBuf::from(flag("--pin-root")?),
-    )?;
+    let pins_path = PathBuf::from(flag("--pins")?);
+    let pins = verify_pins(&pins_path, &PathBuf::from(flag("--pin-root")?))?;
+    verify_upstream(&pins_path, &pins)?;
     let anchor = anchor_from_flags(
         flags.get("--anchor-number").map(String::as_str),
         flags.get("--anchor-hash").map(String::as_str),

@@ -108,6 +108,139 @@ pub fn verify_pins(pins: &Path, root: &Path) -> Result<Vec<PinnedFile>, ChainErr
     Ok(out)
 }
 
+fn lower_hex(text: &str, len: usize) -> bool {
+    text.len() == len
+        && text
+            .bytes()
+            .all(|byte| matches!(byte, b'0'..=b'9' | b'a'..=b'f'))
+}
+
+/// Verifies the upstream authorities declared in `state-inputs.json` against
+/// the pinned files, and returns them for the RMC-008 evidence manifest.
+///
+/// Each source names the certified run its files came from: code commit and
+/// tree, workflow run, artifact id and name, artifact ZIP digest, and the
+/// sha256 of its closeout `evidence-manifest.json`. Offline this requires
+/// that the pinned `<node>_evidence_manifest` is that manifest, that it was
+/// written by that commit and tree, and that every consumed file under
+/// `<node>/closeout/` is listed in it with the pinned digest. Every pinned
+/// file belongs to exactly one declared source. Run, artifact and ZIP digest
+/// are checked against the GitHub API by the live workflow before any file is
+/// downloaded.
+pub fn verify_upstream(pins: &Path, files: &[PinnedFile]) -> Result<Json, ChainError> {
+    let document = read_json(pins)?;
+    let sources = required(&document, "sources")?
+        .as_array()
+        .ok_or_else(|| ChainError::Evidence("pinned sources are not an array".into()))?;
+    let entries = required(&document, "files")?
+        .as_array()
+        .ok_or_else(|| ChainError::Evidence("pinned files are not an array".into()))?;
+    if sources.is_empty() {
+        return Err(ChainError::Evidence("no upstream source is pinned".into()));
+    }
+    let mut nodes: Vec<String> = Vec::new();
+    for source in sources {
+        let node = source.str_field("node")?;
+        let prefix = node.to_ascii_lowercase();
+        if prefix.is_empty() || nodes.contains(&prefix) {
+            return Err(ChainError::Evidence(format!(
+                "upstream source {node} is empty or pinned twice"
+            )));
+        }
+        for key in ["workflow_run_id", "artifact_id"] {
+            if !source
+                .get(key)
+                .and_then(Json::as_i64)
+                .is_some_and(|value| value > 0)
+            {
+                return Err(ChainError::Evidence(format!(
+                    "{node} {key} is not a positive integer"
+                )));
+            }
+        }
+        let commit = source.str_field("code_commit")?;
+        let tree = source.str_field("code_tree")?;
+        let manifest_sha256 = source.str_field("evidence_manifest_sha256")?;
+        let zip_digest_ok = source
+            .str_field("artifact_digest")?
+            .strip_prefix("sha256:")
+            .is_some_and(|digest| lower_hex(digest, 64));
+        if !lower_hex(commit, 40)
+            || !lower_hex(tree, 40)
+            || !lower_hex(manifest_sha256, 64)
+            || !zip_digest_ok
+            || source.str_field("artifact")?.is_empty()
+        {
+            return Err(ChainError::Evidence(format!(
+                "{node} identity is malformed"
+            )));
+        }
+        let manifest_role = format!("{prefix}_evidence_manifest");
+        let manifest_pin = files
+            .iter()
+            .find(|file| file.role == manifest_role)
+            .ok_or_else(|| ChainError::Evidence(format!("no pinned {manifest_role}")))?;
+        if manifest_pin.sha256 != manifest_sha256 {
+            return Err(ChainError::Evidence(format!(
+                "{node} evidence manifest is pinned {} but declared {manifest_sha256}",
+                manifest_pin.sha256
+            )));
+        }
+        let manifest = read_json(&manifest_pin.path)?;
+        if manifest.str_field("code_commit")? != commit || manifest.str_field("code_tree")? != tree
+        {
+            return Err(ChainError::Evidence(format!(
+                "{node} evidence manifest was not written by the pinned commit and tree"
+            )));
+        }
+        let listed = required(&manifest, "artifacts")?
+            .as_array()
+            .ok_or_else(|| ChainError::Evidence(format!("{node} manifest artifacts")))?;
+        let closeout = format!("{prefix}/closeout/");
+        for entry in entries {
+            let role = entry.str_field("role")?;
+            let path = entry.str_field("path")?;
+            if !role.starts_with(&format!("{prefix}_")) {
+                continue;
+            }
+            if !path.starts_with(&format!("{prefix}/")) {
+                return Err(ChainError::Evidence(format!(
+                    "{role} is pinned outside {prefix}/"
+                )));
+            }
+            let Some(name) = path.strip_prefix(&closeout) else {
+                continue;
+            };
+            if name == "evidence-manifest.json" {
+                continue;
+            }
+            let sha256 = entry.str_field("sha256")?;
+            let bound = listed.iter().any(|artifact| {
+                artifact.get("name").and_then(Json::as_str) == Some(name)
+                    && artifact.get("sha256").and_then(Json::as_str) == Some(sha256)
+            });
+            if !bound {
+                return Err(ChainError::Evidence(format!(
+                    "{role} ({name}, {sha256}) is not in the {node} evidence manifest"
+                )));
+            }
+        }
+        nodes.push(prefix);
+    }
+    for entry in entries {
+        let role = entry.str_field("role")?;
+        if !nodes
+            .iter()
+            .any(|node| role.starts_with(&format!("{node}_")))
+        {
+            return Err(ChainError::Evidence(format!(
+                "pinned file {role} belongs to no declared source"
+            )));
+        }
+    }
+    Ok(Json::Array(sources.to_vec()))
+}
+
 pub fn pinned<'a>(files: &'a [PinnedFile], role: &str) -> Result<&'a Path, ChainError> {
     files
         .iter()

@@ -72,22 +72,26 @@ jobs:
           print("ANCHORS", base["block_number"], target["block_number"], target["block_hash"])
           for source in pins["sources"]:
               print("SOURCE", source["role"], source["workflow_run_id"], source["artifact_id"],
-                    source["artifact"], source["code_commit"], source["artifact_digest"])
+                    source["artifact"], source["code_commit"], source["code_tree"], source["artifact_digest"])
           PY
           read -r _ base_number target_number target_hash < <(grep '^ANCHORS ' /tmp/nqc-rmc010-sources.txt)
           echo "base_number=$base_number" >> "$GITHUB_OUTPUT"
           echo "target_number=$target_number" >> "$GITHUB_OUTPUT"
           echo "target_hash=$target_hash" >> "$GITHUB_OUTPUT"
-          while read -r kind role run artifact_id artifact commit digest; do
+          while read -r kind role run artifact_id artifact commit tree digest; do
             [ "$kind" = SOURCE ] || continue
             head=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)
             conclusion=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .conclusion)
+            observed_tree=$(gh api "repos/${{ github.repository }}/git/commits/$commit" --jq .tree.sha)
             observed=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .digest)
             name=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .name)
+            run_of_artifact=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .workflow_run.id)
             test "$head" = "$commit" || { echo "$role run $run head $head != pinned $commit"; exit 1; }
             test "$conclusion" = success || { echo "$role run $run conclusion=$conclusion"; exit 1; }
+            test "$observed_tree" = "$tree" || { echo "$role commit $commit tree $observed_tree != pinned $tree"; exit 1; }
             test "$observed" = "$digest" || { echo "$role artifact digest $observed != $digest"; exit 1; }
             test "$name" = "$artifact" || { echo "$role artifact name $name != $artifact"; exit 1; }
+            test "$run_of_artifact" = "$run" || { echo "$role artifact $artifact_id belongs to run $run_of_artifact, not $run"; exit 1; }
             echo "${role}_run=$run" >> "$GITHUB_OUTPUT"
             echo "${role}_head=$head" >> "$GITHUB_OUTPUT"
             echo "${role}_artifact=$artifact" >> "$GITHUB_OUTPUT"
@@ -145,14 +149,26 @@ jobs:
               files.append({"role": entry["role"], "path": "d06/" + entry["source_path"],
                             "sha256": entry["sha256"]})
               print("RMC010_TARGET_D06_FILE_PINNED", entry["role"], observed)
+          # The target D06 run is the upstream authority of every D09 binary
+          # at A1; they re-check it offline (inputs::verify_upstream).
+          d06 = next(s for s in cfg["sources"] if s["role"] == "target_d06")
           account_pins = {
-              "schema_version": 1,
+              "schema_version": 2,
               "status": "PINNED",
               "expected_anchor": {
                   "block_number": target["block_number"],
                   "block_hash": target["block_hash"],
               },
-              "sources": [],
+              "sources": [{
+                  "node": "D06",
+                  "workflow_run_id": d06["workflow_run_id"],
+                  "artifact_id": d06["artifact_id"],
+                  "artifact": d06["artifact"],
+                  "code_commit": d06["code_commit"],
+                  "code_tree": d06["code_tree"],
+                  "artifact_digest": d06["artifact_digest"],
+                  "evidence_manifest_sha256": d06["evidence_manifest_sha256"],
+              }],
               "files": files,
           }
           path = os.path.join(root, "target", "account-inputs.json")

@@ -16,12 +16,16 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   log-topic-words:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
+      # RMC-001 recertified freeze manifest (Amendment 1), pinned by digest.
+      RMC001_FREEZE_MANIFEST_SHA256: a0e5280175cfebadbbb225783873fde5d85364e3985224b20ba797fda0529842
+      GH_TOKEN: ${{ github.token }}
       RMC003_2_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
       RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
       RMC003_TYPED_AUTHORITY: 5e032b2a601a2368334477e6ad9ee5c5b7ba219a
@@ -112,10 +116,37 @@ jobs:
           introduces = subprocess.run(
               ["git", "merge-base", "--is-ancestor", os.environ["RMC003_2_AUTHORITY"], base]).returncode != 0
           expected = declared if introduces else set()
+          # RMC-001 Amendment 1 (IDENTITY_CONTRACT.md) changed identity files
+          # that sit under nqc-census-core, and re-pinned RMC-001 in the
+          # declared store and chain-evidence workflows and in this one. A
+          # downstream PR may carry exactly those changes. It must carry no
+          # other governed change, the certified RMC-001 freeze manifest must
+          # verify at its pinned digest, and the two re-pinned workflows must
+          # match their pins. RMC-003.2's own content files stay frozen.
+          rmc001_a1_core = {
+              "nqc-census/crates/nqc-census-core/src/identity.rs",
+              "nqc-census/crates/nqc-census-core/tests/identity_amendment_1.rs",
+              "nqc-census/crates/nqc-census-core/tests/support/identity_corpus.rs",
+          }
+          rmc001_a1_repins = {
+              ".github/workflows/nqc-census-store.yml": "9ceba8e8ce4a8b5dccf21c59b50dc2f6d013f3218cd14560457ab54967d37da1",
+              ".github/workflows/nqc-census-chain-evidence.yml": "1af546d0b7b0c0a9f941a4622e745d558a5e8275a9151cf73ee0bb4aefb38d51",
+              ".github/workflows/nqc-census-log-topic-words.yml": None,
+          }
+          amendment = changed & (rmc001_a1_core | set(rmc001_a1_repins))
+          if amendment and not introduces:
+              import hashlib
+              digest = lambda path: hashlib.sha256(open(path, "rb").read()).hexdigest()
+              assert digest("ci/nqc-census/rmc001-freeze-manifest.json") == os.environ["RMC001_FREEZE_MANIFEST_SHA256"]
+              subprocess.run(["python3", "ci/nqc-census/verify_rmc001_freeze.py"], check=True)
+              for path, pinned in rmc001_a1_repins.items():
+                  assert pinned is None or digest(path) == pinned, f"{path} differs from its RMC-001-A1 re-pin"
+              expected = expected | amendment
           assert changed == expected, (
               f"RMC-003.2 governed scope mismatch introduces={introduces} "
               f"missing={sorted(expected - changed)} extra={sorted(changed - expected)}")
-          print(f"RMC_003_2_SCOPE_PASS introduces_authority={introduces} governed_files={len(changed)}")
+          print(f"RMC_003_2_SCOPE_PASS introduces_authority={introduces} governed_files={len(changed)} "
+                f"rmc001_a1_files={len(amendment)}")
           PY
           fi
           git rev-parse HEAD > "$EVIDENCE/head.txt"
@@ -131,9 +162,13 @@ jobs:
             ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json \
             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
           git diff --quiet "$RMC001_MERGE" HEAD -- \
-            ci/nqc-census/IDENTITY_CONTRACT.md ci/nqc-census/identity-vectors.json \
+            ci/nqc-census/identity-vectors.json \
             nqc-census/rust-toolchain.toml nqc-census/crates/nqc-census-core/Cargo.toml \
-            nqc-census/crates/nqc-census-core/src/identity.rs nqc-census/crates/nqc-census-core/tests/identity.rs
+            nqc-census/crates/nqc-census-core/tests/identity.rs
+          # IDENTITY_CONTRACT.md and identity.rs changed only through RMC-001
+          # Amendment 1; the recertified freeze manifest pins them by content.
+          echo "$RMC001_FREEZE_MANIFEST_SHA256  ci/nqc-census/rmc001-freeze-manifest.json" | sha256sum --check --strict
+          python3 ci/nqc-census/verify_rmc001_freeze.py
           git diff --quiet "$RMC003_2_BASE" HEAD -- \
             ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md \
             ci/nqc-census/TYPED_OBSERVATION_CONTRACT.md \

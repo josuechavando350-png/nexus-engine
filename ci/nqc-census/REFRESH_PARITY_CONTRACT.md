@@ -103,9 +103,19 @@ content-addressed upstreams:
   target account plan;
 - a certified full RMC-009 closeout at the same A1.
 
-Every pinned workflow run must be successful at the pinned commit, every
-artifact name and GitHub artifact digest must match, and every target D06 file
-used to construct the A1 account plan is pinned by SHA-256.
+The following must hold for every pinned upstream:
+- its workflow run succeeded at the pinned commit;
+- the commit's tree is the pinned `code_tree`;
+- the artifact belongs to that run, with the pinned name and GitHub artifact
+  digest.
+
+Every target D06 file used to construct the A1 account plan is pinned by
+SHA-256, including D06's closeout `evidence-manifest.json`. The target D06
+source also pins `evidence_manifest_sha256`. It is materialized as the D09
+upstream source of the A1 account pins, so every D09 and RMC-010 binary
+re-checks it offline (`inputs::verify_upstream`). That check requires the
+manifest to be the declared one, written by the pinned commit and tree, and
+to list every consumed closeout file with its pinned digest.
 
 The incremental path then acquires only what differs from the full path:
 

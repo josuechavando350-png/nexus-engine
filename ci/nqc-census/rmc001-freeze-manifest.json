@@ -1,0 +1,149 @@
+{
+  "amendment": "A Uniswap V2 token may be the factory; token0 != factory and token1 != factory are removed; every other invariant remains",
+  "amendment_id": "RMC-001-A1",
+  "authority_commit": "206aaa403f38c3888390340041cea71e8812abd4",
+  "authority_tree": "3efbfbb68572fa22c2ca4feaf3900ede73e7a77a",
+  "backward_stability": {
+    "corpus": "nqc-census/crates/nqc-census-core/tests/support/identity_corpus.rs",
+    "corpus_entries": 10704,
+    "original_corpus_sha256": "79be63c8d9f0d0036abbd53743b26e3e0cbb7593a52a14b89caff1cc80c8feed",
+    "reproduced_from": "cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d"
+  },
+  "base_authority_commit": "cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d",
+  "certification": {
+    "head_sha": "5e36103aa53b34060e55971093affbff82364258",
+    "job_id": 109697172270,
+    "manifest_sha256": "8302df9fb514ef9de4718b8cce4da0872f771ab883cda11a0dec2de090ad626f",
+    "passed": [
+      "RMC_001_IDENTITY_BYTES_IMMUTABLE_PASS",
+      "RMC_001_NO_IO_BOUNDARY_PASS",
+      "RMC_001_INDEPENDENT_VECTORS_PASS",
+      "RMC_001_CANONICAL_MARKET_IDENTITY_PASS",
+      "RMC_001_A1_BACKWARD_IDENTITY_STABILITY_PASS"
+    ],
+    "run_id": 36654952078,
+    "status": "CERTIFIED",
+    "workflow": ".github/workflows/nqc-census-identity.yml"
+  },
+  "contract": "RMC-001 canonical market identity",
+  "evidence": {
+    "artifact": "nqc-rmc001-a1-evidence-0522f71ecc47ccd73afa6a0fc67ff9c79cf5e376-36653692047-1",
+    "artifact_digest": "sha256:d5044f94d467d89fec92931c7cea49bb0ed4dc438e44921353bd37e43752591f",
+    "artifact_id": 11071757146,
+    "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
+    "block_number": 25437474,
+    "chain_id": 1,
+    "code_commit": "0522f71ecc47ccd73afa6a0fc67ff9c79cf5e376",
+    "located_from": {
+      "acquisition_workflow_run_id": 36589054151,
+      "replay_code_commit": "7702a8c98579f336994ebc4877cc00cb4e97620c",
+      "replay_workflow_run_id": 36634878867,
+      "stage_extracts": 48
+    },
+    "pairs": [
+      {
+        "enumeration_index": 61996,
+        "factory_is": "token1",
+        "pair_address": "0x14c336ebeb7a78668b5cd8b592d1124456c853ce",
+        "token0": "0x5a1912749d2b7c3cdb832b81601c8c3f437a0de8",
+        "token1": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f"
+      },
+      {
+        "enumeration_index": 336738,
+        "factory_is": "token0",
+        "pair_address": "0x3b66602f04c64a3201eec700a47be72ee86b8446",
+        "token0": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
+        "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+      }
+    ],
+    "providers": [
+      "blastapi-public",
+      "mevblocker-rpc",
+      "nodies-public"
+    ],
+    "summary": "ci/nqc-census/rmc001-amendment-1/summary.json",
+    "summary_sha256": "87c6f45113ed74e90c818eb2ea9882bd99f6ef68c0e486e8acd336ca4c0f3a96",
+    "tarball": "ci/nqc-census/rmc001-amendment-1/evidence.tar.gz",
+    "tarball_gzip_sha256": "6ae6e1677b3396be198e7b63d9da9cb789718d9f61d69423b5e6f36a71033b87",
+    "tarball_tar_sha256": "8541fc8b2f1d9428cccf5c0912e2cb26517e25112f229deb8586a33ebb40ca23",
+    "workflow": ".github/workflows/nqc-census-rmc001-amendment-evidence.yml",
+    "workflow_run_id": 36653692047
+  },
+  "files": [
+    {
+      "file_path": "ci/nqc-census/IDENTITY_CONTRACT.md",
+      "role": "CONTRACT",
+      "sha256": "34605b070ec674dbb983966d0743f4aa115ed483e908eba3446d0e8141525154"
+    },
+    {
+      "file_path": "ci/nqc-census/identity-vectors.json",
+      "role": "GOLDEN_VECTORS",
+      "sha256": "4cd03898a526accc656a84d0510e983383759c24ca95affba49b7cb3b45d9dd4",
+      "unchanged_since_base": true
+    },
+    {
+      "file_path": "nqc-census/rust-toolchain.toml",
+      "role": "TOOLCHAIN",
+      "sha256": "c910997cb152c6dc8ed13b1fdf9fa28a4ed30d6776123e27dd6170e5c66067a0",
+      "unchanged_since_base": true
+    },
+    {
+      "file_path": "nqc-census/crates/nqc-census-core/Cargo.toml",
+      "role": "CRATE_MANIFEST",
+      "sha256": "8549483e265ab8c3d0c148077afbeec72ec48b9b62ced22bcabcee85f60842bf",
+      "unchanged_since_base": true
+    },
+    {
+      "file_path": "nqc-census/crates/nqc-census-core/src/identity.rs",
+      "role": "IMPLEMENTATION",
+      "sha256": "2e4c0609819fc113973a6ab1fcb743b6f6076db9c21d29bf0fe4d0f145e1b9b6"
+    },
+    {
+      "file_path": "nqc-census/crates/nqc-census-core/tests/identity.rs",
+      "role": "ORIGINAL_TESTS",
+      "sha256": "8ac136fecf88118307f8852c7c82ba639be1afd8d1e5f5844ad1ef1dbc13607e",
+      "unchanged_since_base": true
+    },
+    {
+      "file_path": "nqc-census/crates/nqc-census-core/tests/identity_amendment_1.rs",
+      "role": "AMENDMENT_TESTS",
+      "sha256": "bce13c342bd9f9567ba9b3c401825290308fd3e03755803207b4d008b087bf3f"
+    },
+    {
+      "file_path": "nqc-census/crates/nqc-census-core/tests/support/identity_corpus.rs",
+      "role": "BACKWARD_STABILITY_CORPUS",
+      "sha256": "c01a7e1c167b87c3bc7197150bdc19f8dfe08f8a53f3ec7ea85af7872ab3f503"
+    },
+    {
+      "file_path": "ci/nqc-census/rmc001_amendment_evidence.py",
+      "role": "EVIDENCE_PROBE",
+      "sha256": "2b494222b079afee4104a918cf8b0be593b8effb2df85e0e4b9dafaa3b586ebc"
+    },
+    {
+      "file_path": ".github/workflows/nqc-census-rmc001-amendment-evidence.yml",
+      "role": "EVIDENCE_WORKFLOW",
+      "sha256": "3ec279c3b2c3b8f00ba0b31e0b3c40c8354d132f04a008b4f5f33c6ff77f7c2e"
+    },
+    {
+      "file_path": "ci/nqc-census/rmc001-amendment-1/evidence.tar.gz",
+      "role": "EVIDENCE_TARBALL",
+      "sha256": "6ae6e1677b3396be198e7b63d9da9cb789718d9f61d69423b5e6f36a71033b87"
+    },
+    {
+      "file_path": "ci/nqc-census/rmc001-amendment-1/summary.json",
+      "role": "EVIDENCE_SUMMARY",
+      "sha256": "87c6f45113ed74e90c818eb2ea9882bd99f6ef68c0e486e8acd336ca4c0f3a96"
+    }
+  ],
+  "gate_files": [
+    {
+      "file_path": ".github/workflows/nqc-census-identity.yml",
+      "sha256": "13ee7c2f48793c9a7a74066ea7b047195655e4ff839867ad9ec40bbb87b9d897"
+    },
+    {
+      "file_path": "ci/nqc-census/verify_rmc001_freeze.py",
+      "sha256": "9d9a0d456fa81a4202834da4c4d0e2e2adc7e69549cb99fe8117f5c813b4078e"
+    }
+  ],
+  "schema_version": 1
+}

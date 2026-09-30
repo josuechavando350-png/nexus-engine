@@ -16,7 +16,7 @@ use nqc_census_refresh::base::read_base;
 use nqc_census_refresh::canonical_extract::verify_extract as verify_canonical_extract;
 use nqc_census_refresh::parity::census_parity;
 use nqc_census_refresh::refresh::{delta_plan, reconcile_incremental_replayed};
-use nqc_census_state::inputs::verify_pins;
+use nqc_census_state::inputs::{verify_pins, verify_upstream};
 use nqc_census_state::replay::manifests;
 use std::collections::BTreeMap;
 use std::{env, error::Error, fs, path::PathBuf};
@@ -78,10 +78,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     let index_providers = providers("--index-providers")?;
     let state_providers = providers("--state-providers")?;
-    let pins = verify_pins(
-        &PathBuf::from(flag("--pins")?),
-        &PathBuf::from(flag("--pin-root")?),
-    )?;
+    let pins_path = PathBuf::from(flag("--pins")?);
+    let pins = verify_pins(&pins_path, &PathBuf::from(flag("--pin-root")?))?;
+    let upstream_sources = verify_upstream(&pins_path, &pins)?;
     let anchor = anchor_from_flags(
         flags.get("--anchor-number").map(String::as_str),
         flags.get("--anchor-hash").map(String::as_str),
@@ -154,6 +153,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             code_commit: &flag("--code-commit")?,
             code_tree: &flag("--code-tree")?,
             pins: &pins,
+            upstream_sources,
             store_evidence_root: "NOT_MERGED_EACH_STAGE_STORE_IN_STAGE_STORES",
             stage_stores,
             record_manifests,

@@ -121,6 +121,9 @@ pub struct CloseoutContext<'a> {
     pub code_commit: &'a str,
     pub code_tree: &'a str,
     pub pins: &'a [PinnedFile],
+    /// The certified upstream runs the pinned files came from, checked by
+    /// `nqc_census_state::inputs::verify_upstream`. Provenance only.
+    pub upstream_sources: Json,
     pub store_evidence_root: &'a str,
     /// RMC-004 summary of each stage's own store, when stages were replayed
     /// one store at a time (then `store_evidence_root` says so); else empty.
@@ -240,7 +243,7 @@ pub fn write_closeout(
         (
             "completeness_basis",
             Json::string(
-                "PER_TOKEN_SCALED_SUPPLY_CONSERVATION: sum of indexed scaledBalanceOf equals scaledTotalSupply at the anchor for every aToken and variable debt token",
+                "PER_TOKEN_SCALED_SUPPLY_CONSERVATION: sum of indexed scaledBalanceOf plus scaledBalanceOf(0x0) equals scaledTotalSupply at the anchor for every aToken and variable debt token; the zero address is a conservation term, never an account",
             ),
         ),
         (
@@ -308,6 +311,7 @@ pub fn write_closeout(
                 ])
             })),
         ),
+        ("upstream_sources", context.upstream_sources.clone()),
         ("stage_stores", Json::Array(context.stage_stores.clone())),
         (
             "stage_manifests",

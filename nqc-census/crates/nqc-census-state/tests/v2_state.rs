@@ -74,13 +74,24 @@ struct Variant {
     decimals_revert: Option<usize>,
     /// Pair index whose reserve0 differs (to split providers).
     reserve_offset: Option<usize>,
+    /// Pair index whose token0 is the factory itself, which reverts every
+    /// ERC-20 call (RMC-001 Amendment 1).
+    factory_token: Option<usize>,
+}
+
+fn pair_tokens(index: usize, variant: &Variant) -> (Address, Address) {
+    if variant.factory_token == Some(index) {
+        (factory(), address(0xc2))
+    } else {
+        tokens(index)
+    }
 }
 
 fn pair_address(index: usize, variant: &Variant) -> Address {
     if variant.foreign_pair == Some(index) {
         return address(0xe0 + index as u8);
     }
-    let (token0, token1) = tokens(index);
+    let (token0, token1) = pair_tokens(index, variant);
     Address::new(create2_address(
         factory(),
         pair_salt(token0, token1),
@@ -117,8 +128,9 @@ fn chain(variant: &Variant) -> Result<SimChain, Box<dyn Error>> {
         CallOutcome::Returned(word(PAIRS as u64).to_vec()),
     );
     for index in 0..PAIRS {
-        let (token0, token1) = tokens(index);
+        let (token0, token1) = pair_tokens(index, variant);
         let pair = pair_address(index, variant);
+        let factory_token = variant.factory_token == Some(index);
         sim.set_code(pair, from, None, RUNTIME.to_vec());
         let empty = variant.empty == Some(index);
         let offset = u64::from(variant.reserve_offset == Some(index));
@@ -165,7 +177,11 @@ fn chain(variant: &Variant) -> Result<SimChain, Box<dyn Error>> {
             call("balanceOf(address)", &[holder]),
             from,
             None,
-            CallOutcome::Returned(word(reserve0.saturating_sub(below)).to_vec()),
+            if factory_token {
+                CallOutcome::Reverted(Vec::new())
+            } else {
+                CallOutcome::Returned(word(reserve0.saturating_sub(below)).to_vec())
+            },
         );
         sim.set_call(
             token1,
@@ -179,7 +195,11 @@ fn chain(variant: &Variant) -> Result<SimChain, Box<dyn Error>> {
             call("decimals()", &[]),
             from,
             None,
-            CallOutcome::Returned(word(18).to_vec()),
+            if factory_token {
+                CallOutcome::Reverted(Vec::new())
+            } else {
+                CallOutcome::Returned(word(18).to_vec())
+            },
         );
         sim.set_call(
             token1,
@@ -254,7 +274,7 @@ fn run(variant: &Variant, other: &Variant) -> Result<Run, Box<dyn Error>> {
     );
     let pairs: Vec<PairInput> = (0..PAIRS)
         .map(|index| {
-            let (token0, token1) = tokens(index);
+            let (token0, token1) = pair_tokens(index, variant);
             let pair = pair_address(index, variant);
             let market_id = CanonicalMarketKey::v2_pair(deployment.clone(), pair, token0, token1)?
                 .id()?
@@ -430,6 +450,55 @@ fn token_and_liquidity_anomalies_reject_with_explicit_reasons() -> TestResult {
     assert!(rejections
         .iter()
         .all(|record| record.reason() != RejectionReason::Unknown));
+    Ok(())
+}
+
+#[test]
+fn a_pair_naming_its_factory_as_a_token_is_admitted_and_classified_not_dropped() -> TestResult {
+    // RMC-001 Amendment 1: mainnet pairs 0x14c3…53ce and 0x3b66…8446 name the
+    // Uniswap V2 factory as a token, and the factory reverts every ERC-20
+    // call. Such a pair is a real market: identity admits it, and state
+    // admission records it with an explicit rejection reason.
+    let variant = Variant {
+        factory_token: Some(4),
+        ..Variant::default()
+    };
+    let run = run(&variant, &variant)?;
+    assert_eq!(run.pairs[4].token0, factory());
+    let outcome = verify(&run)?;
+    assert_eq!(outcome.mismatches.unexplained(), 0);
+    assert_eq!(outcome.state_rows.len(), PAIRS);
+    let reconstructable = outcome
+        .ledger
+        .metrics(&outcome.domain, CensusStage::MarketsStateReconstructable);
+    assert_eq!(reconstructable.input_count, PAIRS);
+    assert!(reconstructable.is_conserved());
+    assert_eq!(
+        decision(&run, &outcome, 4, CensusStage::MarketsStateReconstructable).as_deref(),
+        Some(RejectionReason::UnsupportedTokenBehavior.code())
+    );
+    for index in (0..PAIRS).filter(|index| *index != 4) {
+        assert_eq!(
+            decision(
+                &run,
+                &outcome,
+                index,
+                CensusStage::MarketsStateReconstructable
+            ),
+            None
+        );
+    }
+    let token = outcome
+        .tokens
+        .iter()
+        .find(|token| token.token == factory())
+        .ok_or("factory token")?;
+    assert_eq!(token.decimals, nqc_census_state::model::Decimals::Reverted);
+    assert!(matches!(
+        token.state,
+        nqc_census_state::model::StateAdmission::Rejected(_)
+    ));
+    assert!(!token.execution_blockers().is_empty());
     Ok(())
 }
 
