@@ -17,9 +17,17 @@ BASE = json.loads(Path("ci/nqc-census/rmc011-capital-source-universe.json").read
 
 
 def evidence(kind: str, byte: str) -> dict:
+    head = byte * 40
     return {
         "kind": kind,
-        "locator": f"evidence/{byte}",
+        "repository": "josuechavando350-png/nexus-engine",
+        "workflow_name": "NQC RMC-011 Family Evidence",
+        "run_id": int(byte, 16) + 1,
+        "head_sha": head,
+        "artifact_id": int(byte, 16) + 101,
+        "artifact_name": f"rmc011-family-evidence-{head}",
+        "artifact_digest": "sha256:" + byte * 64,
+        "file": f"family-{byte}/evidence.json",
         "sha256": byte * 64,
     }
 
@@ -67,6 +75,39 @@ class SourceUniverseTests(unittest.TestCase):
         row["status"] = "AUTHENTICATED_REAL_SOURCE"
         row["terminally_resolved"] = True
         row["resolution_evidence"] = None
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+    def test_locator_and_sha_alone_cannot_authenticate_family(self) -> None:
+        doc = copy.deepcopy(BASE)
+        row = doc["families"][0]
+        row["status"] = "AUTHENTICATED_REAL_SOURCE"
+        row["terminally_resolved"] = True
+        row["resolution_evidence"] = {
+            "kind": "AUTHENTICATED_REAL_SOURCE",
+            "locator": "looks/real.json",
+            "sha256": "a" * 64,
+        }
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+    def test_terminal_evidence_must_bind_artifact_to_exact_head(self) -> None:
+        doc = copy.deepcopy(BASE)
+        row = doc["families"][0]
+        row["status"] = "AUTHENTICATED_REAL_SOURCE"
+        row["terminally_resolved"] = True
+        row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", "a")
+        row["resolution_evidence"]["artifact_name"] = "rmc011-family-evidence-wrong-head"
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+    def test_terminal_evidence_file_cannot_escape_artifact(self) -> None:
+        doc = copy.deepcopy(BASE)
+        row = doc["families"][0]
+        row["status"] = "AUTHENTICATED_REAL_SOURCE"
+        row["terminally_resolved"] = True
+        row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", "b")
+        row["resolution_evidence"]["file"] = "../forged.json"
         with self.assertRaises(mod.UniverseError):
             mod.validate_document(doc)
 
