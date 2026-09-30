@@ -559,6 +559,7 @@ fn provider_capture(
     let token0_selector = abi::selector("token0()");
     let token1_selector = abi::selector("token1()");
     let fee_selector = abi::selector("fee()");
+    let liquidity_selector = abi::selector("liquidity()");
     let get_pool_selector = uniswap_v3_factory_interface().get_pool;
 
     for (job_index, chunk) in relevant_pools.chunks(POOL_JOB_SIZE).enumerate() {
@@ -596,7 +597,7 @@ fn provider_capture(
             &anchor,
             |ctx| {
                 let semantics = chain_read_semantics()?;
-                let mut identity_calls = Vec::with_capacity(chunk.len() * 4);
+                let mut identity_calls = Vec::with_capacity(chunk.len() * 5);
                 let mut balance_calls = Vec::new();
                 let mut balance_keys = Vec::new();
 
@@ -613,6 +614,10 @@ fn provider_capture(
                         (
                             seed.identity.pool,
                             abi::encode_call(fee_selector, &[]),
+                        ),
+                        (
+                            seed.identity.pool,
+                            abi::encode_call(liquidity_selector, &[]),
                         ),
                         (
                             factory,
@@ -641,7 +646,7 @@ fn provider_capture(
                 }
 
                 let identities = ctx.calls(&identity_calls, &anchor, semantics)?;
-                if identities.len() != chunk.len() * 4 {
+                if identities.len() != chunk.len() * 5 {
                     return Err(ChainError::Evidence(
                         "Uniswap V3 pool identity call count differs".into(),
                     ));
@@ -668,7 +673,7 @@ fn provider_capture(
                 let mut rows = Vec::with_capacity(chunk.len());
                 for ((seed, responses), asset_balances) in chunk
                     .iter()
-                    .zip(identities.chunks_exact(4))
+                    .zip(identities.chunks_exact(5))
                     .zip(per_pool_balances.into_iter())
                 {
                     let token0 = returned_address(&responses[0], "token0")?;
@@ -677,7 +682,8 @@ fn provider_capture(
                     let fee_pips = u32::try_from(fee_raw).map_err(|_| {
                         ChainError::Evidence("Uniswap V3 fee exceeds uint32".into())
                     })?;
-                    let rebound = returned_address(&responses[3], "getPool")?;
+                    let active_liquidity = returned_amount(&responses[3], "liquidity")?;
+                    let rebound = returned_address(&responses[4], "getPool")?;
                     if token0 != seed.identity.token0
                         || token1 != seed.identity.token1
                         || fee_pips != seed.identity.fee_pips
@@ -706,6 +712,10 @@ fn provider_capture(
                         (
                             "fee_pips",
                             Json::uint(u64::from(seed.identity.fee_pips)),
+                        ),
+                        (
+                            "active_liquidity",
+                            Json::string(amount_decimal(*active_liquidity.as_be_bytes())),
                         ),
                         (
                             "tick_spacing",
