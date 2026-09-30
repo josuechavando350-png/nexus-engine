@@ -576,25 +576,23 @@ fn import_d08_capital_sources_unbound(
                     );
                     continue;
                 }
-                if !bool_field(facts, "flash_loan_enabled")? {
-                    push_rejection(
-                        &mut rejections,
-                        &mut outcomes,
-                        protocol,
-                        &market_id,
-                        asset,
-                        CapitalImportRejectionReason::FlashLoanDisabled,
-                    );
-                    continue;
-                }
+                let flash_loan_enabled = bool_field(facts, "flash_loan_enabled")?;
                 let available = Amount256::parse_decimal(text(facts, "available_liquidity")?)?;
+                let mut source_blockers = token_blockers;
+                if !flash_loan_enabled {
+                    source_blockers.push(
+                        CapitalImportRejectionReason::FlashLoanDisabled
+                            .code()
+                            .to_owned(),
+                    );
+                }
                 let source = AaveV3FlashObservation {
                     anchor: context.anchor.clone(),
                     pool: aave_pool,
                     asset: asset_address,
                     available_underlying: available,
                     premium_total_bps: aave_premium_total_bps,
-                    flash_loan_enabled: true,
+                    flash_loan_enabled,
                     provider_locator_hash: protocol_contract_locator_hash(
                         AAVE_V3_PROVIDER_NAMESPACE,
                         aave_pool,
@@ -602,7 +600,7 @@ fn import_d08_capital_sources_unbound(
                     evidence: context.evidence.clone(),
                 }
                 .into_capital_source()?
-                .with_execution_blockers(token_blockers)?;
+                .with_execution_blockers(source_blockers)?;
                 push_source(
                     &mut sources,
                     &mut outcomes,
