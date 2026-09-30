@@ -83,7 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         None => Vec::new(),
     };
     let store = Store::open_existing(&PathBuf::from(one("--store")?))?;
-    let plan = V2Plan::mainnet()?;
+    let plan = V2Plan::from_env_or_mainnet()?;
     let inputs = Inputs {
         store: &store,
         plan: &plan,
