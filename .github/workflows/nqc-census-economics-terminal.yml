@@ -189,6 +189,9 @@ jobs:
             .capacity_material_count <= .positive_success_path_net_count and
             .shadow_prediction_count <= .capacity_material_count and
             .capture_calibrated_count <= .economics_candidate_count and
+            .gas_funding_candidate_count == .execution_simulatable_count and
+            .operator_owned_gas_funding_count == 0 and
+            (.execution_simulatable_count == 0 or .zero_own_capital_proven == true) and
             .realized_profitability_proven == false and
             .monthly_target_probability_proven == false
           ' "$SUMMARY" >/dev/null
@@ -212,7 +215,10 @@ jobs:
           HEAD="$(git rev-parse HEAD)"
           TREE="$(git rev-parse 'HEAD^{tree}')"
           SUMMARY="$EXEC_SUMMARY"
-          jq -S -c -n             --arg head "$HEAD"             --arg tree "$TREE"             --arg d12_digest "$(jq -r '.d12.artifact_digest' "$INPUTS")"             --arg exec_digest "$(jq -r '.execution_evidence.artifact_digest' "$INPUTS")"             --arg coverage "$(jq -r '.coverage_commitment' "$SUMMARY")"             --arg authority "$(jq -r '.authority_commitment' "$SUMMARY")"             --argjson input "$(jq '.input_candidate_count' "$SUMMARY")"             --argjson simulatable "$(jq '.execution_simulatable_count' "$SUMMARY")"             --argjson rejected "$(jq '.explicit_rejection_count' "$SUMMARY")"             --argjson gross "$(jq '.positive_gross_value_count' "$SUMMARY")"             --argjson success_net "$(jq '.positive_success_path_net_count' "$SUMMARY")"             --argjson material "$(jq '.capacity_material_count' "$SUMMARY")"             --argjson shadow "$(jq '.shadow_prediction_count' "$SUMMARY")"             --argjson calibrated "$(jq '.capture_calibrated_count' "$SUMMARY")" '
+          jq -S -c -n             --arg head "$HEAD"             --arg tree "$TREE"             --arg d12_digest "$(jq -r '.d12.artifact_digest' "$INPUTS")"             --arg exec_digest "$(jq -r '.execution_evidence.artifact_digest' "$INPUTS")"             --arg coverage "$(jq -r '.coverage_commitment' "$SUMMARY")"             --arg authority "$(jq -r '.authority_commitment' "$SUMMARY")"             --argjson input "$(jq '.input_candidate_count' "$SUMMARY")"             --argjson simulatable "$(jq '.execution_simulatable_count' "$SUMMARY")"             --argjson rejected "$(jq '.explicit_rejection_count' "$SUMMARY")"             --argjson gross "$(jq '.positive_gross_value_count' "$SUMMARY")"             --argjson success_net "$(jq '.positive_success_path_net_count' "$SUMMARY")"             --argjson material "$(jq '.capacity_material_count' "$SUMMARY")"             --argjson shadow "$(jq '.shadow_prediction_count' "$SUMMARY")"             --argjson calibrated "$(jq '.capture_calibrated_count' "$SUMMARY")" \
+            --argjson gas_funded "$(jq '.gas_funding_candidate_count' "$SUMMARY")" \
+            --argjson operator_gas "$(jq '.operator_owned_gas_funding_count' "$SUMMARY")" \
+            --argjson zero_own "$(jq '.zero_own_capital_proven' "$SUMMARY")" '
             {
               schema_version:1,
               status:"RMC_013_TERMINAL_ECONOMICS_CERTIFIED",
@@ -231,6 +237,9 @@ jobs:
               capacity_material_count:$material,
               shadow_prediction_count:$shadow,
               capture_calibrated_count:$calibrated,
+              gas_funding_candidate_count:$gas_funded,
+              operator_owned_gas_funding_count:$operator_gas,
+              zero_own_capital_proven:$zero_own,
               coverage_complete:true,
               unresolved_mismatch_count:0,
               unknown_failure_count:0,
