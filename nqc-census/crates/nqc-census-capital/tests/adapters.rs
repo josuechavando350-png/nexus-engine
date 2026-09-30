@@ -102,6 +102,7 @@ fn balancer_v2_adapter_preserves_ceil_fee_semantics() -> TestResult {
         asset,
         available_vault_balance: Amount256::from_u128(100_000),
         fee_percentage_1e18: 1_000_000_000_000_000,
+        paused: false,
         provider_locator_hash: hash(31),
         evidence: evidence(),
     }
@@ -118,6 +119,31 @@ fn balancer_v2_adapter_preserves_ceil_fee_semantics() -> TestResult {
 }
 
 #[test]
+fn balancer_v2_paused_vault_preserves_observed_balance_but_blocks_execution() -> TestResult {
+    let source = BalancerV2FlashObservation {
+        anchor: anchor(),
+        vault: address(30),
+        asset: address(20),
+        available_vault_balance: Amount256::from_u128(100_000),
+        fee_percentage_1e18: 1_000_000_000_000_000,
+        paused: true,
+        provider_locator_hash: hash(31),
+        evidence: evidence(),
+    }
+    .into_capital_source()?;
+
+    assert_eq!(source.maximum_available(), Amount256::from_u128(100_000));
+    assert_eq!(source.effective_capacity()?, Amount256::from_u128(100_000));
+    assert_eq!(source.executable_capacity()?, Amount256::ZERO);
+    assert!(!source.execution_eligible());
+    assert_eq!(
+        source.execution_blockers(),
+        &["BALANCER_VAULT_PAUSED".to_owned()]
+    );
+    Ok(())
+}
+
+#[test]
 fn adapters_require_real_evidence_references() -> TestResult {
     let result = BalancerV2FlashObservation {
         anchor: anchor(),
@@ -125,6 +151,7 @@ fn adapters_require_real_evidence_references() -> TestResult {
         asset: address(20),
         available_vault_balance: Amount256::from_u128(100_000),
         fee_percentage_1e18: 0,
+        paused: false,
         provider_locator_hash: hash(31),
         evidence: Vec::new(),
     }
