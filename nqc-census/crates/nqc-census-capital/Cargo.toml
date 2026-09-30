@@ -8,6 +8,7 @@ publish.workspace = true
 [dependencies]
 nqc-census-core = { path = "../nqc-census-core" }
 nqc-census-chain = { path = "../nqc-census-chain" }
+nqc-census-store = { path = "../nqc-census-store" }
 sha2.workspace = true
 
 [lints]
