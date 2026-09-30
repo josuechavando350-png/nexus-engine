@@ -286,6 +286,52 @@ fn source_constructor_rejects_public_semantic_bypasses() -> TestResult {
     Ok(())
 }
 
+
+#[test]
+fn bond_or_stake_requirement_is_canonical_and_class_separated() -> TestResult {
+    let asset = CapitalAsset::Token(address(20));
+    let requirement = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(99)),
+        anchor(100),
+        RequiredAtomicity::Flexible,
+        false,
+        vec![CapitalRequirementLeg::new(
+            RequirementKind::BondOrStake,
+            asset,
+            Amount256::from_u128(250),
+            vec![CapitalClass::BondOrStake],
+        )?],
+        evidence(),
+    )?;
+
+    let encoded = requirement.canonical_encode();
+    let decoded = CapitalRequirement::decode_canonical(&encoded)?;
+    assert_eq!(decoded, requirement);
+    assert_eq!(decoded.legs().len(), 1);
+    assert_eq!(decoded.legs()[0].kind(), RequirementKind::BondOrStake);
+    assert_eq!(
+        decoded.legs()[0].allowed_classes(),
+        &[CapitalClass::BondOrStake]
+    );
+
+    let wrong_class_source = source(
+        CapitalClass::InventoryRequirement,
+        asset,
+        1_000,
+        asset,
+        RepaymentSemantics::NoRepayment,
+    )?;
+    assert!(matches!(
+        evaluate_capital_feasibility(&requirement, &[wrong_class_source]),
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::NoCompatibleSource,
+            failed_leg: Some(RequirementKind::BondOrStake),
+            ..
+        }
+    ));
+    Ok(())
+}
+
 #[test]
 fn requirement_constructor_rejects_zero_observation_evidence() -> TestResult {
     let token = CapitalAsset::Token(address(20));
