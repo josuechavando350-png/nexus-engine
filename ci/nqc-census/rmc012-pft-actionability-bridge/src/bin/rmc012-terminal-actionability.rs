@@ -19,12 +19,9 @@ use nqc_census_portfolio::actionability::{
     ActionableLiquidation,
 };
 use nqc_rmc012_pft_actionability_bridge::{
-    classify_pair, PairDecision, PairInput, PairRejection, PFT_CERTIFIED_COMMIT,
-    PFT_CERTIFIED_TREE,
+    classify_pair, PairDecision, PairInput, PairRejection, PFT_CERTIFIED_COMMIT, PFT_CERTIFIED_TREE,
 };
-use pft_nqc_core::{
-    checked_add, mul_div_ceil, mul_div_floor, percent_mul_half_up, wad,
-};
+use pft_nqc_core::{checked_add, mul_div_ceil, mul_div_floor, percent_mul_half_up, wad};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{
@@ -77,7 +74,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let d09_authority = locked_stage(&authority_lock, UpstreamCensusStage::Rmc009PositionUniverse)?;
     let d11_sources_bytes = fs::read(&d11_sources_path)?;
     let capital_sources = parse_capital_sources_artifact(&d11_sources_bytes)?;
-    if capital_sources.iter().any(|source| source.anchor() != &anchor) {
+    if capital_sources
+        .iter()
+        .any(|source| source.anchor() != &anchor)
+    {
         return Err("D11 capital source artifact mixes a foreign observation anchor".into());
     }
     let d11_sources_sha256 = sha256_hex(&d11_sources_bytes);
@@ -133,7 +133,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut expected_pairs = 0_u64;
 
     for account in accounts {
-        if account.get("health_factor_below_one").and_then(Value::as_bool) != Some(true) {
+        if account
+            .get("health_factor_below_one")
+            .and_then(Value::as_bool)
+            != Some(true)
+        {
             continue;
         }
         below_one_borrowers = below_one_borrowers
@@ -166,7 +170,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             .and_then(Value::as_array)
             .ok_or("account has no debt_positions")?;
         if supplies.is_empty() || debts.is_empty() {
-            return Err("below-one borrower has no enumerable collateral/debt pair universe".into());
+            return Err(
+                "below-one borrower has no enumerable collateral/debt pair universe".into(),
+            );
         }
 
         let account_snapshot = account_snapshot_commitment(&account)?;
@@ -176,8 +182,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .get(&collateral_asset)
                 .ok_or("D09 collateral asset absent from D08 state")?;
             let collateral_balance = parse_u256(str_field(supply, "balance")?)?;
-            let collateral_enabled =
-                config_bit(configuration, collateral.reserve_id.saturating_mul(2).saturating_add(1));
+            let collateral_enabled = config_bit(
+                configuration,
+                collateral.reserve_id.saturating_mul(2).saturating_add(1),
+            );
 
             for debt in debts {
                 expected_pairs = expected_pairs
