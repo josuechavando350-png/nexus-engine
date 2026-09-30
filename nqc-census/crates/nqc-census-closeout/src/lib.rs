@@ -84,6 +84,7 @@ pub enum CloseoutError {
     ShadowHandoffMismatch,
     ZeroOwnCapitalNotProven,
     ProfitabilityClaimForbidden,
+    ScopeClaimForbidden,
     EmptyTerminalEvidence,
     DuplicateTerminalEvidence,
 }
@@ -129,6 +130,9 @@ impl Display for CloseoutError {
             Self::ProfitabilityClaimForbidden => {
                 f.write_str("RMC closeout cannot claim realized or target profitability")
             }
+            Self::ScopeClaimForbidden => f.write_str(
+                "RMC closeout must remain conservative and cannot claim global capital or route completeness",
+            ),
             Self::EmptyTerminalEvidence => f.write_str("terminal closeout requires evidence"),
             Self::DuplicateTerminalEvidence => f.write_str("terminal closeout repeats evidence"),
         }
@@ -331,6 +335,15 @@ pub struct EconomicBoundary {
     /// Must remain false in RMC. The monthly target is an empirical target,
     /// never a closeout assumption.
     pub monthly_target_probability_proven: bool,
+    /// RMC closes on the evidence-admitted universe and reports a conservative
+    /// realizable lower bound rather than an unsupported global maximum.
+    pub conservative_realizable_capacity_only: bool,
+    /// Must remain false until an explicit global capital-source completeness
+    /// certification exists.
+    pub global_capital_source_completeness_claimed: bool,
+    /// Must remain false until all economically relevant route/venue families
+    /// are exhaustively admitted or rejected with evidence.
+    pub global_route_venue_completeness_claimed: bool,
 }
 
 impl EconomicBoundary {
@@ -352,6 +365,12 @@ impl EconomicBoundary {
         if self.realized_profitability_proven || self.monthly_target_probability_proven {
             return Err(CloseoutError::ProfitabilityClaimForbidden);
         }
+        if !self.conservative_realizable_capacity_only
+            || self.global_capital_source_completeness_claimed
+            || self.global_route_venue_completeness_claimed
+        {
+            return Err(CloseoutError::ScopeClaimForbidden);
+        }
         Ok(())
     }
 
@@ -363,6 +382,9 @@ impl EconomicBoundary {
         hasher.update([u8::from(self.zero_own_capital_proven)]);
         hasher.update([u8::from(self.realized_profitability_proven)]);
         hasher.update([u8::from(self.monthly_target_probability_proven)]);
+        hasher.update([u8::from(self.conservative_realizable_capacity_only)]);
+        hasher.update([u8::from(self.global_capital_source_completeness_claimed)]);
+        hasher.update([u8::from(self.global_route_venue_completeness_claimed)]);
     }
 }
 
