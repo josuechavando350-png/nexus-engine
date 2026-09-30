@@ -33,9 +33,9 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
     let root = Json::parse(&lock_bytes)?;
 
     require_u64(&root, "schema_version")?
-        .eq(&2)
+        .eq(&3)
         .then_some(())
-        .ok_or("authority lock schema_version must be 2")?;
+        .ok_or("authority lock schema_version must be 3")?;
     if require_str(&root, "status")? != "PINNED" {
         return Err("terminal authority lock is not PINNED".into());
     }
@@ -77,6 +77,10 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
 
         let proof = StageProof::new(
             stage,
+            require_u64(row, "workflow_run_id")?,
+            require_u64(row, "artifact_id")?,
+            require_str(row, "workflow_name")?.to_owned(),
+            require_str(row, "artifact_name")?.to_owned(),
             GitObjectId::parse_hex(require_str(row, "code_commit")?)?,
             GitObjectId::parse_hex(require_str(row, "code_tree")?)?,
             artifact_sha256,
@@ -92,6 +96,10 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
 
         stage_json.push(Json::object([
             ("stage", Json::string(stage.code())),
+            ("workflow_run_id", Json::uint(proof.workflow_run_id)),
+            ("artifact_id", Json::uint(proof.artifact_id)),
+            ("workflow_name", Json::string(&proof.workflow_name)),
+            ("artifact_name", Json::string(&proof.artifact_name)),
             ("code_commit", Json::string(proof.code_commit.to_hex())),
             ("code_tree", Json::string(proof.code_tree.to_hex())),
             (
