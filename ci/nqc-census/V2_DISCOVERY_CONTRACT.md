@@ -184,10 +184,24 @@ time):
 - `v2-discovery-run.json`
 - `v2-pair-manifest.jsonl` (one row per pair: D01 key, index, ordinal,
   token0, token1, creation block/log coordinate, direct lookup, runtime)
-- `v2-deltas.jsonl`, `v2-mismatch-ledger.jsonl` (must be empty for PASS)
+- `v2-deltas.jsonl`, `v2-mismatch-ledger.jsonl`: PASS requires zero
+  delta/mismatch finding entries. Each file contains exactly one canonical
+  metadata sentinel row (`status: "EMPTY"` and a zero counter), so an empty
+  ledger remains schema/version/code-bound and content-addressable.
 - `v2-deployment-admission.json`
 - `v2-discovery-summary.json`
 - `evidence-manifest.json`
+
+RMC-004's persisted store policy is immutable and keeps its 256 MiB logical
+artifact bound. A closeout file larger than that bound is **not** admitted by
+raising or bypassing the store limit. The logical file remains byte-for-byte
+unchanged on disk and is anchored in `evidence-manifest.json` as
+`RMC004_ORDERED_SEGMENTS_V1`: ordered raw-byte segments no larger than
+`min(64 MiB, store.max_artifact_bytes)`. The entry binds the full logical
+SHA-256 and byte length plus, for every segment, sequence, byte offset, length,
+SHA-256 and RMC-004 artifact id. Concatenating segments in sequence must recover
+the exact logical file. Files within the store bound use
+`RMC004_SINGLE_ARTIFACT_V1` and retain one `store_artifact_id`.
 
 `generated_at` is derived from the observation anchor block timestamp, so
 reruns are byte-identical; the code commit and tree are passed explicitly.
