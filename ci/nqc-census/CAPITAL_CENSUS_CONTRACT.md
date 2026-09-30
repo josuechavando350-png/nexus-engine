@@ -94,6 +94,7 @@ Every admitted capital source record MUST bind:
 - same_block_atomicity
 - temporary_lock semantics
 - failure modes
+- protocol execution-state blockers are part of observed truth; in particular a Balancer V2 Vault pause preserves observed balances but makes flash capital non-executable (`BALANCER_VAULT_PAUSED`)
 - evidence references
 - code/configuration identity where material
 
