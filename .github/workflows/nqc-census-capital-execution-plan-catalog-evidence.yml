@@ -1,0 +1,105 @@
+name: NQC RMC-011 Execution Plan Requirement Catalog Evidence
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - ".github/workflows/nqc-census-capital-execution-plan-catalog-evidence.yml"
+  push:
+    branches:
+      - "nqc/rmc-011-derived-authority-lock-20260930"
+    paths:
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - ".github/workflows/nqc-census-capital-execution-plan-catalog-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  execution-plan-catalog-evidence:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact head identity
+        shell: bash
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXACT_HEAD"
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Validate bounded execution-plan requirement catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile             ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py             ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
+          python3             ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py             ci/nqc-census/rmc011-execution-plan-requirement-catalog.json             "$RUNNER_TEMP/rmc011-execution-plan-catalog-report.json"
+
+      - name: Build authenticated evidence package
+        shell: bash
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          PACKAGE="$RUNNER_TEMP/rmc011-execution-plan-catalog-evidence"
+          rm -rf "$PACKAGE"
+          mkdir -p "$PACKAGE"
+
+          cp --             ci/nqc-census/rmc011-execution-plan-requirement-catalog.json             "$PACKAGE/rmc011-execution-plan-requirement-catalog.json"
+          cp --             "$RUNNER_TEMP/rmc011-execution-plan-catalog-report.json"             "$PACKAGE/rmc011-execution-plan-catalog-report.json"
+
+          catalog_sha="$(sha256sum "$PACKAGE/rmc011-execution-plan-requirement-catalog.json" | awk '{print $1}')"
+          report_sha="$(sha256sum "$PACKAGE/rmc011-execution-plan-catalog-report.json" | awk '{print $1}')"
+
+          jq -n             --arg workflow "$GITHUB_WORKFLOW"             --arg head_sha "$EXACT_HEAD"             --arg run_id "$GITHUB_RUN_ID"             --arg run_attempt "$GITHUB_RUN_ATTEMPT"             --arg catalog_sha256 "$catalog_sha"             --arg report_sha256 "$report_sha"             '{
+              schema_version: 1,
+              stage: "RMC-011",
+              status: "RMC011_EXECUTION_PLAN_REQUIREMENT_CATALOG_EVIDENCE_PASS",
+              scope: "NQC_SUPPORTED_EXECUTION_PLANS_AT_THIS_HEAD",
+              terminal_claim: false,
+              workflow_name: $workflow,
+              head_sha: $head_sha,
+              run_id: ($run_id | tonumber),
+              run_attempt: ($run_attempt | tonumber),
+              files: [
+                {
+                  path: "rmc011-execution-plan-requirement-catalog.json",
+                  sha256: $catalog_sha256
+                },
+                {
+                  path: "rmc011-execution-plan-catalog-report.json",
+                  sha256: $report_sha256
+                }
+              ]
+            }' > "$PACKAGE/evidence.json"
+
+          (
+            cd "$PACKAGE"
+            LC_ALL=C find . -type f ! -name SHA256SUMS -print0               | LC_ALL=C sort -z               | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+          echo "RMC011_EXECUTION_PLAN_CATALOG_EVIDENCE=PASS"
+          echo "RMC011_EXECUTION_PLAN_CATALOG_SHA256=$catalog_sha"
+          echo "RMC011_EXECUTION_PLAN_CATALOG_REPORT_SHA256=$report_sha"
+
+      - name: Upload immutable execution-plan catalog evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-execution-plan-catalog-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/rmc011-execution-plan-catalog-evidence/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
