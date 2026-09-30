@@ -1,0 +1,101 @@
+name: NQC RMC-010 Incremental Refresh Parity Gate
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-refresh-gate.yml
+      - .github/workflows/nqc-census-refresh-live.yml
+      - .github/workflows/nqc-census-refresh-anchor.yml
+      - ci/nqc-census/refresh-inputs.json
+      - ci/nqc-census/REFRESH_PARITY_CONTRACT.md
+      - nqc-census/Cargo.toml
+      - nqc-census/Cargo.lock
+      - nqc-census/crates/nqc-census-refresh/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+  PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+  RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+  RUST_TOOLCHAIN: "1.98.1"
+  D10_TESTS_EXPECTED: "7"
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify authority and upstream immutability
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          git merge-base --is-ancestor "$PFT_CERTIFIED_COMMIT" HEAD
+          git merge-base --is-ancestor "$RMC003_2_AUTHORITY" HEAD
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD -- \
+            ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation \
+            ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks
+          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- \
+            nqc-census/crates/nqc-census-core nqc-census/crates/nqc-census-store \
+            nqc-census/crates/nqc-census-chain
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            git diff --check "$BASE"...HEAD
+            # One census node per PR: a PR that changes nqc-census-refresh
+            # changes no other crate (RMC-008 and RMC-009 are consumed, never modified).
+            refresh=$(git diff --name-only "$BASE"...HEAD -- nqc-census/crates/nqc-census-refresh)
+            others=$(git diff --name-only "$BASE"...HEAD -- nqc-census/crates \
+              | grep -v '^nqc-census/crates/nqc-census-refresh/' || true)
+            if [ -n "$refresh" ] && [ -n "$others" ]; then
+              echo "RMC-010 change touches another crate: $others"
+              exit 1
+            fi
+          fi
+          echo RMC010_UPSTREAM_IMMUTABLE_PASS
+
+      - name: Verify no transaction path or network client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          root = Path("nqc-census/crates/nqc-census-refresh")
+          forbidden = re.compile(
+              r"private.?key|mnemonic|eth_send|eth_sign|personal_|sendRawTransaction|"
+              r"reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket|\bunsafe\b|f32|f64")
+          violations = []
+          for path in root.rglob("*.rs"):
+              for number, line in enumerate(path.read_text().splitlines(), 1):
+                  if line.strip().startswith("//"):
+                      continue
+                  if forbidden.search(line):
+                      violations.append(f"{path}:{number}: {line.strip()}")
+          assert not violations, "\n".join(violations)
+          print("RMC010_BOUNDARY_PASS no floating point, network client or transaction path")
+          PY
+
+      - name: Locked Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          count=$(cargo test --locked -p nqc-census-refresh --test refresh_parity -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$D10_TESTS_EXPECTED"
+          cargo test --locked -p nqc-census-refresh -- --nocapture
+          cargo test --workspace --all-targets --locked
+          echo RMC010_CORE_PASS

@@ -1,0 +1,601 @@
+name: NQC RMC-010 Live Full Incremental Parity
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-refresh-live.yml
+      - ci/nqc-census/refresh-inputs.json
+      - ci/nqc-census/account-index-providers.json
+      - ci/nqc-census/state-providers.json
+      - nqc-census/crates/nqc-census-refresh/**
+      - nqc-census/crates/nqc-census-accounts/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+# RMC-010 is only unblocked after the certified A0/A1 upstream runs exist.
+# At that point it owns the remaining delta/canonicality reads.  A dedicated
+# group avoids GitHub's "one pending run per concurrency group" replacement
+# semantics from silently cancelling this certification behind another node.
+concurrency:
+  group: nqc-rmc010-live-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_TOOLCHAIN: "1.98.1"
+  D10_INPUTS: /tmp/nqc-rmc010-inputs
+  D10_EVIDENCE: /tmp/nqc-rmc010-evidence
+  INDEX_PARTITIONS: "4"
+
+jobs:
+  inputs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      base_d09_run: ${{ steps.pins.outputs.base_d09_run }}
+      base_d09_head: ${{ steps.pins.outputs.base_d09_head }}
+      target_d06_run: ${{ steps.pins.outputs.target_d06_run }}
+      target_d06_head: ${{ steps.pins.outputs.target_d06_head }}
+      full_d09_run: ${{ steps.pins.outputs.full_d09_run }}
+      full_d09_head: ${{ steps.pins.outputs.full_d09_head }}
+      target_number: ${{ steps.pins.outputs.target_number }}
+      target_hash: ${{ steps.pins.outputs.target_hash }}
+      base_number: ${{ steps.pins.outputs.base_number }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify pinned upstream run and artifact identities
+        id: pins
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-inputs.json"))["status"])')
+          if [ "$status" != "PINNED" ]; then
+            python3 -c 'import json; d=json.load(open("ci/nqc-census/refresh-inputs.json")); print("RMC010_BLOCKED", d["status"], "-", d.get("blocked_reason", ""))'
+            exit 1
+          fi
+          python3 - <<'PY' > /tmp/nqc-rmc010-sources.txt
+          import json
+          pins = json.load(open("ci/nqc-census/refresh-inputs.json"))
+          assert {s["role"] for s in pins["sources"]} == {"base_d09", "target_d06", "full_d09"}
+          target = pins["target_anchor"]
+          base = pins["base_anchor"]
+          assert isinstance(target["block_number"], int) and target["block_number"] > base["block_number"]
+          assert target["block_hash"].startswith("0x") and len(target["block_hash"]) == 66
+          print("ANCHORS", base["block_number"], target["block_number"], target["block_hash"])
+          for source in pins["sources"]:
+              print("SOURCE", source["role"], source["workflow_run_id"], source["artifact_id"],
+                    source["artifact"], source["code_commit"], source["artifact_digest"])
+          PY
+          read -r _ base_number target_number target_hash < <(grep '^ANCHORS ' /tmp/nqc-rmc010-sources.txt)
+          echo "base_number=$base_number" >> "$GITHUB_OUTPUT"
+          echo "target_number=$target_number" >> "$GITHUB_OUTPUT"
+          echo "target_hash=$target_hash" >> "$GITHUB_OUTPUT"
+          while read -r kind role run artifact_id artifact commit digest; do
+            [ "$kind" = SOURCE ] || continue
+            head=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)
+            conclusion=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .conclusion)
+            observed=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .digest)
+            name=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .name)
+            test "$head" = "$commit" || { echo "$role run $run head $head != pinned $commit"; exit 1; }
+            test "$conclusion" = success || { echo "$role run $run conclusion=$conclusion"; exit 1; }
+            test "$observed" = "$digest" || { echo "$role artifact digest $observed != $digest"; exit 1; }
+            test "$name" = "$artifact" || { echo "$role artifact name $name != $artifact"; exit 1; }
+            echo "${role}_run=$run" >> "$GITHUB_OUTPUT"
+            echo "${role}_head=$head" >> "$GITHUB_OUTPUT"
+            echo "${role}_artifact=$artifact" >> "$GITHUB_OUTPUT"
+            echo "RMC010_UPSTREAM_PINNED role=$role run=$run head=$head artifact=$artifact_id digest=$digest"
+          done < /tmp/nqc-rmc010-sources.txt
+
+      - name: Fetch certified base D09 closeout
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ steps.pins.outputs.base_d09_artifact }}
+          run-id: ${{ steps.pins.outputs.base_d09_run }}
+          github-token: ${{ github.token }}
+          path: /tmp/nqc-rmc010-inputs/base
+
+      - name: Fetch certified target D06 evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ steps.pins.outputs.target_d06_artifact }}
+          run-id: ${{ steps.pins.outputs.target_d06_run }}
+          github-token: ${{ github.token }}
+          path: /tmp/nqc-rmc010-inputs/target/d06
+
+      - name: Fetch certified full D09 closeout at A1
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ steps.pins.outputs.full_d09_artifact }}
+          run-id: ${{ steps.pins.outputs.full_d09_run }}
+          github-token: ${{ github.token }}
+          path: /tmp/nqc-rmc010-inputs/full
+
+      - name: Verify pinned files and materialize target D09 pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os
+          cfg = json.load(open("ci/nqc-census/refresh-inputs.json"))
+          root = os.environ["D10_INPUTS"]
+          target = cfg["target_anchor"]
+          base = cfg["base_anchor"]
+          for side, anchor in [("base", base), ("full", target)]:
+              summary_path = os.path.join(root, side, "closeout", "account-summary.json")
+              summary = json.load(open(summary_path))
+              assert summary["status"] == "RMC_009_PASS_CANDIDATE", (side, summary["status"])
+              assert summary["anchor"]["number"] == anchor["block_number"], (side, summary["anchor"])
+              assert summary["anchor"]["hash"] == anchor["block_hash"], (side, summary["anchor"])
+              for required in ["evidence-manifest.json", "candidate-accounts.jsonl", "reserve-tokens.jsonl"]:
+                  assert os.path.isfile(os.path.join(root, side, "closeout", required)), (side, required)
+          files = []
+          for entry in cfg["target_d06_files"]:
+              source = os.path.join(root, "target", "d06", entry["source_path"])
+              data = open(source, "rb").read()
+              observed = hashlib.sha256(data).hexdigest()
+              assert observed == entry["sha256"], (entry["source_path"], observed, entry["sha256"])
+              files.append({"role": entry["role"], "path": "d06/" + entry["source_path"],
+                            "sha256": entry["sha256"]})
+              print("RMC010_TARGET_D06_FILE_PINNED", entry["role"], observed)
+          account_pins = {
+              "schema_version": 1,
+              "status": "PINNED",
+              "expected_anchor": {
+                  "block_number": target["block_number"],
+                  "block_hash": target["block_hash"],
+              },
+              "sources": [],
+              "files": files,
+          }
+          path = os.path.join(root, "target", "account-inputs.json")
+          with open(path, "w") as handle:
+              json.dump(account_pins, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          PY
+
+      - name: Preserve verified RMC-010 inputs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d10-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc010-inputs
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+  canonicality:
+    needs: inputs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [blastapi-public, mevblocker-rpc]
+    env:
+      TARGET_NUMBER: ${{ needs.inputs.outputs.target_number }}
+      TARGET_HASH: ${{ needs.inputs.outputs.target_hash }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install Rust and fetch inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Fetch verified inputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d10-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc010-inputs
+
+      - name: Acquire base canonicality
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D10_EVIDENCE"
+          cargo build --release --locked -p nqc-census-refresh --bin nqc-rmc010-canonicality-stage
+          target/release/nqc-rmc010-canonicality-stage             --providers ../ci/nqc-census/state-providers.json             --label "${{ matrix.provider }}"             --pins "$D10_INPUTS/target/account-inputs.json"             --pin-root "$D10_INPUTS/target"             --base "$D10_INPUTS/base/closeout"             --anchor-number "$TARGET_NUMBER" --anchor-hash "$TARGET_HASH"             --store "$D10_EVIDENCE/store" --out "$D10_EVIDENCE/record.json"             | tee "$D10_EVIDENCE/stage.log"
+          grep -F "RMC010_CANONICALITY_STAGE_PASS provider=${{ matrix.provider }}" "$D10_EVIDENCE/stage.log"
+
+      - name: Preserve canonicality evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d10-canonicality-${{ matrix.provider }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc010-evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  canonicality-replay:
+    needs: [inputs, canonicality]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [blastapi-public, mevblocker-rpc]
+    env:
+      TARGET_NUMBER: ${{ needs.inputs.outputs.target_number }}
+      TARGET_HASH: ${{ needs.inputs.outputs.target_hash }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+
+      - name: Fetch verified inputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d10-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc010-inputs
+
+      - name: Fetch canonicality stage evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d10-canonicality-${{ matrix.provider }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-*
+          path: /tmp/nqc-rmc010-stage
+
+      - name: Replay canonicality offline
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact=$(find /tmp/nqc-rmc010-stage -mindepth 1 -maxdepth 1 -type d | sort | tail -1)
+          test -f "$artifact/record.json"
+          mkdir -p "$artifact/store/tmp" "$artifact/store/objects/chunks" "$artifact/store/objects/artifacts" "$artifact/store/streams"
+          for stream in "$artifact"/store/streams/*/; do
+            if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
+          done
+          mkdir -p "$D10_EVIDENCE"
+          cargo build --release --locked -p nqc-census-refresh --bin nqc-rmc010-canonicality-replay
+          if sudo unshare --net -- curl -sS --max-time 5 https://rpc.mevblocker.io -o /dev/null; then
+            echo "network reachable inside offline replay namespace"
+            exit 1
+          fi
+          sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH"             target/release/nqc-rmc010-canonicality-replay             --providers ../ci/nqc-census/state-providers.json             --pins "$D10_INPUTS/target/account-inputs.json"             --pin-root "$D10_INPUTS/target"             --base "$D10_INPUTS/base/closeout"             --anchor-number "$TARGET_NUMBER" --anchor-hash "$TARGET_HASH"             --record "$artifact/record.json" --store "$artifact/store"             --stage-artifact "$(basename "$artifact")"             --out "$D10_EVIDENCE/extract.json" | tee "$D10_EVIDENCE/replay.log"
+          grep -F "RMC010_CANONICALITY_REPLAY_PASS provider=${{ matrix.provider }}" "$D10_EVIDENCE/replay.log"
+
+      - name: Preserve canonicality extract
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d10-extract-canonicality-${{ matrix.provider }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc010-evidence
+          if-no-files-found: warn
+          retention-days: 30
+
+  delta-index:
+    needs: inputs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        provider: [mevblocker-rpc, tenderly-public]
+        partition: [0, 1, 2, 3]
+    env:
+      TARGET_NUMBER: ${{ needs.inputs.outputs.target_number }}
+      TARGET_HASH: ${{ needs.inputs.outputs.target_hash }}
+      BASE_NUMBER: ${{ needs.inputs.outputs.base_number }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+
+      - name: Fetch verified inputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d10-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc010-inputs
+
+      - name: Acquire delta account index
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D10_EVIDENCE"
+          cargo build --release --locked -p nqc-census-accounts --bin nqc-rmc009-account-stage
+          target/release/nqc-rmc009-account-stage index             --partition "${{ matrix.partition }}" --partitions "$INDEX_PARTITIONS"             --providers ../ci/nqc-census/account-index-providers.json             --label "${{ matrix.provider }}"             --pins "$D10_INPUTS/target/account-inputs.json"             --pin-root "$D10_INPUTS/target"             --anchor-number "$TARGET_NUMBER" --anchor-hash "$TARGET_HASH"             --index-start "$((BASE_NUMBER + 1))"             --store "$D10_EVIDENCE/store" --out "$D10_EVIDENCE/record.json"             | tee "$D10_EVIDENCE/stage.log"
+          grep -F "RMC009_STAGE_PASS stage=ACCOUNT_INDEX provider=${{ matrix.provider }}" "$D10_EVIDENCE/stage.log"
+
+      - name: Preserve delta index evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d10-delta-index-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc010-evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  delta-replay:
+    needs: [inputs, delta-index]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        provider: [mevblocker-rpc, tenderly-public]
+        partition: [0, 1, 2, 3]
+    env:
+      TARGET_NUMBER: ${{ needs.inputs.outputs.target_number }}
+      TARGET_HASH: ${{ needs.inputs.outputs.target_hash }}
+      BASE_NUMBER: ${{ needs.inputs.outputs.base_number }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+
+      - name: Fetch verified inputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d10-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc010-inputs
+
+      - name: Fetch delta index evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d10-delta-index-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-*
+          path: /tmp/nqc-rmc010-stage
+
+      - name: Replay delta index offline
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          artifact=$(find /tmp/nqc-rmc010-stage -mindepth 1 -maxdepth 1 -type d | sort | tail -1)
+          test -f "$artifact/record.json"
+          mkdir -p "$artifact/store/tmp" "$artifact/store/objects/chunks" "$artifact/store/objects/artifacts" "$artifact/store/streams"
+          for stream in "$artifact"/store/streams/*/; do
+            if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
+          done
+          mkdir -p "$D10_EVIDENCE"
+          cargo build --release --locked -p nqc-census-accounts --bin nqc-rmc009-account-replay
+          if sudo unshare --net -- curl -sS --max-time 5 https://rpc.mevblocker.io -o /dev/null; then
+            echo "network reachable inside offline replay namespace"
+            exit 1
+          fi
+          sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH"             target/release/nqc-rmc009-account-replay             --providers ../ci/nqc-census/account-index-providers.json             --pins "$D10_INPUTS/target/account-inputs.json"             --pin-root "$D10_INPUTS/target"             --anchor-number "$TARGET_NUMBER" --anchor-hash "$TARGET_HASH"             --index-start "$((BASE_NUMBER + 1))"             --record "$artifact/record.json" --store "$artifact/store"             --stage-artifact "$(basename "$artifact")"             --out "$D10_EVIDENCE/extract.json" | tee "$D10_EVIDENCE/replay.log"
+          grep -F "RMC009_REPLAY_PASS stage=ACCOUNT_INDEX provider=${{ matrix.provider }}" "$D10_EVIDENCE/replay.log"
+
+      - name: Preserve delta extract
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d10-extract-delta-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc010-evidence
+          if-no-files-found: warn
+          retention-days: 30
+
+  candidates:
+    needs: [inputs, delta-replay]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      TARGET_NUMBER: ${{ needs.inputs.outputs.target_number }}
+      TARGET_HASH: ${{ needs.inputs.outputs.target_hash }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+
+      - name: Fetch verified inputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d10-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc010-inputs
+
+      - name: Fetch delta extracts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d10-extract-delta-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-*
+          path: /tmp/nqc-rmc010-delta
+
+      - name: Derive refresh candidates and bind them to the full census
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D10_EVIDENCE/delta-extracts"
+          find /tmp/nqc-rmc010-delta -name extract.json -type f | sort > /tmp/d10-delta-files
+          test "$(wc -l < /tmp/d10-delta-files)" = 8
+          n=0
+          while read -r path; do
+            printf -v name '%02d.json' "$n"
+            cp "$path" "$D10_EVIDENCE/delta-extracts/$name"
+            n=$((n + 1))
+          done < /tmp/d10-delta-files
+          cargo build --release --locked -p nqc-census-refresh --bin nqc-rmc010-refresh-candidates
+          target/release/nqc-rmc010-refresh-candidates             --index-providers ../ci/nqc-census/account-index-providers.json             --pins "$D10_INPUTS/target/account-inputs.json"             --pin-root "$D10_INPUTS/target"             --base "$D10_INPUTS/base/closeout"             --anchor-number "$TARGET_NUMBER" --anchor-hash "$TARGET_HASH"             --extracts "$D10_EVIDENCE/delta-extracts"             --out "$D10_EVIDENCE/candidate-accounts.jsonl" | tee "$D10_EVIDENCE/candidates.log"
+          cmp "$D10_EVIDENCE/candidate-accounts.jsonl" "$D10_INPUTS/full/closeout/candidate-accounts.jsonl"
+          echo RMC010_REFRESH_FULL_CANDIDATES_IDENTICAL
+
+      - name: Preserve refresh candidates
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d10-candidates-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: |
+            /tmp/nqc-rmc010-evidence/candidate-accounts.jsonl
+            /tmp/nqc-rmc010-evidence/candidates.log
+            /tmp/nqc-rmc010-evidence/delta-extracts
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+  reconcile:
+    needs: [inputs, candidates, canonicality-replay, delta-replay]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      TARGET_NUMBER: ${{ needs.inputs.outputs.target_number }}
+      TARGET_HASH: ${{ needs.inputs.outputs.target_hash }}
+      FULL_D09_RUN: ${{ needs.inputs.outputs.full_d09_run }}
+      FULL_D09_HEAD: ${{ needs.inputs.outputs.full_d09_head }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Install Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Fetch verified inputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d10-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc010-inputs
+
+      - name: Fetch refresh candidates and delta extracts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d10-candidates-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: /tmp/nqc-rmc010-candidates
+
+      - name: Fetch canonicality extracts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d10-extract-canonicality-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-*
+          path: /tmp/nqc-rmc010-canonical
+
+      - name: Fetch the certified full-A1 state extracts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d09-extract-state-*-${{ needs.inputs.outputs.full_d09_head }}-${{ needs.inputs.outputs.full_d09_run }}-*
+          path: /tmp/nqc-rmc010-full-state
+          run-id: ${{ needs.inputs.outputs.full_d09_run }}
+          github-token: ${{ github.token }}
+
+      - name: Select extracts and prove the full state is bound to refresh candidates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D10_EVIDENCE/canonical-extracts" "$D10_EVIDENCE/state-extracts"
+          find /tmp/nqc-rmc010-canonical -name extract.json -type f | sort > /tmp/d10-canonical-files
+          test "$(wc -l < /tmp/d10-canonical-files)" = 2
+          n=0
+          while read -r path; do
+            printf -v name '%02d.json' "$n"
+            cp "$path" "$D10_EVIDENCE/canonical-extracts/$name"
+            n=$((n + 1))
+          done < /tmp/d10-canonical-files
+          python3 ../ci/nqc-census/select_latest_attempts.py             /tmp/nqc-rmc010-full-state d09-extract-state             "$D10_EVIDENCE/state-selection.json" extract.json > /tmp/d10-state-selected
+          count=0
+          while read -r name; do
+            cp "/tmp/nqc-rmc010-full-state/$name/extract.json" "$D10_EVIDENCE/state-extracts/$name.json"
+            count=$((count + 1))
+          done < /tmp/d10-state-selected
+          test "$count" = 34
+          cmp /tmp/nqc-rmc010-candidates/candidate-accounts.jsonl "$D10_INPUTS/full/closeout/candidate-accounts.jsonl"
+          echo "RMC010_REUSED_A1_STATE_EXTRACTS count=$count candidates=IDENTICAL"
+
+      - name: Offline incremental closeout and byte-for-byte parity
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p nqc-census-refresh --bin nqc-rmc010-refresh-reconcile
+          HEAD_SHA="$(git rev-parse HEAD)"
+          TREE_SHA="$(git show -s --format=%T HEAD)"
+          for out in closeout closeout-rerun; do
+            target/release/nqc-rmc010-refresh-reconcile               --index-providers ../ci/nqc-census/account-index-providers.json               --state-providers ../ci/nqc-census/state-providers.json               --pins "$D10_INPUTS/target/account-inputs.json"               --pin-root "$D10_INPUTS/target"               --base "$D10_INPUTS/base/closeout"               --anchor-number "$TARGET_NUMBER" --anchor-hash "$TARGET_HASH"               --candidates /tmp/nqc-rmc010-candidates/candidate-accounts.jsonl               --canonical-extracts "$D10_EVIDENCE/canonical-extracts"               --delta-extracts /tmp/nqc-rmc010-candidates/delta-extracts               --state-extracts "$D10_EVIDENCE/state-extracts"               --full-closeout "$D10_INPUTS/full/closeout"               --out-dir "$D10_EVIDENCE/$out"               --parity-out "$D10_EVIDENCE/parity-$out.json"               --code-commit "$HEAD_SHA" --code-tree "$TREE_SHA"               | tee "$D10_EVIDENCE/$out.log"
+          done
+          diff -r "$D10_EVIDENCE/closeout" "$D10_EVIDENCE/closeout-rerun"
+          cmp "$D10_EVIDENCE/parity-closeout.json" "$D10_EVIDENCE/parity-closeout-rerun.json"
+          grep -F "RMC010_LIVE_PARITY_PASS" "$D10_EVIDENCE/closeout.log"
+          grep -F '"status":"FULL_INCREMENTAL_PARITY_PASS"' "$D10_EVIDENCE/parity-closeout.json"
+          echo RMC010_DETERMINISTIC_LIVE_CLOSEOUT_PASS
+
+      - name: Build content-addressed certification record
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, subprocess
+          root = os.environ["D10_EVIDENCE"]
+          cfg = json.load(open("ci/nqc-census/refresh-inputs.json"))
+          def sha(path):
+              return hashlib.sha256(open(path, "rb").read()).hexdigest()
+          head = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+          tree = subprocess.check_output(["git", "show", "-s", "--format=%T", "HEAD"], text=True).strip()
+          report = {
+              "schema": "nqc-rmc-010-live-parity-certification-v1",
+              "status": "RMC_010_LIVE_PARITY_CERTIFIED",
+              "code_commit": head,
+              "code_tree": tree,
+              "base_anchor": cfg["base_anchor"],
+              "target_anchor": cfg["target_anchor"],
+              "sources": cfg["sources"],
+              "parity_sha256": sha(os.path.join(root, "parity-closeout.json")),
+              "incremental_evidence_manifest_sha256": sha(os.path.join(root, "closeout", "evidence-manifest.json")),
+              "full_evidence_manifest_sha256": sha(os.path.join(os.environ["D10_INPUTS"], "full", "closeout", "evidence-manifest.json")),
+          }
+          out = os.path.join(root, "rmc010-certification.json")
+          with open(out, "w") as handle:
+              json.dump(report, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          print("RMC010_CERTIFICATION_SHA256=" + sha(out))
+          PY
+          (cd "$D10_EVIDENCE" && sha256sum parity-closeout.json rmc010-certification.json closeout/* | tee SHA256SUMS)
+
+      - name: Preserve RMC-010 live certification
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-rmc010-live-closeout-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/nqc-rmc010-evidence/closeout
+            /tmp/nqc-rmc010-evidence/parity-closeout.json
+            /tmp/nqc-rmc010-evidence/rmc010-certification.json
+            /tmp/nqc-rmc010-evidence/SHA256SUMS
+            /tmp/nqc-rmc010-evidence/state-selection.json
+            /tmp/nqc-rmc010-evidence/*.log
+          if-no-files-found: warn
+          retention-days: 30

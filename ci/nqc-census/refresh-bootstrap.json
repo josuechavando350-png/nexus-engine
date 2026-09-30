@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "status": "WAITING_D09_A0",
+  "d06_ref": "nqc/rmc-006-aave-reconciled-discovery-20260929",
+  "purpose": "Hold D06 A1 dispatch until the final exact-head RMC-009 A0 closeout is certified; then switch once to REQUEST_D06_A1"
+}

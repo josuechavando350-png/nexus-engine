@@ -90,6 +90,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nqc-census-refresh"
+version = "0.1.0"
+dependencies = [
+ "nqc-census-accounts",
+ "nqc-census-chain",
+ "nqc-census-core",
+ "nqc-census-state",
+ "nqc-census-store",
+ "sha2",
+]
+
+[[package]]
 name = "nqc-census-state"
 version = "0.1.0"
 dependencies = [
