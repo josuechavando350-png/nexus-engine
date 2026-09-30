@@ -196,7 +196,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                 };
                 let emode_resolved = emode_id == 0 || emode.is_some();
                 let liquidation_bonus_bps = emode
-                    .filter(|category| config_bit(category.collateral_bitmap, collateral.reserve_id))
+                    .filter(|category| {
+                        config_bit(category.collateral_bitmap, collateral.reserve_id)
+                    })
                     .map_or(collateral.liquidation_bonus_bps, |category| {
                         category.liquidation_bonus_bps
                     });
@@ -240,10 +242,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         collateral,
                         anchor.timestamp(),
                     ),
-                    debt_reserve_eligible: liquidation_eligible(
-                        debt_reserve,
-                        anchor.timestamp(),
-                    ),
+                    debt_reserve_eligible: liquidation_eligible(debt_reserve, anchor.timestamp()),
                     emode_resolved,
                     snapshots_match: true,
                     pft_market_snapshot: *market_snapshot.as_bytes(),
@@ -261,11 +260,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                             collateral.price_base_wad,
                             collateral_unit,
                         )?;
-                        let repayment_value = mul_div_ceil(
-                            repayment,
-                            debt_reserve.price_base_wad,
-                            debt_unit,
-                        )?;
+                        let repayment_value =
+                            mul_div_ceil(repayment, debt_reserve.price_base_wad, debt_unit)?;
                         let result_hash = Hash32::new(sized.result_commitment)?;
                         let candidate = ActionableLiquidation::new(
                             pair.clone(),
@@ -316,7 +312,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                                 principal_capital_rejected = principal_capital_rejected
                                     .checked_add(1)
                                     .ok_or("principal capital rejection count overflow")?;
-                                ("REJECTED", Value::String(reason.code().to_owned()), Vec::new())
+                                (
+                                    "REJECTED",
+                                    Value::String(reason.code().to_owned()),
+                                    Vec::new(),
+                                )
                             }
                         };
                         capital_rows.push(json!({
@@ -522,7 +522,9 @@ fn flags() -> Result<BTreeMap<String, String>, Box<dyn Error>> {
     let mut out = BTreeMap::new();
     let mut args = env::args().skip(1);
     while let Some(flag) = args.next() {
-        let value = args.next().ok_or_else(|| format!("missing value for {flag}"))?;
+        let value = args
+            .next()
+            .ok_or_else(|| format!("missing value for {flag}"))?;
         if out.insert(flag.clone(), value).is_some() {
             return Err(format!("{flag} given twice").into());
         }
@@ -578,7 +580,9 @@ fn verify_closeout_manifest(
     let manifest_bytes = fs::read(dir.join("evidence-manifest.json"))?;
     let manifest_digest = Hash32::new(Sha256::digest(&manifest_bytes).into())?;
     if manifest_digest != authority.artifact_sha256 {
-        return Err("closeout evidence manifest digest differs from external authority lock".into());
+        return Err(
+            "closeout evidence manifest digest differs from external authority lock".into(),
+        );
     }
     let manifest: Value = serde_json::from_slice(&manifest_bytes)?;
     if str_field(&manifest, "code_commit")? != authority.code_commit.to_hex()
@@ -677,10 +681,7 @@ fn parse_anchor(value: &Value) -> Result<StateAnchor, Box<dyn Error>> {
     )?)
 }
 
-fn market_snapshot_commitment(
-    d08: &Path,
-    required: &[&str],
-) -> Result<Hash32, Box<dyn Error>> {
+fn market_snapshot_commitment(d08: &Path, required: &[&str]) -> Result<Hash32, Box<dyn Error>> {
     let mut hasher = Sha256::new();
     hasher.update(MARKET_SNAPSHOT_DOMAIN);
     hasher.update([0]);
