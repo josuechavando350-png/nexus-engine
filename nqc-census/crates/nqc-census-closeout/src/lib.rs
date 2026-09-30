@@ -52,6 +52,32 @@ impl RmcStage {
         }
     }
 
+    pub const fn expected_workflow_name(self) -> &'static str {
+        match self {
+            Self::Rmc006 => "NQC RMC-006 Aave Discovery",
+            Self::Rmc007 => "NQC RMC-007 V2 Discovery",
+            Self::Rmc008 => "NQC RMC-008 State Oracle Token Admission",
+            Self::Rmc009 => "NQC RMC-009 Aave Account Universe",
+            Self::Rmc010 => "NQC RMC-010 Live Full Incremental Parity",
+            Self::Rmc011 => "NQC RMC-011 Real Source Certification",
+            Self::Rmc012 => "NQC RMC-012 Terminal Actionability Authority",
+            Self::Rmc013 => "NQC RMC-013 Terminal Economics Authority",
+        }
+    }
+
+    pub const fn expected_artifact_prefix(self) -> &'static str {
+        match self {
+            Self::Rmc006 => "nqc-rmc006-evidence-",
+            Self::Rmc007 => "nqc-rmc007-closeout-",
+            Self::Rmc008 => "nqc-rmc008-closeout-",
+            Self::Rmc009 => "nqc-rmc009-closeout-",
+            Self::Rmc010 => "nqc-rmc010-live-closeout-",
+            Self::Rmc011 => "rmc011-real-source-certification-",
+            Self::Rmc012 => "rmc012-terminal-actionability-",
+            Self::Rmc013 => "rmc013-terminal-economics-",
+        }
+    }
+
     const fn tag(self) -> u8 {
         match self {
             Self::Rmc006 => 6,
@@ -76,6 +102,7 @@ pub enum CloseoutError {
     StageHasUnresolvedMismatch(RmcStage),
     StageHasUnknownFailure(RmcStage),
     StageHasOpenBlocker(RmcStage),
+    InvalidStageArtifactBinding(RmcStage),
     EmptyStageEvidence(RmcStage),
     DuplicateStageEvidence(RmcStage),
     PipelineNotMonotonic,
@@ -108,6 +135,11 @@ impl Display for CloseoutError {
                 write!(f, "{} has UNKNOWN failures", stage.code())
             }
             Self::StageHasOpenBlocker(stage) => write!(f, "{} has open blockers", stage.code()),
+            Self::InvalidStageArtifactBinding(stage) => write!(
+                f,
+                "{} terminal artifact identity does not match its canonical workflow/prefix/commit",
+                stage.code()
+            ),
             Self::EmptyStageEvidence(stage) => write!(f, "{} has no evidence", stage.code()),
             Self::DuplicateStageEvidence(stage) => {
                 write!(f, "{} repeats evidence", stage.code())
@@ -175,6 +207,10 @@ impl GitObjectId {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StageProof {
     pub stage: RmcStage,
+    pub workflow_run_id: u64,
+    pub artifact_id: u64,
+    pub workflow_name: String,
+    pub artifact_name: String,
     pub code_commit: GitObjectId,
     pub code_tree: GitObjectId,
     pub artifact_sha256: Hash32,
@@ -192,6 +228,10 @@ impl StageProof {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         stage: RmcStage,
+        workflow_run_id: u64,
+        artifact_id: u64,
+        workflow_name: String,
+        artifact_name: String,
         code_commit: GitObjectId,
         code_tree: GitObjectId,
         artifact_sha256: Hash32,
@@ -204,6 +244,15 @@ impl StageProof {
         blocker_count: u64,
         mut evidence: Vec<Hash32>,
     ) -> Result<Self, CloseoutError> {
+        let code_commit_hex = code_commit.to_hex();
+        if workflow_run_id == 0
+            || artifact_id == 0
+            || workflow_name != stage.expected_workflow_name()
+            || !artifact_name.starts_with(stage.expected_artifact_prefix())
+            || !artifact_name.contains(&code_commit_hex)
+        {
+            return Err(CloseoutError::InvalidStageArtifactBinding(stage));
+        }
         if evidence.is_empty() {
             return Err(CloseoutError::EmptyStageEvidence(stage));
         }
@@ -213,6 +262,10 @@ impl StageProof {
         }
         Ok(Self {
             stage,
+            workflow_run_id,
+            artifact_id,
+            workflow_name,
+            artifact_name,
             code_commit,
             code_tree,
             artifact_sha256,
@@ -489,6 +542,20 @@ fn closeout_commitment(
     hasher.update([0]);
     for proof in stages {
         hasher.update([proof.stage.tag()]);
+        hasher.update(proof.workflow_run_id.to_be_bytes());
+        hasher.update(proof.artifact_id.to_be_bytes());
+        hasher.update(
+            u64::try_from(proof.workflow_name.len())
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        hasher.update(proof.workflow_name.as_bytes());
+        hasher.update(
+            u64::try_from(proof.artifact_name.len())
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        hasher.update(proof.artifact_name.as_bytes());
         hasher.update(proof.code_commit.as_bytes());
         hasher.update(proof.code_tree.as_bytes());
         hasher.update(proof.artifact_sha256.as_bytes());
