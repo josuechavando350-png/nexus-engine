@@ -51,6 +51,9 @@ REQUIRED_INVARIANTS = {
 }
 
 SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+ARTIFACT_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+EXPECTED_REPOSITORY = "josuechavando350-png/nexus-engine"
 
 
 class UniverseError(ValueError):
@@ -63,10 +66,70 @@ def require(condition: bool, message: str) -> None:
 
 
 def validate_evidence(value: object, expected_kind: str, label: str) -> None:
+    """Require evidence that can be independently authenticated against GitHub.
+
+    A human-readable locator plus a plausible SHA is not authority. Terminal
+    readiness must pin the exact successful workflow run, producing head,
+    artifact identity/digest, and the exact file inside that artifact.
+    """
     require(isinstance(value, dict), f"{label}: resolution evidence must be an object")
     require(value.get("kind") == expected_kind, f"{label}: unexpected evidence kind")
-    locator = value.get("locator")
-    require(isinstance(locator, str) and locator, f"{label}: evidence locator is required")
+    require(
+        value.get("repository") == EXPECTED_REPOSITORY,
+        f"{label}: evidence repository must be the canonical Nexus repository",
+    )
+
+    workflow_name = value.get("workflow_name")
+    require(
+        isinstance(workflow_name, str) and workflow_name.strip(),
+        f"{label}: workflow_name is required",
+    )
+
+    run_id = value.get("run_id")
+    artifact_id = value.get("artifact_id")
+    require(
+        isinstance(run_id, int) and not isinstance(run_id, bool) and run_id > 0,
+        f"{label}: run_id must be a positive integer",
+    )
+    require(
+        isinstance(artifact_id, int) and not isinstance(artifact_id, bool) and artifact_id > 0,
+        f"{label}: artifact_id must be a positive integer",
+    )
+
+    head_sha = value.get("head_sha")
+    require(
+        isinstance(head_sha, str) and GIT_SHA_RE.fullmatch(head_sha) is not None,
+        f"{label}: head_sha must be 40 lowercase hex",
+    )
+
+    artifact_name = value.get("artifact_name")
+    require(
+        isinstance(artifact_name, str) and artifact_name.strip(),
+        f"{label}: artifact_name is required",
+    )
+    require(
+        head_sha in artifact_name,
+        f"{label}: artifact_name must bind the exact producing head",
+    )
+
+    artifact_digest = value.get("artifact_digest")
+    require(
+        isinstance(artifact_digest, str)
+        and ARTIFACT_DIGEST_RE.fullmatch(artifact_digest) is not None,
+        f"{label}: artifact_digest must be sha256:<64 lowercase hex>",
+    )
+
+    evidence_file = value.get("file")
+    require(
+        isinstance(evidence_file, str) and evidence_file.strip(),
+        f"{label}: evidence file is required",
+    )
+    require(
+        not evidence_file.startswith("/")
+        and ".." not in Path(evidence_file).parts,
+        f"{label}: evidence file must be a safe relative path",
+    )
+
     sha256 = value.get("sha256")
     require(
         isinstance(sha256, str) and SHA256_RE.fullmatch(sha256) is not None,
