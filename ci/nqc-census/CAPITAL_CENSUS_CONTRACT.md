@@ -127,6 +127,7 @@ A source may be used only when:
 - exact repayment and funding-fee settlement obligations derived from the actual source allocations equal the declared settlement legs before the candidate may be labeled `FEASIBLE`
 - settlement legs must authorize the actual capital-source classes that generated those obligations, and the declared settlement amounts must be exactly assignable across those authorized classes; matching only aggregate kind, asset, and amount is insufficient
 - atomicity/collateral requirements are compatible
+- action atomicity constrains action/principal funding, but a `GAS` leg may use authenticated external `GAS_FUNDING` with later explicit repayment because native gas must be acquired before EVM execution; that exception MUST NOT allow the same delayed source to fund an atomic action-principal leg
 - no unresolved source mismatch remains
 
 Feasibility MUST fail closed on:
@@ -195,6 +196,7 @@ At minimum:
 - persistent debt cannot pass without collateral/solvency semantics
 - collateral and temporary-lock dependencies are aggregated across all distinct sources used by one candidate; one declared leg cannot be reused to satisfy multiple source dependencies
 - gas funding is independently required when execution needs native gas, and the `requires_native_gas` flag must equal the presence of a native-gas requirement leg in both directions
+- a same-transaction action with exact flash principal plus deadline-bound external gas credit must remain feasible when repayment is explicitly declared, while the same deadline-bound source must fail atomicity if used as action principal
 - insufficient source capacity fails closed
 - Aave V3 flash-premium regression MUST include the exact PFT-COMPAT-009 callback witnesses (`83727306811 @ 5 bps -> 41863654` and `186298226 @ 5 bps -> 93150`)
 - incompatible repayment asset/semantics fails closed
