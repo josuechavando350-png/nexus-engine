@@ -61,6 +61,8 @@ CANONICAL_LOCAL_IMPLEMENTATIONS = {
     "EXTERNAL_GAS_CREDIT": "nqc-census/crates/nqc-census-capital/src/gas_credit.rs",
     "EXTERNAL_GAS_SPONSOR": "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs",
     "TRANSIENT_EXTERNAL_CREDIT": "nqc-census/crates/nqc-census-capital/src/transient_credit.rs",
+    "COLLATERALIZED_BORROWING": "nqc-census/crates/nqc-census-capital/src/external_debt.rs",
+    "PERSISTENT_DEBT": "nqc-census/crates/nqc-census-capital/src/external_debt.rs",
 }
 
 
