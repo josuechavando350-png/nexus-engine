@@ -199,5 +199,34 @@ class SourceUniverseTests(unittest.TestCase):
             mod.validate_document(doc)
 
 
+    def test_collateralized_borrowing_cannot_substitute_importer(self) -> None:
+        doc = copy.deepcopy(BASE)
+        row = next(
+            row
+            for row in doc["families"]
+            if row["id"] == "COLLATERALIZED_BORROWING"
+        )
+        self.assertEqual(row["status"], "SEMANTIC_ADMISSION_IMPLEMENTED")
+        row["real_source_path"] = (
+            "nqc-census/crates/nqc-census-capital/src/transient_credit.rs"
+        )
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+    def test_persistent_debt_cannot_substitute_importer(self) -> None:
+        doc = copy.deepcopy(BASE)
+        row = next(
+            row
+            for row in doc["families"]
+            if row["id"] == "PERSISTENT_DEBT"
+        )
+        self.assertEqual(row["status"], "SEMANTIC_ADMISSION_IMPLEMENTED")
+        row["real_source_path"] = (
+            "nqc-census/crates/nqc-census-capital/src/gas_credit.rs"
+        )
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+
 if __name__ == "__main__":
     unittest.main()
