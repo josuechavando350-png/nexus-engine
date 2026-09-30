@@ -100,7 +100,12 @@ portfolio-capacity claim is emitted.
 
 Shared resources support:
 - EXCLUSIVE: exact capacity one; each claim must be exactly one;
-- CAPACITY: exact integer capacity in the resource's declared unit.
+- CAPACITY: exact integer capacity in the resource's declared unit, including
+  zero when the resource is observed but exhausted/unavailable at the anchor.
+
+Zero capacity MUST remain an explicit observed state. It MUST NOT be collapsed
+into absence. Any positive claim against a zero-capacity resource therefore
+produces an exact over-subscription conflict with capacity zero.
 
 Every shared resource used in a real portfolio MUST carry evidence and be pinned
 to the same StateAnchor as the requirement that claims it.
