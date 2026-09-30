@@ -563,6 +563,10 @@ impl RealSourceCloseout {
                 "global_capital_source_completeness_claimed",
                 Json::Bool(false),
             ),
+            (
+                "repayment_cashflow_sufficiency_claimed",
+                Json::Bool(false),
+            ),
             ("generated_at", Json::string(self.generated_at.clone())),
             (
                 "generated_at_basis",
@@ -690,6 +694,7 @@ impl RealSourceCloseout {
                         "CANARY_NOT_CERTIFIED",
                         "REAL_PNL_NOT_CERTIFIED",
                         "GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED",
+                        "REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED",
                     ]
                     .into_iter()
                     .chain(
