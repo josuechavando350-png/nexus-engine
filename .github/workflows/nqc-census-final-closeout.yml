@@ -107,6 +107,10 @@ jobs:
           if status == "PINNED":
               assert isinstance(doc.get("pipeline_counts"), dict)
               assert isinstance(doc.get("economic_boundary"), dict)
+              boundary = doc["economic_boundary"]
+              assert boundary["conservative_realizable_capacity_only"] is True
+              assert boundary["global_capital_source_completeness_claimed"] is False
+              assert boundary["global_route_venue_completeness_claimed"] is False
               assert isinstance(doc.get("terminal_evidence"), list) and doc["terminal_evidence"]
           PY
 
@@ -215,6 +219,12 @@ jobs:
             .real_market_census_closed == true and
             .realized_profitability_proven == false and
             .monthly_target_probability_proven == false and
+            .conservative_realizable_capacity_only == true and
+            .global_capital_source_completeness_claimed == false and
+            .global_route_venue_completeness_claimed == false and
+            .economic_boundary.conservative_realizable_capacity_only == true and
+            .economic_boundary.global_capital_source_completeness_claimed == false and
+            .economic_boundary.global_route_venue_completeness_claimed == false and
             (.stages | length == 8) and
             (.terminal_evidence | length > 0)
           ' "$CERT" >/dev/null
