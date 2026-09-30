@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "stage": "RMC-011",
   "name": "CAPITAL_CENSUS",
   "authority_parent": "8ebf6860e0a16964f5293df0ef40695b303b286d",
@@ -14,7 +14,9 @@
     "profitability": false,
     "shadow_execution": false,
     "canary": false,
-    "real_pnl": false
+    "real_pnl": false,
+    "global_capital_source_completeness": false,
+    "repayment_cashflow_sufficiency": false
   },
   "required_classes": [
     "PROTOCOL_NATIVE_FLASH_LOAN",
@@ -28,5 +30,6 @@
     "BOND_OR_STAKE",
     "SOLVER_OR_BUILDER_DEPOSIT",
     "INTRA_BLOCK_TEMPORARY_LOCK"
-  ]
+  ],
+  "source_universe_basis": "RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY"
 }
