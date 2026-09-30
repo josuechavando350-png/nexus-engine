@@ -563,10 +563,7 @@ impl RealSourceCloseout {
                 "global_capital_source_completeness_claimed",
                 Json::Bool(false),
             ),
-            (
-                "repayment_cashflow_sufficiency_claimed",
-                Json::Bool(false),
-            ),
+            ("repayment_cashflow_sufficiency_claimed", Json::Bool(false)),
             ("generated_at", Json::string(self.generated_at.clone())),
             (
                 "generated_at_basis",
