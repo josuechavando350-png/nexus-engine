@@ -37,6 +37,12 @@ Every shared resource has two identities:
 A changing capacity MUST change the observed id without changing the stable key.
 Identical locators on distinct chain domains MUST never alias.
 
+## Candidate identity
+
+Portfolio candidate identity is separate from capital-requirement identity. A single certified capital requirement may have multiple deterministic execution variants. Each variant is bound to the requirement plus an execution-variant commitment.
+
+Mutually exclusive variants of one economic opportunity must claim the same EXCLUSIVE `Opportunity` shared resource. Route enumeration therefore cannot multiply portfolio capacity.
+
 ## Exact capacity rules
 
 All resource amounts use exact uint256 arithmetic. No floating point is
