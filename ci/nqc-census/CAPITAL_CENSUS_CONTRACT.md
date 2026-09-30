@@ -276,3 +276,5 @@ The machine-readable source-universe authority is `ci/nqc-census/rmc011-capital-
 Model support, an adapter implementation, or a semantic parser without authenticated acquisition evidence does not resolve a source family. In particular, `gas_credit.rs` being able to validate two-provider external gas-credit observations does not certify that such a facility exists or is available at the anchor.
 
 Until that condition is met, the terminal state is `BLOCKED_INCOMPLETE_SOURCE_UNIVERSE`, even if the narrower real-source package passes.
+
+A family MUST NOT become `terminally_resolved=true` merely because its parser, adapter, or semantic admission path exists. Terminal resolution requires either `AUTHENTICATED_REAL_SOURCE` or `EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE`, plus a nonzero content digest and authority reference in `resolution_evidence`. In addition, the source-family universe itself must carry `family_universe_discovery.status=AUTHENTICATED_COMPLETE` with evidence before `D11_TERMINAL_CLOSED` is legal. This prevents deleting or overlooking an uncensused capital-source family and then declaring completeness over the remaining list.
