@@ -85,6 +85,56 @@ fn parse_full_anchor(value: &Json) -> Result<StateAnchor, ChainError> {
     )?)
 }
 
+fn authority_lock_anchor(authority: &Json) -> Result<StateAnchor, ChainError> {
+    let stages = authority
+        .get("stages")
+        .and_then(Json::as_array)
+        .ok_or_else(|| ChainError::Evidence("D11 authority lock has no stages array".into()))?;
+    if stages.len() != 5 {
+        return Err(ChainError::Evidence(
+            "D11 authority lock must contain exactly RMC-006 through RMC-010".into(),
+        ));
+    }
+    let mut observed: Option<StateAnchor> = None;
+    let mut stage_names = BTreeSet::new();
+    for row in stages {
+        let stage = row.str_field("stage")?.to_owned();
+        if !stage_names.insert(stage) {
+            return Err(ChainError::Evidence(
+                "D11 authority lock repeats an upstream stage".into(),
+            ));
+        }
+        let anchor = parse_full_anchor(
+            row.get("observation_anchor")
+                .ok_or_else(|| ChainError::Evidence(
+                    "D11 authority stage lacks observation_anchor".into(),
+                ))?,
+        )?;
+        if let Some(first) = &observed {
+            if first != &anchor {
+                return Err(ChainError::Evidence(
+                    "D11 authority stages do not share one exact anchor".into(),
+                ));
+            }
+        } else {
+            observed = Some(anchor);
+        }
+    }
+    let expected = BTreeSet::from([
+        "RMC-006".to_owned(),
+        "RMC-007".to_owned(),
+        "RMC-008".to_owned(),
+        "RMC-009".to_owned(),
+        "RMC-010".to_owned(),
+    ]);
+    if stage_names != expected {
+        return Err(ChainError::Evidence(
+            "D11 authority lock stage set differs from RMC-006 through RMC-010".into(),
+        ));
+    }
+    observed.ok_or_else(|| ChainError::Evidence("D11 authority lock is empty".into()))
+}
+
 fn full_anchor_json(anchor: &StateAnchor) -> Json {
     Json::object([
         ("chain_id", Json::uint(anchor.chain().chain_id())),
@@ -880,11 +930,7 @@ pub fn run_uniswap_v3_capture(
             .ok_or("D08 evidence manifest has no observation_anchor")?,
     )?;
     let authority = Json::parse(&authority_bytes)?;
-    let authority_anchor = parse_full_anchor(
-        authority
-            .get("observation_anchor")
-            .ok_or("D11 authority lock has no observation_anchor")?,
-    )?;
+    let authority_anchor = authority_lock_anchor(&authority)?;
     if authority_anchor != expected_anchor {
         return Err("D11 authority lock anchor differs from D08 evidence anchor".into());
     }
