@@ -450,6 +450,29 @@ fn opportunity_plan_and_model_bind_quote_commitment() -> TestResult {
 }
 
 #[test]
+fn quote_rejects_candidate_anchor_mismatch() -> TestResult {
+    let candidate_anchor = anchor(100, 10);
+    let quote_anchor = anchor(101, 20);
+    let candidate = candidate_at(&candidate_anchor)?;
+    let result = ExecutionQuote::new(
+        &candidate,
+        hash(47),
+        hash(48),
+        hash(49),
+        quote_anchor,
+        ValuationUnitId::usd_wad(),
+        Amount256::from_u128(1_000),
+        Amount256::from_u128(100),
+        complete_costs(10, 5, 3)?,
+        empirical(WAD / 2)?,
+        tail(0)?,
+        vec![hash(51), hash(52)],
+    );
+    assert!(matches!(result, Err(EconomicsError::CandidateAnchorMismatch)));
+    Ok(())
+}
+
+#[test]
 fn anchor_change_changes_quote_commitment() -> TestResult {
     let a0 = anchor(100, 10);
     let a1 = anchor(101, 20);
