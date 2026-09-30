@@ -549,3 +549,54 @@ fn route_variants_share_requirement_but_keep_distinct_candidate_identity() -> Te
     }));
     Ok(())
 }
+
+
+#[test]
+fn route_variants_are_implicitly_exclusive_even_without_opportunity_claim() -> TestResult {
+    let anchor = anchor_on(chain(1, 1), 100, 10);
+    let funding = source(anchor.clone(), 30, 500, CapitalOwnership::External)?;
+    let req = requirement(anchor.clone(), 40, 50)?;
+    let feasibility = evaluate_capital_feasibility(&req, std::slice::from_ref(&funding));
+
+    let route_a = PortfolioCandidate::new_variant(req.id(), hash(96), anchor.clone(), vec![])?;
+    let route_b = PortfolioCandidate::new_variant(req.id(), hash(97), anchor, vec![])?;
+
+    let report = evaluate_portfolio(
+        &[route_a.clone(), route_b.clone()],
+        &[req.clone()],
+        &[feasibility.clone()],
+        std::slice::from_ref(&funding),
+        &[],
+    )?;
+    assert!(!report.simultaneously_feasible());
+    assert!(report.conflicts().iter().any(|conflict| {
+        matches!(
+            conflict.resource,
+            ConflictResource::Requirement(id) if id == req.id()
+        ) && conflict.capacity == Amount256::from_u128(1)
+            && conflict.claimed == Amount256::from_u128(2)
+            && conflict.claimants == vec![route_a.id(), route_b.id()]
+    }));
+
+    let reversed = evaluate_portfolio(
+        &[route_b, route_a],
+        &[req],
+        &[feasibility],
+        &[funding],
+        &[],
+    )?;
+    assert_eq!(report.commitment(), reversed.commitment());
+    Ok(())
+}
+
+#[test]
+fn same_variant_hash_on_distinct_requirements_never_aliases_candidate_identity() -> TestResult {
+    let anchor = anchor_on(chain(1, 1), 100, 10);
+    let a = requirement(anchor.clone(), 40, 50)?;
+    let b = requirement(anchor.clone(), 41, 50)?;
+    let variant = hash(98);
+    let candidate_a = PortfolioCandidate::new_variant(a.id(), variant, anchor.clone(), vec![])?;
+    let candidate_b = PortfolioCandidate::new_variant(b.id(), variant, anchor, vec![])?;
+    assert_ne!(candidate_a.id(), candidate_b.id());
+    Ok(())
+}
