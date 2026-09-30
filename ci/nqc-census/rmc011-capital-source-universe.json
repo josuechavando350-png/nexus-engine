@@ -43,7 +43,7 @@
       "id": "EXTERNAL_GAS_CREDIT",
       "capital_class": "GAS_FUNDING",
       "status": "SEMANTIC_ADMISSION_READY_NOT_AUTHENTICATED",
-      "real_source_path": "gas_credit.rs",
+      "real_source_path": "nqc-census/crates/nqc-census-capital/src/gas_credit.rs",
       "terminally_resolved": false,
       "resolution_evidence": null
     },
