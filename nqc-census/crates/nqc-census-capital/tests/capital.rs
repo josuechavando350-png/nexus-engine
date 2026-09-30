@@ -534,6 +534,15 @@ fn native_gas_flag_and_gas_leg_must_match_exactly() -> TestResult {
         requirement(vec![principal], RequiredAtomicity::SameTransaction, true,),
         Err(CapitalError::NativeGasRequiredButMissing)
     ));
+    assert!(matches!(
+        CapitalRequirementLeg::new(
+            RequirementKind::Gas,
+            CapitalAsset::NativeGas,
+            Amount256::from_u128(5),
+            vec![CapitalClass::GasFunding, CapitalClass::FlashSwap],
+        ),
+        Err(CapitalError::GasLegMustUseGasFundingOnly)
+    ));
     Ok(())
 }
 
@@ -629,8 +638,18 @@ fn exact_gas_and_flash_sources_can_be_feasible() -> TestResult {
         CapitalAsset::NativeGas,
         RepaymentSemantics::AtomicSameTransaction,
     )?;
-    let result = evaluate_capital_feasibility(&req, &[gas_source, flash]);
+    let result = evaluate_capital_feasibility(&req, &[gas_source.clone(), flash.clone()]);
     assert!(matches!(result, CapitalFeasibility::Feasible { .. }));
+
+    let mut ledger = CapitalCensusLedger::default();
+    ledger.register_source(gas_source)?;
+    ledger.register_source(flash)?;
+    ledger.register_requirement(req)?;
+    ledger.evaluate_all()?;
+    let summary = ledger.summary()?;
+    assert_eq!(summary.feasible_count, 1);
+    assert_eq!(summary.feasible_external_gas_count, 1);
+    assert!(summary.proves_zero_own_capital());
     Ok(())
 }
 
@@ -1033,10 +1052,12 @@ fn ledger_proves_no_operator_owned_capital_was_used() -> TestResult {
     ledger.evaluate_all()?;
     let summary = ledger.summary()?;
     assert!(summary.is_conserved());
-    assert!(summary.proves_zero_own_capital());
+    assert!(summary.uses_zero_operator_capital());
+    assert!(!summary.proves_zero_own_capital());
     assert_eq!(summary.operator_owned_sources_observed, 1);
     assert_eq!(summary.operator_owned_sources_used, 0);
     assert_eq!(summary.feasible_count, 1);
+    assert_eq!(summary.feasible_external_gas_count, 0);
     Ok(())
 }
 
@@ -1571,8 +1592,10 @@ fn evidentiary_ledger_certifies_only_after_evaluation() -> TestResult {
     ledger.evaluate_all()?;
     let certificate = ledger.certify(&certification_context_for(&ledger)?)?;
     assert!(certificate.summary.is_conserved());
-    assert!(certificate.summary.proves_zero_own_capital());
+    assert!(certificate.summary.uses_zero_operator_capital());
+    assert!(!certificate.summary.proves_zero_own_capital());
     assert_eq!(certificate.summary.feasible_count, 1);
+    assert_eq!(certificate.summary.feasible_external_gas_count, 0);
     Ok(())
 }
 
@@ -2232,6 +2255,7 @@ fn zero_own_capital_claim_requires_at_least_one_feasible_requirement() -> TestRe
         source_count: 1,
         requirement_count: 1,
         feasible_count: 0,
+        feasible_external_gas_count: 0,
         rejected_count: 1,
         operator_owned_sources_observed: 0,
         operator_owned_sources_used: 0,

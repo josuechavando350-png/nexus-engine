@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/nqc-census-capital-real-source-certification.yml"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
+      - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
       - "ci/nqc-census/rmc011-real-source-inputs.json"
       - "ci/nqc-census/rmc011-authority-lock.json"
@@ -19,6 +20,7 @@ on:
     paths:
       - ".github/workflows/nqc-census-capital-real-source-certification.yml"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
+      - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
       - "ci/nqc-census/rmc011-real-source-inputs.json"
       - "ci/nqc-census/rmc011-authority-lock.json"
@@ -252,12 +254,21 @@ jobs:
           OUTPUT="$RUNNER_TEMP/rmc011-real-source"
           bash ci/nqc-census/run-rmc011-real-source-closeout.sh             "$RUNNER_TEMP/d08"             "$RUNNER_TEMP/d09"             "$AUTHORITY_LOCK"             "$OUTPUT"
 
-          jq -e '.real_source_certification == true' "$OUTPUT/capital-real-source-closeout.json" >/dev/null
           jq -e '
+            .schema_version == 3 and
+            .real_source_certification == true and
+            .source_universe_basis == "RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY" and
+            .global_capital_source_completeness_claimed == false and
+            .repayment_cashflow_sufficiency_claimed == false and
+            (.zero_own_capital_proven == false or
+              (.feasible_count > 0 and
+               .feasible_external_gas_count == .feasible_count)) and
             .profitability_claimed == false and
             .shadow_eligibility_claimed == false and
             .canary_claimed == false and
-            .real_pnl_claimed == false
+            .real_pnl_claimed == false and
+            (.non_claims | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
+            (.non_claims | index("REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED") != null)
           ' "$OUTPUT/capital-real-source-closeout.json" >/dev/null
           (
             cd "$OUTPUT"

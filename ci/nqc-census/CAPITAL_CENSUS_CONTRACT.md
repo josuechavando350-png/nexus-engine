@@ -41,6 +41,22 @@ The model MUST represent, without collapsing distinct semantics:
 
 Persistent debt MUST remain distinct from atomic liquidity and MUST carry interest, collateral, liquidation, health-factor / solvency, oracle, liquidity-withdrawal, and facility-disappearance risk where applicable.
 
+## Source-universe truth
+
+RMC-011 distinguishes **semantic capability** from **live censused coverage**.
+
+The crate may model additional provider families or capital classes before a live discovery/import path exists for them. An adapter, enum variant, unit test, or synthetic fixture is never evidence that such a source was actually available at the certified block.
+
+The current authoritative real-source build imports capital observations only through the exact RMC-008 admitted market/state bytes and the D11 deterministic capital importer. Therefore the real-source closeout MUST state:
+
+- `source_universe_basis = RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY`;
+- `global_capital_source_completeness_claimed = false`;
+- `GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED` in its non-claims.
+
+This means a successful RMC-011 closeout proves the identity, terms, capacity and provenance of the sources it actually imported; it does **not** prove that every possible flash-liquidity venue, gas sponsor, credit facility, collateral facility, builder deposit facility, or persistent-debt provider on the chain has been enumerated.
+
+Any later phase that needs a source family outside this live-import basis MUST either add an evidence-backed discovery/admission path and recertify D11, or fail closed. Absence from the current source ledger MUST NOT be interpreted as authoritative proof that no such source exists.
+
 ## Required source fields
 
 Every admitted capital source record MUST bind:
@@ -105,7 +121,7 @@ A source may be used only when:
 - executable capacity, not merely observed capacity, is sufficient at the requested size
 - no execution blocker remains on any allocated source
 - fee/cap semantics are explicit
-- repayment can be satisfied under the candidate's execution semantics
+- repayment semantics, asset, deadline and exact source-derived settlement obligations are structurally compatible with the candidate declaration; RMC-011 does **not** prove that execution output cash-flow will contain enough of the repayment asset to satisfy those obligations
 - exact repayment and funding-fee settlement obligations derived from the actual source allocations equal the declared settlement legs before the candidate may be labeled `FEASIBLE`
 - settlement legs must authorize the actual capital-source classes that generated those obligations, and the declared settlement amounts must be exactly assignable across those authorized classes; matching only aggregate kind, asset, and amount is insufficient
 - atomicity/collateral requirements are compatible
@@ -127,6 +143,23 @@ Feasibility MUST fail closed on:
 - non-atomic requirement where atomicity is required
 - persistent-debt solvency model absent
 - unclassified capital failure
+
+## Repayment truth boundary
+
+Capital feasibility in RMC-011 is **source-side funding feasibility**, not a proof of post-execution cash-flow.
+
+D11 proves that:
+- principal and other pre-execution funding legs can be allocated from eligible external sources under exact capacities/terms;
+- every allocation's repayment principal and funding fee are derived exactly;
+- the requirement declares exactly matching settlement obligations with compatible source-class provenance.
+
+D11 does not yet prove that seized collateral, swap proceeds, arbitrage output, or any other execution result will actually produce enough of the repayment asset at the required deadline. That requires exact execution/routing simulation downstream.
+
+Therefore the authoritative real-source closeout MUST carry:
+- `repayment_cashflow_sufficiency_claimed = false`;
+- non-claim `REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED`.
+
+No downstream stage may interpret D11 `FEASIBLE` alone as proof that a transaction can settle successfully end-to-end.
 
 ## Outputs
 
@@ -208,6 +241,8 @@ RMC-011 may be certified only when:
 - the D11 upstream authority equals the external RMC-006..RMC-010 authority lock exactly, and exact upstream-consumption replay passes for RMC-008 and RMC-009; without the external lock or consumed upstream bytes, the result remains internally consistent only and MUST NOT claim real-source certification
 - a deterministic `capital-real-source-closeout.json` is generated from that combined proof and binds the D11 capital commitment, upstream-authority commitment, external-lock commitment and SHA-256, exact observation anchor, source/requirement counts, zero-own-capital truth, RMC-008 candidate/admitted/rejected conservation counts, RMC-009 borrower/classification/blocker counts, and the exact RMC-008/RMC-009 authority-artifact, coverage, and output-set commitments reproduced by replay; archived closeout bytes MUST be re-verifiable only by regenerating them from the exact capital bundle, external lock, and consumed RMC-008/RMC-009 bytes
 - if no certified requirement is actually `FEASIBLE` (including an empty requirement set or a non-empty set containing only rejections), the real-source closeout MUST keep `zero_own_capital_proven=false` and MUST explicitly refuse any opportunity-level capital-feasibility claim
+- an EVM gas requirement MUST use `NativeGas` and MUST be fundable only by the `GAS_FUNDING` capital class; in-transaction flash liquidity MUST NOT be treated as transaction gas because gas purchasing occurs before contract execution
+- `zero_own_capital_proven=true` requires at least one feasible requirement, zero operator-owned allocations, and `feasible_external_gas_count == feasible_count`; a gasless synthetic requirement may prove zero operator-treasury usage but MUST NOT prove full zero-own-capital execution
 - no downstream profitability, Shadow, Canary, or P&L claim is inferred from capital feasibility alone
 
 RMC-009 explicitly does not certify liquidatability. Therefore a fully admitted upstream run may legitimately contain zero actionable capital requirements. In that case RMC-011 MAY certify the observed capital-source census and the conserved D09 demand-import coverage with `requirement_count = 0`, but it MUST report `zero_own_capital_proven = false` and MUST NOT claim opportunity-level capital feasibility. The same non-claim applies whenever `feasible_count = 0`, even if rejected requirements exist. A non-empty source census remains mandatory.

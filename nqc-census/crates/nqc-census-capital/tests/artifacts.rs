@@ -532,8 +532,9 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
     )?;
     let summary = bundle.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary")?;
     let text = std::str::from_utf8(&summary.bytes)?;
-    assert!(text.contains("\"schema_version\":5"));
+    assert!(text.contains("\"schema_version\":6"));
     assert!(text.contains("\"feasible_count\":0"));
+    assert!(text.contains("\"feasible_external_gas_count\":0"));
     assert!(text.contains("\"rejected_count\":1"));
     assert!(text.contains("\"zero_own_capital_proven\":false"));
     assert!(text.contains("\"real_source_certification\":false"));
