@@ -52,6 +52,35 @@ the same economic opportunity. Route enumeration therefore cannot multiply
 portfolio capacity through either same-requirement variants or separately
 sized/encoded requirements.
 
+## Actionability boundary
+
+RMC-009 intentionally does not certify liquidatability. RMC-012 therefore owns
+the next exact boundary: every below-one borrower and every enumerated
+collateral/debt position pair must be conserved as either one PFT-sized
+actionable liquidation or one explicit rejection.
+
+The protocol-agnostic core records:
+- a stable pair key that survives block changes;
+- an observation-specific pair id bound to the complete StateAnchor;
+- borrower, collateral/debt assets and reserve ids;
+- exact debt-to-liquidate and collateral-to-liquidator integers;
+- exact liquidation protocol fee, flash premium and repayment;
+- exact oracle collateral/repayment values and oracle edge;
+- effective liquidation bonus;
+- PFT market/account snapshot commitments;
+- explicit rejection reason and evidence for every rejected pair.
+
+Actionability coverage is fail-closed. The record count must equal the declared
+pair universe, admitted + rejected must equal that same count, and every
+below-one borrower must appear in at least one classified pair. Duplicate
+pairs, duplicate candidate ids or mixed anchors are errors.
+
+The concrete Aave adapter MUST execute the immutable recovered PFT
+liquidation/opportunity implementation, not a convenient reimplementation.
+Synthetic actionability fixtures are foundation evidence only. Terminal
+RMC-012 authority requires the isolated PFT bridge to consume exact admitted
+RMC-006/RMC-008/RMC-009 bytes and prove its complete coverage commitment.
+
 ## Exact capacity rules
 
 All resource amounts use exact uint256 arithmetic. No floating point is

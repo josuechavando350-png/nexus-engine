@@ -9,6 +9,8 @@
 //! candidate set can coexist and emits deterministic conflict sets.  Economic
 //! ranking belongs downstream once net-EV and capture evidence exist.
 
+pub mod actionability;
+
 use nqc_census_capital::{
     evaluate_capital_feasibility_checked, Amount256, CapitalAsset, CapitalEvidenceRef,
     CapitalFeasibility, CapitalOwnership, CapitalRequirement, CapitalRequirementId, CapitalSource,
