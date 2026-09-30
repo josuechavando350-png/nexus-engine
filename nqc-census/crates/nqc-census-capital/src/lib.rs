@@ -1633,10 +1633,11 @@ pub enum RequirementKind {
     PersistentDebtPrincipal,
     Repayment,
     TemporaryLock,
+    BondOrStake,
 }
 
 impl RequirementKind {
-    const ALL: [Self; 10] = [
+    const ALL: [Self; 11] = [
         Self::ActionPrincipal,
         Self::Gas,
         Self::ProtocolFee,
@@ -1647,6 +1648,7 @@ impl RequirementKind {
         Self::PersistentDebtPrincipal,
         Self::Repayment,
         Self::TemporaryLock,
+        Self::BondOrStake,
     ];
 
     pub const fn code(self) -> &'static str {
@@ -1661,6 +1663,7 @@ impl RequirementKind {
             Self::PersistentDebtPrincipal => "PERSISTENT_DEBT_PRINCIPAL",
             Self::Repayment => "REPAYMENT",
             Self::TemporaryLock => "TEMPORARY_LOCK",
+            Self::BondOrStake => "BOND_OR_STAKE",
         }
     }
 
@@ -1676,6 +1679,7 @@ impl RequirementKind {
             Self::PersistentDebtPrincipal => 8,
             Self::Repayment => 9,
             Self::TemporaryLock => 10,
+            Self::BondOrStake => 11,
         }
     }
 
