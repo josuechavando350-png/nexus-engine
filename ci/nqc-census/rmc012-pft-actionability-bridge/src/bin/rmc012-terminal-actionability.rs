@@ -39,7 +39,6 @@ const MIN_BASE_MAX_CLOSE_FACTOR_THRESHOLD_USD: u64 = 2_000;
 
 #[derive(Debug, Clone)]
 struct Reserve {
-    asset: Address,
     reserve_id: u16,
     active: bool,
     paused: bool,
@@ -636,7 +635,6 @@ fn reserves(
             .ok_or("Aave state asset has no oracle row")?;
         let price_base_wad = normalize_base(raw_price, unit)?;
         let reserve = Reserve {
-            asset,
             reserve_id,
             active: bool_field(config, "active")?,
             paused: bool_field(config, "paused")?,
@@ -649,10 +647,8 @@ fn reserves(
             grace_until,
             price_base_wad,
         };
-        if reserve.grace_until == anchor_timestamp {
-            // Equality is ineligible in the recovered PFT implementation;
-            // preserving it explicitly here prevents an off-by-one admission.
-        }
+        // Equality is intentionally ineligible: the recovered PFT predicate
+        // requires grace_until < anchor timestamp.
         if out.insert(asset, reserve).is_some() {
             return Err("D08 market-state manifest repeats Aave asset".into());
         }
@@ -671,7 +667,11 @@ fn emodes(d08: &Path) -> Result<BTreeMap<u8, EMode>, Box<dyn Error>> {
             .and_then(Value::as_i64)
             .ok_or("emode row has no category id")?;
         let id = u8::try_from(id_i64)?;
-        let bonus = u32::try_from(parse_u256(str_field(&row, "liquidation_bonus_bps")?)?.to::<u64>())?;
+        let bonus_raw = parse_u256(str_field(&row, "liquidation_bonus_bps")?)?;
+        if bonus_raw > U256::from(u32::MAX) {
+            return Err("eMode liquidation bonus exceeds uint32".into());
+        }
+        let bonus = bonus_raw.to::<u32>();
         let bitmap = parse_u256(str_field(&row, "collateral_bitmap")?)?;
         if out
             .insert(
