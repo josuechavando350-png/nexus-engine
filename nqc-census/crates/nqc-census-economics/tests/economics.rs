@@ -722,7 +722,6 @@ fn capacity_curve_reports_largest_positive_measured_size() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn shadow_handoff_requires_no_fabricated_capture_probability() -> TestResult {
     let anchor = anchor(100, 10);
