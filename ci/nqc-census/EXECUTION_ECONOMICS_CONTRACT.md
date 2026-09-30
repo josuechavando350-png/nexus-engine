@@ -187,6 +187,9 @@ Every admitted prediction must be serializable into a deterministic commitment
 containing at least:
 
 - candidate id;
+- opportunity id;
+- execution-plan commitment;
+- economic-model commitment;
 - anchor;
 - trade size;
 - valuation unit;
@@ -198,6 +201,10 @@ containing at least:
 - interval-worst expected net;
 - explicit tail bound and tail-adjusted net;
 - model/evidence commitments.
+
+The opportunity id, execution-plan commitment and economic-model commitment
+are mandatory, non-zero authority. Two otherwise identical quotes that change
+only one of those commitments MUST produce a different quote commitment.
 
 Shadow compares those ex-ante commitments with later observed outcomes. It may
 not reconstruct a prediction after seeing the winner.
