@@ -344,6 +344,13 @@ jobs:
             .source_universe_basis == "RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY" and
             .global_capital_source_completeness_claimed == false and
             .repayment_cashflow_sufficiency_claimed == false and
+            .terminal_capital_census_complete == false and
+            .actionable_requirement_coverage_complete == false and
+            (.terminal_blockers | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
+            (.terminal_blockers | index("ACTIONABLE_REQUIREMENT_COVERAGE_DEFERRED_TO_RMC012") != null) and
+            (.terminal_blockers | index("REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED") != null) and
+            (.non_claims | index("TERMINAL_CAPITAL_CENSUS_NOT_CERTIFIED") != null) and
+            (.non_claims | index("ACTIONABLE_REQUIREMENT_COVERAGE_NOT_CERTIFIED") != null) and
             (.zero_own_capital_proven == false or
               (.feasible_count > 0 and
                .feasible_external_gas_count == .feasible_count)) and
