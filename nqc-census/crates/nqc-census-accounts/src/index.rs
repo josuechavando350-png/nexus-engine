@@ -39,6 +39,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 const INDEX_NAMESPACE: u16 = 0x0901;
 const INDEX_FAMILY: &str = "rmc009-aave-account-index";
+/// Version 2 keeps every zero-address log's coordinates in the job output.
+const INDEX_VERSION: u16 = 2;
 
 fn shape(detail: impl Into<String>) -> ChainError {
     ChainError::Evidence(format!("undeclared account log shape: {}", detail.into()))
@@ -56,6 +58,7 @@ pub fn index_window(
     digest.update(b"NQC-RMC009-INDEX-LOGS-V1");
     let mut pairs = BTreeSet::new();
     let (mut mints, mut transfers, mut zero) = (0_u64, 0_u64, 0_u64);
+    let mut zero_refs = Vec::new();
     for log in logs {
         let raw = &log.log;
         let token = tokens
@@ -70,12 +73,12 @@ pub fn index_window(
             )));
         }
         let topic0 = *topics[0].as_bytes();
-        let data_len = if topic0 == mint {
+        let (data_len, event) = if topic0 == mint {
             mints += 1;
-            96
+            (96, "MINT")
         } else if topic0 == transfer && token.kind == TokenKind::AToken {
             transfers += 1;
-            64
+            (64, "BALANCE_TRANSFER")
         } else {
             return Err(shape("topic0 outside the declared events for this token"));
         };
@@ -92,9 +95,24 @@ pub fn index_window(
             Ok(account) => {
                 pairs.insert((raw.emitter(), account));
             }
-            // The zero address cannot be read as a typed account; it is
-            // counted so the reconciler can refuse to certify around it.
-            Err(_) => zero += 1,
+            // Aave V3 credits the zero address on a supply on its behalf or
+            // an aToken transfer to it. It is not a typed account and never a
+            // candidate; each such log is kept by coordinate as evidence, and
+            // its holding is read at the anchor as a conservation term.
+            Err(_) => {
+                zero += 1;
+                zero_refs.push(Json::object([
+                    ("block", Json::uint(log.block_number)),
+                    ("log_index", Json::uint(u64::from(raw.log_index()))),
+                    (
+                        "transaction_hash",
+                        Json::string(raw.transaction_hash().to_hex()),
+                    ),
+                    ("token", Json::string(raw.emitter().to_hex())),
+                    ("event", Json::string(event)),
+                    ("topic1", Json::string(topics[1].to_hex())),
+                ]));
+            }
         }
         digest.update(log.block_number.to_be_bytes());
         digest.update(log.block_hash.as_bytes());
@@ -115,6 +133,7 @@ pub fn index_window(
         ("mint_logs", Json::uint(mints)),
         ("balance_transfer_logs", Json::uint(transfers)),
         ("zero_account_logs", Json::uint(zero)),
+        ("zero_account_log_refs", Json::Array(zero_refs)),
         ("logs_sha256", Json::string(hex::plain(&digest.finalize()))),
         (
             "pairs",
@@ -261,7 +280,7 @@ pub fn account_index_stage(
         for &(from, to) in &jobs[first as usize..=last as usize] {
             let spec = JobSpec::new(
                 INDEX_FAMILY,
-                1,
+                INDEX_VERSION,
                 INDEX_NAMESPACE,
                 Json::object([
                     ("filter", filter.descriptor()),

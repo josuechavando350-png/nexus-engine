@@ -13,6 +13,7 @@ use nqc_census_accounts::plan::{balance_transfer_topic, mint_topic, AccountPlan,
 use nqc_census_accounts::replay::replay_account_stage;
 use nqc_census_accounts::state::account_state_stage;
 use nqc_census_accounts::tokens::account_tokens_stage;
+use nqc_census_accounts::verify::{verify_accounts, VerifyInputs};
 use nqc_census_chain::abi;
 use nqc_census_chain::acquire::Acquisition;
 use nqc_census_chain::json::Json;
@@ -76,6 +77,10 @@ struct World {
     balances: Vec<(Address, Address, u64, u64)>,
     totals: Vec<(Address, u64)>,
     stable_total: u64,
+    /// (token, scaled balance of the zero address) where it is not zero.
+    zero_holdings: Vec<(Address, u64)>,
+    /// (token, raw reply) replacing a token's `scaledBalanceOf(0x0)` answer.
+    zero_replies: Vec<(Address, CallOutcome)>,
     /// (account, configuration, health factor).
     accounts: Vec<(Address, u64, u64)>,
     logs: Vec<SimLog>,
@@ -120,6 +125,8 @@ fn world() -> World {
         ],
         totals: vec![(a0, 1_007), (a1, 500), (v1, 500), (reserve(0)[3], 0)],
         stable_total: 0,
+        zero_holdings: Vec::new(),
+        zero_replies: Vec::new(),
         accounts: vec![
             // collateral on reserve 0 (bit 1), borrowing reserve 1 (bit 2)
             (user(1), 0b110, UNDERWATER),
@@ -179,6 +186,23 @@ fn chain(world: &World) -> Result<SimChain, Box<dyn Error>> {
                 from,
                 None,
                 returned(&[word(total)]),
+            );
+            let zero = world
+                .zero_holdings
+                .iter()
+                .find(|(t, _)| *t == token)
+                .map_or(0, |(_, scaled)| *scaled);
+            let reply = world
+                .zero_replies
+                .iter()
+                .find(|(t, _)| *t == token)
+                .map_or_else(|| returned(&[word(zero)]), |(_, reply)| reply.clone());
+            sim.set_call(
+                token,
+                call("scaledBalanceOf(address)", &[word(0)]),
+                from,
+                None,
+                reply,
             );
         }
     }
@@ -259,6 +283,7 @@ fn plan(sim: &SimChain) -> Result<AccountPlan, Box<dyn Error>> {
     )?)
 }
 
+#[derive(Clone)]
 struct Setup {
     world_a: World,
     world_b: World,
@@ -1088,5 +1113,353 @@ fn a_result_cap_below_the_ladder_floor_fails_closed_and_commits_nothing() -> Tes
         assert!(manifests(&recovered)?[4].same_as(&manifests(&expected)?[4])?);
         replay_account_stage(&run.store, &run.index_specs, &run.plan, None, &recovered)?;
     }
+    Ok(())
+}
+
+/// Aave V3 credits the zero address when aTokens are transferred to it or
+/// supplied on its behalf. Mainnet run 36674256094 indexed 13 such logs.
+fn zero_transfer(block: u64, log_index: u32, token: Address, from: Address) -> SimLog {
+    SimLog {
+        block,
+        transaction_index: 0,
+        log_index,
+        address: token,
+        topics: vec![balance_transfer_topic(), word_a(from), [0_u8; 32]],
+        data: [word(20), word(1)].concat(),
+    }
+}
+
+#[test]
+fn a_zero_address_holding_is_conserved_and_never_an_account() -> TestResult {
+    let a1 = reserve(1)[1];
+    let a0 = reserve(0)[1];
+    let mut setup = Setup::clean();
+    for world in [&mut setup.world_a, &mut setup.world_b] {
+        // u2 sends 20 scaled aTokens of reserve 1 to the zero address.
+        world.logs.push(zero_transfer(BASE + 22, 0, a1, user(2)));
+        world.zero_holdings.push((a1, 20));
+        for total in &mut world.totals {
+            if total.0 == a1 {
+                total.1 += 20;
+            }
+        }
+        // The zero address also holds reserve 0 without any indexed log:
+        // the holding is read at the anchor, never inferred from logs.
+        world.zero_holdings.push((a0, 3));
+        for total in &mut world.totals {
+            if total.0 == a0 {
+                total.1 += 3;
+            }
+        }
+    }
+    let run = prepare(&setup, "zero-holder")?;
+    let (records, candidates) = run.full()?;
+    // The zero address is not an account and not a candidate.
+    assert_eq!(candidates.accounts.len(), 5);
+    let reconciled = run.reconcile(&records, &candidates)?;
+    let outcome = &reconciled.outcome;
+    assert!(outcome.conserved, "{:?}", outcome.mismatches.sorted());
+    assert_eq!(outcome.mismatches.unexplained(), 0);
+    assert!(outcome.findings.is_empty(), "{:?}", outcome.findings);
+    // The log is evidence (provenance, by coordinate); the holding is state.
+    assert_eq!(reconciled.index.zero_account_logs, 1);
+    let [zero_log] = reconciled.index.zero_account_log_refs.as_slice() else {
+        return Err("one zero-address log ref".into());
+    };
+    assert_eq!(zero_log.get("block"), Some(&Json::uint(BASE + 22)));
+    assert_eq!(zero_log.str_field("token")?, a1.to_hex());
+    assert_eq!(zero_log.str_field("event")?, "BALANCE_TRANSFER");
+    assert_eq!(metric(&reconciled, "zero_address_holding_tokens"), 2);
+    assert_eq!(metric(&reconciled, "indexed_accounts"), 5);
+    let row = outcome
+        .conservation
+        .iter()
+        .find(|row| row.str_field("token").ok() == Some(a1.to_hex().as_str()))
+        .ok_or("a1 conservation row")?;
+    assert_eq!(row.str_field("zero_address_scaled_balance")?, "20");
+    assert_eq!(row.str_field("status")?, "CONSERVED");
+    // The independent recount accepts the zero term.
+    let dir = temp_root("zero-closeout")?;
+    closeout(&reconciled, &dir)?;
+    let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../ci/nqc-census/recount_account_universe.py");
+    let recount = std::process::Command::new("python3")
+        .arg(script)
+        .arg(&dir)
+        .output()?;
+    let stdout = String::from_utf8_lossy(&recount.stdout);
+    assert!(
+        recount.status.success()
+            && stdout.contains("RMC009_INDEPENDENT_RECOUNT_PASS accounts=5")
+            && stdout.contains("zero_address_logs=1 zero_address_holding_tokens=2"),
+        "{stdout}{}",
+        String::from_utf8_lossy(&recount.stderr)
+    );
+    tampered_zero_terms_fail_the_recount(&dir, &a1)?;
+    std::fs::remove_dir_all(dir)?;
+
+    // A zero-address holding the supply does not include is excess, never
+    // absorbed: conservation stays exact.
+    let mut excess = setup.clone();
+    for world in [&mut excess.world_a, &mut excess.world_b] {
+        world.zero_holdings.retain(|(token, _)| *token != a0);
+        world.zero_holdings.push((a0, 4));
+    }
+    let run = prepare(&excess, "zero-excess")?;
+    let (records, candidates) = run.full()?;
+    let reconciled = run.reconcile(&records, &candidates)?;
+    assert!(!reconciled.outcome.conserved);
+    assert_eq!(metric(&reconciled, "excess_supply_tokens"), 1);
+    Ok(())
+}
+
+fn recount(dir: &std::path::Path) -> Result<std::process::Output, Box<dyn Error>> {
+    let script = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../ci/nqc-census/recount_account_universe.py");
+    Ok(std::process::Command::new("python3")
+        .arg(script)
+        .arg(dir)
+        .output()?)
+}
+
+/// Rewrites one closeout file and, when `rehash`, its evidence-manifest digest
+/// too, so the recount's own identity checks are what must refuse it.
+fn tamper(
+    dir: &std::path::Path,
+    name: &str,
+    from: &str,
+    to: &str,
+    rehash: bool,
+) -> Result<std::path::PathBuf, Box<dyn Error>> {
+    let copy = temp_root("zero-tamper")?;
+    std::fs::create_dir_all(&copy)?;
+    for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
+        std::fs::copy(entry.path(), copy.join(entry.file_name()))?;
+    }
+    let before = std::fs::read(copy.join(name))?;
+    let text = String::from_utf8(before.clone())?;
+    if !text.contains(from) {
+        return Err(format!("{name} does not contain {from}").into());
+    }
+    let after = text.replacen(from, to, 1).into_bytes();
+    std::fs::write(copy.join(name), &after)?;
+    if rehash {
+        let manifest = std::fs::read_to_string(copy.join("evidence-manifest.json"))?;
+        let (old, new) = (
+            nqc_census_state::stage::sha256_plain(&before),
+            nqc_census_state::stage::sha256_plain(&after),
+        );
+        std::fs::write(
+            copy.join("evidence-manifest.json"),
+            manifest.replace(&old, &new),
+        )?;
+    }
+    Ok(copy)
+}
+
+fn tampered_zero_terms_fail_the_recount(
+    dir: &std::path::Path,
+    a1: &Address,
+) -> Result<(), Box<dyn Error>> {
+    let zero_term = r#""zero_address_scaled_balance":"20""#;
+    for (name, from, to, rehash, needle) in [
+        // Any byte change is caught by the evidence manifest.
+        (
+            "token-conservation.jsonl",
+            zero_term,
+            r#""zero_address_scaled_balance":"19""#,
+            false,
+            "token-conservation.jsonl",
+        ),
+        // With a consistent manifest, the identity itself refuses it.
+        (
+            "token-conservation.jsonl",
+            zero_term,
+            r#""zero_address_scaled_balance":"19""#,
+            true,
+            "zero_address_scaled_balance",
+        ),
+        // A dropped zero term reads as missing.
+        (
+            "token-conservation.jsonl",
+            zero_term,
+            r#""zero_address_scaled_balance":null"#,
+            true,
+            "int()",
+        ),
+        // A zero-address log ref that names no census token.
+        (
+            "acquisition-provenance.json",
+            &format!(r#""token":"{}""#, a1.to_hex()),
+            r#""token":"0x00000000000000000000000000000000000000aa""#,
+            true,
+            "non-census token",
+        ),
+    ] {
+        let copy = tamper(dir, name, from, to, rehash)?;
+        let output = recount(&copy)?;
+        let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+        std::fs::remove_dir_all(&copy)?;
+        if output.status.success() || !stderr.contains(needle) {
+            return Err(
+                format!("tampered {name} ({to}) not refused for {needle}: {stderr}").into(),
+            );
+        }
+    }
+    Ok(())
+}
+
+/// The zero-address conservation term is a read fact: unread, disputed,
+/// malformed, missing or duplicated evidence of it fails closed.
+#[test]
+fn a_zero_address_term_that_is_unaccounted_disputed_malformed_missing_or_duplicated_fails_closed(
+) -> TestResult {
+    let a1 = reserve(1)[1];
+    let holding = |setup: &mut Setup| {
+        for world in [&mut setup.world_a, &mut setup.world_b] {
+            world.logs.push(zero_transfer(BASE + 22, 0, a1, user(2)));
+            world.zero_holdings.push((a1, 20));
+            for total in &mut world.totals {
+                if total.0 == a1 {
+                    total.1 += 20;
+                }
+            }
+        }
+    };
+
+    // Unaccounted: the supply includes a zero-address holding that reads 0.
+    let mut setup = Setup::clean();
+    holding(&mut setup);
+    for world in [&mut setup.world_a, &mut setup.world_b] {
+        world.zero_holdings.clear();
+    }
+    let run = prepare(&setup, "zero-unaccounted")?;
+    let (records, candidates) = run.full()?;
+    let reconciled = run.reconcile(&records, &candidates)?;
+    assert!(!reconciled.outcome.conserved);
+    assert_eq!(metric(&reconciled, "missing_holder_tokens"), 1);
+    assert!(reconciled.outcome.mismatches.sorted().iter().any(|m| {
+        m.dimension == "SCALED_SUPPLY_CONSERVATION_MISSING_HOLDERS"
+            && m.expected == "520"
+            && m.observed == "500"
+    }));
+    let dir = temp_root("zero-unaccounted-closeout")?;
+    assert!(closeout(&reconciled, &dir).is_err());
+    std::fs::remove_dir_all(dir)?;
+
+    // Disputed: the two providers read different zero-address balances.
+    let mut setup = Setup::clean();
+    holding(&mut setup);
+    setup.world_b.zero_holdings = vec![(a1, 21)];
+    let run = prepare(&setup, "zero-disputed")?;
+    let (records, candidates) = run.full()?;
+    let error = run
+        .reconcile(&records, &candidates)
+        .err()
+        .ok_or("disputed zero term accepted")?;
+    assert!(error.to_string().contains("disagree"), "{error}");
+
+    // Malformed or reverted: not a uint256, never read as zero.
+    for (tag, reply) in [
+        ("zero-short", CallOutcome::Returned(vec![0_u8; 31])),
+        ("zero-reverted", CallOutcome::Reverted(Vec::new())),
+    ] {
+        let mut setup = Setup::clean();
+        holding(&mut setup);
+        for world in [&mut setup.world_a, &mut setup.world_b] {
+            world.zero_replies.push((a1, reply.clone()));
+        }
+        let run = prepare(&setup, tag)?;
+        let (records, candidates) = run.full()?;
+        let reconciled = run.reconcile(&records, &candidates)?;
+        assert!(!reconciled.outcome.conserved, "{tag}");
+        assert!(reconciled.outcome.conservation.iter().any(|row| {
+            row.str_field("status").ok() == Some("ZERO_ADDRESS_BALANCE_UNREADABLE")
+        }));
+        assert!(reconciled
+            .outcome
+            .mismatches
+            .sorted()
+            .iter()
+            .any(|m| m.dimension == "ZERO_ADDRESS_SCALED_BALANCE"));
+        let dir = temp_root("zero-malformed-closeout")?;
+        assert!(closeout(&reconciled, &dir).is_err(), "{tag}");
+        std::fs::remove_dir_all(dir)?;
+    }
+
+    // Missing: a token record without the zero term is refused, not zeroed.
+    let mut setup = Setup::clean();
+    holding(&mut setup);
+    let run = prepare(&setup, "zero-missing")?;
+    let (records, candidates) = run.full()?;
+    let (mut index, mut tokens, mut state) = (Vec::new(), Vec::new(), Vec::new());
+    for record in &records {
+        match record.str_field("stage")? {
+            "ACCOUNT_INDEX" => index.push(replay_account_stage(
+                &run.store,
+                &run.index_specs,
+                &run.plan,
+                None,
+                record,
+            )?),
+            "ACCOUNT_STATE" => state.push(replay_account_stage(
+                &run.store,
+                &run.state_specs,
+                &run.plan,
+                Some(&candidates),
+                record,
+            )?),
+            _ => tokens.push(replay_account_stage(
+                &run.store,
+                &run.state_specs,
+                &run.plan,
+                None,
+                record,
+            )?),
+        }
+    }
+    let (_, facts) = derive_candidates(&index, &run.plan)?;
+    for stage in &mut tokens {
+        for row in &mut stage.rows {
+            let members = row.as_object().ok_or("token row")?;
+            *row = Json::Object(
+                members
+                    .iter()
+                    .filter(|(name, _)| name != "a_token_zero_address_scaled_balance")
+                    .cloned()
+                    .collect(),
+            );
+        }
+    }
+    let error = verify_accounts(VerifyInputs {
+        plan: &run.plan,
+        candidates: &candidates,
+        index: &facts,
+        tokens,
+        state,
+    })
+    .err()
+    .ok_or("missing zero term accepted")?;
+    assert!(
+        error
+            .to_string()
+            .contains("a_token_zero_address_scaled_balance missing"),
+        "{error}"
+    );
+
+    // Duplicated: one provider returning the same zero-address log twice.
+    let mut setup = Setup::clean();
+    holding(&mut setup);
+    setup
+        .world_a
+        .logs
+        .push(zero_transfer(BASE + 22, 0, a1, user(2)));
+    let run = prepare(&setup, "zero-duplicate")?;
+    let error = run.index().err().ok_or("duplicate zero log accepted")?;
+    assert!(
+        error.to_string().contains("duplicate log coordinates"),
+        "{error}"
+    );
     Ok(())
 }

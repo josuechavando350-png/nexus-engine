@@ -57,14 +57,50 @@ balance:
 This is design rationale from the upstream source, not certified authority.
 
 RMC-009 therefore proves completeness per token at the anchor. For every
-aToken and variable debt token:
+aToken and variable debt token, in exact 256-bit integers:
 
-    Σ scaledBalanceOf(a) over indexed accounts a  ==  scaledTotalSupply()
+    Σ scaledBalanceOf(a) over indexed accounts a
+      + scaledBalanceOf(0x0)                        ==  scaledTotalSupply()
 
 Balances are unsigned. If the equality holds, no account outside the index
 holds a balance. If a holder is missed, a deficit remains and the census
-blocks (`MISSING_HOLDERS`). A sum above supply is `EXCESS_OVER_SUPPLY`.
+blocks (`MISSING_HOLDERS`). A sum above supply is `EXCESS_OVER_SUPPLY`. An
+unreadable zero-address term (`ZERO_ADDRESS_BALANCE_UNREADABLE`, with a
+`ZERO_ADDRESS_SCALED_BALANCE` mismatch) blocks, and is never read as zero.
 Nothing is inferred from the absence of a log.
+
+**The zero address is a conservation term, never an account.** Aave V3's
+aToken `_transfer` and the Pool's `supply(onBehalfOf)` do not refuse the zero
+address, so it can be credited a scaled balance that no key can move.
+- Evidence of the contradiction: RMC-009 live run 36674256094 (head
+  `38d5f77d`) indexed 3,791,094 logs on two agreeing providers. 13 of them
+  name the zero address as account, and its candidates gate blocked on
+  `zero_account_logs == 0`. That gate assumed the zero address never holds
+  a balance; mainnet contradicts it.
+- Probe run 36678968936 (read-only, both providers agreeing, anchor
+  25,437,474) established the semantics:
+  - the 13 logs are 5 Pool `supply`/`deposit` Mints with `onBehalfOf = 0x0`
+    and 8 aToken `transfer(0x0, …)` BalanceTransfers, all on aTokens,
+    across 7 aTokens;
+  - exactly those 7 aTokens hold a nonzero `scaledBalanceOf(0x0)` at the
+    anchor (for example `0x4c61…dd4c` holds 46,009,962,639,660,383,542
+    scaled);
+  - the other 127 tokens, all 67 variable debt tokens among them, hold 0.
+- The design was corrected, not the evidence:
+  - `ACCOUNT_TOKENS` reads `scaledBalanceOf(0x0)` for every aToken and
+    variable debt token, whether or not a log names it;
+  - the core `Address` type (non-zero by construction) keeps the zero
+    address out of the account universe and the candidates;
+  - every index log naming it is kept by coordinate (block, log index,
+    transaction, token, event, topic 1) in the index job output, and in
+    `acquisition-provenance.json`;
+  - `token-conservation.jsonl` carries `zero_address_scaled_balance` per
+    token;
+  - `zero_address_holding_tokens` is a census metric, because it is anchor
+    state. The zero-address log count and coordinates are history, so they
+    are provenance: a full census holds all of them, an incremental refresh
+    its delta's;
+  - the independent recount re-derives the identity.
 
 Stable debt: every stable debt token's `totalSupply()` must be `0` at the
 anchor (probe run 36590720390 measured 67/67). Otherwise
@@ -87,7 +123,8 @@ in RMC-004, and emits a record that the reconciler replays byte for byte.
     on a global grid of 200,000-block jobs, partitioned by job index.
   - Every log's shape is checked: emitter, three topics, a canonical address
     word, data length, not removed. An undeclared shape fails closed.
-  - Each job emits its candidate pairs and a digest of every log.
+  - Each job emits its candidate pairs, a digest of every log, and the
+    coordinates of every log naming the zero address (job version 2).
   - Logs are not bound to headers, because nothing is concluded from them:
     completeness comes from section 2.
   - Tenderly uses 5,000-block log windows. MEV Blocker uses 2,500-block
@@ -140,6 +177,7 @@ in RMC-004, and emits a record that the reconciler replays byte for byte.
   every state stage by digest.
 - **`ACCOUNT_TOKENS`.** For each reserve initialization:
   - aToken and debt-token `scaledTotalSupply()`;
+  - aToken and debt-token `scaledBalanceOf(0x0)` (section 2);
   - stable `totalSupply()`;
   - for current reserves, `getReserveData`, whose tokens must be the D06
     ones.
@@ -182,6 +220,7 @@ Metrics (`account-metrics.json`):
 | `mismatched_accounts` | accounts with any unexplained mismatch (must be 0) |
 | `actionable_accounts` | accounts carrying variable debt, with exact, conserved state |
 | `health_factor_below_one` | of those, the protocol's own `getUserAccountData` health factor < 1e18 |
+| `zero_address_holding_tokens` | tokens whose `scaledBalanceOf(0x0)` is nonzero at the anchor (a conservation term, never an account) |
 
 `actionable` means "in scope for a later liquidation-truth layer". It is not
 a claim that a liquidation is possible or profitable.
@@ -256,14 +295,17 @@ incremental refresh sets it to the block after its certified base anchor.
 
 `generated_at` is the anchor block timestamp. An independent Python pass,
 `recount_account_universe.py`:
-- re-sums every scaled balance per token against the supply;
-- recounts the classifications;
-- re-hashes every artifact.
+- re-hashes every artifact first, and uses no content whose digest differs;
+- re-sums every scaled balance per token and requires it, plus the zero
+  address's scaled balance, to equal the supply;
+- requires that no account is the zero address, and that every zero-address
+  log in provenance is unique and names a census token;
+- recounts the classifications.
 
 PASS requires:
-- every token conserved;
+- every token conserved, zero-address term included;
 - zero unexplained mismatches;
-- no blocking finding, including no index log to the zero address;
+- no blocking finding;
 - two-provider agreement everywhere.
 
 ## 7. Non-claims

@@ -240,7 +240,7 @@ pub fn write_closeout(
         (
             "completeness_basis",
             Json::string(
-                "PER_TOKEN_SCALED_SUPPLY_CONSERVATION: sum of indexed scaledBalanceOf equals scaledTotalSupply at the anchor for every aToken and variable debt token",
+                "PER_TOKEN_SCALED_SUPPLY_CONSERVATION: sum of indexed scaledBalanceOf plus scaledBalanceOf(0x0) equals scaledTotalSupply at the anchor for every aToken and variable debt token; the zero address is a conservation term, never an account",
             ),
         ),
         (

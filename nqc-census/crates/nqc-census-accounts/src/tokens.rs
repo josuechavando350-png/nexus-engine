@@ -4,6 +4,13 @@
 //! `scaledTotalSupply()` (the right-hand side of the conservation identity)
 //! and the stable debt token's `totalSupply()`; for current reserves also
 //! `getReserveData(asset)`, whose token addresses must be the D06 ones.
+//!
+//! Aave V3 does not refuse the zero address as an aToken recipient: a
+//! transfer to it, or a supply on its behalf, credits it a scaled balance
+//! that no key can ever move. The zero address is not a typed account, so it
+//! never enters the account universe; its `scaledBalanceOf(0x0)` is read here
+//! for every aToken and variable debt token, whether or not any log names it,
+//! and is a term of the conservation identity.
 
 use crate::plan::AccountPlan;
 use crate::stage::record;
@@ -20,6 +27,8 @@ use nqc_census_state::v2_stage::uint_field;
 
 const TOKENS_NAMESPACE: u16 = 0x0902;
 const TOKENS_FAMILY: &str = "rmc009-aave-token-supply";
+/// Version 2 adds each token's zero-address scaled balance.
+const TOKENS_VERSION: u16 = 2;
 
 pub fn account_tokens_stage(
     acquisition: &Acquisition<'_>,
@@ -29,7 +38,7 @@ pub fn account_tokens_stage(
     let (chain, anchor, mut manifests) = stage_anchor(acquisition, provider, &plan.anchor)?;
     let spec = JobSpec::new(
         TOKENS_FAMILY,
-        1,
+        TOKENS_VERSION,
         TOKENS_NAMESPACE,
         Json::object([
             ("pool", Json::string(plan.pool.to_hex())),
@@ -40,6 +49,8 @@ pub fn account_tokens_stage(
     let scaled_total = abi::selector("scaledTotalSupply()");
     let total = abi::selector("totalSupply()");
     let reserve_data = abi::selector("getReserveData(address)");
+    let scaled_balance = abi::selector("scaledBalanceOf(address)");
+    let zero_address = abi::address_word(&[0_u8; 20]);
     let output = acquisition.point(provider, &chain, None, &spec, &anchor, |ctx| {
         let semantics = chain_read_semantics()?;
         let mut requests = Vec::new();
@@ -54,6 +65,14 @@ pub fn account_tokens_stage(
             requests.push((
                 reserve.variable_debt_token,
                 abi::encode_call(scaled_total, &[]),
+            ));
+            requests.push((
+                reserve.a_token,
+                abi::encode_call(scaled_balance, &[zero_address]),
+            ));
+            requests.push((
+                reserve.variable_debt_token,
+                abi::encode_call(scaled_balance, &[zero_address]),
             ));
             if let Some(stable) = reserve.stable_debt_token {
                 requests.push((stable, abi::encode_call(total, &[])));
@@ -74,6 +93,8 @@ pub fn account_tokens_stage(
             };
             let a_total = uint_field(next()?);
             let v_total = uint_field(next()?);
+            let a_zero = uint_field(next()?);
+            let v_zero = uint_field(next()?);
             let stable_total = match reserve.stable_debt_token {
                 Some(_) => uint_field(next()?),
                 None => Json::Null,
@@ -101,6 +122,8 @@ pub fn account_tokens_stage(
                 ("reserve_data", data),
                 ("a_token_scaled_total_supply", a_total),
                 ("variable_debt_scaled_total_supply", v_total),
+                ("a_token_zero_address_scaled_balance", a_zero),
+                ("variable_debt_zero_address_scaled_balance", v_zero),
                 ("stable_debt_total_supply", stable_total),
             ]));
         }

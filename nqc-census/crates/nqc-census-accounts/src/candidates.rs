@@ -118,6 +118,8 @@ pub struct IndexFacts {
     pub mint_logs: u64,
     pub balance_transfer_logs: u64,
     pub zero_account_logs: u64,
+    /// Coordinates of every index log naming the zero address, in log order.
+    pub zero_account_log_refs: Vec<Json>,
 }
 
 impl IndexFacts {
@@ -135,6 +137,10 @@ impl IndexFacts {
                 Json::uint(self.balance_transfer_logs),
             ),
             ("zero_account_logs", Json::uint(self.zero_account_logs)),
+            (
+                "zero_account_log_refs",
+                Json::Array(self.zero_account_log_refs.clone()),
+            ),
         ])
     }
 }
@@ -240,7 +246,18 @@ pub fn derive_candidates(
         facts.logs += number(row, "log_count")?;
         facts.mint_logs += number(row, "mint_logs")?;
         facts.balance_transfer_logs += number(row, "balance_transfer_logs")?;
-        facts.zero_account_logs += number(row, "zero_account_logs")?;
+        let zero = number(row, "zero_account_logs")?;
+        let refs = row
+            .get("zero_account_log_refs")
+            .and_then(Json::as_array)
+            .ok_or_else(|| ChainError::Evidence("index job without zero-address refs".into()))?;
+        if refs.len() as u64 != zero {
+            return Err(ChainError::Evidence(
+                "index job zero-address count and refs disagree".into(),
+            ));
+        }
+        facts.zero_account_logs += zero;
+        facts.zero_account_log_refs.extend(refs.iter().cloned());
         for pair in row
             .get("pairs")
             .and_then(Json::as_array)

@@ -534,7 +534,11 @@ jobs:
             --extracts "$D09_EVIDENCE/index-extracts" \
             --out "$D09_EVIDENCE/candidate-accounts.jsonl" | tee "$D09_EVIDENCE/candidates.log"
           grep -F "RMC009_CANDIDATES_PASS" "$D09_EVIDENCE/candidates.log"
-          grep -F " zero_account_logs=0 " "$D09_EVIDENCE/candidates.log"
+          # Index logs naming the zero address are recorded, never a candidate:
+          # the zero address is not an account. Its scaled balance of every
+          # token is read at the anchor (ACCOUNT_TOKENS) and is a term of the
+          # exact conservation identity the reconcile enforces.
+          sed -nE 's/^RMC009_CANDIDATES_PASS .* (zero_account_logs=[0-9]+) .*/RMC009_ZERO_ADDRESS_INDEX_LOGS \1/p' "$D09_EVIDENCE/candidates.log"
 
       - name: Preserve candidates
         if: always()
