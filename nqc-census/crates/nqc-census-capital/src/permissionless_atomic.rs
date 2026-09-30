@@ -52,8 +52,8 @@ fn require_independent_evidence(
         ));
     }
     Ok(vec![
-        CapitalEvidenceRef::Artifact(first.clone()),
-        CapitalEvidenceRef::Artifact(second.clone()),
+        CapitalEvidenceRef::Artifact(*first),
+        CapitalEvidenceRef::Artifact(*second),
     ])
 }
 
@@ -188,7 +188,10 @@ mod tests {
             .unwrap_or_else(|_| unreachable!());
         assert_eq!(source.maximum_available(), Amount256::from_u128(1_000_000));
         assert!(!source.execution_eligible());
-        assert_eq!(source.execution_blockers(), ["BALANCER_VAULT_PAUSED"]);
+        assert_eq!(
+            source.execution_blockers(),
+            &["BALANCER_VAULT_PAUSED".to_owned()]
+        );
     }
 
     #[test]
