@@ -60,6 +60,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let d08 = PathBuf::from(required(&flags, "--d08")?);
     let d09 = PathBuf::from(required(&flags, "--d09")?);
     let authority_lock_path = PathBuf::from(required(&flags, "--authority-lock")?);
+    let code_commit = git_object(required(&flags, "--code-commit")?, "code commit")?;
+    let code_tree = git_object(required(&flags, "--code-tree")?, "code tree")?;
     let out = PathBuf::from(required(&flags, "--out")?);
     fs::create_dir_all(&out)?;
 
@@ -344,6 +346,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let summary = json!({
         "schema": SCHEMA,
         "status": "RMC_012_ACTIONABILITY_PASS",
+        "code_commit": code_commit,
+        "code_tree": code_tree,
         "pft_certified_commit": PFT_CERTIFIED_COMMIT,
         "pft_certified_tree": PFT_CERTIFIED_TREE,
         "anchor": {
@@ -376,6 +380,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let manifest = json!({
         "schema": "nqc-rmc-012-terminal-actionability-evidence-v1",
+        "code_commit": code_commit,
+        "code_tree": code_tree,
         "upstream_authority_lock_commitment": authority_lock.commitment().to_hex(),
         "upstream_authority_lock_sha256": authority_lock_sha256,
         "d08_authority_artifact_sha256": d08_authority.artifact_sha256.to_hex(),
@@ -427,6 +433,13 @@ fn required<'a>(
         .get(name)
         .map(String::as_str)
         .ok_or_else(|| format!("{name} is required").into())
+}
+
+fn git_object<'a>(value: &'a str, name: &str) -> Result<&'a str, Box<dyn Error>> {
+    if value.len() != 40 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return Err(format!("{name} is not a 40-hex Git object id").into());
+    }
+    Ok(value)
 }
 
 fn read_json(path: impl AsRef<Path>) -> Result<Value, Box<dyn Error>> {
