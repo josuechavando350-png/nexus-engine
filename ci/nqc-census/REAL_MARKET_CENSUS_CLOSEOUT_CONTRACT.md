@@ -249,8 +249,11 @@ checks.
 
 ## Terminal certificate materialization
 
-The source authority lock is schema version 2 and never self-certifies closure.
+The source authority lock is schema version 3 and never self-certifies closure.
 When `status=PINNED`, it MUST additionally bind:
+- the canonical GitHub workflow name for every RMC-006..RMC-013 stage;
+- the exact artifact name for every stage, with the stage-specific prefix and exact code commit embedded in the name;
+- non-zero workflow run and artifact IDs for every stage;
 
 - a non-empty evidence array for every RMC-006..RMC-013 stage proof;
 - the complete market and opportunity pipeline counts;
@@ -258,7 +261,10 @@ When `status=PINNED`, it MUST additionally bind:
 - non-empty terminal evidence commitments.
 
 The terminal workflow authenticates the exact GitHub run/artifact identities
-before materialization. It then executes the Rust closeout verifier twice from
+before materialization. It also verifies that every run came from the canonical
+workflow for that stage, that every artifact uses the canonical stage prefix,
+and that the exact code commit is embedded in the artifact name. An unrelated
+successful workflow artifact from the same commit is not terminal authority. It then executes the Rust closeout verifier twice from
 the same pinned lock and requires byte-identical output. The verifier calls the
 same `CloseoutCertificate::certify` invariants tested by the crate; a Python or
 shell summary cannot manufacture the terminal marker independently.
