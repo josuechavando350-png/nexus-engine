@@ -435,6 +435,11 @@ impl PortfolioCandidate {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ConflictResource {
+    /// Multiple execution variants of one certified capital requirement are
+    /// alternatives, never additive capacity. This implicit unit-capacity
+    /// resource makes that exclusivity fail-closed even when a caller forgets
+    /// to declare an explicit Opportunity shared resource.
+    Requirement(CapitalRequirementId),
     CapitalSource(CapitalSourceKeyId),
     Shared(SharedResourceKeyId),
 }
@@ -590,6 +595,7 @@ pub fn evaluate_portfolio(
     }
 
     let mut seen_candidates = BTreeSet::new();
+    let mut requirement_claims = BTreeMap::<CapitalRequirementId, Aggregate>::new();
     let mut source_claims = BTreeMap::<CapitalSourceKeyId, Aggregate>::new();
     let mut shared_claims = BTreeMap::<SharedResourceKeyId, Aggregate>::new();
     let mut capital_rejected = Vec::new();
@@ -610,6 +616,11 @@ pub fn evaluate_portfolio(
             .get(&candidate.requirement_id())
             .copied()
             .ok_or(PortfolioError::MissingFeasibility)?;
+
+        requirement_claims
+            .entry(candidate.requirement_id())
+            .or_default()
+            .add(candidate.id(), Amount256::from_u128(1))?;
 
         match result {
             CapitalFeasibility::Rejected { reason, .. } => {
@@ -675,6 +686,7 @@ pub fn evaluate_portfolio(
     }
 
     let components = contention_components(
+        &requirement_claims,
         &source_claims,
         &shared_claims,
         &capital_rejected,
@@ -682,6 +694,17 @@ pub fn evaluate_portfolio(
     );
 
     let mut conflicts = Vec::new();
+    for (requirement_id, aggregate) in &requirement_claims {
+        let capacity = Amount256::from_u128(1);
+        if aggregate.claimed > capacity {
+            conflicts.push(PortfolioConflict {
+                resource: ConflictResource::Requirement(*requirement_id),
+                capacity,
+                claimed: aggregate.claimed,
+                claimants: aggregate.claimants.iter().copied().collect(),
+            });
+        }
+    }
     for (key, aggregate) in &source_claims {
         let source = source_by_key
             .get(key)
@@ -737,6 +760,7 @@ pub fn evaluate_portfolio(
 }
 
 fn contention_components(
+    requirement_claims: &BTreeMap<CapitalRequirementId, Aggregate>,
     source_claims: &BTreeMap<CapitalSourceKeyId, Aggregate>,
     shared_claims: &BTreeMap<SharedResourceKeyId, Aggregate>,
     rejected: &[CapitalBlockedCandidate],
@@ -766,6 +790,9 @@ fn contention_components(
     let mut parent = (0..ids.len()).collect::<Vec<_>>();
     let mut rank = vec![0_u8; ids.len()];
 
+    for aggregate in requirement_claims.values() {
+        union_claimants(&index, &aggregate.claimants, &mut parent, &mut rank);
+    }
     for aggregate in source_claims.values() {
         union_claimants(&index, &aggregate.claimants, &mut parent, &mut rank);
     }
@@ -786,6 +813,18 @@ fn contention_components(
             .push(id);
     }
 
+    for (requirement_id, aggregate) in requirement_claims {
+        if let Some(first) = aggregate.claimants.iter().next() {
+            if let Some(position) = index.get(first).copied() {
+                let root = find_root(&mut parent, position);
+                if let Some(component) = grouped.get_mut(&root) {
+                    component
+                        .resources
+                        .push(ConflictResource::Requirement(*requirement_id));
+                }
+            }
+        }
+    }
     for (key, aggregate) in source_claims {
         if let Some(first) = aggregate.claimants.iter().next() {
             if let Some(position) = index.get(first).copied() {
@@ -952,7 +991,7 @@ fn report_commitment(
     }
 
     let mut ordered_candidates = candidates.iter().collect::<Vec<_>>();
-    ordered_candidates.sort_by_key(|candidate| candidate.requirement_id());
+    ordered_candidates.sort_by_key(|candidate| candidate.id());
     hasher.update(
         u64::try_from(ordered_candidates.len())
             .unwrap_or(u64::MAX)
@@ -1039,12 +1078,16 @@ fn report_commitment(
     }
     for conflict in conflicts {
         match conflict.resource {
-            ConflictResource::CapitalSource(id) => {
+            ConflictResource::Requirement(id) => {
                 hasher.update([1]);
                 hasher.update(id.as_bytes());
             }
-            ConflictResource::Shared(id) => {
+            ConflictResource::CapitalSource(id) => {
                 hasher.update([2]);
+                hasher.update(id.as_bytes());
+            }
+            ConflictResource::Shared(id) => {
+                hasher.update([3]);
                 hasher.update(id.as_bytes());
             }
         }
