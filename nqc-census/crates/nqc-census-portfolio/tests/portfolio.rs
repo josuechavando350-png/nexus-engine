@@ -443,7 +443,6 @@ fn commitment_binds_observed_capacity_even_without_conflicts() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn contention_graph_decomposes_into_independent_components() -> TestResult {
     let anchor = anchor_on(chain(1, 1), 100, 10);
@@ -489,7 +488,6 @@ fn contention_graph_decomposes_into_independent_components() -> TestResult {
         .any(|component| component.candidates == vec![candidate_c_id]));
     Ok(())
 }
-
 
 #[test]
 fn route_variants_share_requirement_but_keep_distinct_candidate_identity() -> TestResult {
