@@ -562,8 +562,8 @@ fn route_variants_are_implicitly_exclusive_even_without_opportunity_claim() -> T
 
     let report = evaluate_portfolio(
         &[route_a.clone(), route_b.clone()],
-        &[req.clone()],
-        &[feasibility.clone()],
+        std::slice::from_ref(&req),
+        std::slice::from_ref(&feasibility),
         std::slice::from_ref(&funding),
         &[],
     )?;
