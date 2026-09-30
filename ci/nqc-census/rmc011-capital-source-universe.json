@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "stage": "RMC-011",
+  "contract": "NQC_RMC011_CAPITAL_SOURCE_UNIVERSE_V1",
+  "status": "BLOCKED_INCOMPLETE_SOURCE_UNIVERSE",
+  "terminal_claim_allowed": false,
+  "unknown_family_count": 0,
+  "observation_scope": "ETHEREUM_ANCHOR_BOUND_WHERE_APPLICABLE",
+  "families": [
+    {
+      "id": "AAVE_V3_FLASH_LOAN",
+      "capital_class": "PROTOCOL_NATIVE_FLASH_LOAN",
+      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
+      "real_source_path": "RMC008_AAVE_V3",
+      "terminally_resolved": true
+    },
+    {
+      "id": "UNISWAP_V2_FLASH_SWAP",
+      "capital_class": "FLASH_SWAP",
+      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
+      "real_source_path": "RMC008_UNISWAP_V2",
+      "terminally_resolved": true
+    },
+    {
+      "id": "BALANCER_V2_FLASH_LOAN",
+      "capital_class": "ATOMIC_FLASH_LIQUIDITY",
+      "status": "MODEL_ONLY",
+      "real_source_path": null,
+      "terminally_resolved": false
+    },
+    {
+      "id": "UNISWAP_V3_FLASH",
+      "capital_class": "ATOMIC_FLASH_LIQUIDITY",
+      "status": "MODEL_ONLY",
+      "real_source_path": null,
+      "terminally_resolved": false
+    },
+    {
+      "id": "EXTERNAL_GAS_CREDIT",
+      "capital_class": "GAS_FUNDING",
+      "status": "SEMANTIC_ADMISSION_READY_NOT_AUTHENTICATED",
+      "real_source_path": "gas_credit.rs",
+      "terminally_resolved": false
+    },
+    {
+      "id": "EXTERNAL_GAS_SPONSOR",
+      "capital_class": "GAS_FUNDING",
+      "status": "MODEL_ONLY",
+      "real_source_path": null,
+      "terminally_resolved": false
+    },
+    {
+      "id": "TRANSIENT_EXTERNAL_CREDIT",
+      "capital_class": "TRANSIENT_CREDIT",
+      "status": "MODEL_ONLY",
+      "real_source_path": null,
+      "terminally_resolved": false
+    },
+    {
+      "id": "COLLATERALIZED_BORROWING",
+      "capital_class": "COLLATERALIZED_BORROWING",
+      "status": "MODEL_ONLY",
+      "real_source_path": null,
+      "terminally_resolved": false
+    },
+    {
+      "id": "PERSISTENT_DEBT",
+      "capital_class": "PERSISTENT_DEBT",
+      "status": "MODEL_ONLY",
+      "real_source_path": null,
+      "terminally_resolved": false
+    },
+    {
+      "id": "INVENTORY_REQUIREMENT",
+      "capital_class": "INVENTORY_REQUIREMENT",
+      "status": "MODEL_ONLY",
+      "real_source_path": null,
+      "terminally_resolved": false
+    },
+    {
+      "id": "BOND_OR_STAKE",
+      "capital_class": "BOND_OR_STAKE",
+      "status": "MODEL_ONLY",
+      "real_source_path": null,
+      "terminally_resolved": false
+    },
+    {
+      "id": "SOLVER_OR_BUILDER_DEPOSIT",
+      "capital_class": "SOLVER_OR_BUILDER_DEPOSIT",
+      "status": "MODEL_ONLY",
+      "real_source_path": null,
+      "terminally_resolved": false
+    },
+    {
+      "id": "INTRA_BLOCK_TEMPORARY_LOCK",
+      "capital_class": "INTRA_BLOCK_TEMPORARY_LOCK",
+      "status": "MODEL_ONLY",
+      "real_source_path": null,
+      "terminally_resolved": false
+    }
+  ],
+  "terminal_invariants": [
+    "UNKNOWN_FAMILY_COUNT_EQ_0",
+    "EVERY_REQUIRED_FAMILY_TERMINALLY_RESOLVED",
+    "GLOBAL_CAPITAL_SOURCE_COMPLETENESS_CLAIMED_ONLY_IF_ALL_REQUIRED_FAMILIES_RESOLVED",
+    "REAL_SOURCE_PACKAGE_PASS_IS_NOT_D11_TERMINAL_CLOSED",
+    "ZERO_OWN_CAPITAL_IS_NEVER_INFERRED_FROM_ABSENCE_OF_OPERATOR_ALLOCATIONS",
+    "EXTERNAL_GAS_REQUIRES_AUTHENTICATED_REAL_SOURCE_EVIDENCE"
+  ]
+}
