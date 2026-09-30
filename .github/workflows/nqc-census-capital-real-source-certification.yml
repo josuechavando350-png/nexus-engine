@@ -8,6 +8,9 @@ on:
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
       - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
@@ -27,6 +30,9 @@ on:
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
       - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
@@ -75,6 +81,8 @@ jobs:
           test -f ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
           python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
           jq -e '
             .claim_scope == "SOURCE_UNIVERSE_READINESS_ONLY" and
             .d11_terminal_closed == false and
@@ -153,6 +161,8 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-capital-source-universe.py ci/nqc-census/test_verify_rmc011_capital_source_universe.py
           python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
 
       - name: Require authoritative upstream inputs
         shell: bash
