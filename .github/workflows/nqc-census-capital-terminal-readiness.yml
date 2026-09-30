@@ -4,7 +4,7 @@ on:
   pull_request:
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
-      - "ci/nqc-census/validate-rmc011-terminal-readiness.py"
+      - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - ".github/workflows/nqc-census-capital-terminal-readiness.yml"
   push:
@@ -12,7 +12,7 @@ on:
       - "nqc/rmc-011-derived-authority-lock-20260930"
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
-      - "ci/nqc-census/validate-rmc011-terminal-readiness.py"
+      - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - ".github/workflows/nqc-census-capital-terminal-readiness.yml"
 
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Validate D11 source-universe truth
-        run: python3 ci/nqc-census/validate-rmc011-terminal-readiness.py
+        run: python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
       - name: Enforce terminal claim boundary
         shell: bash
         run: |
