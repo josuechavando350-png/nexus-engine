@@ -68,8 +68,24 @@ def promotion():
     return {
         "actionable_candidate_id": ACTION,
         "portfolio_candidate_id": PORTFOLIO,
+        "aave_pool": "0x" + "77" * 20,
         "capital_status": "FEASIBLE",
         "allocations": [{"source_id": "0x" + "66" * 32, "amount": "0x" + "00" * 31 + "01"}],
+    }
+
+
+def d12_summary(feasible_count=1):
+    return {
+        "status": "RMC_012_ACTIONABILITY_PASS",
+        "principal_capital_feasible": feasible_count,
+        "anchor": {
+            "chain_id": 1,
+            "block_number": 25_437_474,
+            "block_hash": "0x" + "88" * 32,
+            "parent_hash": "0x" + "99" * 32,
+            "timestamp": 1_800_000_000,
+            "state_root": "0x" + "ab" * 32,
+        },
     }
 
 
@@ -86,11 +102,25 @@ class RoutePlannerTests(unittest.TestCase):
         state = root / "state.jsonl"
         actions = root / "actions.jsonl"
         promo = root / "promotions.jsonl"
+        summary_path = root / "actionability-summary.json"
         out = root / "out"
+        promotion_rows = promotions if promotions is not None else [promotion()]
         write_jsonl(state, pairs)
         write_jsonl(actions, action_rows if action_rows is not None else [action()])
-        write_jsonl(promo, promotions if promotions is not None else [promotion()])
-        summary = routes.plan(state, actions, promo, out, max_hops, keep_routes)
+        write_jsonl(promo, promotion_rows)
+        summary_path.write_text(
+            json.dumps(d12_summary(len([row for row in promotion_rows if row.get("capital_status") == "FEASIBLE"]))),
+            encoding="utf-8",
+        )
+        summary = routes.plan(
+            state,
+            actions,
+            summary_path,
+            promo,
+            out,
+            max_hops,
+            keep_routes,
+        )
         planned = routes.rows(out / "v2-route-plans.jsonl")
         rejected = routes.rows(out / "v2-route-rejections.jsonl")
         return summary, planned, rejected
@@ -158,6 +188,20 @@ class RoutePlannerTests(unittest.TestCase):
         self.assertEqual(summary["v2_pair_count"], 0)
         self.assertEqual(planned, [])
         self.assertEqual(len(rejected), 1)
+
+    def test_zero_output_mid_route_preserves_full_hop_trace(self):
+        pairs = [
+            pair(0, "0x" + "01" * 20, A, C, 10**30, 1),
+            pair(1, "0x" + "02" * 20, C, B, 10_000, 10_000),
+        ]
+        _, planned, rejected = self.run_plan(pairs, max_hops=2)
+        self.assertEqual(rejected, [])
+        self.assertEqual(len(planned), 1)
+        self.assertEqual(len(planned[0]["hops"]), 2)
+        self.assertEqual(planned[0]["hops"][0]["amount_out"], "0")
+        self.assertEqual(planned[0]["hops"][1]["amount_in"], "0")
+        self.assertEqual(planned[0]["hops"][1]["amount_out"], "0")
+        self.assertLess(int(planned[0]["pre_gas_success_net_debt_units"]), 0)
 
     def test_input_order_cannot_change_selected_route_bytes(self):
         pairs = [
