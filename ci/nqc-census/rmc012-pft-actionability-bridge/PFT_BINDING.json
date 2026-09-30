@@ -1,0 +1,12 @@
+{
+  "schema": "nqc-rmc012-pft-actionability-binding-v1",
+  "pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
+  "pft_certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853",
+  "math_package": "nqc-aave-math",
+  "authority": "IMMUTABLE_CERTIFIED_PFT_SOURCE",
+  "economic_filters_allowed": false,
+  "notes": [
+    "This bridge owns protocol-liquidation sizing only.",
+    "Flash availability, route profitability, MEV and capture are downstream."
+  ]
+}
