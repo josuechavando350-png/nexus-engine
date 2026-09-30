@@ -1,8 +1,7 @@
 use crate::{
     Amount256, CapitalAsset, CapitalCensusLedger, CapitalCertificationContext, CapitalClass,
     CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalOwnership, CapitalRequirement,
-    CapitalSource,
-    CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
+    CapitalSource, CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
     RepaymentSemantics, RequirementKind, TemporaryLock, UpstreamCensusStage,
     UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
     CAPITAL_SCHEMA_VERSION,
@@ -700,8 +699,8 @@ pub fn export_capital_artifacts(
 
     let (external_gas_funding_source_count, external_gas_funding_executable_capacity) =
         external_gas_funding_snapshot(ledger.sources())?;
-    let external_gas_funding_available_at_anchor =
-        external_gas_funding_source_count > 0 && !external_gas_funding_executable_capacity.is_zero();
+    let external_gas_funding_available_at_anchor = external_gas_funding_source_count > 0
+        && !external_gas_funding_executable_capacity.is_zero();
 
     let summary_json = Json::object([
         ("schema_version", Json::uint(CAPITAL_SUMMARY_SCHEMA_VERSION)),
@@ -1756,9 +1755,9 @@ fn external_gas_funding_snapshot<'a>(
         if executable.is_zero() {
             continue;
         }
-        count = count
-            .checked_add(1)
-            .ok_or(CapitalError::InvalidCanonical("external gas source count overflow"))?;
+        count = count.checked_add(1).ok_or(CapitalError::InvalidCanonical(
+            "external gas source count overflow",
+        ))?;
         capacity = capacity.checked_add(executable)?;
     }
     Ok((count, capacity))
