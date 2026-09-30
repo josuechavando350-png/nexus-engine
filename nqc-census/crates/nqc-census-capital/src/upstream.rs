@@ -661,9 +661,7 @@ fn import_d08_capital_sources_unbound(
                 }
                 let liquidity_state = text(&row, "liquidity_state")?;
                 if !matches!(liquidity_state, "LIQUID" | "ZERO_LIQUIDITY_NOT_ROUTABLE") {
-                    return Err(CapitalError::InvalidCanonical(
-                        "unknown V2 liquidity state",
-                    ));
+                    return Err(CapitalError::InvalidCanonical("unknown V2 liquidity state"));
                 }
                 let reserves = array(&row, "reserves")?;
                 if reserves.len() != 3 {
