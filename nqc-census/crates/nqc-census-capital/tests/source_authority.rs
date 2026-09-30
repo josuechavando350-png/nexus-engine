@@ -1,9 +1,13 @@
 use nqc_census_capital::{
     adapters::AaveV3FlashObservation,
     permissionless_atomic::{
-        admit_balancer_v2_dual_provider, BalancerV2AuthenticatedObservation,
+        admit_balancer_v2_dual_provider, admit_uniswap_v3_dual_provider,
+        BalancerV2AuthenticatedObservation, UniswapV3AuthenticatedObservation,
     },
-    source_authority::{certify_with_d11_sources, D11SourceAuthority},
+    source_authority::{
+        certify_with_d11_source_authorities, certify_with_d11_sources, D11SourceAuthority,
+        D11SourceAuthoritySet,
+    },
     Amount256, CapitalCensusLedger, CapitalCertificationContext, CapitalError,
     CapitalEvidenceRef, CapitalRequirement, GitObjectId, UpstreamCensusStage,
     UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
@@ -110,6 +114,26 @@ fn native_balancer_source(
     )
 }
 
+fn native_uniswap_v3_source(
+    asset: u8,
+    first_evidence: Hash32,
+    second_evidence: Hash32,
+) -> Result<nqc_census_capital::CapitalSource, CapitalError> {
+    let observation = UniswapV3AuthenticatedObservation {
+        anchor: anchor(),
+        pool: address(70),
+        asset: address(asset),
+        available_pool_balance: Amount256::from_u128(3_000_000),
+        fee_pips: 3_000,
+    };
+    admit_uniswap_v3_dual_provider(
+        &observation,
+        &observation,
+        &first_evidence,
+        &second_evidence,
+    )
+}
+
 fn context_for_d08_source(
     stage_rows: Vec<UpstreamStageAuthority>,
     source: &nqc_census_capital::CapitalSource,
@@ -154,6 +178,85 @@ fn expanded_certificate_preserves_d08_receipt_and_admits_native_d11_sources() ->
 
     // The legacy certifier must continue to reject the expanded source set.
     assert!(ledger.certify(&context).is_err());
+    Ok(())
+}
+
+#[test]
+fn expanded_certificate_accepts_multiple_disjoint_native_families() -> TestResult {
+    let stage_rows = stages()?;
+    let upstream_source = d08_source(d08_artifact(&stage_rows)?)?;
+    let balancer = native_balancer_source(51, hash(60), hash(61))?;
+    let uniswap_v3 = native_uniswap_v3_source(71, hash(62), hash(63))?;
+    let context = context_for_d08_source(stage_rows, &upstream_source)?;
+
+    let balancer_authority = D11SourceAuthority::from_reconciliation_artifact(
+        anchor(),
+        b"exact-balancer-reconciliation",
+        &[balancer.clone()],
+    )?;
+    let uniswap_authority = D11SourceAuthority::from_reconciliation_artifact(
+        anchor(),
+        b"exact-uniswap-v3-reconciliation",
+        &[uniswap_v3.clone()],
+    )?;
+    let authority_set =
+        D11SourceAuthoritySet::new(vec![balancer_authority, uniswap_authority])?;
+
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(upstream_source)?;
+    ledger.register_source(balancer)?;
+    ledger.register_source(uniswap_v3)?;
+    ledger.evaluate_all()?;
+
+    let certificate =
+        certify_with_d11_source_authorities(&ledger, &context, &authority_set)?;
+    assert_eq!(certificate.d08_source_count, 1);
+    assert_eq!(certificate.d11_native_source_count, 2);
+    assert_eq!(certificate.summary.source_count, 3);
+    assert_eq!(authority_set.source_count(), 2);
+    assert_eq!(authority_set.authorities().count(), 2);
+    Ok(())
+}
+
+#[test]
+fn native_authority_set_rejects_duplicate_family() -> TestResult {
+    let first = native_balancer_source(51, hash(60), hash(61))?;
+    let second = native_balancer_source(52, hash(62), hash(63))?;
+    let first_authority = D11SourceAuthority::from_reconciliation_artifact(
+        anchor(),
+        b"balancer-a",
+        &[first],
+    )?;
+    let second_authority = D11SourceAuthority::from_reconciliation_artifact(
+        anchor(),
+        b"balancer-b",
+        &[second],
+    )?;
+    assert!(matches!(
+        D11SourceAuthoritySet::new(vec![first_authority, second_authority]),
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn native_authority_set_rejects_source_union_mutation() -> TestResult {
+    let balancer = native_balancer_source(51, hash(60), hash(61))?;
+    let uniswap_v3 = native_uniswap_v3_source(71, hash(62), hash(63))?;
+    let balancer_authority = D11SourceAuthority::from_reconciliation_artifact(
+        anchor(),
+        b"exact-balancer-reconciliation",
+        &[balancer.clone()],
+    )?;
+    let uniswap_authority = D11SourceAuthority::from_reconciliation_artifact(
+        anchor(),
+        b"exact-uniswap-v3-reconciliation",
+        &[uniswap_v3.clone()],
+    )?;
+    let authority_set =
+        D11SourceAuthoritySet::new(vec![balancer_authority, uniswap_authority])?;
+    assert!(authority_set.verify_source_set([&balancer, &uniswap_v3]).is_ok());
+    assert!(authority_set.verify_source_set([&balancer]).is_err());
     Ok(())
 }
 
