@@ -136,7 +136,7 @@ fn write_optional_amount(hasher: &mut Sha256, value: Option<Amount256>) {
     }
 }
 
-fn terms_commitment(
+pub fn external_gas_credit_terms_commitment(
     borrower: Address,
     lender: Address,
     fee_bps: u16,
@@ -289,7 +289,7 @@ pub fn import_external_gas_credit_observation(
     let market_cap = optional_amount(&row, "market_cap")?;
     let active = bool_field(&row, "active")?;
 
-    let recomputed_terms = terms_commitment(
+    let recomputed_terms = external_gas_credit_terms_commitment(
         borrower,
         lender,
         fee_bps,
