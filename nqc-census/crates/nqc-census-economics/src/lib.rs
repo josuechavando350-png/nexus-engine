@@ -23,6 +23,7 @@ use std::fmt::{Display, Formatter};
 pub enum EconomicsError {
     ProbabilityOutOfRange,
     InvalidProbabilityInterval,
+    InvalidCalibration,
     ZeroDenominator,
     ArithmeticOverflow,
     EmptyEvidence,
@@ -43,6 +44,7 @@ impl Display for EconomicsError {
             Self::InvalidProbabilityInterval => {
                 f.write_str("capture probability interval is not ordered")
             }
+            Self::InvalidCalibration => f.write_str("capture calibration evidence is invalid"),
             Self::ZeroDenominator => f.write_str("division denominator must be non-zero"),
             Self::ArithmeticOverflow => f.write_str("exact economics arithmetic overflow"),
             Self::EmptyEvidence => f.write_str("economic quote requires evidence"),
