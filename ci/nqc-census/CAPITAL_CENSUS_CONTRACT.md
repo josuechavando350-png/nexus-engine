@@ -265,3 +265,14 @@ Capital feasibility proves funding availability and constraints for each require
 Portfolio-wide simultaneous capacity, source collision, and cross-candidate capital contention remain downstream non-claims until an explicit conflict-set / portfolio-capacity layer certifies them.
 
 Capital feasibility does NOT prove positive net EV, capture probability, or realized P&L.
+
+
+## Terminal D11 closure is stricter than real-source package certification
+
+`RMC011_REAL_SOURCE_CERTIFICATION=PASS` proves only the authenticated, replayed source set actually consumed by D11. It is **not** the terminal Capital Census state.
+
+The machine-readable source-universe authority is `ci/nqc-census/rmc011-capital-source-universe.json`. D11 may emit `D11_TERMINAL_CLOSED` only when every required capital-source family is terminally resolved by authenticated real-source admission or exhaustive rejection, `unknown_family_count == 0`, and `terminal_claim_allowed == true`.
+
+Model support, an adapter implementation, or a semantic parser without authenticated acquisition evidence does not resolve a source family. In particular, `gas_credit.rs` being able to validate two-provider external gas-credit observations does not certify that such a facility exists or is available at the anchor.
+
+Until that condition is met, the terminal state is `BLOCKED_INCOMPLETE_SOURCE_UNIVERSE`, even if the narrower real-source package passes.
