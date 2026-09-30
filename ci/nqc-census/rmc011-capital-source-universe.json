@@ -50,8 +50,8 @@
     {
       "id": "EXTERNAL_GAS_SPONSOR",
       "capital_class": "GAS_FUNDING",
-      "status": "MODEL_ONLY",
-      "real_source_path": null,
+      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
+      "real_source_path": "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs",
       "terminally_resolved": false,
       "resolution_evidence": null
     },
