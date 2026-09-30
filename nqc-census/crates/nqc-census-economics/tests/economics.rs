@@ -6,7 +6,8 @@ use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_economics::{
     evaluate_scenarios, mul_div_floor, CapacityCurve, CaptureCalibration, CostComponent, CostKind,
     EconomicsError, ExecutionCostVector, ExecutionQuote, GasValuation, PnlScenario, ProbabilityWad,
-    ProfitBucket, QuoteDecision, SignedAmount, TailRiskBound, ValuationUnitId, WAD,
+    ProfitBucket, QuoteDecision, ShadowPredictionBatch, SignedAmount, TailRiskBound,
+    ValuationUnitId, WAD,
 };
 use nqc_census_portfolio::PortfolioCandidate;
 
@@ -718,5 +719,85 @@ fn capacity_curve_reports_largest_positive_measured_size() -> TestResult {
         curve.largest_positive_size()?,
         Some(Amount256::from_u128(5_000))
     );
+    Ok(())
+}
+
+
+#[test]
+fn shadow_handoff_requires_no_fabricated_capture_probability() -> TestResult {
+    let anchor = anchor(100, 10);
+    let candidate = candidate_at(&anchor)?;
+    let q1 = quote(
+        &candidate,
+        &anchor,
+        1_000,
+        100,
+        complete_costs(20, 0, 0)?,
+        CaptureCalibration::Uncalibrated {
+            model_commitment: hash(91),
+        },
+    )?;
+    let q2 = quote(
+        &candidate,
+        &anchor,
+        5_000,
+        180,
+        complete_costs(40, 0, 0)?,
+        CaptureCalibration::Uncalibrated {
+            model_commitment: hash(91),
+        },
+    )?;
+    let curve = CapacityCurve::new(vec![q1, q2])?;
+    let batch = ShadowPredictionBatch::from_curves(&[curve], 101, vec![hash(110)])?;
+    assert_eq!(batch.predictions().len(), 1);
+    let prediction = &batch.predictions()[0];
+    assert_eq!(prediction.expires_after_block(), 101);
+    assert_eq!(
+        prediction.success_path_net(),
+        SignedAmount::positive(Amount256::from_u128(140))
+    );
+    assert!(!batch.commitment().iter().all(|byte| *byte == 0));
+    Ok(())
+}
+
+#[test]
+fn shadow_handoff_omits_nonpositive_pre_capture_curve() -> TestResult {
+    let anchor = anchor(100, 10);
+    let candidate = candidate_at(&anchor)?;
+    let quote = quote(
+        &candidate,
+        &anchor,
+        1_000,
+        10,
+        complete_costs(20, 0, 0)?,
+        CaptureCalibration::Uncalibrated {
+            model_commitment: hash(91),
+        },
+    )?;
+    let curve = CapacityCurve::new(vec![quote])?;
+    let batch = ShadowPredictionBatch::from_curves(&[curve], 101, vec![hash(110)])?;
+    assert!(batch.predictions().is_empty());
+    Ok(())
+}
+
+#[test]
+fn shadow_prediction_expiry_must_be_after_anchor() -> TestResult {
+    let anchor = anchor(100, 10);
+    let candidate = candidate_at(&anchor)?;
+    let quote = quote(
+        &candidate,
+        &anchor,
+        1_000,
+        100,
+        complete_costs(20, 0, 0)?,
+        CaptureCalibration::Uncalibrated {
+            model_commitment: hash(91),
+        },
+    )?;
+    let curve = CapacityCurve::new(vec![quote])?;
+    assert!(matches!(
+        ShadowPredictionBatch::from_curves(&[curve], 100, vec![hash(110)]),
+        Err(EconomicsError::ShadowExpiryNotAfterAnchor)
+    ));
     Ok(())
 }
