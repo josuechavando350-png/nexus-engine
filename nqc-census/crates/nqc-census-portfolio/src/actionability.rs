@@ -282,7 +282,10 @@ impl ActionableLiquidation {
             return Err(ActionabilityError::InvalidLiquidationBonus);
         }
         if pft_market_snapshot.as_bytes().iter().all(|byte| *byte == 0)
-            || pft_account_snapshot.as_bytes().iter().all(|byte| *byte == 0)
+            || pft_account_snapshot
+                .as_bytes()
+                .iter()
+                .all(|byte| *byte == 0)
         {
             return Err(ActionabilityError::ZeroSnapshotCommitment);
         }
@@ -400,7 +403,11 @@ impl ActionabilityRecord {
         evidence: Vec<Hash32>,
     ) -> Result<Self, ActionabilityError> {
         let pair = candidate.pair().clone();
-        Self::build(pair, ActionabilityDisposition::Admitted(candidate), evidence)
+        Self::build(
+            pair,
+            ActionabilityDisposition::Admitted(candidate),
+            evidence,
+        )
     }
 
     pub fn rejected(
