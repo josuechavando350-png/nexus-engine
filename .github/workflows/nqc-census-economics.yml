@@ -31,6 +31,15 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
+      - name: Verify current RMC-012 base is an ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin nqc/rmc-012-portfolio-capacity-conflict-20260929
+          RMC012_HEAD="$(git rev-parse FETCH_HEAD)"
+          git merge-base --is-ancestor "$RMC012_HEAD" HEAD
+          echo "RMC013_RMC012_ANCESTRY_PASS base=$RMC012_HEAD head=$(git rev-parse HEAD)"
+
       - name: Verify RMC-013 authority boundary
         shell: bash
         run: |
