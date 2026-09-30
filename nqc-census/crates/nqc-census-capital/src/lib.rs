@@ -743,6 +743,13 @@ pub enum CollateralRequirement {
         amount: Amount256,
         liquidation_conditions_hash: Hash32,
     },
+    Proportional {
+        asset: CapitalAsset,
+        numerator: u64,
+        denominator: u64,
+        rounding: RoundingMode,
+        liquidation_conditions_hash: Hash32,
+    },
 }
 
 impl CollateralRequirement {
@@ -757,6 +764,20 @@ impl CollateralRequirement {
                 writer.u8(2);
                 asset.encode(writer);
                 writer.bytes(amount.as_be_bytes());
+                writer.bytes(liquidation_conditions_hash.as_bytes());
+            }
+            Self::Proportional {
+                asset,
+                numerator,
+                denominator,
+                rounding,
+                liquidation_conditions_hash,
+            } => {
+                writer.u8(3);
+                asset.encode(writer);
+                writer.u64(numerator);
+                writer.u64(denominator);
+                writer.u8(rounding.tag());
                 writer.bytes(liquidation_conditions_hash.as_bytes());
             }
         }
@@ -774,6 +795,27 @@ impl CollateralRequirement {
                 Ok(Self::Required {
                     asset,
                     amount,
+                    liquidation_conditions_hash: nonzero_hash(reader.array::<32>()?)?,
+                })
+            }
+            3 => {
+                let asset = CapitalAsset::decode(reader)?;
+                let numerator = reader.u64()?;
+                let denominator = reader.u64()?;
+                let rounding = RoundingMode::from_tag(reader.u8()?)?;
+                if numerator == 0 || denominator == 0 {
+                    return Err(CapitalError::InvalidRatio);
+                }
+                if rounding != RoundingMode::Ceil {
+                    return Err(CapitalError::InvalidCanonical(
+                        "proportional collateral must round up",
+                    ));
+                }
+                Ok(Self::Proportional {
+                    asset,
+                    numerator,
+                    denominator,
+                    rounding,
                     liquidation_conditions_hash: nonzero_hash(reader.array::<32>()?)?,
                 })
             }
@@ -1130,10 +1172,28 @@ impl CapitalSource {
         if matches!(spec.repayment, RepaymentSemantics::DeadlineBlocks(0)) {
             return Err(CapitalError::ZeroValue("repayment_deadline_blocks"));
         }
-        if let CollateralRequirement::Required { amount, .. } = spec.collateral {
-            if amount.is_zero() {
-                return Err(CapitalError::ZeroValue("collateral_amount"));
+        match spec.collateral {
+            CollateralRequirement::Required { amount, .. } => {
+                if amount.is_zero() {
+                    return Err(CapitalError::ZeroValue("collateral_amount"));
+                }
             }
+            CollateralRequirement::Proportional {
+                numerator,
+                denominator,
+                rounding,
+                ..
+            } => {
+                if numerator == 0 || denominator == 0 {
+                    return Err(CapitalError::InvalidRatio);
+                }
+                if rounding != RoundingMode::Ceil {
+                    return Err(CapitalError::InvalidCanonical(
+                        "proportional collateral must round up",
+                    ));
+                }
+            }
+            CollateralRequirement::None => {}
         }
         if spec.utilization.max_utilization_bps > 10_000 {
             return Err(CapitalError::InvalidBasisPoints(
@@ -2613,13 +2673,16 @@ pub fn evaluate_capital_feasibility_checked(
     }
 
     let allocations = solution.allocations;
-    let used_source_ids = allocations
-        .iter()
-        .map(|allocation| allocation.source_id)
-        .collect::<BTreeSet<_>>();
+    let mut used_source_amounts = BTreeMap::<CapitalSourceId, Amount256>::new();
+    for allocation in &allocations {
+        let total = used_source_amounts
+            .entry(allocation.source_id)
+            .or_insert(Amount256::ZERO);
+        *total = total.checked_add(allocation.amount)?;
+    }
 
     let mut source_dependencies = BTreeMap::<(RequirementKind, CapitalAsset), Amount256>::new();
-    for source_id in used_source_ids {
+    for (source_id, drawn_amount) in used_source_amounts {
         let source = sources
             .iter()
             .find(|source| source.id() == source_id)
@@ -2638,13 +2701,37 @@ pub fn evaluate_capital_feasibility_checked(
                 Some(RequirementKind::Repayment),
             ));
         }
-        if let CollateralRequirement::Required { asset, amount, .. } = source.collateral() {
-            add_obligation(
-                &mut source_dependencies,
-                RequirementKind::Collateral,
+        match source.collateral() {
+            CollateralRequirement::None => {}
+            CollateralRequirement::Required { asset, amount, .. } => {
+                add_obligation(
+                    &mut source_dependencies,
+                    RequirementKind::Collateral,
+                    asset,
+                    amount,
+                )?;
+            }
+            CollateralRequirement::Proportional {
                 asset,
-                amount,
-            )?;
+                numerator,
+                denominator,
+                rounding,
+                ..
+            } => {
+                let amount =
+                    mul_div_u64_round(drawn_amount, numerator, denominator, rounding)?;
+                if amount.is_zero() {
+                    return Err(CapitalError::InvalidCanonical(
+                        "positive draw produced zero proportional collateral",
+                    ));
+                }
+                add_obligation(
+                    &mut source_dependencies,
+                    RequirementKind::Collateral,
+                    asset,
+                    amount,
+                )?;
+            }
         }
         if let TemporaryLock::Required { asset, amount, .. } = source.temporary_lock() {
             add_obligation(
