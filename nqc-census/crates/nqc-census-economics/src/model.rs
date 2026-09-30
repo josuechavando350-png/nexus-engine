@@ -97,7 +97,6 @@ pub struct ExecutionCostVector {
     pub financing: Amount256,
     pub hedging: Amount256,
     pub inventory: Amount256,
-    pub expected_revert: Amount256,
     pub opportunity_cost: Amount256,
     pub mev: Amount256,
     pub chain_other: Amount256,
@@ -116,7 +115,6 @@ impl ExecutionCostVector {
             self.financing,
             self.hedging,
             self.inventory,
-            self.expected_revert,
             self.opportunity_cost,
             self.mev,
             self.chain_other,
@@ -142,7 +140,6 @@ impl ExecutionCostVector {
             self.financing,
             self.hedging,
             self.inventory,
-            self.expected_revert,
             self.opportunity_cost,
             self.mev,
             self.chain_other,
@@ -309,7 +306,7 @@ impl EconomicQuote {
             execution_plan_commitment,
             model_commitment,
             &evidence,
-        );
+        )?;
         Ok(Self {
             candidate_id,
             opportunity_id,
@@ -484,7 +481,7 @@ fn quote_commitment(
     execution_plan_commitment: Hash32,
     model_commitment: Hash32,
     evidence: &[Hash32],
-) -> Hash32 {
+) -> Result<Hash32, EconomicsError> {
     let mut bytes = Vec::new();
     bytes.extend_from_slice(ECONOMIC_QUOTE_DOMAIN);
     bytes.extend_from_slice(candidate_id.as_bytes());
@@ -514,18 +511,16 @@ fn quote_commitment(
     tail.encode(&mut bytes);
     bytes.extend_from_slice(execution_plan_commitment.as_bytes());
     bytes.extend_from_slice(model_commitment.as_bytes());
-    bytes.extend_from_slice(
-        &u64::try_from(evidence.len())
-            .unwrap_or(u64::MAX)
-            .to_be_bytes(),
-    );
+    let evidence_len =
+        u64::try_from(evidence.len()).map_err(|_| EconomicsError::ArithmeticOverflow)?;
+    bytes.extend_from_slice(&evidence_len.to_be_bytes());
     for item in evidence {
         bytes.extend_from_slice(item.as_bytes());
     }
     let digest = Sha256::digest(&bytes);
     let mut out = [0_u8; 32];
     out.copy_from_slice(&digest);
-    Hash32::new(out).unwrap_or_else(|_| unreachable!())
+    Hash32::new(out).map_err(|_| EconomicsError::ArithmeticOverflow)
 }
 
 fn encode_anchor(anchor: &StateAnchor, out: &mut Vec<u8>) {
