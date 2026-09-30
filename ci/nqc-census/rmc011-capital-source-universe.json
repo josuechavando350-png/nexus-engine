@@ -66,16 +66,16 @@
     {
       "id": "COLLATERALIZED_BORROWING",
       "capital_class": "COLLATERALIZED_BORROWING",
-      "status": "MODEL_ONLY",
-      "real_source_path": null,
+      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
+      "real_source_path": "nqc-census/crates/nqc-census-capital/src/external_debt.rs",
       "terminally_resolved": false,
       "resolution_evidence": null
     },
     {
       "id": "PERSISTENT_DEBT",
       "capital_class": "PERSISTENT_DEBT",
-      "status": "MODEL_ONLY",
-      "real_source_path": null,
+      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
+      "real_source_path": "nqc-census/crates/nqc-census-capital/src/external_debt.rs",
       "terminally_resolved": false,
       "resolution_evidence": null
     },
