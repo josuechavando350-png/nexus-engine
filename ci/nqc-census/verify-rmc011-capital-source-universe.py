@@ -152,6 +152,17 @@ def validate_document(doc: dict) -> dict:
 
     require(seen == set(REQUIRED_FAMILIES), "required family set differs")
 
+    scope = json.loads(
+        Path("ci/nqc-census/capital-census-scope.json").read_text(encoding="utf-8")
+    )
+    require(scope.get("stage") == "RMC-011", "capital census scope stage mismatch")
+    required_classes = set(scope.get("required_classes", []))
+    covered_classes = {row["capital_class"] for row in families}
+    require(
+        required_classes <= covered_classes,
+        "source universe does not cover every required capital class",
+    )
+
     invariants = doc.get("terminal_invariants")
     require(isinstance(invariants, list), "terminal_invariants must be an array")
     require(len(invariants) == len(set(invariants)), "terminal_invariants contains duplicates")
@@ -195,6 +206,26 @@ def validate_document(doc: dict) -> dict:
         "terminal_claim_allowed disagrees with source-universe readiness",
     )
     require(doc.get("status") != "D11_TERMINAL_CLOSED", "source-universe file cannot close D11")
+
+    claims = scope.get("claims", {})
+    if universe_complete:
+        require(
+            claims.get("capital_source_universe_complete") is True,
+            "ready source universe requires capital_source_universe_complete=true in scope",
+        )
+    else:
+        require(
+            claims.get("capital_source_universe_complete") is False,
+            "incomplete source universe cannot claim capital_source_universe_complete",
+        )
+        require(
+            claims.get("global_capital_source_completeness") is False,
+            "incomplete source universe cannot claim global capital completeness",
+        )
+        require(
+            claims.get("terminal_capital_census_closed") is False,
+            "incomplete source universe cannot claim terminal D11 closure",
+        )
 
     return {
         "family_count": len(families),
