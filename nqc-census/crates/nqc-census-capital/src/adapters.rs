@@ -301,6 +301,14 @@ pub struct ExternalGasSponsorObservation {
 
 impl ExternalGasSponsorObservation {
     pub fn into_capital_source(self) -> Result<CapitalSource, CapitalError> {
+        if let FeeModel::Fixed { asset, .. } = self.fee_model {
+            if asset != self.fee_asset {
+                return Err(CapitalError::InvalidCanonical(
+                    "gas sponsor fixed fee asset differs from declared fee asset",
+                ));
+            }
+        }
+
         CapitalSource::new(CapitalSourceSpec {
             class: CapitalClass::GasFunding,
             anchor: self.anchor,
