@@ -3,10 +3,12 @@ use nqc_census_capital::{
     Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalCertificationContext,
     CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalOwnership, CapitalProviderKind,
     CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
+    replay::{UpstreamAuthorityLock, UpstreamAuthorityLockEntry},
     CollateralRequirement, FeeModel, GitObjectId, RepaymentSemantics, RequiredAtomicity,
     RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamConsumptionReceipt,
     UpstreamStageAuthority, UpstreamStageAuthoritySpec, UtilizationConstraints,
 };
+use nqc_census_chain::json::Json;
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use std::{
     fs,
@@ -246,3 +248,108 @@ fn offline_verifier_binary_rejects_wrong_exact_code_identity() -> TestResult {
     assert!(!output.status.success());
     Ok(())
 }
+
+fn authority_lock_candidate(stages: &[UpstreamStageAuthority]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let a = anchor();
+    Ok(Json::object([
+        ("schema_version", Json::uint(1)),
+        (
+            "observation_anchor",
+            Json::object([
+                ("chain_id", Json::uint(a.chain().chain_id())),
+                ("genesis_hash", Json::string(a.chain().genesis_hash().to_hex())),
+                ("fork_lineage", Json::string(a.chain().fork_lineage().to_hex())),
+                ("block_number", Json::uint(a.block_number())),
+                ("block_hash", Json::string(a.block_hash().to_hex())),
+                ("parent_hash", Json::string(a.parent_hash().to_hex())),
+                ("timestamp", Json::uint(a.timestamp())),
+                ("state_root", Json::string(a.state_root().to_hex())),
+            ]),
+        ),
+        (
+            "stages",
+            Json::array(stages.iter().map(|stage| {
+                Json::object([
+                    ("stage", Json::string(stage.stage.code())),
+                    ("code_commit", Json::string(stage.code_commit.to_hex())),
+                    ("code_tree", Json::string(stage.code_tree.to_hex())),
+                    (
+                        "artifact_sha256",
+                        Json::string(stage.artifact_sha256.to_hex()),
+                    ),
+                ])
+            })),
+        ),
+    ])
+    .canonical()?)
+}
+
+#[test]
+fn authority_lock_builder_binary_emits_canonical_verified_lock() -> TestResult {
+    let ledger = ledger()?;
+    let authority = authority_for(&ledger)?;
+    let expected = UpstreamAuthorityLock::new(
+        authority
+            .stages()
+            .iter()
+            .map(UpstreamAuthorityLockEntry::from)
+            .collect(),
+    )?;
+
+    let directory = artifact_dir("authority-lock-builder");
+    let _ = fs::remove_dir_all(&directory);
+    fs::create_dir_all(&directory)?;
+    let input = directory.join("candidate.json");
+    let output = directory.join("authority-lock.json");
+    fs::write(&input, authority_lock_candidate(authority.stages())?)?;
+
+    let result = Command::new(env!("CARGO_BIN_EXE_nqc-rmc011-authority-lock-build"))
+        .arg("--input")
+        .arg(&input)
+        .arg("--output")
+        .arg(&output)
+        .output()?;
+
+    assert!(
+        result.status.success(),
+        "authority lock builder failed: {}",
+        String::from_utf8_lossy(&result.stderr)
+    );
+    let bytes = fs::read(&output)?;
+    assert_eq!(bytes, expected.canonical_json()?);
+    assert_eq!(UpstreamAuthorityLock::parse_json(&bytes)?, expected);
+
+    let stdout = String::from_utf8(result.stdout)?;
+    assert!(stdout.contains("RMC011_AUTHORITY_LOCK_BUILD=PASS"));
+    assert!(stdout.contains(&expected.commitment().to_hex()));
+    let _ = fs::remove_dir_all(&directory);
+    Ok(())
+}
+
+#[test]
+fn authority_lock_builder_binary_rejects_incomplete_stage_set() -> TestResult {
+    let ledger = ledger()?;
+    let authority = authority_for(&ledger)?;
+    let directory = artifact_dir("authority-lock-builder-incomplete");
+    let _ = fs::remove_dir_all(&directory);
+    fs::create_dir_all(&directory)?;
+    let input = directory.join("candidate.json");
+    let output = directory.join("authority-lock.json");
+    fs::write(
+        &input,
+        authority_lock_candidate(&authority.stages()[..authority.stages().len() - 1])?,
+    )?;
+
+    let result = Command::new(env!("CARGO_BIN_EXE_nqc-rmc011-authority-lock-build"))
+        .arg("--input")
+        .arg(&input)
+        .arg("--output")
+        .arg(&output)
+        .output()?;
+
+    assert!(!result.status.success());
+    assert!(!output.exists());
+    let _ = fs::remove_dir_all(&directory);
+    Ok(())
+}
+
