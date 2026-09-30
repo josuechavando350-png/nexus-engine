@@ -3,6 +3,10 @@ import { readFileSync } from "node:fs";
 
 const mesh = JSON.parse(readFileSync("ci/nqc-quant-firm/AGENT_MESH_CONTRACT.json", "utf8"));
 const fleet = JSON.parse(readFileSync("ci/nqc-quant-firm/AGENT_FLEET_350.json", "utf8"));
+const registry = readFileSync("ci/nqc-quant-firm/AGENT_REGISTRY_350.jsonl", "utf8")
+  .trim()
+  .split("\\n")
+  .map((line) => JSON.parse(line));
 
 function fail(message) {
   console.error(`NQC_AGENT_FLEET_INVALID ${message}`);
@@ -51,11 +55,56 @@ for (const role of roles) {
 }
 if (meshRoles.size !== roles.length) fail("mesh/fleet canonical role sets differ");
 
+if (registry.length !== 350) fail(`registry must materialize exactly 350 agents, got ${registry.length}`);
+const expectedIds = Array.from({ length: 350 }, (_, index) =>
+  `NQC-A${String(index + 1).padStart(3, "0")}`
+);
+const registryIds = registry.map((agent) => agent.agent_id);
+if (new Set(registryIds).size !== 350) fail("registry agent IDs must be unique");
+for (let index = 0; index < expectedIds.length; index += 1) {
+  if (registryIds[index] !== expectedIds[index]) {
+    fail(`registry ID sequence mismatch at ${index}: ${registryIds[index]} != ${expectedIds[index]}`);
+  }
+}
+const allowedRoles = new Set(roles.map((role) => role.role));
+for (const agent of registry) {
+  if (!allowedRoles.has(agent.role)) fail(`registry role ${agent.role} is not canonical`);
+  if (agent.execution_authority !== false) fail(`${agent.agent_id} has execution authority`);
+  if (agent.may_sign !== false || agent.may_broadcast !== false || agent.may_move_funds !== false) {
+    fail(`${agent.agent_id} may perform a money-moving action`);
+  }
+  if (agent.deterministic_hot_path_member !== false) fail(`${agent.agent_id} entered hot path`);
+  if (agent.requires_evidence_refs !== true) fail(`${agent.agent_id} may emit ungrounded output`);
+  for (const required of [
+    "SIGN_TRANSACTION",
+    "BROADCAST_TRANSACTION",
+    "MOVE_FUNDS",
+    "CHANGE_EXECUTION_POLICY",
+    "ISSUE_PRODUCTION_AUTHORITY",
+    "BYPASS_CERTIFICATION"
+  ]) {
+    if (!agent.forbidden_actions.includes(required)) {
+      fail(`${agent.agent_id} missing forbidden action ${required}`);
+    }
+  }
+}
+const expectedRoleCounts = new Map(roles.map((role) => [role.role, role.count]));
+const observedRoleCounts = new Map();
+for (const agent of registry) {
+  observedRoleCounts.set(agent.role, (observedRoleCounts.get(agent.role) ?? 0) + 1);
+}
+for (const [role, expected] of expectedRoleCounts) {
+  const observed = observedRoleCounts.get(role) ?? 0;
+  if (observed !== expected) fail(`registry role ${role}: ${observed} != ${expected}`);
+}
+
+
 console.log("PASS NQC_AGENT_FLEET_350");
 console.log(JSON.stringify({
   operational_agents: total,
   hard_cap: fleet.hard_cap,
   canonical_roles: roles.length,
+  registered_agents: registry.length,
   desks: fleet.desks.length,
   llm_hot_path_allowed: mesh.llm_hot_path_allowed,
   execution_authority: mesh.execution_authority
