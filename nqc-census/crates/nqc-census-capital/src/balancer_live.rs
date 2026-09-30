@@ -218,7 +218,7 @@ fn provider_capture(
 ) -> Result<Json, ChainError> {
     let profile = ChainProfile::mainnet()?;
     let (chain_facts, bootstrap) = acquisition.bootstrap(provider, &profile)?;
-    if chain_facts.chain != *expected_anchor.chain() {
+    if &chain_facts.chain != expected_anchor.chain() {
         return Err(ChainError::Evidence(
             "Balancer provider chain domain differs from D08 authority".into(),
         ));
@@ -228,7 +228,7 @@ fn provider_capture(
         &chain_facts.chain,
         expected_anchor.block_number(),
     )?;
-    if anchor != *expected_anchor {
+    if &anchor != expected_anchor {
         return Err(ChainError::Evidence(
             "Balancer provider anchor differs from D08 authority".into(),
         ));
