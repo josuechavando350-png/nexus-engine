@@ -251,9 +251,10 @@ impl SharedResource {
         limit: ResourceLimit,
         mut evidence: Vec<CapitalEvidenceRef>,
     ) -> Result<Self, PortfolioError> {
-        if matches!(limit, ResourceLimit::Capacity(amount) if amount.is_zero()) {
-            return Err(PortfolioError::ZeroValue("resource_capacity"));
-        }
+        // Zero-capacity is a valid observed state: exhausted liquidity/cap is
+        // materially different from an unobserved or undeclared resource.
+        // Positive claims against it are preserved and become deterministic
+        // over-subscription conflicts during portfolio evaluation.
         if evidence.is_empty() {
             return Err(PortfolioError::EmptyEvidence);
         }
