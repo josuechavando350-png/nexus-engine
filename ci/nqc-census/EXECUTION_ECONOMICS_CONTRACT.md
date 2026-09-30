@@ -103,6 +103,16 @@ UNCALIBRATED quotes may report pre-capture economics but MUST NOT emit a
 capture-adjusted profitability claim. Capture probability is never allowed to
 default to 1.
 
+## Candidate and anchor binding
+
+Every execution quote consumes the concrete RMC-012 candidate, not a detached
+candidate id supplied by the caller. The quote anchor MUST equal the
+candidate's exact `StateAnchor`; a candidate id from one block/chain cannot be
+reused with economics observed at another anchor.
+
+Opportunity, execution-plan and economic-model commitments remain independent
+non-zero bindings. Changing any one of them changes the quote commitment.
+
 ## Capacity curve
 
 Multiple trade sizes for the same execution variant form a capacity curve.
