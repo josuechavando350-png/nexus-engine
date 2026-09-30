@@ -4,7 +4,10 @@ on:
   pull_request:
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/test-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - ".github/workflows/nqc-census-capital-terminal-readiness.yml"
   push:
@@ -12,7 +15,10 @@ on:
       - "nqc/rmc-011-derived-authority-lock-20260930"
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/test-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - ".github/workflows/nqc-census-capital-terminal-readiness.yml"
 
@@ -26,6 +32,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Validate D11 source-universe truth
         run: |
+          python3 ci/nqc-census/test-rmc011-capital-source-universe.py -v
           python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
       - name: Enforce terminal claim boundary
@@ -36,7 +43,16 @@ jobs:
           if jq -e '.terminal_claim_allowed == true' "$FILE" >/dev/null; then
             jq -e '
               .status == "D11_TERMINAL_CLOSED" and
-              (.families | all(.terminally_resolved == true)) and
+              (.families | all(
+                .terminally_resolved == true and
+                (.status == "AUTHENTICATED_REAL_SOURCE" or
+                 .status == "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE") and
+                (.resolution_evidence.sha256 | type == "string") and
+                (.resolution_evidence.authority_ref | type == "string")
+              )) and
+              .family_universe_discovery.status == "AUTHENTICATED_COMPLETE" and
+              (.family_universe_discovery.evidence.sha256 | type == "string") and
+              (.family_universe_discovery.evidence.authority_ref | type == "string") and
               .unknown_family_count == 0
             ' "$FILE" >/dev/null
             echo RMC011_TERMINAL_READINESS=PASS
