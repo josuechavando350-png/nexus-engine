@@ -9,6 +9,8 @@ on:
       - "nqc-census/Cargo.toml"
       - "nqc-census/Cargo.lock"
       - "ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md"
+      - "ci/nqc-census/plan_rmc013_v2_routes.py"
+      - "ci/nqc-census/test_plan_rmc013_v2_routes.py"
       - ".github/workflows/nqc-census-economics.yml"
   push:
     branches:
@@ -54,6 +56,12 @@ jobs:
         run: |
           set -euo pipefail
           ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction|reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket'             nqc-census/crates/nqc-census-economics ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md
+
+      - name: Deterministic V2 route planner regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_plan_rmc013_v2_routes.py
 
       - name: Exact Rust gates
         working-directory: nqc-census
