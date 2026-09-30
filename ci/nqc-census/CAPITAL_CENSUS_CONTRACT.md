@@ -71,6 +71,7 @@ Every admitted capital source record MUST bind:
 - zero-capacity sources remain explicit census records rather than disappearing; zero means observed-but-unavailable at that anchor
 - observed/effective capacity and executable capacity are distinct: upstream execution blockers MUST NOT erase observed liquidity, but executable capacity MUST be zero while any blocker remains
 - execution blocker codes are preserved exactly; blocker-state changes alter the observation-specific source ID but MUST NOT alter the stable source key
+- provider locators used by stable source keys MUST contain facility identity only; mutable runtime/configuration, commercial terms, capacity, activity flags, and blocker state belong to observation identity/evidence and MUST NOT rotate the stable source key
 - fee model
 - repayment semantics
 - collateral_required
@@ -186,6 +187,7 @@ Every artifact MUST include schema version, exact code commit/tree, observation 
 At minimum:
 
 - source identity is deterministic and collision-resistant across chain/provider/asset/class
+- changing gas-credit active/blocker state, runtime/configuration, or commercial terms changes observation identity as applicable but cannot rotate the stable facility source key
 - same bytes under different capital classes do not alias
 - zero and overflow amount/cap edge cases fail correctly; public enum/struct construction cannot bypass the same fee, ratio, repayment-deadline, collateral, utilization, temporary-lock, or nonzero-evidence validations enforced by canonical decode
 - atomic source cannot silently become persistent debt
