@@ -1,0 +1,249 @@
+{
+  "schema": "nqc-rmc-integrated-authority-v1",
+  "purpose": "Real Market Census D06-D10 authority chain; every field is re-derived from the immutable GitHub run, commit and artifact by verify_authority.py",
+  "required_nodes": [
+    "D06@A0",
+    "D07",
+    "D08",
+    "D09@A0",
+    "D06@A1",
+    "D09@A1",
+    "D10"
+  ],
+  "nodes": [
+    {
+      "node": "D06@A0",
+      "pull_request": 521,
+      "code_commit": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
+      "code_tree": "eda36fdc07e82ccdcc9666799fa8fe21aacc7f1d",
+      "workflow_run_id": 36627517591,
+      "artifact_id": 11062164175,
+      "artifact": "nqc-rmc006-evidence-25437474-a33a012591cd6625ddb921d995bb1bd95b4a5406-36627517591-1",
+      "artifact_digest": "sha256:5f9a9bbd2182d9d65e22ad9b25f94abd5152baef7d1c2d559bda4e5a77433b03",
+      "evidence_manifest": {
+        "path": "closeout/evidence-manifest.json",
+        "sha256": "81e53c6f76ff71c47df6186afddef05756dbb4ed1261fa3b694183ecefdce44b"
+      },
+      "anchor": {
+        "number": 25437474,
+        "hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
+        "evidence": {
+          "number": [
+            "bootstrap",
+            "anchor",
+            "anchor",
+            "number"
+          ],
+          "hash": [
+            "bootstrap",
+            "anchor",
+            "anchor",
+            "hash"
+          ],
+          "path": "aave-current-surface.json"
+        }
+      },
+      "parents": [],
+      "claims": [
+        {
+          "path": "closeout/aave-discovery-summary.json",
+          "pointer": [
+            "status"
+          ],
+          "equals": "RMC_006_PASS_CANDIDATE"
+        },
+        {
+          "path": "closeout/aave-discovery-summary.json",
+          "pointer": [
+            "reserve_union_count"
+          ],
+          "equals": 67
+        },
+        {
+          "path": "closeout/aave-discovery-summary.json",
+          "pointer": [
+            "intersection_count"
+          ],
+          "equals": 67
+        },
+        {
+          "path": "closeout/aave-discovery-summary.json",
+          "pointer": [
+            "unexplained_delta_count"
+          ],
+          "equals": 0
+        },
+        {
+          "path": "closeout/aave-discovery-summary.json",
+          "pointer": [
+            "provider_mismatch_count"
+          ],
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "node": "D07",
+      "pull_request": 520,
+      "code_commit": "7e223cc5f89374f5542ca862d2322201b46d1fc8",
+      "code_tree": "4934c97fb4f226a95af19c218606390a43b72ef9",
+      "workflow_run_id": 36673249129,
+      "artifact_id": 11081537391,
+      "artifact": "nqc-rmc007-closeout-7e223cc5f89374f5542ca862d2322201b46d1fc8-36673249129-1",
+      "artifact_digest": "sha256:dd4641b2f1437dc4d72e08b71d25ed42ba9245fdb8a31e900a2233c7160b1c66",
+      "evidence_manifest": {
+        "path": "closeout/evidence-manifest.json",
+        "sha256": "8d4dff5abd45b24a7169ac03a66ab9a34bb8993d4155623cb87121764f7311b2"
+      },
+      "anchor": {
+        "number": 25437474,
+        "hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
+        "evidence": {
+          "number": [
+            "bootstrap",
+            "anchor",
+            "anchor",
+            "number"
+          ],
+          "hash": [
+            "bootstrap",
+            "anchor",
+            "anchor",
+            "hash"
+          ],
+          "path": "v2-current-surface.json"
+        }
+      },
+      "parents": [],
+      "claims": [
+        {
+          "path": "closeout/v2-discovery-summary.json",
+          "pointer": [
+            "status"
+          ],
+          "equals": "RMC_007_PASS_CANDIDATE"
+        },
+        {
+          "path": "closeout/v2-discovery-summary.json",
+          "pointer": [
+            "pair_count"
+          ],
+          "equals": 514624
+        },
+        {
+          "path": "closeout/v2-discovery-summary.json",
+          "pointer": [
+            "source_A_enumeration_count"
+          ],
+          "equals": 514624
+        },
+        {
+          "path": "closeout/v2-discovery-summary.json",
+          "pointer": [
+            "source_B_pair_created_count"
+          ],
+          "equals": 514624
+        },
+        {
+          "path": "closeout/v2-discovery-summary.json",
+          "pointer": [
+            "source_C_direct_lookup_count"
+          ],
+          "equals": 514624
+        },
+        {
+          "path": "closeout/v2-discovery-summary.json",
+          "pointer": [
+            "intersection_count"
+          ],
+          "equals": 514624
+        },
+        {
+          "path": "closeout/v2-discovery-summary.json",
+          "pointer": [
+            "unexplained_delta_count"
+          ],
+          "equals": 0
+        },
+        {
+          "path": "closeout/v2-discovery-summary.json",
+          "pointer": [
+            "provider_mismatch_count"
+          ],
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "node": "D06@A1",
+      "pull_request": 521,
+      "code_commit": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
+      "code_tree": "eda36fdc07e82ccdcc9666799fa8fe21aacc7f1d",
+      "workflow_run_id": 36642649594,
+      "artifact_id": 11070221460,
+      "artifact": "nqc-rmc006-evidence-26086171-a33a012591cd6625ddb921d995bb1bd95b4a5406-36642649594-1",
+      "artifact_digest": "sha256:73811ce951f85849e0ee76a132b81c682900cdba68616b5045cf8f6d11e94b9d",
+      "evidence_manifest": {
+        "path": "closeout/evidence-manifest.json",
+        "sha256": "619a13e49ff71689e4ecd07ab0a8a5d4fe90692a8a9e2f8d25575a2625148422"
+      },
+      "anchor": {
+        "number": 26086171,
+        "hash": "0xfdccef9883c8644c9ccfc77a01c3212759a671f1a87d4431069ae04319db4c77",
+        "evidence": {
+          "number": [
+            "bootstrap",
+            "anchor",
+            "anchor",
+            "number"
+          ],
+          "hash": [
+            "bootstrap",
+            "anchor",
+            "anchor",
+            "hash"
+          ],
+          "path": "aave-current-surface.json"
+        }
+      },
+      "parents": [],
+      "claims": [
+        {
+          "path": "closeout/aave-discovery-summary.json",
+          "pointer": [
+            "status"
+          ],
+          "equals": "RMC_006_PASS_CANDIDATE"
+        },
+        {
+          "path": "closeout/aave-discovery-summary.json",
+          "pointer": [
+            "reserve_union_count"
+          ],
+          "equals": 67
+        },
+        {
+          "path": "closeout/aave-discovery-summary.json",
+          "pointer": [
+            "intersection_count"
+          ],
+          "equals": 67
+        },
+        {
+          "path": "closeout/aave-discovery-summary.json",
+          "pointer": [
+            "unexplained_delta_count"
+          ],
+          "equals": 0
+        },
+        {
+          "path": "closeout/aave-discovery-summary.json",
+          "pointer": [
+            "provider_mismatch_count"
+          ],
+          "equals": 0
+        }
+      ]
+    }
+  ]
+}

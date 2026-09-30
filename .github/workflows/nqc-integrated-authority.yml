@@ -1,0 +1,55 @@
+name: NQC Real Market Census integrated authority
+
+# Re-derives the D06-D10 authority chain declared in
+# ci/nqc-integrated/authority.json from the immutable GitHub runs, commits
+# and artifacts, and fails on any mismatch or missing node. Read-only: it
+# downloads artifacts and reads git history; it writes only its own report.
+on:
+  push:
+    branches: [claude/handoff-mercados-execution-xmkiwm]
+    paths:
+      - .github/workflows/nqc-integrated-authority.yml
+      - ci/nqc-integrated/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-integrated-authority-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout with full history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Verify the integrated authority chain
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git fetch -q origin '+refs/heads/nqc/*:refs/remotes/origin/nqc/*'
+          mkdir -p /tmp/nqc-integrated
+          python3 ci/nqc-integrated/verify_authority.py ci/nqc-integrated/authority.json \
+            /tmp/nqc-integrated/work /tmp/nqc-integrated/integrated-authority-report.json \
+            | tee /tmp/nqc-integrated/verify.log
+          rm -rf /tmp/nqc-integrated/work
+
+      - name: Preserve the report (also on failure)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-integrated-authority-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/nqc-integrated/integrated-authority-report.json
+            /tmp/nqc-integrated/verify.log
+          if-no-files-found: warn
+          retention-days: 90
