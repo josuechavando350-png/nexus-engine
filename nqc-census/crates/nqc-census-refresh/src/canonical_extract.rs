@@ -59,7 +59,9 @@ pub fn verify_extract(
     extract: Json,
 ) -> Result<(Json, ReplayedStage), ChainError> {
     let Json::Object(members) = extract else {
-        return Err(ChainError::Evidence("canonicality extract is not an object".into()));
+        return Err(ChainError::Evidence(
+            "canonicality extract is not an object".into(),
+        ));
     };
     let count = members.len();
     let mut fields: BTreeMap<String, Json> = members.into_iter().collect();
@@ -104,9 +106,7 @@ pub fn verify_extract(
         ));
     }
     let digest = data_digest(&rows)?;
-    if digest != record.str_field("data_sha256")?
-        || digest != remainder.str_field("data_sha256")?
-    {
+    if digest != record.str_field("data_sha256")? || digest != remainder.str_field("data_sha256")? {
         return Err(ChainError::Evidence(
             "canonicality extract data digest differs".into(),
         ));
