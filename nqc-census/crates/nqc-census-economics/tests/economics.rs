@@ -181,7 +181,10 @@ fn positive_quote_is_not_admitted_before_capture_calibration() -> TestResult {
         },
     )?;
     let report = quote.evaluate()?;
-    assert_eq!(report.success_path_net, SignedAmount::positive(Amount256::from_u128(880)));
+    assert_eq!(
+        report.success_path_net,
+        SignedAmount::positive(Amount256::from_u128(880))
+    );
     assert_eq!(report.capture_adjusted_net, None);
     assert_eq!(report.decision, QuoteDecision::CaptureUncalibrated);
     Ok(())
@@ -576,7 +579,10 @@ fn signed_scenario_weighting_rounds_losses_up() -> TestResult {
             evidence: hash(111),
         },
     ])?;
-    assert_eq!(report.conservative_expected_pnl, SignedAmount::negative(Amount256::from_u128(1)));
+    assert_eq!(
+        report.conservative_expected_pnl,
+        SignedAmount::negative(Amount256::from_u128(1))
+    );
     Ok(())
 }
 
@@ -632,18 +638,13 @@ fn full_width_mul_div_rejects_result_overflow_instead_of_truncating() -> TestRes
 
 #[test]
 fn profit_bucket_requires_canonical_usd_wad_and_uses_exact_boundaries() -> TestResult {
-    let eight_fifty = SignedAmount::positive(Amount256::from_u128(
-        8_500_000_000_000_000_000,
-    ));
+    let eight_fifty = SignedAmount::positive(Amount256::from_u128(8_500_000_000_000_000_000));
     assert_eq!(
         ProfitBucket::classify(ValuationUnitId::usd_wad(), eight_fifty)?,
         Some(ProfitBucket::FiveToTen)
     );
     assert!(matches!(
-        ProfitBucket::classify(
-            ValuationUnitId::from_commitment(hash(121)),
-            eight_fifty
-        ),
+        ProfitBucket::classify(ValuationUnitId::from_commitment(hash(121)), eight_fifty),
         Err(EconomicsError::ProfitBucketRequiresUsdWad)
     ));
     Ok(())
