@@ -76,6 +76,37 @@ def validate_evidence(value: object, expected_kind: str, label: str) -> None:
     )
 
 
+def validate_scope(scope: dict, families: list[dict]) -> None:
+    require(scope.get("schema_version") == 2, "capital census scope schema mismatch")
+    require(scope.get("stage") == "RMC-011", "capital census scope stage mismatch")
+    required_family_ids = scope.get("required_source_families")
+    require(
+        isinstance(required_family_ids, list)
+        and len(required_family_ids) == len(set(required_family_ids)),
+        "capital census scope required_source_families is missing or duplicated",
+    )
+    require(
+        set(required_family_ids) == set(REQUIRED_FAMILIES),
+        "capital census scope required source-family set differs",
+    )
+    require(
+        scope.get("source_family_universe_discovery_required") is True,
+        "capital census scope must require source-family-universe discovery",
+    )
+    require(
+        scope.get("source_universe_contract")
+        == "ci/nqc-census/rmc011-capital-source-universe.json",
+        "capital census scope source-universe contract path differs",
+    )
+    required_classes = set(scope.get("required_classes", []))
+    covered_classes = {row["capital_class"] for row in families}
+    require(
+        required_classes == set(REQUIRED_FAMILIES.values())
+        and required_classes <= covered_classes,
+        "source universe does not exactly cover every required capital class",
+    )
+
+
 def validate_document(doc: dict) -> dict:
     require(doc.get("schema_version") == 2, "schema_version must equal 2")
     require(doc.get("stage") == "RMC-011", "stage must equal RMC-011")
@@ -157,34 +188,7 @@ def validate_document(doc: dict) -> dict:
     scope = json.loads(
         Path("ci/nqc-census/capital-census-scope.json").read_text(encoding="utf-8")
     )
-    require(scope.get("schema_version") == 2, "capital census scope schema mismatch")
-    require(scope.get("stage") == "RMC-011", "capital census scope stage mismatch")
-    required_family_ids = scope.get("required_source_families")
-    require(
-        isinstance(required_family_ids, list)
-        and len(required_family_ids) == len(set(required_family_ids)),
-        "capital census scope required_source_families is missing or duplicated",
-    )
-    require(
-        set(required_family_ids) == set(REQUIRED_FAMILIES),
-        "capital census scope required source-family set differs",
-    )
-    require(
-        scope.get("source_family_universe_discovery_required") is True,
-        "capital census scope must require source-family-universe discovery",
-    )
-    require(
-        scope.get("source_universe_contract")
-        == "ci/nqc-census/rmc011-capital-source-universe.json",
-        "capital census scope source-universe contract path differs",
-    )
-    required_classes = set(scope.get("required_classes", []))
-    covered_classes = {row["capital_class"] for row in families}
-    require(
-        required_classes == set(REQUIRED_FAMILIES.values())
-        and required_classes <= covered_classes,
-        "source universe does not exactly cover every required capital class",
-    )
+    validate_scope(scope, families)
 
     invariants = doc.get("terminal_invariants")
     require(isinstance(invariants, list), "terminal_invariants must be an array")
