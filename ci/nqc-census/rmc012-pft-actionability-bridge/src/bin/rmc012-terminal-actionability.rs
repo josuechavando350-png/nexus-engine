@@ -117,7 +117,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
 
     let market_snapshot = market_snapshot_commitment(&d08, &d08_required)?;
-    let (reserves, base_unit) = reserves(&d08, anchor.timestamp())?;
+    let (reserves, base_unit) = reserves(&d08)?;
     let emodes = emodes(&d08)?;
     let pool_facts_bytes = fs::read(d08.join("pool-and-factory-facts.json"))?;
     let (aave_pool, flash_premium_bps_u16) = d08_aave_flash_terms(&pool_facts_bytes)?;
@@ -310,7 +310,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                                         json!({
                                             "source_id": allocation.source_id.to_hex(),
                                             "leg_kind": allocation.leg_kind.code(),
-                                            "amount": allocation.amount.to_string()
+                                            "amount": allocation.amount.to_hex()
                                         })
                                     })
                                     .collect::<Vec<_>>();
@@ -335,9 +335,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                             "gas_funding_certified": promotion.scope().gas_funding_certified(),
                             "aave_pool": aave_pool.to_hex(),
                             "debt_asset": candidate.pair().debt_asset().to_hex(),
-                            "principal": candidate.debt_to_liquidate().to_string(),
-                            "flash_premium": candidate.flash_loan_premium().to_string(),
-                            "repayment_principal": candidate.debt_to_liquidate().to_string(),
+                            "principal": candidate.debt_to_liquidate().to_hex(),
+                            "flash_premium": candidate.flash_loan_premium().to_hex(),
+                            "repayment_principal": candidate.debt_to_liquidate().to_hex(),
                             "capital_status": capital_status,
                             "rejection_reason": capital_reason,
                             "allocations": allocations
@@ -709,10 +709,7 @@ fn account_snapshot_commitment(account: &Value) -> Result<Hash32, Box<dyn Error>
     Ok(Hash32::new(hasher.finalize().into())?)
 }
 
-fn reserves(
-    d08: &Path,
-    anchor_timestamp: u64,
-) -> Result<(BTreeMap<Address, Reserve>, U256), Box<dyn Error>> {
+fn reserves(d08: &Path) -> Result<(BTreeMap<Address, Reserve>, U256), Box<dyn Error>> {
     let state = jsonl(d08.join("market-state-manifest.jsonl"))?;
     let oracle = jsonl(d08.join("oracle-manifest.jsonl"))?;
     let mut prices = BTreeMap::new();
