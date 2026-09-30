@@ -29,6 +29,7 @@ pub enum EconomicsError {
     DuplicateCostKind(CostKind),
     MissingEvidence,
     DuplicateEvidence,
+    MissingCommitment(&'static str),
     AmountOverflow,
     ProbabilityArithmeticOverflow,
     CaptureSamplesRequired,
@@ -53,6 +54,7 @@ impl Display for EconomicsError {
             Self::DuplicateCostKind(kind) => write!(f, "execution cost vector repeats {kind:?}"),
             Self::MissingEvidence => f.write_str("economics record requires evidence"),
             Self::DuplicateEvidence => f.write_str("economics record repeats evidence"),
+            Self::MissingCommitment(name) => write!(f, "{name} commitment must be non-zero"),
             Self::AmountOverflow => f.write_str("uint256 economics amount overflow"),
             Self::ProbabilityArithmeticOverflow => {
                 f.write_str("probability-weighted arithmetic overflow")
@@ -691,6 +693,9 @@ impl ProfitBucket {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionQuote {
     candidate_id: PortfolioCandidateId,
+    opportunity_id: Hash32,
+    execution_plan_commitment: Hash32,
+    economic_model_commitment: Hash32,
     anchor: StateAnchor,
     valuation_unit: ValuationUnitId,
     trade_size: Amount256,
@@ -706,6 +711,9 @@ impl ExecutionQuote {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         candidate_id: PortfolioCandidateId,
+        opportunity_id: Hash32,
+        execution_plan_commitment: Hash32,
+        economic_model_commitment: Hash32,
         anchor: StateAnchor,
         valuation_unit: ValuationUnitId,
         trade_size: Amount256,
@@ -718,6 +726,15 @@ impl ExecutionQuote {
         if trade_size.is_zero() {
             return Err(EconomicsError::ZeroValue("trade_size"));
         }
+        for (name, commitment) in [
+            ("opportunity", opportunity_id),
+            ("execution_plan", execution_plan_commitment),
+            ("economic_model", economic_model_commitment),
+        ] {
+            if commitment.as_bytes().iter().all(|byte| *byte == 0) {
+                return Err(EconomicsError::MissingCommitment(name));
+            }
+        }
         if evidence.is_empty() {
             return Err(EconomicsError::MissingEvidence);
         }
@@ -727,6 +744,9 @@ impl ExecutionQuote {
         }
         let commitment = quote_commitment(
             candidate_id,
+            opportunity_id,
+            execution_plan_commitment,
+            economic_model_commitment,
             &anchor,
             valuation_unit,
             trade_size,
@@ -738,6 +758,9 @@ impl ExecutionQuote {
         );
         Ok(Self {
             candidate_id,
+            opportunity_id,
+            execution_plan_commitment,
+            economic_model_commitment,
             anchor,
             valuation_unit,
             trade_size,
@@ -752,6 +775,18 @@ impl ExecutionQuote {
 
     pub const fn candidate_id(&self) -> PortfolioCandidateId {
         self.candidate_id
+    }
+
+    pub const fn opportunity_id(&self) -> Hash32 {
+        self.opportunity_id
+    }
+
+    pub const fn execution_plan_commitment(&self) -> Hash32 {
+        self.execution_plan_commitment
+    }
+
+    pub const fn economic_model_commitment(&self) -> Hash32 {
+        self.economic_model_commitment
     }
 
     pub const fn anchor(&self) -> &StateAnchor {
@@ -1016,6 +1051,9 @@ pub fn evaluate_scenarios(
 
 fn quote_commitment(
     candidate_id: PortfolioCandidateId,
+    opportunity_id: Hash32,
+    execution_plan_commitment: Hash32,
+    economic_model_commitment: Hash32,
     anchor: &StateAnchor,
     valuation_unit: ValuationUnitId,
     trade_size: Amount256,
@@ -1029,6 +1067,9 @@ fn quote_commitment(
     hasher.update(QUOTE_DOMAIN);
     hasher.update([0]);
     hasher.update(candidate_id.as_bytes());
+    hasher.update(opportunity_id.as_bytes());
+    hasher.update(execution_plan_commitment.as_bytes());
+    hasher.update(economic_model_commitment.as_bytes());
     encode_anchor(anchor, &mut hasher);
     hasher.update(valuation_unit.as_bytes());
     hasher.update(trade_size.as_be_bytes());
