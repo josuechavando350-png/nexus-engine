@@ -11,14 +11,16 @@ use crate::{
     validate_settlement_requirements, CapitalCensusCommitment, CapitalCensusLedger,
     CapitalCensusSummary, CapitalCertificationContext, CapitalClass, CapitalError,
     CapitalEvidenceRef, CapitalFeasibility, CapitalLedgerMode, CapitalProviderKind,
-    CapitalSource, UpstreamCensusStage, UpstreamConsumptionReceipt,
+    CapitalSource, CapitalSourceId, CapitalSourceKeyId, UpstreamCensusStage,
+    UpstreamConsumptionReceipt,
 };
 use nqc_census_core::{Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 const SOURCE_SET_DOMAIN: &[u8] = b"NQC-RMC011-NATIVE-SOURCE-SET-V1";
 const AUTHORITY_DOMAIN: &[u8] = b"NQC-RMC011-NATIVE-SOURCE-AUTHORITY-V2";
+const AUTHORITY_SET_DOMAIN: &[u8] = b"NQC-RMC011-NATIVE-SOURCE-AUTHORITY-SET-V1";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum D11SourceFamily {
@@ -130,6 +132,8 @@ pub struct D11SourceAuthority {
     observation_anchor: StateAnchor,
     reconciliation_artifact_sha256: Hash32,
     evidence: BTreeSet<CapitalEvidenceRef>,
+    source_ids: BTreeSet<CapitalSourceId>,
+    source_key_ids: BTreeSet<CapitalSourceKeyId>,
     source_count: u64,
     source_set_commitment: Hash32,
     commitment: Hash32,
@@ -206,6 +210,17 @@ impl D11SourceAuthority {
             return Err(CapitalError::UnresolvedEvidenceRef);
         }
 
+        let source_ids = sources.iter().map(CapitalSource::id).collect::<BTreeSet<_>>();
+        let source_key_ids = sources
+            .iter()
+            .map(CapitalSource::key_id)
+            .collect::<BTreeSet<_>>();
+        if source_ids.len() != sources.len() || source_key_ids.len() != sources.len() {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "D11 native source authority contains duplicate source id or source key",
+            ));
+        }
+
         let (source_count, source_set_commitment) = source_set_commitment(sources)?;
         let commitment = authority_commitment(
             family,
@@ -221,6 +236,8 @@ impl D11SourceAuthority {
             observation_anchor,
             reconciliation_artifact_sha256,
             evidence,
+            source_ids,
+            source_key_ids,
             source_count,
             source_set_commitment,
             commitment,
@@ -267,6 +284,14 @@ impl D11SourceAuthority {
 
     pub fn admits_evidence(&self, reference: &CapitalEvidenceRef) -> bool {
         self.evidence.contains(reference)
+    }
+
+    pub fn source_ids(&self) -> impl Iterator<Item = CapitalSourceId> + '_ {
+        self.source_ids.iter().copied()
+    }
+
+    pub fn source_key_ids(&self) -> impl Iterator<Item = CapitalSourceKeyId> + '_ {
+        self.source_key_ids.iter().copied()
     }
 
     pub const fn source_count(&self) -> u64 {
@@ -317,6 +342,196 @@ impl D11SourceAuthority {
         }
         Ok(())
     }
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct D11SourceAuthoritySet {
+    observation_anchor: StateAnchor,
+    authorities: BTreeMap<D11SourceFamily, D11SourceAuthority>,
+    source_ids: BTreeSet<CapitalSourceId>,
+    source_key_ids: BTreeSet<CapitalSourceKeyId>,
+    evidence: BTreeSet<CapitalEvidenceRef>,
+    source_count: u64,
+    commitment: Hash32,
+}
+
+impl D11SourceAuthoritySet {
+    pub fn new(authorities: Vec<D11SourceAuthority>) -> Result<Self, CapitalError> {
+        if authorities.is_empty() {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "D11 native source authority set is empty",
+            ));
+        }
+        let observation_anchor = authorities[0].observation_anchor.clone();
+        let mut by_family = BTreeMap::new();
+        let mut source_ids = BTreeSet::new();
+        let mut source_key_ids = BTreeSet::new();
+        let mut evidence = BTreeSet::new();
+        let mut source_count = 0_u64;
+
+        for authority in authorities {
+            if authority.observation_anchor != observation_anchor {
+                return Err(CapitalError::AnchorMismatch);
+            }
+            if by_family.contains_key(&authority.family) {
+                return Err(CapitalError::InvalidUpstreamAuthority(
+                    "D11 native source authority set repeats a family",
+                ));
+            }
+            for source_id in authority.source_ids() {
+                if !source_ids.insert(source_id) {
+                    return Err(CapitalError::InvalidUpstreamAuthority(
+                        "D11 native source authorities overlap on source id",
+                    ));
+                }
+            }
+            for source_key_id in authority.source_key_ids() {
+                if !source_key_ids.insert(source_key_id) {
+                    return Err(CapitalError::InvalidUpstreamAuthority(
+                        "D11 native source authorities overlap on source key",
+                    ));
+                }
+            }
+            evidence.extend(authority.evidence().copied());
+            source_count = source_count.checked_add(authority.source_count()).ok_or(
+                CapitalError::InvalidUpstreamAuthority(
+                    "D11 native authority set source count exceeds u64",
+                ),
+            )?;
+            by_family.insert(authority.family(), authority);
+        }
+
+        let commitment = authority_set_commitment(
+            &observation_anchor,
+            &by_family,
+            source_count,
+        )?;
+        Ok(Self {
+            observation_anchor,
+            authorities: by_family,
+            source_ids,
+            source_key_ids,
+            evidence,
+            source_count,
+            commitment,
+        })
+    }
+
+    pub const fn observation_anchor(&self) -> &StateAnchor {
+        &self.observation_anchor
+    }
+
+    pub fn authorities(&self) -> impl Iterator<Item = &D11SourceAuthority> {
+        self.authorities.values()
+    }
+
+    pub fn authority(&self, family: D11SourceFamily) -> Option<&D11SourceAuthority> {
+        self.authorities.get(&family)
+    }
+
+    pub fn admits_evidence(&self, reference: &CapitalEvidenceRef) -> bool {
+        self.evidence.contains(reference)
+    }
+
+    pub const fn source_count(&self) -> u64 {
+        self.source_count
+    }
+
+    pub const fn commitment(&self) -> Hash32 {
+        self.commitment
+    }
+
+    pub fn verify_source_set<'a>(
+        &self,
+        sources: impl IntoIterator<Item = &'a CapitalSource>,
+    ) -> Result<(), CapitalError> {
+        let sources = sources.into_iter().collect::<Vec<_>>();
+        if sources
+            .iter()
+            .any(|source| source.anchor() != &self.observation_anchor)
+        {
+            return Err(CapitalError::AnchorMismatch);
+        }
+        if sources.len() != usize::try_from(self.source_count).map_err(|_| {
+            CapitalError::InvalidUpstreamAuthority(
+                "D11 native authority source count exceeds usize",
+            )
+        })? {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "D11 native source union count differs from authority set",
+            ));
+        }
+
+        let observed_ids = sources
+            .iter()
+            .map(|source| source.id())
+            .collect::<BTreeSet<_>>();
+        let observed_key_ids = sources
+            .iter()
+            .map(|source| source.key_id())
+            .collect::<BTreeSet<_>>();
+        if observed_ids != self.source_ids || observed_key_ids != self.source_key_ids {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "D11 native source union differs from authority set",
+            ));
+        }
+
+        let mut by_family = BTreeMap::<D11SourceFamily, Vec<&CapitalSource>>::new();
+        for source in sources {
+            let family = D11SourceFamily::classify(source)?;
+            by_family.entry(family).or_default().push(source);
+        }
+        if by_family.len() != self.authorities.len()
+            || by_family.keys().any(|family| !self.authorities.contains_key(family))
+        {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "D11 native source families differ from authority set",
+            ));
+        }
+        for (family, authority) in &self.authorities {
+            let family_sources = by_family.get(family).ok_or(
+                CapitalError::InvalidUpstreamAuthority(
+                    "D11 native authority family has no source records",
+                ),
+            )?;
+            authority.verify_source_set(family_sources.iter().copied())?;
+        }
+        Ok(())
+    }
+}
+
+fn authority_set_commitment(
+    anchor: &StateAnchor,
+    authorities: &BTreeMap<D11SourceFamily, D11SourceAuthority>,
+    source_count: u64,
+) -> Result<Hash32, CapitalError> {
+    let mut hasher = Sha256::new();
+    hasher.update(AUTHORITY_SET_DOMAIN);
+    hasher.update([0]);
+    encode_anchor(anchor, &mut hasher);
+    hasher.update(
+        u64::try_from(authorities.len())
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "D11 native authority family count exceeds u64",
+                )
+            })?
+            .to_be_bytes(),
+    );
+    for (family, authority) in authorities {
+        hasher.update([family.tag()]);
+        hasher.update(authority.commitment().as_bytes());
+        hasher.update(authority.source_count().to_be_bytes());
+        hasher.update(authority.source_set_commitment().as_bytes());
+    }
+    hasher.update(source_count.to_be_bytes());
+    let digest: [u8; 32] = hasher.finalize().into();
+    Hash32::new(digest).map_err(|_| {
+        CapitalError::InvalidUpstreamAuthority(
+            "zero D11 native source authority set commitment",
+        )
+    })
 }
 
 fn source_set_commitment(sources: &[CapitalSource]) -> Result<(u64, Hash32), CapitalError> {
