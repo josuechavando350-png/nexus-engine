@@ -43,6 +43,7 @@ pub enum CapitalError {
     DuplicateLeg,
     GasLegMustUseNativeAsset,
     GasLegMustAllowGasFunding,
+    GasLegMustUseGasFundingOnly,
     NativeGasRequiredButMissing,
     NativeGasLegWithoutRequirementFlag,
     PersistentDebtTermsRequired,
@@ -101,6 +102,9 @@ impl Display for CapitalError {
             }
             Self::GasLegMustAllowGasFunding => {
                 f.write_str("gas funding leg must permit GAS_FUNDING capital")
+            }
+            Self::GasLegMustUseGasFundingOnly => {
+                f.write_str("gas funding leg must permit only GAS_FUNDING capital")
             }
             Self::NativeGasRequiredButMissing => {
                 f.write_str("candidate requires native gas but no gas leg exists")
@@ -1693,6 +1697,9 @@ impl CapitalRequirementLeg {
             if !allowed_classes.contains(&CapitalClass::GasFunding) {
                 return Err(CapitalError::GasLegMustAllowGasFunding);
             }
+            if allowed_classes.len() != 1 {
+                return Err(CapitalError::GasLegMustUseGasFundingOnly);
+            }
         }
         Ok(Self {
             kind,
@@ -2672,6 +2679,7 @@ pub struct CapitalCensusSummary {
     pub source_count: usize,
     pub requirement_count: usize,
     pub feasible_count: usize,
+    pub feasible_external_gas_count: usize,
     pub rejected_count: usize,
     pub operator_owned_sources_observed: usize,
     pub operator_owned_sources_used: usize,
@@ -2688,7 +2696,9 @@ impl CapitalCensusSummary {
     }
 
     pub const fn proves_zero_own_capital(&self) -> bool {
-        self.feasible_count > 0 && self.uses_zero_operator_capital()
+        self.feasible_count > 0
+            && self.feasible_external_gas_count == self.feasible_count
+            && self.uses_zero_operator_capital()
     }
 }
 
@@ -3426,12 +3436,32 @@ impl CapitalCensusLedger {
         }
 
         let mut feasible_count = 0_usize;
+        let mut feasible_external_gas_count = 0_usize;
         let mut rejected_count = 0_usize;
         let mut operator_owned_sources_used = 0_usize;
         for result in self.results.values() {
             match result {
-                CapitalFeasibility::Feasible { allocations, .. } => {
+                CapitalFeasibility::Feasible {
+                    requirement_id,
+                    allocations,
+                } => {
                     feasible_count += 1;
+                    let requirement = self
+                        .requirements
+                        .get(requirement_id)
+                        .ok_or(CapitalError::InvalidCanonical(
+                            "feasible result references missing requirement",
+                        ))?;
+                    let required_gas = if requirement.requires_native_gas() {
+                        declared_leg_total(
+                            requirement,
+                            RequirementKind::Gas,
+                            CapitalAsset::NativeGas,
+                        )?
+                    } else {
+                        Amount256::ZERO
+                    };
+                    let mut external_gas_funded = Amount256::ZERO;
                     for allocation in allocations {
                         let source = self
                             .sources
@@ -3440,6 +3470,16 @@ impl CapitalCensusLedger {
                         if source.ownership().is_operator_owned() {
                             operator_owned_sources_used += 1;
                         }
+                        if allocation.leg_kind == RequirementKind::Gas
+                            && source.class() == CapitalClass::GasFunding
+                            && source.ownership() == CapitalOwnership::External
+                        {
+                            external_gas_funded =
+                                external_gas_funded.checked_add(allocation.amount)?;
+                        }
+                    }
+                    if !required_gas.is_zero() && external_gas_funded == required_gas {
+                        feasible_external_gas_count += 1;
                     }
                 }
                 CapitalFeasibility::Rejected { .. } => rejected_count += 1,
@@ -3450,6 +3490,7 @@ impl CapitalCensusLedger {
             source_count: self.sources.len(),
             requirement_count: self.requirements.len(),
             feasible_count,
+            feasible_external_gas_count,
             rejected_count,
             operator_owned_sources_observed,
             operator_owned_sources_used,
