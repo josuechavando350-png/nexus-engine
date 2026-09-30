@@ -1,9 +1,9 @@
 use nqc_census_capital::{
     artifacts::{export_capital_artifacts, ArtifactProvenance, CAPITAL_SOURCES_FILE},
+    replay::{UpstreamAuthorityLock, UpstreamAuthorityLockEntry},
     Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalCertificationContext,
     CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalOwnership, CapitalProviderKind,
     CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
-    replay::{UpstreamAuthorityLock, UpstreamAuthorityLockEntry},
     CollateralRequirement, FeeModel, GitObjectId, RepaymentSemantics, RequiredAtomicity,
     RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamConsumptionReceipt,
     UpstreamStageAuthority, UpstreamStageAuthoritySpec, UtilizationConstraints,
@@ -259,8 +259,14 @@ fn authority_lock_candidate(
             "observation_anchor",
             Json::object([
                 ("chain_id", Json::uint(a.chain().chain_id())),
-                ("genesis_hash", Json::string(a.chain().genesis_hash().to_hex())),
-                ("fork_lineage", Json::string(a.chain().fork_lineage().to_hex())),
+                (
+                    "genesis_hash",
+                    Json::string(a.chain().genesis_hash().to_hex()),
+                ),
+                (
+                    "fork_lineage",
+                    Json::string(a.chain().fork_lineage().to_hex()),
+                ),
                 ("block_number", Json::uint(a.block_number())),
                 ("block_hash", Json::string(a.block_hash().to_hex())),
                 ("parent_hash", Json::string(a.parent_hash().to_hex())),
@@ -354,4 +360,3 @@ fn authority_lock_builder_binary_rejects_incomplete_stage_set() -> TestResult {
     let _ = fs::remove_dir_all(&directory);
     Ok(())
 }
-
