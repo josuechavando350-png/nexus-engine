@@ -277,6 +277,140 @@ def deploy_runtime(
     return contract, runtime
 
 
+def _revert_hex(value: object) -> str | None:
+    if isinstance(value, str):
+        lowered = value.lower()
+        if lowered.startswith("0x") and len(lowered) >= 10 and len(lowered) % 2 == 0:
+            try:
+                bytes.fromhex(lowered[2:])
+            except ValueError:
+                return None
+            return lowered
+        return None
+    if isinstance(value, dict):
+        if "data" in value:
+            found = _revert_hex(value["data"])
+            if found is not None:
+                return found
+        for key in sorted(value):
+            found = _revert_hex(value[key])
+            if found is not None:
+                return found
+    if isinstance(value, list):
+        for item in value:
+            found = _revert_hex(item)
+            if found is not None:
+                return found
+    return None
+
+
+def simulate_loaded_fork(
+    route: dict,
+    rpc: Rpc,
+    provider_id: str,
+    cast: str,
+    executor: str,
+    runtime: str,
+    observed_anchor: dict,
+) -> dict:
+    if route.get("executor_compatibility") != "PFT_AAVE_V3_EXECUTOR_V2_ROUTE":
+        return {
+            "schema": SCHEMA,
+            "provider_id": provider_id,
+            "candidate_id": route["candidate_id"],
+            "route_id": route["route_id"],
+            "status": "REJECTED",
+            "reason": "PFT_EXECUTOR_ROUTE_UNSUPPORTED",
+        }
+    if not route.get("hops"):
+        raise ValueError("PFT executor route unexpectedly has zero hops")
+
+    modeled_profit = int(route["pre_gas_success_net_debt_units"])
+    if modeled_profit <= 0:
+        return {
+            "schema": SCHEMA,
+            "provider_id": provider_id,
+            "candidate_id": route["candidate_id"],
+            "route_id": route["route_id"],
+            "status": "REJECTED",
+            "reason": "NON_POSITIVE_PRE_GAS_SUCCESS_NET",
+            "modeled_profit_debt_units": str(modeled_profit),
+        }
+
+    calldata = execute_calldata(route, cast)
+    call = {"from": OPERATOR, "to": executor, "data": calldata}
+    try:
+        returned = rpc.call("eth_call", [call, "latest"])
+    except RpcError as error:
+        revert_data = _revert_hex(error.error)
+        return {
+            "schema": SCHEMA,
+            "provider_id": provider_id,
+            "candidate_id": route["candidate_id"],
+            "route_id": route["route_id"],
+            "status": "REJECTED",
+            "reason": "FORK_EXECUTION_REVERTED",
+            "rpc_error_code": error.error.get("code") if isinstance(error.error, dict) else None,
+            "revert_selector": revert_data[:10] if revert_data is not None else None,
+            "revert_data_sha256": (
+                hashlib.sha256(bytes.fromhex(revert_data[2:])).hexdigest()
+                if revert_data is not None
+                else None
+            ),
+            "anchor": observed_anchor,
+            "executor": executor,
+            "executor_runtime_sha256": hashlib.sha256(bytes.fromhex(runtime[2:])).hexdigest(),
+            "calldata_sha256": hashlib.sha256(bytes.fromhex(calldata[2:])).hexdigest(),
+        }
+
+    if not isinstance(returned, str) or not returned.startswith("0x"):
+        raise RuntimeError("eth_call returned non-hex data")
+    raw = returned[2:]
+    if len(raw) != 64:
+        raise RuntimeError(f"executor return is not one uint256 word: {returned}")
+    realized_profit = int(raw, 16)
+    if realized_profit != modeled_profit:
+        raise RuntimeError(
+            f"fork/model profit mismatch: fork={realized_profit} model={modeled_profit}"
+        )
+
+    gas_estimate = int(rpc.call("eth_estimateGas", [call, "latest"]), 16)
+    if gas_estimate <= 21_000:
+        raise RuntimeError(f"implausible gas estimate {gas_estimate}")
+    trace = rpc.call("debug_traceCall", [call, "latest", {}])
+    if not isinstance(trace, dict) or trace.get("failed") is True:
+        raise RuntimeError("debug_traceCall did not return a successful trace")
+    traced_gas = hex_int(trace.get("gas"), "debug_traceCall.gas")
+    if traced_gas <= 0 or traced_gas > gas_estimate:
+        raise RuntimeError(
+            f"trace/estimate gas invariant failed: trace={traced_gas} estimate={gas_estimate}"
+        )
+    code_hash = command([cast, "keccak", runtime])
+
+    return {
+        "schema": SCHEMA,
+        "provider_id": provider_id,
+        "candidate_id": route["candidate_id"],
+        "route_id": route["route_id"],
+        "status": "PASS",
+        "anchor": observed_anchor,
+        "executor": executor,
+        "executor_runtime_sha256": hashlib.sha256(bytes.fromhex(runtime[2:])).hexdigest(),
+        "executor_runtime_keccak256": code_hash.lower(),
+        "calldata_sha256": hashlib.sha256(bytes.fromhex(calldata[2:])).hexdigest(),
+        "realized_profit_debt_units_before_gas": str(realized_profit),
+        "simulated_gas_used": traced_gas,
+        "simulated_gas_used_basis": "DEBUG_TRACECALL_EXACT_ANVIL_FORK_ANCHOR",
+        "gas_requirement_units": gas_estimate,
+        "gas_requirement_basis": "ETH_ESTIMATE_GAS_EXACT_ANVIL_FORK_ANCHOR",
+        "fork_local_executor_code_injected": True,
+        "fork_local_operator_balance_overridden": True,
+        "operator_balance_override_is_capital_evidence": False,
+        "live_transaction_sent": False,
+        "own_capital_used": False,
+    }
+
+
 def simulate(
     route: dict,
     rpc_url: str,
@@ -296,8 +430,16 @@ def simulate(
             "status": "REJECTED",
             "reason": "PFT_EXECUTOR_ROUTE_UNSUPPORTED",
         }
-    if not route.get("hops"):
-        raise ValueError("PFT executor route unexpectedly has zero hops")
+    if int(route["pre_gas_success_net_debt_units"]) <= 0:
+        return {
+            "schema": SCHEMA,
+            "provider_id": provider_id,
+            "candidate_id": route["candidate_id"],
+            "route_id": route["route_id"],
+            "status": "REJECTED",
+            "reason": "NON_POSITIVE_PRE_GAS_SUCCESS_NET",
+            "modeled_profit_debt_units": route["pre_gas_success_net_debt_units"],
+        }
 
     block_number = hex_int(route["anchor"]["block_number"], "anchor.block_number")
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -305,116 +447,29 @@ def simulate(
     process = subprocess.Popen(
         [
             anvil,
-            "--fork-url",
-            rpc_url,
-            "--fork-block-number",
-            str(block_number),
-            "--chain-id",
-            str(hex_int(route["anchor"]["chain_id"], "anchor.chain_id")),
-            "--host",
-            "127.0.0.1",
-            "--port",
-            str(port),
+            "--fork-url", rpc_url,
+            "--fork-block-number", str(block_number),
+            "--chain-id", str(hex_int(route["anchor"]["chain_id"], "anchor.chain_id")),
+            "--host", "127.0.0.1",
+            "--port", str(port),
             "--silent",
         ],
         stdout=log_handle,
         stderr=subprocess.STDOUT,
         text=True,
     )
-    local_url = f"http://127.0.0.1:{port}"
-    rpc = Rpc(local_url)
+    rpc = Rpc(f"http://127.0.0.1:{port}")
     try:
         wait_rpc(rpc, process)
         observed_anchor = verify_anchor(rpc, route)
         pool = address(route["aave_pool"], "aave_pool")
-        executor, runtime = deploy_runtime(
-            rpc, creation_bytecode, cast, OPERATOR, pool
-        )
-        # Deployment was reverted; anchor must still be exact after injecting code.
+        executor, runtime = deploy_runtime(rpc, creation_bytecode, cast, OPERATOR, pool)
         readback_anchor = verify_anchor(rpc, route)
         if readback_anchor != observed_anchor:
             raise RuntimeError("anchor changed while materializing executor runtime")
-
-        calldata = execute_calldata(route, cast)
-        call = {
-            "from": OPERATOR,
-            "to": executor,
-            "data": calldata,
-        }
-        try:
-            returned = rpc.call("eth_call", [call, "latest"])
-        except RpcError as error:
-            return {
-                "schema": SCHEMA,
-                "provider_id": provider_id,
-                "candidate_id": route["candidate_id"],
-                "route_id": route["route_id"],
-                "status": "REJECTED",
-                "reason": "FORK_EXECUTION_REVERTED",
-                "rpc_error": error.error,
-                "anchor": observed_anchor,
-                "executor": executor,
-                "executor_runtime_sha256": hashlib.sha256(
-                    bytes.fromhex(runtime[2:])
-                ).hexdigest(),
-                "calldata_sha256": hashlib.sha256(
-                    bytes.fromhex(calldata[2:])
-                ).hexdigest(),
-            }
-
-        if not isinstance(returned, str) or not returned.startswith("0x"):
-            raise RuntimeError("eth_call returned non-hex data")
-        raw = returned[2:]
-        if len(raw) != 64:
-            raise RuntimeError(f"executor return is not one uint256 word: {returned}")
-        realized_profit = int(raw, 16)
-        modeled_profit = int(route["pre_gas_success_net_debt_units"])
-        if modeled_profit <= 0:
-            raise RuntimeError("non-positive modeled route unexpectedly executed")
-        if realized_profit != modeled_profit:
-            raise RuntimeError(
-                f"fork/model profit mismatch: fork={realized_profit} model={modeled_profit}"
-            )
-
-        gas_estimate = int(rpc.call("eth_estimateGas", [call, "latest"]), 16)
-        if gas_estimate <= 21_000:
-            raise RuntimeError(f"implausible gas estimate {gas_estimate}")
-        trace = rpc.call("debug_traceCall", [call, "latest", {}])
-        if not isinstance(trace, dict) or trace.get("failed") is True:
-            raise RuntimeError("debug_traceCall did not return a successful trace")
-        traced_gas = hex_int(trace.get("gas"), "debug_traceCall.gas")
-        if traced_gas <= 0 or traced_gas > gas_estimate:
-            raise RuntimeError(
-                f"trace/estimate gas invariant failed: trace={traced_gas} estimate={gas_estimate}"
-            )
-        code_hash = command([cast, "keccak", runtime])
-
-        return {
-            "schema": SCHEMA,
-            "provider_id": provider_id,
-            "candidate_id": route["candidate_id"],
-            "route_id": route["route_id"],
-            "status": "PASS",
-            "anchor": observed_anchor,
-            "executor": executor,
-            "executor_runtime_sha256": hashlib.sha256(
-                bytes.fromhex(runtime[2:])
-            ).hexdigest(),
-            "executor_runtime_keccak256": code_hash.lower(),
-            "calldata_sha256": hashlib.sha256(
-                bytes.fromhex(calldata[2:])
-            ).hexdigest(),
-            "realized_profit_debt_units_before_gas": str(realized_profit),
-            "simulated_gas_used": traced_gas,
-            "simulated_gas_used_basis": "DEBUG_TRACECALL_EXACT_ANVIL_FORK_ANCHOR",
-            "gas_requirement_units": gas_estimate,
-            "gas_requirement_basis": "ETH_ESTIMATE_GAS_EXACT_ANVIL_FORK_ANCHOR",
-            "fork_local_executor_code_injected": True,
-            "fork_local_operator_balance_overridden": True,
-            "operator_balance_override_is_capital_evidence": False,
-            "live_transaction_sent": False,
-            "own_capital_used": False,
-        }
+        return simulate_loaded_fork(
+            route, rpc, provider_id, cast, executor, runtime, observed_anchor
+        )
     finally:
         process.terminate()
         try:
@@ -423,7 +478,6 @@ def simulate(
             process.kill()
             process.wait(timeout=5)
         log_handle.close()
-
 
 def main() -> None:
     parser = argparse.ArgumentParser()
