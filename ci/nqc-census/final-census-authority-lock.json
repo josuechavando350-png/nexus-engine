@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "status": "BLOCKED",
   "real_market_census_closed": false,
   "pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
@@ -15,13 +15,19 @@
     "RMC-013"
   ],
   "pinned_stages": [],
+  "pipeline_counts": null,
+  "economic_boundary": null,
+  "terminal_evidence": [],
   "blocking_reasons": [
+    "RMC006_THROUGH_RMC010_TERMINAL_ARTIFACTS_NOT_ALL_PINNED",
+    "RMC011_REAL_SOURCE_CERTIFICATION_NOT_PINNED",
     "RMC012_REAL_ACTIONABILITY_BRIDGE_NOT_CERTIFIED",
     "RMC013_REAL_ECONOMICS_COVERAGE_NOT_CERTIFIED",
     "TERMINAL_STAGE_ARTIFACTS_NOT_ALL_PINNED"
   ],
   "notes": [
     "Synthetic or foundation-only D12/D13 evidence cannot satisfy RMC-014.",
-    "Set status=PINNED only after exact terminal artifacts are independently verified."
+    "Set status=PINNED only after exact terminal artifacts are independently verified.",
+    "When PINNED, every stage row must include a non-empty content-addressed evidence array; pipeline_counts, economic_boundary and terminal_evidence must be populated from authenticated terminal artifacts."
   ]
 }
