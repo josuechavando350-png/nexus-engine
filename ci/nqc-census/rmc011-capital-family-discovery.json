@@ -30,7 +30,7 @@
       "anchor_mode": "EXACT_STATE_ANCHOR",
       "completeness": "CANONICAL_VAULT_CODE_IDENTITY_PAUSE_STATE_FEE_COLLECTOR_FEE_AND_VAULT_BALANCE_EVALUATED_FOR_EVERY_RMC_ACTIONABLE_ASSET",
       "negative_proof": "DUAL_PROVIDER_EXACT_VAULT_AND_ASSET_STATE",
-      "implementation": "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs"
+      "implementation": "nqc-census/crates/nqc-census-capital/src/balancer_live.rs + .github/workflows/nqc-census-capital-real-source-certification.yml"
     },
     {
       "id": "UNISWAP_V3_FLASH",
