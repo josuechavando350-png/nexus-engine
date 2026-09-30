@@ -112,6 +112,45 @@ jobs:
           test "$(find "$PACKAGE/families" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 9
           test "$(find "$PACKAGE/families" -name evidence.json -type f | wc -l)" -eq 9
 
+          python3 - "$PACKAGE" "$EXACT_HEAD" "$GITHUB_WORKFLOW" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          package_path, head_sha, workflow, run_id, run_attempt = sys.argv[1:]
+          package = pathlib.Path(package_path)
+          rows = []
+          for evidence_path in sorted((package / "families").glob("*/evidence.json")):
+              data = evidence_path.read_bytes()
+              row = json.loads(data)
+              rows.append({
+                  "family": row["family"],
+                  "file": evidence_path.relative_to(package).as_posix(),
+                  "sha256": hashlib.sha256(data).hexdigest(),
+              })
+
+          assert len(rows) == 9
+          assert len({row["family"] for row in rows}) == 9
+          index = {
+              "schema_version": 1,
+              "stage": "RMC-011",
+              "status": "RMC011_BOUNDED_FAMILY_REJECTION_EVIDENCE_INDEX",
+              "workflow_name": workflow,
+              "head_sha": head_sha,
+              "run_id": int(run_id),
+              "run_attempt": int(run_attempt),
+              "family_count": len(rows),
+              "families": rows,
+              "artifact_metadata_pending_upload": True,
+              "d11_terminal_closed": False,
+          }
+          (package / "evidence-index.json").write_text(
+              json.dumps(index, sort_keys=True, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
           (
             cd "$PACKAGE"
             LC_ALL=C find . -type f ! -name SHA256SUMS -print0               | LC_ALL=C sort -z               | xargs -0 sha256sum > SHA256SUMS
