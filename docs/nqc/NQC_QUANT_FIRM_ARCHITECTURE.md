@@ -270,6 +270,12 @@ NQC should behave like a quantitative organization with software-enforced separa
 The system earns production authority from evidence. It never receives it from architecture, ambition or agent consensus.
 
 
+## Materialized fleet registry
+
+The operational fleet is explicitly registered in `ci/nqc-quant-firm/AGENT_REGISTRY_350.jsonl` as exactly 350 identities, `NQC-A001` through `NQC-A350`. Each record binds desk, canonical role, capability class, permitted research tools and forbidden actions. All 350 are non-signing, non-broadcasting, non-money-moving research/verification agents and are excluded from the deterministic execution hot path.
+
+The fleet CI gate verifies the complete ID sequence, per-role cardinalities, no duplicate IDs, no execution authority, mandatory evidence grounding and the complete forbidden-action set.
+
 ## Reuse of existing NEXUS agent technology
 
 The Quant Firm agent plane should reuse proven architectural primitives already present in NEXUS rather than creating a parallel framework:
