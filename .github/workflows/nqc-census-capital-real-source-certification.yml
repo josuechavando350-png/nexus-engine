@@ -196,14 +196,14 @@ jobs:
             test -f "$authority_path"
             authority_sha="$(sha256sum "$authority_path" | awk '{print $1}')"
             [[ "$authority_sha" =~ ^[0-9a-f]{64}$ ]]
-            printf '%s\t%s\t%s\t%s\t%s\t%s\n' \
+            printf '%s %s %s %s %s %s\n' \
               "$key" "$stage_code" "$head_sha" "$tree_sha" "$authority_file" "$authority_sha" \
-              >> "$RUNNER_TEMP/rmc011-authority-transport.tsv"
+              >> "$RUNNER_TEMP/rmc011-authority-transport.txt"
 
             echo "RMC011_UPSTREAM_TRANSPORT_PASS stage=$stage_code run=$run_id artifact=$artifact_id head=$head_sha tree=$tree_sha authority_sha256=$authority_sha"
           }
 
-          : > "$RUNNER_TEMP/rmc011-authority-transport.tsv"
+          : > "$RUNNER_TEMP/rmc011-authority-transport.txt"
 
           verify_and_download d06 RMC-006 "$RUNNER_TEMP/d06-raw"
           verify_and_download d07 RMC-007 "$RUNNER_TEMP/d07-raw"
@@ -234,8 +234,8 @@ jobs:
 
           rows = []
           expected = ["RMC-006", "RMC-007", "RMC-008", "RMC-009", "RMC-010"]
-          for line in (runner / "rmc011-authority-transport.tsv").read_text().splitlines():
-              key, stage, commit, tree, authority_file, authority_sha = line.split("\t")
+          for line in (runner / "rmc011-authority-transport.txt").read_text().splitlines():
+              key, stage, commit, tree, authority_file, authority_sha = line.split()
               rows.append({
                   "stage": stage,
                   "code_commit": commit,
@@ -269,123 +269,7 @@ jobs:
             echo RMC011_DECLARED_AUTHORITY_LOCK_MATCH=PASS
           fi
 
-          while IFS=      - name: Verify one coherent A1 authority snapshot
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 ci/nqc-census/verify-rmc011-upstream-coherence.py \
-            "$INPUTS" \
-            "$AUTHORITY_LOCK" \
-            "$RUNNER_TEMP"
-
-      - name: Normalize exact D08/D09 bytes consumed by D11
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/d08" "$RUNNER_TEMP/d09"
-
-          copy_exact() {
-            local root="$1"
-            local relative="$2"
-            local dest="$3"
-            local source="$root/$relative"
-            test -f "$source"
-            cp -- "$source" "$dest/$(basename "$relative")"
-          }
-
-          D08_ROOT="$RUNNER_TEMP/d08-raw"
-          D09_ROOT="$RUNNER_TEMP/d09-raw"
-
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.market_state_manifest' "$INPUTS")" "$RUNNER_TEMP/d08"
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.token_admission' "$INPUTS")" "$RUNNER_TEMP/d08"
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.pool_and_factory_facts' "$INPUTS")" "$RUNNER_TEMP/d08"
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.authority_file' "$INPUTS")" "$RUNNER_TEMP/d08"
-
-          copy_exact "$D09_ROOT" "$(jq -r '.d09.account_manifest' "$INPUTS")" "$RUNNER_TEMP/d09"
-          copy_exact "$D09_ROOT" "$(jq -r '.d09.account_summary' "$INPUTS")" "$RUNNER_TEMP/d09"
-          copy_exact "$D09_ROOT" "$(jq -r '.d09.authority_file' "$INPUTS")" "$RUNNER_TEMP/d09"
-
-          test -f "$RUNNER_TEMP/d08/market-state-manifest.jsonl"
-          test -f "$RUNNER_TEMP/d08/token-admission.jsonl"
-          test -f "$RUNNER_TEMP/d08/pool-and-factory-facts.json"
-          test -f "$RUNNER_TEMP/d08/evidence-manifest.json"
-          test -f "$RUNNER_TEMP/d09/account-manifest.jsonl"
-          test -f "$RUNNER_TEMP/d09/account-summary.json"
-          test -f "$RUNNER_TEMP/d09/evidence-manifest.json"
-
-      - name: Run authoritative D11 real-source closeout
-        shell: bash
-        run: |
-          set -euo pipefail
-          OUTPUT="$RUNNER_TEMP/rmc011-real-source"
-          bash ci/nqc-census/run-rmc011-real-source-closeout.sh             "$RUNNER_TEMP/d08"             "$RUNNER_TEMP/d09"             "$AUTHORITY_LOCK"             "$OUTPUT"
-
-          jq -e '
-            .schema_version == 3 and
-            .real_source_certification == true and
-            .source_universe_basis == "RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY" and
-            .global_capital_source_completeness_claimed == false and
-            .repayment_cashflow_sufficiency_claimed == false and
-            (.zero_own_capital_proven == false or
-              (.feasible_count > 0 and
-               .feasible_external_gas_count == .feasible_count)) and
-            .profitability_claimed == false and
-            .shadow_eligibility_claimed == false and
-            .canary_claimed == false and
-            .real_pnl_claimed == false and
-            (.non_claims | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
-            (.non_claims | index("REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED") != null)
-          ' "$OUTPUT/capital-real-source-closeout.json" >/dev/null
-          (
-            cd "$OUTPUT"
-            sha256sum -c capital-archive.sha256
-          )
-
-          echo "RMC011_REAL_SOURCE_CERTIFICATION=PASS"
-          echo "RMC011_EXACT_HEAD=$(git rev-parse HEAD)"
-          echo "RMC011_EXACT_TREE=$(git rev-parse 'HEAD^{tree}')"
-
-      - name: Build self-contained certification evidence package
-        shell: bash
-        run: |
-          set -euo pipefail
-          PACKAGE="$RUNNER_TEMP/rmc011-certification-package"
-          rm -rf "$PACKAGE"
-          mkdir -p "$PACKAGE/d11" "$PACKAGE/upstream"
-
-          cp -a "$RUNNER_TEMP/rmc011-real-source/." "$PACKAGE/d11/"
-          cp -- "$INPUTS" "$PACKAGE/rmc011-real-source-inputs.json"
-          cp -- "$AUTHORITY_LOCK" "$PACKAGE/rmc011-authority-lock.json"
-          for stage in d06 d07 d08 d09 d10; do
-            test -d "$RUNNER_TEMP/$stage-raw"
-            cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
-          done
-
-          (
-            cd "$PACKAGE"
-            LC_ALL=C find . -type f ! -name CERTIFICATION-PACKAGE-SHA256SUMS -print0 \
-              | LC_ALL=C sort -z \
-              | xargs -0 sha256sum > CERTIFICATION-PACKAGE-SHA256SUMS
-            test -s CERTIFICATION-PACKAGE-SHA256SUMS
-            sha256sum -c CERTIFICATION-PACKAGE-SHA256SUMS
-            (
-              cd d11
-              sha256sum -c capital-archive.sha256
-            )
-          )
-
-          echo "RMC011_SELF_CONTAINED_EVIDENCE_PACKAGE=PASS"
-          echo "RMC011_EVIDENCE_PACKAGE_SHA256=$(sha256sum "$PACKAGE/CERTIFICATION-PACKAGE-SHA256SUMS" | awk '{print $1}')"
-
-      - name: Upload immutable D11 certification archive
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: rmc011-real-source-certification-${{ github.sha }}
-          path: ${{ runner.temp }}/rmc011-certification-package/
-          if-no-files-found: error
-          retention-days: 90
-          compression-level: 0
-\t' read -r key stage_code head_sha tree_sha authority_file authority_sha; do
+          while read -r key stage_code head_sha tree_sha authority_file authority_sha; do
             python3 ci/nqc-census/verify_rmc011_upstream_authority.py \
               --stage "$stage_code" \
               --artifact-root "$RUNNER_TEMP/$key-raw" \
@@ -393,7 +277,7 @@ jobs:
               --lock "$AUTHORITY_LOCK" \
               --expected-code-commit "$head_sha" \
               --expected-code-tree "$tree_sha"
-          done < "$RUNNER_TEMP/rmc011-authority-transport.tsv"
+          done < "$RUNNER_TEMP/rmc011-authority-transport.txt"
 
           echo "RMC011_DERIVED_AUTHORITY_LOCK=PASS sha256=$(sha256sum "$AUTHORITY_LOCK" | awk '{print $1}')"
 
@@ -483,6 +367,7 @@ jobs:
 
           cp -a "$RUNNER_TEMP/rmc011-real-source/." "$PACKAGE/d11/"
           cp -- "$INPUTS" "$PACKAGE/rmc011-real-source-inputs.json"
+          cp -- "$AUTHORITY_LOCK" "$PACKAGE/rmc011-authority-lock.json"
           for stage in d06 d07 d08 d09 d10; do
             test -d "$RUNNER_TEMP/$stage-raw"
             cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
