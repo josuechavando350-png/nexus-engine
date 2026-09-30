@@ -1,0 +1,64 @@
+name: NQC read the file digests of a certified artifact
+
+# Read-only: downloads one exact artifact of one exact run, requires its
+# GitHub digest to equal the declared one, and prints the SHA-256 of every
+# file inside it. Used to pin a certified upstream closeout's files into a
+# downstream node's inputs without changing any census head. Nothing is
+# written anywhere.
+on:
+  push:
+    branches: [claude/handoff-mercados-execution-xmkiwm]
+    paths:
+      - .github/workflows/nqc-artifact-digests.yml
+      - ci/nqc-probe/artifact-digests.json
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  digests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Read the declared artifact
+        id: target
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, re
+          d = json.load(open("ci/nqc-probe/artifact-digests.json"))
+          assert re.fullmatch(r"[0-9]+", str(d["run_id"]))
+          assert re.fullmatch(r"sha256:[0-9a-f]{64}", d["artifact_digest"])
+          assert re.fullmatch(r"[A-Za-z0-9._-]+", d["artifact"])
+          print(f"run_id={d['run_id']}")
+          print(f"artifact={d['artifact']}")
+          print(f"digest={d['artifact_digest']}")
+          PY
+      - name: Download it
+        id: download
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ steps.target.outputs.artifact }}
+          run-id: ${{ steps.target.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: /tmp/artifact
+      - name: Verify the artifact identity and print every file digest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.target.outputs.run_id }}
+          ARTIFACT: ${{ steps.target.outputs.artifact }}
+          DIGEST: ${{ steps.target.outputs.digest }}
+        run: |
+          set -euo pipefail
+          observed=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/artifacts?per_page=100" \
+            --jq ".artifacts[] | select(.name == \"$ARTIFACT\") | .digest")
+          test "$observed" = "$DIGEST" || { echo "artifact digest $observed != declared $DIGEST"; exit 1; }
+          run=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID" --jq '[.head_sha, .conclusion] | @tsv')
+          echo "ARTIFACT_RUN run=$RUN_ID head_and_conclusion=$run artifact=$ARTIFACT digest=$DIGEST"
+          cd /tmp/artifact
+          find . -type f | LC_ALL=C sort | while read -r file; do
+            echo "ARTIFACT_FILE sha256=$(sha256sum "$file" | cut -c1-64) bytes=$(stat -c %s "$file") path=${file#./}"
+          done
