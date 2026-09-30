@@ -697,6 +697,7 @@ pub struct ExecutionQuote {
     gross_value: Amount256,
     costs: ExecutionCostVector,
     capture: CaptureCalibration,
+    tail: TailRiskBound,
     evidence: Vec<Hash32>,
     commitment: [u8; 32],
 }
@@ -711,6 +712,7 @@ impl ExecutionQuote {
         gross_value: Amount256,
         costs: ExecutionCostVector,
         capture: CaptureCalibration,
+        tail: TailRiskBound,
         mut evidence: Vec<Hash32>,
     ) -> Result<Self, EconomicsError> {
         if trade_size.is_zero() {
@@ -731,6 +733,7 @@ impl ExecutionQuote {
             gross_value,
             &costs,
             &capture,
+            tail,
             &evidence,
         );
         Ok(Self {
@@ -741,6 +744,7 @@ impl ExecutionQuote {
             gross_value,
             costs,
             capture,
+            tail,
             evidence,
             commitment,
         })
@@ -770,6 +774,10 @@ impl ExecutionQuote {
         &self.capture
     }
 
+    pub const fn tail(&self) -> TailRiskBound {
+        self.tail
+    }
+
     pub fn costs(&self) -> &ExecutionCostVector {
         &self.costs
     }
@@ -782,30 +790,60 @@ impl ExecutionQuote {
         &self.commitment
     }
 
+    fn net_at_probability(
+        &self,
+        probability: ProbabilityWad,
+    ) -> Result<SignedAmount, EconomicsError> {
+        let expected_gross = probability.apply_floor(self.gross_value)?;
+        let expected_cost = self.costs.expected_total(probability)?;
+        SignedAmount::from_difference(expected_gross, expected_cost)
+    }
+
     pub fn evaluate(&self) -> Result<EconomicsReport, EconomicsError> {
         let success_cost = self.costs.success_total()?;
         let success_path_net = SignedAmount::from_difference(self.gross_value, success_cost)?;
-        let capture_adjusted_net = match self.capture.probability() {
+
+        let point_capture_adjusted_net = match self.capture.point_probability() {
             None => None,
-            Some(probability) => {
-                let expected_gross = probability.apply_floor(self.gross_value)?;
-                let expected_cost = self.costs.expected_total(probability)?;
-                Some(SignedAmount::from_difference(expected_gross, expected_cost)?)
+            Some(probability) => Some(self.net_at_probability(probability)?),
+        };
+
+        // Expected net is affine in capture probability when the cost
+        // incidence vector is fixed. Therefore the minimum over a calibrated
+        // interval is attained at one endpoint; no interpolation or hidden
+        // distributional assumption is needed.
+        let interval_worst_case_net = match self.capture.interval() {
+            None => None,
+            Some((lower, upper)) => {
+                let low = self.net_at_probability(lower)?;
+                let high = self.net_at_probability(upper)?;
+                Some(low.min(high))
             }
         };
+        let tail_adjusted_net = match interval_worst_case_net {
+            None => None,
+            Some(value) => Some(value.subtract_unsigned(self.tail.reserve())?),
+        };
+
         let decision = if !success_path_net.is_positive() {
             QuoteDecision::NonPositivePreCaptureNet
         } else {
-            match capture_adjusted_net {
-                None => QuoteDecision::CaptureUncalibrated,
-                Some(value) if value.is_positive() => QuoteDecision::Admitted,
-                Some(_) => QuoteDecision::NonPositiveCaptureAdjustedNet,
+            match (interval_worst_case_net, tail_adjusted_net) {
+                (None, _) => QuoteDecision::CaptureUncalibrated,
+                (Some(value), _) if !value.is_positive() => {
+                    QuoteDecision::NonPositiveCaptureAdjustedNet
+                }
+                (_, Some(value)) if value.is_positive() => QuoteDecision::Admitted,
+                _ => QuoteDecision::NonPositiveTailAdjustedNet,
             }
         };
+
         Ok(EconomicsReport {
             success_cost,
             success_path_net,
-            capture_adjusted_net,
+            capture_adjusted_net: point_capture_adjusted_net,
+            interval_worst_case_net,
+            tail_adjusted_net,
             decision,
             quote_commitment: self.commitment,
         })
@@ -817,6 +855,7 @@ pub enum QuoteDecision {
     NonPositivePreCaptureNet,
     CaptureUncalibrated,
     NonPositiveCaptureAdjustedNet,
+    NonPositiveTailAdjustedNet,
     Admitted,
 }
 
@@ -824,7 +863,13 @@ pub enum QuoteDecision {
 pub struct EconomicsReport {
     pub success_cost: Amount256,
     pub success_path_net: SignedAmount,
+    /// Point-estimate expected net. This is never the admission authority.
     pub capture_adjusted_net: Option<SignedAmount>,
+    /// Worst expected net across the calibrated capture interval.
+    pub interval_worst_case_net: Option<SignedAmount>,
+    /// Interval-worst net after explicit tail reserve. Admission requires this
+    /// value to remain positive.
+    pub tail_adjusted_net: Option<SignedAmount>,
     pub decision: QuoteDecision,
     pub quote_commitment: [u8; 32],
 }
@@ -887,7 +932,7 @@ impl CapacityCurve {
             if report.decision != QuoteDecision::Admitted {
                 continue;
             }
-            let Some(value) = report.capture_adjusted_net else {
+            let Some(value) = report.tail_adjusted_net else {
                 continue;
             };
             match best {
@@ -896,6 +941,19 @@ impl CapacityCurve {
             }
         }
         Ok(best.map(|(point, _)| point))
+    }
+
+    /// Largest explicitly measured/simulated size whose interval-worst,
+    /// tail-adjusted EV remains positive. This is a capacity boundary, not a
+    /// license to extrapolate beyond the measured curve.
+    pub fn largest_positive_size(&self) -> Result<Option<Amount256>, EconomicsError> {
+        let mut largest = None;
+        for point in &self.points {
+            if point.evaluate()?.decision == QuoteDecision::Admitted {
+                largest = Some(point.trade_size());
+            }
+        }
+        Ok(largest)
     }
 }
 
@@ -958,6 +1016,7 @@ fn quote_commitment(
     gross_value: Amount256,
     costs: &ExecutionCostVector,
     capture: &CaptureCalibration,
+    tail: TailRiskBound,
     evidence: &[Hash32],
 ) -> [u8; 32] {
     let mut hasher = Sha256::new();
@@ -980,21 +1039,30 @@ fn quote_commitment(
             hasher.update([0]);
             hasher.update(model_commitment.as_bytes());
         }
-        CaptureCalibration::Empirical {
-            probability,
+        CaptureCalibration::ShadowCalibrated {
+            lower,
+            point,
+            upper,
             sample_count,
             observation_window,
             model_commitment,
             evidence_commitment,
         } => {
             hasher.update([1]);
-            hasher.update(probability.value().to_be_bytes());
+            hasher.update(lower.value().to_be_bytes());
+            hasher.update(point.value().to_be_bytes());
+            hasher.update(upper.value().to_be_bytes());
             hasher.update(sample_count.to_be_bytes());
             hasher.update(observation_window.as_bytes());
             hasher.update(model_commitment.as_bytes());
             hasher.update(evidence_commitment.as_bytes());
         }
     }
+    hasher.update(tail.confidence().value().to_be_bytes());
+    hasher.update(tail.loss_at_confidence().as_be_bytes());
+    hasher.update(tail.absolute_max_loss().as_be_bytes());
+    hasher.update(tail.reserve().as_be_bytes());
+    hasher.update(tail.evidence().as_bytes());
     for item in evidence {
         hasher.update(item.as_bytes());
     }
