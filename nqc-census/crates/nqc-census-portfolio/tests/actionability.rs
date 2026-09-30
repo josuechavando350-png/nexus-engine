@@ -1,3 +1,4 @@
+use nqc_census_capital::FeasibilityRejection;
 use nqc_census_capital::{
     adapters::AAVE_V3_PROVIDER_NAMESPACE, Amount256, CapitalAsset, CapitalCaps, CapitalClass,
     CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility, CapitalOwnership,
@@ -6,11 +7,10 @@ use nqc_census_capital::{
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_portfolio::actionability::{
-    ActionabilityCoverage, ActionabilityError, ActionabilityPair, ActionabilityRecord,
     evaluate_protocol_native_flash_promotion, promote_protocol_native_flash_liquidation,
+    ActionabilityCoverage, ActionabilityError, ActionabilityPair, ActionabilityRecord,
     ActionabilityRejectionReason, ActionableLiquidation, LiquidationFundingScope,
 };
-use nqc_census_capital::FeasibilityRejection;
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -98,7 +98,6 @@ fn every_below_one_pair_is_conserved_as_admitted_or_rejected() -> TestResult {
     assert_eq!(coverage.records().len(), 2);
     Ok(())
 }
-
 #[test]
 fn disappearing_pair_fails_closed() -> TestResult {
     let anchor = anchor(100, 10);
@@ -176,7 +175,6 @@ fn admitted_candidate_cannot_have_zero_principal() {
         Err(ActionabilityError::ZeroDebtToLiquidate)
     ));
 }
-
 
 #[test]
 fn admitted_candidate_binds_flash_repayment_and_signed_oracle_edge() -> TestResult {
@@ -266,8 +264,14 @@ fn actionable_liquidation_promotes_to_exact_principal_settlement_requirement() -
     );
     assert!(!promotion.scope().gas_funding_certified());
     assert!(!requirement.requires_native_gas());
-    assert_eq!(promotion.portfolio_candidate().requirement_id(), requirement.id());
-    assert_eq!(promotion.portfolio_candidate().anchor(), liquidation.pair().anchor());
+    assert_eq!(
+        promotion.portfolio_candidate().requirement_id(),
+        requirement.id()
+    );
+    assert_eq!(
+        promotion.portfolio_candidate().anchor(),
+        liquidation.pair().anchor()
+    );
 
     let principal = requirement
         .legs()
