@@ -1,0 +1,36 @@
+name: NQC probe RMC-008 duplicate batch calls
+
+# Read-only diagnosis of RMC-008 live run 36682467619: rebuilds the address
+# sets its AAVE_STATE stage batches at the census anchor and prints every
+# duplicate. Nothing is written anywhere.
+on:
+  push:
+    branches: [claude/handoff-mercados-execution-xmkiwm]
+    paths:
+      - .github/workflows/nqc-probe-d08.yml
+      - ci/nqc-probe/d08_duplicate_call_probe.py
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Download the certified D06 evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: nqc-rmc006-evidence-25437474-a33a012591cd6625ddb921d995bb1bd95b4a5406-36627517591-1
+          run-id: "36627517591"
+          github-token: ${{ github.token }}
+          path: /tmp/d06
+      - name: Probe the AAVE_STATE batch address sets
+        run: |
+          set -euo pipefail
+          echo "9f931f32c28a47cd0c73856c5a02e81bcb3db00a52abaa5a083283b4abf0a5c7  /tmp/d06/closeout/aave-reserve-manifest.jsonl" | sha256sum --check --strict
+          python3 ci/nqc-probe/d08_duplicate_call_probe.py /tmp/d06/closeout/aave-reserve-manifest.jsonl | tee /tmp/probe.log
+          grep -E "^(PROBE|SHARED|NO_ANSWER)|duplicate_code_accounts=\[.+\]" /tmp/probe.log || true
