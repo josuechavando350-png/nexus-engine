@@ -671,8 +671,28 @@ fn import_d08_capital_sources_unbound(
                         "V2 reserve row is not three fields",
                     ));
                 }
+                let reserve0 = reserves[0]
+                    .as_str()
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "V2 reserve0 is not decimal text",
+                    ))
+                    .and_then(Amount256::parse_decimal)?;
+                let reserve1 = reserves[1]
+                    .as_str()
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "V2 reserve1 is not decimal text",
+                    ))
+                    .and_then(Amount256::parse_decimal)?;
+                let total_supply = Amount256::parse_decimal(text(&row, "total_supply")?)?;
+                let derived_liquid =
+                    !reserve0.is_zero() && !reserve1.is_zero() && !total_supply.is_zero();
+                if (liquidity_state == "LIQUID") != derived_liquid {
+                    return Err(CapitalError::InvalidCanonical(
+                        "V2 liquidity state disagrees with reserves/total supply",
+                    ));
+                }
 
-                for (token, reserve) in [(token0, &reserves[0]), (token1, &reserves[1])] {
+                for (token, reserve_amount) in [(token0, reserve0), (token1, reserve1)] {
                     let asset = CapitalAsset::Token(token);
                     if !candidate_keys.insert((protocol.to_owned(), market_id.clone(), asset)) {
                         return Err(CapitalError::InvalidCanonical(
@@ -687,10 +707,6 @@ fn import_d08_capital_sources_unbound(
                                 .to_owned(),
                         );
                     }
-                    let reserve_text = reserve.as_str().ok_or(CapitalError::InvalidCanonical(
-                        "V2 reserve amount is not decimal text",
-                    ))?;
-                    let reserve_amount = Amount256::parse_decimal(reserve_text)?;
                     let source = UniswapV2FlashSwapObservation {
                         anchor: context.anchor.clone(),
                         pair,
