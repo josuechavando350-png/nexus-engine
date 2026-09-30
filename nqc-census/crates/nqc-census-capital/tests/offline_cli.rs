@@ -249,7 +249,9 @@ fn offline_verifier_binary_rejects_wrong_exact_code_identity() -> TestResult {
     Ok(())
 }
 
-fn authority_lock_candidate(stages: &[UpstreamStageAuthority]) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+fn authority_lock_candidate(
+    stages: &[UpstreamStageAuthority],
+) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
     let a = anchor();
     Ok(Json::object([
         ("schema_version", Json::uint(1)),
