@@ -274,6 +274,29 @@ fn external_gas_sponsor_can_charge_evidence_bound_fee_without_principal_repaymen
 }
 
 #[test]
+fn external_gas_sponsor_rejects_fixed_fee_asset_mismatch() -> TestResult {
+    let declared_fee_asset = CapitalAsset::Token(address(52));
+    let fixed_fee_asset = CapitalAsset::Token(address(53));
+    let result = ExternalGasSponsorObservation {
+        anchor: anchor(),
+        provider_namespace: 0x2201,
+        provider_locator_hash: hash(50),
+        sponsor_contract: Some(address(51)),
+        maximum_native_gas: Amount256::from_u128(1_000),
+        fee_model: nqc_census_capital::FeeModel::Fixed {
+            asset: fixed_fee_asset,
+            amount: Amount256::from_u128(7),
+        },
+        fee_asset: declared_fee_asset,
+        evidence: evidence(),
+    }
+    .into_capital_source();
+
+    assert!(matches!(result, Err(CapitalError::InvalidCanonical(_))));
+    Ok(())
+}
+
+#[test]
 fn uniswap_v3_flash_binds_pool_balance_and_ceil_fee() -> TestResult {
     let asset = address(60);
     let source = UniswapV3FlashObservation {
