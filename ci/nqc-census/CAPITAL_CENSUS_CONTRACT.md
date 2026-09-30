@@ -66,6 +66,8 @@ A family may be labeled `EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE` only 
 
 Balancer V2 and Uniswap V3 are permissionless on-chain discovery surfaces and therefore require fresh block-pinned D11 acquisition at the certified anchor. Historical T36 Balancer callback parity may justify implementation semantics but MUST NOT serve as current D11 availability/capacity evidence.
 
+Balancer V2 now has a dedicated D11 live acquisition boundary in `nqc-census-capital::balancer_live`. It derives its actionable asset universe from the exact D08 admitted current Aave assets intersected with D08 `PROVEN_COMPATIBLE` token admission, verifies those consumed bytes against the D08 evidence manifest, requires the D11 authority-lock anchor to equal the D08 full observation anchor, and captures the canonical Balancer V2 Vault from two declared independent providers. The certification workflow preserves each provider's RMC-004 evidence store, independently verifies both stores offline, requires exact semantic agreement across the captures, and runs both the Python adversarial reconciler and the Rust CapitalSource admission path. Until a successful exact-head certification artifact binds those bytes and the reconciled source set is replay-bound into the canonical D11 ledger, the family remains `terminally_resolved=false`; implementation or a queued workflow is not availability evidence.
+
 ## Required source fields
 
 Every admitted capital source record MUST bind:
