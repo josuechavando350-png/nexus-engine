@@ -44,6 +44,9 @@ pub enum EconomicsError {
     CurveCandidateMismatch,
     CurveAnchorMismatch,
     CurveValuationUnitMismatch,
+    CurveOpportunityMismatch,
+    CurveExecutionPlanMismatch,
+    CurveEconomicModelMismatch,
     CurveTradeSizeNotStrictlyIncreasing,
     ScenarioEmpty,
     ScenarioProbabilityNotOne,
@@ -87,6 +90,15 @@ impl Display for EconomicsError {
             }
             Self::CurveAnchorMismatch => f.write_str("capacity curve mixes state anchors"),
             Self::CurveValuationUnitMismatch => f.write_str("capacity curve mixes valuation units"),
+            Self::CurveOpportunityMismatch => {
+                f.write_str("capacity curve mixes distinct economic opportunities")
+            }
+            Self::CurveExecutionPlanMismatch => {
+                f.write_str("capacity curve mixes distinct execution plans")
+            }
+            Self::CurveEconomicModelMismatch => {
+                f.write_str("capacity curve mixes distinct economic models")
+            }
             Self::CurveTradeSizeNotStrictlyIncreasing => {
                 f.write_str("capacity curve trade sizes are not strictly increasing")
             }
@@ -615,6 +627,7 @@ impl TailRiskBound {
     ) -> Result<Self, EconomicsError> {
         if confidence.is_zero()
             || loss_at_confidence > absolute_max_loss
+            || reserve < loss_at_confidence
             || reserve > absolute_max_loss
         {
             return Err(EconomicsError::InvalidTailBound);
@@ -669,6 +682,9 @@ impl GasValuation {
         native_usd_wad: Amount256,
         price_evidence: Hash32,
     ) -> Result<Self, EconomicsError> {
+        if is_zero_hash(price_evidence) {
+            return Err(EconomicsError::MissingEvidenceCommitment("gas_price"));
+        }
         let gas_wei = mul_u64_checked(effective_gas_price_wei, gas_used)?;
         let gas_usd_wad = mul_div_floor(gas_wei, native_usd_wad, WAD)?;
         Ok(Self {
@@ -1004,6 +1020,15 @@ impl CapacityCurve {
             }
             if point.valuation_unit() != first.valuation_unit() {
                 return Err(EconomicsError::CurveValuationUnitMismatch);
+            }
+            if point.opportunity_id() != first.opportunity_id() {
+                return Err(EconomicsError::CurveOpportunityMismatch);
+            }
+            if point.execution_plan_commitment() != first.execution_plan_commitment() {
+                return Err(EconomicsError::CurveExecutionPlanMismatch);
+            }
+            if point.economic_model_commitment() != first.economic_model_commitment() {
+                return Err(EconomicsError::CurveEconomicModelMismatch);
             }
             if previous.is_some_and(|size| point.trade_size() <= size) {
                 return Err(EconomicsError::CurveTradeSizeNotStrictlyIncreasing);
