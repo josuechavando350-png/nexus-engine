@@ -131,20 +131,11 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
     let counts = PipelineCounts {
         markets_discovered: require_u64(counts_json, "markets_discovered")?,
         markets_canonicalized: require_u64(counts_json, "markets_canonicalized")?,
-        markets_state_reconstructable: require_u64(
-            counts_json,
-            "markets_state_reconstructable",
-        )?,
-        markets_economically_active: require_u64(
-            counts_json,
-            "markets_economically_active",
-        )?,
+        markets_state_reconstructable: require_u64(counts_json, "markets_state_reconstructable")?,
+        markets_economically_active: require_u64(counts_json, "markets_economically_active")?,
         markets_borrowable: require_u64(counts_json, "markets_borrowable")?,
         actionable_candidates: require_u64(counts_json, "actionable_candidates")?,
-        capital_feasible_candidates: require_u64(
-            counts_json,
-            "capital_feasible_candidates",
-        )?,
+        capital_feasible_candidates: require_u64(counts_json, "capital_feasible_candidates")?,
         execution_simulatable_candidates: require_u64(
             counts_json,
             "execution_simulatable_candidates",
@@ -157,10 +148,7 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
             counts_json,
             "positive_success_path_net_candidates",
         )?,
-        capacity_material_candidates: require_u64(
-            counts_json,
-            "capacity_material_candidates",
-        )?,
+        capacity_material_candidates: require_u64(counts_json, "capacity_material_candidates")?,
         shadow_eligible_candidates: require_u64(counts_json, "shadow_eligible_candidates")?,
     };
 
@@ -240,7 +228,10 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
     )?;
 
     println!("REAL_MARKET_CENSUS_CLOSED");
-    println!("RMC014_TERMINAL_COMMITMENT=0x{}", certificate.commitment_hex());
+    println!(
+        "RMC014_TERMINAL_COMMITMENT=0x{}",
+        certificate.commitment_hex()
+    );
     println!("RMC014_CERTIFICATE_SHA256={}", sha256_hex(&bytes));
     Ok(())
 }
@@ -347,7 +338,10 @@ fn parse_hash(value: &str) -> Result<Hash32> {
     if hex.len() != 64 || !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err("hash must contain exactly 64 hex characters".into());
     }
-    Ok(Hash32::parse_hex(&format!("0x{}", hex.to_ascii_lowercase()))?)
+    Ok(Hash32::parse_hex(&format!(
+        "0x{}",
+        hex.to_ascii_lowercase()
+    ))?)
 }
 
 fn require_str<'a>(value: &'a Json, key: &str) -> Result<&'a str> {
