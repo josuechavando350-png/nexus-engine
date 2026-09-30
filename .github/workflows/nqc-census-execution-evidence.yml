@@ -1,0 +1,234 @@
+name: NQC RMC-013 Real Execution Evidence
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc013-execution-inputs.json"
+      - "ci/nqc-census/plan_rmc013_v2_routes.py"
+      - "ci/nqc-census/test_plan_rmc013_v2_routes.py"
+      - "ci/nqc-census/run_rmc013_anvil_candidate.py"
+      - "ci/nqc-census/test_run_rmc013_anvil_candidate.py"
+      - "ci/nqc-census/materialize_effective_source.py"
+      - "ci/nqc-census/effective-source-profile.json"
+      - ".github/workflows/nqc-census-execution-evidence.yml"
+  push:
+    branches:
+      - "nqc/rmc-013-execution-economics-capture-20260929"
+    paths:
+      - "ci/nqc-census/rmc013-execution-inputs.json"
+      - "ci/nqc-census/plan_rmc013_v2_routes.py"
+      - "ci/nqc-census/test_plan_rmc013_v2_routes.py"
+      - "ci/nqc-census/run_rmc013_anvil_candidate.py"
+      - "ci/nqc-census/test_run_rmc013_anvil_candidate.py"
+      - ".github/workflows/nqc-census-execution-evidence.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc013-real-execution-evidence-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  INPUTS: ci/nqc-census/rmc013-execution-inputs.json
+  FOUNDRY_VERSION: "1.7.1"
+  FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+  SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+  SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      status: ${{ steps.inputs.outputs.status }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Validate fail-closed producer inputs
+        id: inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == 1 and
+            .repository == env.GITHUB_REPOSITORY and
+            (.status == "BLOCKED_AWAITING_CERTIFIED_RMC012" or .status == "PINNED") and
+            .pft.certified_commit == "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf" and
+            .pft.certified_tree == "ef3498da528f85cdb9fdd82222d64773a557f853" and
+            .pft.aave_flash_premium_compatibility_id == "PFT-COMPAT-009" and
+            .route_policy.venue_family == "UNISWAP_V2" and
+            .route_policy.max_hops == 3 and
+            .route_policy.keep_routes_per_candidate == 0 and
+            .route_policy.emission_policy == "ALL_POSITIVE_ELSE_BEST_NONPOSITIVE" and
+            (.providers | map(.provider_id)) == ["blastapi-public","mevblocker-rpc"] and
+            (if .status == "BLOCKED_AWAITING_CERTIFIED_RMC012"
+             then .d12 == null and (.blocking_reasons | length > 0)
+             else
+               (.blocking_reasons | length == 0) and
+               (.d12.run_id | type == "number") and
+               (.d12.head_sha | test("^[0-9a-f]{40}$")) and
+               (.d12.tree_sha | test("^[0-9a-f]{40}$")) and
+               (.d12.workflow_name == "NQC RMC-012 Terminal Actionability Authority") and
+               (.d12.artifact_id | type == "number") and
+               (.d12.artifact_name | startswith("rmc012-terminal-actionability-")) and
+               (.d12.artifact_digest | test("^sha256:[0-9a-f]{64}$"))
+             end)
+          ' "$INPUTS" >/dev/null
+          echo "status=$(jq -r '.status' "$INPUTS")" >> "$GITHUB_OUTPUT"
+
+      - name: Verify immutable PFT source authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf)" = ef3498da528f85cdb9fdd82222d64773a557f853
+          test "$(git rev-parse 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf:ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json)" = 17eba73198f9d15e090a4099daaf1a4e099fb747
+
+      - name: Deterministic producer regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_plan_rmc013_v2_routes.py
+          python3 ci/nqc-census/test_run_rmc013_anvil_candidate.py
+          python3 -m py_compile \
+            ci/nqc-census/plan_rmc013_v2_routes.py \
+            ci/nqc-census/run_rmc013_anvil_candidate.py
+
+      - name: Verify producer has no live signing authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -n -E 'private.?key|sign_transaction|broadcast_transaction|eth_sendRawTransaction' \
+            ci/nqc-census/plan_rmc013_v2_routes.py \
+            ci/nqc-census/run_rmc013_anvil_candidate.py
+          grep -F 'local_url = f"http://127.0.0.1:{port}"' ci/nqc-census/run_rmc013_anvil_candidate.py
+          grep -F '"live_transaction_sent": False' ci/nqc-census/run_rmc013_anvil_candidate.py
+
+  producer:
+    if: ${{ github.event_name == 'push' && needs.preflight.outputs.status == 'PINNED' }}
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      WORK: /tmp/nqc-rmc013-real-execution
+    steps:
+      - name: Checkout exact producer head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Authenticate and download exact D12 terminal authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$WORK"
+          mkdir -p "$WORK/d12" "$WORK/d11" "$WORK/routes" "$WORK/evidence"
+          RUN_ID="$(jq -r '.d12.run_id' "$INPUTS")"
+          HEAD_SHA="$(jq -r '.d12.head_sha' "$INPUTS")"
+          TREE_SHA="$(jq -r '.d12.tree_sha' "$INPUTS")"
+          ARTIFACT_ID="$(jq -r '.d12.artifact_id' "$INPUTS")"
+          ARTIFACT_NAME="$(jq -r '.d12.artifact_name' "$INPUTS")"
+          ARTIFACT_DIGEST="$(jq -r '.d12.artifact_digest' "$INPUTS")"
+
+          RUN_JSON="$(gh api "repos/$REPOSITORY/actions/runs/$RUN_ID")"
+          test "$(jq -r '.status' <<<"$RUN_JSON")" = completed
+          test "$(jq -r '.conclusion' <<<"$RUN_JSON")" = success
+          test "$(jq -r '.head_sha' <<<"$RUN_JSON")" = "$HEAD_SHA"
+          test "$(git show -s --format=%T "$HEAD_SHA")" = "$TREE_SHA"
+
+          ART_JSON="$(gh api "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
+          test "$(jq -r '.expired' <<<"$ART_JSON")" = false
+          test "$(jq -r '.name' <<<"$ART_JSON")" = "$ARTIFACT_NAME"
+          test "$(jq -r '.digest' <<<"$ART_JSON")" = "$ARTIFACT_DIGEST"
+          test "$(jq -r '.workflow_run.id' <<<"$ART_JSON")" = "$RUN_ID"
+
+          gh run download "$RUN_ID" --repo "$REPOSITORY" --name "$ARTIFACT_NAME" --dir "$WORK/d12"
+          (
+            cd "$WORK/d12"
+            sha256sum -c terminal-archive.sha256
+          )
+          jq -e '.status == "RMC_012_TERMINAL_ACTIONABILITY_CERTIFIED"' \
+            "$WORK/d12/terminal-actionability-certification.json" >/dev/null
+
+      - name: Authenticate exact D11 package named by D12
+        shell: bash
+        run: |
+          set -euo pipefail
+          CERT="$WORK/d12/terminal-actionability-certification.json"
+          RUN_ID="$(jq -r '.d11.run_id' "$CERT")"
+          HEAD_SHA="$(jq -r '.d11.head_sha' "$CERT")"
+          TREE_SHA="$(jq -r '.d11.tree_sha' "$CERT")"
+          ARTIFACT_ID="$(jq -r '.d11.artifact_id' "$CERT")"
+          ARTIFACT_NAME="$(jq -r '.d11.artifact_name' "$CERT")"
+          ARTIFACT_DIGEST="$(jq -r '.d11.artifact_digest' "$CERT")"
+
+          RUN_JSON="$(gh api "repos/$REPOSITORY/actions/runs/$RUN_ID")"
+          test "$(jq -r '.status' <<<"$RUN_JSON")" = completed
+          test "$(jq -r '.conclusion' <<<"$RUN_JSON")" = success
+          test "$(jq -r '.head_sha' <<<"$RUN_JSON")" = "$HEAD_SHA"
+          test "$(git show -s --format=%T "$HEAD_SHA")" = "$TREE_SHA"
+
+          ART_JSON="$(gh api "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
+          test "$(jq -r '.expired' <<<"$ART_JSON")" = false
+          test "$(jq -r '.name' <<<"$ART_JSON")" = "$ARTIFACT_NAME"
+          test "$(jq -r '.digest' <<<"$ART_JSON")" = "$ARTIFACT_DIGEST"
+          test "$(jq -r '.workflow_run.id' <<<"$ART_JSON")" = "$RUN_ID"
+
+          gh run download "$RUN_ID" --repo "$REPOSITORY" --name "$ARTIFACT_NAME" --dir "$WORK/d11"
+          (
+            cd "$WORK/d11"
+            sha256sum -c CERTIFICATION-PACKAGE-SHA256SUMS
+            cd d11
+            sha256sum -c capital-archive.sha256
+          )
+
+      - name: Normalize exact D08 and D12 execution inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          D11_INPUTS="$WORK/d11/rmc011-real-source-inputs.json"
+          D08_REL="$(jq -r '.d08.market_state_manifest' "$D11_INPUTS")"
+          D08_STATE="$WORK/d11/upstream/d08/$D08_REL"
+          test -f "$D08_STATE"
+          for name in actionability-records.jsonl actionability-summary.json capital-promotions.jsonl; do
+            test -f "$WORK/d12/$name"
+            cp -- "$WORK/d12/$name" "$WORK/$name"
+          done
+          test -f "$WORK/d11/d11/capital-sources.jsonl"
+          cp -- "$D08_STATE" "$WORK/d08-market-state-manifest.jsonl"
+          cp -- "$WORK/d11/d11/capital-sources.jsonl" "$WORK/capital-sources.jsonl"
+
+      - name: Plan every positive exact V2 route
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/plan_rmc013_v2_routes.py \
+            --d08-state "$WORK/d08-market-state-manifest.jsonl" \
+            --d12-actionability "$WORK/actionability-records.jsonl" \
+            --d12-summary "$WORK/actionability-summary.json" \
+            --d12-promotions "$WORK/capital-promotions.jsonl" \
+            --out "$WORK/routes" \
+            --max-hops 3 \
+            --keep-routes 0
+          jq -e '
+            .status == "RMC_013_V2_ROUTE_PLANNING_PASS" and
+            .route_execution_coverage_complete == true and
+            .positive_routes_omitted == 0 and
+            .emission_policy == "ALL_POSITIVE_ELSE_BEST_NONPOSITIVE"
+          ' "$WORK/routes/v2-route-summary.json" >/dev/null
+
+      - name: Fail closed until physical package assembly is enabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RMC013_EXECUTION_PRODUCER_ROUTE_STAGE_PASS"
+          echo "RMC013_EXECUTION_EVIDENCE_NOT_CERTIFIED_YET" >&2
+          exit 1
