@@ -6,7 +6,12 @@
 //! Balancer V2 Vault state from one declared provider into the RMC-004 store.
 //! A separate reconciler requires two independent provider captures to agree.
 
-use crate::Amount256;
+use crate::{
+    permissionless_atomic::{
+        admit_balancer_v2_dual_provider, BalancerV2AuthenticatedObservation,
+    },
+    Amount256, CapitalSource,
+};
 use nqc_census_chain::{
     abi,
     acquire::Acquisition,
@@ -460,6 +465,139 @@ fn provider_capture(
         members.push((key.as_str(), value.clone()));
     }
     Ok(Json::object(members))
+}
+
+fn capture_semantics(capture: &Json) -> Result<Json, ChainError> {
+    let mut members = Vec::new();
+    for key in [
+        "schema_version",
+        "stage",
+        "family",
+        "anchor",
+        "authority_lock_sha256",
+        "d08_market_state_sha256",
+        "d08_token_admission_sha256",
+        "d08_evidence_manifest_sha256",
+        "asset_universe_sha256",
+        "vault",
+        "assets",
+    ] {
+        let value = capture
+            .get(key)
+            .ok_or_else(|| ChainError::Evidence(format!("Balancer capture missing {key}")))?;
+        members.push((key, value.clone()));
+    }
+    Ok(Json::object(members))
+}
+
+fn capture_digest(capture: &Json) -> Result<Hash32, ChainError> {
+    let bytes = capture.canonical()?;
+    let digest: [u8; 32] = Sha256::digest(&bytes).into();
+    Hash32::new(digest)
+        .map_err(|_| ChainError::Evidence("Balancer capture digest is zero".into()))
+}
+
+fn bool_json(value: &Json, key: &str) -> Result<bool, ChainError> {
+    value
+        .get(key)
+        .and_then(Json::as_bool)
+        .ok_or_else(|| ChainError::Evidence(format!("Balancer capture missing boolean {key}")))
+}
+
+fn decimal_u64(value: &Json, key: &str) -> Result<u64, ChainError> {
+    value
+        .str_field(key)?
+        .parse::<u64>()
+        .map_err(|_| ChainError::Evidence(format!("Balancer capture {key} is not uint64 decimal")))
+}
+
+/// Reconcile two independent Balancer captures and convert their exact common
+/// state into canonical CapitalSource records.
+///
+/// Provider-specific provenance is intentionally excluded from the semantic
+/// equality comparison, but provider label, operator and endpoint hash must all
+/// be distinct. Every economic/state field, anchor, D08 digest and asset row
+/// must otherwise agree byte-canonically.
+pub fn reconcile_balancer_captures(
+    first: &Json,
+    second: &Json,
+) -> Result<Vec<CapitalSource>, Box<dyn Error>> {
+    if first.str_field("stage")? != "RMC-011"
+        || second.str_field("stage")? != "RMC-011"
+        || first.str_field("family")? != "BALANCER_V2_FLASH_LOAN"
+        || second.str_field("family")? != "BALANCER_V2_FLASH_LOAN"
+    {
+        return Err("Balancer capture stage/family mismatch".into());
+    }
+
+    for key in ["provider_id", "provider_operator", "rpc_endpoint_hash"] {
+        if first.str_field(key)? == second.str_field(key)? {
+            return Err(format!("Balancer captures are not independent: {key} matches").into());
+        }
+    }
+
+    let first_semantic = capture_semantics(first)?;
+    let second_semantic = capture_semantics(second)?;
+    if first_semantic.canonical()? != second_semantic.canonical()? {
+        return Err("Balancer dual-provider semantic observations disagree".into());
+    }
+
+    let first_digest = capture_digest(first)?;
+    let second_digest = capture_digest(second)?;
+    if first_digest == second_digest {
+        return Err("Balancer provider transcript digests are not independent".into());
+    }
+
+    let anchor = parse_full_anchor(
+        first
+            .get("anchor")
+            .ok_or("Balancer capture has no anchor")?,
+    )?;
+    let vault_row = first
+        .get("vault")
+        .ok_or("Balancer capture has no vault object")?;
+    let vault = Address::parse_hex(vault_row.str_field("address")?)?;
+    if vault.to_hex() != BALANCER_V2_VAULT {
+        return Err("Balancer capture vault differs from canonical Vault".into());
+    }
+    let paused = bool_json(vault_row, "paused")?;
+    let fee_percentage_1e18 = decimal_u64(vault_row, "flash_loan_fee_percentage_1e18")?;
+
+    let assets = first
+        .get("assets")
+        .and_then(Json::as_array)
+        .ok_or("Balancer capture has no assets")?;
+    if assets.is_empty() {
+        return Err("Balancer capture asset universe is empty".into());
+    }
+
+    let mut seen = BTreeSet::new();
+    let mut sources = Vec::with_capacity(assets.len());
+    for row in assets {
+        let asset = Address::parse_hex(row.str_field("asset")?)?;
+        if !seen.insert(asset) {
+            return Err(format!("Balancer capture repeats asset {}", asset.to_hex()).into());
+        }
+        let available_vault_balance = Amount256::parse_decimal(row.str_field("vault_balance")?)?;
+        let observation = BalancerV2AuthenticatedObservation {
+            anchor: anchor.clone(),
+            vault,
+            asset,
+            available_vault_balance,
+            fee_percentage_1e18,
+            paused,
+        };
+        let source = admit_balancer_v2_dual_provider(
+            &observation,
+            &observation,
+            &first_digest,
+            &second_digest,
+        )?;
+        sources.push(source);
+    }
+
+    sources.sort_by_key(|source| source.id());
+    Ok(sources)
 }
 
 pub fn run_balancer_capture(
