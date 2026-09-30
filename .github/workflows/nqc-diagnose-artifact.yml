@@ -1,53 +1,38 @@
-name: NQC diagnose a failed census artifact
+name: NQC diagnose a failed census stage
 
-# Read-only diagnosis: downloads one artifact of an earlier run and prints
-# its error and stage logs plus a summary of its store streams. It changes
-# nothing and acquires nothing.
+# Read-only diagnosis of RMC-009 run 36648778677, whose index partition 3 on
+# tenderly-public failed ten times with JSON-RPC -32602 "invalid params". The
+# probe rebuilds that partition's exact eth_getLogs requests from the
+# certified D06 history and records every refused window and its full
+# error. Nothing is written anywhere.
 on:
   push:
     branches: [claude/handoff-mercados-execution-xmkiwm]
     paths:
       - .github/workflows/nqc-diagnose-artifact.yml
+      - ci/nqc-probe/d09_tenderly_window_probe.py
 
 permissions:
   contents: read
   actions: read
 
-env:
-  RUN_ID: "36648778677"
-  ARTIFACT: d09-index-tenderly-public-3-d46604e2e6f28c1e9af49c2adbce7062518ec0fd-36648778677-1
-
 jobs:
-  diagnose:
+  probe:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 90
     steps:
-      - name: Download the artifact
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Download the certified D06 evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: ${{ env.ARTIFACT }}
-          run-id: ${{ env.RUN_ID }}
+          name: nqc-rmc006-evidence-25437474-a33a012591cd6625ddb921d995bb1bd95b4a5406-36627517591-1
+          run-id: "36627517591"
           github-token: ${{ github.token }}
-          path: /tmp/diag
-      - name: Print errors, stage log and stream summary
-        shell: bash
+          path: /tmp/d06
+      - name: Probe tenderly-public on partition 3
         run: |
           set -euo pipefail
-          cd /tmp/diag
-          ls -la
-          for f in stage-attempt-*.err stage.log; do
-            [ -f "$f" ] || continue
-            echo "===== $f ($(wc -c < "$f") bytes)"
-            tail -c 6000 "$f"
-            echo
-          done
-          echo "===== streams"
-          for scope in store/streams/*/; do
-            [ -d "$scope" ] || continue
-            echo "$scope SCOPE: $(head -c 600 "$scope/SCOPE" 2>/dev/null || true)"
-            ls "$scope/checkpoints" | tail -n 3
-            echo "checkpoints=$(ls "$scope/checkpoints" | wc -l)"
-          done
-          echo "===== last checkpoint"
-          last=$(ls -1 store/streams/*/checkpoints/* 2>/dev/null | sort | tail -n 1 || true)
-          [ -n "$last" ] && head -c 3000 "$last" | strings | head -60 || true
+          echo "297f642608eaeaedb7e9c56ed150e18f8036aae3861d611d3fcbf7c21dae7a6f  /tmp/d06/aave-history.json" | sha256sum --check --strict
+          python3 ci/nqc-probe/d09_tenderly_window_probe.py /tmp/d06/aave-history.json | tee /tmp/probe.log
+          grep -E "^(PROBE|TENDERLY_REFUSED|REFUSED_WINDOW|TENDERLY_SPAN|MEVBLOCKER_REFUSED)" /tmp/probe.log
