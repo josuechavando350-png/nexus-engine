@@ -214,6 +214,78 @@ impl UniswapV3FlashObservation {
 }
 
 #[derive(Debug, Clone)]
+pub struct ExternalGasCreditObservation {
+    pub anchor: StateAnchor,
+    pub provider_namespace: u16,
+    pub provider_locator_hash: Hash32,
+    pub facility_contract: Address,
+    pub maximum_native_gas: Amount256,
+    pub fee_model: FeeModel,
+    pub repayment_deadline_blocks: u32,
+    pub max_utilization_bps: u16,
+    pub min_remaining_native_gas: Amount256,
+    pub protocol_cap: Option<Amount256>,
+    pub market_cap: Option<Amount256>,
+    pub active: bool,
+    pub evidence: Vec<CapitalEvidenceRef>,
+}
+
+impl ExternalGasCreditObservation {
+    pub fn into_capital_source(self) -> Result<CapitalSource, CapitalError> {
+        if let FeeModel::Fixed { asset, .. } = self.fee_model {
+            if asset != CapitalAsset::NativeGas {
+                return Err(CapitalError::InvalidCanonical(
+                    "gas credit fixed fee must use native gas",
+                ));
+            }
+        }
+
+        let active = self.active;
+        let source = CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::GasFunding,
+            anchor: self.anchor,
+            provider_namespace: self.provider_namespace,
+            provider_locator_hash: self.provider_locator_hash,
+            provider_kind: CapitalProviderKind::ExternalCreditFacility,
+            ownership: CapitalOwnership::External,
+            source_contract: Some(self.facility_contract),
+            asset: CapitalAsset::NativeGas,
+            maximum_available: self.maximum_native_gas,
+            fee_model: self.fee_model,
+            repayment_asset: CapitalAsset::NativeGas,
+            repayment: RepaymentSemantics::DeadlineBlocks(self.repayment_deadline_blocks),
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(
+                self.max_utilization_bps,
+                self.min_remaining_native_gas,
+            )?,
+            caps: CapitalCaps {
+                protocol_cap: self.protocol_cap,
+                market_cap: self.market_cap,
+            },
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![
+                CapitalFailureMode::SourceUnavailable,
+                CapitalFailureMode::CapacityChanged,
+                CapitalFailureMode::FeeChanged,
+                CapitalFailureMode::ProtocolCapReached,
+                CapitalFailureMode::MarketCapReached,
+                CapitalFailureMode::RepaymentFailure,
+                CapitalFailureMode::FacilityDisappearance,
+            ],
+            evidence: self.evidence,
+        })?;
+        if active {
+            Ok(source)
+        } else {
+            source.with_execution_blockers(vec![
+                "GAS_CREDIT_FACILITY_INACTIVE".to_owned(),
+            ])
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct ExternalGasSponsorObservation {
     pub anchor: StateAnchor,
     pub provider_namespace: u16,
