@@ -717,7 +717,7 @@ fn duplicate_scenario_evidence_is_rejected() -> TestResult {
 fn tail_reserve_cannot_understate_declared_loss_at_confidence() -> TestResult {
     assert!(matches!(
         TailRiskBound::new(
-            ProbabilityWad::new(WAD * 99 / 100)?,
+            ProbabilityWad::new(WAD / 100 * 99)?,
             Amount256::from_u128(100),
             Amount256::from_u128(1_000),
             Amount256::from_u128(99),
