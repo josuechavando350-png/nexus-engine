@@ -1,4 +1,4 @@
-use crate::{factory_interface, verify_factory_runtime};
+use crate::{factory_interface, stage::V2Plan, verify_factory_runtime};
 use nqc_census_chain::{
     abi,
     acquire::Acquisition,
@@ -17,9 +17,6 @@ use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
 use std::{error::Error, fs, path::Path};
 
-const ANCHOR_NUMBER: u64 = 25_437_474;
-const ANCHOR_HASH: &str = "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
-const FACTORY: &str = "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f";
 const CURRENT_NAMESPACE: u16 = 0x0701;
 
 fn sha256_plain(bytes: &[u8]) -> String {
@@ -116,8 +113,9 @@ fn provider_current_facts(
     provider: &ProviderSpec,
     chain: &nqc_census_core::ChainDomain,
     anchor: &StateAnchor,
+    plan: &V2Plan,
 ) -> Result<ProviderResult, ChainError> {
-    let factory = Address::parse_hex(FACTORY)?;
+    let factory = plan.factory;
     let interface = factory_interface();
     let spec = JobSpec::new(
         "rmc007-v2-current-surface",
@@ -214,10 +212,11 @@ pub fn current_surface_with(
     acquisition: &Acquisition<'_>,
     providers: &ProviderSet,
 ) -> Result<Json, ChainError> {
+    let plan = V2Plan::from_env_or_mainnet()?;
     let profile = ChainProfile::mainnet()?;
     let (bootstrap, chain, anchor) =
-        run_bootstrap(acquisition, providers, &profile, ANCHOR_NUMBER)?;
-    if anchor.block_hash().to_hex() != ANCHOR_HASH {
+        run_bootstrap(acquisition, providers, &profile, plan.anchor_number)?;
+    if anchor.block_hash() != plan.anchor_hash {
         return Err(ChainError::Evidence(
             "D07 observation anchor hash differs".into(),
         ));
@@ -230,6 +229,7 @@ pub fn current_surface_with(
             provider,
             &chain,
             &anchor,
+            &plan,
         )?);
     }
     let agreement = agree("rmc007-v2-current-surface", &results)?
