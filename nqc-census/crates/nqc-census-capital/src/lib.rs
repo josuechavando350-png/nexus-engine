@@ -1,11 +1,12 @@
 //! Protocol-agnostic, evidence-bound capital semantics for RMC-011.
 //!
-//! This crate deliberately does not discover live liquidity or make profitability claims.
-//! It defines exact integer capital sources, candidate requirements, deterministic identities,
-//! and fail-closed feasibility semantics consumed by later protocol adapters.
+//! The core model makes no profitability claims. Live discovery is isolated in explicit
+//! evidence-bound acquisition modules; all economic authority still flows through exact integer
+//! capital sources, candidate requirements, deterministic identities, and fail-closed feasibility.
 
 pub mod adapters;
 pub mod artifacts;
+pub mod balancer_live;
 pub mod demands;
 pub mod gas_credit;
 pub mod permissionless_atomic;
