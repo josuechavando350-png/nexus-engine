@@ -40,17 +40,17 @@ fn amount_json(value: Amount256) -> Json {
     Json::string(format!("0x{}", value.to_hex()))
 }
 
-fn observation_with_active(
+fn observation_with_runtime_active(
     observed_anchor: &StateAnchor,
     outstanding: Amount256,
     provider_b_facts: Option<Hash32>,
     declared_terms_override: Option<Hash32>,
+    runtime: Hash32,
     active: bool,
 ) -> Result<Vec<u8>, CapitalError> {
     let facility = address(10);
     let borrower = address(11);
     let lender = address(12);
-    let runtime = hash(13);
     let fee_bps = 100_u16;
     let deadline = 64_u32;
     let utilization = 8_000_u16;
@@ -157,6 +157,23 @@ fn observation_with_active(
         .map_err(|_| CapitalError::InvalidCanonical("test observation canonicalization"))
 }
 
+fn observation_with_active(
+    observed_anchor: &StateAnchor,
+    outstanding: Amount256,
+    provider_b_facts: Option<Hash32>,
+    declared_terms_override: Option<Hash32>,
+    active: bool,
+) -> Result<Vec<u8>, CapitalError> {
+    observation_with_runtime_active(
+        observed_anchor,
+        outstanding,
+        provider_b_facts,
+        declared_terms_override,
+        hash(13),
+        active,
+    )
+}
+
 fn observation(
     observed_anchor: &StateAnchor,
     outstanding: Amount256,
@@ -189,6 +206,39 @@ fn active_state_changes_observation_id_but_not_stable_source_key() -> TestResult
     assert!(active.execution_eligible());
     assert!(!inactive.execution_eligible());
     assert_eq!(inactive.executable_capacity()?, Amount256::ZERO);
+    Ok(())
+}
+
+#[test]
+fn runtime_change_preserves_stable_key_but_changes_observation_id() -> TestResult {
+    let anchor = anchor();
+    let before = import_external_gas_credit_observation(
+        &observation_with_runtime_active(
+            &anchor,
+            amount(100),
+            None,
+            None,
+            hash(13),
+            true,
+        )?,
+        &anchor,
+    )?;
+    let after = import_external_gas_credit_observation(
+        &observation_with_runtime_active(
+            &anchor,
+            amount(100),
+            None,
+            None,
+            hash(14),
+            true,
+        )?,
+        &anchor,
+    )?;
+
+    assert_eq!(before.key_id(), after.key_id());
+    assert_ne!(before.id(), after.id());
+    assert_eq!(before.maximum_available(), after.maximum_available());
+    assert_eq!(before.executable_capacity()?, after.executable_capacity()?);
     Ok(())
 }
 
