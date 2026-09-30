@@ -44,6 +44,9 @@ jobs:
           grep -F '"authority_parent": "8ebf6860e0a16964f5293df0ef40695b303b286d"' ci/nqc-census/capital-census-scope.json
           grep -F '"pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf"' ci/nqc-census/capital-census-scope.json
           grep -F 'Zero-own-capital is a constraint to prove' ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
+          grep -F '"source_universe_basis": "RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY"' ci/nqc-census/capital-census-scope.json
+          grep -F '"global_capital_source_completeness": false' ci/nqc-census/capital-census-scope.json
+          grep -F '"repayment_cashflow_sufficiency": false' ci/nqc-census/capital-census-scope.json
 
       - name: Verify certified PFT liquidation math binding
         shell: bash
