@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED_AWAITING_CERTIFIED_RMC012_AND_EXECUTION_EVIDENCE",
+  "repository": "josuechavando350-png/nexus-engine",
+  "d12": null,
+  "execution_evidence": null,
+  "blocking_reasons": [
+    "RMC012_TERMINAL_ACTIONABILITY_ARTIFACT_NOT_PINNED",
+    "REAL_EXECUTION_ECONOMICS_EVIDENCE_NOT_PINNED"
+  ],
+  "notes": [
+    "RMC-013 terminal authority never consumes synthetic economics fixtures.",
+    "Every D12 capital-feasible candidate must be either execution-simulatable with exact economics or explicitly rejected with a non-UNKNOWN reason.",
+    "Capture probability may remain UNCALIBRATED; RMC only certifies exact pre-capture economics and deterministic Shadow handoff."
+  ]
+}
