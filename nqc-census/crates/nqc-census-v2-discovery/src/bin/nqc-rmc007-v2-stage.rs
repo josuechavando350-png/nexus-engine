@@ -47,7 +47,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let store = Store::create(&PathBuf::from(flag("--store")?), StoreConfig::standard())?;
     let transport = CurlTransport::new(120, 15);
     let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());
-    let plan = V2Plan::mainnet()?;
+    let plan = V2Plan::from_env_or_mainnet()?;
     let (record, rows) = match command.as_str() {
         "pair-created" => {
             let boundary = Json::parse(&fs::read(flag("--boundary")?)?)?;
