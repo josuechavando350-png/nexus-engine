@@ -220,3 +220,31 @@ Until then:
 
 No workflow, PR body, comment or summary may infer closure from partial green
 checks.
+
+## Terminal certificate materialization
+
+The source authority lock is schema version 2 and never self-certifies closure.
+When `status=PINNED`, it MUST additionally bind:
+
+- a non-empty evidence array for every RMC-006..RMC-013 stage proof;
+- the complete market and opportunity pipeline counts;
+- the economic boundary consumed by the closeout verifier; and
+- non-empty terminal evidence commitments.
+
+The terminal workflow authenticates the exact GitHub run/artifact identities
+before materialization. It then executes the Rust closeout verifier twice from
+the same pinned lock and requires byte-identical output. The verifier calls the
+same `CloseoutCertificate::certify` invariants tested by the crate; a Python or
+shell summary cannot manufacture the terminal marker independently.
+
+The generated immutable archive contains:
+
+- `real-market-census-certificate.json`;
+- `real-market-census-certificate.sha256`.
+
+Only the generated certificate may set
+`real_market_census_closed=true` and emit `REAL_MARKET_CENSUS_CLOSED`.
+Its terminal commitment binds all eight stage proofs, pipeline counts, economic
+boundary and terminal evidence. The generated certificate must keep realized
+profitability and the monthly-target probability explicitly false; those remain
+downstream Shadow/Canary/P&L claims.
