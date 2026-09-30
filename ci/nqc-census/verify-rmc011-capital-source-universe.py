@@ -55,6 +55,14 @@ GIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 ARTIFACT_DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 EXPECTED_REPOSITORY = "josuechavando350-png/nexus-engine"
 
+CANONICAL_LOCAL_IMPLEMENTATIONS = {
+    "BALANCER_V2_FLASH_LOAN": "nqc-census/crates/nqc-census-capital/src/balancer_live.rs",
+    "UNISWAP_V3_FLASH": "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs",
+    "EXTERNAL_GAS_CREDIT": "nqc-census/crates/nqc-census-capital/src/gas_credit.rs",
+    "EXTERNAL_GAS_SPONSOR": "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs",
+    "TRANSIENT_EXTERNAL_CREDIT": "nqc-census/crates/nqc-census-capital/src/transient_credit.rs",
+}
+
 
 class UniverseError(ValueError):
     pass
@@ -194,6 +202,17 @@ def validate_document(doc: dict) -> dict:
                 isinstance(real_source_path, str) and real_source_path,
                 f"{family_id}: admission status requires real_source_path",
             )
+
+            canonical_local_path = CANONICAL_LOCAL_IMPLEMENTATIONS.get(family_id)
+            if canonical_local_path is not None:
+                require(
+                    real_source_path == canonical_local_path,
+                    f"{family_id}: real_source_path differs from canonical implementation",
+                )
+                require(
+                    Path(real_source_path).is_file(),
+                    f"{family_id}: canonical implementation file does not exist",
+                )
         if status == "MODEL_ONLY":
             require(real_source_path is None, f"{family_id}: MODEL_ONLY cannot claim real_source_path")
 
