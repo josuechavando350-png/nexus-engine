@@ -22,6 +22,9 @@ The layer MUST prevent double counting caused by candidates that share:
 Given explicit candidate requirements, RMC-011 feasibility results, exact
 capital-source states, and block-pinned shared-resource observations, produce a
 deterministic proof of whether the candidate set is simultaneously feasible.
+RMC-012 MUST independently recompute every supplied RMC-011 feasibility result
+from the exact requirement and source states and require byte/semantic equality;
+caller-supplied `FEASIBLE` or rejection labels are not authority.
 
 This layer is value-agnostic. It MUST NOT select a portfolio by guessed profit.
 Selection/ranking belongs downstream after net-EV, capture probability and
@@ -49,8 +52,10 @@ All resource amounts use exact uint256 arithmetic. No floating point is
 permitted.
 
 Capital allocations are aggregated by RMC-011 stable capital-source key.
-Individually feasible candidates that jointly exceed one source's effective
-capacity MUST create a conflict set.
+Individually feasible candidates that jointly exceed one source's executable
+capacity MUST create a conflict set. A feasibility record that does not equal
+fresh RMC-011 recomputation on the supplied source state MUST fail before any
+portfolio-capacity claim is emitted.
 
 Shared resources support:
 - EXCLUSIVE: exact capacity one; each claim must be exactly one;
@@ -64,6 +69,8 @@ to the same StateAnchor as the requirement that claims it.
 The evaluator MUST fail closed on:
 - duplicate candidate ids;
 - duplicate requirements or feasibility results;
+- a feasibility result that differs from exact RMC-011 recomputation;
+- failure to recompute RMC-011 feasibility from the supplied requirement/source state;
 - unknown capital sources;
 - conflicting observed states for one stable capital-source key;
 - unknown shared resources;
