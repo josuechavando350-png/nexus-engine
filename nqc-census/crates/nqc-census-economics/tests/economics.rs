@@ -137,6 +137,9 @@ fn quote(
 ) -> Result<ExecutionQuote, EconomicsError> {
     ExecutionQuote::new(
         candidate.id(),
+        hash(47),
+        hash(48),
+        hash(49),
         anchor.clone(),
         ValuationUnitId::usd_wad(),
         Amount256::from_u128(trade_size),
@@ -351,6 +354,9 @@ fn quote_commitment_is_independent_of_evidence_input_order() -> TestResult {
     let capture = empirical(WAD / 2)?;
     let left = ExecutionQuote::new(
         candidate.id(),
+        hash(47),
+        hash(48),
+        hash(49),
         anchor.clone(),
         ValuationUnitId::usd_wad(),
         Amount256::from_u128(1_000),
@@ -362,6 +368,9 @@ fn quote_commitment_is_independent_of_evidence_input_order() -> TestResult {
     )?;
     let right = ExecutionQuote::new(
         candidate.id(),
+        hash(47),
+        hash(48),
+        hash(49),
         anchor,
         ValuationUnitId::usd_wad(),
         Amount256::from_u128(1_000),
@@ -372,6 +381,74 @@ fn quote_commitment_is_independent_of_evidence_input_order() -> TestResult {
         vec![hash(52), hash(51)],
     )?;
     assert_eq!(left.commitment(), right.commitment());
+    Ok(())
+}
+
+#[test]
+fn opportunity_plan_and_model_bind_quote_commitment() -> TestResult {
+    let anchor = anchor(100, 10);
+    let candidate = candidate_at(&anchor)?;
+    let costs = complete_costs(10, 5, 3)?;
+    let capture = empirical(WAD / 2)?;
+    let baseline = ExecutionQuote::new(
+        candidate.id(),
+        hash(47),
+        hash(48),
+        hash(49),
+        anchor.clone(),
+        ValuationUnitId::usd_wad(),
+        Amount256::from_u128(1_000),
+        Amount256::from_u128(100),
+        costs.clone(),
+        capture.clone(),
+        tail(0)?,
+        vec![hash(51), hash(52)],
+    )?;
+    let opportunity_changed = ExecutionQuote::new(
+        candidate.id(),
+        hash(57),
+        hash(48),
+        hash(49),
+        anchor.clone(),
+        ValuationUnitId::usd_wad(),
+        Amount256::from_u128(1_000),
+        Amount256::from_u128(100),
+        costs.clone(),
+        capture.clone(),
+        tail(0)?,
+        vec![hash(51), hash(52)],
+    )?;
+    let plan_changed = ExecutionQuote::new(
+        candidate.id(),
+        hash(47),
+        hash(58),
+        hash(49),
+        anchor.clone(),
+        ValuationUnitId::usd_wad(),
+        Amount256::from_u128(1_000),
+        Amount256::from_u128(100),
+        costs.clone(),
+        capture.clone(),
+        tail(0)?,
+        vec![hash(51), hash(52)],
+    )?;
+    let model_changed = ExecutionQuote::new(
+        candidate.id(),
+        hash(47),
+        hash(48),
+        hash(59),
+        anchor,
+        ValuationUnitId::usd_wad(),
+        Amount256::from_u128(1_000),
+        Amount256::from_u128(100),
+        costs,
+        capture,
+        tail(0)?,
+        vec![hash(51), hash(52)],
+    )?;
+    assert_ne!(baseline.commitment(), opportunity_changed.commitment());
+    assert_ne!(baseline.commitment(), plan_changed.commitment());
+    assert_ne!(baseline.commitment(), model_changed.commitment());
     Ok(())
 }
 
@@ -408,6 +485,9 @@ fn capture_interval_admission_uses_worst_endpoint_not_point_estimate() -> TestRe
     let candidate = candidate_at(&anchor)?;
     let quote = ExecutionQuote::new(
         candidate.id(),
+        hash(47),
+        hash(48),
+        hash(49),
         anchor,
         ValuationUnitId::usd_wad(),
         Amount256::from_u128(1_000),
@@ -440,6 +520,9 @@ fn tail_reserve_can_reject_positive_capture_adjusted_ev() -> TestResult {
     let candidate = candidate_at(&anchor)?;
     let quote = ExecutionQuote::new(
         candidate.id(),
+        hash(47),
+        hash(48),
+        hash(49),
         anchor,
         ValuationUnitId::usd_wad(),
         Amount256::from_u128(1_000),
