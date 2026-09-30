@@ -1,4 +1,5 @@
 name: NQC RMC-011 Real Source Certification
+# Exact-head validation marker: terminal D11 gate.
 
 on:
   pull_request:
