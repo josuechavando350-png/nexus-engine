@@ -4,7 +4,7 @@
 //! uses account/portfolio collateral, health factor, eMode/isolation and oracle
 //! semantics that cannot be truthfully reduced to a single collateral token.
 //! The output is therefore a block-pinned facility census with conservative
-//! executable-upper-bound blockers, not a capital-feasibility claim.
+//! protocol-borrowability blockers, not a capital-feasibility claim.
 
 use crate::{
     upstream::{d08_aave_flash_terms, verify_d08_artifact_binding, D08CapitalImportContext},
@@ -67,7 +67,8 @@ pub struct AaveDebtFacility {
     pub borrow_cap: Option<Amount256>,
     pub borrow_cap_remaining: Option<Amount256>,
     pub observed_borrowable_upper_bound: Amount256,
-    pub executable_borrowable_upper_bound: Amount256,
+    pub protocol_borrowable_upper_bound: Amount256,
+    pub portfolio_collateral_resolution_required: bool,
     pub current_variable_borrow_rate_ray: Amount256,
     pub ltv_bps: u16,
     pub liquidation_threshold_bps: u16,
@@ -208,7 +209,7 @@ fn facility_commitment(
     asset: Address,
     reserve_id: u16,
     observed_upper_bound: Amount256,
-    executable_upper_bound: Amount256,
+    protocol_upper_bound: Amount256,
     risk_commitment: Hash32,
     blockers: &[AaveDebtFacilityBlocker],
 ) -> Result<Hash32, CapitalError> {
@@ -220,7 +221,7 @@ fn facility_commitment(
     hasher.update(asset.as_bytes());
     hasher.update(reserve_id.to_be_bytes());
     hasher.update(observed_upper_bound.as_be_bytes());
-    hasher.update(executable_upper_bound.as_be_bytes());
+    hasher.update(protocol_upper_bound.as_be_bytes());
     hasher.update(risk_commitment.as_bytes());
     hasher.update(
         u16::try_from(blockers.len())
@@ -367,7 +368,7 @@ pub fn discover_d08_aave_debt_facilities(
         blockers.sort();
         blockers.dedup();
 
-        let executable_upper_bound = if blockers.is_empty() {
+        let protocol_upper_bound = if blockers.is_empty() {
             observed_upper_bound
         } else {
             Amount256::ZERO
@@ -386,7 +387,7 @@ pub fn discover_d08_aave_debt_facilities(
             asset,
             reserve_id,
             observed_upper_bound,
-            executable_upper_bound,
+            protocol_upper_bound,
             risk_commitment,
             &blockers,
         )?;
@@ -402,7 +403,8 @@ pub fn discover_d08_aave_debt_facilities(
             borrow_cap,
             borrow_cap_remaining,
             observed_borrowable_upper_bound: observed_upper_bound,
-            executable_borrowable_upper_bound: executable_upper_bound,
+            protocol_borrowable_upper_bound: protocol_upper_bound,
+            portfolio_collateral_resolution_required: true,
             current_variable_borrow_rate_ray: Amount256::parse_decimal(text(
                 indexes,
                 "current_variable_borrow_rate",
