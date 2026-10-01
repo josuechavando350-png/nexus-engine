@@ -235,6 +235,11 @@ def validate_document(
             f"{family_id}: debt discovery must bind the canonical Aave debt discovery implementation",
         )
         require(
+            "D08_TOKEN_EXECUTION_BLOCKERS_PRESERVED"
+            in by_id[family_id]["completeness"],
+            f"{family_id}: debt discovery must preserve D08 token execution blockers",
+        )
+        require(
             "PORTFOLIO_COLLATERAL_FEASIBILITY_REMAINS_UNCLAIMED"
             in by_id[family_id]["completeness"],
             f"{family_id}: reserve-side discovery cannot claim portfolio collateral feasibility",
