@@ -7,9 +7,11 @@ import { homeHeroForAdExperience } from "./ad-context-copy";
 import { PageShell } from "./SiteChrome";
 import { HomeSplash } from "./HomeSplash";
 import { ContactForm } from "./ContactForm";
-import { cases, site, trajectory } from "./content";
+import { areas, cases, site, trajectory } from "./content";
 
 export const runtime = "edge";
+
+const audienceFiles = ["audiencia-01.jpg", "audiencia-02.jpg", "audiencia-03.jpg", "audiencia-04.jpg", "audiencia-05.jpg"] as const;
 
 export async function generateMetadata(): Promise<Metadata> {
   const governed = await readCanoProgrammaticSeoPage([]);
@@ -37,11 +39,11 @@ export default async function HomePage() {
             <div className="cp-hero-copy">
               <div className="cp-hero-identification" aria-label="Eduardo Cano, abogado penalista">
                 <span className="cp-hero-name">Eduardo Cano</span>
-                <span className="cp-hero-role">Defensa penal estratégica · CDMX</span>
+                <span className="cp-hero-role">Abogado penalista · CDMX</span>
               </div>
               <h1><span>Conozco cómo investiga</span><br /><strong>la autoridad.</strong></h1>
               <p className="cp-v2-kicker">Trabajé dentro de ella.</p>
-              <p className="cp-lead">Dirigí investigaciones de delitos fiscales y financieros dentro de la Procuraduría Fiscal de la Federación. Hoy diseño la defensa de empresarios, directivos y particulares en asuntos penales de alta complejidad.</p>
+              <p className="cp-lead">Dirigí investigaciones de delitos fiscales y financieros dentro de la Procuraduría Fiscal de la Federación. Hoy diseño personalmente la defensa de empresarios, directivos y particulares en asuntos penales complejos.</p>
               <div className="cp-actions cp-v2-actions">
                 <Link className="cp-btn cp-btn-solid" href="/evaluacion-empresarial" data-nexus-signal="hero-enterprise">Asunto empresarial o fiscal</Link>
                 <Link className="cp-btn" href="/detenido-cdmx" data-nexus-signal="hero-urgent">Tengo una urgencia penal</Link>
@@ -55,63 +57,98 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="cp-section cp-v2-paths-section" aria-labelledby="rutas-title">
-          <div className="cp-wrap">
-            <div className="cp-v2-section-intro">
-              <p className="cp-eyebrow">Dos contextos. Dos formas de intervenir.</p>
-              <h2 id="rutas-title">El problema penal no siempre <strong>empieza igual.</strong></h2>
+        <section className="cp-section cp-v2-paths-section" aria-labelledby="empresa-title">
+          <div className="cp-wrap cp-v2-specialty-grid">
+            <div>
+              <p className="cp-eyebrow">Empresas y directivos</p>
+              <h2 id="empresa-title">Defensa penal <strong>patrimonial, fiscal y empresarial.</strong></h2>
+              <p className="cp-v2-muted">Intervengo cuando una investigación puede afectar al mismo tiempo libertad, patrimonio, operación empresarial y reputación.</p>
+              <div className="cp-actions">
+                <Link className="cp-btn cp-btn-solid" href="/evaluacion-empresarial" data-nexus-signal="home-enterprise-evaluation">Solicitar evaluación confidencial</Link>
+                <Link className="cp-btn" href="/defensa-penal-empresarial">Conocer la defensa empresarial</Link>
+              </div>
             </div>
-            <div className="cp-v2-path-grid">
-              <article className="cp-v2-path cp-v2-path-premium" id="empresa">
-                <div>
-                  <p className="cp-eyebrow">Empresas y directivos</p>
-                  <h3>Defensa penal económica, fiscal y empresarial.</h3>
-                  <p>Investigaciones fiscales y financieras, fraude empresarial, responsabilidad de administradores y asuntos donde están en juego patrimonio, empresa y reputación.</p>
+            <div className="cp-v2-service-list">
+              <Link href="/defensa-penal-fiscal"><strong>Defensa penal fiscal</strong><i>↗</i></Link>
+              <Link href="/defraudacion-fiscal"><strong>Defraudación fiscal</strong><i>↗</i></Link>
+              <Link href="/delitos-financieros"><strong>Delitos financieros</strong><i>↗</i></Link>
+              <Link href="/fraude-empresarial"><strong>Fraude y defensa patrimonial</strong><i>↗</i></Link>
+              <Link href="/representante-legal-investigacion-penal"><strong>Representantes legales y administradores</strong><i>↗</i></Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="cp-section cp-preserved-situations" aria-labelledby="situacion-title">
+          <div className="cp-wrap">
+            <div className="cp-section-head">
+              <div><p className="cp-eyebrow">Orientación inicial</p><h2 id="situacion-title">¿Cuál es tu <strong>situación?</strong></h2></div>
+            </div>
+            <div className="cp-paths cp-paths-three">
+              <article className="cp-path" tabIndex={0}>
+                <h3>Me llegó un citatorio</h3>
+                <p>De la Fiscalía, de la FGR o de un Juez. Lo que se hace antes de comparecer puede cambiar el resto del caso.</p>
+                <div className="cp-actions">
+                  <Link className="cp-btn" href="/citatorio-ministerio-publico-cdmx">Qué hacer ante un citatorio</Link>
+                  <Link className="cp-text-link" href="/citatorio-fgr">Citatorio de la FGR</Link>
                 </div>
-                <Link className="cp-text-link" href="/evaluacion-empresarial" data-nexus-signal="path-enterprise">Evaluar un asunto empresarial o fiscal</Link>
               </article>
-              <article className="cp-v2-path cp-v2-path-urgent">
-                <div>
-                  <p className="cp-eyebrow">Urgencias y defensa personal</p>
-                  <h3>Cuando cada decisión procesal empieza a importar ahora.</h3>
-                  <p>Detención, citatorio, audiencia inicial, carpeta de investigación, orden de aprehensión, medidas cautelares e intervención inmediata.</p>
-                </div>
-                <Link className="cp-text-link" href="/detenido-cdmx" data-nexus-signal="path-urgent">Necesito defensa ahora</Link>
+              <article className="cp-path" tabIndex={0}>
+                <h3>Detuvieron a alguien</h3>
+                <p>Atención inmediata. Las primeras horas pueden condicionar decisiones procesales importantes.</p>
+                <Link className="cp-btn cp-btn-solid" href="/detenido-cdmx" data-nexus-signal="home-detention">Necesito ayuda ahora</Link>
+              </article>
+              <article className="cp-path cp-path-victim" tabIndex={0}>
+                <h3>Fui víctima de un delito</h3>
+                <p>Asesoría, representación y protección de tus derechos durante la investigación y el proceso.</p>
+                <a className="cp-btn" target="_blank" rel="noopener noreferrer" href={site.whatsapp} data-nexus-signal="home-victim-whatsapp">Quiero asesoría</a>
               </article>
             </div>
           </div>
         </section>
 
-        <section className="cp-v2-proof">
+        <section className="cp-section cp-preserved-why" id="acerca">
+          <div className="cp-wrap">
+            <div className="cp-section-head">
+              <div><p className="cp-eyebrow">Defensa personal</p><h2>Por qué <strong>elegirme</strong></h2></div>
+            </div>
+            <div className="cp-why">
+              <article tabIndex={0}><h3>Especialización</h3><p>Soy abogado especialista en derecho penal. No soy generalista y no atiendo otras ramas como práctica principal.</p></article>
+              <article tabIndex={0}><h3>Personalización</h3><p>Diseño personalmente la estrategia de los asuntos que acepto y participo directamente en las decisiones relevantes de la defensa.</p></article>
+              <article tabIndex={0}><h3>Cercanía</h3><p>Mantengo comunicación directa para que conozcas qué ocurre, qué sigue y qué decisiones requieren tu participación.</p></article>
+              <article tabIndex={0}><h3>Experiencia</h3><p>Conozco cómo opera la autoridad porque formé parte de su estructura y dirigí investigaciones en materia fiscal y financiera.</p></article>
+            </div>
+          </div>
+        </section>
+
+        <section className="cp-v2-proof cp-preserved-trajectory">
           <div className="cp-wrap cp-v2-proof-grid">
             <div className="cp-v2-proof-title">
-              <p className="cp-eyebrow">Experiencia desde ambos lados</p>
-              <h2>Primero investigó.<br /><strong>Ahora defiende.</strong></h2>
+              <p className="cp-eyebrow">Acerca de mí</p>
+              <h2>Primero investigué.<br /><strong>Ahora defiendo.</strong></h2>
             </div>
             <div className="cp-v2-proof-copy">
               <p>{trajectory}</p>
               <div className="cp-v2-proof-rail">
-                <div><span>2006</span><strong>Delitos fiscales y financieros</strong><p>Ingreso a la Procuraduría Fiscal de la Federación.</p></div>
-                <div><span>PFF</span><strong>Director de Investigaciones</strong><p>Experiencia directa en la construcción institucional de investigaciones.</p></div>
-                <div><span>HOY</span><strong>CANO Estrategia Penal</strong><p>Defensa penal directa, estratégica y especializada.</p></div>
+                <div><span>2006</span><strong>Delitos fiscales y financieros</strong><p>Inicié mi trayectoria en la Procuraduría Fiscal de la Federación.</p></div>
+                <div><span>PFF</span><strong>Director de Investigaciones</strong><p>Ascendí hasta dirigir investigaciones en esa misma materia.</p></div>
+                <div><span>HOY</span><strong>CANO Estrategia Penal</strong><p>Aplico esa experiencia a una defensa penal directa, estratégica y especializada.</p></div>
               </div>
-              <Link className="cp-text-link" href="/acerca-de-mi">Ver trayectoria y formación</Link>
+              <Link className="cp-text-link" href="/acerca-de-mi">Conoce mi trayectoria completa</Link>
             </div>
           </div>
         </section>
 
-        <section className="cp-section cp-v2-specialty">
-          <div className="cp-wrap cp-v2-specialty-grid">
-            <div>
-              <p className="cp-eyebrow">Territorio de especialización</p>
-              <h2>Penal económico y fiscal <strong>sin lenguaje de plantilla.</strong></h2>
-              <p className="cp-v2-muted">La estrategia cambia cuando una investigación puede afectar libertad, patrimonio, operación empresarial y reputación al mismo tiempo.</p>
+        <section className="cp-metrics cp-preserved-metrics">
+          <div className="cp-wrap cp-metrics-layout">
+            <div className="cp-metrics-about">
+              <div className="cp-eyebrow">Trayectoria</div>
+              <h2>Experiencia <strong>aplicada.</strong></h2>
+              <p>La experiencia institucional sólo importa si ayuda a leer mejor el expediente, anticipar decisiones y construir una estrategia más precisa.</p>
             </div>
-            <div className="cp-v2-service-list">
-              <Link href="/defraudacion-fiscal"><strong>Defraudación fiscal y defensa penal-fiscal</strong><i>↗</i></Link>
-              <Link href="/fraude-empresarial"><strong>Fraude y defensa penal empresarial</strong><i>↗</i></Link>
-              <Link href="/guias/requerimiento-sat-riesgo-penal" data-nexus-signal="home-service-sat"><strong>Requerimientos del SAT y riesgo penal</strong><i>↗</i></Link>
-              <Link href="/representante-legal-investigacion-penal" data-nexus-signal="home-service-representative"><strong>Representantes legales y contadores</strong><i>↗</i></Link>
+            <div className="cp-metrics-grid">
+              <div className="cp-metric"><strong>20</strong><span>Años ejerciendo exclusivamente en penal</span></div>
+              <div className="cp-metric"><strong>700+</strong><span>Casos atendidos</span></div>
+              <div className="cp-metric"><strong>CDMX</strong><span>Fuero común y federal</span></div>
             </div>
           </div>
         </section>
@@ -119,7 +156,7 @@ export default async function HomePage() {
         <section className="cp-section cp-v2-cases" id="casos">
           <div className="cp-wrap">
             <div className="cp-section-head">
-              <div><p className="cp-eyebrow">Experiencia aplicada</p><h2>Casos que muestran <strong>cómo se piensa una defensa.</strong></h2></div>
+              <div><p className="cp-eyebrow">Experiencia aplicada</p><h2>Casos que muestran <strong>cómo pienso una defensa.</strong></h2></div>
               <Link className="cp-text-link" href="/casos">Ver todos los casos</Link>
             </div>
             <div className="cp-v2-case-grid">
@@ -134,17 +171,41 @@ export default async function HomePage() {
           </div>
         </section>
 
+        <section className="cp-section cp-preserved-audiences">
+          <div className="cp-wrap">
+            <div className="cp-section-head">
+              <div><p className="cp-eyebrow">Defensa presente</p><h2>En sala, en cada <strong>audiencia.</strong></h2></div>
+            </div>
+            <div className="cp-audiences">
+              {audienceFiles.map(file => <img src={`/media/${file}`} alt="" tabIndex={0} key={file} />)}
+            </div>
+          </div>
+        </section>
+
         <section className="cp-v2-intelligence">
           <div className="cp-wrap">
             <div className="cp-v2-intelligence-head">
               <div><p className="cp-eyebrow">CANO Intelligence</p><h2>Entender el riesgo <strong>antes de reaccionar.</strong></h2></div>
-              <p>Análisis para empresarios, directivos y particulares sobre el punto exacto donde un problema fiscal, financiero o corporativo empieza a adquirir dimensión penal.</p>
+              <p>Escribo sobre investigaciones, riesgo penal-fiscal y decisiones empresariales desde la experiencia de haber trabajado dentro de la autoridad y hoy ejercer la defensa.</p>
             </div>
             <div className="cp-v2-intelligence-grid">
-              <Link href="/guias/requerimiento-sat-riesgo-penal"><span>Análisis</span><strong>Requerimientos del SAT y riesgo penal</strong><p>Qué cambia cuando el asunto deja de ser únicamente fiscal.</p></Link>
-              <Link href="/guias/responsabilidad-penal-representante-legal-contador"><span>Análisis</span><strong>Representante legal y contador</strong><p>Responsabilidad, exposición y decisiones que no deben improvisarse.</p></Link>
-              <Link href="/guias/defensa-penal-empresa-delitos-financieros"><span>Análisis</span><strong>Defensa penal empresarial</strong><p>Cómo se estructura una respuesta cuando el expediente afecta al negocio.</p></Link>
+              <Link href="/guias/requerimiento-sat-riesgo-penal"><span>Análisis</span><strong>Requerimientos del SAT y riesgo penal</strong><p>Qué cambia cuando un asunto deja de ser únicamente fiscal.</p></Link>
+              <Link href="/guias/responsabilidad-penal-representante-legal-contador"><span>Análisis</span><strong>Representante legal y contador</strong><p>Responsabilidad, exposición y decisiones que no conviene improvisar.</p></Link>
+              <Link href="/guias/defensa-penal-empresa-delitos-financieros"><span>Análisis</span><strong>Defensa penal empresarial</strong><p>Cómo estructuro una respuesta cuando el expediente también afecta al negocio.</p></Link>
             </div>
+            <Link className="cp-text-link cp-intelligence-more" href="/intelligence">Explorar CANO Intelligence</Link>
+          </div>
+        </section>
+
+        <section className="cp-section cp-preserved-advisory" id="asesoria">
+          <div className="cp-wrap cp-advisory">
+            <div>
+              <p className="cp-eyebrow">Consulta personal</p>
+              <h2><span className="cp-title-line">Asesoría legal</span><span className="cp-title-line">penal presencial</span></h2>
+              <p>Valoro y estudio inicialmente tu situación, resuelvo tus dudas y te explico qué opciones existen antes de definir la estrategia del caso.</p>
+              <Link className="cp-text-link" href="/diagnostico-penal">Conocer el diagnóstico penal</Link>
+            </div>
+            <div className="cp-price"><span>Diagnóstico y estrategia</span><strong>$2,500</strong><small>MXN · para asuntos individuales no urgentes</small></div>
           </div>
         </section>
 
@@ -153,7 +214,7 @@ export default async function HomePage() {
           <div className="cp-contact">
             <div>
               <p className="cp-eyebrow">Contacto confidencial</p>
-              <h2>Primero entendemos <strong>qué está en juego.</strong></h2>
+              <h2>Primero entiendo <strong>qué está en juego.</strong></h2>
               <p className="cp-v2-muted">Comparte únicamente información general en este primer contacto. Los documentos o datos sensibles se solicitan por un canal adecuado después de revisar el asunto.</p>
               <div className="cp-contact-details">
                 <strong>World Trade Center Ciudad de México</strong>
