@@ -68,7 +68,6 @@ pub struct AaveDebtFacility {
     pub borrow_cap_remaining: Option<Amount256>,
     pub observed_borrowable_upper_bound: Amount256,
     pub protocol_borrowable_upper_bound: Amount256,
-    pub portfolio_collateral_resolution_required: bool,
     pub current_variable_borrow_rate_ray: Amount256,
     pub ltv_bps: u16,
     pub liquidation_threshold_bps: u16,
@@ -77,7 +76,10 @@ pub struct AaveDebtFacility {
     pub debt_ceiling_centi_units: u64,
     pub borrowable_in_isolation: bool,
     pub siloed_borrowing: bool,
-    pub risk_commitment: Hash32,
+    pub reserve_terms_commitment: Hash32,
+    pub portfolio_collateral_resolution_required: bool,
+    pub oracle_resolution_required: bool,
+    pub emode_resolution_required: bool,
     pub facility_commitment: Hash32,
     pub blockers: Vec<AaveDebtFacilityBlocker>,
     pub evidence: Vec<CapitalEvidenceRef>,
@@ -210,7 +212,7 @@ fn facility_commitment(
     reserve_id: u16,
     observed_upper_bound: Amount256,
     protocol_upper_bound: Amount256,
-    risk_commitment: Hash32,
+    reserve_terms_commitment: Hash32,
     blockers: &[AaveDebtFacilityBlocker],
 ) -> Result<Hash32, CapitalError> {
     let mut hasher = Sha256::new();
@@ -222,7 +224,7 @@ fn facility_commitment(
     hasher.update(reserve_id.to_be_bytes());
     hasher.update(observed_upper_bound.as_be_bytes());
     hasher.update(protocol_upper_bound.as_be_bytes());
-    hasher.update(risk_commitment.as_bytes());
+    hasher.update(reserve_terms_commitment.as_bytes());
     hasher.update(
         u16::try_from(blockers.len())
             .map_err(|_| CapitalError::InvalidCanonical("too many Aave debt blockers"))?
@@ -267,6 +269,11 @@ pub fn discover_d08_aave_debt_facilities(
     for row in parse_jsonl(state_manifest_jsonl)? {
         if text(&row, "protocol")? != "AAVE_V3" {
             continue;
+        }
+        if u64_field(&row, "schema_version")? != 1 {
+            return Err(CapitalError::InvalidCanonical(
+                "unsupported Aave debt discovery schema",
+            ));
         }
         let market_id_text = text(&row, "market_id")?.to_owned();
         let asset = Address::parse_hex(text(&row, "asset")?)
@@ -374,7 +381,7 @@ pub fn discover_d08_aave_debt_facilities(
             Amount256::ZERO
         };
 
-        let risk_commitment = hash_json_domain(
+        let reserve_terms_commitment = hash_json_domain(
             DISCOVERY_DOMAIN,
             market_id,
             pool,
@@ -388,7 +395,7 @@ pub fn discover_d08_aave_debt_facilities(
             reserve_id,
             observed_upper_bound,
             protocol_upper_bound,
-            risk_commitment,
+            reserve_terms_commitment,
             &blockers,
         )?;
 
@@ -405,6 +412,8 @@ pub fn discover_d08_aave_debt_facilities(
             observed_borrowable_upper_bound: observed_upper_bound,
             protocol_borrowable_upper_bound: protocol_upper_bound,
             portfolio_collateral_resolution_required: true,
+            oracle_resolution_required: true,
+            emode_resolution_required: true,
             current_variable_borrow_rate_ray: Amount256::parse_decimal(text(
                 indexes,
                 "current_variable_borrow_rate",
@@ -416,7 +425,7 @@ pub fn discover_d08_aave_debt_facilities(
             debt_ceiling_centi_units: u64_field(configuration, "debt_ceiling_centi_units")?,
             borrowable_in_isolation: bool_field(configuration, "borrowable_in_isolation")?,
             siloed_borrowing: bool_field(configuration, "siloed_borrowing")?,
-            risk_commitment,
+            reserve_terms_commitment,
             facility_commitment,
             blockers,
             evidence: context.evidence.clone(),
