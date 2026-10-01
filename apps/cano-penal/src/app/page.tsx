@@ -64,7 +64,6 @@ export default async function HomePage() {
             <div className="cp-v2-path-grid">
               <article className="cp-v2-path cp-v2-path-premium" id="empresa">
                 <div>
-                  <span className="cp-v2-index">01</span>
                   <p className="cp-eyebrow">Empresas y directivos</p>
                   <h3>Defensa penal económica, fiscal y empresarial.</h3>
                   <p>Investigaciones fiscales y financieras, fraude empresarial, responsabilidad de administradores y asuntos donde están en juego patrimonio, empresa y reputación.</p>
@@ -73,7 +72,6 @@ export default async function HomePage() {
               </article>
               <article className="cp-v2-path cp-v2-path-urgent">
                 <div>
-                  <span className="cp-v2-index">02</span>
                   <p className="cp-eyebrow">Urgencias y defensa personal</p>
                   <h3>Cuando cada decisión procesal empieza a importar ahora.</h3>
                   <p>Detención, citatorio, audiencia inicial, carpeta de investigación, orden de aprehensión, medidas cautelares e intervención inmediata.</p>
@@ -110,10 +108,10 @@ export default async function HomePage() {
               <p className="cp-v2-muted">La estrategia cambia cuando una investigación puede afectar libertad, patrimonio, operación empresarial y reputación al mismo tiempo.</p>
             </div>
             <div className="cp-v2-service-list">
-              <Link href="/areas/delitos-fiscales-y-financieros"><span>01</span><strong>Delitos fiscales y financieros</strong><i>↗</i></Link>
-              <Link href="/guias/defensa-penal-empresa-delitos-financieros"><span>02</span><strong>Defensa penal empresarial</strong><i>↗</i></Link>
-              <Link href="/guias/requerimiento-sat-riesgo-penal"><span>03</span><strong>Requerimientos del SAT y riesgo penal</strong><i>↗</i></Link>
-              <Link href="/guias/responsabilidad-penal-representante-legal-contador"><span>04</span><strong>Representantes legales y contadores</strong><i>↗</i></Link>
+              <Link href="/areas/delitos-fiscales-y-financieros"><strong>Delitos fiscales y financieros</strong><i>↗</i></Link>
+              <Link href="/guias/defensa-penal-empresa-delitos-financieros"><strong>Defensa penal empresarial</strong><i>↗</i></Link>
+              <Link href="/guias/requerimiento-sat-riesgo-penal"><strong>Requerimientos del SAT y riesgo penal</strong><i>↗</i></Link>
+              <Link href="/guias/responsabilidad-penal-representante-legal-contador"><strong>Representantes legales y contadores</strong><i>↗</i></Link>
             </div>
           </div>
         </section>
@@ -127,7 +125,6 @@ export default async function HomePage() {
             <div className="cp-v2-case-grid">
               {[cases[4], cases[0], cases[1]].map(([title, body], index) => (
                 <article className="cp-v2-case" key={title}>
-                  <span>0{index + 1}</span>
                   <h3>{title}</h3>
                   <p>{body}</p>
                 </article>
@@ -144,9 +141,9 @@ export default async function HomePage() {
               <p>Análisis para empresarios, directivos y particulares sobre el punto exacto donde un problema fiscal, financiero o corporativo empieza a adquirir dimensión penal.</p>
             </div>
             <div className="cp-v2-intelligence-grid">
-              <Link href="/guias/requerimiento-sat-riesgo-penal"><span>Briefing 01</span><strong>Requerimientos del SAT y riesgo penal</strong><p>Qué cambia cuando el asunto deja de ser únicamente fiscal.</p></Link>
-              <Link href="/guias/responsabilidad-penal-representante-legal-contador"><span>Briefing 02</span><strong>Representante legal y contador</strong><p>Responsabilidad, exposición y decisiones que no deben improvisarse.</p></Link>
-              <Link href="/guias/defensa-penal-empresa-delitos-financieros"><span>Briefing 03</span><strong>Defensa penal empresarial</strong><p>Cómo se estructura una respuesta cuando el expediente afecta al negocio.</p></Link>
+              <Link href="/guias/requerimiento-sat-riesgo-penal"><span>Análisis</span><strong>Requerimientos del SAT y riesgo penal</strong><p>Qué cambia cuando el asunto deja de ser únicamente fiscal.</p></Link>
+              <Link href="/guias/responsabilidad-penal-representante-legal-contador"><span>Análisis</span><strong>Representante legal y contador</strong><p>Responsabilidad, exposición y decisiones que no deben improvisarse.</p></Link>
+              <Link href="/guias/defensa-penal-empresa-delitos-financieros"><span>Análisis</span><strong>Defensa penal empresarial</strong><p>Cómo se estructura una respuesta cuando el expediente afecta al negocio.</p></Link>
             </div>
           </div>
         </section>
