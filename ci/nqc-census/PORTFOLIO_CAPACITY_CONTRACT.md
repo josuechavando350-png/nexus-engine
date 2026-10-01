@@ -162,10 +162,13 @@ capacity statement is allowed:
   proves an explicit sequential state-transition composition;
 - one debt-position CAPACITY resource keyed by borrower + debt asset + reserve
   id, with capacity equal to the exact D09 debt balance and claim equal to the
-  PFT-sized debt-to-liquidate;
+  PFT-sized debt-to-liquidate. Its observed identity MUST bind both the D08
+  market snapshot and D09 account snapshot;
 - one collateral-position CAPACITY resource keyed by borrower + collateral
   asset + reserve id, with capacity equal to the exact D09 collateral balance
   and claim equal to collateral-to-liquidator plus liquidation protocol fee.
+  Its observed identity MUST bind both the D08 market snapshot and D09 account
+  snapshot.
 
 The borrower exclusivity rule is intentionally conservative. RMC-012 MUST NOT
 manufacture additive capacity by independently sizing multiple pairs against one
