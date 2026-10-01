@@ -103,7 +103,7 @@ def valid_closeout(lock_raw: bytes, lock: dict) -> dict:
         "observation_anchor": {
             "chain_id": 1,
             "block_number": 26095351,
-            "block_hash": "0x" + "11" * 32,
+            "block_hash": mod.EXPECTED_A1_HASH,
         },
         "code_commit": "12" * 20,
         "code_tree": "34" * 20,
@@ -167,6 +167,13 @@ class TerminalCloseoutTests(unittest.TestCase):
         source["family_universe_discovery"] = {"status": "NOT_CERTIFIED", "evidence": None}
         with self.assertRaises(mod.TerminalCloseoutError):
             self.build(source=source)
+
+    def test_wrong_observation_anchor_fails_closed(self):
+        lock_raw, lock = valid_lock()
+        closeout = valid_closeout(lock_raw, lock)
+        closeout["observation_anchor"]["block_number"] = mod.EXPECTED_A1_BLOCK - 1
+        with self.assertRaises(mod.TerminalCloseoutError):
+            self.build(closeout=closeout, lock_raw=lock_raw, lock=lock)
 
     def test_authority_lock_byte_substitution_fails_closed(self):
         lock_raw, lock = valid_lock()
