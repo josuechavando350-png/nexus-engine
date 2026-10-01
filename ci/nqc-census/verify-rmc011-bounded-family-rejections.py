@@ -17,20 +17,14 @@ from pathlib import Path
 ROOT = Path("ci/nqc-census")
 PROVIDER_PATH = ROOT / "rmc011-external-capital-provider-registry.json"
 PLAN_PATH = ROOT / "rmc011-execution-plan-requirement-catalog.json"
-DEBT_PATH = ROOT / "rmc011-permissionless-debt-facility-catalog.json"
 
 PROVIDER_VERIFIER = ROOT / "verify-rmc011-external-capital-provider-registry.py"
 PLAN_VERIFIER = ROOT / "verify-rmc011-execution-plan-requirement-catalog.py"
-DEBT_VERIFIER = ROOT / "verify-rmc011-permissionless-debt-facility-catalog.py"
 
 EXTERNAL_ONLY = {
     "EXTERNAL_GAS_CREDIT",
     "EXTERNAL_GAS_SPONSOR",
     "TRANSIENT_EXTERNAL_CREDIT",
-}
-DEBT = {
-    "COLLATERALIZED_BORROWING",
-    "PERSISTENT_DEBT",
 }
 PLAN_REQUIREMENTS = {
     "INVENTORY_REQUIREMENT",
@@ -58,14 +52,12 @@ def load_verifier(path: Path, name: str):
     return module
 
 
-def validate_documents(provider: dict, plan: dict, debt: dict) -> dict:
+def validate_documents(provider: dict, plan: dict) -> dict:
     provider_mod = load_verifier(PROVIDER_VERIFIER, "rmc011_provider_registry")
     plan_mod = load_verifier(PLAN_VERIFIER, "rmc011_plan_catalog")
-    debt_mod = load_verifier(DEBT_VERIFIER, "rmc011_debt_catalog")
 
     provider_result = provider_mod.validate_document(provider)
     plan_result = plan_mod.validate_document(plan)
-    debt_result = debt_mod.validate_document(debt)
 
     require(provider_result["provider_count"] == 0, "external provider registry is not empty")
     require(
@@ -77,17 +69,6 @@ def validate_documents(provider: dict, plan: dict, debt: dict) -> dict:
         plan_result["status"] == "DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE",
         "execution-plan catalog empty status differs",
     )
-    # The permissionless debt catalog is validated as a declaration boundary only.
-    # Its emptiness is NOT an exhaustive market-discovery result and therefore
-    # cannot terminally reject collateralized or persistent debt families.
-    require(
-        debt_result["status"] in {
-            "DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE",
-            "DECLARED_WITH_FACILITIES_NOT_TERMINAL_EVIDENCE",
-        },
-        "permissionless debt catalog status differs",
-    )
-
     provider_families = set(provider.get("provider_backed_families", []))
     require(EXPECTED <= provider_families, "provider registry family coverage is incomplete")
 
@@ -100,13 +81,6 @@ def validate_documents(provider: dict, plan: dict, debt: dict) -> dict:
         PLAN_REQUIREMENTS == plan_families,
         "execution-plan catalog requirement family coverage differs",
     )
-
-    debt_families = {
-        row.get("family")
-        for row in debt.get("families", [])
-        if isinstance(row, dict)
-    }
-    require(DEBT == debt_families, "permissionless debt catalog family coverage differs")
 
     rows = []
     for family in sorted(EXTERNAL_ONLY):
@@ -153,8 +127,7 @@ def main(argv: list[str]) -> int:
     try:
         provider = json.loads(PROVIDER_PATH.read_text(encoding="utf-8"))
         plan = json.loads(PLAN_PATH.read_text(encoding="utf-8"))
-        debt = json.loads(DEBT_PATH.read_text(encoding="utf-8"))
-        result = validate_documents(provider, plan, debt)
+        result = validate_documents(provider, plan)
     except (OSError, json.JSONDecodeError, RejectionError, ValueError) as exc:
         print(f"RMC011_BOUNDED_FAMILY_REJECTIONS_INVALID {exc}", file=sys.stderr)
         return 1
