@@ -228,7 +228,7 @@ jobs:
           cargo fmt --all -- --check
           cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
           cargo test --locked -p nqc-census-capital
-          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-balancer-v2-capture --bin nqc-rmc011-balancer-v2-reconcile --bin nqc-rmc011-uniswap-v3-capture --bin nqc-rmc011-uniswap-v3-reconcile --bin nqc-rmc011-expanded-ledger-replay
+          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-balancer-v2-capture --bin nqc-rmc011-balancer-v2-reconcile --bin nqc-rmc011-uniswap-v3-capture --bin nqc-rmc011-uniswap-v3-reconcile --bin nqc-rmc011-aave-debt-discovery --bin nqc-rmc011-expanded-ledger-replay
           cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
           cargo build --release --locked -p nqc-census-capital
 
@@ -744,6 +744,55 @@ jobs:
           test -f "$RUNNER_TEMP/d09/account-summary.json"
           test -f "$RUNNER_TEMP/d09/evidence-manifest.json"
 
+      - name: Derive exact Aave V3 debt-facility discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-aave-v3-debt"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-aave-debt-discovery \
+              --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
+              --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
+              --d08-pool-and-factory-facts "$RUNNER_TEMP/d08/pool-and-factory-facts.json" \
+              --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
+              --authority-lock "$AUTHORITY_LOCK" \
+              --out "$ROOT/aave-debt-discovery.json"
+          ) | tee "$ROOT/discovery.log"
+          grep -F "RMC011_AAVE_DEBT_DISCOVERY_PASS" "$ROOT/discovery.log"
+
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-aave-debt-discovery \
+              --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
+              --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
+              --d08-pool-and-factory-facts "$RUNNER_TEMP/d08/pool-and-factory-facts.json" \
+              --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
+              --authority-lock "$AUTHORITY_LOCK" \
+              --out "$ROOT/aave-debt-discovery-second.json"
+          ) >/dev/null
+          cmp "$ROOT/aave-debt-discovery.json" "$ROOT/aave-debt-discovery-second.json"
+
+          jq -e '
+            .schema_version == 1 and
+            .stage == "RMC-011" and
+            .status == "RMC011_AAVE_DEBT_DISCOVERY_PASS" and
+            .claim_scope == "PROTOCOL_SIDE_DEBT_FACILITY_DISCOVERY_ONLY" and
+            .candidate_count == (.facility_count + .rejected_count) and
+            .capital_source_count == 0 and
+            .nqc_borrowing_capacity_claimed == false and
+            .portfolio_collateral_resolution_complete == false and
+            .oracle_resolution_complete == false and
+            .emode_resolution_complete == false and
+            .zero_own_capital_collateral_path_claimed == false and
+            (.non_claims | index("AAVE_RESERVE_LIQUIDITY_IS_NOT_NQC_BORROWING_CAPACITY") != null) and
+            (.non_claims | index("TERMINAL_D11_NOT_CERTIFIED") != null)
+          ' "$ROOT/aave-debt-discovery.json" >/dev/null
+
+          echo "RMC011_AAVE_DEBT_DISCOVERY=PASS facilities=$(jq -r '.facility_count' "$ROOT/aave-debt-discovery.json")"
+
       - name: Acquire and reconcile exact Balancer V2 flash capital
         shell: bash
         run: |
@@ -949,6 +998,9 @@ jobs:
           cp -- "$INPUTS" "$PACKAGE/rmc011-real-source-inputs.json"
           cp -- "$AUTHORITY_LOCK" "$PACKAGE/rmc011-authority-lock.json"
           cp -- ci/nqc-census/rmc011-capital-source-universe.json "$PACKAGE/rmc011-capital-source-universe.json"
+          test -f "$RUNNER_TEMP/rmc011-aave-v3-debt/aave-debt-discovery.json"
+          mkdir -p "$PACKAGE/permissionless/aave-v3-debt"
+          cp -- "$RUNNER_TEMP/rmc011-aave-v3-debt/aave-debt-discovery.json" "$PACKAGE/permissionless/aave-v3-debt/aave-debt-discovery.json"
           test -d "$RUNNER_TEMP/rmc011-balancer-v2"
           mkdir -p "$PACKAGE/permissionless/balancer-v2"
           cp -a "$RUNNER_TEMP/rmc011-balancer-v2/." "$PACKAGE/permissionless/balancer-v2/"

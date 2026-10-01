@@ -1,6 +1,6 @@
 use nqc_census_capital::{
     aave_debt_discovery::{
-        discover_d08_aave_debt_facilities, AaveDebtFacilityBlocker,
+        build_aave_debt_discovery_artifact, discover_d08_aave_debt_facilities, AaveDebtFacilityBlocker,
     },
     upstream::D08CapitalImportContext,
     CapitalEvidenceRef, CapitalError, GitObjectId, UpstreamCensusStage,
@@ -509,5 +509,113 @@ fn tampered_state_bytes_fail_manifest_binding() -> TestResult {
         ),
         Err(CapitalError::CanonicalDigestMismatch)
     ));
+    Ok(())
+}
+
+
+#[test]
+fn discovery_artifact_is_deterministic_and_nonterminal() -> TestResult {
+    let bundle = build_bundle(state_row(
+        "400000000",
+        "800000000",
+        false,
+        true,
+        true,
+    ))?;
+    let first = build_aave_debt_discovery_artifact(
+        &bundle.state,
+        &bundle.token,
+        &bundle.pool,
+        &bundle.manifest,
+        &bundle.authority,
+        &bundle.context,
+    )?;
+    let second = build_aave_debt_discovery_artifact(
+        &bundle.state,
+        &bundle.token,
+        &bundle.pool,
+        &bundle.manifest,
+        &bundle.authority,
+        &bundle.context,
+    )?;
+    assert_eq!(first, second);
+
+    let report = Json::parse(&first)?;
+    assert_eq!(
+        report.str_field("status")?,
+        "RMC011_AAVE_DEBT_DISCOVERY_PASS"
+    );
+    assert_eq!(
+        report.str_field("claim_scope")?,
+        "PROTOCOL_SIDE_DEBT_FACILITY_DISCOVERY_ONLY"
+    );
+    assert_eq!(report.get("candidate_count").and_then(Json::as_i64), Some(1));
+    assert_eq!(report.get("facility_count").and_then(Json::as_i64), Some(1));
+    assert_eq!(report.get("rejected_count").and_then(Json::as_i64), Some(0));
+    assert_eq!(report.get("capital_source_count").and_then(Json::as_i64), Some(0));
+    assert_eq!(
+        report
+            .get("nqc_borrowing_capacity_claimed")
+            .and_then(Json::as_bool),
+        Some(false)
+    );
+    assert_eq!(
+        report
+            .get("zero_own_capital_collateral_path_claimed")
+            .and_then(Json::as_bool),
+        Some(false)
+    );
+
+    let facilities = report
+        .get("facilities")
+        .and_then(Json::as_array)
+        .ok_or("missing discovery facilities")?;
+    assert_eq!(facilities.len(), 1);
+    assert_eq!(
+        facilities[0]
+            .get("portfolio_collateral_resolution_required")
+            .and_then(Json::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        facilities[0]
+            .get("oracle_resolution_required")
+            .and_then(Json::as_bool),
+        Some(true)
+    );
+    assert_eq!(
+        facilities[0]
+            .get("emode_resolution_required")
+            .and_then(Json::as_bool),
+        Some(true)
+    );
+    Ok(())
+}
+
+#[test]
+fn discovery_artifact_preserves_token_execution_blocker() -> TestResult {
+    let bundle = build_bundle_with_token_blockers(
+        state_row("400000000", "800000000", false, true, true),
+        &["UNSUPPORTED_TOKEN_BEHAVIOR"],
+    )?;
+    let artifact = build_aave_debt_discovery_artifact(
+        &bundle.state,
+        &bundle.token,
+        &bundle.pool,
+        &bundle.manifest,
+        &bundle.authority,
+        &bundle.context,
+    )?;
+    let report = Json::parse(&artifact)?;
+    let facilities = report
+        .get("facilities")
+        .and_then(Json::as_array)
+        .ok_or("missing discovery facilities")?;
+    let blockers = facilities[0]
+        .get("token_execution_blockers")
+        .and_then(Json::as_array)
+        .ok_or("missing token blockers")?;
+    assert_eq!(blockers.len(), 1);
+    assert_eq!(blockers[0].as_str(), Some("UNSUPPORTED_TOKEN_BEHAVIOR"));
     Ok(())
 }

@@ -522,3 +522,240 @@ pub fn discover_d08_aave_debt_facilities(
     }
     Ok(discovery)
 }
+
+
+fn amount_json(value: Amount256) -> Json {
+    Json::string(format!("0x{}", value.to_hex()))
+}
+
+fn optional_amount_json(value: Option<Amount256>) -> Json {
+    value.map_or(Json::Null, amount_json)
+}
+
+fn discovery_anchor_json(anchor: &nqc_census_core::StateAnchor) -> Json {
+    Json::object([
+        ("chain_id", Json::uint(anchor.chain().chain_id())),
+        (
+            "genesis_hash",
+            Json::string(anchor.chain().genesis_hash().to_hex()),
+        ),
+        (
+            "fork_lineage",
+            Json::string(anchor.chain().fork_lineage().to_hex()),
+        ),
+        ("block_number", Json::uint(anchor.block_number())),
+        ("block_hash", Json::string(anchor.block_hash().to_hex())),
+        ("parent_hash", Json::string(anchor.parent_hash().to_hex())),
+        ("timestamp", Json::uint(anchor.timestamp())),
+        ("state_root", Json::string(anchor.state_root().to_hex())),
+    ])
+}
+
+/// Build the deterministic, non-terminal Aave V3 debt-facility discovery artifact.
+///
+/// This artifact proves protocol-side reserve discovery and upper bounds only.
+/// It deliberately emits zero NQC capital sources because reserve liquidity does
+/// not become executable borrowing capacity under OWN_CAPITAL=0 until an
+/// authenticated external collateral path and exact portfolio/oracle/eMode
+/// resolution exist.
+pub fn build_aave_debt_discovery_artifact(
+    state_manifest_jsonl: &[u8],
+    token_admission_jsonl: &[u8],
+    pool_and_factory_facts_json: &[u8],
+    evidence_manifest_json: &[u8],
+    authority: &UpstreamStageAuthority,
+    context: &D08CapitalImportContext,
+) -> Result<Vec<u8>, CapitalError> {
+    let discovery = discover_d08_aave_debt_facilities(
+        state_manifest_jsonl,
+        token_admission_jsonl,
+        pool_and_factory_facts_json,
+        evidence_manifest_json,
+        authority,
+        context,
+    )?;
+
+    let facilities = discovery
+        .facilities
+        .iter()
+        .map(|facility| {
+            Json::object([
+                ("market_id", Json::string(facility.market_id.to_hex())),
+                ("pool", Json::string(facility.pool.to_hex())),
+                ("asset", Json::string(facility.asset.to_hex())),
+                ("reserve_id", Json::uint(u64::from(facility.reserve_id))),
+                ("decimals", Json::uint(u64::from(facility.decimals))),
+                (
+                    "observed_available_liquidity",
+                    amount_json(facility.observed_available_liquidity),
+                ),
+                (
+                    "total_variable_and_stable_debt",
+                    amount_json(facility.total_variable_and_stable_debt),
+                ),
+                ("borrow_cap", optional_amount_json(facility.borrow_cap)),
+                (
+                    "borrow_cap_remaining",
+                    optional_amount_json(facility.borrow_cap_remaining),
+                ),
+                (
+                    "observed_borrowable_upper_bound",
+                    amount_json(facility.observed_borrowable_upper_bound),
+                ),
+                (
+                    "protocol_borrowable_upper_bound",
+                    amount_json(facility.protocol_borrowable_upper_bound),
+                ),
+                (
+                    "token_compatible_borrowable_upper_bound",
+                    amount_json(facility.token_compatible_borrowable_upper_bound),
+                ),
+                (
+                    "token_execution_blockers",
+                    Json::array(
+                        facility
+                            .token_execution_blockers
+                            .iter()
+                            .map(|blocker| Json::string(blocker.clone()))
+                            .collect::<Vec<_>>(),
+                    ),
+                ),
+                (
+                    "current_variable_borrow_rate_ray",
+                    amount_json(facility.current_variable_borrow_rate_ray),
+                ),
+                ("ltv_bps", Json::uint(u64::from(facility.ltv_bps))),
+                (
+                    "liquidation_threshold_bps",
+                    Json::uint(u64::from(facility.liquidation_threshold_bps)),
+                ),
+                (
+                    "liquidation_bonus_bps",
+                    Json::uint(u64::from(facility.liquidation_bonus_bps)),
+                ),
+                (
+                    "reserve_factor_bps",
+                    Json::uint(u64::from(facility.reserve_factor_bps)),
+                ),
+                (
+                    "debt_ceiling_centi_units",
+                    Json::uint(facility.debt_ceiling_centi_units),
+                ),
+                (
+                    "borrowable_in_isolation",
+                    Json::Bool(facility.borrowable_in_isolation),
+                ),
+                ("siloed_borrowing", Json::Bool(facility.siloed_borrowing)),
+                (
+                    "reserve_terms_commitment",
+                    Json::string(facility.reserve_terms_commitment.to_hex()),
+                ),
+                (
+                    "portfolio_collateral_resolution_required",
+                    Json::Bool(facility.portfolio_collateral_resolution_required),
+                ),
+                (
+                    "oracle_resolution_required",
+                    Json::Bool(facility.oracle_resolution_required),
+                ),
+                (
+                    "emode_resolution_required",
+                    Json::Bool(facility.emode_resolution_required),
+                ),
+                (
+                    "facility_commitment",
+                    Json::string(facility.facility_commitment.to_hex()),
+                ),
+                (
+                    "blockers",
+                    Json::array(
+                        facility
+                            .blockers
+                            .iter()
+                            .map(|blocker| Json::string(blocker.code()))
+                            .collect::<Vec<_>>(),
+                    ),
+                ),
+            ])
+        })
+        .collect::<Vec<_>>();
+
+    let rejections = discovery
+        .rejections
+        .iter()
+        .map(|rejection| {
+            Json::object([
+                ("market_id", Json::string(rejection.market_id.clone())),
+                ("asset", Json::string(rejection.asset.to_hex())),
+                ("reason", Json::string(rejection.reason.code())),
+            ])
+        })
+        .collect::<Vec<_>>();
+
+    Json::object([
+        ("schema_version", Json::uint(1)),
+        ("stage", Json::string("RMC-011")),
+        ("status", Json::string("RMC011_AAVE_DEBT_DISCOVERY_PASS")),
+        (
+            "claim_scope",
+            Json::string("PROTOCOL_SIDE_DEBT_FACILITY_DISCOVERY_ONLY"),
+        ),
+        (
+            "observation_anchor",
+            discovery_anchor_json(&context.anchor),
+        ),
+        (
+            "d08_authority_artifact_sha256",
+            Json::string(authority.artifact_sha256.to_hex()),
+        ),
+        (
+            "candidate_count",
+            Json::uint(
+                u64::try_from(discovery.candidate_count)
+                    .map_err(|_| CapitalError::InvalidCanonical("Aave debt candidate count overflow"))?,
+            ),
+        ),
+        (
+            "facility_count",
+            Json::uint(
+                u64::try_from(discovery.facility_count)
+                    .map_err(|_| CapitalError::InvalidCanonical("Aave debt facility count overflow"))?,
+            ),
+        ),
+        (
+            "rejected_count",
+            Json::uint(
+                u64::try_from(discovery.rejected_count)
+                    .map_err(|_| CapitalError::InvalidCanonical("Aave debt rejected count overflow"))?,
+            ),
+        ),
+        (
+            "coverage_commitment",
+            Json::string(discovery.coverage_commitment.to_hex()),
+        ),
+        ("capital_source_count", Json::uint(0)),
+        ("nqc_borrowing_capacity_claimed", Json::Bool(false)),
+        (
+            "portfolio_collateral_resolution_complete",
+            Json::Bool(false),
+        ),
+        ("oracle_resolution_complete", Json::Bool(false)),
+        ("emode_resolution_complete", Json::Bool(false)),
+        ("zero_own_capital_collateral_path_claimed", Json::Bool(false)),
+        ("facilities", Json::array(facilities)),
+        ("rejections", Json::array(rejections)),
+        (
+            "non_claims",
+            Json::array(vec![
+                Json::string("AAVE_RESERVE_LIQUIDITY_IS_NOT_NQC_BORROWING_CAPACITY"),
+                Json::string("PORTFOLIO_COLLATERAL_FEASIBILITY_NOT_CERTIFIED"),
+                Json::string("ORACLE_BORROWING_FEASIBILITY_NOT_CERTIFIED"),
+                Json::string("EMODE_BORROWING_FEASIBILITY_NOT_CERTIFIED"),
+                Json::string("ZERO_OWN_CAPITAL_COLLATERAL_PATH_NOT_CERTIFIED"),
+                Json::string("TERMINAL_D11_NOT_CERTIFIED"),
+            ]),
+        ),
+    ])
+    .canonical()
+    .map_err(|_| CapitalError::InvalidCanonical("Aave debt discovery artifact canonicalization"))
+}
