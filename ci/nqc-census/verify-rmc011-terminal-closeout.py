@@ -22,7 +22,23 @@ TERMINAL_STATUSES = {
     "AUTHENTICATED_REAL_SOURCE",
     "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE",
 }
-EXPECTED_FAMILY_COUNT = 13
+EXPECTED_FAMILIES = {
+    "AAVE_V3_FLASH_LOAN",
+    "UNISWAP_V2_FLASH_SWAP",
+    "BALANCER_V2_FLASH_LOAN",
+    "UNISWAP_V3_FLASH",
+    "EXTERNAL_GAS_CREDIT",
+    "EXTERNAL_GAS_SPONSOR",
+    "TRANSIENT_EXTERNAL_CREDIT",
+    "COLLATERALIZED_BORROWING",
+    "PERSISTENT_DEBT",
+    "INVENTORY_REQUIREMENT",
+    "BOND_OR_STAKE",
+    "SOLVER_OR_BUILDER_DEPOSIT",
+    "INTRA_BLOCK_TEMPORARY_LOCK",
+}
+EXPECTED_FAMILY_COUNT = len(EXPECTED_FAMILIES)
+EXPECTED_REPOSITORY = "josuechavando350-png/nexus-engine"
 
 
 class TerminalCloseoutError(ValueError):
@@ -84,9 +100,17 @@ def validate_source_universe(doc: dict) -> dict:
             evidence.get("kind") in {"AUTHENTICATED_REAL_SOURCE", "EXHAUSTIVE_REJECTION"},
             f"{family}: terminal evidence kind invalid",
         )
+        require(evidence.get("repository") == EXPECTED_REPOSITORY, f"{family}: evidence repository differs")
+        require(isinstance(evidence.get("workflow_name"), str) and evidence["workflow_name"], f"{family}: workflow missing")
         require(isinstance(evidence.get("run_id"), int) and evidence["run_id"] > 0, f"{family}: run id invalid")
+        require(isinstance(evidence.get("head_sha"), str) and HEX40.fullmatch(evidence["head_sha"]) is not None, f"{family}: head sha invalid")
         require(isinstance(evidence.get("artifact_id"), int) and evidence["artifact_id"] > 0, f"{family}: artifact id invalid")
+        require(isinstance(evidence.get("artifact_name"), str) and evidence["artifact_name"], f"{family}: artifact name missing")
+        require(isinstance(evidence.get("artifact_digest"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", evidence["artifact_digest"]), f"{family}: artifact digest invalid")
+        require(isinstance(evidence.get("file"), str) and evidence["file"], f"{family}: evidence file missing")
         require(isinstance(evidence.get("sha256"), str) and re.fullmatch(r"[0-9a-f]{64}", evidence["sha256"]), f"{family}: evidence sha invalid")
+
+    require(ids == EXPECTED_FAMILIES, "terminal source-universe family set differs")
 
     discovery = doc.get("family_universe_discovery")
     require(isinstance(discovery, dict), "family-universe discovery missing")
@@ -94,6 +118,14 @@ def validate_source_universe(doc: dict) -> dict:
     evidence = discovery.get("evidence")
     require(isinstance(evidence, dict), "family-universe discovery evidence missing")
     require(evidence.get("kind") == "AUTHENTICATED_DISCOVERY", "family-universe discovery evidence kind differs")
+    require(evidence.get("repository") == EXPECTED_REPOSITORY, "discovery evidence repository differs")
+    require(isinstance(evidence.get("workflow_name"), str) and evidence["workflow_name"], "discovery workflow missing")
+    require(isinstance(evidence.get("run_id"), int) and evidence["run_id"] > 0, "discovery run id invalid")
+    require(isinstance(evidence.get("head_sha"), str) and HEX40.fullmatch(evidence["head_sha"]) is not None, "discovery head sha invalid")
+    require(isinstance(evidence.get("artifact_id"), int) and evidence["artifact_id"] > 0, "discovery artifact id invalid")
+    require(isinstance(evidence.get("artifact_name"), str) and evidence["artifact_name"], "discovery artifact name missing")
+    require(isinstance(evidence.get("artifact_digest"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", evidence["artifact_digest"]), "discovery artifact digest invalid")
+    require(evidence.get("file") == "discovery-evidence.json", "discovery evidence file differs")
     require(isinstance(evidence.get("sha256"), str) and re.fullmatch(r"[0-9a-f]{64}", evidence["sha256"]), "discovery evidence sha invalid")
     return {
         "family_count": len(families),
