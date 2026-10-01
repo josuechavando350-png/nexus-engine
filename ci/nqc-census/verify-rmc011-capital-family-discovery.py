@@ -223,6 +223,23 @@ def validate_document(
         "PERSISTENT_DEBT",
     }:
         require(
+            "RMC008_ADMITTED_AAVE_V3_RESERVES" in by_id[family_id]["surface"],
+            f"{family_id}: debt discovery must include admitted RMC-008 Aave V3 reserves",
+        )
+        require(
+            "RMC008_AUTHORITY_ARTIFACT" in by_id[family_id]["authority"],
+            f"{family_id}: debt discovery must bind RMC-008 authority",
+        )
+        require(
+            "aave_debt_discovery.rs" in by_id[family_id]["implementation"],
+            f"{family_id}: debt discovery must bind the canonical Aave debt discovery implementation",
+        )
+        require(
+            "PORTFOLIO_COLLATERAL_FEASIBILITY_REMAINS_UNCLAIMED"
+            in by_id[family_id]["completeness"],
+            f"{family_id}: reserve-side discovery cannot claim portfolio collateral feasibility",
+        )
+        require(
             "external_debt.rs" in by_id[family_id]["implementation"],
             f"{family_id}: debt family must bind the canonical external debt importer",
         )
