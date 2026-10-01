@@ -786,9 +786,7 @@ pub fn export_capital_artifacts(
                     .summary
                     .sources_by_class
                     .iter()
-                    .map(|(class, count)| {
-                        Ok((class.code(), Json::uint(u64_count(*count)?)))
-                    })
+                    .map(|(class, count)| Ok((class.code(), Json::uint(u64_count(*count)?))))
                     .collect::<Result<Vec<_>, CapitalError>>()?,
             ),
         ),
@@ -813,11 +811,9 @@ pub fn export_capital_artifacts(
                 ("sha256", Json::string(file.sha256_hex())),
                 (
                     "size_bytes",
-                    Json::uint(
-                        u64::try_from(file.bytes.len()).map_err(|_| {
-                            CapitalError::InvalidCanonical("capital artifact size overflow")
-                        })?,
-                    ),
+                    Json::uint(u64::try_from(file.bytes.len()).map_err(|_| {
+                        CapitalError::InvalidCanonical("capital artifact size overflow")
+                    })?),
                 ),
             ]))
         })
@@ -847,10 +843,7 @@ pub fn export_capital_artifacts(
             "upstream_authority_commitment",
             Json::string(hex(certificate.upstream_authority_commitment.as_bytes())),
         ),
-        (
-            "artifacts",
-            Json::array(manifest_artifacts),
-        ),
+        ("artifacts", Json::array(manifest_artifacts)),
         (
             "non_claims",
             Json::array([
