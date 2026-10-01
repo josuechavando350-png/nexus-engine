@@ -117,6 +117,10 @@ describe("CANO organic integration contract", () => {
       "guias/honorarios-abogado-penalista-cdmx/page.tsx",
       "evaluacion-empresarial/page.tsx",
       "intelligence/page.tsx",
+      "orden-aprehension/page.tsx",
+      "carpeta-investigacion/page.tsx",
+      "fraude-empresarial/page.tsx",
+      "defraudacion-fiscal/page.tsx",
     ];
     for (const path of pageFiles) {
       const page = readFileSync(new URL(path, app), "utf8");
