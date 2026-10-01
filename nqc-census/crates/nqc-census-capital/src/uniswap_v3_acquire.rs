@@ -899,6 +899,7 @@ fn provider_capture(
     ]))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn run_uniswap_v3_capture(
     providers_path: &Path,
     provider_label: &str,
