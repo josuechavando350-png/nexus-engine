@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "audit:local": "node ../../scripts/audit-local-presence.mjs --spec ./local-presence.canonical.json"
   },
   "dependencies": {
     "@nexus/core": "workspace:*",
