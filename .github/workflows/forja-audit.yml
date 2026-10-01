@@ -9,7 +9,6 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "package-lock.json"
-      - ".github/workflows/forja-*.yml"
   push:
     branches: [main]
   schedule:
