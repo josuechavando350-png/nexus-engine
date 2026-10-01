@@ -45,7 +45,7 @@ describe("CANO organic integration contract", () => {
     const form = readFileSync(new URL("./ContactForm.tsx", import.meta.url), "utf8");
     const cta = readFileSync(new URL("./InteriorSections.tsx", import.meta.url), "utf8");
     const areas = readFileSync(new URL("./AreaExperience.tsx", import.meta.url), "utf8");
-    expect(navigation).toContain('["Contáctame", "/#contacto"]');
+    expect(navigation).toContain('["Contacto", "/#contacto"]');
     expect(form).toContain("Comunícate conmigo →");
     expect(cta).toContain("Cuéntame qué está pasando.");
     expect(cta).toContain("Contáctame");
@@ -59,8 +59,8 @@ describe("CANO organic integration contract", () => {
     expect(home).toContain("<ContactForm compact />");
     expect(home).not.toContain('<form className="cp-form">');
     expect(home).toContain('href="/detenido-cdmx"');
-    expect(home).toContain('href="/diagnostico-penal"');
-    expect(nav).toContain('["Calendario fiscal", "/herramientas/calendario-fiscal"]');
+    expect(home).toContain('href="/evaluacion-empresarial"');
+    expect(nav).toContain('["Intelligence", "/intelligence"]');
   });
 
   it("displays the approved informative fiscal notice prominently", () => {
@@ -73,23 +73,18 @@ describe("CANO organic integration contract", () => {
     expect(stylesheet).toContain(".cp-cal-disclaimer{");
   });
 
-  it("makes all eight new consultation routes discoverable while leaving calendar in its section", () => {
+  it("keeps the strategic routes discoverable from the homepage and navigation", () => {
     const home = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
     const nav = readFileSync(new URL("./content.ts", import.meta.url), "utf8");
-    const paths = [
+    for (const path of [
       "/detenido-cdmx",
-      "/citatorio-ministerio-publico-cdmx",
-      "/audiencia-inicial-control-detencion-cdmx",
-      "/diagnostico-penal",
+      "/evaluacion-empresarial",
       "/guias/requerimiento-sat-riesgo-penal",
       "/guias/responsabilidad-penal-representante-legal-contador",
       "/guias/defensa-penal-empresa-delitos-financieros",
-      "/guias/honorarios-abogado-penalista-cdmx",
-    ];
-    expect(home).toContain('className="cp-route-index"');
-    for (const path of paths) expect(home).toContain('href="' + path + '"');
-    expect(home).not.toContain('className="cp-organic-bridge"');
-    expect(nav).toContain('["Calendario fiscal", "/herramientas/calendario-fiscal"]');
+    ]) expect(home).toContain('href="' + path + '"');
+    expect(nav).toContain('["Intelligence", "/intelligence"]');
+    expect(nav).toContain('["Empresas", "/guias/defensa-penal-empresa-delitos-financieros"]');
   });
 
   it("keeps fiscal deadlines unlisted until evidence and fiscal approval exist", () => {
@@ -120,6 +115,8 @@ describe("CANO organic integration contract", () => {
       "guias/responsabilidad-penal-representante-legal-contador/page.tsx",
       "guias/defensa-penal-empresa-delitos-financieros/page.tsx",
       "guias/honorarios-abogado-penalista-cdmx/page.tsx",
+      "evaluacion-empresarial/page.tsx",
+      "intelligence/page.tsx",
     ];
     for (const path of pageFiles) {
       const page = readFileSync(new URL(path, app), "utf8");
