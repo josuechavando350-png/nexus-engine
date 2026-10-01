@@ -535,6 +535,7 @@ fn pool_universe_rows(pools: &[PoolSeed]) -> Vec<Json> {
         .collect()
 }
 
+#[allow(clippy::too_many_arguments)]
 fn provider_capture(
     acquisition: &Acquisition<'_>,
     provider: &ProviderSpec,
