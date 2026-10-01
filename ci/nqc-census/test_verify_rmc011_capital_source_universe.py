@@ -45,6 +45,18 @@ def resolve_all_families(doc: dict) -> None:
         row["terminally_resolved"] = True
 
 
+def validate_with_complete_scope(doc: dict) -> dict:
+    scope_path = Path("ci/nqc-census/capital-census-scope.json")
+    original = scope_path.read_text()
+    scope = json.loads(original)
+    scope["claims"]["capital_source_universe_complete"] = True
+    scope_path.write_text(json.dumps(scope, indent=2) + "\n")
+    try:
+        return mod.validate_document(doc)
+    finally:
+        scope_path.write_text(original)
+
+
 class SourceUniverseTests(unittest.TestCase):
     def test_current_blocked_contract_is_valid(self) -> None:
         result = mod.validate_document(copy.deepcopy(BASE))
@@ -139,7 +151,7 @@ class SourceUniverseTests(unittest.TestCase):
         }
         doc["status"] = "CAPITAL_SOURCE_UNIVERSE_COMPLETE"
         doc["terminal_claim_allowed"] = True
-        result = mod.validate_document(doc)
+        result = validate_with_complete_scope(doc)
         self.assertTrue(result["family_universe_discovery_complete"])
         self.assertTrue(result["terminal_claim_allowed"])
         self.assertFalse(result["d11_terminal_closed"])
@@ -156,8 +168,9 @@ class SourceUniverseTests(unittest.TestCase):
         doc["status"] = "D11_TERMINAL_CLOSED"
         doc["terminal_claim_allowed"] = True
         doc["d11_terminal_closed"] = True
-        with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+        with self.assertRaises(mod.UniverseError) as ctx:
+            validate_with_complete_scope(doc)
+        self.assertIn("source-universe file cannot close D11", str(ctx.exception))
 
     def test_unknown_family_fails(self) -> None:
         doc = copy.deepcopy(BASE)
