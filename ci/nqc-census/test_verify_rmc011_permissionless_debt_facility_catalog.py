@@ -22,8 +22,8 @@ def sample_facility() -> dict:
         "family": "PERSISTENT_DEBT",
         "chain_id": 1,
         "facility_address": "0x" + "11" * 20,
-        "principal_asset": "TOKEN:" + "22" * 20,
-        "collateral_asset": "TOKEN:" + "33" * 20,
+        "principal_asset": "TOKEN:0x" + "22" * 20,
+        "collateral_asset": "TOKEN:0x" + "33" * 20,
         "runtime_code_hash": "0x" + "44" * 32,
         "deployment_provenance": {
             "kind": "OFFICIAL_UPSTREAM_DEPLOYMENT",
