@@ -211,6 +211,7 @@ fn hash_json_domain(
         .map_err(|_| CapitalError::InvalidCanonical("zero Aave debt discovery commitment"))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn facility_commitment(
     market_id: Hash32,
     pool: Address,
