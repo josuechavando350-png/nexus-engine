@@ -306,3 +306,33 @@ a,button,article,.cp-path,.cp-area,.cp-case,.cp-why article{-webkit-tap-highligh
 
 /* The preview intentionally avoids decorative section numbering. */
 .cp-v2-index{display:none!important}
+
+
+/* ===== Strategic acquisition architecture ===== */
+.cp-strategic-landing{display:grid;gap:clamp(3rem,7vw,6rem)}
+.cp-strategic-context{max-width:54rem}
+.cp-strategic-context>p:not(.cp-eyebrow){font-size:clamp(1.05rem,1.7vw,1.25rem);line-height:1.85;color:var(--content-secondary)}
+.cp-strategic-scenarios{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle)}
+.cp-strategic-scenarios article{padding:2rem 2rem 2.5rem}
+.cp-strategic-scenarios article+article{border-left:1px solid var(--border-subtle)}
+.cp-strategic-scenarios h2{font-size:clamp(1.35rem,2vw,1.8rem);line-height:1.08;margin:0 0 1rem}
+.cp-strategic-scenarios p{margin:0;color:var(--content-secondary);line-height:1.7}
+.cp-strategic-related{display:grid;gap:.25rem;max-width:50rem;border-top:1px solid var(--border-subtle)}
+.cp-strategic-related .cp-eyebrow{margin:1.5rem 0 1rem}
+.cp-strategic-related a{display:flex;justify-content:space-between;gap:1rem;padding:1rem 0;border-bottom:1px solid var(--border-subtle);text-decoration:none}
+.cp-proof-center{display:grid;gap:clamp(4rem,8vw,7rem)}
+.cp-proof-center-intro{max-width:62rem}
+.cp-proof-center-rail{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border-subtle);border-bottom:1px solid var(--border-subtle)}
+.cp-proof-center-rail article{padding:2rem 2rem 2.5rem}
+.cp-proof-center-rail article+article{border-left:1px solid var(--border-subtle)}
+.cp-proof-center-rail span{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--content-disabled)}
+.cp-proof-center-rail h2{font-size:clamp(1.35rem,2vw,1.8rem);margin:2.2rem 0 1rem}
+.cp-proof-center-rail p{color:var(--content-secondary);line-height:1.7}
+.cp-proof-center-note{max-width:56rem;padding-top:2rem;border-top:1px solid var(--border-subtle);color:var(--content-secondary);line-height:1.75}
+.cp-case-disclaimer{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border-subtle);max-width:62rem}
+.cp-case-disclaimer strong{display:block;font-family:"Arial Narrow","Helvetica Neue Condensed",Arial,sans-serif;text-transform:uppercase;letter-spacing:.04em;margin-bottom:.75rem}
+.cp-case-disclaimer p{margin:0;color:var(--content-secondary);line-height:1.7}
+@media(max-width:900px){
+  .cp-strategic-scenarios,.cp-proof-center-rail{grid-template-columns:1fr}
+  .cp-strategic-scenarios article+article,.cp-proof-center-rail article+article{border-left:0;border-top:1px solid var(--border-subtle)}
+}
