@@ -58,12 +58,11 @@ concurrency:
         && 'nqc-census-public-rpc'
         || format('nqc-rmc007-{0}-{1}', github.event_name,
                   github.event_name == 'pull_request' && github.ref || github.run_id) }}
-  cancel-in-progress: >-
-    ${{ !((github.event_name == 'workflow_dispatch' && github.event.inputs.stages_run_id == '')
-           || github.event_name == 'push') }}
+  cancel-in-progress: true
 
 jobs:
   gate:
+    if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
