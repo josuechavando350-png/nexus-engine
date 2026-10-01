@@ -857,6 +857,10 @@ jobs:
             (.families | length) == 2 and
             .global_nonexistence_claimed == false and
             .nqc_borrowing_capacity_claimed == false and
+            (.source_boundary_commitment | type == "string" and test("^[0-9a-f]{64}$")) and
+            (.source_boundary.external_provider_registry_sha256 | test("^[0-9a-f]{64}$")) and
+            (.source_boundary.permissionless_debt_catalog_sha256 | test("^[0-9a-f]{64}$")) and
+            (.source_boundary.collateral_funding_path_catalog_sha256 | test("^[0-9a-f]{64}$")) and
             .terminal_d11_closed == false
           ' "$RUNNER_TEMP/rmc011-debt-family-resolution.json" >/dev/null
 
@@ -896,6 +900,8 @@ jobs:
                   "run_attempt": int(run_attempt),
                   "d08_authority_artifact_sha256": report["d08_authority_artifact_sha256"],
                   "aave_coverage_commitment": report["aave_coverage_commitment"],
+                  "source_boundary": report["source_boundary"],
+                  "source_boundary_commitment": report["source_boundary_commitment"],
                   "global_nonexistence_claimed": False,
                   "nqc_borrowing_capacity_claimed": False,
                   "terminal_d11_closed": False,
