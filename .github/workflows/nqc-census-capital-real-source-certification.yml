@@ -1168,6 +1168,89 @@ jobs:
           test "$(find "$EVIDENCE/families" -name evidence.json -type f | wc -l)" -eq 4
           echo "RMC011_PROTOCOL_FAMILY_EVIDENCE=PASS"
 
+      - name: Re-authenticate terminal source-universe transports when complete
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          FILE=ci/nqc-census/rmc011-capital-source-universe.json
+          MARKER="$RUNNER_TEMP/rmc011-source-universe-authenticated"
+          rm -f "$MARKER"
+
+          if ! jq -e '
+            .status == "CAPITAL_SOURCE_UNIVERSE_COMPLETE" and
+            .terminal_claim_allowed == true and
+            .claim_scope == "SOURCE_UNIVERSE_READINESS_ONLY" and
+            .d11_terminal_closed == false and
+            .unknown_family_count == 0 and
+            (.families | length == 13) and
+            (.families | all(.terminally_resolved == true)) and
+            .family_universe_discovery.status == "AUTHENTICATED_COMPLETE"
+          ' "$FILE" >/dev/null; then
+            echo "RMC011_TERMINAL_TRANSPORT_AUTH=BLOCKED_SOURCE_UNIVERSE"
+            exit 0
+          fi
+
+          python3 - "$FILE" > "$RUNNER_TEMP/rmc011-terminal-evidence.tsv" <<'PY'
+          import json
+          import sys
+
+          doc = json.load(open(sys.argv[1]))
+          rows = [(family["id"], family["resolution_evidence"]) for family in doc["families"]]
+          rows.append(("FAMILY_UNIVERSE_DISCOVERY", doc["family_universe_discovery"]["evidence"]))
+          if len(rows) != 14:
+              raise SystemExit(f"terminal evidence row count differs: {len(rows)}")
+
+          for label, evidence in rows:
+              print("\t".join([
+                  label,
+                  evidence["repository"],
+                  evidence["workflow_name"],
+                  str(evidence["run_id"]),
+                  evidence["head_sha"],
+                  str(evidence["artifact_id"]),
+                  evidence["artifact_name"],
+                  evidence["artifact_digest"],
+                  evidence["file"],
+                  evidence["sha256"],
+              ]))
+          PY
+
+          : > "$RUNNER_TEMP/rmc011-terminal-evidence-authenticated.tsv"
+          while IFS=$'\t' read -r label repository workflow_name run_id head_sha artifact_id artifact_name artifact_digest evidence_file evidence_sha; do
+            test "$repository" = "$REPOSITORY"
+
+            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+            test "$(jq -r '.status' <<<"$run_json")" = completed
+            test "$(jq -r '.conclusion' <<<"$run_json")" = success
+            test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+            test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+            artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+            test "$(jq -r '.expired' <<<"$artifact_json")" = false
+            test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+            test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+            test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+            out="$RUNNER_TEMP/rmc011-terminal-evidence/$label"
+            rm -rf "$out"
+            mkdir -p "$out"
+            gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$out"
+
+            test -f "$out/$evidence_file"
+            actual="$(sha256sum "$out/$evidence_file" | awk '{print $1}')"
+            test "$actual" = "$evidence_sha"
+            printf '%s\t%s\t%s\t%s\t%s\n' "$label" "$run_id" "$artifact_id" "$head_sha" "$actual" \
+              >> "$RUNNER_TEMP/rmc011-terminal-evidence-authenticated.tsv"
+            echo "RMC011_TERMINAL_EVIDENCE_AUTHENTICATED label=$label run=$run_id artifact=$artifact_id head=$head_sha sha256=$actual"
+          done < "$RUNNER_TEMP/rmc011-terminal-evidence.tsv"
+
+          test "$(wc -l < "$RUNNER_TEMP/rmc011-terminal-evidence-authenticated.tsv")" -eq 14
+          sha256sum "$RUNNER_TEMP/rmc011-terminal-evidence-authenticated.tsv" > "$MARKER"
+          echo "RMC011_TERMINAL_TRANSPORT_AUTH=PASS count=14 marker_sha256=$(awk '{print $1}' "$MARKER")"
+
       - name: Build self-contained certification evidence package
         shell: bash
         run: |
@@ -1223,13 +1306,15 @@ jobs:
             cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
           done
 
-          if jq -e '
+          if [[ -f "$RUNNER_TEMP/rmc011-source-universe-authenticated" ]] && jq -e '
             .status == "CAPITAL_SOURCE_UNIVERSE_COMPLETE" and
             .terminal_claim_allowed == true and
             .family_universe_discovery.status == "AUTHENTICATED_COMPLETE" and
             (.families | length == 13) and
             (.families | all(.terminally_resolved == true))
           ' "$PACKAGE/rmc011-capital-source-universe.json" >/dev/null; then
+            cp -- "$RUNNER_TEMP/rmc011-source-universe-authenticated" "$PACKAGE/d11/source-universe-transport-auth.sha256"
+            cp -- "$RUNNER_TEMP/rmc011-terminal-evidence-authenticated.tsv" "$PACKAGE/d11/source-universe-transport-auth.tsv"
             python3 ci/nqc-census/verify-rmc011-terminal-closeout.py \
               "$PACKAGE/rmc011-capital-source-universe.json" \
               "$PACKAGE/d11/capital-real-source-closeout.json" \
