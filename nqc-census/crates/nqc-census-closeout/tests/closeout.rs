@@ -16,7 +16,11 @@ fn git(byte: u8) -> Result<GitObjectId, CloseoutError> {
 
 fn proof(stage: RmcStage, byte: u8) -> Result<StageProof, CloseoutError> {
     let code_commit = git(byte)?;
-    let artifact_name = format!("{}{}", stage.expected_artifact_prefix(), code_commit.to_hex());
+    let artifact_name = format!(
+        "{}{}",
+        stage.expected_artifact_prefix(),
+        code_commit.to_hex()
+    );
     StageProof::new(
         stage,
         1_000 + u64::from(byte),
