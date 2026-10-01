@@ -46,6 +46,8 @@ on:
       - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
+      - "ci/nqc-census/verify-rmc011-terminal-closeout.py"
+      - "ci/nqc-census/test_verify_rmc011_terminal_closeout.py"
       - "ci/nqc-census/verify-rmc011-balancer-v2-capture.py"
       - "ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py"
       - "ci/nqc-census/rpc-providers.json"
@@ -103,6 +105,8 @@ on:
       - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
+      - "ci/nqc-census/verify-rmc011-terminal-closeout.py"
+      - "ci/nqc-census/test_verify_rmc011_terminal_closeout.py"
       - "ci/nqc-census/verify-rmc011-balancer-v2-capture.py"
       - "ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py"
       - "ci/nqc-census/rpc-providers.json"
@@ -152,6 +156,8 @@ jobs:
           test -f ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
           python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-terminal-closeout.py ci/nqc-census/test_verify_rmc011_terminal_closeout.py
+          python3 ci/nqc-census/test_verify_rmc011_terminal_closeout.py -v
           python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
           python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-readiness.py ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
@@ -273,6 +279,8 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-capital-source-universe.py ci/nqc-census/test_verify_rmc011_capital_source_universe.py
           python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-terminal-closeout.py ci/nqc-census/test_verify_rmc011_terminal_closeout.py
+          python3 ci/nqc-census/test_verify_rmc011_terminal_closeout.py -v
           python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
           python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-readiness.py ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
@@ -1214,6 +1222,39 @@ jobs:
             test -d "$RUNNER_TEMP/$stage-raw"
             cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
           done
+
+          if jq -e '
+            .status == "CAPITAL_SOURCE_UNIVERSE_COMPLETE" and
+            .terminal_claim_allowed == true and
+            .family_universe_discovery.status == "AUTHENTICATED_COMPLETE" and
+            (.families | length == 13) and
+            (.families | all(.terminally_resolved == true))
+          ' "$PACKAGE/rmc011-capital-source-universe.json" >/dev/null; then
+            python3 ci/nqc-census/verify-rmc011-terminal-closeout.py \
+              "$PACKAGE/rmc011-capital-source-universe.json" \
+              "$PACKAGE/d11/capital-real-source-closeout.json" \
+              "$PACKAGE/d11/capital-upstream-authority-lock.json" \
+              "$PACKAGE/d11/d11-terminal-closeout.json"
+            jq -e '
+              .schema_version == 1 and
+              .stage == "RMC-011" and
+              .status == "D11_TERMINAL_CLOSED" and
+              .d11_terminal_closed == true and
+              .terminal_capital_census_complete == true and
+              .capital_source_universe_complete == true and
+              .family_universe_discovery_authenticated == true and
+              .resolved_family_count == 13 and
+              .unknown_family_count == 0 and
+              .actionable_requirement_coverage_complete == false and
+              .profitability_claimed == false and
+              .shadow_eligibility_claimed == false and
+              .canary_claimed == false and
+              .real_pnl_claimed == false
+            ' "$PACKAGE/d11/d11-terminal-closeout.json" >/dev/null
+            echo "D11_TERMINAL_CLOSEOUT_INCLUDED=PASS"
+          else
+            echo "D11_TERMINAL_CLOSED=BLOCKED_SOURCE_UNIVERSE"
+          fi
 
           (
             cd "$PACKAGE"
