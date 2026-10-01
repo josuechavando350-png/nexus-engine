@@ -42,7 +42,7 @@ permissions:
 concurrency:
   group: rmc011-family-discovery-${{ github.event.pull_request.number || github.ref }}
   # Supersede stale PR heads, but never cancel authoritative push/dispatch runs.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   family-discovery-evidence:
