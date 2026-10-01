@@ -336,7 +336,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                             )?,
                             ResourceUnit::AssetUnits(CapitalAsset::Token(debt_asset)),
                             ResourceLimit::Capacity(amount(debt_balance)),
-                            vec![CapitalEvidenceRef::Observation(*account_snapshot.as_bytes())],
+                            vec![
+                                CapitalEvidenceRef::Observation(*market_snapshot.as_bytes()),
+                                CapitalEvidenceRef::Observation(*account_snapshot.as_bytes()),
+                            ],
                         )?;
                         let debt_claim = ResourceClaim::new(
                             debt_resource.key_id(),
@@ -359,7 +362,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                             )?,
                             ResourceUnit::AssetUnits(CapitalAsset::Token(collateral_asset)),
                             ResourceLimit::Capacity(amount(collateral_balance)),
-                            vec![CapitalEvidenceRef::Observation(*account_snapshot.as_bytes())],
+                            vec![
+                                CapitalEvidenceRef::Observation(*market_snapshot.as_bytes()),
+                                CapitalEvidenceRef::Observation(*account_snapshot.as_bytes()),
+                            ],
                         )?;
                         let collateral_claim = ResourceClaim::new(
                             collateral_resource.key_id(),
