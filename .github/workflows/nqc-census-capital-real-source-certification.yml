@@ -1319,6 +1319,8 @@ jobs:
               "$PACKAGE/rmc011-capital-source-universe.json" \
               "$PACKAGE/d11/capital-real-source-closeout.json" \
               "$PACKAGE/d11/capital-upstream-authority-lock.json" \
+              "$PACKAGE/d11/source-universe-transport-auth.tsv" \
+              "$PACKAGE/d11/source-universe-transport-auth.sha256" \
               "$PACKAGE/d11/d11-terminal-closeout.json"
             jq -e '
               .schema_version == 1 and
@@ -1328,6 +1330,8 @@ jobs:
               .terminal_capital_census_complete == true and
               .capital_source_universe_complete == true and
               .family_universe_discovery_authenticated == true and
+              .source_universe_transport_auth_count == 14 and
+              (.source_universe_transport_auth_sha256 | test("^[0-9a-f]{64}$")) and
               .resolved_family_count == 13 and
               .unknown_family_count == 0 and
               .actionable_requirement_coverage_complete == false and
