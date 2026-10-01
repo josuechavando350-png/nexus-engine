@@ -3687,11 +3687,9 @@ fn encode_feasibility(result: &CapitalFeasibility) -> Result<Vec<u8>, CapitalErr
         } => {
             writer.u8(1);
             writer.bytes(requirement_id.as_bytes());
-            writer.u32(
-                u32::try_from(allocations.len()).map_err(|_| {
-                    CapitalError::InvalidCanonical("capital allocation count overflow")
-                })?,
-            );
+            writer.u32(u32::try_from(allocations.len()).map_err(|_| {
+                CapitalError::InvalidCanonical("capital allocation count overflow")
+            })?);
             for allocation in allocations {
                 writer.bytes(allocation.source_id.as_bytes());
                 writer.u8(allocation.leg_kind.tag());
