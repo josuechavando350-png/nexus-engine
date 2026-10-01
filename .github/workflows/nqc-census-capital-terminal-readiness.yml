@@ -221,7 +221,40 @@ jobs:
               ]))
           PY
 
-            while IFS=\t' read -r label repository workflow_name run_id head_sha artifact_id artifact_name artifact_digest evidence_file evidence_sha; do
+            while IFS=
+              test "$repository" = "$REPOSITORY"
+
+              run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+              test "$(jq -r '.status' <<<"$run_json")" = completed
+              test "$(jq -r '.conclusion' <<<"$run_json")" = success
+              test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+              test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+              artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+              test "$(jq -r '.expired' <<<"$artifact_json")" = false
+              test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+              test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+              test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+              out="$RUNNER_TEMP/rmc011-terminal-evidence/$label"
+              rm -rf "$out"
+              mkdir -p "$out"
+              gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$out"
+
+              test -f "$out/$evidence_file"
+              actual="$(sha256sum "$out/$evidence_file" | awk '{print $1}')"
+              test "$actual" = "$evidence_sha"
+              echo "RMC011_TERMINAL_EVIDENCE_AUTHENTICATED label=$label run=$run_id artifact=$artifact_id head=$head_sha sha256=$actual"
+            done < /tmp/rmc011-terminal-evidence.tsv
+
+            echo RMC011_SOURCE_UNIVERSE_READINESS=PASS
+          else
+            echo "RMC011_SOURCE_UNIVERSE_READINESS=BLOCKED_INCOMPLETE_SOURCE_UNIVERSE" >&2
+            jq -r '.families[] | select(.terminally_resolved == false) | "RMC011_UNRESOLVED_FAMILY=" + .id + " status=" + .status' "$FILE" >&2
+            jq -r '"RMC011_FAMILY_UNIVERSE_DISCOVERY=" + .family_universe_discovery.status' "$FILE" >&2
+            exit 1
+          fi
+\t' read -r label repository workflow_name run_id head_sha artifact_id artifact_name artifact_digest evidence_file evidence_sha; do
               test "$repository" = "$REPOSITORY"
 
               run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
