@@ -2631,8 +2631,7 @@ fn classify_unmet_leg(
         }
         same_anchor_atomic = true;
         if source.ownership().is_operator_owned() {
-            operator_capacity =
-                operator_capacity.checked_add(source.effective_capacity()?)?;
+            operator_capacity = operator_capacity.checked_add(source.effective_capacity()?)?;
         } else if !source.execution_eligible() {
             execution_blocked_capacity =
                 execution_blocked_capacity.checked_add(source.effective_capacity()?)?;
