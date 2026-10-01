@@ -82,6 +82,37 @@ class DebtFamilyResolutionTests(unittest.TestCase):
         )
         self.assertFalse(result["global_nonexistence_claimed"])
         self.assertFalse(result["nqc_borrowing_capacity_claimed"])
+        self.assertRegex(result["source_boundary_commitment"], r"^[0-9a-f]{64}$")
+        self.assertEqual(
+            set(result["source_boundary"]),
+            {
+                "external_provider_registry_sha256",
+                "permissionless_debt_catalog_sha256",
+                "collateral_funding_path_catalog_sha256",
+                "d08_authority_artifact_sha256",
+                "aave_coverage_commitment",
+            },
+        )
+        for value in (
+            result["source_boundary"]["external_provider_registry_sha256"],
+            result["source_boundary"]["permissionless_debt_catalog_sha256"],
+            result["source_boundary"]["collateral_funding_path_catalog_sha256"],
+        ):
+            self.assertRegex(value, r"^[0-9a-f]{64}$")
+
+    def test_source_boundary_commitment_detects_catalog_substitution(self) -> None:
+        aave = mod.validate_aave_discovery(aave_report())
+        provider = copy.deepcopy(PROVIDER)
+        permissionless = copy.deepcopy(PERMISSIONLESS)
+        collateral = copy.deepcopy(COLLATERAL)
+        first = mod.surface_commitment(aave, provider, permissionless, collateral)
+        permissionless["catalog_scope"] += "_SUBSTITUTED"
+        second = mod.surface_commitment(aave, provider, permissionless, collateral)
+        self.assertNotEqual(first["commitment"], second["commitment"])
+        self.assertNotEqual(
+            first["surfaces"]["permissionless_debt_catalog_sha256"],
+            second["surfaces"]["permissionless_debt_catalog_sha256"],
+        )
 
     def test_aave_liquidity_cannot_be_relabelled_nqc_capacity(self) -> None:
         aave = aave_report()
