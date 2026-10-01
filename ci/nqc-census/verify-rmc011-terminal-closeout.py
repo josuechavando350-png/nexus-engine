@@ -39,6 +39,9 @@ EXPECTED_FAMILIES = {
 }
 EXPECTED_FAMILY_COUNT = len(EXPECTED_FAMILIES)
 EXPECTED_REPOSITORY = "josuechavando350-png/nexus-engine"
+EXPECTED_CHAIN_ID = 1
+EXPECTED_A1_BLOCK = 26095351
+EXPECTED_A1_HASH = "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781"
 
 
 class TerminalCloseoutError(ValueError):
@@ -149,7 +152,16 @@ def validate_real_source_closeout(doc: dict) -> dict:
     require(isinstance(code_commit, str) and HEX40.fullmatch(code_commit) is not None, "code commit invalid")
     require(isinstance(code_tree, str) and HEX40.fullmatch(code_tree) is not None, "code tree invalid")
     require(isinstance(doc.get("generated_at"), str) and doc["generated_at"], "generated_at missing")
-    require(isinstance(doc.get("observation_anchor"), dict), "observation anchor missing")
+    anchor = doc.get("observation_anchor")
+    require(isinstance(anchor, dict), "observation anchor missing")
+    require(anchor.get("chain_id") == EXPECTED_CHAIN_ID, "observation anchor chain differs from A1")
+    require(anchor.get("block_number") == EXPECTED_A1_BLOCK, "observation anchor block differs from A1")
+    require(anchor.get("block_hash") == EXPECTED_A1_HASH, "observation anchor hash differs from A1")
+    for field in ("requirement_count", "feasible_count"):
+        require(isinstance(doc.get(field), int) and not isinstance(doc[field], bool) and doc[field] >= 0, f"{field} invalid")
+    require(isinstance(doc.get("zero_own_capital_proven"), bool), "zero_own_capital_proven invalid")
+    for field in ("capital_commitment", "upstream_authority_commitment"):
+        normalize_digest(doc.get(field), field)
     normalize_digest(doc.get("upstream_authority_lock_sha256"), "closeout authority-lock sha256")
     normalize_digest(doc.get("upstream_authority_lock_commitment"), "closeout authority-lock commitment")
     return {
