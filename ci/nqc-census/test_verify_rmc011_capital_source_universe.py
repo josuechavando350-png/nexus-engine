@@ -170,7 +170,7 @@ class SourceUniverseTests(unittest.TestCase):
         doc["d11_terminal_closed"] = True
         with self.assertRaises(mod.UniverseError) as ctx:
             validate_with_complete_scope(doc)
-        self.assertIn("source-universe file cannot close D11", str(ctx.exception))
+        self.assertIn("source-universe contract cannot close D11", str(ctx.exception))
 
     def test_unknown_family_fails(self) -> None:
         doc = copy.deepcopy(BASE)
