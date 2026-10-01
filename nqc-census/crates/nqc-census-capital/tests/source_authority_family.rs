@@ -48,6 +48,7 @@ fn uniswap_v3() -> Result<nqc_census_capital::CapitalSource, nqc_census_capital:
         pool: address(12),
         asset: address(13),
         available_pool_balance: Amount256::from_u128(2_000),
+        active_liquidity: Amount256::from_u128(1_000),
         fee_pips: 3_000,
     };
     admit_uniswap_v3_dual_provider(&observation, &observation, &hash(22), &hash(23))
