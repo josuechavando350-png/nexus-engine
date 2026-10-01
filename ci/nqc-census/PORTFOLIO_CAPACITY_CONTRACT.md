@@ -207,6 +207,13 @@ the full evaluated candidate set, exact capital-source observation ids, exact
 shared-resource observation ids, candidate claims, and feasibility outcomes.
 A conflict-free report is not allowed to collapse to a count-only commitment.
 
+Terminal evidence MUST also expose the complete shared-resource inventory and a
+deterministically ordered candidate-claim ledger. Every promoted actionability
+candidate must appear exactly once in that ledger, including candidates later
+rejected by capital feasibility. The artifact must therefore permit an
+independent auditor to recompute resource subscriptions and conflicts without
+treating the in-process commitment as self-authenticating.
+
 The engine MUST also emit deterministic contention components. Two candidates
 belong to the same component whenever they share a capital requirement,
 capital-source key, or shared-resource key. Components with no edge between them are independent and
