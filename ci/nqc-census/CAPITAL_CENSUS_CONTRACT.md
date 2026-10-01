@@ -80,7 +80,7 @@ The following seven families form one bounded authorization/requirement universe
 - `SOLVER_OR_BUILDER_DEPOSIT`
 - `INTRA_BLOCK_TEMPORARY_LOCK`
 
-Their negative-proof surfaces are machine-readable: `rmc011-external-capital-provider-registry.json`, `rmc011-execution-plan-requirement-catalog.json`, and `rmc011-permissionless-debt-facility-catalog.json`. Empty declared state means only that no provider/facility/plan is authorized or supported by this exact NQC head. It MUST NOT be restated as global market nonexistence.
+Their negative-proof surfaces are machine-readable: `rmc011-external-capital-provider-registry.json` and `rmc011-execution-plan-requirement-catalog.json`. Empty declared state means only that no external provider or supported execution plan is authorized by this exact NQC head. It MUST NOT be restated as global market nonexistence. `rmc011-permissionless-debt-facility-catalog.json` is a declaration/admission boundary only; emptiness of that catalog cannot terminally reject permissionless collateralized-borrowing or persistent-debt markets.
 
 `NQC RMC-011 Bounded Family Rejection Evidence` may emit per-family `EXHAUSTIVE_REJECTION` evidence only for the seven external/requirement-driven families when the authenticated external-provider registry and execution-plan requirement catalog validate and remain empty. The resulting seven promotions are all-or-none, MUST share the same repository/workflow/run/head/artifact identity, and MUST bind distinct `families/<FAMILY>/evidence.json` files by SHA-256. Any external provider or supported execution plan entering scope invalidates the corresponding empty-universe rejection path and forces recensus.
 
