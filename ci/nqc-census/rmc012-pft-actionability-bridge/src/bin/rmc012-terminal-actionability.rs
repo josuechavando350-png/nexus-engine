@@ -541,6 +541,28 @@ fn main() -> Result<(), Box<dyn Error>> {
         .iter()
         .map(shared_resource_json)
         .collect::<Vec<_>>();
+    let mut candidate_claim_rows = portfolio_candidates
+        .iter()
+        .map(|candidate| {
+            json!({
+                "candidate_id": candidate.id().to_hex(),
+                "requirement_id": candidate.requirement_id().to_hex(),
+                "claims": candidate
+                    .claims()
+                    .iter()
+                    .map(|claim| json!({
+                        "resource_key": claim.resource_key.to_hex(),
+                        "amount": claim.amount.to_hex()
+                    }))
+                    .collect::<Vec<_>>()
+            })
+        })
+        .collect::<Vec<_>>();
+    candidate_claim_rows.sort_by(|left, right| {
+        left.get("candidate_id")
+            .and_then(Value::as_str)
+            .cmp(&right.get("candidate_id").and_then(Value::as_str))
+    });
 
     let conflict_rows = portfolio
         .conflicts()
@@ -608,6 +630,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         "capital_rejected_count": portfolio.capital_rejected().len(),
         "shared_resource_count": shared_resources.len(),
         "shared_resources": shared_resource_rows,
+        "candidate_claim_count": candidate_claim_rows.len(),
+        "candidate_claims": candidate_claim_rows,
         "conflict_count": portfolio.conflicts().len(),
         "component_count": portfolio.components().len(),
         "simultaneously_feasible": portfolio.simultaneously_feasible(),
