@@ -382,7 +382,7 @@ pub fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError
     Ok((pool, value))
 }
 
-fn verify_d08_artifact_binding(
+pub(crate) fn verify_d08_artifact_binding(
     state_manifest_jsonl: &[u8],
     token_admission_jsonl: &[u8],
     pool_and_factory_facts_json: &[u8],
