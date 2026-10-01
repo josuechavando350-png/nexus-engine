@@ -27,6 +27,8 @@ on:
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
       - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
       - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
       - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
@@ -69,6 +71,8 @@ on:
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
       - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
       - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
       - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
@@ -126,6 +130,9 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-readiness.py ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
           python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
           python3 ci/nqc-census/verify-rmc011-family-discovery-readiness.py /tmp/rmc011-family-discovery-readiness.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-promotion.py ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-promotion.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
           python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
           python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py
@@ -228,6 +235,9 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-readiness.py ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
           python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
           python3 ci/nqc-census/verify-rmc011-family-discovery-readiness.py /tmp/rmc011-family-discovery-readiness.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-promotion.py ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-promotion.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
           python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
           python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/rmc011-execution-plan-requirement-catalog.json /tmp/rmc011-execution-plan-requirement-catalog-report.json
