@@ -103,5 +103,26 @@ class CollateralFundingPathCatalogTests(unittest.TestCase):
             mod.validate_document(doc)
 
 
+    def test_operator_treasury_provider_id_fails(self) -> None:
+        doc = copy.deepcopy(CATALOG)
+        row = sample_path()
+        row["provider_registry_id"] = "OPERATOR_TREASURY"
+        doc["status"] = "DECLARED_WITH_PATHS_NOT_TERMINAL_EVIDENCE"
+        doc["path_count"] = 1
+        doc["paths"] = [row]
+        with self.assertRaises(mod.CatalogError):
+            mod.validate_document(doc)
+
+    def test_duplicate_evidence_views_do_not_count_as_independent_authority(self) -> None:
+        doc = copy.deepcopy(CATALOG)
+        row = sample_path()
+        row["evidence"] = ["same-view", "same-view"]
+        doc["status"] = "DECLARED_WITH_PATHS_NOT_TERMINAL_EVIDENCE"
+        doc["path_count"] = 1
+        doc["paths"] = [row]
+        with self.assertRaises(mod.CatalogError):
+            mod.validate_document(doc)
+
+
 if __name__ == "__main__":
     unittest.main()
