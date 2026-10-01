@@ -1,0 +1,76 @@
+name: NQC RMC-011 Canonical Rustfmt One-Shot
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-011-derived-authority-lock-20260930"
+    paths:
+      - ".github/workflows/nqc-rmc011-rustfmt-once.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nqc-rmc011-rustfmt-once
+  cancel-in-progress: false
+
+env:
+  RUST_TOOLCHAIN: "1.98.1"
+  TARGET_BRANCH: "nqc/rmc-011-derived-authority-lock-20260930"
+
+jobs:
+  canonical-rustfmt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact triggering head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Install pinned rustfmt
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rustfmt
+          rustc +"$RUST_TOOLCHAIN" -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Apply canonical formatting only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd nqc-census
+          cargo +"$RUST_TOOLCHAIN" fmt --all
+          cd ..
+          git diff --check
+          mapfile -t changed < <(git diff --name-only)
+          test "${#changed[@]}" -gt 0 || {
+            echo "RMC011_RUSTFMT_NO_CHANGES"
+            exit 0
+          }
+          for path in "${changed[@]}"; do
+            [[ "$path" == nqc-census/*.rs || "$path" == nqc-census/**/*.rs ]] || {
+              echo "RMC011_RUSTFMT_OUT_OF_SCOPE path=$path" >&2
+              exit 1
+            }
+          done
+          printf '%s\n' "${changed[@]}" | sort
+          git add -- "${changed[@]}"
+          git diff --cached --check
+          git diff --cached --quiet && {
+            echo "RMC011_RUSTFMT_NO_STAGED_CHANGES"
+            exit 0
+          }
+
+          git config user.name "nqc-rmc011-rustfmt"
+          git config user.email "nqc-rmc011-rustfmt@users.noreply.github.com"
+          git commit -m "RMC-011: apply canonical rustfmt"
+
+          remote_head="$(git ls-remote origin "refs/heads/$TARGET_BRANCH" | awk '{print $1}')"
+          test "$remote_head" = "$GITHUB_SHA" || {
+            echo "RMC011_RUSTFMT_STALE_HEAD remote=$remote_head trigger=$GITHUB_SHA" >&2
+            exit 1
+          }
+          git push origin "HEAD:refs/heads/$TARGET_BRANCH"
+          echo "RMC011_CANONICAL_RUSTFMT_APPLIED commit=$(git rev-parse HEAD)"
