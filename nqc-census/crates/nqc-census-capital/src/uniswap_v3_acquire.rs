@@ -747,8 +747,8 @@ fn provider_capture(
                 let mut rows = Vec::with_capacity(chunk.len());
                 for ((seed, responses), asset_balances) in chunk
                     .iter()
-                    .zip(identities.chunks_exact(5))
-                    .zip(per_pool_balances.into_iter())
+                    .zip(identities.as_chunks::<5>().0.iter())
+                    .zip(per_pool_balances)
                 {
                     let token0 = returned_address(&responses[0], "token0")?;
                     let token1 = returned_address(&responses[1], "token1")?;
