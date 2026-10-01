@@ -26,6 +26,10 @@ on:
       - "ci/nqc-census/test_verify_rmc011_debt_family_resolution.py"
       - "ci/nqc-census/verify-rmc011-debt-family-promotion.py"
       - "ci/nqc-census/test_verify_rmc011_debt_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-protocol-family-resolution.py"
+      - "ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py"
+      - "ci/nqc-census/verify-rmc011-protocol-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -77,6 +81,10 @@ on:
       - "ci/nqc-census/test_verify_rmc011_debt_family_resolution.py"
       - "ci/nqc-census/verify-rmc011-debt-family-promotion.py"
       - "ci/nqc-census/test_verify_rmc011_debt_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-protocol-family-resolution.py"
+      - "ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py"
+      - "ci/nqc-census/verify-rmc011-protocol-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -170,6 +178,11 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-debt-family-promotion.py ci/nqc-census/test_verify_rmc011_debt_family_promotion.py
           python3 ci/nqc-census/test_verify_rmc011_debt_family_promotion.py -v
           python3 ci/nqc-census/verify-rmc011-debt-family-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-protocol-family-resolution.py ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py
+          python3 ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py -v
+          python3 -m py_compile ci/nqc-census/verify-rmc011-protocol-family-promotion.py ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-protocol-family-promotion.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-balancer-v2-capture.py ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py
           python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
           jq -e '
@@ -1072,6 +1085,73 @@ jobs:
           echo "RMC011_EXPANDED_LEDGER_REPLAY_BINDING=PASS"
           echo "RMC011_EXPANDED_LEDGER_RECEIPT_SHA256=$(sha256sum "$ROOT/expanded-ledger-replay.json" | awk '{print $1}')"
 
+      - name: Derive protocol-family terminal evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT="$RUNNER_TEMP/rmc011-protocol-family-resolution.json"
+          python3 -m py_compile \
+            ci/nqc-census/verify-rmc011-protocol-family-resolution.py \
+            ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py
+          python3 ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py -v
+          python3 \
+            ci/nqc-census/verify-rmc011-protocol-family-resolution.py \
+            "$RUNNER_TEMP/rmc011-real-source/capital-census-summary.json" \
+            "$AUTHORITY_LOCK" \
+            "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
+            "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json" \
+            "$RUNNER_TEMP/rmc011-expanded-ledger/expanded-ledger-replay.json" \
+            "$REPORT"
+
+          jq -e '
+            .status == "RMC011_PROTOCOL_FAMILY_RESOLUTION_READY" and
+            .family_count == 4 and
+            (.families | length) == 4 and
+            .global_capital_source_completeness_claimed == false and
+            .terminal_d11_closed == false
+          ' "$REPORT" >/dev/null
+
+          EVIDENCE="$RUNNER_TEMP/rmc011-protocol-family-evidence"
+          rm -rf "$EVIDENCE"
+          mkdir -p "$EVIDENCE/families"
+          python3 - "$REPORT" "$EVIDENCE" "$GITHUB_SHA" "$GITHUB_WORKFLOW" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          report_path, evidence_root, head_sha, workflow, run_id, run_attempt = sys.argv[1:]
+          report = json.loads(pathlib.Path(report_path).read_text(encoding="utf-8"))
+          root = pathlib.Path(evidence_root)
+          assert report["status"] == "RMC011_PROTOCOL_FAMILY_RESOLUTION_READY"
+          for row in report["families"]:
+              family = row["family"]
+              target = root / "families" / family
+              target.mkdir(parents=True, exist_ok=False)
+              evidence = {
+                  "schema_version": 1,
+                  "stage": "RMC-011",
+                  "kind": row["outcome"],
+                  "family": family,
+                  "source_count": row["source_count"],
+                  "scope": row["scope"],
+                  "basis": row["basis"],
+                  "workflow_name": workflow,
+                  "head_sha": head_sha,
+                  "run_id": int(run_id),
+                  "run_attempt": int(run_attempt),
+                  "d08_authority_artifact_sha256": report["d08_authority_artifact_sha256"],
+                  "expanded_capital_commitment": report["expanded_capital_commitment"],
+                  "global_capital_source_completeness_claimed": False,
+                  "terminal_d11_closed": False,
+              }
+              (target / "evidence.json").write_text(
+                  json.dumps(evidence, sort_keys=True, separators=(",", ":")) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+          test "$(find "$EVIDENCE/families" -name evidence.json -type f | wc -l)" -eq 4
+          echo "RMC011_PROTOCOL_FAMILY_EVIDENCE=PASS"
+
       - name: Build self-contained certification evidence package
         shell: bash
         run: |
@@ -1104,6 +1184,10 @@ jobs:
           cp -- ci/nqc-census/rmc011-collateral-funding-path-catalog.json "$PACKAGE/rmc011-collateral-funding-path-catalog.json"
           cp -- /tmp/rmc011-collateral-path-report.json "$PACKAGE/collateral-funding-path-report.json"
           cp -- "$RUNNER_TEMP/rmc011-debt-family-resolution.json" "$PACKAGE/debt-family-resolution.json"
+          cp -- "$RUNNER_TEMP/rmc011-protocol-family-resolution.json" "$PACKAGE/protocol-family-resolution.json"
+          test -d "$RUNNER_TEMP/rmc011-protocol-family-evidence"
+          mkdir -p "$PACKAGE/protocol-family-evidence"
+          cp -a "$RUNNER_TEMP/rmc011-protocol-family-evidence/." "$PACKAGE/protocol-family-evidence/"
           test -d "$RUNNER_TEMP/rmc011-debt-family-evidence"
           mkdir -p "$PACKAGE/debt-family-evidence"
           cp -a "$RUNNER_TEMP/rmc011-debt-family-evidence/." "$PACKAGE/debt-family-evidence/"
