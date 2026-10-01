@@ -286,7 +286,6 @@ fn source_constructor_rejects_public_semantic_bypasses() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn bond_or_stake_requirement_is_canonical_and_class_separated() -> TestResult {
     let asset = CapitalAsset::Token(address(20));
@@ -3365,7 +3364,6 @@ fn canonical_objects_reject_evidence_counts_above_u16() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn proportional_collateral_tracks_allocated_draw_exactly() -> TestResult {
     let debt = CapitalAsset::Token(address(60));
@@ -3460,10 +3458,7 @@ fn proportional_collateral_tracks_allocated_draw_exactly() -> TestResult {
     )?;
 
     assert!(matches!(
-        evaluate_capital_feasibility(
-            &exact,
-            &[borrowing.clone(), collateral_funder.clone()]
-        ),
+        evaluate_capital_feasibility(&exact, &[borrowing.clone(), collateral_funder.clone()]),
         CapitalFeasibility::Feasible { .. }
     ));
 

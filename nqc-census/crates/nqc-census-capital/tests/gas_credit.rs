@@ -2,8 +2,7 @@ use nqc_census_capital::{
     gas_credit::{
         external_gas_credit_facts_commitment, external_gas_credit_terms_commitment,
         import_external_gas_credit_observation, EXTERNAL_GAS_CREDIT_DELIVERY_SEMANTICS,
-        EXTERNAL_GAS_CREDIT_FAMILY, EXTERNAL_GAS_CREDIT_SCHEMA_VERSION,
-        EXTERNAL_GAS_CREDIT_STATUS,
+        EXTERNAL_GAS_CREDIT_FAMILY, EXTERNAL_GAS_CREDIT_SCHEMA_VERSION, EXTERNAL_GAS_CREDIT_STATUS,
     },
     Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalOwnership, CapitalProviderKind,
     RepaymentSemantics,
@@ -252,25 +251,11 @@ fn active_state_changes_observation_id_but_not_stable_source_key() -> TestResult
 fn runtime_change_preserves_stable_key_but_changes_observation_id() -> TestResult {
     let anchor = anchor();
     let before = import_external_gas_credit_observation(
-        &observation_with_runtime_active(
-            &anchor,
-            amount(100),
-            None,
-            None,
-            hash(13),
-            true,
-        )?,
+        &observation_with_runtime_active(&anchor, amount(100), None, None, hash(13), true)?,
         &anchor,
     )?;
     let after = import_external_gas_credit_observation(
-        &observation_with_runtime_active(
-            &anchor,
-            amount(100),
-            None,
-            None,
-            hash(14),
-            true,
-        )?,
+        &observation_with_runtime_active(&anchor, amount(100), None, None, hash(14), true)?,
         &anchor,
     )?;
 
@@ -418,7 +403,9 @@ fn delivery_route_change_cannot_reuse_old_terms_commitment() -> TestResult {
     let anchor = anchor();
     let bytes = observation(&anchor, amount(100), None, None)?;
     let text = String::from_utf8(bytes)?;
-    let tampered = text.replace(&hash(30).to_hex(), &hash(31).to_hex()).into_bytes();
+    let tampered = text
+        .replace(&hash(30).to_hex(), &hash(31).to_hex())
+        .into_bytes();
     assert!(matches!(
         import_external_gas_credit_observation(&tampered, &anchor),
         Err(CapitalError::CanonicalDigestMismatch)

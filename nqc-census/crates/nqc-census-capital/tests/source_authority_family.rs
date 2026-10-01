@@ -56,8 +56,11 @@ fn uniswap_v3() -> Result<nqc_census_capital::CapitalSource, nqc_census_capital:
 #[test]
 fn inferred_authority_binds_balancer_family() -> TestResult {
     let source = balancer()?;
-    let authority =
-        D11SourceAuthority::from_reconciliation_artifact(anchor(), b"balancer-artifact", &[source])?;
+    let authority = D11SourceAuthority::from_reconciliation_artifact(
+        anchor(),
+        b"balancer-artifact",
+        &[source],
+    )?;
     assert_eq!(authority.family(), D11SourceFamily::BalancerV2FlashLoan);
     Ok(())
 }
@@ -91,16 +94,10 @@ fn one_authority_cannot_mix_balancer_and_uniswap_v3() -> TestResult {
 fn family_changes_authority_commitment() -> TestResult {
     let balancer = balancer()?;
     let uniswap = uniswap_v3()?;
-    let first = D11SourceAuthority::from_reconciliation_artifact(
-        anchor(),
-        b"same-bytes",
-        &[balancer],
-    )?;
-    let second = D11SourceAuthority::from_reconciliation_artifact(
-        anchor(),
-        b"same-bytes",
-        &[uniswap],
-    )?;
+    let first =
+        D11SourceAuthority::from_reconciliation_artifact(anchor(), b"same-bytes", &[balancer])?;
+    let second =
+        D11SourceAuthority::from_reconciliation_artifact(anchor(), b"same-bytes", &[uniswap])?;
     assert_ne!(first.commitment(), second.commitment());
     Ok(())
 }
