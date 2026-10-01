@@ -108,8 +108,8 @@ export default async function HomePage() {
               <p className="cp-v2-muted">La estrategia cambia cuando una investigación puede afectar libertad, patrimonio, operación empresarial y reputación al mismo tiempo.</p>
             </div>
             <div className="cp-v2-service-list">
-              <Link href="/areas/delitos-fiscales-y-financieros"><strong>Delitos fiscales y financieros</strong><i>↗</i></Link>
-              <Link href="/guias/defensa-penal-empresa-delitos-financieros"><strong>Defensa penal empresarial</strong><i>↗</i></Link>
+              <Link href="/defraudacion-fiscal"><strong>Defraudación fiscal y defensa penal-fiscal</strong><i>↗</i></Link>
+              <Link href="/fraude-empresarial"><strong>Fraude y defensa penal empresarial</strong><i>↗</i></Link>
               <Link href="/guias/requerimiento-sat-riesgo-penal"><strong>Requerimientos del SAT y riesgo penal</strong><i>↗</i></Link>
               <Link href="/guias/responsabilidad-penal-representante-legal-contador"><strong>Representantes legales y contadores</strong><i>↗</i></Link>
             </div>
