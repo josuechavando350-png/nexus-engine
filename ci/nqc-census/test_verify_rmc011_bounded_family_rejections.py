@@ -24,13 +24,13 @@ DEBT = json.loads(
 
 
 class BoundedFamilyRejectionTests(unittest.TestCase):
-    def test_current_empty_surfaces_derive_exact_nine_bounded_rejections(self) -> None:
+    def test_current_empty_surfaces_derive_exact_seven_bounded_rejections(self) -> None:
         result = mod.validate_documents(
             copy.deepcopy(PROVIDER),
             copy.deepcopy(PLAN),
             copy.deepcopy(DEBT),
         )
-        self.assertEqual(result["family_count"], 9)
+        self.assertEqual(result["family_count"], 7)
         self.assertEqual(
             {row["family"] for row in result["families"]},
             mod.EXPECTED,
@@ -74,7 +74,7 @@ class BoundedFamilyRejectionTests(unittest.TestCase):
         with self.assertRaises((mod.RejectionError, ValueError)):
             mod.validate_documents(copy.deepcopy(PROVIDER), plan, copy.deepcopy(DEBT))
 
-    def test_one_permissionless_debt_facility_invalidates_empty_rejection(self) -> None:
+    def test_permissionless_debt_catalog_does_not_drive_bounded_rejection(self) -> None:
         debt = copy.deepcopy(DEBT)
         debt["status"] = "DECLARED_WITH_FACILITIES_NOT_TERMINAL_EVIDENCE"
         debt["facility_count"] = 1
@@ -99,8 +99,11 @@ class BoundedFamilyRejectionTests(unittest.TestCase):
             "declaration_sha256": "77" * 32,
             "admission_status": "DECLARED_NOT_AUTHENTICATED",
         }]
-        with self.assertRaises((mod.RejectionError, ValueError)):
-            mod.validate_documents(copy.deepcopy(PROVIDER), copy.deepcopy(PLAN), debt)
+        result = mod.validate_documents(copy.deepcopy(PROVIDER), copy.deepcopy(PLAN), debt)
+        self.assertEqual(result["family_count"], 7)
+        self.assertFalse({"COLLATERALIZED_BORROWING", "PERSISTENT_DEBT"} & {
+            row["family"] for row in result["families"]
+        })
 
     def test_provider_registry_must_cover_all_bounded_families(self) -> None:
         provider = copy.deepcopy(PROVIDER)
