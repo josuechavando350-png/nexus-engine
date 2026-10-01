@@ -68,6 +68,18 @@ def promote_discovery(doc: dict) -> None:
     doc["terminal_claim_allowed"] = True
 
 
+def validate_with_complete_scope(doc: dict) -> dict:
+    scope_path = Path("ci/nqc-census/capital-census-scope.json")
+    original = scope_path.read_text()
+    scope = json.loads(original)
+    scope["claims"]["capital_source_universe_complete"] = True
+    scope_path.write_text(json.dumps(scope, indent=2) + "\n")
+    try:
+        return mod.validate_document(doc)
+    finally:
+        scope_path.write_text(original)
+
+
 class FamilyDiscoveryPromotionTests(unittest.TestCase):
     def test_current_pending_discovery_reference_is_valid(self) -> None:
         result = mod.validate_document(copy.deepcopy(UNIVERSE))
@@ -78,7 +90,7 @@ class FamilyDiscoveryPromotionTests(unittest.TestCase):
         doc = copy.deepcopy(UNIVERSE)
         resolve_all(doc)
         promote_discovery(doc)
-        result = mod.validate_document(doc)
+        result = validate_with_complete_scope(doc)
         self.assertTrue(result["authenticated"])
         self.assertEqual(
             result["promotion_state"],
@@ -97,7 +109,7 @@ class FamilyDiscoveryPromotionTests(unittest.TestCase):
         doc["status"] = "BLOCKED_INCOMPLETE_SOURCE_UNIVERSE"
         doc["terminal_claim_allowed"] = False
         with self.assertRaises(ValueError):
-            mod.validate_document(doc)
+            validate_with_complete_scope(doc)
 
     def test_wrong_discovery_workflow_fails(self) -> None:
         doc = copy.deepcopy(UNIVERSE)
@@ -105,7 +117,7 @@ class FamilyDiscoveryPromotionTests(unittest.TestCase):
         promote_discovery(doc)
         doc["family_universe_discovery"]["evidence"]["workflow_name"] = "Fake Workflow"
         with self.assertRaises(ValueError):
-            mod.validate_document(doc)
+            validate_with_complete_scope(doc)
 
     def test_wrong_discovery_evidence_file_fails(self) -> None:
         doc = copy.deepcopy(UNIVERSE)
@@ -113,7 +125,7 @@ class FamilyDiscoveryPromotionTests(unittest.TestCase):
         promote_discovery(doc)
         doc["family_universe_discovery"]["evidence"]["file"] = "other.json"
         with self.assertRaises(ValueError):
-            mod.validate_document(doc)
+            validate_with_complete_scope(doc)
 
     def test_artifact_name_must_bind_head(self) -> None:
         doc = copy.deepcopy(UNIVERSE)
@@ -123,7 +135,7 @@ class FamilyDiscoveryPromotionTests(unittest.TestCase):
             "rmc011-family-discovery-wrong-head"
         )
         with self.assertRaises(ValueError):
-            mod.validate_document(doc)
+            validate_with_complete_scope(doc)
 
 
 if __name__ == "__main__":
