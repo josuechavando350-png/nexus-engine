@@ -194,7 +194,7 @@ class RoutePlannerTests(unittest.TestCase):
             pair(0, "0x" + "01" * 20, A, C, 10**30, 1),
             pair(1, "0x" + "02" * 20, C, B, 10_000, 10_000),
         ]
-        _, planned, rejected = self.run_plan(pairs, max_hops=2)
+        summary, planned, rejected = self.run_plan(pairs, max_hops=2)
         self.assertEqual(rejected, [])
         self.assertEqual(len(planned), 1)
         self.assertEqual(len(planned[0]["hops"]), 2)
