@@ -195,6 +195,7 @@ fn asset_universe_commitment(assets: &[Address]) -> String {
     hex::plain(&hasher.finalize())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn provider_capture(
     acquisition: &Acquisition<'_>,
     provider: &ProviderSpec,
