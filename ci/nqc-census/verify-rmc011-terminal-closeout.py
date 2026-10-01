@@ -196,10 +196,49 @@ def validate_authority_lock(doc: dict, raw: bytes, closeout: dict) -> dict:
     return {"sha256": observed_sha, "commitment": commitment}
 
 
-def build_terminal_closeout(source_raw: bytes, source: dict, closeout_raw: bytes, closeout: dict, lock_raw: bytes, lock: dict) -> dict:
+def validate_transport_auth(tsv_raw: bytes, marker_raw: bytes) -> dict:
+    try:
+        text = tsv_raw.decode("utf-8")
+        marker = marker_raw.decode("utf-8").strip()
+    except UnicodeDecodeError as exc:
+        raise TerminalCloseoutError("transport-auth evidence is not UTF-8") from exc
+
+    observed = sha256_bytes(tsv_raw)
+    marker_parts = marker.split()
+    require(marker_parts and marker_parts[0] == observed, "transport-auth marker differs from TSV bytes")
+
+    labels: set[str] = set()
+    for number, line in enumerate(text.splitlines(), 1):
+        parts = line.split("\t")
+        require(len(parts) == 5, f"transport-auth row {number} has wrong width")
+        label, run_id, artifact_id, head_sha, file_sha = parts
+        require(label not in labels, f"duplicate transport-auth label: {label}")
+        labels.add(label)
+        require(run_id.isdigit() and int(run_id) > 0, f"{label}: transport run id invalid")
+        require(artifact_id.isdigit() and int(artifact_id) > 0, f"{label}: transport artifact id invalid")
+        require(HEX40.fullmatch(head_sha) is not None, f"{label}: transport head sha invalid")
+        require(re.fullmatch(r"[0-9a-f]{64}", file_sha) is not None, f"{label}: transport file sha invalid")
+
+    expected = set(EXPECTED_FAMILIES)
+    expected.add("FAMILY_UNIVERSE_DISCOVERY")
+    require(labels == expected, "transport-auth label set differs from terminal source universe")
+    return {"sha256": observed, "count": len(labels)}
+
+
+def build_terminal_closeout(
+    source_raw: bytes,
+    source: dict,
+    closeout_raw: bytes,
+    closeout: dict,
+    lock_raw: bytes,
+    lock: dict,
+    transport_tsv_raw: bytes,
+    transport_marker_raw: bytes,
+) -> dict:
     universe = validate_source_universe(source)
     real = validate_real_source_closeout(closeout)
     authority = validate_authority_lock(lock, lock_raw, closeout)
+    transport = validate_transport_auth(transport_tsv_raw, transport_marker_raw)
 
     payload = {
         "schema_version": 1,
@@ -216,6 +255,8 @@ def build_terminal_closeout(source_raw: bytes, source: dict, closeout_raw: bytes
         "unknown_family_count": 0,
         "capital_source_universe_complete": True,
         "family_universe_discovery_authenticated": True,
+        "source_universe_transport_auth_count": transport["count"],
+        "source_universe_transport_auth_sha256": transport["sha256"],
         "terminal_capital_census_complete": True,
         "d11_terminal_closed": True,
         "source_count": real["source_count"],
@@ -252,18 +293,29 @@ def build_terminal_closeout(source_raw: bytes, source: dict, closeout_raw: bytes
 
 
 def main(argv: list[str]) -> int:
-    if len(argv) != 5:
+    if len(argv) != 7:
         print(
-            "usage: verify-rmc011-terminal-closeout.py <source-universe.json> <capital-real-source-closeout.json> <capital-upstream-authority-lock.json> <out.json>",
+            "usage: verify-rmc011-terminal-closeout.py <source-universe.json> <capital-real-source-closeout.json> <capital-upstream-authority-lock.json> <source-universe-transport-auth.tsv> <source-universe-transport-auth.sha256> <out.json>",
             file=sys.stderr,
         )
         return 2
-    source_path, closeout_path, lock_path, out_path = map(Path, argv[1:])
+    source_path, closeout_path, lock_path, transport_tsv_path, transport_marker_path, out_path = map(Path, argv[1:])
     try:
         source_raw, source = load_json(source_path)
         closeout_raw, closeout = load_json(closeout_path)
         lock_raw, lock = load_json(lock_path)
-        terminal = build_terminal_closeout(source_raw, source, closeout_raw, closeout, lock_raw, lock)
+        transport_tsv_raw = transport_tsv_path.read_bytes()
+        transport_marker_raw = transport_marker_path.read_bytes()
+        terminal = build_terminal_closeout(
+            source_raw,
+            source,
+            closeout_raw,
+            closeout,
+            lock_raw,
+            lock,
+            transport_tsv_raw,
+            transport_marker_raw,
+        )
         encoded = canonical_bytes(terminal)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_bytes(encoded)
