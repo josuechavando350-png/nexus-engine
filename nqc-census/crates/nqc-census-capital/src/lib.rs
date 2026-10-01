@@ -3136,7 +3136,9 @@ fn upstream_authority_commitment(
     }
     hasher.update(
         u64::try_from(admitted_evidence.len())
-            .map_err(|_| CapitalError::InvalidUpstreamAuthority("admitted evidence count overflow"))?
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority("admitted evidence count overflow")
+            })?
             .to_be_bytes(),
     );
     for evidence in admitted_evidence {
@@ -3144,14 +3146,18 @@ fn upstream_authority_commitment(
         evidence.encode(&mut writer);
         hasher.update(
             u64::try_from(writer.0.len())
-                .map_err(|_| CapitalError::InvalidUpstreamAuthority("evidence encoding length overflow"))?
+                .map_err(|_| {
+                    CapitalError::InvalidUpstreamAuthority("evidence encoding length overflow")
+                })?
                 .to_be_bytes(),
         );
         hasher.update(&writer.0);
     }
     hasher.update(
         u64::try_from(consumption_receipts.len())
-            .map_err(|_| CapitalError::InvalidUpstreamAuthority("consumption receipt count overflow"))?
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority("consumption receipt count overflow")
+            })?
             .to_be_bytes(),
     );
     for receipt in consumption_receipts.values() {
