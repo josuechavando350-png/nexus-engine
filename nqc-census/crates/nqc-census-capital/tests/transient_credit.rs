@@ -56,8 +56,10 @@ fn observation(
     let fee_bps = 125_u16;
     let utilization = 9_000_u16;
     let min_remaining = amount(50);
-    let protocol_cap = Some(amount(700));
-    let market_cap = Some(amount(650));
+    let protocol_cap_value = amount(700);
+    let market_cap_value = amount(650);
+    let protocol_cap = Some(protocol_cap_value);
+    let market_cap = Some(market_cap_value);
 
     let terms = transient_credit_terms_commitment(
         provider_identity,
@@ -140,11 +142,11 @@ fn observation(
         ("min_remaining", amount_json(min_remaining)),
         (
             "protocol_cap",
-            amount_json(protocol_cap.unwrap_or(Amount256::ZERO)),
+            amount_json(protocol_cap_value),
         ),
         (
             "market_cap",
-            amount_json(market_cap.unwrap_or(Amount256::ZERO)),
+            amount_json(market_cap_value),
         ),
         ("active", Json::Bool(active)),
         ("terms_commitment", Json::string(terms.to_hex())),
