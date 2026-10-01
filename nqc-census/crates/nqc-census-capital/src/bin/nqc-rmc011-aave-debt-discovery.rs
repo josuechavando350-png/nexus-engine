@@ -1,8 +1,7 @@
 use nqc_census_capital::{
-    aave_debt_discovery::build_aave_debt_discovery_artifact,
-    replay::UpstreamAuthorityLock,
-    upstream::D08CapitalImportContext,
-    CapitalEvidenceRef, UpstreamCensusStage, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    aave_debt_discovery::build_aave_debt_discovery_artifact, replay::UpstreamAuthorityLock,
+    upstream::D08CapitalImportContext, CapitalEvidenceRef, UpstreamCensusStage,
+    UpstreamStageAuthority, UpstreamStageAuthoritySpec,
 };
 use nqc_census_chain::json::Json;
 use std::{env, error::Error, fs, path::PathBuf};
@@ -88,7 +87,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             .and_then(Json::as_bool)
             != Some(false)
     {
-        return Err("Aave debt discovery artifact crossed the non-terminal capacity boundary".into());
+        return Err(
+            "Aave debt discovery artifact crossed the non-terminal capacity boundary".into(),
+        );
     }
 
     if let Some(parent) = args.out.parent() {
