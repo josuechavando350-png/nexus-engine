@@ -13,6 +13,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/citatorio-ministerio-publico-cdmx` },
     { url: `${base}/audiencia-inicial-control-detencion-cdmx` },
     { url: `${base}/diagnostico-penal` },
+    { url: `${base}/evaluacion-empresarial` },
+    { url: `${base}/intelligence` },
     { url: `${base}/guias/requerimiento-sat-riesgo-penal` },
     { url: `${base}/guias/honorarios-abogado-penalista-cdmx` },
     { url: `${base}/guias/responsabilidad-penal-representante-legal-contador` },
