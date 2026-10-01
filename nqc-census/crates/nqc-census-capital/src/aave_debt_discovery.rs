@@ -117,8 +117,9 @@ impl AaveDebtDiscovery {
 }
 
 fn field<'a>(row: &'a Json, key: &'static str) -> Result<&'a Json, CapitalError> {
-    row.get(key)
-        .ok_or(CapitalError::InvalidCanonical("missing Aave debt discovery field"))
+    row.get(key).ok_or(CapitalError::InvalidCanonical(
+        "missing Aave debt discovery field",
+    ))
 }
 
 fn text<'a>(row: &'a Json, key: &'static str) -> Result<&'a str, CapitalError> {
@@ -154,8 +155,7 @@ fn u16_field(row: &Json, key: &'static str) -> Result<u16, CapitalError> {
 
 fn u8_field(row: &Json, key: &'static str) -> Result<u8, CapitalError> {
     let value = u64_field(row, key)?;
-    u8::try_from(value)
-        .map_err(|_| CapitalError::InvalidCanonical("Aave debt field exceeds uint8"))
+    u8::try_from(value).map_err(|_| CapitalError::InvalidCanonical("Aave debt field exceeds uint8"))
 }
 
 fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
@@ -360,8 +360,7 @@ pub fn discover_d08_aave_debt_facilities(
 
         let decimals = u8_field(configuration, "decimals")?;
         let available = Amount256::parse_decimal(text(facts, "available_liquidity")?)?;
-        let total_debt =
-            Amount256::parse_decimal(text(facts, "total_variable_and_stable_debt")?)?;
+        let total_debt = Amount256::parse_decimal(text(facts, "total_variable_and_stable_debt")?)?;
         let borrow_cap_whole = u64_field(configuration, "borrow_cap_whole_tokens")?;
         let borrow_cap = if borrow_cap_whole == 0 {
             None
@@ -373,9 +372,8 @@ pub fn discover_d08_aave_debt_facilities(
             Some(cap) if total_debt >= cap => Some(Amount256::ZERO),
             Some(cap) => Some(cap.checked_sub(total_debt)?),
         };
-        let observed_upper_bound = borrow_cap_remaining.map_or(available, |remaining| {
-            available.min(remaining)
-        });
+        let observed_upper_bound =
+            borrow_cap_remaining.map_or(available, |remaining| available.min(remaining));
 
         let derived_cap_reached = borrow_cap.is_some_and(|cap| total_debt >= cap);
         if bool_field(facts, "borrow_cap_reached")? != derived_cap_reached {
@@ -522,7 +520,6 @@ pub fn discover_d08_aave_debt_facilities(
     }
     Ok(discovery)
 }
-
 
 fn amount_json(value: Amount256) -> Json {
     Json::string(format!("0x{}", value.to_hex()))
@@ -700,34 +697,28 @@ pub fn build_aave_debt_discovery_artifact(
             "claim_scope",
             Json::string("PROTOCOL_SIDE_DEBT_FACILITY_DISCOVERY_ONLY"),
         ),
-        (
-            "observation_anchor",
-            discovery_anchor_json(&context.anchor),
-        ),
+        ("observation_anchor", discovery_anchor_json(&context.anchor)),
         (
             "d08_authority_artifact_sha256",
             Json::string(authority.artifact_sha256.to_hex()),
         ),
         (
             "candidate_count",
-            Json::uint(
-                u64::try_from(discovery.candidate_count)
-                    .map_err(|_| CapitalError::InvalidCanonical("Aave debt candidate count overflow"))?,
-            ),
+            Json::uint(u64::try_from(discovery.candidate_count).map_err(|_| {
+                CapitalError::InvalidCanonical("Aave debt candidate count overflow")
+            })?),
         ),
         (
             "facility_count",
-            Json::uint(
-                u64::try_from(discovery.facility_count)
-                    .map_err(|_| CapitalError::InvalidCanonical("Aave debt facility count overflow"))?,
-            ),
+            Json::uint(u64::try_from(discovery.facility_count).map_err(|_| {
+                CapitalError::InvalidCanonical("Aave debt facility count overflow")
+            })?),
         ),
         (
             "rejected_count",
-            Json::uint(
-                u64::try_from(discovery.rejected_count)
-                    .map_err(|_| CapitalError::InvalidCanonical("Aave debt rejected count overflow"))?,
-            ),
+            Json::uint(u64::try_from(discovery.rejected_count).map_err(|_| {
+                CapitalError::InvalidCanonical("Aave debt rejected count overflow")
+            })?),
         ),
         (
             "coverage_commitment",
@@ -741,7 +732,10 @@ pub fn build_aave_debt_discovery_artifact(
         ),
         ("oracle_resolution_complete", Json::Bool(false)),
         ("emode_resolution_complete", Json::Bool(false)),
-        ("zero_own_capital_collateral_path_claimed", Json::Bool(false)),
+        (
+            "zero_own_capital_collateral_path_claimed",
+            Json::Bool(false),
+        ),
         ("facilities", Json::array(facilities)),
         ("rejections", Json::array(rejections)),
         (
