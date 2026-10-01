@@ -134,6 +134,39 @@ jobs:
           cargo build --workspace --all-targets --locked
           echo RMC007_RECONCILIATION_CORE_PASS
 
+  dispatch-certification:
+    needs: gate
+    if: ${{ github.event_name == 'pull_request' && needs.gate.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Dispatch exact-head A1 live certification once
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          observed=$(gh api "repos/$repo/git/ref/heads/$HEAD_REF" --jq .object.sha)
+          test "$observed" = "$HEAD_SHA" || {
+            echo "branch moved: PR head=$HEAD_SHA branch=$observed; refusing stale certification dispatch"
+            exit 1
+          }
+          existing=$(gh api "repos/$repo/actions/workflows/nqc-census-v2-discovery.yml/runs?event=workflow_dispatch&branch=$HEAD_REF&per_page=30" \
+            --jq "[.workflow_runs[] | select(.head_sha == \"$HEAD_SHA\" and (.status == \"queued\" or .status == \"in_progress\" or .conclusion == \"success\"))] | length")
+          if [ "$existing" != 0 ]; then
+            echo "RMC007_A1_CERTIFICATION_ALREADY_PRESENT head=$HEAD_SHA count=$existing"
+            exit 0
+          fi
+          gh api --method POST "repos/$repo/actions/workflows/nqc-census-v2-discovery.yml/dispatches" \
+            -f ref="$HEAD_REF"
+          echo "RMC007_A1_CERTIFICATION_DISPATCHED head=$HEAD_SHA ref=$HEAD_REF"
+
   plan:
     needs: gate
     runs-on: ubuntu-24.04
@@ -159,8 +192,11 @@ jobs:
           mkdir -p /tmp/nqc-rmc007-plan
           head="$(git rev-parse HEAD)"
           if [ "${{ github.event_name }}" != workflow_dispatch ]; then
-            STAGES_RUN_ID=36589054151
-            echo "RMC007_PR_OFFLINE_REPLAY acquisition_run=$STAGES_RUN_ID replay_head=$head"
+            echo "mode=verify" >> "$GITHUB_OUTPUT"
+            echo "stages_run=" >> "$GITHUB_OUTPUT"
+            echo "stages_head=$head" >> "$GITHUB_OUTPUT"
+            echo "RMC007_A1_PR_GATE_ONLY replay_of_A0_forbidden=true live_certification=auto_dispatch"
+            exit 0
           fi
           if [ -z "$STAGES_RUN_ID" ]; then
             echo "mode=acquire" >> "$GITHUB_OUTPUT"
