@@ -3,8 +3,9 @@
 
 This does not claim global provider/facility nonexistence. It only proves that,
 for the exact repository head being evaluated, NQC has no registered/authorized
-external provider, no declared permissionless debt facility and no supported
-execution plan requiring the bounded requirement families.
+external provider and no supported execution plan requiring the bounded
+requirement families. Permissionless debt discovery is deliberately outside
+this bounded rejection path.
 """
 
 from __future__ import annotations
