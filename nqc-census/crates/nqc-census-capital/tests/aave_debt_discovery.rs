@@ -96,7 +96,7 @@ fn state_row(
                 ("active", Json::Bool(true)),
                 ("paused", Json::Bool(false)),
                 ("frozen", Json::Bool(false)),
-                ("borrowing_enabled", Json::Bool(borrowing_enabled)),
+                ("borrowing_enabled", Json::Bool(facts_borrowing_enabled)),
                 ("available_liquidity", Json::string(available)),
                 (
                     "total_variable_and_stable_debt",
@@ -369,6 +369,7 @@ fn tampered_state_bytes_fail_manifest_binding() -> TestResult {
         "400000000",
         "800000000",
         false,
+        true,
         true,
     ))?;
     bundle.state.extend_from_slice(b"\n");
