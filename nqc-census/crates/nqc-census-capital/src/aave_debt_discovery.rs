@@ -7,7 +7,10 @@
 //! protocol-borrowability blockers, not a capital-feasibility claim.
 
 use crate::{
-    upstream::{d08_aave_flash_terms, verify_d08_artifact_binding, D08CapitalImportContext},
+    upstream::{
+        d08_aave_flash_terms, execution_blockers, token_execution_blockers,
+        verify_d08_artifact_binding, D08CapitalImportContext,
+    },
     Amount256, CapitalError, CapitalEvidenceRef, UpstreamStageAuthority,
 };
 use nqc_census_chain::json::Json;
@@ -15,7 +18,7 @@ use nqc_census_core::{Address, Hash32};
 use sha2::{Digest, Sha256};
 
 const DISCOVERY_DOMAIN: &[u8] = b"NQC-RMC011-AAVE-V3-DEBT-DISCOVERY-V1";
-const FACILITY_DOMAIN: &[u8] = b"NQC-RMC011-AAVE-V3-DEBT-FACILITY-V1";
+const FACILITY_DOMAIN: &[u8] = b"NQC-RMC011-AAVE-V3-DEBT-FACILITY-V2";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum AaveDebtFacilityBlocker {
@@ -68,6 +71,8 @@ pub struct AaveDebtFacility {
     pub borrow_cap_remaining: Option<Amount256>,
     pub observed_borrowable_upper_bound: Amount256,
     pub protocol_borrowable_upper_bound: Amount256,
+    pub execution_compatible_borrowable_upper_bound: Amount256,
+    pub token_execution_blockers: Vec<String>,
     pub current_variable_borrow_rate_ray: Amount256,
     pub ltv_bps: u16,
     pub liquidation_threshold_bps: u16,
@@ -212,8 +217,10 @@ fn facility_commitment(
     reserve_id: u16,
     observed_upper_bound: Amount256,
     protocol_upper_bound: Amount256,
+    execution_compatible_upper_bound: Amount256,
     reserve_terms_commitment: Hash32,
     blockers: &[AaveDebtFacilityBlocker],
+    token_execution_blockers: &[String],
 ) -> Result<Hash32, CapitalError> {
     let mut hasher = Sha256::new();
     hasher.update(FACILITY_DOMAIN);
@@ -224,6 +231,7 @@ fn facility_commitment(
     hasher.update(reserve_id.to_be_bytes());
     hasher.update(observed_upper_bound.as_be_bytes());
     hasher.update(protocol_upper_bound.as_be_bytes());
+    hasher.update(execution_compatible_upper_bound.as_be_bytes());
     hasher.update(reserve_terms_commitment.as_bytes());
     hasher.update(
         u16::try_from(blockers.len())
@@ -238,6 +246,20 @@ fn facility_commitment(
                 .to_be_bytes(),
         );
         hasher.update(code);
+    }
+    hasher.update(
+        u16::try_from(token_execution_blockers.len())
+            .map_err(|_| CapitalError::InvalidCanonical("too many Aave debt token blockers"))?
+            .to_be_bytes(),
+    );
+    for blocker in token_execution_blockers {
+        let bytes = blocker.as_bytes();
+        hasher.update(
+            u16::try_from(bytes.len())
+                .map_err(|_| CapitalError::InvalidCanonical("Aave debt token blocker too long"))?
+                .to_be_bytes(),
+        );
+        hasher.update(bytes);
     }
     let digest: [u8; 32] = hasher.finalize().into();
     Hash32::new(digest)
@@ -261,6 +283,7 @@ pub fn discover_d08_aave_debt_facilities(
         context,
     )?;
     let (pool, _) = d08_aave_flash_terms(pool_and_factory_facts_json)?;
+    let token_admissions = token_execution_blockers(token_admission_jsonl)?;
 
     let mut facilities = Vec::new();
     let mut rejections = Vec::new();
@@ -308,6 +331,7 @@ pub fn discover_d08_aave_debt_facilities(
 
         let market_id = Hash32::parse_hex(&market_id_text)
             .map_err(|_| CapitalError::InvalidCanonical("invalid Aave debt market id"))?;
+        let token_blockers = execution_blockers(&token_admissions, asset)?.to_vec();
         let reserve_id = u16_field(&row, "reserve_id")?;
         let configuration = field(&row, "configuration")?;
         let indexes = field(&row, "indexes")?;
@@ -380,6 +404,11 @@ pub fn discover_d08_aave_debt_facilities(
         } else {
             Amount256::ZERO
         };
+        let execution_compatible_upper_bound = if token_blockers.is_empty() {
+            protocol_upper_bound
+        } else {
+            Amount256::ZERO
+        };
 
         let reserve_terms_commitment = hash_json_domain(
             DISCOVERY_DOMAIN,
@@ -395,8 +424,10 @@ pub fn discover_d08_aave_debt_facilities(
             reserve_id,
             observed_upper_bound,
             protocol_upper_bound,
+            execution_compatible_upper_bound,
             reserve_terms_commitment,
             &blockers,
+            &token_blockers,
         )?;
 
         let facility = AaveDebtFacility {
@@ -411,6 +442,8 @@ pub fn discover_d08_aave_debt_facilities(
             borrow_cap_remaining,
             observed_borrowable_upper_bound: observed_upper_bound,
             protocol_borrowable_upper_bound: protocol_upper_bound,
+            execution_compatible_borrowable_upper_bound: execution_compatible_upper_bound,
+            token_execution_blockers: token_blockers,
             portfolio_collateral_resolution_required: true,
             oracle_resolution_required: true,
             emode_resolution_required: true,
