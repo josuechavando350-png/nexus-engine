@@ -26,6 +26,11 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: rmc011-bounded-family-rejections-${{ github.event.pull_request.number || github.ref }}
+  # Supersede stale PR heads, but never cancel authoritative push/dispatch runs.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   bounded-family-rejection-evidence:
     runs-on: ubuntu-24.04

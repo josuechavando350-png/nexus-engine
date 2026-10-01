@@ -94,6 +94,11 @@ permissions:
   contents: read
   actions: read
 
+concurrency:
+  group: rmc011-terminal-readiness-${{ github.event.pull_request.number || github.ref }}
+  # Supersede stale PR heads, but never cancel authoritative push/dispatch runs.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   source-universe-contract:
     runs-on: ubuntu-24.04
