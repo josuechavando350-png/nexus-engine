@@ -12,11 +12,11 @@ export const site = {
 } as const;
 
 export const nav = [
-  ["Empresas", "/guias/defensa-penal-empresa-delitos-financieros"],
+  ["Empresas", "/defensa-penal-empresarial"],
   ["Urgencias", "/detenido-cdmx"],
   ["Intelligence", "/intelligence"],
   ["Casos", "/casos"],
-  ["Trayectoria", "/acerca-de-mi"],
+  ["Eduardo Cano", "/acerca-de-mi"],
   ["Contacto", "/#contacto"]
 ] as const;
 
