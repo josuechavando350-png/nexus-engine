@@ -61,8 +61,9 @@ class SourceUniverseTests(unittest.TestCase):
     def test_current_blocked_contract_is_valid(self) -> None:
         result = mod.validate_document(copy.deepcopy(BASE))
         self.assertEqual(result["family_count"], 13)
-        self.assertEqual(result["resolved_count"], 0)
-        self.assertEqual(result["unresolved_count"], 13)
+        expected_resolved = sum(1 for row in BASE["families"] if row["terminally_resolved"])
+        self.assertEqual(result["resolved_count"], expected_resolved)
+        self.assertEqual(result["unresolved_count"], 13 - expected_resolved)
         self.assertFalse(result["family_universe_discovery_complete"])
         self.assertFalse(result["terminal_claim_allowed"])
         self.assertFalse(result["d11_terminal_closed"])
@@ -126,9 +127,11 @@ class SourceUniverseTests(unittest.TestCase):
 
     def test_exhaustive_rejection_requires_hash_bound_evidence(self) -> None:
         doc = copy.deepcopy(BASE)
-        row = next(row for row in doc["families"] if row["real_source_path"] is None)
+        row = next(row for row in doc["families"] if not row["terminally_resolved"])
+        row["real_source_path"] = None
         row["status"] = "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE"
         row["terminally_resolved"] = True
+        row["resolution_evidence"] = None
         with self.assertRaises(mod.UniverseError):
             mod.validate_document(doc)
 
@@ -180,7 +183,10 @@ class SourceUniverseTests(unittest.TestCase):
 
     def test_model_only_cannot_smuggle_real_source_path(self) -> None:
         doc = copy.deepcopy(BASE)
-        row = next(row for row in doc["families"] if row["status"] == "MODEL_ONLY")
+        row = next(row for row in doc["families"] if not row["terminally_resolved"])
+        row["status"] = "MODEL_ONLY"
+        row["terminally_resolved"] = False
+        row["resolution_evidence"] = None
         row["real_source_path"] = "fake/path"
         with self.assertRaises(mod.UniverseError):
             mod.validate_document(doc)
@@ -191,7 +197,7 @@ class SourceUniverseTests(unittest.TestCase):
         row = next(
             row
             for row in doc["families"]
-            if row["id"] == "EXTERNAL_GAS_SPONSOR"
+            if row["id"] == "COLLATERALIZED_BORROWING"
         )
         self.assertEqual(row["status"], "SEMANTIC_ADMISSION_IMPLEMENTED")
         row["real_source_path"] = "fake/path"
@@ -203,11 +209,11 @@ class SourceUniverseTests(unittest.TestCase):
         row = next(
             row
             for row in doc["families"]
-            if row["id"] == "TRANSIENT_EXTERNAL_CREDIT"
+            if row["id"] == "PERSISTENT_DEBT"
         )
         self.assertEqual(row["status"], "SEMANTIC_ADMISSION_IMPLEMENTED")
         row["real_source_path"] = (
-            "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs"
+            "nqc-census/crates/nqc-census-capital/src/collateralized_borrowing.rs"
         )
         with self.assertRaises(mod.UniverseError):
             mod.validate_document(doc)
