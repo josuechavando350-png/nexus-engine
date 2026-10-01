@@ -194,5 +194,32 @@ class DiscoveryContractTests(unittest.TestCase):
             validate(doc)
 
 
+    def test_collateralized_borrowing_requires_zero_own_capital_collateral_catalog(self) -> None:
+        doc = copy.deepcopy(DISCOVERY)
+        row = next(
+            row for row in doc["families"]
+            if row["id"] == "COLLATERALIZED_BORROWING"
+        )
+        row["implementation"] = row["implementation"].replace(
+            " + ci/nqc-census/rmc011-collateral-funding-path-catalog.json",
+            "",
+        )
+        with self.assertRaises(mod.DiscoveryError):
+            validate(doc)
+
+    def test_persistent_debt_requires_collateral_path_verifier(self) -> None:
+        doc = copy.deepcopy(DISCOVERY)
+        row = next(
+            row for row in doc["families"]
+            if row["id"] == "PERSISTENT_DEBT"
+        )
+        row["implementation"] = row["implementation"].replace(
+            " + ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py",
+            "",
+        )
+        with self.assertRaises(mod.DiscoveryError):
+            validate(doc)
+
+
 if __name__ == "__main__":
     unittest.main()
