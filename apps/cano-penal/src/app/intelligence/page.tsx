@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PageShell } from "../SiteChrome";
 
 export const metadata: Metadata = {
-  title: "CANO Intelligence | Penal económico, fiscal y empresarial",
+  title: "CANO Intelligence | Penal patrimonial, fiscal y empresarial",
   description: "Análisis de riesgo penal, fiscal, financiero y empresarial desde la experiencia de investigación y defensa.",
   alternates: { canonical: "https://canopenal.com/intelligence" },
 };
