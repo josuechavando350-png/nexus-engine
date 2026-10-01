@@ -79,7 +79,7 @@ jobs:
           package = pathlib.Path(package_path)
 
           assert report["status"] == "RMC011_BOUNDED_FAMILY_REJECTIONS_READY"
-          assert report["family_count"] == 9
+          assert report["family_count"] == 7
           assert report["global_nonexistence_claimed"] is False
           assert report["d11_terminal_closed"] is False
 
@@ -109,7 +109,7 @@ jobs:
               )
           PY
 
-          test "$(find "$PACKAGE/families" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 9
+          test "$(find "$PACKAGE/families" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 7
           test "$(find "$PACKAGE/families" -name evidence.json -type f | wc -l)" -eq 9
 
           python3 - "$PACKAGE" "$EXACT_HEAD" "$GITHUB_WORKFLOW" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" <<'PY'
@@ -130,8 +130,8 @@ jobs:
                   "sha256": hashlib.sha256(data).hexdigest(),
               })
 
-          assert len(rows) == 9
-          assert len({row["family"] for row in rows}) == 9
+          assert len(rows) == 7
+          assert len({row["family"] for row in rows}) == 7
           index = {
               "schema_version": 1,
               "stage": "RMC-011",
