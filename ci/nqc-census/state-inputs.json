@@ -1,0 +1,74 @@
+{
+  "schema_version": 2,
+  "status": "PINNED",
+  "expected_anchor": {
+    "block_number": 25437474,
+    "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8"
+  },
+  "sources": [
+    {
+      "node": "D06",
+      "pull_request": 521,
+      "code_commit": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
+      "code_tree": "eda36fdc07e82ccdcc9666799fa8fe21aacc7f1d",
+      "workflow_run_id": 36627517591,
+      "artifact_id": 11062164175,
+      "artifact": "nqc-rmc006-evidence-25437474-a33a012591cd6625ddb921d995bb1bd95b4a5406-36627517591-1",
+      "artifact_digest": "sha256:5f9a9bbd2182d9d65e22ad9b25f94abd5152baef7d1c2d559bda4e5a77433b03",
+      "evidence_manifest_sha256": "81e53c6f76ff71c47df6186afddef05756dbb4ed1261fa3b694183ecefdce44b"
+    },
+    {
+      "node": "D07",
+      "pull_request": 520,
+      "code_commit": "7e223cc5f89374f5542ca862d2322201b46d1fc8",
+      "code_tree": "4934c97fb4f226a95af19c218606390a43b72ef9",
+      "workflow_run_id": 36673249129,
+      "artifact_id": 11081537391,
+      "artifact": "nqc-rmc007-closeout-7e223cc5f89374f5542ca862d2322201b46d1fc8-36673249129-1",
+      "artifact_digest": "sha256:dd4641b2f1437dc4d72e08b71d25ed42ba9245fdb8a31e900a2233c7160b1c66",
+      "evidence_manifest_sha256": "8d4dff5abd45b24a7169ac03a66ab9a34bb8993d4155623cb87121764f7311b2"
+    }
+  ],
+  "files": [
+    {
+      "role": "d06_current_surface",
+      "path": "d06/aave-current-surface.json",
+      "sha256": "643d39289467ff2b88a03a575c0d9fed3e5a9333cd66d7245ea43025054c714f"
+    },
+    {
+      "role": "d06_deployment_manifest",
+      "path": "d06/closeout/aave-deployment-manifest.jsonl",
+      "sha256": "2b93076630dfab9953858669b02b838032c7e787f1520ea53f014ac313c36eee"
+    },
+    {
+      "role": "d06_reserve_manifest",
+      "path": "d06/closeout/aave-reserve-manifest.jsonl",
+      "sha256": "9f931f32c28a47cd0c73856c5a02e81bcb3db00a52abaa5a083283b4abf0a5c7"
+    },
+    {
+      "role": "d06_evidence_manifest",
+      "path": "d06/closeout/evidence-manifest.json",
+      "sha256": "81e53c6f76ff71c47df6186afddef05756dbb4ed1261fa3b694183ecefdce44b"
+    },
+    {
+      "role": "d07_current_surface",
+      "path": "d07/v2-current-surface.json",
+      "sha256": "8c6ad60ee7c56e7d4ba0c7222f5453e0ff591b7dd44874d1a60815f8f0553fb2"
+    },
+    {
+      "role": "d07_deployment_admission",
+      "path": "d07/closeout/v2-deployment-admission.json",
+      "sha256": "7f555399d387b5d751a706fe592d4323a01106a1d030ff3d4bc05b98065bf0a3"
+    },
+    {
+      "role": "d07_pair_manifest",
+      "path": "d07/closeout/v2-pair-manifest.jsonl",
+      "sha256": "920b9fae1d80d6508eacb95168964ebc2c1a063b39c6ba3062212cff4d33ed64"
+    },
+    {
+      "role": "d07_evidence_manifest",
+      "path": "d07/closeout/evidence-manifest.json",
+      "sha256": "8d4dff5abd45b24a7169ac03a66ab9a34bb8993d4155623cb87121764f7311b2"
+    }
+  ]
+}
