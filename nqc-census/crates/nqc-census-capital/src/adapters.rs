@@ -226,9 +226,7 @@ impl UniswapV3FlashObservation {
         if has_active_liquidity {
             Ok(source)
         } else {
-            source.with_execution_blockers(vec![
-                "UNISWAP_V3_ZERO_ACTIVE_LIQUIDITY".to_owned(),
-            ])
+            source.with_execution_blockers(vec!["UNISWAP_V3_ZERO_ACTIVE_LIQUIDITY".to_owned()])
         }
     }
 }
