@@ -51,6 +51,7 @@ fn risk() -> PersistentDebtTerms {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn observation(
     observed_anchor: &StateAnchor,
     kind: ExternalDebtKind,
