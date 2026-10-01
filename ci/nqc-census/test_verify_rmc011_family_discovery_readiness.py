@@ -49,6 +49,18 @@ def resolve_all(universe: dict) -> None:
         row["resolution_evidence"] = evidence(kind, index)
 
 
+def validate_with_complete_scope(discovery: dict, universe: dict) -> dict:
+    scope_path = Path("ci/nqc-census/capital-census-scope.json")
+    original = scope_path.read_text()
+    scope = json.loads(original)
+    scope["claims"]["capital_source_universe_complete"] = True
+    scope_path.write_text(json.dumps(scope, indent=2) + "\n")
+    try:
+        return mod.validate_documents(discovery, universe)
+    finally:
+        scope_path.write_text(original)
+
+
 class FamilyDiscoveryReadinessTests(unittest.TestCase):
     def test_current_universe_is_blocked_without_terminal_family_evidence(self) -> None:
         result = mod.validate_documents(
@@ -115,7 +127,7 @@ class FamilyDiscoveryReadinessTests(unittest.TestCase):
         }
         universe["status"] = "CAPITAL_SOURCE_UNIVERSE_COMPLETE"
         universe["terminal_claim_allowed"] = True
-        result = mod.validate_documents(copy.deepcopy(DISCOVERY), universe)
+        result = validate_with_complete_scope(copy.deepcopy(DISCOVERY), universe)
         self.assertFalse(result["ready"])
         self.assertTrue(result["already_authenticated"])
         self.assertEqual(
