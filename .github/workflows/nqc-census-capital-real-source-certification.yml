@@ -413,6 +413,127 @@ jobs:
           PY
 
           echo "RMC011_BOUNDED_FAMILY_EVIDENCE=AUTHENTICATED run=$run_id artifact=$artifact_id head=$head_sha"
+      - name: Authenticate family discovery evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SOURCE_UNIVERSE=ci/nqc-census/rmc011-capital-source-universe.json
+          OUT="$RUNNER_TEMP/rmc011-family-discovery-evidence"
+          rm -rf "$OUT"
+
+          status="$(jq -r '.family_universe_discovery.status' "$SOURCE_UNIVERSE")"
+          if [[ "$status" == "NOT_CERTIFIED" ]]; then
+            test "$(jq -r '.family_universe_discovery.evidence' "$SOURCE_UNIVERSE")" = "null"
+            echo "RMC011_FAMILY_DISCOVERY_EVIDENCE=PENDING"
+            exit 0
+          fi
+          test "$status" = "AUTHENTICATED_COMPLETE"
+
+          evidence="$(jq -c '.family_universe_discovery.evidence' "$SOURCE_UNIVERSE")"
+          test "$(jq -r '.kind' <<<"$evidence")" = "AUTHENTICATED_DISCOVERY"
+          repository="$(jq -r '.repository' <<<"$evidence")"
+          workflow_name="$(jq -r '.workflow_name' <<<"$evidence")"
+          run_id="$(jq -r '.run_id' <<<"$evidence")"
+          head_sha="$(jq -r '.head_sha' <<<"$evidence")"
+          artifact_id="$(jq -r '.artifact_id' <<<"$evidence")"
+          artifact_name="$(jq -r '.artifact_name' <<<"$evidence")"
+          artifact_digest="$(jq -r '.artifact_digest' <<<"$evidence")"
+          evidence_file="$(jq -r '.file' <<<"$evidence")"
+          evidence_sha="$(jq -r '.sha256' <<<"$evidence")"
+
+          test "$repository" = "$REPOSITORY"
+          test "$workflow_name" = "NQC RMC-011 Family Discovery Evidence"
+          [[ "$run_id" =~ ^[0-9]+$ ]]
+          [[ "$artifact_id" =~ ^[0-9]+$ ]]
+          [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$evidence_sha" =~ ^[0-9a-f]{64}$ ]]
+          test "$evidence_file" = "discovery-evidence.json"
+          [[ "$artifact_name" == rmc011-family-discovery-"$head_sha"-"$run_id"-* ]]
+
+          run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+          test "$(jq -r '.status' <<<"$run_json")" = "completed"
+          test "$(jq -r '.conclusion' <<<"$run_json")" = "success"
+          test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+          test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+          artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+          test "$(jq -r '.expired' <<<"$artifact_json")" = "false"
+          test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+          test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+          test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+          mkdir -p "$OUT"
+          gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$OUT"
+          test -f "$OUT/SHA256SUMS"
+          ( cd "$OUT" && sha256sum -c SHA256SUMS )
+
+          test -f "$OUT/$evidence_file"
+          actual_sha="$(sha256sum "$OUT/$evidence_file" | awk '{print $1}')"
+          test "$actual_sha" = "$evidence_sha"
+
+          jq -e \
+            --arg workflow "$workflow_name" \
+            --arg head "$head_sha" \
+            --argjson run "$run_id" \
+            '
+              .schema_version == 1 and
+              .stage == "RMC-011" and
+              .kind == "AUTHENTICATED_DISCOVERY" and
+              .status == "RMC011_FAMILY_DISCOVERY_AUTHENTICATED_COMPLETE" and
+              .workflow_name == $workflow and
+              .head_sha == $head and
+              .run_id == $run and
+              .family_count == 13 and
+              .unresolved_family_count == 0 and
+              .global_source_nonexistence_claimed == false and
+              .d11_terminal_closed == false
+            ' "$OUT/$evidence_file" >/dev/null
+
+          python3 - "$OUT" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path(sys.argv[1])
+          evidence = json.loads((root / "discovery-evidence.json").read_text(encoding="utf-8"))
+          bindings = {
+              "rmc011-capital-family-discovery.json": "discovery_contract_sha256",
+              "rmc011-capital-source-universe.json": "source_universe_sha256",
+              "rmc011-family-discovery-readiness.json": "readiness_sha256",
+              "family-evidence-authentication.jsonl": "family_evidence_transport_sha256",
+          }
+          for filename, key in bindings.items():
+              path = root / filename
+              if not path.is_file():
+                  raise SystemExit(f"missing family discovery evidence file: {filename}")
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              if digest != evidence.get(key):
+                  raise SystemExit(f"{filename}: sha256 differs from discovery-evidence.json")
+
+          readiness = json.loads(
+              (root / "rmc011-family-discovery-readiness.json").read_text(encoding="utf-8")
+          )
+          if readiness.get("status") != "RMC011_FAMILY_DISCOVERY_TRANSPORT_READY":
+              raise SystemExit("family discovery artifact readiness status differs")
+          if readiness.get("resolved_count") != 13 or readiness.get("unresolved_count") != 0:
+              raise SystemExit("family discovery artifact family conservation differs")
+
+          lines = [
+              line for line in
+              (root / "family-evidence-authentication.jsonl").read_text(encoding="utf-8").splitlines()
+              if line
+          ]
+          if len(lines) != 13:
+              raise SystemExit("family discovery transport ledger must contain 13 rows")
+          families = {json.loads(line)["family"] for line in lines}
+          if len(families) != 13:
+              raise SystemExit("family discovery transport ledger family set is not unique")
+          PY
+
+          echo "RMC011_FAMILY_DISCOVERY_EVIDENCE=AUTHENTICATED run=$run_id artifact=$artifact_id head=$head_sha"
       - name: Require authoritative upstream inputs
         shell: bash
         run: |
@@ -836,6 +957,10 @@ jobs:
           fi
           cp -- ci/nqc-census/rmc011-capital-family-discovery.json "$PACKAGE/rmc011-capital-family-discovery.json"
           cp -- /tmp/rmc011-family-discovery-readiness.json "$PACKAGE/rmc011-family-discovery-readiness.json"
+          if [[ -d "$RUNNER_TEMP/rmc011-family-discovery-evidence" ]]; then
+            mkdir -p "$PACKAGE/family-discovery-evidence"
+            cp -a "$RUNNER_TEMP/rmc011-family-discovery-evidence/." "$PACKAGE/family-discovery-evidence/"
+          fi
           for stage in d06 d07 d08 d09 d10; do
             test -d "$RUNNER_TEMP/$stage-raw"
             cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
