@@ -416,7 +416,9 @@ fn demand_coverage_commitment(
         }
         hasher.update(
             u64::try_from(borrower.configuration_divergences.len())
-                .map_err(|_| CapitalError::InvalidCanonical("configuration divergence count overflow"))?
+                .map_err(|_| {
+                    CapitalError::InvalidCanonical("configuration divergence count overflow")
+                })?
                 .to_be_bytes(),
         );
         for divergence in &borrower.configuration_divergences {
