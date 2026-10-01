@@ -1340,8 +1340,8 @@ fn collateral_json(collateral: CollateralRequirement) -> Json {
             ("required", Json::Bool(true)),
             ("kind", Json::string("PROPORTIONAL")),
             ("asset", Json::string(asset.code())),
-            ("numerator", Json::number(numerator)),
-            ("denominator", Json::number(denominator)),
+            ("numerator", Json::uint(numerator)),
+            ("denominator", Json::uint(denominator)),
             ("rounding", Json::string(rounding.code())),
             (
                 "liquidation_conditions_hash",
