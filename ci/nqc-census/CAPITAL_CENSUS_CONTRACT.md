@@ -62,7 +62,7 @@ Any later phase that needs a source family outside this live-import basis MUST e
 
 The exhaustive family-discovery specification is `ci/nqc-census/rmc011-capital-family-discovery.json`. It defines, for each required family, the authoritative discovery surface, anchor semantics, completeness condition, negative-proof requirement, and implementation path. The discovery plan itself is not evidence. Terminal source-universe readiness requires an authenticated discovery result proving that every declared surface was actually executed to its completeness condition.
 
-A family may be labeled `EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE` only when its declared discovery surface was completed and the rejection evidence is content-addressed. “No result was found,” absence from an index, a historical test, or a model-only adapter is never an exhaustive rejection. Permissioned/off-chain capital families are exhaustive only relative to the authenticated NQC external-provider registry, the supported execution-plan requirement catalog, and—where collateralized or persistent permissionless debt is in scope—the declared permissionless debt-facility catalog; uncontracted third-party credit is not treated as capital available to NQC. A declared-empty registry/catalog is a bounded negative fact, not terminal evidence by itself. Terminal rejection of the nine bounded external/requirement families MUST be derived by the bounded-family rejection workflow, and promotion into the source-universe contract MUST be atomic across all nine families from one exact successful run/artifact with one distinct content-addressed per-family evidence file.
+A family may be labeled `EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE` only when its declared discovery surface was completed and the rejection evidence is content-addressed. “No result was found,” absence from an index, a historical test, or a model-only adapter is never an exhaustive rejection. Permissioned/off-chain capital families are exhaustive only relative to the authenticated NQC external-provider registry and the supported execution-plan requirement catalog; uncontracted third-party credit is not treated as capital available to NQC. A declared-empty registry/catalog is a bounded negative fact, not terminal evidence by itself. Terminal rejection of the seven bounded external/requirement families MUST be derived by the bounded-family rejection workflow, and promotion into the source-universe contract MUST be atomic across all seven families from one exact successful run/artifact with one distinct content-addressed per-family evidence file. Permissionless collateralized/persistent debt is not covered by that bounded rejection and requires canonical on-chain facility discovery.
 
 Balancer V2 and Uniswap V3 are permissionless on-chain discovery surfaces and therefore require fresh block-pinned D11 acquisition at the certified anchor. Historical T36 Balancer callback parity may justify implementation semantics but MUST NOT serve as current D11 availability/capacity evidence.
 
@@ -70,13 +70,11 @@ Balancer V2 now has a dedicated D11 live acquisition boundary in `nqc-census-cap
 
 ### Bounded external/requirement-family evidence
 
-The following nine families form one bounded authorization/requirement universe for the current NQC head:
+The following seven families form one bounded authorization/requirement universe for the current NQC head:
 
 - `EXTERNAL_GAS_CREDIT`
 - `EXTERNAL_GAS_SPONSOR`
 - `TRANSIENT_EXTERNAL_CREDIT`
-- `COLLATERALIZED_BORROWING`
-- `PERSISTENT_DEBT`
 - `INVENTORY_REQUIREMENT`
 - `BOND_OR_STAKE`
 - `SOLVER_OR_BUILDER_DEPOSIT`
@@ -84,7 +82,9 @@ The following nine families form one bounded authorization/requirement universe 
 
 Their negative-proof surfaces are machine-readable: `rmc011-external-capital-provider-registry.json`, `rmc011-execution-plan-requirement-catalog.json`, and `rmc011-permissionless-debt-facility-catalog.json`. Empty declared state means only that no provider/facility/plan is authorized or supported by this exact NQC head. It MUST NOT be restated as global market nonexistence.
 
-`NQC RMC-011 Bounded Family Rejection Evidence` may emit per-family `EXHAUSTIVE_REJECTION` evidence only when all applicable catalogs independently validate and remain empty. The resulting nine promotions are all-or-none, MUST share the same repository/workflow/run/head/artifact identity, and MUST bind distinct `families/<FAMILY>/evidence.json` files by SHA-256. Any provider, permissionless debt facility, or supported execution plan entering scope invalidates the corresponding empty-universe rejection path and forces recensus.
+`NQC RMC-011 Bounded Family Rejection Evidence` may emit per-family `EXHAUSTIVE_REJECTION` evidence only for the seven external/requirement-driven families when the authenticated external-provider registry and execution-plan requirement catalog validate and remain empty. The resulting seven promotions are all-or-none, MUST share the same repository/workflow/run/head/artifact identity, and MUST bind distinct `families/<FAMILY>/evidence.json` files by SHA-256. Any external provider or supported execution plan entering scope invalidates the corresponding empty-universe rejection path and forces recensus.
+
+`COLLATERALIZED_BORROWING` and `PERSISTENT_DEBT` are explicitly excluded from this bounded-rejection mechanism. An empty declared permissionless-debt catalog is only an authorization/declaration fact; it is not exhaustive on-chain discovery. Those two families remain unresolved until canonical permissionless facility discovery is executed and authenticated, or live facilities are admitted with exact block-pinned evidence.
 
 ## Required source fields
 
