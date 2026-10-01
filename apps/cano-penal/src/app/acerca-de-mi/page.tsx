@@ -14,8 +14,8 @@ export default function AboutPage() {
     <PageShell>
       <InteriorHero
         eyebrow="Eduardo Cano"
-        title="Primero investigó. Ahora defiende."
-        lead="Experiencia institucional en delitos fiscales y financieros llevada a una práctica de defensa penal directa, especializada y documentable."
+        title="Primero investigué. Ahora defiendo."
+        lead="Mi experiencia institucional en delitos fiscales y financieros hoy forma parte de una práctica de defensa penal directa, especializada y documentable."
         aside={
           <figure className="cp-interior-portrait">
             <img src="/media/eduardo-cano-escritorio.jpg" alt="Eduardo Cano en su despacho" />
@@ -34,17 +34,17 @@ export default function AboutPage() {
             <article>
               <span>Inicio</span>
               <h2>Delitos fiscales y financieros</h2>
-              <p>Ingreso al área especializada de la Procuraduría Fiscal de la Federación en 2006.</p>
+              <p>Ingresé al área especializada de la Procuraduría Fiscal de la Federación en 2006.</p>
             </article>
             <article>
               <span>Responsabilidad institucional</span>
               <h2>Dirección de investigaciones</h2>
-              <p>La trayectoria profesional avanzó hasta dirigir investigaciones en esa misma materia.</p>
+              <p>Ascendí hasta dirigir investigaciones en esa misma materia.</p>
             </article>
             <article>
               <span>Práctica actual</span>
               <h2>Defensa penal estratégica</h2>
-              <p>La experiencia institucional se aplica hoy al análisis y defensa de asuntos penales complejos.</p>
+              <p>Hoy aplico esa experiencia al análisis y defensa de asuntos penales complejos.</p>
             </article>
           </div>
 
