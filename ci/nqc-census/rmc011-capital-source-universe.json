@@ -42,26 +42,59 @@
     {
       "id": "EXTERNAL_GAS_CREDIT",
       "capital_class": "GAS_FUNDING",
-      "status": "SEMANTIC_ADMISSION_READY_NOT_AUTHENTICATED",
-      "real_source_path": "nqc-census/crates/nqc-census-capital/src/gas_credit.rs",
-      "terminally_resolved": false,
-      "resolution_evidence": null
+      "status": "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE",
+      "real_source_path": null,
+      "terminally_resolved": true,
+      "resolution_evidence": {
+        "kind": "EXHAUSTIVE_REJECTION",
+        "repository": "josuechavando350-png/nexus-engine",
+        "workflow_name": "NQC RMC-011 Bounded Family Rejection Evidence",
+        "run_id": 36798200207,
+        "head_sha": "13d75e1ab8fc7641c086a840797d97d5a09958b7",
+        "artifact_id": 11135887584,
+        "artifact_name": "rmc011-bounded-family-rejections-13d75e1ab8fc7641c086a840797d97d5a09958b7-36798200207-1",
+        "artifact_digest": "sha256:ed9334d4a8523e1c316870c400e73d5e440a4923f2cd5fb1043229b0f44a0968",
+        "file": "families/EXTERNAL_GAS_CREDIT/evidence.json",
+        "sha256": "0ad329077654bf5b73bc8cffde42486b7932bd585b7f3ec75e4b48dd43a91d01"
+      }
     },
     {
       "id": "EXTERNAL_GAS_SPONSOR",
       "capital_class": "GAS_FUNDING",
-      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
-      "real_source_path": "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs",
-      "terminally_resolved": false,
-      "resolution_evidence": null
+      "status": "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE",
+      "real_source_path": null,
+      "terminally_resolved": true,
+      "resolution_evidence": {
+        "kind": "EXHAUSTIVE_REJECTION",
+        "repository": "josuechavando350-png/nexus-engine",
+        "workflow_name": "NQC RMC-011 Bounded Family Rejection Evidence",
+        "run_id": 36798200207,
+        "head_sha": "13d75e1ab8fc7641c086a840797d97d5a09958b7",
+        "artifact_id": 11135887584,
+        "artifact_name": "rmc011-bounded-family-rejections-13d75e1ab8fc7641c086a840797d97d5a09958b7-36798200207-1",
+        "artifact_digest": "sha256:ed9334d4a8523e1c316870c400e73d5e440a4923f2cd5fb1043229b0f44a0968",
+        "file": "families/EXTERNAL_GAS_SPONSOR/evidence.json",
+        "sha256": "0c006aeecc2e0acd6bcab16a0520686a3b100b04824a3cfadca43b058ddbd079"
+      }
     },
     {
       "id": "TRANSIENT_EXTERNAL_CREDIT",
       "capital_class": "TRANSIENT_CREDIT",
-      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
-      "real_source_path": "nqc-census/crates/nqc-census-capital/src/transient_credit.rs",
-      "terminally_resolved": false,
-      "resolution_evidence": null
+      "status": "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE",
+      "real_source_path": null,
+      "terminally_resolved": true,
+      "resolution_evidence": {
+        "kind": "EXHAUSTIVE_REJECTION",
+        "repository": "josuechavando350-png/nexus-engine",
+        "workflow_name": "NQC RMC-011 Bounded Family Rejection Evidence",
+        "run_id": 36798200207,
+        "head_sha": "13d75e1ab8fc7641c086a840797d97d5a09958b7",
+        "artifact_id": 11135887584,
+        "artifact_name": "rmc011-bounded-family-rejections-13d75e1ab8fc7641c086a840797d97d5a09958b7-36798200207-1",
+        "artifact_digest": "sha256:ed9334d4a8523e1c316870c400e73d5e440a4923f2cd5fb1043229b0f44a0968",
+        "file": "families/TRANSIENT_EXTERNAL_CREDIT/evidence.json",
+        "sha256": "ae42b6a73b21f2ad0c15cf05525d6e5361f7e5496f297f65846fce96c817c370"
+      }
     },
     {
       "id": "COLLATERALIZED_BORROWING",
@@ -82,34 +115,78 @@
     {
       "id": "INVENTORY_REQUIREMENT",
       "capital_class": "INVENTORY_REQUIREMENT",
-      "status": "MODEL_ONLY",
+      "status": "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE",
       "real_source_path": null,
-      "terminally_resolved": false,
-      "resolution_evidence": null
+      "terminally_resolved": true,
+      "resolution_evidence": {
+        "kind": "EXHAUSTIVE_REJECTION",
+        "repository": "josuechavando350-png/nexus-engine",
+        "workflow_name": "NQC RMC-011 Bounded Family Rejection Evidence",
+        "run_id": 36798200207,
+        "head_sha": "13d75e1ab8fc7641c086a840797d97d5a09958b7",
+        "artifact_id": 11135887584,
+        "artifact_name": "rmc011-bounded-family-rejections-13d75e1ab8fc7641c086a840797d97d5a09958b7-36798200207-1",
+        "artifact_digest": "sha256:ed9334d4a8523e1c316870c400e73d5e440a4923f2cd5fb1043229b0f44a0968",
+        "file": "families/INVENTORY_REQUIREMENT/evidence.json",
+        "sha256": "b2fa0c811c173eb7b9eb71769fd14af10e913636e38e048e1ae5689a330d217c"
+      }
     },
     {
       "id": "BOND_OR_STAKE",
       "capital_class": "BOND_OR_STAKE",
-      "status": "MODEL_ONLY",
+      "status": "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE",
       "real_source_path": null,
-      "terminally_resolved": false,
-      "resolution_evidence": null
+      "terminally_resolved": true,
+      "resolution_evidence": {
+        "kind": "EXHAUSTIVE_REJECTION",
+        "repository": "josuechavando350-png/nexus-engine",
+        "workflow_name": "NQC RMC-011 Bounded Family Rejection Evidence",
+        "run_id": 36798200207,
+        "head_sha": "13d75e1ab8fc7641c086a840797d97d5a09958b7",
+        "artifact_id": 11135887584,
+        "artifact_name": "rmc011-bounded-family-rejections-13d75e1ab8fc7641c086a840797d97d5a09958b7-36798200207-1",
+        "artifact_digest": "sha256:ed9334d4a8523e1c316870c400e73d5e440a4923f2cd5fb1043229b0f44a0968",
+        "file": "families/BOND_OR_STAKE/evidence.json",
+        "sha256": "eed98d8a850af4329e21c013c4511656bd2127921091ccec7c7de7b41f683e58"
+      }
     },
     {
       "id": "SOLVER_OR_BUILDER_DEPOSIT",
       "capital_class": "SOLVER_OR_BUILDER_DEPOSIT",
-      "status": "MODEL_ONLY",
+      "status": "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE",
       "real_source_path": null,
-      "terminally_resolved": false,
-      "resolution_evidence": null
+      "terminally_resolved": true,
+      "resolution_evidence": {
+        "kind": "EXHAUSTIVE_REJECTION",
+        "repository": "josuechavando350-png/nexus-engine",
+        "workflow_name": "NQC RMC-011 Bounded Family Rejection Evidence",
+        "run_id": 36798200207,
+        "head_sha": "13d75e1ab8fc7641c086a840797d97d5a09958b7",
+        "artifact_id": 11135887584,
+        "artifact_name": "rmc011-bounded-family-rejections-13d75e1ab8fc7641c086a840797d97d5a09958b7-36798200207-1",
+        "artifact_digest": "sha256:ed9334d4a8523e1c316870c400e73d5e440a4923f2cd5fb1043229b0f44a0968",
+        "file": "families/SOLVER_OR_BUILDER_DEPOSIT/evidence.json",
+        "sha256": "9cb5549ca52441ff709d681c3060c50065560ebcf3b30edd2fa093fbc0f45717"
+      }
     },
     {
       "id": "INTRA_BLOCK_TEMPORARY_LOCK",
       "capital_class": "INTRA_BLOCK_TEMPORARY_LOCK",
-      "status": "MODEL_ONLY",
+      "status": "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE",
       "real_source_path": null,
-      "terminally_resolved": false,
-      "resolution_evidence": null
+      "terminally_resolved": true,
+      "resolution_evidence": {
+        "kind": "EXHAUSTIVE_REJECTION",
+        "repository": "josuechavando350-png/nexus-engine",
+        "workflow_name": "NQC RMC-011 Bounded Family Rejection Evidence",
+        "run_id": 36798200207,
+        "head_sha": "13d75e1ab8fc7641c086a840797d97d5a09958b7",
+        "artifact_id": 11135887584,
+        "artifact_name": "rmc011-bounded-family-rejections-13d75e1ab8fc7641c086a840797d97d5a09958b7-36798200207-1",
+        "artifact_digest": "sha256:ed9334d4a8523e1c316870c400e73d5e440a4923f2cd5fb1043229b0f44a0968",
+        "file": "families/INTRA_BLOCK_TEMPORARY_LOCK/evidence.json",
+        "sha256": "c93f54b93a5334bf4a469de90c2c0dd4e37557142d8ad07f69f418029fd48a61"
+      }
     }
   ],
   "terminal_invariants": [
