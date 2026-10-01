@@ -3448,7 +3448,7 @@ impl CapitalCensusLedger {
             hasher.update(requirement.id().as_bytes());
             hasher.update(
                 u64::try_from(encoded.len())
-                    .unwrap_or(u64::MAX)
+                    .map_err(|_| CapitalError::InvalidCanonical("capital record length overflow"))?
                     .to_be_bytes(),
             );
             hasher.update(domain_hash(b"NQC-RMC011-REQUIREMENT-RECORD-V1", &encoded));
@@ -3457,7 +3457,7 @@ impl CapitalCensusLedger {
             let encoded = encode_feasibility(result);
             hasher.update(
                 u64::try_from(encoded.len())
-                    .unwrap_or(u64::MAX)
+                    .map_err(|_| CapitalError::InvalidCanonical("capital record length overflow"))?
                     .to_be_bytes(),
             );
             hasher.update(encoded);

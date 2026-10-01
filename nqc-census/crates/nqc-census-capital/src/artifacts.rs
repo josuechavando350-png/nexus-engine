@@ -729,23 +729,23 @@ pub fn export_capital_artifacts(
         ),
         (
             "source_count",
-            Json::uint(u64_count(certificate.summary.source_count)),
+            Json::uint(u64_count(certificate.summary.source_count)?),
         ),
         (
             "requirement_count",
-            Json::uint(u64_count(certificate.summary.requirement_count)),
+            Json::uint(u64_count(certificate.summary.requirement_count)?),
         ),
         (
             "feasible_count",
-            Json::uint(u64_count(certificate.summary.feasible_count)),
+            Json::uint(u64_count(certificate.summary.feasible_count)?),
         ),
         (
             "feasible_external_gas_count",
-            Json::uint(u64_count(certificate.summary.feasible_external_gas_count)),
+            Json::uint(u64_count(certificate.summary.feasible_external_gas_count)?),
         ),
         (
             "external_gas_funding_source_count",
-            Json::uint(u64_count(external_gas_funding_source_count)),
+            Json::uint(u64_count(external_gas_funding_source_count)?),
         ),
         (
             "external_gas_funding_executable_capacity",
@@ -757,7 +757,7 @@ pub fn export_capital_artifacts(
         ),
         (
             "rejected_count",
-            Json::uint(u64_count(certificate.summary.rejected_count)),
+            Json::uint(u64_count(certificate.summary.rejected_count)?),
         ),
         (
             "operator_owned_sources_observed",
@@ -767,7 +767,7 @@ pub fn export_capital_artifacts(
         ),
         (
             "operator_owned_sources_used",
-            Json::uint(u64_count(certificate.summary.operator_owned_sources_used)),
+            Json::uint(u64_count(certificate.summary.operator_owned_sources_used)?),
         ),
         (
             "zero_own_capital_proven",

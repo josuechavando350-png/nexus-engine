@@ -437,7 +437,7 @@ fn demand_coverage_commitment(
                 .to_be_bytes(),
         );
         for position in &borrower.debt_positions {
-            hash_position(&mut hasher, position);
+            hash_position(&mut hasher, position)?;
         }
     }
 
