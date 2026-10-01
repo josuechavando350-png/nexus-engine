@@ -17,7 +17,7 @@ use nqc_census_chain::json::Json;
 use nqc_census_core::{Address, Hash32};
 use sha2::{Digest, Sha256};
 
-const DISCOVERY_DOMAIN: &[u8] = b"NQC-RMC011-AAVE-V3-DEBT-DISCOVERY-V1";
+const DISCOVERY_DOMAIN: &[u8] = b"NQC-RMC011-AAVE-V3-DEBT-DISCOVERY-V2";
 const FACILITY_DOMAIN: &[u8] = b"NQC-RMC011-AAVE-V3-DEBT-FACILITY-V2";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -71,7 +71,7 @@ pub struct AaveDebtFacility {
     pub borrow_cap_remaining: Option<Amount256>,
     pub observed_borrowable_upper_bound: Amount256,
     pub protocol_borrowable_upper_bound: Amount256,
-    pub execution_compatible_borrowable_upper_bound: Amount256,
+    pub token_compatible_borrowable_upper_bound: Amount256,
     pub token_execution_blockers: Vec<String>,
     pub current_variable_borrow_rate_ray: Amount256,
     pub ltv_bps: u16,
@@ -217,7 +217,7 @@ fn facility_commitment(
     reserve_id: u16,
     observed_upper_bound: Amount256,
     protocol_upper_bound: Amount256,
-    execution_compatible_upper_bound: Amount256,
+    token_compatible_upper_bound: Amount256,
     reserve_terms_commitment: Hash32,
     blockers: &[AaveDebtFacilityBlocker],
     token_execution_blockers: &[String],
@@ -231,7 +231,7 @@ fn facility_commitment(
     hasher.update(reserve_id.to_be_bytes());
     hasher.update(observed_upper_bound.as_be_bytes());
     hasher.update(protocol_upper_bound.as_be_bytes());
-    hasher.update(execution_compatible_upper_bound.as_be_bytes());
+    hasher.update(token_compatible_upper_bound.as_be_bytes());
     hasher.update(reserve_terms_commitment.as_bytes());
     hasher.update(
         u16::try_from(blockers.len())
@@ -404,7 +404,7 @@ pub fn discover_d08_aave_debt_facilities(
         } else {
             Amount256::ZERO
         };
-        let execution_compatible_upper_bound = if token_blockers.is_empty() {
+        let token_compatible_upper_bound = if token_blockers.is_empty() {
             protocol_upper_bound
         } else {
             Amount256::ZERO
@@ -424,7 +424,7 @@ pub fn discover_d08_aave_debt_facilities(
             reserve_id,
             observed_upper_bound,
             protocol_upper_bound,
-            execution_compatible_upper_bound,
+            token_compatible_upper_bound,
             reserve_terms_commitment,
             &blockers,
             &token_blockers,
@@ -442,7 +442,7 @@ pub fn discover_d08_aave_debt_facilities(
             borrow_cap_remaining,
             observed_borrowable_upper_bound: observed_upper_bound,
             protocol_borrowable_upper_bound: protocol_upper_bound,
-            execution_compatible_borrowable_upper_bound: execution_compatible_upper_bound,
+            token_compatible_borrowable_upper_bound: token_compatible_upper_bound,
             token_execution_blockers: token_blockers,
             portfolio_collateral_resolution_required: true,
             oracle_resolution_required: true,
