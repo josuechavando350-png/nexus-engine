@@ -354,7 +354,7 @@ fn coverage_commitment(outcomes: &mut [ImportOutcome]) -> Result<Hash32, Capital
     Hash32::new(bytes).map_err(|_| CapitalError::InvalidCanonical("zero D08 coverage commitment"))
 }
 
-fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError> {
+pub(crate) fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError> {
     let root = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("D08 pool facts JSON parse failed"))?;
     let aave = field(&root, "aave_pool")?;
@@ -381,7 +381,7 @@ fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError> {
     Ok((pool, value))
 }
 
-fn verify_d08_artifact_binding(
+pub(crate) fn verify_d08_artifact_binding(
     state_manifest_jsonl: &[u8],
     token_admission_jsonl: &[u8],
     pool_and_factory_facts_json: &[u8],
