@@ -149,6 +149,71 @@ pub struct CapitalArtifactVerification {
     pub code_tree: String,
 }
 
+/// Decode and independently validate the canonical D11 capital-sources JSONL.
+///
+/// This is intentionally narrower than full bundle verification so downstream
+/// certified stages can consume the exact source set from an already
+/// authenticated RMC-011 archive without reimplementing its readable/canonical
+/// record binding.
+pub fn parse_capital_sources_artifact(bytes: &[u8]) -> Result<Vec<CapitalSource>, CapitalError> {
+    let records = parse_jsonl(bytes)?;
+    let mut sources = Vec::with_capacity(records.len());
+    let mut source_ids = BTreeSet::new();
+    let mut source_key_ids = BTreeSet::new();
+    let mut common_provenance: Option<ArtifactProvenance> = None;
+
+    for record in &records {
+        let encoded = decode_plain_hex(
+            record
+                .str_field("canonical_record")
+                .map_err(|_| CapitalError::InvalidCanonical("source canonical record missing"))?,
+        )?;
+        let decoded = CapitalSource::decode_canonical(&encoded)?;
+        let provenance = record_provenance(record)?;
+        provenance.validate_anchor(decoded.anchor())?;
+        if let Some(expected) = &common_provenance {
+            if expected != &provenance {
+                return Err(CapitalError::InvalidCanonical(
+                    "capital source artifact mixes provenance",
+                ));
+            }
+        } else {
+            common_provenance = Some(provenance.clone());
+        }
+        if canonical(&source_record(&decoded, &provenance))? != canonical(record)? {
+            return Err(CapitalError::InvalidCanonical(
+                "source readable fields differ from canonical record",
+            ));
+        }
+        if record
+            .str_field("source_id")
+            .map_err(|_| CapitalError::InvalidCanonical("source id missing"))?
+            != decoded.id().to_hex()
+            || record
+                .str_field("source_key_id")
+                .map_err(|_| CapitalError::InvalidCanonical("source key id missing"))?
+                != decoded.key_id().to_hex()
+        {
+            return Err(CapitalError::InvalidCanonical(
+                "source record identity mismatch",
+            ));
+        }
+        if !source_ids.insert(decoded.id()) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate source id in artifacts",
+            ));
+        }
+        if !source_key_ids.insert(decoded.key_id()) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate source key in artifacts",
+            ));
+        }
+        sources.push(decoded);
+    }
+    sources.sort_by_key(CapitalSource::id);
+    Ok(sources)
+}
+
 pub fn verify_capital_artifact_bundle(
     bundle: &CapitalArtifactBundle,
 ) -> Result<CapitalArtifactVerification, CapitalError> {

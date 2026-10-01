@@ -87,23 +87,53 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD -- \
-            ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation \
-            ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks \
-            ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json \
+          protected=(
+            ci/nqc-protocol-fork/recovered-source
+            ci/nqc-protocol-fork/reimplementation
+            ci/nqc-protocol-fork/compatibility
+            ci/nqc-protocol-fork/locks
+            ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
-          git diff --quiet "$RMC001_MERGE" HEAD -- \
-            ci/nqc-census/IDENTITY_CONTRACT.md ci/nqc-census/identity-vectors.json \
-            nqc-census/rust-toolchain.toml nqc-census/crates/nqc-census-core/Cargo.toml \
-            nqc-census/crates/nqc-census-core/src/identity.rs nqc-census/crates/nqc-census-core/tests/identity.rs
-          git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- nqc-census/crates/nqc-census-core
-          git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- \
-            ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md ci/nqc-census/TYPED_OBSERVATION_CONTRACT.md \
-            ci/nqc-census/typed-observation-vectors.json ci/nqc-census/typed_observation_vectors.py \
-            ci/nqc-census/STORE_CONTRACT.md ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md \
-            ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md ci/nqc-census/effective-source-profile.json \
+            ci/nqc-census/IDENTITY_CONTRACT.md
+            ci/nqc-census/identity-vectors.json
+            nqc-census/rust-toolchain.toml
+            nqc-census/crates/nqc-census-core
+            ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md
+            ci/nqc-census/TYPED_OBSERVATION_CONTRACT.md
+            ci/nqc-census/typed-observation-vectors.json
+            ci/nqc-census/typed_observation_vectors.py
+            ci/nqc-census/STORE_CONTRACT.md
+            ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md
+            ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md
+            ci/nqc-census/effective-source-profile.json
             nqc-census/crates/nqc-census-store
-          echo CHAIN_EVIDENCE_UPSTREAM_IMMUTABLE_PASS
+          )
+          if [ "${{ github.event_name }}" = "pull_request" ] && \
+             [ "${{ github.event.pull_request.base.sha }}" != "$CHAIN_BASE" ]; then
+            # A later stacked PR may legitimately inherit certified changes made
+            # after RMC-003/005.  What it must not do is mutate those authorities
+            # relative to its own declared base.
+            git diff --quiet "${{ github.event.pull_request.base.sha }}"...HEAD -- "${protected[@]}"
+            echo "CHAIN_EVIDENCE_UPSTREAM_IMMUTABLE_PASS mode=stacked-pr base=${{ github.event.pull_request.base.sha }}"
+          else
+            git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD -- \
+              ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation \
+              ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks \
+              ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json \
+              ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
+            git diff --quiet "$RMC001_MERGE" HEAD -- \
+              ci/nqc-census/IDENTITY_CONTRACT.md ci/nqc-census/identity-vectors.json \
+              nqc-census/rust-toolchain.toml nqc-census/crates/nqc-census-core/Cargo.toml \
+              nqc-census/crates/nqc-census-core/src/identity.rs nqc-census/crates/nqc-census-core/tests/identity.rs
+            git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- nqc-census/crates/nqc-census-core
+            git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- \
+              ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md ci/nqc-census/TYPED_OBSERVATION_CONTRACT.md \
+              ci/nqc-census/typed-observation-vectors.json ci/nqc-census/typed_observation_vectors.py \
+              ci/nqc-census/STORE_CONTRACT.md ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md \
+              ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md ci/nqc-census/effective-source-profile.json \
+              nqc-census/crates/nqc-census-store
+            echo "CHAIN_EVIDENCE_UPSTREAM_IMMUTABLE_PASS mode=authority"
+          fi
 
       - name: Verify dependency surface and authority boundary
         shell: bash

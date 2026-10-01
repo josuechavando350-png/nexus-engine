@@ -1,0 +1,403 @@
+name: NQC RMC-012 Terminal Actionability Authority
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc012-terminal-inputs.json"
+      - "ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md"
+      - "ci/nqc-census/rmc012-pft-actionability-bridge/**"
+      - "nqc-census/crates/nqc-census-capital/**"
+      - "nqc-census/crates/nqc-census-portfolio/**"
+      - ".github/workflows/nqc-census-portfolio-terminal.yml"
+  push:
+    branches:
+      - "nqc/rmc-012-portfolio-capacity-conflict-20260929"
+      - "nqc/rmc-012-clean-restack-d11-20260930"
+    paths:
+      - "ci/nqc-census/rmc012-terminal-inputs.json"
+      - "ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md"
+      - "ci/nqc-census/rmc012-pft-actionability-bridge/**"
+      - "nqc-census/crates/nqc-census-capital/**"
+      - "nqc-census/crates/nqc-census-portfolio/**"
+      - ".github/workflows/nqc-census-portfolio-terminal.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc012-terminal-actionability-${{ github.ref }}
+  # Supersede stale PR heads, but never cancel authoritative push/dispatch runs.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  RUST_TOOLCHAIN: "1.98.1"
+  INPUTS: ci/nqc-census/rmc012-terminal-inputs.json
+
+jobs:
+  contract-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Validate terminal authority contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == 2 and
+            .repository == env.GITHUB_REPOSITORY and
+            (.status == "BLOCKED_AWAITING_CERTIFIED_RMC011" or .status == "PINNED") and
+            (if .status == "BLOCKED_AWAITING_CERTIFIED_RMC011"
+             then .d11 == null
+             else
+               (.d11 | type == "object") and
+               (.d11.run_id | type == "number") and
+               (.d11.head_sha | type == "string") and
+               (.d11.tree_sha | type == "string") and
+               (.d11.workflow_name | type == "string") and
+               (.d11.artifact_id | type == "number") and
+               (.d11.artifact_name | type == "string") and
+               (.d11.artifact_digest | type == "string")
+             end)
+          ' "$INPUTS" >/dev/null
+          STATUS="$(jq -r '.status' "$INPUTS")"
+          if [[ "$STATUS" == "PINNED" ]]; then
+            jq -e '
+              (.d11.run_id > 0) and
+              (.d11.artifact_id > 0) and
+              (.d11.head_sha | test("^[0-9a-f]{40}$")) and
+              (.d11.tree_sha | test("^[0-9a-f]{40}$")) and
+              (.d11.artifact_digest | test("^sha256:[0-9a-f]{64}$")) and
+              (.d11.workflow_name == "NQC RMC-011 Real Source Certification") and
+              (.d11.artifact_name | startswith("rmc011-real-source-certification-"))
+            ' "$INPUTS" >/dev/null
+          fi
+          grep -F 'self-contained RMC-011' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          grep -F 'RMC-012 MUST NOT independently choose mutable "latest successful" D08/D09' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          jq -e '
+            .pft_certified_commit == "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf" and
+            .pft_certified_tree == "ef3498da528f85cdb9fdd82222d64773a557f853" and
+            .flash_premium_semantics.compatibility_id == "PFT-COMPAT-009" and
+            .flash_premium_semantics.certified_git_blob_sha == "17eba73198f9d15e090a4099daaf1a4e099fb747" and
+            .flash_premium_semantics.rounding == "CEILING" and
+            .flash_premium_semantics.exact_witnesses == [
+              {"principal_units":"83727306811","bps":5,"expected_premium_units":"41863654"},
+              {"principal_units":"186298226","bps":5,"expected_premium_units":"93150"}
+            ]
+          ' ci/nqc-census/rmc012-pft-actionability-bridge/PFT_BINDING.json >/dev/null
+          test "$(git show -s --format=%T 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf)" = ef3498da528f85cdb9fdd82222d64773a557f853
+          test "$(git rev-parse 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf:ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json)" = 17eba73198f9d15e090a4099daaf1a4e099fb747
+
+      - name: Compile terminal bridge
+        working-directory: ci/nqc-census/rmc012-pft-actionability-bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          cargo fmt -- --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
+          cargo build --release --locked --bin rmc012-terminal-actionability
+
+  terminal-authority:
+    if: github.event_name == 'push'
+    needs: contract-preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+    steps:
+      - name: Checkout exact D12 head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Require pinned certified D11 package
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(jq -r '.status' "$INPUTS")" = "PINNED" || {
+            echo "RMC012_BLOCKED_AWAITING_CERTIFIED_RMC011" >&2
+            exit 1
+          }
+          test "$(jq -r '.repository' "$INPUTS")" = "$REPOSITORY"
+
+      - name: Authenticate exact D11 run and artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_ID="$(jq -r '.d11.run_id' "$INPUTS")"
+          HEAD_SHA="$(jq -r '.d11.head_sha' "$INPUTS")"
+          TREE_SHA="$(jq -r '.d11.tree_sha' "$INPUTS")"
+          WORKFLOW_NAME="$(jq -r '.d11.workflow_name' "$INPUTS")"
+          ARTIFACT_ID="$(jq -r '.d11.artifact_id' "$INPUTS")"
+          ARTIFACT_NAME="$(jq -r '.d11.artifact_name' "$INPUTS")"
+          ARTIFACT_DIGEST="$(jq -r '.d11.artifact_digest' "$INPUTS")"
+
+          RUN_JSON="$(gh api "repos/$REPOSITORY/actions/runs/$RUN_ID")"
+          test "$(jq -r '.status' <<<"$RUN_JSON")" = "completed"
+          test "$(jq -r '.conclusion' <<<"$RUN_JSON")" = "success"
+          test "$(jq -r '.head_sha' <<<"$RUN_JSON")" = "$HEAD_SHA"
+          test "$(jq -r '.name' <<<"$RUN_JSON")" = "$WORKFLOW_NAME"
+
+          ACTUAL_TREE="$(gh api "repos/$REPOSITORY/git/commits/$HEAD_SHA" --jq '.tree.sha')"
+          test "$ACTUAL_TREE" = "$TREE_SHA"
+
+          ARTIFACT_JSON="$(gh api "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
+          test "$(jq -r '.expired' <<<"$ARTIFACT_JSON")" = "false"
+          test "$(jq -r '.name' <<<"$ARTIFACT_JSON")" = "$ARTIFACT_NAME"
+          test "$(jq -r '.digest' <<<"$ARTIFACT_JSON")" = "$ARTIFACT_DIGEST"
+          test "$(jq -r '.workflow_run.id' <<<"$ARTIFACT_JSON")" = "$RUN_ID"
+
+          PACKAGE="$RUNNER_TEMP/rmc011-package"
+          rm -rf "$PACKAGE"
+          mkdir -p "$PACKAGE"
+          gh run download "$RUN_ID" --repo "$REPOSITORY" --name "$ARTIFACT_NAME" --dir "$PACKAGE"
+          if find "$PACKAGE" -type l -print -quit | grep -q .; then
+            echo "RMC012_D11_PACKAGE_SYMLINK_REJECTED" >&2
+            exit 1
+          fi
+          echo "PACKAGE=$PACKAGE" >> "$GITHUB_ENV"
+          echo "D11_HEAD_SHA=$HEAD_SHA" >> "$GITHUB_ENV"
+          echo "D11_TREE_SHA=$TREE_SHA" >> "$GITHUB_ENV"
+          echo "D11_RUN_ID=$RUN_ID" >> "$GITHUB_ENV"
+          echo "D11_ARTIFACT_ID=$ARTIFACT_ID" >> "$GITHUB_ENV"
+          echo "D11_ARTIFACT_NAME=$ARTIFACT_NAME" >> "$GITHUB_ENV"
+          echo "D11_ARTIFACT_DIGEST=$ARTIFACT_DIGEST" >> "$GITHUB_ENV"
+
+      - name: Verify complete D11 package and real-source closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$PACKAGE/CERTIFICATION-PACKAGE-SHA256SUMS"
+          (
+            cd "$PACKAGE"
+            sha256sum -c CERTIFICATION-PACKAGE-SHA256SUMS
+          )
+          test -f "$PACKAGE/d11/capital-archive.sha256"
+          (
+            cd "$PACKAGE/d11"
+            sha256sum -c capital-archive.sha256
+          )
+
+          CLOSEOUT="$PACKAGE/d11/capital-real-source-closeout.json"
+          LOCK="$PACKAGE/d11/capital-upstream-authority-lock.json"
+          PACKAGE_INPUTS="$PACKAGE/rmc011-real-source-inputs.json"
+          D11_SOURCES="$PACKAGE/d11/capital-sources.jsonl"
+          test -f "$CLOSEOUT"
+          test -f "$LOCK"
+          test -f "$PACKAGE_INPUTS"
+          test -f "$D11_SOURCES"
+
+          jq -e --arg head "$D11_HEAD_SHA" --arg tree "$D11_TREE_SHA" '
+            .schema_version == 3 and
+            .status == "RMC_011_REAL_SOURCE_CLOSEOUT_PASS" and
+            .real_source_certification == true and
+            .code_commit == $head and
+            .code_tree == $tree and
+            .source_count > 0 and
+            (.zero_own_capital_proven == false or
+              (.feasible_count > 0 and .feasible_external_gas_count == .feasible_count)) and
+            .portfolio_concurrent_capacity_claimed == false and
+            .profitability_claimed == false and
+            .shadow_eligibility_claimed == false and
+            .canary_claimed == false and
+            .real_pnl_claimed == false
+          ' "$CLOSEOUT" >/dev/null
+          test "$(jq -r '.repository' "$PACKAGE_INPUTS")" = "$REPOSITORY"
+
+          LOCK_SHA="$(sha256sum "$LOCK" | awk '{print $1}')"
+          CLOSEOUT_LOCK_SHA="$(jq -r '.upstream_authority_lock_sha256' "$CLOSEOUT")"
+          test "$LOCK_SHA" = "${CLOSEOUT_LOCK_SHA#0x}"
+          LOCK_COMMITMENT="$(jq -r '.authority_lock_commitment' "$LOCK")"
+          CLOSEOUT_LOCK_COMMITMENT="$(jq -r '.upstream_authority_lock_commitment' "$CLOSEOUT")"
+          test "${LOCK_COMMITMENT#0x}" = "${CLOSEOUT_LOCK_COMMITMENT#0x}"
+
+          echo "D11_CLOSEOUT=$CLOSEOUT" >> "$GITHUB_ENV"
+          echo "AUTHORITY_LOCK=$LOCK" >> "$GITHUB_ENV"
+          echo "PACKAGE_INPUTS=$PACKAGE_INPUTS" >> "$GITHUB_ENV"
+          echo "D11_SOURCES=$D11_SOURCES" >> "$GITHUB_ENV"
+          echo "D11_PACKAGE_INVENTORY_SHA256=$(sha256sum "$PACKAGE/CERTIFICATION-PACKAGE-SHA256SUMS" | awk '{print $1}')" >> "$GITHUB_ENV"
+          echo "D11_CLOSEOUT_SHA256=$(sha256sum "$CLOSEOUT" | awk '{print $1}')" >> "$GITHUB_ENV"
+
+      - name: Normalize exact authenticated D08 and D09 closeouts
+        shell: bash
+        run: |
+          set -euo pipefail
+          safe_relative() {
+            local value="$1"
+            [[ -n "$value" && "$value" != "null" ]]
+            [[ "$value" != /* ]]
+            [[ "$value" != *".."* ]]
+          }
+
+          D08_ROOT="$PACKAGE/upstream/d08-raw"
+          D09_ROOT="$PACKAGE/upstream/d09-raw"
+          D08_AUTH_REL="$(jq -r '.d08.authority_file' "$PACKAGE_INPUTS")"
+          D09_AUTH_REL="$(jq -r '.d09.authority_file' "$PACKAGE_INPUTS")"
+          safe_relative "$D08_AUTH_REL"
+          safe_relative "$D09_AUTH_REL"
+          D08_SOURCE_DIR="$(dirname "$D08_ROOT/$D08_AUTH_REL")"
+          D09_SOURCE_DIR="$(dirname "$D09_ROOT/$D09_AUTH_REL")"
+          test -f "$D08_SOURCE_DIR/evidence-manifest.json"
+          test -f "$D09_SOURCE_DIR/evidence-manifest.json"
+
+          D08="$RUNNER_TEMP/d08"
+          D09="$RUNNER_TEMP/d09"
+          rm -rf "$D08" "$D09"
+          mkdir -p "$D08" "$D09"
+
+          for name in             evidence-manifest.json             state-summary.json             market-state-manifest.jsonl             oracle-manifest.jsonl             emode-manifest.jsonl             pool-and-factory-facts.json
+          do
+            test -f "$D08_SOURCE_DIR/$name"
+            cp -- "$D08_SOURCE_DIR/$name" "$D08/$name"
+          done
+
+          for name in evidence-manifest.json account-summary.json account-manifest.jsonl
+          do
+            test -f "$D09_SOURCE_DIR/$name"
+            cp -- "$D09_SOURCE_DIR/$name" "$D09/$name"
+          done
+
+          echo "D08=$D08" >> "$GITHUB_ENV"
+          echo "D09=$D09" >> "$GITHUB_ENV"
+
+      - name: Execute terminal actionability twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXACT_HEAD="$(git rev-parse HEAD)"
+          EXACT_TREE="$(git rev-parse 'HEAD^{tree}')"
+          OUT_A="$RUNNER_TEMP/rmc012-a"
+          OUT_B="$RUNNER_TEMP/rmc012-b"
+          rm -rf "$OUT_A" "$OUT_B"
+
+          run_bridge() {
+            local out="$1"
+            (
+              cd ci/nqc-census/rmc012-pft-actionability-bridge
+              cargo run --release --locked --bin rmc012-terminal-actionability --                 --d08 "$D08"                 --d09 "$D09"                 --authority-lock "$AUTHORITY_LOCK"                 --d11-sources "$D11_SOURCES"                 --code-commit "$EXACT_HEAD"                 --code-tree "$EXACT_TREE"                 --out "$out"
+            )
+          }
+
+          run_bridge "$OUT_A"
+          run_bridge "$OUT_B"
+          diff -ruN "$OUT_A" "$OUT_B"
+
+          jq -e --arg head "$EXACT_HEAD" --arg tree "$EXACT_TREE" '
+            .status == "RMC_012_ACTIONABILITY_PASS" and
+            .code_commit == $head and
+            .code_tree == $tree and
+            .economic_filters_applied == false and
+            .principal_capital_conserved == true and
+            .principal_capital_promoted == .admitted and
+            .principal_capital_promoted == (.principal_capital_feasible + .principal_capital_rejected) and
+            .portfolio_concurrent_principal_capacity_certified == true and
+            .portfolio_prestate_borrower_exclusivity_certified == true and
+            .portfolio_debt_position_capacity_certified == true and
+            .portfolio_collateral_position_capacity_certified == true and
+            (.portfolio_shared_resource_count | type == "number") and
+            (if .admitted > 0 then .portfolio_shared_resource_count > 0 else .portfolio_shared_resource_count == 0 end) and
+            .portfolio_candidate_claim_count == .admitted and
+            .portfolio_conflict_count >= 0 and
+            .portfolio_component_count >= 0 and
+            (.portfolio_commitment | type == "string") and
+            .gas_funding_certified == false and
+            .portfolio_concurrent_capacity_certified == false and
+            (.expected_pairs == (.admitted + .rejected))
+          ' "$OUT_A/actionability-summary.json" >/dev/null
+
+          echo "D12_EXACT_HEAD=$EXACT_HEAD" >> "$GITHUB_ENV"
+          echo "D12_EXACT_TREE=$EXACT_TREE" >> "$GITHUB_ENV"
+          echo "ACTIONABILITY_OUT=$OUT_A" >> "$GITHUB_ENV"
+
+      - name: Build terminal authority archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          CERT="$RUNNER_TEMP/rmc012-terminal-certification"
+          rm -rf "$CERT"
+          mkdir -p "$CERT"
+          cp -- "$ACTIONABILITY_OUT/actionability-records.jsonl" "$CERT/"
+          cp -- "$ACTIONABILITY_OUT/actionability-summary.json" "$CERT/"
+          cp -- "$ACTIONABILITY_OUT/capital-promotions.jsonl" "$CERT/"
+          cp -- "$ACTIONABILITY_OUT/portfolio-capacity.json" "$CERT/"
+          cp -- "$ACTIONABILITY_OUT/evidence-manifest.json" "$CERT/"
+
+          SUMMARY="$ACTIONABILITY_OUT/actionability-summary.json"
+          jq -S -c -n             --arg head "$D12_EXACT_HEAD"             --arg tree "$D12_EXACT_TREE"             --arg d11_head "$D11_HEAD_SHA"             --arg d11_tree "$D11_TREE_SHA"             --argjson d11_run "$D11_RUN_ID"             --argjson d11_artifact "$D11_ARTIFACT_ID"             --arg d11_artifact_name "$D11_ARTIFACT_NAME"             --arg d11_artifact_digest "$D11_ARTIFACT_DIGEST"             --arg d11_package_inventory_sha256 "$D11_PACKAGE_INVENTORY_SHA256"             --arg d11_closeout_sha256 "$D11_CLOSEOUT_SHA256"             --arg lock_commitment "$(jq -r '.upstream_authority_lock_commitment' "$SUMMARY")"             --arg lock_sha256 "$(jq -r '.upstream_authority_lock_sha256' "$SUMMARY")"             --arg coverage "$(jq -r '.coverage_commitment' "$SUMMARY")"             --argjson below_one "$(jq '.below_one_borrowers' "$SUMMARY")"             --argjson pairs "$(jq '.expected_pairs' "$SUMMARY")"             --argjson admitted "$(jq '.admitted' "$SUMMARY")"             --argjson rejected "$(jq '.rejected' "$SUMMARY")"             --argjson principal_promoted "$(jq '.principal_capital_promoted' "$SUMMARY")"             --argjson principal_feasible "$(jq '.principal_capital_feasible' "$SUMMARY")"             --argjson principal_rejected "$(jq '.principal_capital_rejected' "$SUMMARY")"             --argjson portfolio_conflicts "$(jq '.portfolio_conflict_count' "$SUMMARY")"             --argjson portfolio_components "$(jq '.portfolio_component_count' "$SUMMARY")"             --argjson portfolio_shared_resources "$(jq '.portfolio_shared_resource_count' "$SUMMARY")"             --argjson portfolio_candidate_claims "$(jq '.portfolio_candidate_claim_count' "$SUMMARY")"             --argjson portfolio_simultaneous "$(jq '.portfolio_simultaneously_feasible' "$SUMMARY")"             --arg portfolio_commitment "$(jq -r '.portfolio_commitment' "$SUMMARY")"             --arg d11_sources_sha256 "$(jq -r '.d11_capital_sources_sha256' "$SUMMARY")"             --arg promotions_sha256 "$(sha256sum "$CERT/capital-promotions.jsonl" | awk '{print $1}')"             --arg portfolio_sha256 "$(sha256sum "$CERT/portfolio-capacity.json" | awk '{print $1}')"             --arg records_sha256 "$(sha256sum "$CERT/actionability-records.jsonl" | awk '{print $1}')"             --arg summary_sha256 "$(sha256sum "$CERT/actionability-summary.json" | awk '{print $1}')"             --arg evidence_sha256 "$(sha256sum "$CERT/evidence-manifest.json" | awk '{print $1}')"             '{
+              schema_version: 2,
+              status: "RMC_012_TERMINAL_ACTIONABILITY_CERTIFIED",
+              scope: "ACTIONABILITY_AND_PRESTATE_CONFLICT_AWARE_PRINCIPAL_FLASH_CAPITAL",
+              code_commit: $head,
+              code_tree: $tree,
+              d11: {
+                run_id: $d11_run,
+                head_sha: $d11_head,
+                tree_sha: $d11_tree,
+                artifact_id: $d11_artifact,
+                artifact_name: $d11_artifact_name,
+                artifact_digest: $d11_artifact_digest,
+                package_inventory_sha256: $d11_package_inventory_sha256,
+                real_source_closeout_sha256: $d11_closeout_sha256
+              },
+              upstream_authority_lock_commitment: $lock_commitment,
+              upstream_authority_lock_sha256: $lock_sha256,
+              actionability_coverage_commitment: $coverage,
+              below_one_borrowers: $below_one,
+              expected_pairs: $pairs,
+              admitted: $admitted,
+              rejected: $rejected,
+              principal_capital_promotion_certified: true,
+              principal_capital_promoted: $principal_promoted,
+              principal_capital_feasible: $principal_feasible,
+              principal_capital_rejected: $principal_rejected,
+              d11_capital_sources_sha256: $d11_sources_sha256,
+              portfolio_concurrent_principal_capacity_certified: true,
+              portfolio_prestate_borrower_exclusivity_certified: true,
+              portfolio_debt_position_capacity_certified: true,
+              portfolio_collateral_position_capacity_certified: true,
+              portfolio_shared_resource_count: $portfolio_shared_resources,
+              portfolio_candidate_claim_count: $portfolio_candidate_claims,
+              portfolio_conflict_count: $portfolio_conflicts,
+              portfolio_component_count: $portfolio_components,
+              portfolio_simultaneously_feasible: $portfolio_simultaneous,
+              portfolio_commitment: $portfolio_commitment,
+              gas_funding_certified: false,
+              portfolio_concurrent_capacity_certified: false,
+              economics_certified: false,
+              realized_pnl_certified: false,
+              artifacts: [
+                {path:"actionability-records.jsonl", sha256:$records_sha256},
+                {path:"actionability-summary.json", sha256:$summary_sha256},
+                {path:"capital-promotions.jsonl", sha256:$promotions_sha256},
+                {path:"portfolio-capacity.json", sha256:$portfolio_sha256},
+                {path:"evidence-manifest.json", sha256:$evidence_sha256}
+              ]
+            }' > "$CERT/terminal-actionability-certification.json"
+
+          (
+            cd "$CERT"
+            for name in actionability-records.jsonl actionability-summary.json capital-promotions.jsonl portfolio-capacity.json evidence-manifest.json terminal-actionability-certification.json; do
+              printf '%s  %s\n' "$(sha256sum "$name" | awk '{print $1}')" "$name"
+            done > terminal-archive.sha256
+            sha256sum -c terminal-archive.sha256
+          )
+          echo "RMC012_TERMINAL_ACTIONABILITY_AUTHORITY=PASS"
+
+      - name: Upload immutable RMC-012 terminal authority
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc012-terminal-actionability-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc012-terminal-certification/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

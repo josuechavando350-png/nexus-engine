@@ -1,0 +1,30 @@
+{
+  "schema": "nqc-rmc012-pft-actionability-binding-v1",
+  "pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
+  "pft_certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853",
+  "math_package": "nqc-aave-math",
+  "authority": "IMMUTABLE_CERTIFIED_PFT_SOURCE",
+  "economic_filters_allowed": false,
+  "notes": [
+    "This bridge owns protocol-liquidation sizing and exact deployed Aave flash-premium rounding only.",
+    "Flash availability, route profitability, gas, MEV and capture are downstream."
+  ],
+  "flash_premium_semantics": {
+    "compatibility_id": "PFT-COMPAT-009",
+    "certified_path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json",
+    "certified_git_blob_sha": "17eba73198f9d15e090a4099daaf1a4e099fb747",
+    "rounding": "CEILING",
+    "exact_witnesses": [
+      {
+        "principal_units": "83727306811",
+        "bps": 5,
+        "expected_premium_units": "41863654"
+      },
+      {
+        "principal_units": "186298226",
+        "bps": 5,
+        "expected_premium_units": "93150"
+      }
+    ]
+  }
+}
