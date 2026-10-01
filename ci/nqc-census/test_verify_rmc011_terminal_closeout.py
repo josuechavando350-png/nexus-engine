@@ -81,16 +81,22 @@ def valid_lock() -> tuple[bytes, dict]:
     return canonical(doc), doc
 
 
-def valid_transport_auth() -> tuple[bytes, bytes]:
+def valid_transport_auth(source: dict) -> tuple[bytes, bytes]:
+    by_label = {
+        row["id"]: row["resolution_evidence"]
+        for row in source["families"]
+    }
+    by_label["FAMILY_UNIVERSE_DISCOVERY"] = source["family_universe_discovery"]["evidence"]
     labels = sorted(mod.EXPECTED_FAMILIES) + ["FAMILY_UNIVERSE_DISCOVERY"]
     lines = []
-    for i, label in enumerate(labels):
+    for label in labels:
+        evidence = by_label[label]
         lines.append("\t".join([
             label,
-            str(5000 + i),
-            str(6000 + i),
-            f"{7000 + i:040x}",
-            f"{8000 + i:064x}",
+            str(evidence["run_id"]),
+            str(evidence["artifact_id"]),
+            evidence["head_sha"],
+            evidence["sha256"],
         ]))
     raw = ("\n".join(lines) + "\n").encode()
     marker = (hashlib.sha256(raw).hexdigest() + "  /tmp/rmc011-terminal-evidence-authenticated.tsv\n").encode()
@@ -139,7 +145,7 @@ class TerminalCloseoutTests(unittest.TestCase):
         if closeout is None:
             closeout = valid_closeout(lock_raw, lock)
         if transport_raw is None or transport_marker is None:
-            transport_raw, transport_marker = valid_transport_auth()
+            transport_raw, transport_marker = valid_transport_auth(source)
         return mod.build_terminal_closeout(
             canonical(source),
             source,
@@ -198,17 +204,31 @@ class TerminalCloseoutTests(unittest.TestCase):
             self.build(closeout=closeout, lock_raw=lock_raw, lock=lock)
 
     def test_transport_auth_marker_mismatch_fails_closed(self):
-        transport_raw, _ = valid_transport_auth()
+        source = valid_source_universe()
+        transport_raw, _ = valid_transport_auth(source)
         bad_marker = ("0" * 64 + "  transcript\n").encode()
         with self.assertRaises(mod.TerminalCloseoutError):
-            self.build(transport_raw=transport_raw, transport_marker=bad_marker)
+            self.build(source=source, transport_raw=transport_raw, transport_marker=bad_marker)
 
     def test_transport_auth_missing_family_fails_closed(self):
-        transport_raw, _ = valid_transport_auth()
+        source = valid_source_universe()
+        transport_raw, _ = valid_transport_auth(source)
         trimmed = ("\n".join(transport_raw.decode().splitlines()[:-1]) + "\n").encode()
         marker = (hashlib.sha256(trimmed).hexdigest() + "  transcript\n").encode()
         with self.assertRaises(mod.TerminalCloseoutError):
-            self.build(transport_raw=trimmed, transport_marker=marker)
+            self.build(source=source, transport_raw=trimmed, transport_marker=marker)
+
+    def test_transport_auth_artifact_substitution_fails_closed(self):
+        source = valid_source_universe()
+        transport_raw, _ = valid_transport_auth(source)
+        lines = transport_raw.decode().splitlines()
+        parts = lines[0].split("\t")
+        parts[2] = str(int(parts[2]) + 1)
+        lines[0] = "\t".join(parts)
+        altered = ("\n".join(lines) + "\n").encode()
+        marker = (hashlib.sha256(altered).hexdigest() + "  transcript\n").encode()
+        with self.assertRaises(mod.TerminalCloseoutError):
+            self.build(source=source, transport_raw=altered, transport_marker=marker)
 
     def test_authority_lock_byte_substitution_fails_closed(self):
         lock_raw, lock = valid_lock()
