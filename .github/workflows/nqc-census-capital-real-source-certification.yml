@@ -30,6 +30,8 @@ on:
       - "ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py"
       - "ci/nqc-census/verify-rmc011-protocol-family-promotion.py"
       - "ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-terminal-family-partition.py"
+      - "ci/nqc-census/test_verify_rmc011_terminal_family_partition.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -85,6 +87,8 @@ on:
       - "ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py"
       - "ci/nqc-census/verify-rmc011-protocol-family-promotion.py"
       - "ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-terminal-family-partition.py"
+      - "ci/nqc-census/test_verify_rmc011_terminal_family_partition.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -183,6 +187,9 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-protocol-family-promotion.py ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py
           python3 ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py -v
           python3 ci/nqc-census/verify-rmc011-protocol-family-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-terminal-family-partition.py ci/nqc-census/test_verify_rmc011_terminal_family_partition.py
+          python3 ci/nqc-census/test_verify_rmc011_terminal_family_partition.py -v
+          python3 ci/nqc-census/verify-rmc011-terminal-family-partition.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-balancer-v2-capture.py ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py
           python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
           jq -e '
