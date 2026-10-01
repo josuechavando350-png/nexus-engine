@@ -180,5 +180,19 @@ class DiscoveryContractTests(unittest.TestCase):
             validate(doc)
 
 
+    def test_aave_debt_discovery_must_preserve_d08_token_blockers(self) -> None:
+        doc = copy.deepcopy(DISCOVERY)
+        row = next(
+            row for row in doc["families"]
+            if row["id"] == "PERSISTENT_DEBT"
+        )
+        row["completeness"] = row["completeness"].replace(
+            "D08_TOKEN_EXECUTION_BLOCKERS_PRESERVED; ",
+            "",
+        )
+        with self.assertRaises(mod.DiscoveryError):
+            validate(doc)
+
+
 if __name__ == "__main__":
     unittest.main()
