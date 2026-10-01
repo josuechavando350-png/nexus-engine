@@ -1,0 +1,350 @@
+name: NQC RMC-014 Final Census Closeout
+
+on:
+  pull_request:
+    paths:
+      - "nqc-census/crates/nqc-census-closeout/**"
+      - "nqc-census/crates/nqc-census-economics/**"
+      - "nqc-census/crates/nqc-census-portfolio/**"
+      - "nqc-census/Cargo.toml"
+      - "nqc-census/Cargo.lock"
+      - "ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md"
+      - "ci/nqc-census/final-census-authority-lock.json"
+      - ".github/workflows/nqc-census-final-closeout.yml"
+  push:
+    branches:
+      - "nqc/rmc-014-clean-restack-d13-20260930"
+    paths:
+      - "nqc-census/crates/nqc-census-closeout/**"
+      - "nqc-census/crates/nqc-census-economics/**"
+      - "nqc-census/crates/nqc-census-portfolio/**"
+      - "nqc-census/Cargo.toml"
+      - "nqc-census/Cargo.lock"
+      - "ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md"
+      - "ci/nqc-census/final-census-authority-lock.json"
+      - ".github/workflows/nqc-census-final-closeout.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc014-final-closeout-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUST_TOOLCHAIN: "1.98.1"
+
+jobs:
+  foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    outputs:
+      authority_status: ${{ steps.lock.outputs.status }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify current RMC-013 base is an ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin nqc/rmc-013-clean-restack-d12-20260930
+          RMC013_HEAD="$(git rev-parse FETCH_HEAD)"
+          git merge-base --is-ancestor "$RMC013_HEAD" HEAD
+          echo "RMC014_RMC013_ANCESTRY_PASS base=$RMC013_HEAD head=$(git rev-parse HEAD)"
+
+      - name: Verify immutable upstream authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          PFT_COMMIT=5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+          PFT_TREE=ef3498da528f85cdb9fdd82222d64773a557f853
+          test "$(git show -s --format=%T "$PFT_COMMIT")" = "$PFT_TREE"
+          git merge-base --is-ancestor "$PFT_COMMIT" HEAD
+          grep -F 'RMC-014 — Real Market Census Terminal Closeout Contract' \
+            ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md
+          grep -F 'REAL_MARKET_CENSUS_CLOSED = false' \
+            ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md
+
+      - name: Verify no execution or network authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -n -E \
+            'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction|reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket' \
+            nqc-census/crates/nqc-census-closeout \
+            ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md
+
+      - name: Exact Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc +"$RUST_TOOLCHAIN" -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo +"$RUST_TOOLCHAIN" fmt --all -- --check
+          cargo +"$RUST_TOOLCHAIN" clippy --locked -p nqc-census-closeout --all-targets -- -D warnings
+          cargo +"$RUST_TOOLCHAIN" test --locked -p nqc-census-closeout -- --nocapture
+          cargo +"$RUST_TOOLCHAIN" test --locked -p nqc-census-economics
+          cargo +"$RUST_TOOLCHAIN" test --locked -p nqc-census-portfolio
+          cargo +"$RUST_TOOLCHAIN" test --locked --workspace
+          cargo +"$RUST_TOOLCHAIN" build --release --locked -p nqc-census-closeout
+          echo RMC014_FOUNDATION_PASS
+
+      - name: Read terminal authority state
+        id: lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit(message)
+
+          path = Path("ci/nqc-census/final-census-authority-lock.json")
+          doc = json.loads(path.read_text(encoding="utf-8"))
+          require(isinstance(doc, dict), "terminal authority lock is not an object")
+          require(doc.get("schema_version") == 3, "terminal authority lock schema_version must be 3")
+          require(doc.get("real_market_census_closed") is False, "source lock cannot self-certify closure")
+          required = [f"RMC-{n:03d}" for n in range(6, 14)]
+          require(doc.get("required_terminal_stages") == required, "required stage set/order differs")
+          status = doc.get("status")
+          require(status in {"BLOCKED", "PINNED"}, "terminal authority status must be BLOCKED or PINNED")
+          print(f"status={status}")
+
+          blockers = doc.get("blocking_reasons")
+          if status == "BLOCKED":
+              require(isinstance(blockers, list) and blockers, "BLOCKED lock must enumerate blockers")
+              require(all(isinstance(item, str) and item for item in blockers), "invalid blocker entry")
+              print("blockers=" + ",".join(blockers))
+          else:
+              require(blockers == [], "PINNED lock cannot retain blockers")
+              stages = doc.get("pinned_stages")
+              require(isinstance(stages, list) and len(stages) == len(required), "PINNED lock must carry eight stages")
+              require([row.get("stage") for row in stages] == required, "pinned stage order differs")
+              require(isinstance(doc.get("pipeline_counts"), dict), "PINNED lock lacks pipeline_counts")
+              require(isinstance(doc.get("economic_boundary"), dict), "PINNED lock lacks economic_boundary")
+              boundary = doc["economic_boundary"]
+              require(boundary.get("conservative_realizable_capacity_only") is True, "non-conservative capacity boundary")
+              require(boundary.get("global_capital_source_completeness_claimed") is False, "global capital completeness is forbidden")
+              require(boundary.get("global_route_venue_completeness_claimed") is False, "global route completeness is forbidden")
+              terminal_evidence = doc.get("terminal_evidence")
+              require(isinstance(terminal_evidence, list) and terminal_evidence, "PINNED lock lacks terminal evidence")
+          PY
+
+  terminal:
+    needs: foundation
+    if: ${{ needs.foundation.outputs.authority_status == 'PINNED' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Authenticate every pinned terminal artifact identity
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > /tmp/rmc014-pins.tsv
+          import json
+          import re
+
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit(message)
+
+          with open("ci/nqc-census/final-census-authority-lock.json", encoding="utf-8") as handle:
+              doc = json.load(handle)
+
+          required_stages = [f"RMC-{n:03d}" for n in range(6, 14)]
+          expected = {
+              "RMC-006": ("NQC RMC-006 Aave Discovery", "nqc-rmc006-evidence-"),
+              "RMC-007": ("NQC RMC-007 V2 Discovery", "nqc-rmc007-closeout-"),
+              "RMC-008": ("NQC RMC-008 State Oracle Token Admission", "nqc-rmc008-closeout-"),
+              "RMC-009": ("NQC RMC-009 Aave Account Universe", "nqc-rmc009-closeout-"),
+              "RMC-010": ("NQC RMC-010 Live Full Incremental Parity", "nqc-rmc010-live-closeout-"),
+              "RMC-011": ("NQC RMC-011 Real Source Certification", "rmc011-real-source-certification-"),
+              "RMC-012": ("NQC RMC-012 Terminal Actionability Authority", "rmc012-terminal-actionability-"),
+              "RMC-013": ("NQC RMC-013 Terminal Economics Authority", "rmc013-terminal-economics-"),
+          }
+          git_re = re.compile(r"^[0-9a-f]{40}$")
+          digest_re = re.compile(r"^sha256:[0-9a-f]{64}$")
+          hash_re = re.compile(r"^(?:0x|sha256:)?[0-9a-f]{64}$")
+
+          require(doc.get("status") == "PINNED", "terminal authority lock is not PINNED")
+          rows = doc.get("pinned_stages")
+          require(isinstance(rows, list) and len(rows) == 8, "pinned_stages must contain eight rows")
+          require([row.get("stage") for row in rows] == required_stages, "pinned stage order differs")
+
+          for row in rows:
+              stage = row.get("stage")
+              require(stage in expected, f"unknown stage {stage!r}")
+              workflow, prefix = expected[stage]
+              run_id = row.get("workflow_run_id")
+              artifact_id = row.get("artifact_id")
+              require(isinstance(run_id, int) and not isinstance(run_id, bool) and run_id > 0, f"{stage}: invalid workflow_run_id")
+              require(isinstance(artifact_id, int) and not isinstance(artifact_id, bool) and artifact_id > 0, f"{stage}: invalid artifact_id")
+
+              workflow_name = row.get("workflow_name")
+              artifact_name = row.get("artifact_name")
+              artifact_digest = row.get("artifact_digest")
+              code_commit = row.get("code_commit")
+              code_tree = row.get("code_tree")
+              require(workflow_name == workflow, f"{stage}: canonical workflow differs")
+              require(isinstance(artifact_name, str) and artifact_name.startswith(prefix), f"{stage}: artifact prefix differs")
+              require(isinstance(artifact_digest, str) and digest_re.fullmatch(artifact_digest), f"{stage}: invalid artifact digest")
+              require(artifact_digest != "sha256:" + "0" * 64, f"{stage}: zero artifact digest")
+              require(isinstance(code_commit, str) and git_re.fullmatch(code_commit), f"{stage}: invalid code commit")
+              require(isinstance(code_tree, str) and git_re.fullmatch(code_tree), f"{stage}: invalid code tree")
+              require(code_commit != "0" * 40 and code_tree != "0" * 40, f"{stage}: zero git object")
+              require(code_commit in artifact_name, f"{stage}: artifact name does not bind code commit")
+
+              for key in ("authority_commitment", "coverage_commitment"):
+                  value = row.get(key)
+                  require(isinstance(value, str) and hash_re.fullmatch(value), f"{stage}: invalid {key}")
+                  stripped = value.split(":", 1)[-1].removeprefix("0x")
+                  require(stripped != "0" * 64, f"{stage}: zero {key}")
+
+              require(row.get("admitted") is True, f"{stage}: stage not admitted")
+              require(row.get("coverage_complete") is True, f"{stage}: coverage incomplete")
+              for key in ("unresolved_mismatch_count", "unknown_failure_count", "blocker_count"):
+                  value = row.get(key)
+                  require(isinstance(value, int) and not isinstance(value, bool) and value == 0, f"{stage}: {key} must equal zero")
+
+              evidence = row.get("evidence")
+              require(isinstance(evidence, list) and evidence, f"{stage}: evidence is empty")
+              require(len(evidence) == len(set(evidence)), f"{stage}: duplicate evidence")
+              for value in evidence:
+                  require(isinstance(value, str) and hash_re.fullmatch(value), f"{stage}: invalid evidence digest")
+
+              fields = [
+                  stage,
+                  str(run_id),
+                  str(artifact_id),
+                  artifact_name,
+                  artifact_digest,
+                  code_commit,
+                  code_tree,
+                  workflow_name,
+              ]
+              require(all("\t" not in value and "\n" not in value for value in fields), f"{stage}: unsafe TSV field")
+              print("\t".join(fields))
+          PY
+
+          while IFS=$'\t' read -r stage run artifact_id artifact_name digest commit tree workflow_name; do
+            run_json="$(gh api "repos/${{ github.repository }}/actions/runs/$run")"
+            artifact_json="$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id")"
+
+            test "$(jq -r '.status' <<<"$run_json")" = completed
+            test "$(jq -r '.conclusion' <<<"$run_json")" = success
+            test "$(jq -r '.head_sha' <<<"$run_json")" = "$commit"
+            test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+            test "$(jq -r '.expired' <<<"$artifact_json")" = false
+            test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run"
+            test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+            test "$(jq -r '.digest' <<<"$artifact_json")" = "$digest"
+
+            git cat-file -e "$commit^{commit}"
+            git merge-base --is-ancestor "$commit" HEAD
+            observed_tree="$(git show -s --format=%T "$commit")"
+            test "$observed_tree" = "$tree"
+
+            echo "RMC014_STAGE_PIN_PASS stage=$stage workflow=$workflow_name run=$run artifact=$artifact_id head=$commit tree=$tree digest=$digest"
+          done < /tmp/rmc014-pins.tsv
+
+      - name: Terminal marker precondition
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit(message)
+
+          with open("ci/nqc-census/final-census-authority-lock.json", encoding="utf-8") as handle:
+              doc = json.load(handle)
+          require(doc.get("status") == "PINNED", "terminal authority lock is not PINNED")
+          require(
+              doc.get("real_market_census_closed") is False,
+              "source authority lock must never self-certify closure",
+          )
+          print("RMC014_TERMINAL_AUTHORITY_VERIFIED")
+          PY
+
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustc +"$RUST_TOOLCHAIN" -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Emit deterministic terminal certificate twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT_A="$RUNNER_TEMP/rmc014-a"
+          OUT_B="$RUNNER_TEMP/rmc014-b"
+          rm -rf "$OUT_A" "$OUT_B"
+          mkdir -p "$OUT_A" "$OUT_B"
+
+          cargo +"$RUST_TOOLCHAIN" run \
+            --manifest-path nqc-census/Cargo.toml \
+            --release --locked -p nqc-census-closeout --bin nqc-rmc014-closeout -- \
+            ci/nqc-census/final-census-authority-lock.json "$OUT_A"
+          cargo +"$RUST_TOOLCHAIN" run \
+            --manifest-path nqc-census/Cargo.toml \
+            --release --locked -p nqc-census-closeout --bin nqc-rmc014-closeout -- \
+            ci/nqc-census/final-census-authority-lock.json "$OUT_B"
+
+          diff -ruN "$OUT_A" "$OUT_B"
+          (
+            cd "$OUT_A"
+            sha256sum -c real-market-census-certificate.sha256
+          )
+
+          CERT="$OUT_A/real-market-census-certificate.json"
+          jq -e '
+            .schema_version == 1 and
+            .status == "REAL_MARKET_CENSUS_CLOSED" and
+            .real_market_census_closed == true and
+            (.authority_lock_sha256 | test("^sha256:[0-9a-f]{64}$")) and
+            (.terminal_commitment | test("^0x[0-9a-f]{64}$")) and
+            .realized_profitability_proven == false and
+            .monthly_target_probability_proven == false and
+            .conservative_realizable_capacity_only == true and
+            .global_capital_source_completeness_claimed == false and
+            .global_route_venue_completeness_claimed == false and
+            .economic_boundary.conservative_realizable_capacity_only == true and
+            .economic_boundary.global_capital_source_completeness_claimed == false and
+            .economic_boundary.global_route_venue_completeness_claimed == false and
+            (.stages | length == 8) and
+            (.terminal_evidence | length > 0)
+          ' "$CERT" >/dev/null
+
+          echo "RMC014_CERTIFICATE=$CERT" >> "$GITHUB_ENV"
+          echo "RMC014_TERMINAL_CLOSEOUT=PASS"
+
+      - name: Upload immutable RMC-014 terminal certificate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc014-terminal-census-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc014-a/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
