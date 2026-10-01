@@ -1,0 +1,86 @@
+name: NQC RMC-013 Execution Economics
+
+on:
+  pull_request:
+    paths:
+      - "nqc-census/crates/nqc-census-economics/**"
+      - "nqc-census/crates/nqc-census-portfolio/**"
+      - "nqc-census/crates/nqc-census-capital/**"
+      - "nqc-census/Cargo.toml"
+      - "nqc-census/Cargo.lock"
+      - "ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md"
+      - "ci/nqc-census/plan_rmc013_v2_routes.py"
+      - "ci/nqc-census/test_plan_rmc013_v2_routes.py"
+      - "ci/nqc-census/rmc013-execution-inputs.json"
+      - "ci/nqc-census/run_rmc013_anvil_candidate.py"
+      - "ci/nqc-census/test_run_rmc013_anvil_candidate.py"
+      - ".github/workflows/nqc-census-economics.yml"
+  push:
+    branches:
+      - "nqc/rmc-013-clean-restack-d12-20260930"
+
+permissions:
+  contents: read
+
+env:
+  RUST_TOOLCHAIN: "1.98.1"
+
+jobs:
+  rmc-013-economics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify current RMC-012 base is an ancestor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin nqc/rmc-012-clean-restack-d11-20260930
+          RMC012_HEAD="$(git rev-parse FETCH_HEAD)"
+          git merge-base --is-ancestor "$RMC012_HEAD" HEAD
+          echo "RMC013_RMC012_ANCESTRY_PASS base=$RMC012_HEAD head=$(git rev-parse HEAD)"
+
+      - name: Verify RMC-013 authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'RMC-013 — Execution Economics and Capture Truth Contract' ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md
+          grep -F 'Capture probability is WAD fixed point' ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md
+          grep -F 'UNCALIBRATED quotes' ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md
+          ! grep -R -n -E '\bf32\b|\bf64\b' nqc-census/crates/nqc-census-economics
+
+      - name: Verify no transaction or network authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction|reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket'             nqc-census/crates/nqc-census-economics ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md
+
+      - name: Deterministic V2 route planner regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_plan_rmc013_v2_routes.py
+          python3 ci/nqc-census/test_run_rmc013_anvil_candidate.py
+          python3 -m py_compile \
+            ci/nqc-census/plan_rmc013_v2_routes.py \
+            ci/nqc-census/run_rmc013_anvil_candidate.py
+
+      - name: Exact Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-economics --all-targets -- -D warnings
+          cargo test --locked -p nqc-census-economics -- --nocapture
+          cargo test --locked -p nqc-census-portfolio
+          cargo test --locked --workspace
+          cargo build --release --locked -p nqc-census-economics
+          echo RMC013_EXECUTION_ECONOMICS_PASS
