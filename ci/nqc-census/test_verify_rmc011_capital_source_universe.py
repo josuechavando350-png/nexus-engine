@@ -14,6 +14,7 @@ mod = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(mod)
 
 BASE = json.loads(Path("ci/nqc-census/rmc011-capital-source-universe.json").read_text())
+SCOPE = json.loads(Path("ci/nqc-census/capital-census-scope.json").read_text())
 
 
 def evidence(kind: str, byte: str) -> dict:
@@ -42,6 +43,18 @@ def resolve_all_families(doc: dict) -> None:
             row["status"] = "AUTHENTICATED_REAL_SOURCE"
             row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", digit)
         row["terminally_resolved"] = True
+
+
+def validate_with_complete_scope(doc: dict) -> dict:
+    scope_path = Path("ci/nqc-census/capital-census-scope.json")
+    original = scope_path.read_text()
+    scope = json.loads(original)
+    scope["claims"]["capital_source_universe_complete"] = True
+    scope_path.write_text(json.dumps(scope, indent=2) + "\n")
+    try:
+        return mod.validate_document(doc)
+    finally:
+        scope_path.write_text(original)
 
 
 class SourceUniverseTests(unittest.TestCase):
@@ -138,7 +151,7 @@ class SourceUniverseTests(unittest.TestCase):
         }
         doc["status"] = "CAPITAL_SOURCE_UNIVERSE_COMPLETE"
         doc["terminal_claim_allowed"] = True
-        result = mod.validate_document(doc)
+        result = validate_with_complete_scope(doc)
         self.assertTrue(result["family_universe_discovery_complete"])
         self.assertTrue(result["terminal_claim_allowed"])
         self.assertFalse(result["d11_terminal_closed"])
@@ -155,8 +168,9 @@ class SourceUniverseTests(unittest.TestCase):
         doc["status"] = "D11_TERMINAL_CLOSED"
         doc["terminal_claim_allowed"] = True
         doc["d11_terminal_closed"] = True
-        with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+        with self.assertRaises(mod.UniverseError) as ctx:
+            validate_with_complete_scope(doc)
+        self.assertIn("source-universe file cannot close D11", str(ctx.exception))
 
     def test_unknown_family_fails(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -226,6 +240,57 @@ class SourceUniverseTests(unittest.TestCase):
         )
         with self.assertRaises(mod.UniverseError):
             mod.validate_document(doc)
+
+
+    def test_terminal_evidence_file_sha256_cannot_be_all_zero(self) -> None:
+        doc = copy.deepcopy(BASE)
+        row = doc["families"][0]
+        row["status"] = "AUTHENTICATED_REAL_SOURCE"
+        row["terminally_resolved"] = True
+        row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", "a")
+        row["resolution_evidence"]["sha256"] = "0" * 64
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+    def test_terminal_evidence_artifact_digest_cannot_be_all_zero(self) -> None:
+        doc = copy.deepcopy(BASE)
+        row = doc["families"][0]
+        row["status"] = "AUTHENTICATED_REAL_SOURCE"
+        row["terminally_resolved"] = True
+        row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", "a")
+        row["resolution_evidence"]["artifact_digest"] = "sha256:" + "0" * 64
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+    def test_scope_must_enumerate_exact_source_family_set(self) -> None:
+        scope = copy.deepcopy(SCOPE)
+        scope["required_source_families"].pop()
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_scope(scope, copy.deepcopy(BASE["families"]))
+
+    def test_scope_must_require_authenticated_family_discovery(self) -> None:
+        scope = copy.deepcopy(SCOPE)
+        scope["source_family_universe_discovery_required"] = False
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_scope(scope, copy.deepcopy(BASE["families"]))
+
+    def test_scope_must_bind_canonical_source_universe_contract(self) -> None:
+        scope = copy.deepcopy(SCOPE)
+        scope["source_universe_contract"] = "ci/nqc-census/not-the-source-universe.json"
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_scope(scope, copy.deepcopy(BASE["families"]))
+
+    def test_scope_required_capital_classes_must_be_exact(self) -> None:
+        scope = copy.deepcopy(SCOPE)
+        scope["required_classes"].pop()
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_scope(scope, copy.deepcopy(BASE["families"]))
+
+    def test_scope_rejects_duplicate_required_family(self) -> None:
+        scope = copy.deepcopy(SCOPE)
+        scope["required_source_families"].append(scope["required_source_families"][0])
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_scope(scope, copy.deepcopy(BASE["families"]))
 
 
 if __name__ == "__main__":
