@@ -18,17 +18,12 @@ PROVIDER = json.loads(
 PLAN = json.loads(
     Path("ci/nqc-census/rmc011-execution-plan-requirement-catalog.json").read_text()
 )
-DEBT = json.loads(
-    Path("ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json").read_text()
-)
-
 
 class BoundedFamilyRejectionTests(unittest.TestCase):
     def test_current_empty_surfaces_derive_exact_seven_bounded_rejections(self) -> None:
         result = mod.validate_documents(
             copy.deepcopy(PROVIDER),
             copy.deepcopy(PLAN),
-            copy.deepcopy(DEBT),
         )
         self.assertEqual(result["family_count"], 7)
         self.assertEqual(
@@ -52,7 +47,7 @@ class BoundedFamilyRejectionTests(unittest.TestCase):
             "evidence": ["content-addressed:provider-a"],
         }]
         with self.assertRaises((mod.RejectionError, ValueError)):
-            mod.validate_documents(provider, copy.deepcopy(PLAN), copy.deepcopy(DEBT))
+            mod.validate_documents(provider, copy.deepcopy(PLAN))
 
     def test_one_supported_execution_plan_invalidates_empty_rejection(self) -> None:
         plan = copy.deepcopy(PLAN)
@@ -72,34 +67,13 @@ class BoundedFamilyRejectionTests(unittest.TestCase):
             "evidence": ["content-addressed:plan-a"],
         }]
         with self.assertRaises((mod.RejectionError, ValueError)):
-            mod.validate_documents(copy.deepcopy(PROVIDER), plan, copy.deepcopy(DEBT))
+            mod.validate_documents(copy.deepcopy(PROVIDER), plan)
 
-    def test_permissionless_debt_catalog_does_not_drive_bounded_rejection(self) -> None:
-        debt = copy.deepcopy(DEBT)
-        debt["status"] = "DECLARED_WITH_FACILITIES_NOT_TERMINAL_EVIDENCE"
-        debt["facility_count"] = 1
-        debt["facilities"] = [{
-            "family": "PERSISTENT_DEBT",
-            "chain_id": 1,
-            "facility_address": "0x" + "11" * 20,
-            "principal_asset": "TOKEN:" + "22" * 20,
-            "collateral_asset": "TOKEN:" + "33" * 20,
-            "runtime_code_hash": "0x" + "44" * 32,
-            "deployment_provenance": {
-                "kind": "OFFICIAL_UPSTREAM_DEPLOYMENT",
-                "source": "fixture://persistent-debt",
-                "sha256": "55" * 32,
-            },
-            "interest_model_hash": "0x" + "61" * 32,
-            "liquidation_model_hash": "0x" + "62" * 32,
-            "solvency_model_hash": "0x" + "63" * 32,
-            "oracle_risk_hash": "0x" + "64" * 32,
-            "liquidity_withdrawal_risk_hash": "0x" + "65" * 32,
-            "facility_disappearance_risk_hash": "0x" + "66" * 32,
-            "declaration_sha256": "77" * 32,
-            "admission_status": "DECLARED_NOT_AUTHENTICATED",
-        }]
-        result = mod.validate_documents(copy.deepcopy(PROVIDER), copy.deepcopy(PLAN), debt)
+    def test_debt_families_are_not_part_of_bounded_rejection(self) -> None:
+        result = mod.validate_documents(
+            copy.deepcopy(PROVIDER),
+            copy.deepcopy(PLAN),
+        )
         self.assertEqual(result["family_count"], 7)
         self.assertFalse({"COLLATERALIZED_BORROWING", "PERSISTENT_DEBT"} & {
             row["family"] for row in result["families"]
@@ -109,13 +83,13 @@ class BoundedFamilyRejectionTests(unittest.TestCase):
         provider = copy.deepcopy(PROVIDER)
         provider["provider_backed_families"].remove("PERSISTENT_DEBT")
         with self.assertRaises((mod.RejectionError, ValueError)):
-            mod.validate_documents(provider, copy.deepcopy(PLAN), copy.deepcopy(DEBT))
+            mod.validate_documents(provider, copy.deepcopy(PLAN))
 
     def test_plan_family_set_must_be_exact(self) -> None:
         plan = copy.deepcopy(PLAN)
         plan["requirement_families"].pop()
         with self.assertRaises((mod.RejectionError, ValueError)):
-            mod.validate_documents(copy.deepcopy(PROVIDER), plan, copy.deepcopy(DEBT))
+            mod.validate_documents(copy.deepcopy(PROVIDER), plan)
 
     def test_debt_family_set_must_be_exact(self) -> None:
         debt = copy.deepcopy(DEBT)
