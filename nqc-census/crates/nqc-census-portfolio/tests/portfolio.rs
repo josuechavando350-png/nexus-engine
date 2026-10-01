@@ -409,13 +409,7 @@ fn capital_rejected_candidate_still_requires_declared_shared_resources() -> Test
     let candidate = PortfolioCandidate::new(req.id(), anchor, vec![claim])?;
 
     assert!(matches!(
-        evaluate_portfolio(
-            &[candidate],
-            &[req],
-            &[feasibility],
-            &[too_small],
-            &[],
-        ),
+        evaluate_portfolio(&[candidate], &[req], &[feasibility], &[too_small], &[],),
         Err(PortfolioError::MissingResource)
     ));
     Ok(())
