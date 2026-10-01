@@ -239,9 +239,8 @@ jobs:
 
           SOURCE_UNIVERSE=ci/nqc-census/rmc011-capital-source-universe.json
           OUT="$RUNNER_TEMP/rmc011-bounded-family-evidence"
-          META="$RUNNER_TEMP/rmc011-bounded-family-evidence.tsv"
+          META="$RUNNER_TEMP/rmc011-bounded-family-evidence.json"
           rm -rf "$OUT"
-          : > "$META"
 
           python3 - "$SOURCE_UNIVERSE" "$META" <<'PY'
           import json
@@ -271,486 +270,55 @@ jobs:
               if row["status"] == "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE"
           }
           if not promoted:
-              Path(out_path).write_text("", encoding="utf-8")
-              raise SystemExit(0)
-          if set(promoted) != bounded:
-              raise SystemExit("bounded family promotion is partial")
-
-          lines = []
-          for family in sorted(bounded):
-              evidence = promoted[family].get("resolution_evidence")
-              if not isinstance(evidence, dict):
-                  raise SystemExit(f"{family}: missing resolution_evidence")
-              lines.append("\t".join([
-                  family,
-                  evidence["repository"],
-                  evidence["workflow_name"],
-                  str(evidence["run_id"]),
-                  evidence["head_sha"],
-                  str(evidence["artifact_id"]),
-                  evidence["artifact_name"],
-                  evidence["artifact_digest"],
-                  evidence["file"],
-                  evidence["sha256"],
-              ]))
-          Path(out_path).write_text("\n".join(lines) + "\n", encoding="utf-8")
+              payload = {"promoted": False, "rows": []}
+          else:
+              if set(promoted) != bounded:
+                  raise SystemExit("bounded family promotion is partial")
+              out_rows = []
+              for family in sorted(bounded):
+                  evidence = promoted[family].get("resolution_evidence")
+                  if not isinstance(evidence, dict):
+                      raise SystemExit(f"{family}: missing resolution_evidence")
+                  out_rows.append({
+                      "family": family,
+                      "repository": evidence["repository"],
+                      "workflow_name": evidence["workflow_name"],
+                      "run_id": evidence["run_id"],
+                      "head_sha": evidence["head_sha"],
+                      "artifact_id": evidence["artifact_id"],
+                      "artifact_name": evidence["artifact_name"],
+                      "artifact_digest": evidence["artifact_digest"],
+                      "file": evidence["file"],
+                      "sha256": evidence["sha256"],
+                  })
+              shared = {
+                  (row["repository"], row["workflow_name"], row["run_id"], row["head_sha"],
+                   row["artifact_id"], row["artifact_name"], row["artifact_digest"])
+                  for row in out_rows
+              }
+              if len(shared) != 1:
+                  raise SystemExit("bounded family evidence mixes run/artifact identities")
+              payload = {"promoted": True, "rows": out_rows}
+          Path(out_path).write_text(
+              json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
           PY
 
-          if [[ ! -s "$META" ]]; then
+          if [[ "$(jq -r '.promoted' "$META")" != "true" ]]; then
             echo "RMC011_BOUNDED_FAMILY_EVIDENCE=PENDING"
             exit 0
           fi
 
-          first_line="$(head -n 1 "$META")"
-          IFS=          set -euo pipefail
-          if [[ ! -f "$INPUTS" ]]; then
-            echo "RMC011_BLOCKED_UPSTREAM_REAL_SOURCE: exact RMC-006..RMC-010 transport inputs are required" >&2
-            exit 1
-          fi
-          test "$(jq -r '.repository' "$INPUTS")" = "$REPOSITORY"
-          test "$(jq -r '.schema_version' "$INPUTS")" = "3"
-          if [[ -e "$DECLARED_AUTHORITY_LOCK" ]]; then
-            jq -e '.schema_version == 1 and (.stages | length == 5)' "$DECLARED_AUTHORITY_LOCK" >/dev/null
-          fi
+          test "$(jq '.rows | length' "$META")" -eq 9
+          repository="$(jq -r '.rows[0].repository' "$META")"
+          workflow_name="$(jq -r '.rows[0].workflow_name' "$META")"
+          run_id="$(jq -r '.rows[0].run_id' "$META")"
+          head_sha="$(jq -r '.rows[0].head_sha' "$META")"
+          artifact_id="$(jq -r '.rows[0].artifact_id' "$META")"
+          artifact_name="$(jq -r '.rows[0].artifact_name' "$META")"
+          artifact_digest="$(jq -r '.rows[0].artifact_digest' "$META")"
 
-      - name: Verify and download exact RMC-006 through RMC-010 authority artifacts
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          verify_and_download() {
-            local key="$1"
-            local stage_code="$2"
-            local out="$3"
-            local run_id head_sha workflow_name artifact_id artifact_name artifact_digest authority_file
-            local run_json artifact_json tree_sha authority_path authority_sha
-
-            run_id="$(jq -r --arg key "$key" '.[$key].run_id' "$INPUTS")"
-            head_sha="$(jq -r --arg key "$key" '.[$key].head_sha' "$INPUTS")"
-            workflow_name="$(jq -r --arg key "$key" '.[$key].workflow_name' "$INPUTS")"
-            artifact_id="$(jq -r --arg key "$key" '.[$key].artifact_id' "$INPUTS")"
-            artifact_name="$(jq -r --arg key "$key" '.[$key].artifact_name' "$INPUTS")"
-            artifact_digest="$(jq -r --arg key "$key" '.[$key].artifact_digest' "$INPUTS")"
-            authority_file="$(jq -r --arg key "$key" '.[$key].authority_file' "$INPUTS")"
-
-            [[ "$run_id" =~ ^[0-9]+$ ]]
-            [[ "$artifact_id" =~ ^[0-9]+$ ]]
-            [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
-            [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-            [[ -n "$workflow_name" && "$workflow_name" != "null" ]]
-            [[ -n "$artifact_name" && "$artifact_name" != "null" ]]
-            [[ -n "$authority_file" && "$authority_file" != "null" ]]
-            [[ "$authority_file" != /* ]]
-            [[ "$authority_file" != *".."* ]]
-
-            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
-            test "$(jq -r '.status' <<<"$run_json")" = "completed"
-            test "$(jq -r '.conclusion' <<<"$run_json")" = "success"
-            test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
-            test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
-
-            artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
-            test "$(jq -r '.expired' <<<"$artifact_json")" = "false"
-            test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
-            test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
-            test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
-
-            tree_sha="$(gh api "repos/$REPOSITORY/git/commits/$head_sha" --jq '.tree.sha')"
-            [[ "$tree_sha" =~ ^[0-9a-f]{40}$ ]]
-
-            rm -rf "$out"
-            mkdir -p "$out"
-            gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$out"
-
-            authority_path="$out/$authority_file"
-            test -f "$authority_path"
-            authority_sha="$(sha256sum "$authority_path" | awk '{print $1}')"
-            [[ "$authority_sha" =~ ^[0-9a-f]{64}$ ]]
-            printf '%s %s %s %s %s %s\n' \
-              "$key" "$stage_code" "$head_sha" "$tree_sha" "$authority_file" "$authority_sha" \
-              >> "$RUNNER_TEMP/rmc011-authority-transport.txt"
-
-            echo "RMC011_UPSTREAM_TRANSPORT_PASS stage=$stage_code run=$run_id artifact=$artifact_id head=$head_sha tree=$tree_sha authority_sha256=$authority_sha"
-          }
-
-          : > "$RUNNER_TEMP/rmc011-authority-transport.txt"
-
-          verify_and_download d06 RMC-006 "$RUNNER_TEMP/d06-raw"
-          verify_and_download d07 RMC-007 "$RUNNER_TEMP/d07-raw"
-          verify_and_download d08 RMC-008 "$RUNNER_TEMP/d08-raw"
-          verify_and_download d09 RMC-009 "$RUNNER_TEMP/d09-raw"
-          verify_and_download d10 RMC-010 "$RUNNER_TEMP/d10-raw"
-
-      - name: Derive and semantically verify canonical upstream authority lock
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          runner = Path(os.environ["RUNNER_TEMP"])
-          inputs = json.loads(Path(os.environ["INPUTS"]).read_text())
-          authority_path = runner / "d08-raw" / inputs["d08"]["authority_file"]
-          manifest = json.loads(authority_path.read_text())
-          anchor = manifest.get("observation_anchor")
-          required = [
-              "chain_id", "genesis_hash", "fork_lineage", "block_number",
-              "block_hash", "parent_hash", "timestamp", "state_root",
-          ]
-          if not isinstance(anchor, dict) or any(key not in anchor for key in required):
-              raise SystemExit("D08 authority lacks the full observation anchor required by D11")
-
-          rows = []
-          expected = ["RMC-006", "RMC-007", "RMC-008", "RMC-009", "RMC-010"]
-          for line in (runner / "rmc011-authority-transport.txt").read_text().splitlines():
-              key, stage, commit, tree, authority_file, authority_sha = line.split()
-              rows.append({
-                  "stage": stage,
-                  "code_commit": commit,
-                  "code_tree": tree,
-                  "artifact_sha256": "0x" + authority_sha,
-              })
-          if [row["stage"] for row in rows] != expected:
-              raise SystemExit(f"authority transport stages differ from required order: {rows}")
-
-          candidate = {
-              "schema_version": 1,
-              "observation_anchor": {key: anchor[key] for key in required},
-              "stages": rows,
-          }
-          Path(os.environ["AUTHORITY_CANDIDATE"]).write_text(
-              json.dumps(candidate, sort_keys=True, separators=(",", ":")) + "\n"
-          )
-          PY
-
-          (
-            cd nqc-census
-            cargo run --release --locked -p nqc-census-capital \
-              --bin nqc-rmc011-authority-lock-build -- \
-              --input "$AUTHORITY_CANDIDATE" \
-              --output "$AUTHORITY_LOCK"
-          )
-          jq -e '.schema_version == 1 and (.stages | length == 5)' "$AUTHORITY_LOCK" >/dev/null
-
-          if [[ -e "$DECLARED_AUTHORITY_LOCK" ]]; then
-            cmp -- "$DECLARED_AUTHORITY_LOCK" "$AUTHORITY_LOCK"
-            echo RMC011_DECLARED_AUTHORITY_LOCK_MATCH=PASS
-          fi
-
-          while read -r key stage_code head_sha tree_sha authority_file authority_sha; do
-            python3 ci/nqc-census/verify_rmc011_upstream_authority.py \
-              --stage "$stage_code" \
-              --artifact-root "$RUNNER_TEMP/$key-raw" \
-              --authority-file "$authority_file" \
-              --lock "$AUTHORITY_LOCK" \
-              --expected-code-commit "$head_sha" \
-              --expected-code-tree "$tree_sha"
-          done < "$RUNNER_TEMP/rmc011-authority-transport.txt"
-
-          echo "RMC011_DERIVED_AUTHORITY_LOCK=PASS sha256=$(sha256sum "$AUTHORITY_LOCK" | awk '{print $1}')"
-
-      - name: Verify one coherent A1 authority snapshot
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 ci/nqc-census/verify-rmc011-upstream-coherence.py \
-            "$INPUTS" \
-            "$AUTHORITY_LOCK" \
-            "$RUNNER_TEMP"
-
-      - name: Normalize exact D08/D09 bytes consumed by D11
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/d08" "$RUNNER_TEMP/d09"
-
-          copy_exact() {
-            local root="$1"
-            local relative="$2"
-            local dest="$3"
-            local source="$root/$relative"
-            test -f "$source"
-            cp -- "$source" "$dest/$(basename "$relative")"
-          }
-
-          D08_ROOT="$RUNNER_TEMP/d08-raw"
-          D09_ROOT="$RUNNER_TEMP/d09-raw"
-
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.market_state_manifest' "$INPUTS")" "$RUNNER_TEMP/d08"
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.oracle_manifest' "$INPUTS")" "$RUNNER_TEMP/d08"
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.token_admission' "$INPUTS")" "$RUNNER_TEMP/d08"
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.pool_and_factory_facts' "$INPUTS")" "$RUNNER_TEMP/d08"
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.authority_file' "$INPUTS")" "$RUNNER_TEMP/d08"
-
-          copy_exact "$D09_ROOT" "$(jq -r '.d09.account_manifest' "$INPUTS")" "$RUNNER_TEMP/d09"
-          copy_exact "$D09_ROOT" "$(jq -r '.d09.account_summary' "$INPUTS")" "$RUNNER_TEMP/d09"
-          copy_exact "$D09_ROOT" "$(jq -r '.d09.authority_file' "$INPUTS")" "$RUNNER_TEMP/d09"
-
-          test -f "$RUNNER_TEMP/d08/market-state-manifest.jsonl"
-          test -f "$RUNNER_TEMP/d08/oracle-manifest.jsonl"
-          test -f "$RUNNER_TEMP/d08/token-admission.jsonl"
-          test -f "$RUNNER_TEMP/d08/pool-and-factory-facts.json"
-          test -f "$RUNNER_TEMP/d08/evidence-manifest.json"
-          test -f "$RUNNER_TEMP/d09/account-manifest.jsonl"
-          test -f "$RUNNER_TEMP/d09/account-summary.json"
-          test -f "$RUNNER_TEMP/d09/evidence-manifest.json"
-
-      - name: Acquire and reconcile exact Balancer V2 flash capital
-        shell: bash
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/rmc011-balancer-v2"
-          rm -rf "$ROOT"
-          mkdir -p "$ROOT"
-
-          for provider in blastapi-public mevblocker-rpc; do
-            store="$ROOT/store-$provider"
-            capture="$ROOT/capture-$provider.json"
-            (
-              cd nqc-census
-              target/release/nqc-rmc011-balancer-v2-capture \
-                --providers ../ci/nqc-census/rpc-providers.json \
-                --label "$provider" \
-                --store "$store" \
-                --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
-                --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
-                --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
-                --authority-lock "$AUTHORITY_LOCK" \
-                --out "$capture"
-            )
-            (
-              cd nqc-census
-              target/release/nqc-census-store-verify --store "$store" \
-                | tee "$ROOT/store-$provider-verify.log"
-            )
-            grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$ROOT/store-$provider-verify.log"
-            test -s "$capture"
-          done
-
-          python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
-          python3 ci/nqc-census/verify-rmc011-balancer-v2-capture.py \
-            "$ROOT/capture-blastapi-public.json" \
-            "$ROOT/capture-mevblocker-rpc.json" \
-            "$ROOT/reconciled-python.json" \
-            | tee "$ROOT/reconcile-python.log"
-          grep -F "RMC011_BALANCER_V2_CAPTURE_PASS" "$ROOT/reconcile-python.log"
-
-          (
-            cd nqc-census
-            target/release/nqc-rmc011-balancer-v2-reconcile \
-              --first "$ROOT/capture-blastapi-public.json" \
-              --second "$ROOT/capture-mevblocker-rpc.json" \
-              --out "$ROOT/reconciled-rust.json"
-          ) | tee "$ROOT/reconcile-rust.log"
-          grep -F "RMC011_BALANCER_V2_RUST_RECONCILE_PASS" "$ROOT/reconcile-rust.log"
-
-          test "$(jq -r '.status' "$ROOT/reconciled-rust.json")" = "RMC011_BALANCER_V2_DUAL_PROVIDER_RECONCILED"
-          test "$(jq -r '.source_count' "$ROOT/reconciled-rust.json")" -gt 0
-          echo "RMC011_BALANCER_V2_LIVE_ACQUISITION=PASS sources=$(jq -r '.source_count' "$ROOT/reconciled-rust.json")"
-
-      - name: Acquire and reconcile exact Uniswap V3 flash capital
-        shell: bash
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/rmc011-uniswap-v3"
-          rm -rf "$ROOT"
-          mkdir -p "$ROOT"
-
-          for provider in blastapi-public mevblocker-rpc; do
-            store="$ROOT/store-$provider"
-            capture="$ROOT/capture-$provider.json"
-            (
-              cd nqc-census
-              target/release/nqc-rmc011-uniswap-v3-capture \
-                --providers ../ci/nqc-census/rpc-providers.json \
-                --label "$provider" \
-                --store "$store" \
-                --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
-                --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
-                --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
-                --authority-lock "$AUTHORITY_LOCK" \
-                --deployment ../ci/nqc-census/rmc011-uniswap-v3-deployment.json \
-                --out "$capture"
-            )
-            (
-              cd nqc-census
-              target/release/nqc-census-store-verify --store "$store" \
-                | tee "$ROOT/store-$provider-verify.log"
-            )
-            grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$ROOT/store-$provider-verify.log"
-            test -s "$capture"
-          done
-
-          (
-            cd nqc-census
-            target/release/nqc-rmc011-uniswap-v3-reconcile \
-              --first "$ROOT/capture-blastapi-public.json" \
-              --second "$ROOT/capture-mevblocker-rpc.json" \
-              --out "$ROOT/reconciled-rust.json"
-          ) | tee "$ROOT/reconcile-rust.log"
-          grep -F "RMC011_UNISWAP_V3_RUST_RECONCILE_PASS" "$ROOT/reconcile-rust.log"
-
-          test "$(jq -r '.status' "$ROOT/reconciled-rust.json")" = "RMC011_UNISWAP_V3_DUAL_PROVIDER_RECONCILED"
-          test "$(jq -r '.provider_count' "$ROOT/reconciled-rust.json")" = "2"
-          test "$(jq -r '.source_count' "$ROOT/reconciled-rust.json")" -gt 0
-          test "$(jq -r '.first_capture_sha256' "$ROOT/reconciled-rust.json")" != "$(jq -r '.second_capture_sha256' "$ROOT/reconciled-rust.json")"
-
-          echo "RMC011_UNISWAP_V3_LIVE_ACQUISITION=PASS sources=$(jq -r '.source_count' "$ROOT/reconciled-rust.json")"
-
-      - name: Run authoritative D11 real-source closeout
-        shell: bash
-        run: |
-          set -euo pipefail
-          OUTPUT="$RUNNER_TEMP/rmc011-real-source"
-          bash ci/nqc-census/run-rmc011-real-source-closeout.sh             "$RUNNER_TEMP/d08"             "$RUNNER_TEMP/d09"             "$AUTHORITY_LOCK"             "$OUTPUT"
-
-          jq -e '
-            .schema_version == 3 and
-            .real_source_certification == true and
-            .source_universe_basis == "RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY" and
-            .global_capital_source_completeness_claimed == false and
-            .repayment_cashflow_sufficiency_claimed == false and
-            .terminal_capital_census_complete == false and
-            .actionable_requirement_coverage_complete == false and
-            (.terminal_blockers | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
-            (.terminal_blockers | index("ACTIONABLE_REQUIREMENT_COVERAGE_DEFERRED_TO_RMC012") != null) and
-            (.terminal_blockers | index("REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED") != null) and
-            (.non_claims | index("TERMINAL_CAPITAL_CENSUS_NOT_CERTIFIED") != null) and
-            (.non_claims | index("ACTIONABLE_REQUIREMENT_COVERAGE_NOT_CERTIFIED") != null) and
-            (.zero_own_capital_proven == false or
-              (.feasible_count > 0 and
-               .feasible_external_gas_count == .feasible_count)) and
-            .profitability_claimed == false and
-            .shadow_eligibility_claimed == false and
-            .canary_claimed == false and
-            .real_pnl_claimed == false and
-            (.non_claims | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
-            (.non_claims | index("REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED") != null)
-          ' "$OUTPUT/capital-real-source-closeout.json" >/dev/null
-          (
-            cd "$OUTPUT"
-            sha256sum -c capital-archive.sha256
-          )
-
-          echo "RMC011_REAL_SOURCE_CERTIFICATION=PASS"
-          echo "RMC011_EXACT_HEAD=$(git rev-parse HEAD)"
-          echo "RMC011_EXACT_TREE=$(git rev-parse 'HEAD^{tree}')"
-
-      - name: Replay-bind D11-native Balancer sources into expanded ledger
-        shell: bash
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/rmc011-expanded-ledger"
-          rm -rf "$ROOT"
-          mkdir -p "$ROOT"
-          CODE_TREE="$(git rev-parse 'HEAD^{tree}')"
-
-          (
-            cd nqc-census
-            target/release/nqc-rmc011-expanded-ledger-replay \
-              --legacy-dir "$RUNNER_TEMP/rmc011-real-source" \
-              --balancer-reconcile "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
-              --uniswap-v3-reconcile "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json" \
-              --code-commit "$GITHUB_SHA" \
-              --code-tree "$CODE_TREE" \
-              --out "$ROOT/expanded-ledger-replay.json"
-          ) | tee "$ROOT/replay.log"
-          grep -F "RMC011_EXPANDED_LEDGER_REPLAY_PASS" "$ROOT/replay.log"
-
-          (
-            cd nqc-census
-            target/release/nqc-rmc011-expanded-ledger-replay \
-              --legacy-dir "$RUNNER_TEMP/rmc011-real-source" \
-              --balancer-reconcile "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
-              --uniswap-v3-reconcile "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json" \
-              --code-commit "$GITHUB_SHA" \
-              --code-tree "$CODE_TREE" \
-              --out "$ROOT/expanded-ledger-replay-second.json"
-          ) >/dev/null
-          cmp "$ROOT/expanded-ledger-replay.json" "$ROOT/expanded-ledger-replay-second.json"
-
-          jq -e '
-            .schema_version == 1 and
-            .stage == "RMC-011" and
-            .status == "RMC011_EXPANDED_LEDGER_REPLAY_PASS" and
-            .claim_scope == "D11_NATIVE_SOURCE_REPLAY_BINDING_ONLY" and
-            .terminal_d11_closed == false and
-            .code_commit == env.GITHUB_SHA and
-            .d11_native_source_count > 0 and
-            (.uniswap_v3_reconciliation_sha256 | type == "string" and test("^[0-9a-f]{64}$")) and
-            .d08_source_count == .legacy_source_count and
-            .expanded_source_count == (.legacy_source_count + .d11_native_source_count) and
-            (.non_claims | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
-            (.non_claims | index("TERMINAL_D11_NOT_CERTIFIED") != null)
-          ' "$ROOT/expanded-ledger-replay.json" >/dev/null
-
-          echo "RMC011_EXPANDED_LEDGER_REPLAY_BINDING=PASS"
-          echo "RMC011_EXPANDED_LEDGER_RECEIPT_SHA256=$(sha256sum "$ROOT/expanded-ledger-replay.json" | awk '{print $1}')"
-
-      - name: Build self-contained certification evidence package
-        shell: bash
-        run: |
-          set -euo pipefail
-          PACKAGE="$RUNNER_TEMP/rmc011-certification-package"
-          rm -rf "$PACKAGE"
-          mkdir -p "$PACKAGE/d11" "$PACKAGE/d11-expanded" "$PACKAGE/upstream"
-
-          cp -a "$RUNNER_TEMP/rmc011-real-source/." "$PACKAGE/d11/"
-          cp -- "$RUNNER_TEMP/rmc011-expanded-ledger/expanded-ledger-replay.json" "$PACKAGE/d11-expanded/expanded-ledger-replay.json"
-          cp -- "$INPUTS" "$PACKAGE/rmc011-real-source-inputs.json"
-          cp -- "$AUTHORITY_LOCK" "$PACKAGE/rmc011-authority-lock.json"
-          cp -- ci/nqc-census/rmc011-capital-source-universe.json "$PACKAGE/rmc011-capital-source-universe.json"
-          test -d "$RUNNER_TEMP/rmc011-balancer-v2"
-          mkdir -p "$PACKAGE/permissionless/balancer-v2"
-          cp -a "$RUNNER_TEMP/rmc011-balancer-v2/." "$PACKAGE/permissionless/balancer-v2/"
-          test -d "$RUNNER_TEMP/rmc011-uniswap-v3"
-          mkdir -p "$PACKAGE/permissionless/uniswap-v3"
-          cp -a "$RUNNER_TEMP/rmc011-uniswap-v3/." "$PACKAGE/permissionless/uniswap-v3/"
-          cp -- ci/nqc-census/rmc011-uniswap-v3-deployment.json "$PACKAGE/rmc011-uniswap-v3-deployment.json"
-          cp -- ci/nqc-census/rmc011-external-capital-provider-registry.json "$PACKAGE/rmc011-external-capital-provider-registry.json"
-          cp -- /tmp/rmc011-external-provider-registry-report.json "$PACKAGE/external-provider-registry-report.json"
-          cp -- ci/nqc-census/rmc011-execution-plan-requirement-catalog.json "$PACKAGE/rmc011-execution-plan-requirement-catalog.json"
-          cp -- /tmp/rmc011-execution-plan-requirement-catalog-report.json "$PACKAGE/execution-plan-requirement-catalog-report.json"
-          cp -- ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json "$PACKAGE/rmc011-permissionless-debt-facility-catalog.json"
-          cp -- /tmp/rmc011-permissionless-debt-catalog-report.json "$PACKAGE/permissionless-debt-catalog-report.json"
-          cp -- /tmp/rmc011-bounded-family-rejections.json "$PACKAGE/bounded-family-rejections.json"
-          if [[ -d "$RUNNER_TEMP/rmc011-bounded-family-evidence" ]]; then
-            mkdir -p "$PACKAGE/bounded-family-evidence"
-            cp -a "$RUNNER_TEMP/rmc011-bounded-family-evidence/." "$PACKAGE/bounded-family-evidence/"
-          fi
-          cp -- ci/nqc-census/rmc011-capital-family-discovery.json "$PACKAGE/rmc011-capital-family-discovery.json"
-          for stage in d06 d07 d08 d09 d10; do
-            test -d "$RUNNER_TEMP/$stage-raw"
-            cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
-          done
-
-          (
-            cd "$PACKAGE"
-            LC_ALL=C find . -type f ! -name CERTIFICATION-PACKAGE-SHA256SUMS -print0 \
-              | LC_ALL=C sort -z \
-              | xargs -0 sha256sum > CERTIFICATION-PACKAGE-SHA256SUMS
-            test -s CERTIFICATION-PACKAGE-SHA256SUMS
-            sha256sum -c CERTIFICATION-PACKAGE-SHA256SUMS
-            (
-              cd d11
-              sha256sum -c capital-archive.sha256
-            )
-          )
-
-          echo "RMC011_SELF_CONTAINED_EVIDENCE_PACKAGE=PASS"
-          echo "RMC011_EVIDENCE_PACKAGE_SHA256=$(sha256sum "$PACKAGE/CERTIFICATION-PACKAGE-SHA256SUMS" | awk '{print $1}')"
-
-      - name: Upload immutable D11 certification archive
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: rmc011-real-source-certification-${{ github.sha }}
-          path: ${{ runner.temp }}/rmc011-certification-package/
-          if-no-files-found: error
-          retention-days: 90
-          compression-level: 0
-\t' read -r first_family repository workflow_name run_id head_sha artifact_id artifact_name artifact_digest evidence_file evidence_sha <<<"$first_line"
           test "$repository" = "$REPOSITORY"
           test "$workflow_name" = "NQC RMC-011 Bounded Family Rejection Evidence"
           [[ "$run_id" =~ ^[0-9]+$ ]]
@@ -776,477 +344,54 @@ jobs:
           test -f "$OUT/SHA256SUMS"
           ( cd "$OUT" && sha256sum -c SHA256SUMS )
 
-          while IFS=          set -euo pipefail
-          if [[ ! -f "$INPUTS" ]]; then
-            echo "RMC011_BLOCKED_UPSTREAM_REAL_SOURCE: exact RMC-006..RMC-010 transport inputs are required" >&2
-            exit 1
-          fi
-          test "$(jq -r '.repository' "$INPUTS")" = "$REPOSITORY"
-          test "$(jq -r '.schema_version' "$INPUTS")" = "3"
-          if [[ -e "$DECLARED_AUTHORITY_LOCK" ]]; then
-            jq -e '.schema_version == 1 and (.stages | length == 5)' "$DECLARED_AUTHORITY_LOCK" >/dev/null
-          fi
-
-      - name: Verify and download exact RMC-006 through RMC-010 authority artifacts
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          verify_and_download() {
-            local key="$1"
-            local stage_code="$2"
-            local out="$3"
-            local run_id head_sha workflow_name artifact_id artifact_name artifact_digest authority_file
-            local run_json artifact_json tree_sha authority_path authority_sha
-
-            run_id="$(jq -r --arg key "$key" '.[$key].run_id' "$INPUTS")"
-            head_sha="$(jq -r --arg key "$key" '.[$key].head_sha' "$INPUTS")"
-            workflow_name="$(jq -r --arg key "$key" '.[$key].workflow_name' "$INPUTS")"
-            artifact_id="$(jq -r --arg key "$key" '.[$key].artifact_id' "$INPUTS")"
-            artifact_name="$(jq -r --arg key "$key" '.[$key].artifact_name' "$INPUTS")"
-            artifact_digest="$(jq -r --arg key "$key" '.[$key].artifact_digest' "$INPUTS")"
-            authority_file="$(jq -r --arg key "$key" '.[$key].authority_file' "$INPUTS")"
-
-            [[ "$run_id" =~ ^[0-9]+$ ]]
-            [[ "$artifact_id" =~ ^[0-9]+$ ]]
-            [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
-            [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
-            [[ -n "$workflow_name" && "$workflow_name" != "null" ]]
-            [[ -n "$artifact_name" && "$artifact_name" != "null" ]]
-            [[ -n "$authority_file" && "$authority_file" != "null" ]]
-            [[ "$authority_file" != /* ]]
-            [[ "$authority_file" != *".."* ]]
-
-            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
-            test "$(jq -r '.status' <<<"$run_json")" = "completed"
-            test "$(jq -r '.conclusion' <<<"$run_json")" = "success"
-            test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
-            test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
-
-            artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
-            test "$(jq -r '.expired' <<<"$artifact_json")" = "false"
-            test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
-            test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
-            test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
-
-            tree_sha="$(gh api "repos/$REPOSITORY/git/commits/$head_sha" --jq '.tree.sha')"
-            [[ "$tree_sha" =~ ^[0-9a-f]{40}$ ]]
-
-            rm -rf "$out"
-            mkdir -p "$out"
-            gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$out"
-
-            authority_path="$out/$authority_file"
-            test -f "$authority_path"
-            authority_sha="$(sha256sum "$authority_path" | awk '{print $1}')"
-            [[ "$authority_sha" =~ ^[0-9a-f]{64}$ ]]
-            printf '%s %s %s %s %s %s\n' \
-              "$key" "$stage_code" "$head_sha" "$tree_sha" "$authority_file" "$authority_sha" \
-              >> "$RUNNER_TEMP/rmc011-authority-transport.txt"
-
-            echo "RMC011_UPSTREAM_TRANSPORT_PASS stage=$stage_code run=$run_id artifact=$artifact_id head=$head_sha tree=$tree_sha authority_sha256=$authority_sha"
-          }
-
-          : > "$RUNNER_TEMP/rmc011-authority-transport.txt"
-
-          verify_and_download d06 RMC-006 "$RUNNER_TEMP/d06-raw"
-          verify_and_download d07 RMC-007 "$RUNNER_TEMP/d07-raw"
-          verify_and_download d08 RMC-008 "$RUNNER_TEMP/d08-raw"
-          verify_and_download d09 RMC-009 "$RUNNER_TEMP/d09-raw"
-          verify_and_download d10 RMC-010 "$RUNNER_TEMP/d10-raw"
-
-      - name: Derive and semantically verify canonical upstream authority lock
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
+          python3 - "$META" "$OUT" <<'PY'
+          import hashlib
           import json
-          import os
+          import sys
           from pathlib import Path
 
-          runner = Path(os.environ["RUNNER_TEMP"])
-          inputs = json.loads(Path(os.environ["INPUTS"]).read_text())
-          authority_path = runner / "d08-raw" / inputs["d08"]["authority_file"]
-          manifest = json.loads(authority_path.read_text())
-          anchor = manifest.get("observation_anchor")
-          required = [
-              "chain_id", "genesis_hash", "fork_lineage", "block_number",
-              "block_hash", "parent_hash", "timestamp", "state_root",
-          ]
-          if not isinstance(anchor, dict) or any(key not in anchor for key in required):
-              raise SystemExit("D08 authority lacks the full observation anchor required by D11")
+          meta_path, root_path = sys.argv[1:]
+          meta = json.loads(Path(meta_path).read_text(encoding="utf-8"))
+          root = Path(root_path)
+          if meta.get("promoted") is not True or len(meta.get("rows", [])) != 9:
+              raise SystemExit("bounded family metadata is not a complete promotion")
 
-          rows = []
-          expected = ["RMC-006", "RMC-007", "RMC-008", "RMC-009", "RMC-010"]
-          for line in (runner / "rmc011-authority-transport.txt").read_text().splitlines():
-              key, stage, commit, tree, authority_file, authority_sha = line.split()
-              rows.append({
-                  "stage": stage,
-                  "code_commit": commit,
-                  "code_tree": tree,
-                  "artifact_sha256": "0x" + authority_sha,
-              })
-          if [row["stage"] for row in rows] != expected:
-              raise SystemExit(f"authority transport stages differ from required order: {rows}")
-
-          candidate = {
-              "schema_version": 1,
-              "observation_anchor": {key: anchor[key] for key in required},
-              "stages": rows,
-          }
-          Path(os.environ["AUTHORITY_CANDIDATE"]).write_text(
-              json.dumps(candidate, sort_keys=True, separators=(",", ":")) + "\n"
-          )
+          seen_files = set()
+          seen_hashes = set()
+          for row in meta["rows"]:
+              family = row["family"]
+              expected_file = f"families/{family}/evidence.json"
+              if row["file"] != expected_file:
+                  raise SystemExit(f"{family}: wrong evidence file")
+              if expected_file in seen_files:
+                  raise SystemExit(f"{family}: duplicate evidence file")
+              seen_files.add(expected_file)
+              path = root / expected_file
+              data = path.read_bytes()
+              digest = hashlib.sha256(data).hexdigest()
+              if digest != row["sha256"]:
+                  raise SystemExit(f"{family}: evidence sha256 mismatch")
+              if digest in seen_hashes:
+                  raise SystemExit(f"{family}: duplicate evidence sha256")
+              seen_hashes.add(digest)
+              evidence = json.loads(data)
+              required = {
+                  "schema_version": 1,
+                  "stage": "RMC-011",
+                  "kind": "EXHAUSTIVE_REJECTION",
+                  "family": family,
+                  "workflow_name": row["workflow_name"],
+                  "head_sha": row["head_sha"],
+                  "run_id": row["run_id"],
+                  "global_nonexistence_claimed": False,
+                  "source_availability_claimed": False,
+                  "d11_terminal_closed": False,
+              }
+              for key, value in required.items():
+                  if evidence.get(key) != value:
+                      raise SystemExit(f"{family}: evidence field {key} differs")
           PY
 
-          (
-            cd nqc-census
-            cargo run --release --locked -p nqc-census-capital \
-              --bin nqc-rmc011-authority-lock-build -- \
-              --input "$AUTHORITY_CANDIDATE" \
-              --output "$AUTHORITY_LOCK"
-          )
-          jq -e '.schema_version == 1 and (.stages | length == 5)' "$AUTHORITY_LOCK" >/dev/null
-
-          if [[ -e "$DECLARED_AUTHORITY_LOCK" ]]; then
-            cmp -- "$DECLARED_AUTHORITY_LOCK" "$AUTHORITY_LOCK"
-            echo RMC011_DECLARED_AUTHORITY_LOCK_MATCH=PASS
-          fi
-
-          while read -r key stage_code head_sha tree_sha authority_file authority_sha; do
-            python3 ci/nqc-census/verify_rmc011_upstream_authority.py \
-              --stage "$stage_code" \
-              --artifact-root "$RUNNER_TEMP/$key-raw" \
-              --authority-file "$authority_file" \
-              --lock "$AUTHORITY_LOCK" \
-              --expected-code-commit "$head_sha" \
-              --expected-code-tree "$tree_sha"
-          done < "$RUNNER_TEMP/rmc011-authority-transport.txt"
-
-          echo "RMC011_DERIVED_AUTHORITY_LOCK=PASS sha256=$(sha256sum "$AUTHORITY_LOCK" | awk '{print $1}')"
-
-      - name: Verify one coherent A1 authority snapshot
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 ci/nqc-census/verify-rmc011-upstream-coherence.py \
-            "$INPUTS" \
-            "$AUTHORITY_LOCK" \
-            "$RUNNER_TEMP"
-
-      - name: Normalize exact D08/D09 bytes consumed by D11
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/d08" "$RUNNER_TEMP/d09"
-
-          copy_exact() {
-            local root="$1"
-            local relative="$2"
-            local dest="$3"
-            local source="$root/$relative"
-            test -f "$source"
-            cp -- "$source" "$dest/$(basename "$relative")"
-          }
-
-          D08_ROOT="$RUNNER_TEMP/d08-raw"
-          D09_ROOT="$RUNNER_TEMP/d09-raw"
-
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.market_state_manifest' "$INPUTS")" "$RUNNER_TEMP/d08"
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.oracle_manifest' "$INPUTS")" "$RUNNER_TEMP/d08"
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.token_admission' "$INPUTS")" "$RUNNER_TEMP/d08"
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.pool_and_factory_facts' "$INPUTS")" "$RUNNER_TEMP/d08"
-          copy_exact "$D08_ROOT" "$(jq -r '.d08.authority_file' "$INPUTS")" "$RUNNER_TEMP/d08"
-
-          copy_exact "$D09_ROOT" "$(jq -r '.d09.account_manifest' "$INPUTS")" "$RUNNER_TEMP/d09"
-          copy_exact "$D09_ROOT" "$(jq -r '.d09.account_summary' "$INPUTS")" "$RUNNER_TEMP/d09"
-          copy_exact "$D09_ROOT" "$(jq -r '.d09.authority_file' "$INPUTS")" "$RUNNER_TEMP/d09"
-
-          test -f "$RUNNER_TEMP/d08/market-state-manifest.jsonl"
-          test -f "$RUNNER_TEMP/d08/oracle-manifest.jsonl"
-          test -f "$RUNNER_TEMP/d08/token-admission.jsonl"
-          test -f "$RUNNER_TEMP/d08/pool-and-factory-facts.json"
-          test -f "$RUNNER_TEMP/d08/evidence-manifest.json"
-          test -f "$RUNNER_TEMP/d09/account-manifest.jsonl"
-          test -f "$RUNNER_TEMP/d09/account-summary.json"
-          test -f "$RUNNER_TEMP/d09/evidence-manifest.json"
-
-      - name: Acquire and reconcile exact Balancer V2 flash capital
-        shell: bash
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/rmc011-balancer-v2"
-          rm -rf "$ROOT"
-          mkdir -p "$ROOT"
-
-          for provider in blastapi-public mevblocker-rpc; do
-            store="$ROOT/store-$provider"
-            capture="$ROOT/capture-$provider.json"
-            (
-              cd nqc-census
-              target/release/nqc-rmc011-balancer-v2-capture \
-                --providers ../ci/nqc-census/rpc-providers.json \
-                --label "$provider" \
-                --store "$store" \
-                --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
-                --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
-                --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
-                --authority-lock "$AUTHORITY_LOCK" \
-                --out "$capture"
-            )
-            (
-              cd nqc-census
-              target/release/nqc-census-store-verify --store "$store" \
-                | tee "$ROOT/store-$provider-verify.log"
-            )
-            grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$ROOT/store-$provider-verify.log"
-            test -s "$capture"
-          done
-
-          python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
-          python3 ci/nqc-census/verify-rmc011-balancer-v2-capture.py \
-            "$ROOT/capture-blastapi-public.json" \
-            "$ROOT/capture-mevblocker-rpc.json" \
-            "$ROOT/reconciled-python.json" \
-            | tee "$ROOT/reconcile-python.log"
-          grep -F "RMC011_BALANCER_V2_CAPTURE_PASS" "$ROOT/reconcile-python.log"
-
-          (
-            cd nqc-census
-            target/release/nqc-rmc011-balancer-v2-reconcile \
-              --first "$ROOT/capture-blastapi-public.json" \
-              --second "$ROOT/capture-mevblocker-rpc.json" \
-              --out "$ROOT/reconciled-rust.json"
-          ) | tee "$ROOT/reconcile-rust.log"
-          grep -F "RMC011_BALANCER_V2_RUST_RECONCILE_PASS" "$ROOT/reconcile-rust.log"
-
-          test "$(jq -r '.status' "$ROOT/reconciled-rust.json")" = "RMC011_BALANCER_V2_DUAL_PROVIDER_RECONCILED"
-          test "$(jq -r '.source_count' "$ROOT/reconciled-rust.json")" -gt 0
-          echo "RMC011_BALANCER_V2_LIVE_ACQUISITION=PASS sources=$(jq -r '.source_count' "$ROOT/reconciled-rust.json")"
-
-      - name: Acquire and reconcile exact Uniswap V3 flash capital
-        shell: bash
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/rmc011-uniswap-v3"
-          rm -rf "$ROOT"
-          mkdir -p "$ROOT"
-
-          for provider in blastapi-public mevblocker-rpc; do
-            store="$ROOT/store-$provider"
-            capture="$ROOT/capture-$provider.json"
-            (
-              cd nqc-census
-              target/release/nqc-rmc011-uniswap-v3-capture \
-                --providers ../ci/nqc-census/rpc-providers.json \
-                --label "$provider" \
-                --store "$store" \
-                --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
-                --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
-                --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
-                --authority-lock "$AUTHORITY_LOCK" \
-                --deployment ../ci/nqc-census/rmc011-uniswap-v3-deployment.json \
-                --out "$capture"
-            )
-            (
-              cd nqc-census
-              target/release/nqc-census-store-verify --store "$store" \
-                | tee "$ROOT/store-$provider-verify.log"
-            )
-            grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$ROOT/store-$provider-verify.log"
-            test -s "$capture"
-          done
-
-          (
-            cd nqc-census
-            target/release/nqc-rmc011-uniswap-v3-reconcile \
-              --first "$ROOT/capture-blastapi-public.json" \
-              --second "$ROOT/capture-mevblocker-rpc.json" \
-              --out "$ROOT/reconciled-rust.json"
-          ) | tee "$ROOT/reconcile-rust.log"
-          grep -F "RMC011_UNISWAP_V3_RUST_RECONCILE_PASS" "$ROOT/reconcile-rust.log"
-
-          test "$(jq -r '.status' "$ROOT/reconciled-rust.json")" = "RMC011_UNISWAP_V3_DUAL_PROVIDER_RECONCILED"
-          test "$(jq -r '.provider_count' "$ROOT/reconciled-rust.json")" = "2"
-          test "$(jq -r '.source_count' "$ROOT/reconciled-rust.json")" -gt 0
-          test "$(jq -r '.first_capture_sha256' "$ROOT/reconciled-rust.json")" != "$(jq -r '.second_capture_sha256' "$ROOT/reconciled-rust.json")"
-
-          echo "RMC011_UNISWAP_V3_LIVE_ACQUISITION=PASS sources=$(jq -r '.source_count' "$ROOT/reconciled-rust.json")"
-
-      - name: Run authoritative D11 real-source closeout
-        shell: bash
-        run: |
-          set -euo pipefail
-          OUTPUT="$RUNNER_TEMP/rmc011-real-source"
-          bash ci/nqc-census/run-rmc011-real-source-closeout.sh             "$RUNNER_TEMP/d08"             "$RUNNER_TEMP/d09"             "$AUTHORITY_LOCK"             "$OUTPUT"
-
-          jq -e '
-            .schema_version == 3 and
-            .real_source_certification == true and
-            .source_universe_basis == "RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY" and
-            .global_capital_source_completeness_claimed == false and
-            .repayment_cashflow_sufficiency_claimed == false and
-            .terminal_capital_census_complete == false and
-            .actionable_requirement_coverage_complete == false and
-            (.terminal_blockers | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
-            (.terminal_blockers | index("ACTIONABLE_REQUIREMENT_COVERAGE_DEFERRED_TO_RMC012") != null) and
-            (.terminal_blockers | index("REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED") != null) and
-            (.non_claims | index("TERMINAL_CAPITAL_CENSUS_NOT_CERTIFIED") != null) and
-            (.non_claims | index("ACTIONABLE_REQUIREMENT_COVERAGE_NOT_CERTIFIED") != null) and
-            (.zero_own_capital_proven == false or
-              (.feasible_count > 0 and
-               .feasible_external_gas_count == .feasible_count)) and
-            .profitability_claimed == false and
-            .shadow_eligibility_claimed == false and
-            .canary_claimed == false and
-            .real_pnl_claimed == false and
-            (.non_claims | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
-            (.non_claims | index("REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED") != null)
-          ' "$OUTPUT/capital-real-source-closeout.json" >/dev/null
-          (
-            cd "$OUTPUT"
-            sha256sum -c capital-archive.sha256
-          )
-
-          echo "RMC011_REAL_SOURCE_CERTIFICATION=PASS"
-          echo "RMC011_EXACT_HEAD=$(git rev-parse HEAD)"
-          echo "RMC011_EXACT_TREE=$(git rev-parse 'HEAD^{tree}')"
-
-      - name: Replay-bind D11-native Balancer sources into expanded ledger
-        shell: bash
-        run: |
-          set -euo pipefail
-          ROOT="$RUNNER_TEMP/rmc011-expanded-ledger"
-          rm -rf "$ROOT"
-          mkdir -p "$ROOT"
-          CODE_TREE="$(git rev-parse 'HEAD^{tree}')"
-
-          (
-            cd nqc-census
-            target/release/nqc-rmc011-expanded-ledger-replay \
-              --legacy-dir "$RUNNER_TEMP/rmc011-real-source" \
-              --balancer-reconcile "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
-              --uniswap-v3-reconcile "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json" \
-              --code-commit "$GITHUB_SHA" \
-              --code-tree "$CODE_TREE" \
-              --out "$ROOT/expanded-ledger-replay.json"
-          ) | tee "$ROOT/replay.log"
-          grep -F "RMC011_EXPANDED_LEDGER_REPLAY_PASS" "$ROOT/replay.log"
-
-          (
-            cd nqc-census
-            target/release/nqc-rmc011-expanded-ledger-replay \
-              --legacy-dir "$RUNNER_TEMP/rmc011-real-source" \
-              --balancer-reconcile "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
-              --uniswap-v3-reconcile "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json" \
-              --code-commit "$GITHUB_SHA" \
-              --code-tree "$CODE_TREE" \
-              --out "$ROOT/expanded-ledger-replay-second.json"
-          ) >/dev/null
-          cmp "$ROOT/expanded-ledger-replay.json" "$ROOT/expanded-ledger-replay-second.json"
-
-          jq -e '
-            .schema_version == 1 and
-            .stage == "RMC-011" and
-            .status == "RMC011_EXPANDED_LEDGER_REPLAY_PASS" and
-            .claim_scope == "D11_NATIVE_SOURCE_REPLAY_BINDING_ONLY" and
-            .terminal_d11_closed == false and
-            .code_commit == env.GITHUB_SHA and
-            .d11_native_source_count > 0 and
-            (.uniswap_v3_reconciliation_sha256 | type == "string" and test("^[0-9a-f]{64}$")) and
-            .d08_source_count == .legacy_source_count and
-            .expanded_source_count == (.legacy_source_count + .d11_native_source_count) and
-            (.non_claims | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
-            (.non_claims | index("TERMINAL_D11_NOT_CERTIFIED") != null)
-          ' "$ROOT/expanded-ledger-replay.json" >/dev/null
-
-          echo "RMC011_EXPANDED_LEDGER_REPLAY_BINDING=PASS"
-          echo "RMC011_EXPANDED_LEDGER_RECEIPT_SHA256=$(sha256sum "$ROOT/expanded-ledger-replay.json" | awk '{print $1}')"
-
-      - name: Build self-contained certification evidence package
-        shell: bash
-        run: |
-          set -euo pipefail
-          PACKAGE="$RUNNER_TEMP/rmc011-certification-package"
-          rm -rf "$PACKAGE"
-          mkdir -p "$PACKAGE/d11" "$PACKAGE/d11-expanded" "$PACKAGE/upstream"
-
-          cp -a "$RUNNER_TEMP/rmc011-real-source/." "$PACKAGE/d11/"
-          cp -- "$RUNNER_TEMP/rmc011-expanded-ledger/expanded-ledger-replay.json" "$PACKAGE/d11-expanded/expanded-ledger-replay.json"
-          cp -- "$INPUTS" "$PACKAGE/rmc011-real-source-inputs.json"
-          cp -- "$AUTHORITY_LOCK" "$PACKAGE/rmc011-authority-lock.json"
-          cp -- ci/nqc-census/rmc011-capital-source-universe.json "$PACKAGE/rmc011-capital-source-universe.json"
-          test -d "$RUNNER_TEMP/rmc011-balancer-v2"
-          mkdir -p "$PACKAGE/permissionless/balancer-v2"
-          cp -a "$RUNNER_TEMP/rmc011-balancer-v2/." "$PACKAGE/permissionless/balancer-v2/"
-          test -d "$RUNNER_TEMP/rmc011-uniswap-v3"
-          mkdir -p "$PACKAGE/permissionless/uniswap-v3"
-          cp -a "$RUNNER_TEMP/rmc011-uniswap-v3/." "$PACKAGE/permissionless/uniswap-v3/"
-          cp -- ci/nqc-census/rmc011-uniswap-v3-deployment.json "$PACKAGE/rmc011-uniswap-v3-deployment.json"
-          cp -- ci/nqc-census/rmc011-external-capital-provider-registry.json "$PACKAGE/rmc011-external-capital-provider-registry.json"
-          cp -- /tmp/rmc011-external-provider-registry-report.json "$PACKAGE/external-provider-registry-report.json"
-          cp -- ci/nqc-census/rmc011-execution-plan-requirement-catalog.json "$PACKAGE/rmc011-execution-plan-requirement-catalog.json"
-          cp -- /tmp/rmc011-execution-plan-requirement-catalog-report.json "$PACKAGE/execution-plan-requirement-catalog-report.json"
-          cp -- ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json "$PACKAGE/rmc011-permissionless-debt-facility-catalog.json"
-          cp -- /tmp/rmc011-permissionless-debt-catalog-report.json "$PACKAGE/permissionless-debt-catalog-report.json"
-          cp -- /tmp/rmc011-bounded-family-rejections.json "$PACKAGE/bounded-family-rejections.json"
-          cp -- ci/nqc-census/rmc011-capital-family-discovery.json "$PACKAGE/rmc011-capital-family-discovery.json"
-          for stage in d06 d07 d08 d09 d10; do
-            test -d "$RUNNER_TEMP/$stage-raw"
-            cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
-          done
-
-          (
-            cd "$PACKAGE"
-            LC_ALL=C find . -type f ! -name CERTIFICATION-PACKAGE-SHA256SUMS -print0 \
-              | LC_ALL=C sort -z \
-              | xargs -0 sha256sum > CERTIFICATION-PACKAGE-SHA256SUMS
-            test -s CERTIFICATION-PACKAGE-SHA256SUMS
-            sha256sum -c CERTIFICATION-PACKAGE-SHA256SUMS
-            (
-              cd d11
-              sha256sum -c capital-archive.sha256
-            )
-          )
-
-          echo "RMC011_SELF_CONTAINED_EVIDENCE_PACKAGE=PASS"
-          echo "RMC011_EVIDENCE_PACKAGE_SHA256=$(sha256sum "$PACKAGE/CERTIFICATION-PACKAGE-SHA256SUMS" | awk '{print $1}')"
-
-      - name: Upload immutable D11 certification archive
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: rmc011-real-source-certification-${{ github.sha }}
-          path: ${{ runner.temp }}/rmc011-certification-package/
-          if-no-files-found: error
-          retention-days: 90
-          compression-level: 0
-\t' read -r family row_repository row_workflow row_run row_head row_artifact_id row_artifact_name row_artifact_digest row_file row_sha; do
-            test "$row_repository" = "$repository"
-            test "$row_workflow" = "$workflow_name"
-            test "$row_run" = "$run_id"
-            test "$row_head" = "$head_sha"
-            test "$row_artifact_id" = "$artifact_id"
-            test "$row_artifact_name" = "$artifact_name"
-            test "$row_artifact_digest" = "$artifact_digest"
-            test "$row_file" = "families/$family/evidence.json"
-            test -f "$OUT/$row_file"
-            actual_sha="$(sha256sum "$OUT/$row_file" | awk '{print $1}')"
-            test "$actual_sha" = "$row_sha"
-            jq -e --arg family "$family" --arg workflow "$workflow_name" --arg head "$head_sha" --argjson run "$run_id" '
-              .schema_version == 1 and
-              .stage == "RMC-011" and
-              .kind == "EXHAUSTIVE_REJECTION" and
-              .family == $family and
-              .workflow_name == $workflow and
-              .head_sha == $head and
-              .run_id == $run and
-              .global_nonexistence_claimed == false and
-              .source_availability_claimed == false and
-              .d11_terminal_closed == false
-            ' "$OUT/$row_file" >/dev/null
-          done < "$META"
-
-          test "$(wc -l < "$META")" -eq 9
           echo "RMC011_BOUNDED_FAMILY_EVIDENCE=AUTHENTICATED run=$run_id artifact=$artifact_id head=$head_sha"
       - name: Require authoritative upstream inputs
         shell: bash
@@ -1665,6 +810,10 @@ jobs:
           cp -- ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json "$PACKAGE/rmc011-permissionless-debt-facility-catalog.json"
           cp -- /tmp/rmc011-permissionless-debt-catalog-report.json "$PACKAGE/permissionless-debt-catalog-report.json"
           cp -- /tmp/rmc011-bounded-family-rejections.json "$PACKAGE/bounded-family-rejections.json"
+          if [[ -d "$RUNNER_TEMP/rmc011-bounded-family-evidence" ]]; then
+            mkdir -p "$PACKAGE/bounded-family-evidence"
+            cp -a "$RUNNER_TEMP/rmc011-bounded-family-evidence/." "$PACKAGE/bounded-family-evidence/"
+          fi
           cp -- ci/nqc-census/rmc011-capital-family-discovery.json "$PACKAGE/rmc011-capital-family-discovery.json"
           for stage in d06 d07 d08 d09 d10; do
             test -d "$RUNNER_TEMP/$stage-raw"
