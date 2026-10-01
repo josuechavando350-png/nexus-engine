@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 //! Terminal RMC-012 actionability bridge.
 //!
 //! Consumes exact, content-addressed RMC-008 and RMC-009 closeouts, enumerates
