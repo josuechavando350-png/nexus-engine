@@ -16,6 +16,7 @@ use crate::{
 use nqc_census_chain::json::Json;
 use nqc_census_core::{Address, Hash32};
 use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 
 const DISCOVERY_DOMAIN: &[u8] = b"NQC-RMC011-AAVE-V3-DEBT-DISCOVERY-V2";
 const FACILITY_DOMAIN: &[u8] = b"NQC-RMC011-AAVE-V3-DEBT-FACILITY-V2";
@@ -288,6 +289,7 @@ pub fn discover_d08_aave_debt_facilities(
     let mut facilities = Vec::new();
     let mut rejections = Vec::new();
     let mut coverage_rows = Vec::<(String, [u8; 32])>::new();
+    let mut candidate_keys = BTreeSet::new();
 
     for row in parse_jsonl(state_manifest_jsonl)? {
         if text(&row, "protocol")? != "AAVE_V3" {
@@ -301,6 +303,11 @@ pub fn discover_d08_aave_debt_facilities(
         let market_id_text = text(&row, "market_id")?.to_owned();
         let asset = Address::parse_hex(text(&row, "asset")?)
             .map_err(|_| CapitalError::InvalidCanonical("invalid Aave debt asset"))?;
+        if !candidate_keys.insert((market_id_text.clone(), asset)) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate Aave debt discovery candidate",
+            ));
+        }
 
         if text(&row, "lifecycle")? != "CURRENT" {
             let reason = AaveDebtDiscoveryRejectionReason::HistoricalNoActiveState;
