@@ -7,9 +7,7 @@
 //! A separate reconciler requires two independent provider captures to agree.
 
 use crate::{
-    permissionless_atomic::{
-        admit_balancer_v2_dual_provider, BalancerV2AuthenticatedObservation,
-    },
+    permissionless_atomic::{admit_balancer_v2_dual_provider, BalancerV2AuthenticatedObservation},
     source_authority::D11SourceAuthority,
     Amount256, CapitalEvidenceRef, CapitalSource,
 };
@@ -27,12 +25,7 @@ use nqc_census_chain::{
 use nqc_census_core::{Address, CallOutcome, ChainDomain, Hash32, StateAnchor};
 use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
-use std::{
-    collections::BTreeSet,
-    error::Error,
-    fs,
-    path::Path,
-};
+use std::{collections::BTreeSet, error::Error, fs, path::Path};
 
 const BALANCER_CAPTURE_NAMESPACE: u16 = 0x0b21;
 const BALANCER_V2_VAULT: &str = "0xba12222222228d8ba445958a75a0704d566bf2c8";
@@ -85,9 +78,7 @@ fn full_anchor_json(anchor: &StateAnchor) -> Json {
 }
 
 fn returned<'a>(
-    observation: &'a nqc_census_core::CensusObservation<
-        nqc_census_core::ContractCallEnvelope,
-    >,
+    observation: &'a nqc_census_core::CensusObservation<nqc_census_core::ContractCallEnvelope>,
     label: &'static str,
 ) -> Result<&'a [u8], ChainError> {
     match observation.payload().outcome() {
@@ -128,11 +119,7 @@ fn returned_amount(bytes: &[u8], label: &'static str) -> Result<Amount256, Chain
     Ok(Amount256::from_be_bytes(word))
 }
 
-fn verify_d08_artifact(
-    manifest: &Json,
-    name: &str,
-    bytes: &[u8],
-) -> Result<String, ChainError> {
+fn verify_d08_artifact(manifest: &Json, name: &str, bytes: &[u8]) -> Result<String, ChainError> {
     let expected = manifest
         .get("artifacts")
         .and_then(Json::as_array)
@@ -225,11 +212,8 @@ fn provider_capture(
             "Balancer provider chain domain differs from D08 authority".into(),
         ));
     }
-    let (anchor, anchor_output) = acquisition.resolve_anchor(
-        provider,
-        &chain_facts.chain,
-        expected_anchor.block_number(),
-    )?;
+    let (anchor, anchor_output) =
+        acquisition.resolve_anchor(provider, &chain_facts.chain, expected_anchor.block_number())?;
     if &anchor != expected_anchor {
         return Err(ChainError::Evidence(
             "Balancer provider anchor differs from D08 authority".into(),
@@ -268,168 +252,160 @@ fn provider_capture(
         ]),
     )?;
 
-    let output = acquisition.point(
-        provider,
-        &chain_facts.chain,
-        None,
-        &spec,
-        &anchor,
-        |ctx| {
-            let semantics = chain_read_semantics()?;
-            let vault_code = ctx.code(vault, &anchor, semantics)?;
-            if vault_code.payload().is_absent() {
-                return Err(ChainError::Evidence(
-                    "canonical Balancer V2 Vault has no runtime code".into(),
-                ));
-            }
-            let vault_code_sha256 = sha256_plain(vault_code.payload().code());
+    let output = acquisition.point(provider, &chain_facts.chain, None, &spec, &anchor, |ctx| {
+        let semantics = chain_read_semantics()?;
+        let vault_code = ctx.code(vault, &anchor, semantics)?;
+        if vault_code.payload().is_absent() {
+            return Err(ChainError::Evidence(
+                "canonical Balancer V2 Vault has no runtime code".into(),
+            ));
+        }
+        let vault_code_sha256 = sha256_plain(vault_code.payload().code());
 
-            let core = ctx.calls(
-                &[
-                    (vault, abi::encode_call(abi::selector("getProtocolFeesCollector()"), &[])),
-                    (vault, abi::encode_call(abi::selector("getPausedState()"), &[])),
-                ],
-                &anchor,
-                semantics,
-            )?;
-            if core.len() != 2 {
-                return Err(ChainError::Evidence(
-                    "Balancer core call count differs".into(),
-                ));
-            }
-            let fee_collector =
-                required_address(returned(&core[0], "getProtocolFeesCollector")?, "fee collector")?;
-            let paused_words = abi::words(returned(&core[1], "getPausedState")?)?;
-            if paused_words.len() != 3 {
-                return Err(ChainError::Evidence(
-                    "Balancer getPausedState must return three words".into(),
-                ));
-            }
-            let paused = abi::decode_bool(&paused_words[0])?;
-            let pause_window_end_time = abi::decode_u64(&paused_words[1])?;
-            let buffer_period_end_time = abi::decode_u64(&paused_words[2])?;
+        let core = ctx.calls(
+            &[
+                (
+                    vault,
+                    abi::encode_call(abi::selector("getProtocolFeesCollector()"), &[]),
+                ),
+                (
+                    vault,
+                    abi::encode_call(abi::selector("getPausedState()"), &[]),
+                ),
+            ],
+            &anchor,
+            semantics,
+        )?;
+        if core.len() != 2 {
+            return Err(ChainError::Evidence(
+                "Balancer core call count differs".into(),
+            ));
+        }
+        let fee_collector = required_address(
+            returned(&core[0], "getProtocolFeesCollector")?,
+            "fee collector",
+        )?;
+        let paused_words = abi::words(returned(&core[1], "getPausedState")?)?;
+        if paused_words.len() != 3 {
+            return Err(ChainError::Evidence(
+                "Balancer getPausedState must return three words".into(),
+            ));
+        }
+        let paused = abi::decode_bool(&paused_words[0])?;
+        let pause_window_end_time = abi::decode_u64(&paused_words[1])?;
+        let buffer_period_end_time = abi::decode_u64(&paused_words[2])?;
 
-            let collector_code = ctx.code(fee_collector, &anchor, semantics)?;
-            if collector_code.payload().is_absent() {
-                return Err(ChainError::Evidence(
-                    "Balancer protocol fee collector has no runtime code".into(),
-                ));
-            }
-            let fee_collector_code_sha256 = sha256_plain(collector_code.payload().code());
-            let fee_call = ctx.call(
-                fee_collector,
-                abi::encode_call(abi::selector("getFlashLoanFeePercentage()"), &[]),
-                &anchor,
-                semantics,
-            )?;
-            let fee_word = abi::single_word(returned(
-                &fee_call,
-                "getFlashLoanFeePercentage",
-            )?)?;
-            let fee_percentage_1e18 = abi::decode_u64(&fee_word)?;
-            if fee_percentage_1e18 > 1_000_000_000_000_000_000 {
-                return Err(ChainError::Evidence(
-                    "Balancer flash fee exceeds 1e18".into(),
-                ));
-            }
+        let collector_code = ctx.code(fee_collector, &anchor, semantics)?;
+        if collector_code.payload().is_absent() {
+            return Err(ChainError::Evidence(
+                "Balancer protocol fee collector has no runtime code".into(),
+            ));
+        }
+        let fee_collector_code_sha256 = sha256_plain(collector_code.payload().code());
+        let fee_call = ctx.call(
+            fee_collector,
+            abi::encode_call(abi::selector("getFlashLoanFeePercentage()"), &[]),
+            &anchor,
+            semantics,
+        )?;
+        let fee_word = abi::single_word(returned(&fee_call, "getFlashLoanFeePercentage")?)?;
+        let fee_percentage_1e18 = abi::decode_u64(&fee_word)?;
+        if fee_percentage_1e18 > 1_000_000_000_000_000_000 {
+            return Err(ChainError::Evidence(
+                "Balancer flash fee exceeds 1e18".into(),
+            ));
+        }
 
-            let balance_selector = abi::selector("balanceOf(address)");
-            let requests = assets
-                .iter()
-                .map(|asset| {
+        let balance_selector = abi::selector("balanceOf(address)");
+        let requests = assets
+            .iter()
+            .map(|asset| {
+                (
+                    *asset,
+                    abi::encode_call(balance_selector, &[abi::address_word(vault.as_bytes())]),
+                )
+            })
+            .collect::<Vec<_>>();
+        let balances = ctx.calls(&requests, &anchor, semantics)?;
+        if balances.len() != assets.len() {
+            return Err(ChainError::Evidence(
+                "Balancer asset balance call count differs".into(),
+            ));
+        }
+
+        let mut asset_rows = Vec::with_capacity(assets.len());
+        for (asset, balance) in assets.iter().zip(&balances) {
+            let token_code = ctx.code(*asset, &anchor, semantics)?;
+            if token_code.payload().is_absent() {
+                return Err(ChainError::Evidence(format!(
+                    "D08 admitted asset {} has no code at Balancer anchor",
+                    asset.to_hex()
+                )));
+            }
+            let amount = returned_amount(returned(balance, "balanceOf")?, "balanceOf")?;
+            asset_rows.push(Json::object([
+                ("asset", Json::string(asset.to_hex())),
+                (
+                    "vault_balance",
+                    Json::string(amount_decimal(*amount.as_be_bytes())),
+                ),
+                (
+                    "code_sha256",
+                    Json::string(sha256_plain(token_code.payload().code())),
+                ),
+            ]));
+        }
+
+        Ok(Json::object([
+            ("anchor", full_anchor_json(&anchor)),
+            (
+                "authority_lock_sha256",
+                Json::string(authority_lock_sha256.to_owned()),
+            ),
+            (
+                "d08_market_state_sha256",
+                Json::string(d08_market_state_sha256.to_owned()),
+            ),
+            (
+                "d08_token_admission_sha256",
+                Json::string(d08_token_admission_sha256.to_owned()),
+            ),
+            (
+                "d08_evidence_manifest_sha256",
+                Json::string(d08_evidence_manifest_sha256.to_owned()),
+            ),
+            (
+                "asset_universe_sha256",
+                Json::string(assets_commitment.clone()),
+            ),
+            (
+                "vault",
+                Json::object([
+                    ("address", Json::string(vault.to_hex())),
+                    ("code_sha256", Json::string(vault_code_sha256)),
+                    ("fee_collector", Json::string(fee_collector.to_hex())),
                     (
-                        *asset,
-                        abi::encode_call(
-                            balance_selector,
-                            &[abi::address_word(vault.as_bytes())],
-                        ),
-                    )
-                })
-                .collect::<Vec<_>>();
-            let balances = ctx.calls(&requests, &anchor, semantics)?;
-            if balances.len() != assets.len() {
-                return Err(ChainError::Evidence(
-                    "Balancer asset balance call count differs".into(),
-                ));
-            }
-
-            let mut asset_rows = Vec::with_capacity(assets.len());
-            for (asset, balance) in assets.iter().zip(&balances) {
-                let token_code = ctx.code(*asset, &anchor, semantics)?;
-                if token_code.payload().is_absent() {
-                    return Err(ChainError::Evidence(format!(
-                        "D08 admitted asset {} has no code at Balancer anchor",
-                        asset.to_hex()
-                    )));
-                }
-                let amount = returned_amount(returned(balance, "balanceOf")?, "balanceOf")?;
-                asset_rows.push(Json::object([
-                    ("asset", Json::string(asset.to_hex())),
+                        "fee_collector_code_sha256",
+                        Json::string(fee_collector_code_sha256),
+                    ),
+                    ("paused", Json::Bool(paused)),
                     (
-                        "vault_balance",
-                        Json::string(amount_decimal(*amount.as_be_bytes())),
+                        "pause_window_end_time",
+                        Json::string(pause_window_end_time.to_string()),
                     ),
                     (
-                        "code_sha256",
-                        Json::string(sha256_plain(token_code.payload().code())),
+                        "buffer_period_end_time",
+                        Json::string(buffer_period_end_time.to_string()),
                     ),
-                ]));
-            }
-
-            Ok(Json::object([
-                ("anchor", full_anchor_json(&anchor)),
-                (
-                    "authority_lock_sha256",
-                    Json::string(authority_lock_sha256.to_owned()),
-                ),
-                (
-                    "d08_market_state_sha256",
-                    Json::string(d08_market_state_sha256.to_owned()),
-                ),
-                (
-                    "d08_token_admission_sha256",
-                    Json::string(d08_token_admission_sha256.to_owned()),
-                ),
-                (
-                    "d08_evidence_manifest_sha256",
-                    Json::string(d08_evidence_manifest_sha256.to_owned()),
-                ),
-                (
-                    "asset_universe_sha256",
-                    Json::string(assets_commitment.clone()),
-                ),
-                (
-                    "vault",
-                    Json::object([
-                        ("address", Json::string(vault.to_hex())),
-                        ("code_sha256", Json::string(vault_code_sha256)),
-                        (
-                            "fee_collector",
-                            Json::string(fee_collector.to_hex()),
-                        ),
-                        (
-                            "fee_collector_code_sha256",
-                            Json::string(fee_collector_code_sha256),
-                        ),
-                        ("paused", Json::Bool(paused)),
-                        (
-                            "pause_window_end_time",
-                            Json::string(pause_window_end_time.to_string()),
-                        ),
-                        (
-                            "buffer_period_end_time",
-                            Json::string(buffer_period_end_time.to_string()),
-                        ),
-                        (
-                            "flash_loan_fee_percentage_1e18",
-                            Json::string(fee_percentage_1e18.to_string()),
-                        ),
-                    ]),
-                ),
-                ("assets", Json::Array(asset_rows)),
-            ]))
-        },
-    )?;
+                    (
+                        "flash_loan_fee_percentage_1e18",
+                        Json::string(fee_percentage_1e18.to_string()),
+                    ),
+                ]),
+            ),
+            ("assets", Json::Array(asset_rows)),
+        ]))
+    })?;
 
     let semantic = output.result_json()?;
     let mut members = vec![
@@ -449,7 +425,10 @@ fn provider_capture(
             "provider_manifest",
             Json::string(output.manifest_id().to_hex()),
         ),
-        ("bootstrap_manifest", Json::string(bootstrap.manifest_id().to_hex())),
+        (
+            "bootstrap_manifest",
+            Json::string(bootstrap.manifest_id().to_hex()),
+        ),
         (
             "anchor_manifest",
             Json::string(anchor_output.manifest_id().to_hex()),
@@ -490,8 +469,7 @@ fn capture_semantics(capture: &Json) -> Result<Json, ChainError> {
 fn capture_digest(capture: &Json) -> Result<Hash32, ChainError> {
     let bytes = capture.canonical()?;
     let digest: [u8; 32] = Sha256::digest(&bytes).into();
-    Hash32::new(digest)
-        .map_err(|_| ChainError::Evidence("Balancer capture digest is zero".into()))
+    Hash32::new(digest).map_err(|_| ChainError::Evidence("Balancer capture digest is zero".into()))
 }
 
 fn bool_json(value: &Json, key: &str) -> Result<bool, ChainError> {
@@ -666,10 +644,7 @@ pub fn build_balancer_reconciliation_artifact(
             "second_capture_sha256",
             Json::string(sha256_plain(second_bytes)),
         ),
-        (
-            "source_count",
-            Json::uint(u64::try_from(sources.len())?),
-        ),
+        ("source_count", Json::uint(u64::try_from(sources.len())?)),
         ("sources", Json::Array(rows)),
     ]);
     let bytes = report.canonical()?;
@@ -767,11 +742,7 @@ pub fn source_authority_from_balancer_reconcile_artifact(
             return Err("Balancer execution blockers differ from canonical record".into());
         }
 
-        let observed_evidence = source
-            .evidence()
-            .iter()
-            .copied()
-            .collect::<BTreeSet<_>>();
+        let observed_evidence = source.evidence().iter().copied().collect::<BTreeSet<_>>();
         if observed_evidence != expected_evidence || source.evidence().len() != 2 {
             return Err(
                 "Balancer source evidence does not equal the two provider capture digests".into(),
@@ -795,8 +766,7 @@ pub fn source_authority_from_balancer_reconcile_artifact(
         return Err("Balancer reconciliation mixes observation anchors".into());
     }
 
-    let authority =
-        D11SourceAuthority::from_reconciliation_artifact(anchor, bytes, &sources)?;
+    let authority = D11SourceAuthority::from_reconciliation_artifact(anchor, bytes, &sources)?;
     authority.verify(bytes, &sources)?;
     Ok((authority, sources))
 }
@@ -869,11 +839,20 @@ mod tests {
     fn test_anchor_json() -> Json {
         Json::object([
             ("chain_id", Json::uint(1)),
-            ("genesis_hash", Json::string(format!("0x{}", "11".repeat(32)))),
-            ("fork_lineage", Json::string(format!("0x{}", "22".repeat(32)))),
+            (
+                "genesis_hash",
+                Json::string(format!("0x{}", "11".repeat(32))),
+            ),
+            (
+                "fork_lineage",
+                Json::string(format!("0x{}", "22".repeat(32))),
+            ),
             ("block_number", Json::uint(25_437_474)),
             ("block_hash", Json::string(format!("0x{}", "33".repeat(32)))),
-            ("parent_hash", Json::string(format!("0x{}", "44".repeat(32)))),
+            (
+                "parent_hash",
+                Json::string(format!("0x{}", "44".repeat(32))),
+            ),
             ("timestamp", Json::uint(1_700_000_000)),
             ("state_root", Json::string(format!("0x{}", "55".repeat(32)))),
         ])
@@ -913,10 +892,7 @@ mod tests {
                         "fee_collector",
                         Json::string("0x6666666666666666666666666666666666666666"),
                     ),
-                    (
-                        "fee_collector_code_sha256",
-                        Json::string("34".repeat(32)),
-                    ),
+                    ("fee_collector_code_sha256", Json::string("34".repeat(32))),
                     ("paused", Json::Bool(false)),
                     ("pause_window_end_time", Json::string("1")),
                     ("buffer_period_end_time", Json::string("2")),
@@ -944,10 +920,13 @@ mod tests {
     fn dual_provider_reconcile_emits_exact_balancer_source() {
         let first = test_capture("provider-a", "operator-a", &"ab".repeat(32), "123456");
         let second = test_capture("provider-b", "operator-b", &"cd".repeat(32), "123456");
-        let sources = reconcile_balancer_captures(&first, &second)
-            .unwrap_or_else(|_| unreachable!());
+        let sources =
+            reconcile_balancer_captures(&first, &second).unwrap_or_else(|_| unreachable!());
         assert_eq!(sources.len(), 1);
-        assert_eq!(sources[0].maximum_available(), Amount256::from_u128(123_456));
+        assert_eq!(
+            sources[0].maximum_available(),
+            Amount256::from_u128(123_456)
+        );
         assert!(sources[0].execution_eligible());
     }
 
@@ -972,12 +951,14 @@ mod tests {
         let second =
             test_capture("provider-b", "operator-b", &"cd".repeat(32), "123456").canonical()?;
         let report = build_balancer_reconciliation_artifact(&first, &second)?;
-        let (authority, sources) =
-            source_authority_from_balancer_reconcile_artifact(&report)?;
+        let (authority, sources) = source_authority_from_balancer_reconcile_artifact(&report)?;
         assert_eq!(authority.family().code(), "BALANCER_V2_FLASH_LOAN");
         assert_eq!(authority.source_count(), 1);
         assert_eq!(sources.len(), 1);
-        assert_eq!(sources[0].maximum_available(), Amount256::from_u128(123_456));
+        assert_eq!(
+            sources[0].maximum_available(),
+            Amount256::from_u128(123_456)
+        );
         Ok(())
     }
 
@@ -1043,7 +1024,10 @@ mod tests {
 
     #[test]
     fn balancer_selectors_are_derived_from_signatures() {
-        assert_eq!(abi::selector("balanceOf(address)"), [0x70, 0xa0, 0x82, 0x31]);
+        assert_eq!(
+            abi::selector("balanceOf(address)"),
+            [0x70, 0xa0, 0x82, 0x31]
+        );
         assert_ne!(abi::selector("getProtocolFeesCollector()"), [0; 4]);
         assert_ne!(abi::selector("getPausedState()"), [0; 4]);
         assert_ne!(abi::selector("getFlashLoanFeePercentage()"), [0; 4]);
