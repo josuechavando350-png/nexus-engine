@@ -337,9 +337,12 @@ fn verify_summary(summary: &Json, anchor: &StateAnchor) -> Result<(), CapitalErr
     Ok(())
 }
 
-fn hash_len_prefixed(hasher: &mut Sha256, value: &[u8]) {
-    hasher.update(u64::try_from(value.len()).unwrap_or(u64::MAX).to_be_bytes());
+fn hash_len_prefixed(hasher: &mut Sha256, value: &[u8]) -> Result<(), CapitalError> {
+    let len = u64::try_from(value.len())
+        .map_err(|_| CapitalError::InvalidCanonical("demand commitment length overflow"))?;
+    hasher.update(len.to_be_bytes());
     hasher.update(value);
+    Ok(())
 }
 
 fn hash_optional_amount(hasher: &mut Sha256, value: Option<Amount256>) {
@@ -352,12 +355,13 @@ fn hash_optional_amount(hasher: &mut Sha256, value: Option<Amount256>) {
     }
 }
 
-fn hash_position(hasher: &mut Sha256, position: &PositionAmount) {
-    hash_len_prefixed(hasher, position.market_id.as_bytes());
+fn hash_position(hasher: &mut Sha256, position: &PositionAmount) -> Result<(), CapitalError> {
+    hash_len_prefixed(hasher, position.market_id.as_bytes())?;
     hasher.update(position.asset.as_bytes());
     hasher.update(position.token.as_bytes());
     hasher.update(position.scaled.as_be_bytes());
     hasher.update(position.balance.as_be_bytes());
+    Ok(())
 }
 
 fn demand_coverage_commitment(
@@ -377,7 +381,7 @@ fn demand_coverage_commitment(
     hasher.update(anchor.state_root().as_bytes());
     hasher.update(
         u64::try_from(borrowers.len())
-            .unwrap_or(u64::MAX)
+            .map_err(|_| CapitalError::InvalidCanonical("borrower demand count overflow"))?
             .to_be_bytes(),
     );
 
@@ -391,7 +395,7 @@ fn demand_coverage_commitment(
         let blocker = borrower.blocker.ok_or(CapitalError::InvalidCanonical(
             "RMC-009 borrower classification lacks blocker",
         ))?;
-        hash_len_prefixed(&mut hasher, blocker.code().as_bytes());
+        hash_len_prefixed(&mut hasher, blocker.code().as_bytes())?;
         hasher.update(borrower.user_configuration.as_be_bytes());
         hash_optional_amount(&mut hasher, borrower.emode_category);
         match &borrower.account_risk {
@@ -412,24 +416,24 @@ fn demand_coverage_commitment(
         }
         hasher.update(
             u64::try_from(borrower.configuration_divergences.len())
-                .unwrap_or(u64::MAX)
+                .map_err(|_| CapitalError::InvalidCanonical("configuration divergence count overflow"))?
                 .to_be_bytes(),
         );
         for divergence in &borrower.configuration_divergences {
-            hash_len_prefixed(&mut hasher, divergence.as_bytes());
+            hash_len_prefixed(&mut hasher, divergence.as_bytes())?;
         }
 
         hasher.update(
             u64::try_from(borrower.supply_positions.len())
-                .unwrap_or(u64::MAX)
+                .map_err(|_| CapitalError::InvalidCanonical("supply position count overflow"))?
                 .to_be_bytes(),
         );
         for position in &borrower.supply_positions {
-            hash_position(&mut hasher, position);
+            hash_position(&mut hasher, position)?;
         }
         hasher.update(
             u64::try_from(borrower.debt_positions.len())
-                .unwrap_or(u64::MAX)
+                .map_err(|_| CapitalError::InvalidCanonical("debt position count overflow"))?
                 .to_be_bytes(),
         );
         for position in &borrower.debt_positions {

@@ -763,7 +763,7 @@ pub fn export_capital_artifacts(
             "operator_owned_sources_observed",
             Json::uint(u64_count(
                 certificate.summary.operator_owned_sources_observed,
-            )),
+            )?),
         ),
         (
             "operator_owned_sources_used",
@@ -786,7 +786,10 @@ pub fn export_capital_artifacts(
                     .summary
                     .sources_by_class
                     .iter()
-                    .map(|(class, count)| (class.code(), Json::uint(u64_count(*count)))),
+                    .map(|(class, count)| {
+                        Ok((class.code(), Json::uint(u64_count(*count)?)))
+                    })
+                    .collect::<Result<Vec<_>, CapitalError>>()?,
             ),
         ),
         ("unexplained_capital_failure_count", Json::uint(0)),
@@ -802,6 +805,24 @@ pub fn export_capital_artifacts(
         &summary,
         &upstream_authority,
     ];
+    let manifest_artifacts = listed
+        .iter()
+        .map(|file| {
+            Ok(Json::object([
+                ("name", Json::string(file.name)),
+                ("sha256", Json::string(file.sha256_hex())),
+                (
+                    "size_bytes",
+                    Json::uint(
+                        u64::try_from(file.bytes.len()).map_err(|_| {
+                            CapitalError::InvalidCanonical("capital artifact size overflow")
+                        })?,
+                    ),
+                ),
+            ]))
+        })
+        .collect::<Result<Vec<_>, CapitalError>>()?;
+
     let manifest_json = Json::object([
         (
             "schema_version",
@@ -828,16 +849,7 @@ pub fn export_capital_artifacts(
         ),
         (
             "artifacts",
-            Json::array(listed.into_iter().map(|file| {
-                Json::object([
-                    ("name", Json::string(file.name)),
-                    ("sha256", Json::string(file.sha256_hex())),
-                    (
-                        "size_bytes",
-                        Json::uint(u64::try_from(file.bytes.len()).unwrap_or(u64::MAX)),
-                    ),
-                ])
-            })),
+            Json::array(manifest_artifacts),
         ),
         (
             "non_claims",
@@ -1622,8 +1634,8 @@ fn hex(bytes: &[u8]) -> String {
     out
 }
 
-fn u64_count(value: usize) -> u64 {
-    u64::try_from(value).unwrap_or(u64::MAX)
+fn u64_count(value: usize) -> Result<u64, CapitalError> {
+    u64::try_from(value).map_err(|_| CapitalError::InvalidCanonical("capital count overflow"))
 }
 
 #[allow(dead_code)]

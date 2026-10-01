@@ -2633,11 +2633,11 @@ fn classify_unmet_leg(
         if source.ownership().is_operator_owned() {
             operator_capacity = operator_capacity
                 .checked_add(source.effective_capacity()?)
-                .unwrap_or(Amount256::MAX);
+                .ok_or(CapitalError::AmountOverflow)?;
         } else if !source.execution_eligible() {
             execution_blocked_capacity = execution_blocked_capacity
                 .checked_add(source.effective_capacity()?)
-                .unwrap_or(Amount256::MAX);
+                .ok_or(CapitalError::AmountOverflow)?;
         }
     }
 
@@ -3136,7 +3136,7 @@ fn upstream_authority_commitment(
     }
     hasher.update(
         u64::try_from(admitted_evidence.len())
-            .unwrap_or(u64::MAX)
+            .map_err(|_| CapitalError::InvalidUpstreamAuthority("admitted evidence count overflow"))?
             .to_be_bytes(),
     );
     for evidence in admitted_evidence {
@@ -3144,14 +3144,14 @@ fn upstream_authority_commitment(
         evidence.encode(&mut writer);
         hasher.update(
             u64::try_from(writer.0.len())
-                .unwrap_or(u64::MAX)
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("evidence encoding length overflow"))?
                 .to_be_bytes(),
         );
         hasher.update(&writer.0);
     }
     hasher.update(
         u64::try_from(consumption_receipts.len())
-            .unwrap_or(u64::MAX)
+            .map_err(|_| CapitalError::InvalidUpstreamAuthority("consumption receipt count overflow"))?
             .to_be_bytes(),
     );
     for receipt in consumption_receipts.values() {
@@ -3438,7 +3438,7 @@ impl CapitalCensusLedger {
             hasher.update(source.id().as_bytes());
             hasher.update(
                 u64::try_from(encoded.len())
-                    .unwrap_or(u64::MAX)
+                    .map_err(|_| CapitalError::InvalidCanonical("capital record length overflow"))?
                     .to_be_bytes(),
             );
             hasher.update(domain_hash(b"NQC-RMC011-SOURCE-RECORD-V1", &encoded));
