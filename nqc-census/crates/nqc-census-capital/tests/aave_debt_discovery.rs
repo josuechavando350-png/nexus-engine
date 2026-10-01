@@ -459,6 +459,35 @@ fn substituted_anchor_is_rejected_before_discovery() -> TestResult {
     Ok(())
 }
 
+
+#[test]
+fn duplicate_aave_debt_candidate_is_rejected() -> TestResult {
+    let row = state_row(
+        "400000000",
+        "800000000",
+        false,
+        true,
+        true,
+    );
+    let mut duplicated = row.clone();
+    duplicated.extend_from_slice(&row);
+    let bundle = build_bundle(duplicated)?;
+
+    assert!(matches!(
+        discover_d08_aave_debt_facilities(
+            &bundle.state,
+            &bundle.token,
+            &bundle.pool,
+            &bundle.manifest,
+            &bundle.authority,
+            &bundle.context,
+        ),
+        Err(CapitalError::InvalidCanonical(_))
+    ));
+    Ok(())
+}
+
+
 #[test]
 fn tampered_state_bytes_fail_manifest_binding() -> TestResult {
     let mut bundle = build_bundle(state_row(
