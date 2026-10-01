@@ -54,7 +54,8 @@ fn state_row(
     total_debt: &str,
     available: &str,
     borrow_cap_reached: bool,
-    borrowing_enabled: bool,
+    config_borrowing_enabled: bool,
+    facts_borrowing_enabled: bool,
 ) -> Vec<u8> {
     let row = Json::object([
         ("schema_version", Json::uint(1)),
@@ -70,7 +71,7 @@ fn state_row(
                 ("active", Json::Bool(true)),
                 ("paused", Json::Bool(false)),
                 ("frozen", Json::Bool(false)),
-                ("borrowing_enabled", Json::Bool(borrowing_enabled)),
+                ("borrowing_enabled", Json::Bool(config_borrowing_enabled)),
                 ("decimals", Json::uint(6)),
                 ("borrow_cap_whole_tokens", Json::uint(1_000)),
                 ("ltv_bps", Json::uint(7_500)),
@@ -238,6 +239,7 @@ fn discovers_exact_borrow_cap_upper_bound_from_authenticated_d08() -> TestResult
         "800000000",
         false,
         true,
+        true,
     ))?;
     let discovery = discover_d08_aave_debt_facilities(
         &bundle.state,
@@ -287,6 +289,7 @@ fn borrow_cap_reached_is_preserved_as_protocol_blocker() -> TestResult {
         "800000000",
         true,
         true,
+        true,
     ))?;
     let discovery = discover_d08_aave_debt_facilities(
         &bundle.state,
@@ -308,19 +311,13 @@ fn borrow_cap_reached_is_preserved_as_protocol_blocker() -> TestResult {
 
 #[test]
 fn protocol_facts_cannot_contradict_decoded_configuration() -> TestResult {
-    let mut row = state_row("400000000", "800000000", false, false);
-    let mut json = Json::parse(&row[..row.len() - 1])?;
-    let facts = json
-        .get_mut("protocol_facts")
-        .ok_or("missing facts")?;
-    let facts = facts
-        .as_object_mut()
-        .ok_or("facts not object")?;
-    facts.insert("borrowing_enabled".to_owned(), Json::Bool(true));
-    row = canonical(json);
-    row.push(b'\n');
-
-    let bundle = build_bundle(row)?;
+    let bundle = build_bundle(state_row(
+        "400000000",
+        "800000000",
+        false,
+        false,
+        true,
+    ))?;
     assert!(matches!(
         discover_d08_aave_debt_facilities(
             &bundle.state,
@@ -341,6 +338,7 @@ fn substituted_anchor_is_rejected_before_discovery() -> TestResult {
         "400000000",
         "800000000",
         false,
+        true,
         true,
     ))?;
     bundle.context.anchor = StateAnchor::new(
