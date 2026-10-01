@@ -411,7 +411,9 @@ fn digest_rows(domain: &[u8], rows: &[Json]) -> Result<String, ChainError> {
         let bytes = row.canonical()?;
         hasher.update(
             u64::try_from(bytes.len())
-                .map_err(|_| ChainError::Evidence("Uniswap V3 canonical row length overflow".into()))?
+                .map_err(|_| {
+                    ChainError::Evidence("Uniswap V3 canonical row length overflow".into())
+                })?
                 .to_be_bytes(),
         );
         hasher.update(bytes);
