@@ -25,7 +25,7 @@ use std::{
 
 const RESOURCE_KEY_DOMAIN: &[u8] = b"NQC-RMC012-SHARED-RESOURCE-KEY-V1";
 const RESOURCE_ID_DOMAIN: &[u8] = b"NQC-RMC012-SHARED-RESOURCE-ID-V1";
-const PORTFOLIO_COMMITMENT_DOMAIN: &[u8] = b"NQC-RMC012-PORTFOLIO-COMMITMENT-V3";
+const PORTFOLIO_COMMITMENT_DOMAIN: &[u8] = b"NQC-RMC012-PORTFOLIO-COMMITMENT-V4";
 const PORTFOLIO_CANDIDATE_DOMAIN: &[u8] = b"NQC-RMC012-PORTFOLIO-CANDIDATE-V1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -786,6 +786,7 @@ pub fn evaluate_portfolio(
         capital_feasible_count,
         &capital_rejected,
         &conflicts,
+        &components,
     )?;
     Ok(PortfolioReport {
         candidate_count: candidates.len(),
@@ -1000,6 +1001,7 @@ fn report_commitment(
     capital_feasible_count: usize,
     rejected: &[CapitalBlockedCandidate],
     conflicts: &[PortfolioConflict],
+    components: &[PortfolioComponent],
 ) -> Result<[u8; 32], PortfolioError> {
     let mut hasher = Sha256::new();
     hasher.update(PORTFOLIO_COMMITMENT_DOMAIN);
@@ -1102,12 +1104,22 @@ fn report_commitment(
         u64::try_from(capital_feasible_count).map_err(|_| PortfolioError::AmountOverflow)?
             .to_be_bytes(),
     );
+    hasher.update(
+        u64::try_from(rejected.len())
+            .map_err(|_| PortfolioError::AmountOverflow)?
+            .to_be_bytes(),
+    );
     for item in rejected {
         hasher.update(item.candidate_id.as_bytes());
         hasher.update(item.requirement_id.as_bytes());
         hasher.update(item.reason.code().as_bytes());
         hasher.update([0]);
     }
+    hasher.update(
+        u64::try_from(conflicts.len())
+            .map_err(|_| PortfolioError::AmountOverflow)?
+            .to_be_bytes(),
+    );
     for conflict in conflicts {
         match conflict.resource {
             ConflictResource::Requirement(id) => {
@@ -1131,6 +1143,42 @@ fn report_commitment(
         );
         for claimant in &conflict.claimants {
             hasher.update(claimant.as_bytes());
+        }
+    }
+    hasher.update(
+        u64::try_from(components.len())
+            .map_err(|_| PortfolioError::AmountOverflow)?
+            .to_be_bytes(),
+    );
+    for component in components {
+        hasher.update(
+            u64::try_from(component.candidates.len())
+                .map_err(|_| PortfolioError::AmountOverflow)?
+                .to_be_bytes(),
+        );
+        for candidate in &component.candidates {
+            hasher.update(candidate.as_bytes());
+        }
+        hasher.update(
+            u64::try_from(component.resources.len())
+                .map_err(|_| PortfolioError::AmountOverflow)?
+                .to_be_bytes(),
+        );
+        for resource in &component.resources {
+            match resource {
+                ConflictResource::Requirement(id) => {
+                    hasher.update([1]);
+                    hasher.update(id.as_bytes());
+                }
+                ConflictResource::CapitalSource(id) => {
+                    hasher.update([2]);
+                    hasher.update(id.as_bytes());
+                }
+                ConflictResource::Shared(id) => {
+                    hasher.update([3]);
+                    hasher.update(id.as_bytes());
+                }
+            }
         }
     }
     Ok(hasher.finalize().into())
