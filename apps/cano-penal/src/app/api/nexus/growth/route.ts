@@ -36,7 +36,9 @@ function validate(body: unknown): Readonly<Record<string, unknown>> | null {
   if (v.siteId !== "cano-penal") return null;
   if (typeof v.eventId !== "string" || !SAFE_TOKEN.test(v.eventId)) return null;
   if (typeof v.journeySha256 !== "string" || !SHA256.test(v.journeySha256)) return null;
-  if (typeof v.occurredAt !== "string" || new Date(v.occurredAt).toISOString() !== v.occurredAt) return null;
+  if (typeof v.occurredAt !== "string") return null;
+  const occurredAt = new Date(v.occurredAt);
+  if (!Number.isFinite(occurredAt.getTime()) || occurredAt.toISOString() !== v.occurredAt) return null;
   if (typeof v.stage !== "string" || !STAGES.has(v.stage)) return null;
   if (typeof v.channel !== "string" || !CHANNELS.has(v.channel)) return null;
   if (typeof v.landingPath !== "string" || !v.landingPath.startsWith("/") || v.landingPath.length > 512 || v.landingPath.includes("?") || v.landingPath.includes("#")) return null;
