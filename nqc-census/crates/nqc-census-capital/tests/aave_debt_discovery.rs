@@ -278,12 +278,13 @@ fn discovers_exact_borrow_cap_upper_bound_from_authenticated_d08() -> TestResult
     assert_eq!(facility.asset, address(31));
     assert_eq!(facility.pool, address(40));
     assert_eq!(facility.reserve_id, 7);
+    let borrow_cap = facility.borrow_cap.ok_or("expected borrow cap")?;
+    assert_eq!(borrow_cap.to_hex(), format!("{:064x}", 1_000_000_000_u64));
+    let borrow_cap_remaining = facility
+        .borrow_cap_remaining
+        .ok_or("expected borrow cap remaining")?;
     assert_eq!(
-        facility.borrow_cap.unwrap().to_hex(),
-        format!("{:064x}", 1_000_000_000_u64)
-    );
-    assert_eq!(
-        facility.borrow_cap_remaining.unwrap().to_hex(),
+        borrow_cap_remaining.to_hex(),
         format!("{:064x}", 600_000_000_u64)
     );
     assert_eq!(
