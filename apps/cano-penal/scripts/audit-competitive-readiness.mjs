@@ -1,5 +1,13 @@
 #!/usr/bin/env node
+import { readFile } from "node:fs/promises";
 import { readTenantEvidenceSnapshot } from "../../../seo-avengers-2500/evidence/tenant-evidence.mjs";
+
+const TARGETS_URL = new URL("../competitive-targets.json", import.meta.url);
+const targets = JSON.parse(await readFile(TARGETS_URL, "utf8"));
+
+function normalizeQuery(value) {
+  return String(value ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
+}
 
 const controlRoot = process.env.NEXUS_SEO_CONTROL_ROOT?.trim();
 const evidenceRoot = process.env.NEXUS_SEO_EVIDENCE_ROOT?.trim();
@@ -34,13 +42,17 @@ if (!controlRoot || !evidenceRoot) {
     const provenance = Array.isArray(snapshot.datasets.upstream_evidence)
       ? snapshot.datasets.upstream_evidence.filter((row) => row?.provider === "NEXUS_COMPETITIVE_SNAPSHOT")
       : [];
-    const pass = missing.length === 0 && provenance.length === 1;
+    const observedQueries = new Set((snapshot.datasets.keyword_coverage_records ?? []).map((row) => normalizeQuery(row?.query)));
+    const uncoveredTargets = targets.targets.filter((target) => !observedQueries.has(normalizeQuery(target.query)));
+    const pass = missing.length === 0 && provenance.length === 1 && uncoveredTargets.length === 0;
     process.stdout.write(JSON.stringify({
       siteId,
       status: pass ? "PASS" : "UNKNOWN",
       reason: pass ? "COMPETITIVE_EVIDENCE_READY" : "COMPETITIVE_EVIDENCE_INCOMPLETE",
       missing,
       competitiveProvenanceCount: provenance.length,
+      targetCount: targets.targets.length,
+      uncoveredTargets: uncoveredTargets.map(({ cluster, query, route }) => ({ cluster, query, route })),
       controlGeneration: snapshot.controlGeneration,
       manifestHash: snapshot.manifestHash,
     }) + "\n");
