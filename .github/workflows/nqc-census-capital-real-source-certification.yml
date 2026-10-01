@@ -253,8 +253,6 @@ jobs:
               "EXTERNAL_GAS_CREDIT",
               "EXTERNAL_GAS_SPONSOR",
               "TRANSIENT_EXTERNAL_CREDIT",
-              "COLLATERALIZED_BORROWING",
-              "PERSISTENT_DEBT",
               "INVENTORY_REQUIREMENT",
               "BOND_OR_STAKE",
               "SOLVER_OR_BUILDER_DEPOSIT",
@@ -262,7 +260,7 @@ jobs:
           }
           rows = {row["id"]: row for row in doc["families"] if row["id"] in bounded}
           if set(rows) != bounded:
-              raise SystemExit("bounded family set differs from required nine-family universe")
+              raise SystemExit("bounded family set differs from required seven-family universe")
 
           promoted = {
               family: row
@@ -310,7 +308,7 @@ jobs:
             exit 0
           fi
 
-          test "$(jq '.rows | length' "$META")" -eq 9
+          test "$(jq '.rows | length' "$META")" -eq 7
           repository="$(jq -r '.rows[0].repository' "$META")"
           workflow_name="$(jq -r '.rows[0].workflow_name' "$META")"
           run_id="$(jq -r '.rows[0].run_id' "$META")"
@@ -353,7 +351,7 @@ jobs:
           meta_path, root_path = sys.argv[1:]
           meta = json.loads(Path(meta_path).read_text(encoding="utf-8"))
           root = Path(root_path)
-          if meta.get("promoted") is not True or len(meta.get("rows", [])) != 9:
+          if meta.get("promoted") is not True or len(meta.get("rows", [])) != 7:
               raise SystemExit("bounded family metadata is not a complete promotion")
 
           seen_files = set()
