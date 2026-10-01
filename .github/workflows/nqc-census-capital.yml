@@ -28,7 +28,7 @@ permissions:
 concurrency:
   group: rmc011-capital-${{ github.event.pull_request.number || github.ref }}
   # Supersede stale PR heads, but never cancel authoritative push/dispatch runs.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   rmc-011-capital-foundation:
