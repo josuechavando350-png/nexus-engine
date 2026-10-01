@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate promotion wiring for the nine bounded RMC-011 rejection families."""
+"""Validate promotion wiring for the seven bounded RMC-011 rejection families."""
 
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ def validate_document(doc: dict) -> dict:
 
     require(
         set(promoted) == BOUNDED_FAMILIES,
-        "bounded family promotion must be atomic across all nine families",
+        "bounded family promotion must be atomic across all seven families",
     )
 
     shared = None
