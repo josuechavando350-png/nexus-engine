@@ -196,7 +196,7 @@ fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
     Ok(rows)
 }
 
-fn token_execution_blockers(bytes: &[u8]) -> Result<BTreeMap<Address, Vec<String>>, CapitalError> {
+pub(crate) fn token_execution_blockers(bytes: &[u8]) -> Result<BTreeMap<Address, Vec<String>>, CapitalError> {
     let mut tokens = BTreeMap::new();
     for row in parse_jsonl(bytes)? {
         let token = Address::parse_hex(text(&row, "token")?)
@@ -243,7 +243,7 @@ fn token_execution_blockers(bytes: &[u8]) -> Result<BTreeMap<Address, Vec<String
     Ok(tokens)
 }
 
-fn execution_blockers(
+pub(crate) fn execution_blockers(
     tokens: &BTreeMap<Address, Vec<String>>,
     token: Address,
 ) -> Result<&[String], CapitalError> {
