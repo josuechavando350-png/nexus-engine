@@ -130,9 +130,25 @@ def validate_source_universe(doc: dict) -> dict:
     require(isinstance(evidence.get("artifact_digest"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", evidence["artifact_digest"]), "discovery artifact digest invalid")
     require(evidence.get("file") == "discovery-evidence.json", "discovery evidence file differs")
     require(isinstance(evidence.get("sha256"), str) and re.fullmatch(r"[0-9a-f]{64}", evidence["sha256"]), "discovery evidence sha invalid")
+    terminal_evidence = {
+        row["id"]: {
+            "run_id": row["resolution_evidence"]["run_id"],
+            "artifact_id": row["resolution_evidence"]["artifact_id"],
+            "head_sha": row["resolution_evidence"]["head_sha"],
+            "file_sha256": row["resolution_evidence"]["sha256"],
+        }
+        for row in families
+    }
+    terminal_evidence["FAMILY_UNIVERSE_DISCOVERY"] = {
+        "run_id": evidence["run_id"],
+        "artifact_id": evidence["artifact_id"],
+        "head_sha": evidence["head_sha"],
+        "file_sha256": evidence["sha256"],
+    }
     return {
         "family_count": len(families),
         "family_universe_discovery_sha256": evidence["sha256"],
+        "terminal_evidence": terminal_evidence,
     }
 
 
@@ -196,7 +212,11 @@ def validate_authority_lock(doc: dict, raw: bytes, closeout: dict) -> dict:
     return {"sha256": observed_sha, "commitment": commitment}
 
 
-def validate_transport_auth(tsv_raw: bytes, marker_raw: bytes) -> dict:
+def validate_transport_auth(
+    tsv_raw: bytes,
+    marker_raw: bytes,
+    expected_evidence: dict[str, dict],
+) -> dict:
     try:
         text = tsv_raw.decode("utf-8")
         marker = marker_raw.decode("utf-8").strip()
@@ -218,6 +238,12 @@ def validate_transport_auth(tsv_raw: bytes, marker_raw: bytes) -> dict:
         require(artifact_id.isdigit() and int(artifact_id) > 0, f"{label}: transport artifact id invalid")
         require(HEX40.fullmatch(head_sha) is not None, f"{label}: transport head sha invalid")
         require(re.fullmatch(r"[0-9a-f]{64}", file_sha) is not None, f"{label}: transport file sha invalid")
+        expected_row = expected_evidence.get(label)
+        require(isinstance(expected_row, dict), f"{label}: no source-universe evidence binding")
+        require(int(run_id) == expected_row.get("run_id"), f"{label}: transport run differs from source universe")
+        require(int(artifact_id) == expected_row.get("artifact_id"), f"{label}: transport artifact differs from source universe")
+        require(head_sha == expected_row.get("head_sha"), f"{label}: transport head differs from source universe")
+        require(file_sha == expected_row.get("file_sha256"), f"{label}: transport file sha differs from source universe")
 
     expected = set(EXPECTED_FAMILIES)
     expected.add("FAMILY_UNIVERSE_DISCOVERY")
@@ -238,7 +264,11 @@ def build_terminal_closeout(
     universe = validate_source_universe(source)
     real = validate_real_source_closeout(closeout)
     authority = validate_authority_lock(lock, lock_raw, closeout)
-    transport = validate_transport_auth(transport_tsv_raw, transport_marker_raw)
+    transport = validate_transport_auth(
+        transport_tsv_raw,
+        transport_marker_raw,
+        universe["terminal_evidence"],
+    )
 
     payload = {
         "schema_version": 1,
