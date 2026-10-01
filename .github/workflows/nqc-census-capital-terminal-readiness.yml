@@ -34,6 +34,9 @@ on:
       - "nqc-census/crates/nqc-census-capital/tests/transient_credit.rs"
       - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
       - "ci/nqc-census/capital-census-scope.json"
@@ -74,6 +77,9 @@ on:
       - "nqc-census/crates/nqc-census-capital/tests/transient_credit.rs"
       - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
       - "ci/nqc-census/capital-census-scope.json"
@@ -106,6 +112,9 @@ jobs:
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
           python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-readiness.py ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-readiness.py /tmp/rmc011-family-discovery-readiness.json
           python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
           python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
           python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py
