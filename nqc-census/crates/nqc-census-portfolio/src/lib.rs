@@ -1010,7 +1010,8 @@ fn report_commitment(
     // conflict. A capacity or fee-state change therefore changes the proof
     // even when the candidate set remains feasible.
     hasher.update(
-        u64::try_from(sources.len()).map_err(|_| PortfolioError::AmountOverflow)?
+        u64::try_from(sources.len())
+            .map_err(|_| PortfolioError::AmountOverflow)?
             .to_be_bytes(),
     );
     for (id, source) in sources {
@@ -1020,7 +1021,8 @@ fn report_commitment(
 
     // Bind every shared-resource observation by stable key and observed id.
     hasher.update(
-        u64::try_from(resources.len()).map_err(|_| PortfolioError::AmountOverflow)?
+        u64::try_from(resources.len())
+            .map_err(|_| PortfolioError::AmountOverflow)?
             .to_be_bytes(),
     );
     for (key, resource) in resources {
@@ -1031,7 +1033,8 @@ fn report_commitment(
     let mut ordered_candidates = candidates.iter().collect::<Vec<_>>();
     ordered_candidates.sort_by_key(|candidate| candidate.id());
     hasher.update(
-        u64::try_from(ordered_candidates.len()).map_err(|_| PortfolioError::AmountOverflow)?
+        u64::try_from(ordered_candidates.len())
+            .map_err(|_| PortfolioError::AmountOverflow)?
             .to_be_bytes(),
     );
     for candidate in ordered_candidates {
@@ -1046,7 +1049,8 @@ fn report_commitment(
         }
         encode_anchor_hash(candidate.anchor(), &mut hasher);
         hasher.update(
-            u64::try_from(candidate.claims().len()).map_err(|_| PortfolioError::AmountOverflow)?
+            u64::try_from(candidate.claims().len())
+                .map_err(|_| PortfolioError::AmountOverflow)?
                 .to_be_bytes(),
         );
         for claim in candidate.claims() {
@@ -1067,7 +1071,8 @@ fn report_commitment(
                         )
                     });
                     hasher.update(
-                        u64::try_from(ordered.len()).map_err(|_| PortfolioError::AmountOverflow)?
+                        u64::try_from(ordered.len())
+                            .map_err(|_| PortfolioError::AmountOverflow)?
                             .to_be_bytes(),
                     );
                     for allocation in ordered {
@@ -1101,7 +1106,8 @@ fn report_commitment(
     }
 
     hasher.update(
-        u64::try_from(capital_feasible_count).map_err(|_| PortfolioError::AmountOverflow)?
+        u64::try_from(capital_feasible_count)
+            .map_err(|_| PortfolioError::AmountOverflow)?
             .to_be_bytes(),
     );
     hasher.update(
@@ -1138,7 +1144,8 @@ fn report_commitment(
         hasher.update(conflict.capacity.as_be_bytes());
         hasher.update(conflict.claimed.as_be_bytes());
         hasher.update(
-            u64::try_from(conflict.claimants.len()).map_err(|_| PortfolioError::AmountOverflow)?
+            u64::try_from(conflict.claimants.len())
+                .map_err(|_| PortfolioError::AmountOverflow)?
                 .to_be_bytes(),
         );
         for claimant in &conflict.claimants {
