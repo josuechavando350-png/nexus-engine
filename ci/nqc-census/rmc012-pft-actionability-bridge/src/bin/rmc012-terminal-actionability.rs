@@ -678,6 +678,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         "portfolio_debt_position_capacity_certified": true,
         "portfolio_collateral_position_capacity_certified": true,
         "portfolio_shared_resource_count": shared_resources.len(),
+        "portfolio_candidate_claim_count": portfolio_candidates.len(),
         "portfolio_concurrent_capacity_certified": false,
         "portfolio_conflict_count": portfolio.conflicts().len(),
         "portfolio_component_count": portfolio.components().len(),
