@@ -39,8 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let second_bytes = fs::read(&args.second)?;
     let report_bytes = build_balancer_reconciliation_artifact(&first_bytes, &second_bytes)?;
     let report = Json::parse(&report_bytes)?;
-    let (authority, sources) =
-        source_authority_from_balancer_reconcile_artifact(&report_bytes)?;
+    let (authority, sources) = source_authority_from_balancer_reconcile_artifact(&report_bytes)?;
 
     if let Some(parent) = args.out.parent() {
         fs::create_dir_all(parent)?;
