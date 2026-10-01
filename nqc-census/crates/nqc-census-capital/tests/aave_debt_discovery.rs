@@ -111,6 +111,33 @@ fn state_row(
     bytes
 }
 
+
+fn token_admission(blockers: &[&str]) -> Vec<u8> {
+    let status = if blockers.is_empty() {
+        "PROVEN_COMPATIBLE"
+    } else {
+        "BLOCKED"
+    };
+    let blocker_rows = blockers
+        .iter()
+        .map(|blocker| Json::string(*blocker))
+        .collect::<Vec<_>>();
+    let row = Json::object([
+        ("token", Json::string(address(31).to_hex())),
+        (
+            "execution_compatibility",
+            Json::object([
+                ("status", Json::string(status)),
+                ("blockers", Json::array(blocker_rows)),
+            ]),
+        ),
+    ]);
+    let mut bytes = canonical(row);
+    bytes.push(b'\n');
+    bytes
+}
+
+
 struct Bundle {
     state: Vec<u8>,
     token: Vec<u8>,
@@ -121,8 +148,15 @@ struct Bundle {
 }
 
 fn build_bundle(state: Vec<u8>) -> Result<Bundle, CapitalError> {
+    build_bundle_with_token_blockers(state, &[])
+}
+
+fn build_bundle_with_token_blockers(
+    state: Vec<u8>,
+    token_blockers: &[&str],
+) -> Result<Bundle, CapitalError> {
     let observation_anchor = anchor();
-    let token = Vec::new();
+    let token = token_admission(token_blockers);
     let pool = canonical(Json::object([(
         "aave_pool",
         Json::object([
@@ -273,6 +307,11 @@ fn discovers_exact_borrow_cap_upper_bound_from_authenticated_d08() -> TestResult
         facility.protocol_borrowable_upper_bound.to_hex(),
         format!("{:064x}", 600_000_000_u64)
     );
+    assert_eq!(
+        facility.execution_compatible_borrowable_upper_bound.to_hex(),
+        format!("{:064x}", 600_000_000_u64)
+    );
+    assert!(facility.token_execution_blockers.is_empty());
     assert!(facility.blockers.is_empty());
     assert!(facility.portfolio_collateral_resolution_required);
     assert_eq!(facility.ltv_bps, 7_500);
@@ -281,6 +320,63 @@ fn discovers_exact_borrow_cap_upper_bound_from_authenticated_d08() -> TestResult
     assert_eq!(facility.evidence.len(), 1);
     Ok(())
 }
+
+
+#[test]
+fn d08_token_blocker_preserves_protocol_capacity_but_blocks_execution_compatibility() -> TestResult {
+    let state = state_row(
+        "400000000",
+        "800000000",
+        false,
+        true,
+        true,
+    );
+    let compatible_bundle = build_bundle(state.clone())?;
+    let blocked_bundle = build_bundle_with_token_blockers(
+        state,
+        &["UNSUPPORTED_TOKEN_BEHAVIOR"],
+    )?;
+
+    let compatible = discover_d08_aave_debt_facilities(
+        &compatible_bundle.state,
+        &compatible_bundle.token,
+        &compatible_bundle.pool,
+        &compatible_bundle.manifest,
+        &compatible_bundle.authority,
+        &compatible_bundle.context,
+    )?;
+    let blocked = discover_d08_aave_debt_facilities(
+        &blocked_bundle.state,
+        &blocked_bundle.token,
+        &blocked_bundle.pool,
+        &blocked_bundle.manifest,
+        &blocked_bundle.authority,
+        &blocked_bundle.context,
+    )?;
+
+    let compatible_facility = &compatible.facilities[0];
+    let blocked_facility = &blocked.facilities[0];
+
+    assert_eq!(
+        blocked_facility.protocol_borrowable_upper_bound.to_hex(),
+        format!("{:064x}", 600_000_000_u64)
+    );
+    assert_eq!(
+        blocked_facility.execution_compatible_borrowable_upper_bound,
+        nqc_census_capital::Amount256::ZERO
+    );
+    assert_eq!(
+        blocked_facility.token_execution_blockers,
+        vec!["UNSUPPORTED_TOKEN_BEHAVIOR".to_owned()]
+    );
+    assert!(blocked_facility.blockers.is_empty());
+    assert_ne!(
+        compatible_facility.facility_commitment,
+        blocked_facility.facility_commitment
+    );
+    Ok(())
+}
+
 
 #[test]
 fn borrow_cap_reached_is_preserved_as_protocol_blocker() -> TestResult {
