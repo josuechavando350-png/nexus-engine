@@ -43,8 +43,8 @@ export default async function HomePage() {
               <p className="cp-v2-kicker">Trabajé dentro de ella.</p>
               <p className="cp-lead">Dirigí investigaciones de delitos fiscales y financieros dentro de la Procuraduría Fiscal de la Federación. Hoy diseño la defensa de empresarios, directivos y particulares en asuntos penales de alta complejidad.</p>
               <div className="cp-actions cp-v2-actions">
-                <Link className="cp-btn cp-btn-solid" href="#empresa">Asunto empresarial o fiscal</Link>
-                <Link className="cp-btn" href="/detenido-cdmx">Tengo una urgencia penal</Link>
+                <Link className="cp-btn cp-btn-solid" href="/evaluacion-empresarial" data-nexus-signal="hero-enterprise">Asunto empresarial o fiscal</Link>
+                <Link className="cp-btn" href="/detenido-cdmx" data-nexus-signal="hero-urgent">Tengo una urgencia penal</Link>
               </div>
             </div>
           </div>
@@ -68,7 +68,7 @@ export default async function HomePage() {
                   <h3>Defensa penal económica, fiscal y empresarial.</h3>
                   <p>Investigaciones fiscales y financieras, fraude empresarial, responsabilidad de administradores y asuntos donde están en juego patrimonio, empresa y reputación.</p>
                 </div>
-                <Link className="cp-text-link" href="/guias/defensa-penal-empresa-delitos-financieros">Evaluar un asunto empresarial o fiscal</Link>
+                <Link className="cp-text-link" href="/evaluacion-empresarial" data-nexus-signal="path-enterprise">Evaluar un asunto empresarial o fiscal</Link>
               </article>
               <article className="cp-v2-path cp-v2-path-urgent">
                 <div>
@@ -76,7 +76,7 @@ export default async function HomePage() {
                   <h3>Cuando cada decisión procesal empieza a importar ahora.</h3>
                   <p>Detención, citatorio, audiencia inicial, carpeta de investigación, orden de aprehensión, medidas cautelares e intervención inmediata.</p>
                 </div>
-                <Link className="cp-text-link" href="/detenido-cdmx">Necesito defensa ahora</Link>
+                <Link className="cp-text-link" href="/detenido-cdmx" data-nexus-signal="path-urgent">Necesito defensa ahora</Link>
               </article>
             </div>
           </div>
