@@ -44,9 +44,9 @@ class BoundedFamilyPromotionTests(unittest.TestCase):
         result = mod.validate_document(copy.deepcopy(UNIVERSE))
         self.assertEqual(result["promotion_state"], "PENDING")
         self.assertEqual(result["promoted_count"], 0)
-        self.assertEqual(result["family_count"], 9)
+        self.assertEqual(result["family_count"], 7)
 
-    def test_atomic_nine_family_promotion_passes(self) -> None:
+    def test_atomic_seven_family_promotion_passes(self) -> None:
         doc = copy.deepcopy(UNIVERSE)
         promote_all(doc)
         result = mod.validate_document(doc)
@@ -54,7 +54,7 @@ class BoundedFamilyPromotionTests(unittest.TestCase):
             result["promotion_state"],
             "AUTHENTICATED_REFERENCES_DECLARED",
         )
-        self.assertEqual(result["promoted_count"], 9)
+        self.assertEqual(result["promoted_count"], 7)
         self.assertEqual(result["shared_run_id"], 12345)
 
     def test_partial_promotion_fails(self) -> None:
@@ -76,7 +76,7 @@ class BoundedFamilyPromotionTests(unittest.TestCase):
         promote_all(doc)
         row = next(
             row for row in doc["families"]
-            if row["id"] == "PERSISTENT_DEBT"
+            if row["id"] == "BOND_OR_STAKE"
         )
         row["resolution_evidence"]["artifact_id"] = 99999
         with self.assertRaises(mod.PromotionError):
