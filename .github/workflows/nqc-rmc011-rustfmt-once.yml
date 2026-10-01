@@ -74,3 +74,5 @@ jobs:
           }
           git push origin "HEAD:refs/heads/$TARGET_BRANCH"
           echo "RMC011_CANONICAL_RUSTFMT_APPLIED commit=$(git rev-parse HEAD)"
+
+# sequence: 2
