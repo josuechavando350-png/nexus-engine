@@ -123,6 +123,7 @@ fn native_uniswap_v3_source(
         pool: address(70),
         asset: address(asset),
         available_pool_balance: Amount256::from_u128(3_000_000),
+        active_liquidity: Amount256::from_u128(1_500_000),
         fee_pips: 3_000,
     };
     admit_uniswap_v3_dual_provider(
