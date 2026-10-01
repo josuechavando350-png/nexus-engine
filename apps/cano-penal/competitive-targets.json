@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "siteId": "cano-penal",
+  "market": "Ciudad de México",
+  "targets": [
+    {
+      "cluster": "core",
+      "query": "abogado penalista cdmx",
+      "route": "/"
+    },
+    {
+      "cluster": "core",
+      "query": "abogado penalista ciudad de mexico",
+      "route": "/"
+    },
+    {
+      "cluster": "urgent",
+      "query": "abogado para detenido cdmx",
+      "route": "/detenido-cdmx"
+    },
+    {
+      "cluster": "urgent",
+      "query": "citatorio ministerio publico cdmx",
+      "route": "/citatorio-ministerio-publico-cdmx"
+    },
+    {
+      "cluster": "urgent",
+      "query": "orden de aprehension abogado cdmx",
+      "route": "/orden-aprehension"
+    },
+    {
+      "cluster": "urgent",
+      "query": "carpeta de investigacion abogado cdmx",
+      "route": "/carpeta-investigacion"
+    },
+    {
+      "cluster": "tax-criminal",
+      "query": "abogado defraudacion fiscal cdmx",
+      "route": "/defraudacion-fiscal"
+    },
+    {
+      "cluster": "tax-criminal",
+      "query": "abogado penal fiscal cdmx",
+      "route": "/areas/delitos-fiscales-y-financieros"
+    },
+    {
+      "cluster": "business",
+      "query": "fraude empresarial abogado cdmx",
+      "route": "/fraude-empresarial"
+    },
+    {
+      "cluster": "business",
+      "query": "defensa penal empresa cdmx",
+      "route": "/guias/defensa-penal-empresa-delitos-financieros"
+    },
+    {
+      "cluster": "business",
+      "query": "responsabilidad penal representante legal",
+      "route": "/guias/responsabilidad-penal-representante-legal-contador"
+    },
+    {
+      "cluster": "financial",
+      "query": "delitos financieros abogado cdmx",
+      "route": "/areas/delitos-fiscales-y-financieros"
+    }
+  ]
+}
