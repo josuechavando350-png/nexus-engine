@@ -354,34 +354,7 @@ fn coverage_commitment(outcomes: &mut [ImportOutcome]) -> Result<Hash32, Capital
     Hash32::new(bytes).map_err(|_| CapitalError::InvalidCanonical("zero D08 coverage commitment"))
 }
 
-pub(crate) fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError> {
-    let root = Json::parse(bytes)
-        .map_err(|_| CapitalError::InvalidCanonical("D08 pool facts JSON parse failed"))?;
-    let aave = field(&root, "aave_pool")?;
-    let pool = Address::parse_hex(text(aave, "pool")?)
-        .map_err(|_| CapitalError::InvalidCanonical("invalid D08 Aave pool address"))?;
-    let scalars = field(aave, "scalars")?;
-    let premium = field(scalars, "FLASHLOAN_PREMIUM_TOTAL()")?;
-    if text(premium, "status")? != "RETURNED" {
-        return Err(CapitalError::InvalidCanonical(
-            "D08 Aave flash premium was not returned",
-        ));
-    }
-    let encoded = hex::decode_data(text(premium, "data")?)
-        .map_err(|_| CapitalError::InvalidCanonical("invalid D08 Aave flash premium bytes"))?;
-    if encoded.len() != 32 || encoded[..30].iter().any(|byte| *byte != 0) {
-        return Err(CapitalError::InvalidCanonical(
-            "D08 Aave flash premium is not canonical uint16",
-        ));
-    }
-    let value = u16::from_be_bytes([encoded[30], encoded[31]]);
-    if value > 10_000 {
-        return Err(CapitalError::InvalidBasisPoints(value));
-    }
-    Ok((pool, value))
-}
-
-pub(crate) /// Parse the exact Aave V3 Pool and FLASHLOAN_PREMIUM_TOTAL admitted by RMC-008.
+/// Parse the exact Aave V3 Pool and FLASHLOAN_PREMIUM_TOTAL admitted by RMC-008.
 pub fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError> {
     let root = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("D08 pool facts JSON parse failed"))?;
