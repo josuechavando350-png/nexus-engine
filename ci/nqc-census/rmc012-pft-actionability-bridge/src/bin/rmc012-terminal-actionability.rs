@@ -1245,10 +1245,10 @@ mod reserve_bitmap_tests {
     #[test]
     fn highest_valid_aave_reserve_maps_to_bit_255() {
         let configuration = U256::from(1u8) << 255;
-        assert_eq!(
+        assert!(matches!(
             collateral_enabled_from_user_configuration(configuration, 127),
             Ok(true)
-        );
+        ));
     }
 
     #[test]
