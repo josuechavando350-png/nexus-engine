@@ -145,8 +145,14 @@ fn observation(
             ]),
         ),
         ("debt_kind", Json::string(kind_text)),
-        ("provider_identity", Json::string(provider_identity.to_hex())),
-        ("facility_contract", Json::string(facility_contract.to_hex())),
+        (
+            "provider_identity",
+            Json::string(provider_identity.to_hex()),
+        ),
+        (
+            "facility_contract",
+            Json::string(facility_contract.to_hex()),
+        ),
         (
             "principal_asset",
             Json::string(format!("TOKEN:{}", principal_token.to_hex())),
@@ -169,12 +175,12 @@ fn observation(
             Json::uint(u64::from(max_utilization_bps)),
         ),
         ("min_remaining", amount_json(min_remaining)),
-        (
-            "protocol_cap",
-            protocol_cap.map_or(Json::Null, amount_json),
-        ),
+        ("protocol_cap", protocol_cap.map_or(Json::Null, amount_json)),
         ("market_cap", market_cap.map_or(Json::Null, amount_json)),
-        ("interest_model_hash", Json::string(risk.interest_model_hash.to_hex())),
+        (
+            "interest_model_hash",
+            Json::string(risk.interest_model_hash.to_hex()),
+        ),
         (
             "liquidation_model_hash",
             Json::string(risk.liquidation_model_hash.to_hex()),
@@ -183,7 +189,10 @@ fn observation(
             "solvency_model_hash",
             Json::string(risk.solvency_model_hash.to_hex()),
         ),
-        ("oracle_risk_hash", Json::string(risk.oracle_risk_hash.to_hex())),
+        (
+            "oracle_risk_hash",
+            Json::string(risk.oracle_risk_hash.to_hex()),
+        ),
         (
             "liquidity_withdrawal_risk_hash",
             Json::string(risk.liquidity_withdrawal_risk_hash.to_hex()),
