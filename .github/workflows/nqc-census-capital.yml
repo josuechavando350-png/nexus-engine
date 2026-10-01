@@ -57,7 +57,7 @@ jobs:
             .claims.profitability == false
           ' ci/nqc-census/capital-census-scope.json >/dev/null
           grep -F 'Zero-own-capital is a constraint to prove' ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
-          grep -F '"source_universe_basis": "RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY"' ci/nqc-census/capital-census-scope.json
+          grep -F '"source_universe_basis": "RMC008_CURRENT_STATE_PLUS_CANONICAL_PERMISSIONLESS_DISCOVERY_PLUS_AUTHENTICATED_EXTERNAL_REGISTRIES_AND_EXECUTION_PLAN_REQUIREMENT_CATALOGS"' ci/nqc-census/capital-census-scope.json
           grep -F '"global_capital_source_completeness": false' ci/nqc-census/capital-census-scope.json
           grep -F '"repayment_cashflow_sufficiency": false' ci/nqc-census/capital-census-scope.json
           grep -F '"zero_own_capital_proof_basis": "EXTERNAL_GAS_COMPLETE_FEASIBLE_REQUIREMENTS_ONLY"' ci/nqc-census/capital-census-scope.json
