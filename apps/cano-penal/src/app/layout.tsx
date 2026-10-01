@@ -32,6 +32,8 @@ const attorneySchema = {
   "@context": "https://schema.org",
   "@type": "Attorney",
   name: site.lawyer,
+  url: "https://canopenal.com",
+  sameAs: [site.facebook, site.instagram],
   address: {
     "@type": "PostalAddress",
     streetAddress: "Montecito 38, piso 28, oficina 16, colonia Nápoles",
@@ -41,7 +43,8 @@ const attorneySchema = {
   },
   telephone: site.phoneDisplay,
   email: site.email,
-  areaServed: site.serviceArea
+  areaServed: site.serviceArea,
+  knowsAbout: ["Derecho penal", "Delitos fiscales", "Delitos financieros", "Defensa penal empresarial"]
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
