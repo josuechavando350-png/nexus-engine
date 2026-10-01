@@ -81,6 +81,22 @@ def valid_lock() -> tuple[bytes, dict]:
     return canonical(doc), doc
 
 
+def valid_transport_auth() -> tuple[bytes, bytes]:
+    labels = sorted(mod.EXPECTED_FAMILIES) + ["FAMILY_UNIVERSE_DISCOVERY"]
+    lines = []
+    for i, label in enumerate(labels):
+        lines.append("\t".join([
+            label,
+            str(5000 + i),
+            str(6000 + i),
+            f"{7000 + i:040x}",
+            f"{8000 + i:064x}",
+        ]))
+    raw = ("\n".join(lines) + "\n").encode()
+    marker = (hashlib.sha256(raw).hexdigest() + "  /tmp/rmc011-terminal-evidence-authenticated.tsv\n").encode()
+    return raw, marker
+
+
 def valid_closeout(lock_raw: bytes, lock: dict) -> dict:
     return {
         "schema_version": 3,
@@ -115,13 +131,15 @@ def valid_closeout(lock_raw: bytes, lock: dict) -> dict:
 
 
 class TerminalCloseoutTests(unittest.TestCase):
-    def build(self, source: dict | None = None, closeout: dict | None = None, lock_raw: bytes | None = None, lock: dict | None = None) -> dict:
+    def build(self, source: dict | None = None, closeout: dict | None = None, lock_raw: bytes | None = None, lock: dict | None = None, transport_raw: bytes | None = None, transport_marker: bytes | None = None) -> dict:
         if source is None:
             source = valid_source_universe()
         if lock_raw is None or lock is None:
             lock_raw, lock = valid_lock()
         if closeout is None:
             closeout = valid_closeout(lock_raw, lock)
+        if transport_raw is None or transport_marker is None:
+            transport_raw, transport_marker = valid_transport_auth()
         return mod.build_terminal_closeout(
             canonical(source),
             source,
@@ -129,6 +147,8 @@ class TerminalCloseoutTests(unittest.TestCase):
             closeout,
             lock_raw,
             lock,
+            transport_raw,
+            transport_marker,
         )
 
     def test_complete_inputs_emit_terminal_closeout(self):
@@ -138,6 +158,8 @@ class TerminalCloseoutTests(unittest.TestCase):
         self.assertTrue(out["terminal_capital_census_complete"])
         self.assertTrue(out["capital_source_universe_complete"])
         self.assertEqual(out["resolved_family_count"], 13)
+        self.assertEqual(out["source_universe_transport_auth_count"], 14)
+        self.assertRegex(out["source_universe_transport_auth_sha256"], r"^[0-9a-f]{64}$")
         self.assertFalse(out["profitability_claimed"])
 
     def test_terminal_commitment_is_deterministic(self):
@@ -174,6 +196,19 @@ class TerminalCloseoutTests(unittest.TestCase):
         closeout["observation_anchor"]["block_number"] = mod.EXPECTED_A1_BLOCK - 1
         with self.assertRaises(mod.TerminalCloseoutError):
             self.build(closeout=closeout, lock_raw=lock_raw, lock=lock)
+
+    def test_transport_auth_marker_mismatch_fails_closed(self):
+        transport_raw, _ = valid_transport_auth()
+        bad_marker = ("0" * 64 + "  transcript\n").encode()
+        with self.assertRaises(mod.TerminalCloseoutError):
+            self.build(transport_raw=transport_raw, transport_marker=bad_marker)
+
+    def test_transport_auth_missing_family_fails_closed(self):
+        transport_raw, _ = valid_transport_auth()
+        trimmed = ("\n".join(transport_raw.decode().splitlines()[:-1]) + "\n").encode()
+        marker = (hashlib.sha256(trimmed).hexdigest() + "  transcript\n").encode()
+        with self.assertRaises(mod.TerminalCloseoutError):
+            self.build(transport_raw=trimmed, transport_marker=marker)
 
     def test_authority_lock_byte_substitution_fails_closed(self):
         lock_raw, lock = valid_lock()
