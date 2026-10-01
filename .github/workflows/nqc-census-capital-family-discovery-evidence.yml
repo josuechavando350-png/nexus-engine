@@ -10,6 +10,8 @@ on:
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
       - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
       - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
   push:
     branches:
@@ -22,6 +24,8 @@ on:
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
       - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
       - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
   workflow_dispatch:
 
@@ -57,6 +61,11 @@ jobs:
           set -euo pipefail
           python3 -m py_compile             ci/nqc-census/verify-rmc011-family-discovery-readiness.py             ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
           python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
+          python3 -m py_compile \
+            ci/nqc-census/verify-rmc011-family-discovery-promotion.py \
+            ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-promotion.py
           python3             ci/nqc-census/verify-rmc011-family-discovery-readiness.py             "$RUNNER_TEMP/rmc011-family-discovery-readiness.json"
           ready="$(jq -r '.ready' "$RUNNER_TEMP/rmc011-family-discovery-readiness.json")"
           already="$(jq -r '.already_authenticated' "$RUNNER_TEMP/rmc011-family-discovery-readiness.json")"
@@ -67,6 +76,23 @@ jobs:
             jq -r '.unresolved_families[]? | "RMC011_UNRESOLVED_DISCOVERY_FAMILY=" + .'               "$RUNNER_TEMP/rmc011-family-discovery-readiness.json"
           fi
 
+      - name: Fail closed while family discovery is unresolved
+        if: steps.readiness.outputs.ready != 'true' && steps.readiness.outputs.already_authenticated != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RMC011_FAMILY_DISCOVERY_EVIDENCE=BLOCKED_UNRESOLVED_FAMILIES" >&2
+          jq -r '.unresolved_families[]? | "RMC011_UNRESOLVED_DISCOVERY_FAMILY=" + .' \
+            "$RUNNER_TEMP/rmc011-family-discovery-readiness.json" >&2
+          exit 1
+
+      - name: Verify previously authenticated discovery reference
+        if: steps.readiness.outputs.already_authenticated == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/verify-rmc011-family-discovery-promotion.py
+          echo "RMC011_FAMILY_DISCOVERY_EVIDENCE=ALREADY_AUTHENTICATED"
       - name: Authenticate all thirteen family evidence transports
         if: steps.readiness.outputs.ready == 'true'
         shell: bash
