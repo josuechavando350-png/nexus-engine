@@ -140,14 +140,8 @@ fn observation(
         ("repayment_deadline_blocks", Json::uint(deadline)),
         ("max_utilization_bps", Json::uint(u64::from(utilization))),
         ("min_remaining", amount_json(min_remaining)),
-        (
-            "protocol_cap",
-            amount_json(protocol_cap_value),
-        ),
-        (
-            "market_cap",
-            amount_json(market_cap_value),
-        ),
+        ("protocol_cap", amount_json(protocol_cap_value)),
+        ("market_cap", amount_json(market_cap_value)),
         ("active", Json::Bool(active)),
         ("terms_commitment", Json::string(terms.to_hex())),
         (
