@@ -1,4 +1,5 @@
 name: NQC RMC-011 Family Discovery Evidence
+# D11 queue-alignment marker: authoritative head only.
 
 on:
   pull_request:
