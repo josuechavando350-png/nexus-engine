@@ -163,7 +163,7 @@ fn expanded_certificate_preserves_d08_receipt_and_admits_native_d11_sources() ->
     let native_authority = D11SourceAuthority::from_reconciliation_artifact(
         anchor(),
         b"exact-balancer-reconciliation",
-        &[native.clone()],
+        std::slice::from_ref(&native),
     )?;
 
     let mut ledger = CapitalCensusLedger::evidentiary();
@@ -192,12 +192,12 @@ fn expanded_certificate_accepts_multiple_disjoint_native_families() -> TestResul
     let balancer_authority = D11SourceAuthority::from_reconciliation_artifact(
         anchor(),
         b"exact-balancer-reconciliation",
-        &[balancer.clone()],
+        std::slice::from_ref(&balancer),
     )?;
     let uniswap_authority = D11SourceAuthority::from_reconciliation_artifact(
         anchor(),
         b"exact-uniswap-v3-reconciliation",
-        &[uniswap_v3.clone()],
+        std::slice::from_ref(&uniswap_v3),
     )?;
     let authority_set = D11SourceAuthoritySet::new(vec![balancer_authority, uniswap_authority])?;
 
@@ -238,12 +238,12 @@ fn native_authority_set_rejects_source_union_mutation() -> TestResult {
     let balancer_authority = D11SourceAuthority::from_reconciliation_artifact(
         anchor(),
         b"exact-balancer-reconciliation",
-        &[balancer.clone()],
+        std::slice::from_ref(&balancer),
     )?;
     let uniswap_authority = D11SourceAuthority::from_reconciliation_artifact(
         anchor(),
         b"exact-uniswap-v3-reconciliation",
-        &[uniswap_v3.clone()],
+        std::slice::from_ref(&uniswap_v3),
     )?;
     let authority_set = D11SourceAuthoritySet::new(vec![balancer_authority, uniswap_authority])?;
     assert!(authority_set
@@ -269,7 +269,7 @@ fn expanded_certificate_rejects_source_smuggled_under_other_upstream_evidence() 
     let native_authority = D11SourceAuthority::from_reconciliation_artifact(
         anchor(),
         b"exact-balancer-reconciliation",
-        &[native.clone()],
+        std::slice::from_ref(&native),
     )?;
 
     let mut ledger = CapitalCensusLedger::evidentiary();
@@ -295,7 +295,7 @@ fn expanded_certificate_rejects_missing_d08_source_even_with_valid_native_author
     let native_authority = D11SourceAuthority::from_reconciliation_artifact(
         anchor(),
         b"exact-balancer-reconciliation",
-        &[native.clone()],
+        std::slice::from_ref(&native),
     )?;
 
     let mut ledger = CapitalCensusLedger::evidentiary();
