@@ -308,7 +308,7 @@ fn discovers_exact_borrow_cap_upper_bound_from_authenticated_d08() -> TestResult
         format!("{:064x}", 600_000_000_u64)
     );
     assert_eq!(
-        facility.execution_compatible_borrowable_upper_bound.to_hex(),
+        facility.token_compatible_borrowable_upper_bound.to_hex(),
         format!("{:064x}", 600_000_000_u64)
     );
     assert!(facility.token_execution_blockers.is_empty());
@@ -362,7 +362,7 @@ fn d08_token_blocker_preserves_protocol_capacity_but_blocks_execution_compatibil
         format!("{:064x}", 600_000_000_u64)
     );
     assert_eq!(
-        blocked_facility.execution_compatible_borrowable_upper_bound,
+        blocked_facility.token_compatible_borrowable_upper_bound,
         nqc_census_capital::Amount256::ZERO
     );
     assert_eq!(
