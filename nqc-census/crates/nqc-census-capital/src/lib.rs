@@ -5,6 +5,7 @@
 //! capital sources, candidate requirements, deterministic identities, and fail-closed feasibility.
 
 pub mod adapters;
+pub mod aave_debt_discovery;
 pub mod artifacts;
 pub mod balancer_live;
 pub mod demands;
