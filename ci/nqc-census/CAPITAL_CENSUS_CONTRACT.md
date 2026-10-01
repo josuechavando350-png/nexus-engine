@@ -319,3 +319,17 @@ Every terminally resolved family MUST carry content-addressed resolution evidenc
 Model support, an adapter implementation, or a semantic parser without authenticated acquisition evidence does not resolve a source family. In particular, `gas_credit.rs` being able to validate two-provider external gas-credit observations does not certify that such a facility exists or is available at the anchor.
 
 `CAPITAL_SOURCE_UNIVERSE_COMPLETE` is necessary but not sufficient for D11 closure. Final D11 authority must combine that readiness proof with the authenticated D11 source/certification evidence in a separate terminal gate. Until source-universe readiness is complete, the source-universe state remains `BLOCKED_INCOMPLETE_SOURCE_UNIVERSE`, even if the narrower real-source package passes.
+
+The authorized terminal transition is `d11/d11-terminal-closeout.json` inside the immutable `NQC RMC-011 Real Source Certification` package. It is a separate, deterministic closeout layer and MUST NOT mutate or reinterpret `capital-real-source-closeout.json`. The terminal closeout may be emitted only when all of the following are simultaneously true:
+
+- the source-universe contract is `CAPITAL_SOURCE_UNIVERSE_COMPLETE` with `terminal_claim_allowed=true`;
+- all thirteen required families are terminally resolved by content-addressed evidence;
+- `family_universe_discovery.status == AUTHENTICATED_COMPLETE`;
+- the narrow real-source closeout is an exact-head `RMC_011_REAL_SOURCE_CLOSEOUT_PASS`;
+- the real-source closeout remains nonterminal and retains all downstream economic/actionability non-claims;
+- the exact upstream authority-lock bytes and commitment match the real-source closeout;
+- the observation anchor is exactly Ethereum A1 block `26095351`, hash `0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781`;
+- the terminal closeout binds SHA-256 of the source-universe bytes, real-source closeout bytes, authority-lock bytes, and authenticated family-discovery evidence.
+
+Only that file may carry `status=D11_TERMINAL_CLOSED`, `d11_terminal_closed=true`, and `terminal_capital_census_complete=true`. It still MUST keep RMC-012 actionability, repayment-cashflow sufficiency, portfolio concurrency, profitability, Shadow, Canary, and realized-P&L as explicit non-claims.
+
