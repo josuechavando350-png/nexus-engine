@@ -53,7 +53,8 @@ describe("CANO growth attribution ingress", () => {
       body: JSON.stringify(event),
     }));
     expect(response.status).toBe(202);
-    const forwarded = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit | undefined;
+    const forwarded = JSON.parse(String(init?.body));
     expect(forwarded.rawName).toBeUndefined();
     expect(forwarded.stage).toBe("SIGNED_CLIENT");
     expect(forwarded.revenueMinor).toBe(2500000);
