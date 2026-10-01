@@ -110,8 +110,8 @@ export default async function HomePage() {
             <div className="cp-v2-service-list">
               <Link href="/defraudacion-fiscal"><strong>Defraudación fiscal y defensa penal-fiscal</strong><i>↗</i></Link>
               <Link href="/fraude-empresarial"><strong>Fraude y defensa penal empresarial</strong><i>↗</i></Link>
-              <Link href="/guias/requerimiento-sat-riesgo-penal"><strong>Requerimientos del SAT y riesgo penal</strong><i>↗</i></Link>
-              <Link href="/guias/responsabilidad-penal-representante-legal-contador"><strong>Representantes legales y contadores</strong><i>↗</i></Link>
+              <Link href="/guias/requerimiento-sat-riesgo-penal" data-nexus-signal="home-service-sat"><strong>Requerimientos del SAT y riesgo penal</strong><i>↗</i></Link>
+              <Link href="/representante-legal-investigacion-penal" data-nexus-signal="home-service-representative"><strong>Representantes legales y contadores</strong><i>↗</i></Link>
             </div>
           </div>
         </section>
