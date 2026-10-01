@@ -237,15 +237,27 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
         ("monthly_target_probability_proven", Json::Bool(false)),
         (
             "conservative_realizable_capacity_only",
-            Json::Bool(certificate.economics().conservative_realizable_capacity_only),
+            Json::Bool(
+                certificate
+                    .economics()
+                    .conservative_realizable_capacity_only,
+            ),
         ),
         (
             "global_capital_source_completeness_claimed",
-            Json::Bool(certificate.economics().global_capital_source_completeness_claimed),
+            Json::Bool(
+                certificate
+                    .economics()
+                    .global_capital_source_completeness_claimed,
+            ),
         ),
         (
             "global_route_venue_completeness_claimed",
-            Json::Bool(certificate.economics().global_route_venue_completeness_claimed),
+            Json::Bool(
+                certificate
+                    .economics()
+                    .global_route_venue_completeness_claimed,
+            ),
         ),
     ]);
     let bytes = certificate_json.canonical()?;
