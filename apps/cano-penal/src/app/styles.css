@@ -336,3 +336,20 @@ a,button,article,.cp-path,.cp-area,.cp-case,.cp-why article{-webkit-tap-highligh
   .cp-strategic-scenarios,.cp-proof-center-rail{grid-template-columns:1fr}
   .cp-strategic-scenarios article+article,.cp-proof-center-rail article+article{border-left:0;border-top:1px solid var(--border-subtle)}
 }
+
+
+/* ===== Client-approved preserved modules + strategic integration ===== */
+.cp-paths-three{grid-template-columns:repeat(3,1fr)}
+.cp-paths-three .cp-path{min-height:25rem}
+.cp-paths-three .cp-path+.cp-path{border-left:1px solid var(--border-subtle);border-top:0}
+.cp-paths-three .cp-actions{margin-top:auto;align-items:flex-start}
+.cp-preserved-situations .cp-path,.cp-preserved-why .cp-why article{background:transparent}
+.cp-preserved-situations .cp-path:hover,.cp-preserved-why .cp-why article:hover{background:rgba(232,237,243,.055)}
+.cp-preserved-trajectory .cp-v2-proof-copy>p{white-space:normal}
+.cp-preserved-advisory .cp-price small{margin-top:.75rem;max-width:18rem;color:var(--content-disabled);font-size:.72rem;line-height:1.5;text-transform:uppercase;letter-spacing:.08em}
+.cp-intelligence-more{margin-top:2rem;color:#111317;border-bottom-color:rgba(17,19,23,.4)}
+@media(max-width:1023px){
+  .cp-paths-three{grid-template-columns:1fr}
+  .cp-paths-three .cp-path+.cp-path{border-left:0;border-top:1px solid var(--border-subtle)}
+  .cp-paths-three .cp-path{min-height:0}
+}
