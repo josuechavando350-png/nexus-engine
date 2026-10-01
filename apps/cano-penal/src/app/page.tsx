@@ -123,7 +123,7 @@ export default async function HomePage() {
               <Link className="cp-text-link" href="/casos">Ver todos los casos</Link>
             </div>
             <div className="cp-v2-case-grid">
-              {[cases[4], cases[0], cases[1]].map(([title, body], index) => (
+              {[cases[4], cases[0], cases[1]].map(([title, body]) => (
                 <article className="cp-v2-case" key={title}>
                   <h3>{title}</h3>
                   <p>{body}</p>
