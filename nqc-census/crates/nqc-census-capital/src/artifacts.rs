@@ -1020,7 +1020,7 @@ pub fn decode_upstream_authority_artifact(
     parse_upstream_authority(bytes)
 }
 
-fn parse_upstream_authority(
+pub(crate) fn parse_upstream_authority(
     bytes: &[u8],
 ) -> Result<(CapitalCertificationContext, ArtifactProvenance), CapitalError> {
     let parsed = Json::parse(bytes)
@@ -1382,8 +1382,27 @@ fn collateral_json(collateral: CollateralRequirement) -> Json {
             liquidation_conditions_hash,
         } => Json::object([
             ("required", Json::Bool(true)),
+            ("kind", Json::string("FIXED")),
             ("asset", Json::string(asset.code())),
             ("amount", Json::string(amount.to_hex())),
+            (
+                "liquidation_conditions_hash",
+                Json::string(liquidation_conditions_hash.to_hex()),
+            ),
+        ]),
+        CollateralRequirement::Proportional {
+            asset,
+            numerator,
+            denominator,
+            rounding,
+            liquidation_conditions_hash,
+        } => Json::object([
+            ("required", Json::Bool(true)),
+            ("kind", Json::string("PROPORTIONAL")),
+            ("asset", Json::string(asset.code())),
+            ("numerator", Json::uint(numerator)),
+            ("denominator", Json::uint(denominator)),
+            ("rounding", Json::string(rounding.code())),
             (
                 "liquidation_conditions_hash",
                 Json::string(liquidation_conditions_hash.to_hex()),
