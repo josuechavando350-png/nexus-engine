@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "audit:local": "node ../../scripts/audit-local-presence.mjs --spec ./local-presence.canonical.json"
+    "audit:local": "node ../../scripts/audit-local-presence.mjs --spec ./local-presence.canonical.json",
+    "audit:competition": "node ./scripts/audit-competitive-readiness.mjs"
   },
   "dependencies": {
     "@nexus/core": "workspace:*",
