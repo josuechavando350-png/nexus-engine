@@ -206,13 +206,7 @@ fn rejects_anchor_substitution() -> TestResult {
 #[test]
 fn rejects_provider_semantic_divergence() -> TestResult {
     let observed_anchor = anchor();
-    let bytes = observation(
-        &observed_anchor,
-        amount(1_000),
-        true,
-        Some(hash(90)),
-        None,
-    )?;
+    let bytes = observation(&observed_anchor, amount(1_000), true, Some(hash(90)), None)?;
     assert!(matches!(
         import_external_gas_sponsor_observation(&bytes, &observed_anchor),
         Err(CapitalError::CanonicalDigestMismatch)
@@ -223,13 +217,7 @@ fn rejects_provider_semantic_divergence() -> TestResult {
 #[test]
 fn rejects_duplicate_provider_transcript() -> TestResult {
     let observed_anchor = anchor();
-    let bytes = observation(
-        &observed_anchor,
-        amount(1_000),
-        true,
-        None,
-        Some(hash(40)),
-    )?;
+    let bytes = observation(&observed_anchor, amount(1_000), true, None, Some(hash(40)))?;
     assert!(matches!(
         import_external_gas_sponsor_observation(&bytes, &observed_anchor),
         Err(CapitalError::InvalidCanonical(_))
@@ -246,7 +234,10 @@ fn inactive_sponsor_preserves_observation_but_is_not_executable() -> TestResult 
     assert_eq!(source.maximum_available(), amount(1_000));
     assert_eq!(source.effective_capacity()?, amount(1_000));
     assert_eq!(source.executable_capacity()?, Amount256::ZERO);
-    assert_eq!(source.execution_blockers(), &["GAS_SPONSOR_INACTIVE".to_owned()]);
+    assert_eq!(
+        source.execution_blockers(),
+        &["GAS_SPONSOR_INACTIVE".to_owned()]
+    );
     Ok(())
 }
 

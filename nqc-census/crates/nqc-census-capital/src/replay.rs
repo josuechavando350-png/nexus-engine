@@ -588,11 +588,15 @@ impl RealSourceCloseout {
             ),
             (
                 "terminal_blockers",
-                Json::array([
-                    "GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED",
-                    "ACTIONABLE_REQUIREMENT_COVERAGE_DEFERRED_TO_RMC012",
-                    "REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED",
-                ].into_iter().map(Json::string)),
+                Json::array(
+                    [
+                        "GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED",
+                        "ACTIONABLE_REQUIREMENT_COVERAGE_DEFERRED_TO_RMC012",
+                        "REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED",
+                    ]
+                    .into_iter()
+                    .map(Json::string),
+                ),
             ),
             ("generated_at", Json::string(self.generated_at.clone())),
             (
@@ -1029,7 +1033,9 @@ mod real_source_shape_tests {
             "ACTIONABLE_REQUIREMENT_COVERAGE_DEFERRED_TO_RMC012",
             "REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED",
         ] {
-            assert!(blockers.iter().any(|value| value.as_str() == Some(expected)));
+            assert!(blockers
+                .iter()
+                .any(|value| value.as_str() == Some(expected)));
         }
         let non_claims = payload
             .get("non_claims")
@@ -1039,7 +1045,9 @@ mod real_source_shape_tests {
             "TERMINAL_CAPITAL_CENSUS_NOT_CERTIFIED",
             "ACTIONABLE_REQUIREMENT_COVERAGE_NOT_CERTIFIED",
         ] {
-            assert!(non_claims.iter().any(|value| value.as_str() == Some(expected)));
+            assert!(non_claims
+                .iter()
+                .any(|value| value.as_str() == Some(expected)));
         }
     }
 }

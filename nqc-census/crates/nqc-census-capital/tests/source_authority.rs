@@ -8,9 +8,9 @@ use nqc_census_capital::{
         certify_with_d11_source_authorities, certify_with_d11_sources, D11SourceAuthority,
         D11SourceAuthoritySet,
     },
-    Amount256, CapitalCensusLedger, CapitalCertificationContext, CapitalError,
-    CapitalEvidenceRef, CapitalRequirement, GitObjectId, UpstreamCensusStage,
-    UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    Amount256, CapitalCensusLedger, CapitalCertificationContext, CapitalError, CapitalEvidenceRef,
+    CapitalRequirement, GitObjectId, UpstreamCensusStage, UpstreamConsumptionReceipt,
+    UpstreamStageAuthority, UpstreamStageAuthoritySpec,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -41,9 +41,8 @@ fn stages() -> Result<Vec<UpstreamStageAuthority>, CapitalError> {
         .into_iter()
         .enumerate()
         .map(|(index, stage)| {
-            let nibble = u8::try_from(index + 1).map_err(|_| {
-                CapitalError::InvalidUpstreamAuthority("test stage index overflow")
-            })?;
+            let nibble = u8::try_from(index + 1)
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("test stage index overflow"))?;
             UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
                 stage,
                 code_commit: GitObjectId::parse_hex(&format!("{nibble:040x}"))?,
@@ -199,8 +198,7 @@ fn expanded_certificate_accepts_multiple_disjoint_native_families() -> TestResul
         b"exact-uniswap-v3-reconciliation",
         &[uniswap_v3.clone()],
     )?;
-    let authority_set =
-        D11SourceAuthoritySet::new(vec![balancer_authority, uniswap_authority])?;
+    let authority_set = D11SourceAuthoritySet::new(vec![balancer_authority, uniswap_authority])?;
 
     let mut ledger = CapitalCensusLedger::evidentiary();
     ledger.register_source(upstream_source)?;
@@ -208,8 +206,7 @@ fn expanded_certificate_accepts_multiple_disjoint_native_families() -> TestResul
     ledger.register_source(uniswap_v3)?;
     ledger.evaluate_all()?;
 
-    let certificate =
-        certify_with_d11_source_authorities(&ledger, &context, &authority_set)?;
+    let certificate = certify_with_d11_source_authorities(&ledger, &context, &authority_set)?;
     assert_eq!(certificate.d08_source_count, 1);
     assert_eq!(certificate.d11_native_source_count, 2);
     assert_eq!(certificate.summary.source_count, 3);
@@ -222,16 +219,10 @@ fn expanded_certificate_accepts_multiple_disjoint_native_families() -> TestResul
 fn native_authority_set_rejects_duplicate_family() -> TestResult {
     let first = native_balancer_source(51, hash(60), hash(61))?;
     let second = native_balancer_source(52, hash(62), hash(63))?;
-    let first_authority = D11SourceAuthority::from_reconciliation_artifact(
-        anchor(),
-        b"balancer-a",
-        &[first],
-    )?;
-    let second_authority = D11SourceAuthority::from_reconciliation_artifact(
-        anchor(),
-        b"balancer-b",
-        &[second],
-    )?;
+    let first_authority =
+        D11SourceAuthority::from_reconciliation_artifact(anchor(), b"balancer-a", &[first])?;
+    let second_authority =
+        D11SourceAuthority::from_reconciliation_artifact(anchor(), b"balancer-b", &[second])?;
     assert!(matches!(
         D11SourceAuthoritySet::new(vec![first_authority, second_authority]),
         Err(CapitalError::InvalidUpstreamAuthority(_))
@@ -253,9 +244,10 @@ fn native_authority_set_rejects_source_union_mutation() -> TestResult {
         b"exact-uniswap-v3-reconciliation",
         &[uniswap_v3.clone()],
     )?;
-    let authority_set =
-        D11SourceAuthoritySet::new(vec![balancer_authority, uniswap_authority])?;
-    assert!(authority_set.verify_source_set([&balancer, &uniswap_v3]).is_ok());
+    let authority_set = D11SourceAuthoritySet::new(vec![balancer_authority, uniswap_authority])?;
+    assert!(authority_set
+        .verify_source_set([&balancer, &uniswap_v3])
+        .is_ok());
     assert!(authority_set.verify_source_set([&balancer]).is_err());
     Ok(())
 }
@@ -293,7 +285,8 @@ fn expanded_certificate_rejects_source_smuggled_under_other_upstream_evidence() 
 }
 
 #[test]
-fn expanded_certificate_rejects_missing_d08_source_even_with_valid_native_authority() -> TestResult {
+fn expanded_certificate_rejects_missing_d08_source_even_with_valid_native_authority() -> TestResult
+{
     let stage_rows = stages()?;
     let upstream_source = d08_source(d08_artifact(&stage_rows)?)?;
     let context = context_for_d08_source(stage_rows, &upstream_source)?;

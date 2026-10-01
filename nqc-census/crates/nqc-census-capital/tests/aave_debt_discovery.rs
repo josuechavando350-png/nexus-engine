@@ -1,10 +1,11 @@
 use nqc_census_capital::{
     aave_debt_discovery::{
-        build_aave_debt_discovery_artifact, discover_d08_aave_debt_facilities, AaveDebtFacilityBlocker,
+        build_aave_debt_discovery_artifact, discover_d08_aave_debt_facilities,
+        AaveDebtFacilityBlocker,
     },
     upstream::D08CapitalImportContext,
-    CapitalEvidenceRef, CapitalError, GitObjectId, UpstreamCensusStage,
-    UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    CapitalError, CapitalEvidenceRef, GitObjectId, UpstreamCensusStage, UpstreamStageAuthority,
+    UpstreamStageAuthoritySpec,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
@@ -98,10 +99,7 @@ fn state_row(
                 ("frozen", Json::Bool(false)),
                 ("borrowing_enabled", Json::Bool(facts_borrowing_enabled)),
                 ("available_liquidity", Json::string(available)),
-                (
-                    "total_variable_and_stable_debt",
-                    Json::string(total_debt),
-                ),
+                ("total_variable_and_stable_debt", Json::string(total_debt)),
                 ("borrow_cap_reached", Json::Bool(borrow_cap_reached)),
             ]),
         ),
@@ -110,7 +108,6 @@ fn state_row(
     bytes.push(b'\n');
     bytes
 }
-
 
 fn token_admission(blockers: &[&str]) -> Vec<u8> {
     let status = if blockers.is_empty() {
@@ -136,7 +133,6 @@ fn token_admission(blockers: &[&str]) -> Vec<u8> {
     bytes.push(b'\n');
     bytes
 }
-
 
 struct Bundle {
     state: Vec<u8>,
@@ -167,13 +163,7 @@ fn build_bundle_with_token_blockers(
                     "FLASHLOAN_PREMIUM_TOTAL()",
                     Json::object([
                         ("status", Json::string("RETURNED")),
-                        (
-                            "data",
-                            Json::string(format!(
-                                "0x{}0005",
-                                "00".repeat(30)
-                            )),
-                        ),
+                        ("data", Json::string(format!("0x{}0005", "00".repeat(30)))),
                     ]),
                 )]),
             ),
@@ -268,13 +258,7 @@ fn build_bundle_with_token_blockers(
 
 #[test]
 fn discovers_exact_borrow_cap_upper_bound_from_authenticated_d08() -> TestResult {
-    let bundle = build_bundle(state_row(
-        "400000000",
-        "800000000",
-        false,
-        true,
-        true,
-    ))?;
+    let bundle = build_bundle(state_row("400000000", "800000000", false, true, true))?;
     let discovery = discover_d08_aave_debt_facilities(
         &bundle.state,
         &bundle.token,
@@ -294,7 +278,10 @@ fn discovers_exact_borrow_cap_upper_bound_from_authenticated_d08() -> TestResult
     assert_eq!(facility.asset, address(31));
     assert_eq!(facility.pool, address(40));
     assert_eq!(facility.reserve_id, 7);
-    assert_eq!(facility.borrow_cap.unwrap().to_hex(), format!("{:064x}", 1_000_000_000_u64));
+    assert_eq!(
+        facility.borrow_cap.unwrap().to_hex(),
+        format!("{:064x}", 1_000_000_000_u64)
+    );
     assert_eq!(
         facility.borrow_cap_remaining.unwrap().to_hex(),
         format!("{:064x}", 600_000_000_u64)
@@ -321,21 +308,12 @@ fn discovers_exact_borrow_cap_upper_bound_from_authenticated_d08() -> TestResult
     Ok(())
 }
 
-
 #[test]
-fn d08_token_blocker_preserves_protocol_capacity_but_blocks_execution_compatibility() -> TestResult {
-    let state = state_row(
-        "400000000",
-        "800000000",
-        false,
-        true,
-        true,
-    );
+fn d08_token_blocker_preserves_protocol_capacity_but_blocks_execution_compatibility() -> TestResult
+{
+    let state = state_row("400000000", "800000000", false, true, true);
     let compatible_bundle = build_bundle(state.clone())?;
-    let blocked_bundle = build_bundle_with_token_blockers(
-        state,
-        &["UNSUPPORTED_TOKEN_BEHAVIOR"],
-    )?;
+    let blocked_bundle = build_bundle_with_token_blockers(state, &["UNSUPPORTED_TOKEN_BEHAVIOR"])?;
 
     let compatible = discover_d08_aave_debt_facilities(
         &compatible_bundle.state,
@@ -377,16 +355,9 @@ fn d08_token_blocker_preserves_protocol_capacity_but_blocks_execution_compatibil
     Ok(())
 }
 
-
 #[test]
 fn borrow_cap_reached_is_preserved_as_protocol_blocker() -> TestResult {
-    let bundle = build_bundle(state_row(
-        "1000000000",
-        "800000000",
-        true,
-        true,
-        true,
-    ))?;
+    let bundle = build_bundle(state_row("1000000000", "800000000", true, true, true))?;
     let discovery = discover_d08_aave_debt_facilities(
         &bundle.state,
         &bundle.token,
@@ -396,8 +367,14 @@ fn borrow_cap_reached_is_preserved_as_protocol_blocker() -> TestResult {
         &bundle.context,
     )?;
     let facility = &discovery.facilities[0];
-    assert_eq!(facility.observed_borrowable_upper_bound.to_hex(), "0".repeat(64));
-    assert_eq!(facility.protocol_borrowable_upper_bound.to_hex(), "0".repeat(64));
+    assert_eq!(
+        facility.observed_borrowable_upper_bound.to_hex(),
+        "0".repeat(64)
+    );
+    assert_eq!(
+        facility.protocol_borrowable_upper_bound.to_hex(),
+        "0".repeat(64)
+    );
     assert_eq!(
         facility.blockers,
         vec![AaveDebtFacilityBlocker::BorrowCapReached]
@@ -407,13 +384,7 @@ fn borrow_cap_reached_is_preserved_as_protocol_blocker() -> TestResult {
 
 #[test]
 fn protocol_facts_cannot_contradict_decoded_configuration() -> TestResult {
-    let bundle = build_bundle(state_row(
-        "400000000",
-        "800000000",
-        false,
-        false,
-        true,
-    ))?;
+    let bundle = build_bundle(state_row("400000000", "800000000", false, false, true))?;
     assert!(matches!(
         discover_d08_aave_debt_facilities(
             &bundle.state,
@@ -430,13 +401,7 @@ fn protocol_facts_cannot_contradict_decoded_configuration() -> TestResult {
 
 #[test]
 fn substituted_anchor_is_rejected_before_discovery() -> TestResult {
-    let mut bundle = build_bundle(state_row(
-        "400000000",
-        "800000000",
-        false,
-        true,
-        true,
-    ))?;
+    let mut bundle = build_bundle(state_row("400000000", "800000000", false, true, true))?;
     bundle.context.anchor = StateAnchor::new(
         bundle.context.anchor.chain().clone(),
         bundle.context.anchor.block_number() + 1,
@@ -459,16 +424,9 @@ fn substituted_anchor_is_rejected_before_discovery() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn duplicate_aave_debt_candidate_is_rejected() -> TestResult {
-    let row = state_row(
-        "400000000",
-        "800000000",
-        false,
-        true,
-        true,
-    );
+    let row = state_row("400000000", "800000000", false, true, true);
     let mut duplicated = row.clone();
     duplicated.extend_from_slice(&row);
     let bundle = build_bundle(duplicated)?;
@@ -487,16 +445,9 @@ fn duplicate_aave_debt_candidate_is_rejected() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn tampered_state_bytes_fail_manifest_binding() -> TestResult {
-    let mut bundle = build_bundle(state_row(
-        "400000000",
-        "800000000",
-        false,
-        true,
-        true,
-    ))?;
+    let mut bundle = build_bundle(state_row("400000000", "800000000", false, true, true))?;
     bundle.state.extend_from_slice(b"\n");
     assert!(matches!(
         discover_d08_aave_debt_facilities(
@@ -512,16 +463,9 @@ fn tampered_state_bytes_fail_manifest_binding() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn discovery_artifact_is_deterministic_and_nonterminal() -> TestResult {
-    let bundle = build_bundle(state_row(
-        "400000000",
-        "800000000",
-        false,
-        true,
-        true,
-    ))?;
+    let bundle = build_bundle(state_row("400000000", "800000000", false, true, true))?;
     let first = build_aave_debt_discovery_artifact(
         &bundle.state,
         &bundle.token,
@@ -549,10 +493,16 @@ fn discovery_artifact_is_deterministic_and_nonterminal() -> TestResult {
         report.str_field("claim_scope")?,
         "PROTOCOL_SIDE_DEBT_FACILITY_DISCOVERY_ONLY"
     );
-    assert_eq!(report.get("candidate_count").and_then(Json::as_i64), Some(1));
+    assert_eq!(
+        report.get("candidate_count").and_then(Json::as_i64),
+        Some(1)
+    );
     assert_eq!(report.get("facility_count").and_then(Json::as_i64), Some(1));
     assert_eq!(report.get("rejected_count").and_then(Json::as_i64), Some(0));
-    assert_eq!(report.get("capital_source_count").and_then(Json::as_i64), Some(0));
+    assert_eq!(
+        report.get("capital_source_count").and_then(Json::as_i64),
+        Some(0)
+    );
     assert_eq!(
         report
             .get("nqc_borrowing_capacity_claimed")

@@ -6,16 +6,19 @@ use nqc_census_capital::{
         CAPITAL_SUMMARY_FILE, CAPITAL_UPSTREAM_AUTHORITY_FILE,
     },
     balancer_live::source_authority_from_balancer_reconcile_artifact,
-    source_authority::{
-        certify_with_d11_source_authorities, D11SourceAuthoritySet,
-    },
+    source_authority::{certify_with_d11_source_authorities, D11SourceAuthoritySet},
     uniswap_v3_live::source_authority_from_uniswap_v3_reconcile_artifact,
     CapitalCensusLedger, CapitalRequirement, CapitalSource,
 };
 use nqc_census_chain::{hex, json::Json};
 use nqc_census_core::StateAnchor;
 use sha2::{Digest, Sha256};
-use std::{env, error::Error, fs, path::{Path, PathBuf}};
+use std::{
+    env,
+    error::Error,
+    fs,
+    path::{Path, PathBuf},
+};
 
 struct Args {
     legacy_dir: PathBuf,
@@ -58,8 +61,7 @@ fn parse_args() -> Result<Args, Box<dyn Error>> {
     Ok(Args {
         legacy_dir: legacy_dir.ok_or("--legacy-dir is required")?,
         balancer_reconcile: balancer_reconcile.ok_or("--balancer-reconcile is required")?,
-        uniswap_v3_reconcile: uniswap_v3_reconcile
-            .ok_or("--uniswap-v3-reconcile is required")?,
+        uniswap_v3_reconcile: uniswap_v3_reconcile.ok_or("--uniswap-v3-reconcile is required")?,
         code_commit,
         code_tree,
         out: out.ok_or("--out is required")?,
@@ -67,7 +69,10 @@ fn parse_args() -> Result<Args, Box<dyn Error>> {
 }
 
 fn read_required(dir: &Path, name: &'static str) -> Result<CapitalArtifactFile, Box<dyn Error>> {
-    Ok(CapitalArtifactFile::from_bytes(name, fs::read(dir.join(name))?))
+    Ok(CapitalArtifactFile::from_bytes(
+        name,
+        fs::read(dir.join(name))?,
+    ))
 }
 
 fn load_legacy_bundle(dir: &Path) -> Result<CapitalArtifactBundle, Box<dyn Error>> {
@@ -113,8 +118,14 @@ fn sha256_plain(bytes: &[u8]) -> String {
 fn anchor_json(anchor: &StateAnchor) -> Json {
     Json::object([
         ("chain_id", Json::uint(anchor.chain().chain_id())),
-        ("genesis_hash", Json::string(anchor.chain().genesis_hash().to_hex())),
-        ("fork_lineage", Json::string(anchor.chain().fork_lineage().to_hex())),
+        (
+            "genesis_hash",
+            Json::string(anchor.chain().genesis_hash().to_hex()),
+        ),
+        (
+            "fork_lineage",
+            Json::string(anchor.chain().fork_lineage().to_hex()),
+        ),
         ("block_number", Json::uint(anchor.block_number())),
         ("block_hash", Json::string(anchor.block_hash().to_hex())),
         ("parent_hash", Json::string(anchor.parent_hash().to_hex())),
@@ -165,8 +176,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let native_authorities =
         D11SourceAuthoritySet::new(vec![balancer_authority, uniswap_v3_authority])?;
-    let certificate =
-        certify_with_d11_source_authorities(&ledger, &upstream, &native_authorities)?;
+    let certificate = certify_with_d11_source_authorities(&ledger, &upstream, &native_authorities)?;
 
     let legacy_manifest = legacy
         .file(CAPITAL_EVIDENCE_MANIFEST_FILE)
@@ -174,10 +184,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let receipt = Json::object([
         ("schema_version", Json::uint(1)),
         ("stage", Json::string("RMC-011")),
-        (
-            "status",
-            Json::string("RMC011_EXPANDED_LEDGER_REPLAY_PASS"),
-        ),
+        ("status", Json::string("RMC011_EXPANDED_LEDGER_REPLAY_PASS")),
         (
             "claim_scope",
             Json::string("D11_NATIVE_SOURCE_REPLAY_BINDING_ONLY"),

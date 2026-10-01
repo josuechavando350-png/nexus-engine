@@ -29,8 +29,9 @@ pub enum TransientCreditRepaymentMode {
 }
 
 fn field<'a>(row: &'a Json, key: &'static str) -> Result<&'a Json, CapitalError> {
-    row.get(key)
-        .ok_or(CapitalError::InvalidCanonical("missing transient credit field"))
+    row.get(key).ok_or(CapitalError::InvalidCanonical(
+        "missing transient credit field",
+    ))
 }
 
 fn text_field<'a>(row: &'a Json, key: &'static str) -> Result<&'a str, CapitalError> {
@@ -174,8 +175,9 @@ fn repayment_mode(row: &Json) -> Result<TransientCreditRepaymentMode, CapitalErr
             Ok(TransientCreditRepaymentMode::SameBlock)
         }
         "DEADLINE_BLOCKS" => {
-            let deadline = u32::try_from(deadline)
-                .map_err(|_| CapitalError::InvalidCanonical("transient credit deadline overflow"))?;
+            let deadline = u32::try_from(deadline).map_err(|_| {
+                CapitalError::InvalidCanonical("transient credit deadline overflow")
+            })?;
             if deadline == 0 {
                 return Err(CapitalError::ZeroValue("repayment_deadline_blocks"));
             }
@@ -357,9 +359,9 @@ pub fn import_transient_credit_observation(
 ) -> Result<CapitalSource, CapitalError> {
     let row = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("transient credit JSON parse failed"))?;
-    let canonical = row.canonical().map_err(|_| {
-        CapitalError::InvalidCanonical("transient credit canonicalization failed")
-    })?;
+    let canonical = row
+        .canonical()
+        .map_err(|_| CapitalError::InvalidCanonical("transient credit canonicalization failed"))?;
     if canonical.as_slice() != bytes {
         return Err(CapitalError::InvalidCanonical(
             "transient credit observation must be canonical JSON",
@@ -433,7 +435,9 @@ pub fn import_transient_credit_observation(
 
     let repayment = match repayment {
         TransientCreditRepaymentMode::SameBlock => RepaymentSemantics::SameBlock,
-        TransientCreditRepaymentMode::DeadlineBlocks(blocks) => RepaymentSemantics::DeadlineBlocks(blocks),
+        TransientCreditRepaymentMode::DeadlineBlocks(blocks) => {
+            RepaymentSemantics::DeadlineBlocks(blocks)
+        }
     };
     let source = CapitalSource::new(CapitalSourceSpec {
         class: CapitalClass::TransientCredit,

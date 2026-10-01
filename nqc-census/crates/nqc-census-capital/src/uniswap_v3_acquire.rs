@@ -10,9 +10,8 @@
 use crate::{
     uniswap_v3_live::{
         decode_uniswap_v3_pool_created, uniswap_v3_factory_interface,
-        verify_uniswap_v3_factory_runtime, verify_uniswap_v3_pool_runtime,
-        UniswapV3PoolIdentity, UNISWAP_V3_DEPLOYMENT_BLOB,
-        UNISWAP_V3_DEPLOYMENT_COMMIT, UNISWAP_V3_DEPLOYMENT_PATH,
+        verify_uniswap_v3_factory_runtime, verify_uniswap_v3_pool_runtime, UniswapV3PoolIdentity,
+        UNISWAP_V3_DEPLOYMENT_BLOB, UNISWAP_V3_DEPLOYMENT_COMMIT, UNISWAP_V3_DEPLOYMENT_PATH,
         UNISWAP_V3_DEPLOYMENT_REPOSITORY, UNISWAP_V3_FACTORY,
     },
     Amount256,
@@ -104,12 +103,9 @@ fn authority_lock_anchor(authority: &Json) -> Result<StateAnchor, ChainError> {
                 "D11 authority lock repeats an upstream stage".into(),
             ));
         }
-        let anchor = parse_full_anchor(
-            row.get("observation_anchor")
-                .ok_or_else(|| ChainError::Evidence(
-                    "D11 authority stage lacks observation_anchor".into(),
-                ))?,
-        )?;
+        let anchor = parse_full_anchor(row.get("observation_anchor").ok_or_else(|| {
+            ChainError::Evidence("D11 authority stage lacks observation_anchor".into())
+        })?)?;
         if let Some(first) = &observed {
             if first != &anchor {
                 return Err(ChainError::Evidence(
@@ -211,11 +207,7 @@ fn amount_decimal(mut bytes: [u8; 32]) -> String {
     digits.iter().rev().collect()
 }
 
-fn verify_d08_artifact(
-    manifest: &Json,
-    name: &str,
-    bytes: &[u8],
-) -> Result<String, ChainError> {
+fn verify_d08_artifact(manifest: &Json, name: &str, bytes: &[u8]) -> Result<String, ChainError> {
     let expected = manifest
         .get("artifacts")
         .and_then(Json::as_array)
@@ -243,26 +235,21 @@ fn census_assets(
     for line in token_text.lines().filter(|line| !line.is_empty()) {
         let row = Json::parse(line.as_bytes())?;
         let token = Address::parse_hex(row.str_field("token")?)?;
-        let execution = row
-            .get("execution_compatibility")
-            .ok_or_else(|| ChainError::Evidence(
-                "D08 token row has no execution_compatibility".into(),
-            ))?;
+        let execution = row.get("execution_compatibility").ok_or_else(|| {
+            ChainError::Evidence("D08 token row has no execution_compatibility".into())
+        })?;
         let blocker_rows = execution
             .get("blockers")
             .and_then(Json::as_array)
-            .ok_or_else(|| ChainError::Evidence(
-                "D08 token execution blockers are not an array".into(),
-            ))?;
+            .ok_or_else(|| {
+                ChainError::Evidence("D08 token execution blockers are not an array".into())
+            })?;
         let mut blockers = blocker_rows
             .iter()
             .map(|value| {
-                value
-                    .as_str()
-                    .map(ToOwned::to_owned)
-                    .ok_or_else(|| ChainError::Evidence(
-                        "D08 token execution blocker is not text".into(),
-                    ))
+                value.as_str().map(ToOwned::to_owned).ok_or_else(|| {
+                    ChainError::Evidence("D08 token execution blocker is not text".into())
+                })
             })
             .collect::<Result<Vec<_>, _>>()?;
         blockers.sort();
@@ -305,9 +292,9 @@ fn census_assets(
         let asset = Address::parse_hex(row.str_field("asset")?)?;
         let blockers = token_blockers
             .get(&asset)
-            .ok_or_else(|| ChainError::Evidence(
-                "D08 current Aave asset has no token-admission row".into(),
-            ))?
+            .ok_or_else(|| {
+                ChainError::Evidence("D08 current Aave asset has no token-admission row".into())
+            })?
             .clone();
         if let Some(existing) = assets.insert(asset, blockers.clone()) {
             if existing != blockers {
@@ -502,8 +489,7 @@ fn event_rows_and_relevant_pools(
     let relevant = decoded
         .into_iter()
         .filter(|seed| {
-            actionable.contains(&seed.identity.token0)
-                || actionable.contains(&seed.identity.token1)
+            actionable.contains(&seed.identity.token0) || actionable.contains(&seed.identity.token1)
         })
         .collect::<Vec<_>>();
     if relevant.is_empty() {
@@ -528,10 +514,7 @@ fn pool_universe_rows(pools: &[PoolSeed]) -> Vec<Json> {
                     Json::string(seed.identity.tick_spacing.to_string()),
                 ),
                 ("created_block", Json::uint(seed.block_number)),
-                (
-                    "created_block_hash",
-                    Json::string(seed.block_hash.to_hex()),
-                ),
+                ("created_block_hash", Json::string(seed.block_hash.to_hex())),
                 (
                     "created_transaction_hash",
                     Json::string(seed.transaction_hash.to_hex()),
@@ -540,10 +523,7 @@ fn pool_universe_rows(pools: &[PoolSeed]) -> Vec<Json> {
                     "created_transaction_index",
                     Json::uint(u64::from(seed.transaction_index)),
                 ),
-                (
-                    "created_log_index",
-                    Json::uint(u64::from(seed.log_index)),
-                ),
+                ("created_log_index", Json::uint(u64::from(seed.log_index))),
             ])
         })
         .collect()
@@ -567,11 +547,8 @@ fn provider_capture(
             "Uniswap V3 provider chain domain differs from D08 authority".into(),
         ));
     }
-    let (anchor, anchor_output) = acquisition.resolve_anchor(
-        provider,
-        &chain_facts.chain,
-        expected_anchor.block_number(),
-    )?;
+    let (anchor, anchor_output) =
+        acquisition.resolve_anchor(provider, &chain_facts.chain, expected_anchor.block_number())?;
     if &anchor != expected_anchor {
         return Err(ChainError::Evidence(
             "Uniswap V3 provider anchor differs from D08 authority".into(),
@@ -614,8 +591,7 @@ fn provider_capture(
         .str_field("runtime_sha256")?
         .to_owned();
 
-    let (origin, origin_output) =
-        acquisition.resolve_anchor(provider, &chain_facts.chain, 1)?;
+    let (origin, origin_output) = acquisition.resolve_anchor(provider, &chain_facts.chain, 1)?;
     let filter = LogFilter::new(
         vec![factory],
         vec![uniswap_v3_factory_interface().pool_created_topic],
@@ -641,8 +617,7 @@ fn provider_capture(
 
     let logs = scan.logs()?;
     let actionable = assets.keys().copied().collect::<BTreeSet<_>>();
-    let (event_rows, relevant_pools) =
-        event_rows_and_relevant_pools(factory, &logs, &actionable)?;
+    let (event_rows, relevant_pools) = event_rows_and_relevant_pools(factory, &logs, &actionable)?;
     let event_history_sha256 =
         digest_rows(b"NQC-RMC011-UNISWAP-V3-POOL-EVENT-HISTORY-V1", &event_rows)?;
     let universe_rows = pool_universe_rows(&relevant_pools);
@@ -670,8 +645,14 @@ fn provider_capture(
             1,
             POOL_STATE_NAMESPACE,
             Json::object([
-                ("job_index", Json::uint(u64::try_from(job_index).unwrap_or(u64::MAX))),
-                ("pool_count", Json::uint(u64::try_from(chunk.len()).unwrap_or(u64::MAX))),
+                (
+                    "job_index",
+                    Json::uint(u64::try_from(job_index).unwrap_or(u64::MAX)),
+                ),
+                (
+                    "pool_count",
+                    Json::uint(u64::try_from(chunk.len()).unwrap_or(u64::MAX)),
+                ),
                 (
                     "first_pool",
                     Json::string(first_pool.identity.pool.to_hex()),
@@ -685,13 +666,8 @@ fn provider_capture(
             ]),
         )?;
 
-        let output = acquisition.point(
-            provider,
-            &chain_facts.chain,
-            None,
-            &spec,
-            &anchor,
-            |ctx| {
+        let output =
+            acquisition.point(provider, &chain_facts.chain, None, &spec, &anchor, |ctx| {
                 let semantics = chain_read_semantics()?;
                 let mut identity_calls = Vec::with_capacity(chunk.len() * 5);
                 let mut balance_calls = Vec::new();
@@ -699,18 +675,9 @@ fn provider_capture(
 
                 for (index, seed) in chunk.iter().enumerate() {
                     identity_calls.extend([
-                        (
-                            seed.identity.pool,
-                            abi::encode_call(token0_selector, &[]),
-                        ),
-                        (
-                            seed.identity.pool,
-                            abi::encode_call(token1_selector, &[]),
-                        ),
-                        (
-                            seed.identity.pool,
-                            abi::encode_call(fee_selector, &[]),
-                        ),
+                        (seed.identity.pool, abi::encode_call(token0_selector, &[])),
+                        (seed.identity.pool, abi::encode_call(token1_selector, &[])),
+                        (seed.identity.pool, abi::encode_call(fee_selector, &[])),
                         (
                             seed.identity.pool,
                             abi::encode_call(liquidity_selector, &[]),
@@ -757,11 +724,9 @@ fn provider_capture(
                 let mut per_pool_balances = vec![Vec::<Json>::new(); chunk.len()];
                 for ((index, asset), response) in balance_keys.iter().zip(&balances) {
                     let amount = returned_amount(response, "balanceOf")?;
-                    let blockers = assets
-                        .get(asset)
-                        .ok_or_else(|| ChainError::Evidence(
-                            "UniV3 balance asset lacks D08 blocker record".into(),
-                        ))?;
+                    let blockers = assets.get(asset).ok_or_else(|| {
+                        ChainError::Evidence("UniV3 balance asset lacks D08 blocker record".into())
+                    })?;
                     per_pool_balances[*index].push(Json::object([
                         ("asset", Json::string(asset.to_hex())),
                         (
@@ -815,10 +780,7 @@ fn provider_capture(
                         ("pool", Json::string(seed.identity.pool.to_hex())),
                         ("token0", Json::string(seed.identity.token0.to_hex())),
                         ("token1", Json::string(seed.identity.token1.to_hex())),
-                        (
-                            "fee_pips",
-                            Json::uint(u64::from(seed.identity.fee_pips)),
-                        ),
+                        ("fee_pips", Json::uint(u64::from(seed.identity.fee_pips))),
                         (
                             "active_liquidity",
                             Json::string(amount_decimal(*active_liquidity.as_be_bytes())),
@@ -828,10 +790,7 @@ fn provider_capture(
                             Json::string(seed.identity.tick_spacing.to_string()),
                         ),
                         ("created_block", Json::uint(seed.block_number)),
-                        (
-                            "created_block_hash",
-                            Json::string(seed.block_hash.to_hex()),
-                        ),
+                        ("created_block_hash", Json::string(seed.block_hash.to_hex())),
                         (
                             "created_transaction_hash",
                             Json::string(seed.transaction_hash.to_hex()),
@@ -840,10 +799,7 @@ fn provider_capture(
                             "created_transaction_index",
                             Json::uint(u64::from(seed.transaction_index)),
                         ),
-                        (
-                            "created_log_index",
-                            Json::uint(u64::from(seed.log_index)),
-                        ),
+                        ("created_log_index", Json::uint(u64::from(seed.log_index))),
                         (
                             "pool_runtime_sha256",
                             Json::string(sha256_plain(code.payload().code())),
@@ -852,8 +808,7 @@ fn provider_capture(
                     ]));
                 }
                 Ok(Json::object([("pools", Json::Array(rows))]))
-            },
-        )?;
+            })?;
         state_manifests.push(output.manifest_id().to_hex());
         pool_rows.extend(
             output
@@ -923,20 +878,14 @@ fn provider_capture(
             "factory",
             Json::object([
                 ("address", Json::string(factory.to_hex())),
-                (
-                    "runtime_sha256",
-                    Json::string(factory_runtime_sha256),
-                ),
+                ("runtime_sha256", Json::string(factory_runtime_sha256)),
             ]),
         ),
         (
             "pool_event_history_sha256",
             Json::string(event_history_sha256),
         ),
-        (
-            "pool_universe_sha256",
-            Json::string(pool_universe_sha256),
-        ),
+        ("pool_universe_sha256", Json::string(pool_universe_sha256)),
         ("pools", Json::Array(pool_rows)),
         (
             "evidence_manifests",

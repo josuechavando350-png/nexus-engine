@@ -73,9 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .get("assets")
         .and_then(Json::as_array)
         .ok_or("Balancer capture has no assets")?;
-    let vault = report
-        .get("vault")
-        .ok_or("Balancer capture has no vault")?;
+    let vault = report.get("vault").ok_or("Balancer capture has no vault")?;
     println!(
         "RMC011_BALANCER_V2_PROVIDER_CAPTURE_PASS provider={} assets={} paused={} manifest={}",
         args.label,

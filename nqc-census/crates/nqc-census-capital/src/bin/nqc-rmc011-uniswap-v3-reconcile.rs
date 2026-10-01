@@ -1,6 +1,5 @@
 use nqc_census_capital::uniswap_v3_live::{
-    build_uniswap_v3_reconciliation_artifact,
-    source_authority_from_uniswap_v3_reconcile_artifact,
+    build_uniswap_v3_reconciliation_artifact, source_authority_from_uniswap_v3_reconcile_artifact,
 };
 use nqc_census_chain::json::Json;
 use std::{env, error::Error, fs, path::PathBuf};
@@ -40,8 +39,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let second = fs::read(&args.second)?;
     let artifact = build_uniswap_v3_reconciliation_artifact(&first, &second)?;
     let report = Json::parse(&artifact)?;
-    let (authority, sources) =
-        source_authority_from_uniswap_v3_reconcile_artifact(&artifact)?;
+    let (authority, sources) = source_authority_from_uniswap_v3_reconcile_artifact(&artifact)?;
 
     if let Some(parent) = args.out.parent() {
         fs::create_dir_all(parent)?;
