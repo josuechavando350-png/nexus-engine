@@ -15,6 +15,7 @@ portfolio/oracle/eMode resolution instead.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import sys
@@ -55,6 +56,31 @@ def load_verifier(path: Path, name: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def canonical_bytes(value: object) -> bytes:
+    return (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+
+
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def surface_commitment(
+    aave_result: dict,
+    provider: dict,
+    permissionless: dict,
+    collateral: dict,
+) -> dict:
+    surfaces = {
+        "external_provider_registry_sha256": sha256_bytes(canonical_bytes(provider)),
+        "permissionless_debt_catalog_sha256": sha256_bytes(canonical_bytes(permissionless)),
+        "collateral_funding_path_catalog_sha256": sha256_bytes(canonical_bytes(collateral)),
+        "d08_authority_artifact_sha256": aave_result["d08_authority_artifact_sha256"],
+        "aave_coverage_commitment": aave_result["coverage_commitment"],
+    }
+    commitment = sha256_bytes(canonical_bytes(surfaces))
+    return {"surfaces": surfaces, "commitment": commitment}
 
 
 def nonnegative_int(value: object, label: str) -> int:
@@ -154,6 +180,12 @@ def validate_documents(
     provider_count = provider_result["provider_count"]
     facility_count = permissionless_result["facility_count"]
     collateral_path_count = collateral_result["path_count"]
+    boundary = surface_commitment(
+        aave_result,
+        provider,
+        permissionless,
+        collateral,
+    )
 
     blocked_reasons = []
     if provider_count != 0:
@@ -177,6 +209,8 @@ def validate_documents(
             "aave_rejected_count": aave_result["rejected_count"],
             "d08_authority_artifact_sha256": aave_result["d08_authority_artifact_sha256"],
             "aave_coverage_commitment": aave_result["coverage_commitment"],
+            "source_boundary": boundary["surfaces"],
+            "source_boundary_commitment": boundary["commitment"],
             "global_nonexistence_claimed": False,
             "nqc_borrowing_capacity_claimed": False,
             "terminal_d11_closed": False,
@@ -211,6 +245,8 @@ def validate_documents(
         "aave_rejected_count": aave_result["rejected_count"],
         "d08_authority_artifact_sha256": aave_result["d08_authority_artifact_sha256"],
         "aave_coverage_commitment": aave_result["coverage_commitment"],
+        "source_boundary": boundary["surfaces"],
+        "source_boundary_commitment": boundary["commitment"],
         "external_provider_count": provider_count,
         "permissionless_debt_facility_count": facility_count,
         "zero_own_capital_collateral_path_count": collateral_path_count,
