@@ -145,7 +145,11 @@ class TerminalCloseoutTests(unittest.TestCase):
         if closeout is None:
             closeout = valid_closeout(lock_raw, lock)
         if transport_raw is None or transport_marker is None:
-            transport_raw, transport_marker = valid_transport_auth(source)
+            # Negative source-universe tests must reach the verifier with an
+            # otherwise valid transport transcript. Deriving transport from
+            # the already-corrupted source would make the fixture fail before
+            # the contract under test is exercised.
+            transport_raw, transport_marker = valid_transport_auth(valid_source_universe())
         return mod.build_terminal_closeout(
             canonical(source),
             source,
