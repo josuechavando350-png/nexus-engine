@@ -1,8 +1,8 @@
 use nqc_census_capital::{
     transient_credit::{
         import_transient_credit_observation, transient_credit_facts_commitment,
-        transient_credit_terms_commitment, TransientCreditRepaymentMode,
-        TRANSIENT_CREDIT_FAMILY, TRANSIENT_CREDIT_SCHEMA_VERSION, TRANSIENT_CREDIT_STATUS,
+        transient_credit_terms_commitment, TransientCreditRepaymentMode, TRANSIENT_CREDIT_FAMILY,
+        TRANSIENT_CREDIT_SCHEMA_VERSION, TRANSIENT_CREDIT_STATUS,
     },
     Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalOwnership, CapitalProviderKind,
     RepaymentSemantics,
@@ -89,7 +89,10 @@ fn observation(
     };
 
     Json::object([
-        ("schema_version", Json::uint(TRANSIENT_CREDIT_SCHEMA_VERSION)),
+        (
+            "schema_version",
+            Json::uint(TRANSIENT_CREDIT_SCHEMA_VERSION),
+        ),
         ("status", Json::string(TRANSIENT_CREDIT_STATUS)),
         ("provider_family", Json::string(TRANSIENT_CREDIT_FAMILY)),
         ("capital_ownership", Json::string("EXTERNAL")),
@@ -106,13 +109,25 @@ fn observation(
                     Json::string(observed_anchor.chain().fork_lineage().to_hex()),
                 ),
                 ("block_number", Json::uint(observed_anchor.block_number())),
-                ("block_hash", Json::string(observed_anchor.block_hash().to_hex())),
-                ("parent_hash", Json::string(observed_anchor.parent_hash().to_hex())),
+                (
+                    "block_hash",
+                    Json::string(observed_anchor.block_hash().to_hex()),
+                ),
+                (
+                    "parent_hash",
+                    Json::string(observed_anchor.parent_hash().to_hex()),
+                ),
                 ("timestamp", Json::uint(observed_anchor.timestamp())),
-                ("state_root", Json::string(observed_anchor.state_root().to_hex())),
+                (
+                    "state_root",
+                    Json::string(observed_anchor.state_root().to_hex()),
+                ),
             ]),
         ),
-        ("provider_identity", Json::string(provider_identity.to_hex())),
+        (
+            "provider_identity",
+            Json::string(provider_identity.to_hex()),
+        ),
         ("facility_contract", Json::string(facility.to_hex())),
         ("asset", Json::string(asset.code())),
         ("facility_balance", amount_json(facility_balance)),
@@ -123,8 +138,14 @@ fn observation(
         ("repayment_deadline_blocks", Json::uint(deadline)),
         ("max_utilization_bps", Json::uint(u64::from(utilization))),
         ("min_remaining", amount_json(min_remaining)),
-        ("protocol_cap", amount_json(protocol_cap.unwrap_or(Amount256::ZERO))),
-        ("market_cap", amount_json(market_cap.unwrap_or(Amount256::ZERO))),
+        (
+            "protocol_cap",
+            amount_json(protocol_cap.unwrap_or(Amount256::ZERO)),
+        ),
+        (
+            "market_cap",
+            amount_json(market_cap.unwrap_or(Amount256::ZERO)),
+        ),
         ("active", Json::Bool(active)),
         ("terms_commitment", Json::string(terms.to_hex())),
         (
@@ -166,7 +187,10 @@ fn imports_transient_credit_with_exact_capacity_and_terms() -> TestResult {
     let source = import_transient_credit_observation(&bytes, &observed_anchor)?;
 
     assert_eq!(source.class(), CapitalClass::TransientCredit);
-    assert_eq!(source.provider_kind(), CapitalProviderKind::ExternalCreditFacility);
+    assert_eq!(
+        source.provider_kind(),
+        CapitalProviderKind::ExternalCreditFacility
+    );
     assert_eq!(source.ownership(), CapitalOwnership::External);
     assert_eq!(source.asset(), CapitalAsset::Token(address(22)));
     assert_eq!(source.maximum_available(), amount(675));
