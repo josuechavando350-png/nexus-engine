@@ -19,6 +19,7 @@ PLAN = json.loads(
     Path("ci/nqc-census/rmc011-execution-plan-requirement-catalog.json").read_text()
 )
 
+
 class BoundedFamilyRejectionTests(unittest.TestCase):
     def test_current_empty_surfaces_derive_exact_seven_bounded_rejections(self) -> None:
         result = mod.validate_documents(
@@ -34,17 +35,26 @@ class BoundedFamilyRejectionTests(unittest.TestCase):
         self.assertFalse(result["source_availability_claimed"])
         self.assertFalse(result["d11_terminal_closed"])
 
+    def test_permissionless_debt_is_outside_bounded_rejection_set(self) -> None:
+        self.assertTrue(
+            {"COLLATERALIZED_BORROWING", "PERSISTENT_DEBT"}.isdisjoint(mod.EXPECTED)
+        )
+
     def test_one_registered_provider_invalidates_empty_rejection(self) -> None:
         provider = copy.deepcopy(PROVIDER)
         provider["status"] = "DECLARED_WITH_PROVIDERS_NOT_TERMINAL_EVIDENCE"
         provider["provider_count"] = 1
         provider["providers"] = [{
-            "provider_id": "provider-a",
-            "family": "EXTERNAL_GAS_CREDIT",
-            "provider_kind": "EXTERNAL_CREDIT_FACILITY",
-            "identity_sha256": "1" * 64,
-            "admission_status": "DECLARED_NOT_AUTHENTICATED",
-            "evidence": ["content-addressed:provider-a"],
+            "provider_id": "example",
+            "families": ["EXTERNAL_GAS_CREDIT"],
+            "authority_mode": "SIGNED_AND_CONTENT_ADDRESSED_PROVIDER_TRANSCRIPT",
+            "terms_locator": "content-addressed:example",
+            "provider_identity_commitment": "sha256:" + "1" * 64,
+            "evidence_requirements": {
+                "independent_provider_views": 2,
+                "terms_valid_at_observation": True,
+                "availability_observed": True,
+            },
         }]
         with self.assertRaises((mod.RejectionError, ValueError)):
             mod.validate_documents(provider, copy.deepcopy(PLAN))
@@ -69,17 +79,7 @@ class BoundedFamilyRejectionTests(unittest.TestCase):
         with self.assertRaises((mod.RejectionError, ValueError)):
             mod.validate_documents(copy.deepcopy(PROVIDER), plan)
 
-    def test_debt_families_are_not_part_of_bounded_rejection(self) -> None:
-        result = mod.validate_documents(
-            copy.deepcopy(PROVIDER),
-            copy.deepcopy(PLAN),
-        )
-        self.assertEqual(result["family_count"], 7)
-        self.assertFalse({"COLLATERALIZED_BORROWING", "PERSISTENT_DEBT"} & {
-            row["family"] for row in result["families"]
-        })
-
-    def test_provider_registry_must_cover_all_bounded_families(self) -> None:
+    def test_provider_registry_must_cover_every_bounded_family(self) -> None:
         provider = copy.deepcopy(PROVIDER)
         provider["provider_backed_families"].remove("EXTERNAL_GAS_CREDIT")
         with self.assertRaises((mod.RejectionError, ValueError)):
