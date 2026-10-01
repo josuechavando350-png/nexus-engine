@@ -38,7 +38,7 @@ PLAN_REQUIREMENTS = {
     "SOLVER_OR_BUILDER_DEPOSIT",
     "INTRA_BLOCK_TEMPORARY_LOCK",
 }
-EXPECTED = EXTERNAL_ONLY | DEBT | PLAN_REQUIREMENTS
+EXPECTED = EXTERNAL_ONLY | PLAN_REQUIREMENTS
 
 
 class RejectionError(ValueError):
@@ -77,10 +77,15 @@ def validate_documents(provider: dict, plan: dict, debt: dict) -> dict:
         plan_result["status"] == "DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE",
         "execution-plan catalog empty status differs",
     )
-    require(debt_result["facility_count"] == 0, "permissionless debt catalog is not empty")
+    # The permissionless debt catalog is validated as a declaration boundary only.
+    # Its emptiness is NOT an exhaustive market-discovery result and therefore
+    # cannot terminally reject collateralized or persistent debt families.
     require(
-        debt_result["status"] == "DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE",
-        "permissionless debt catalog empty status differs",
+        debt_result["status"] in {
+            "DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE",
+            "DECLARED_WITH_FACILITIES_NOT_TERMINAL_EVIDENCE",
+        },
+        "permissionless debt catalog status differs",
     )
 
     provider_families = set(provider.get("provider_backed_families", []))
@@ -114,18 +119,6 @@ def validate_documents(provider: dict, plan: dict, debt: dict) -> dict:
                 "EXTERNAL_PROVIDER_COUNT_EQ_0",
             ],
         })
-    for family in sorted(DEBT):
-        rows.append({
-            "family": family,
-            "outcome": "EXHAUSTIVE_REJECTION",
-            "scope": "NQC_EXECUTION_AUTHORIZED_PROVIDER_PLUS_DECLARED_PERMISSIONLESS_DEBT_UNIVERSE_AT_THIS_HEAD",
-            "basis": [
-                "EXTERNAL_PROVIDER_REGISTRY_VALID",
-                "EXTERNAL_PROVIDER_COUNT_EQ_0",
-                "PERMISSIONLESS_DEBT_CATALOG_VALID",
-                "PERMISSIONLESS_DEBT_FACILITY_COUNT_EQ_0",
-            ],
-        })
     for family in sorted(PLAN_REQUIREMENTS):
         rows.append({
             "family": family,
@@ -146,7 +139,7 @@ def validate_documents(provider: dict, plan: dict, debt: dict) -> dict:
         "schema_version": 1,
         "stage": "RMC-011",
         "status": "RMC011_BOUNDED_FAMILY_REJECTIONS_READY",
-        "claim_scope": "NQC_EXECUTION_AUTHORIZED_AND_SUPPORTED_UNIVERSE_AT_THIS_HEAD",
+        "claim_scope": "NQC_EXECUTION_AUTHORIZED_EXTERNAL_AND_SUPPORTED_REQUIREMENT_UNIVERSE_AT_THIS_HEAD",
         "family_count": len(rows),
         "families": rows,
         "global_nonexistence_claimed": False,
