@@ -130,5 +130,55 @@ class DiscoveryContractTests(unittest.TestCase):
             validate(doc)
 
 
+    def test_collateralized_borrowing_cannot_drop_rmc008_aave_surface(self) -> None:
+        doc = copy.deepcopy(DISCOVERY)
+        row = next(
+            row for row in doc["families"]
+            if row["id"] == "COLLATERALIZED_BORROWING"
+        )
+        row["surface"] = (
+            "NQC_AUTHENTICATED_EXTERNAL_CAPITAL_PROVIDER_REGISTRY_PLUS_"
+            "DECLARED_PERMISSIONLESS_FACILITY_CATALOG"
+        )
+        with self.assertRaises(mod.DiscoveryError):
+            validate(doc)
+
+    def test_persistent_debt_cannot_drop_aave_discovery_implementation(self) -> None:
+        doc = copy.deepcopy(DISCOVERY)
+        row = next(
+            row for row in doc["families"]
+            if row["id"] == "PERSISTENT_DEBT"
+        )
+        row["implementation"] = row["implementation"].replace(
+            "nqc-census/crates/nqc-census-capital/src/aave_debt_discovery.rs + ",
+            "",
+        )
+        with self.assertRaises(mod.DiscoveryError):
+            validate(doc)
+
+    def test_aave_debt_discovery_cannot_claim_portfolio_collateral_feasibility(self) -> None:
+        doc = copy.deepcopy(DISCOVERY)
+        row = next(
+            row for row in doc["families"]
+            if row["id"] == "COLLATERALIZED_BORROWING"
+        )
+        row["completeness"] = row["completeness"].replace(
+            "; PORTFOLIO_COLLATERAL_FEASIBILITY_REMAINS_UNCLAIMED",
+            "",
+        )
+        with self.assertRaises(mod.DiscoveryError):
+            validate(doc)
+
+    def test_persistent_debt_must_bind_rmc008_authority(self) -> None:
+        doc = copy.deepcopy(DISCOVERY)
+        row = next(
+            row for row in doc["families"]
+            if row["id"] == "PERSISTENT_DEBT"
+        )
+        row["authority"] = "D11_PROVIDER_TRANSCRIPTS_AND_BLOCK_PINNED_ONCHAIN_STATE"
+        with self.assertRaises(mod.DiscoveryError):
+            validate(doc)
+
+
 if __name__ == "__main__":
     unittest.main()
