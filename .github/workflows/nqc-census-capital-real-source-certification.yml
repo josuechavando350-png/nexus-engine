@@ -22,6 +22,10 @@ on:
       - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
       - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-debt-family-resolution.py"
+      - "ci/nqc-census/test_verify_rmc011_debt_family_resolution.py"
+      - "ci/nqc-census/verify-rmc011-debt-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_debt_family_promotion.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -69,6 +73,10 @@ on:
       - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
       - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-debt-family-resolution.py"
+      - "ci/nqc-census/test_verify_rmc011_debt_family_resolution.py"
+      - "ci/nqc-census/verify-rmc011-debt-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_debt_family_promotion.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -157,6 +165,11 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-promotion.py ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py
           python3 ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py -v
           python3 ci/nqc-census/verify-rmc011-bounded-family-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-debt-family-resolution.py ci/nqc-census/test_verify_rmc011_debt_family_resolution.py
+          python3 ci/nqc-census/test_verify_rmc011_debt_family_resolution.py -v
+          python3 -m py_compile ci/nqc-census/verify-rmc011-debt-family-promotion.py ci/nqc-census/test_verify_rmc011_debt_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_debt_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-debt-family-promotion.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-balancer-v2-capture.py ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py
           python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
           jq -e '
@@ -793,6 +806,80 @@ jobs:
 
           echo "RMC011_AAVE_DEBT_DISCOVERY=PASS facilities=$(jq -r '.facility_count' "$ROOT/aave-debt-discovery.json")"
 
+      - name: Resolve zero-own-capital debt-family universe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            ci/nqc-census/verify-rmc011-debt-family-resolution.py \
+            ci/nqc-census/test_verify_rmc011_debt_family_resolution.py
+          python3 ci/nqc-census/test_verify_rmc011_debt_family_resolution.py -v
+          python3 \
+            ci/nqc-census/verify-rmc011-debt-family-resolution.py \
+            "$RUNNER_TEMP/rmc011-aave-v3-debt/aave-debt-discovery.json" \
+            "$RUNNER_TEMP/rmc011-debt-family-resolution.json"
+
+          jq -e '
+            .schema_version == 1 and
+            .stage == "RMC-011" and
+            .status == "RMC011_DEBT_FAMILY_EXHAUSTIVE_REJECTION_READY" and
+            .claim_scope == "NQC_ZERO_OWN_CAPITAL_EXECUTABLE_DEBT_UNIVERSE_AT_THIS_HEAD" and
+            .family_count == 2 and
+            (.families | length) == 2 and
+            .global_nonexistence_claimed == false and
+            .nqc_borrowing_capacity_claimed == false and
+            .terminal_d11_closed == false
+          ' "$RUNNER_TEMP/rmc011-debt-family-resolution.json" >/dev/null
+
+          EVIDENCE="$RUNNER_TEMP/rmc011-debt-family-evidence"
+          rm -rf "$EVIDENCE"
+          mkdir -p "$EVIDENCE/families"
+          python3 - \
+            "$RUNNER_TEMP/rmc011-debt-family-resolution.json" \
+            "$EVIDENCE" \
+            "$GITHUB_SHA" \
+            "$GITHUB_WORKFLOW" \
+            "$GITHUB_RUN_ID" \
+            "$GITHUB_RUN_ATTEMPT" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          report_path, evidence_root, head_sha, workflow, run_id, run_attempt = sys.argv[1:]
+          report = json.loads(pathlib.Path(report_path).read_text(encoding="utf-8"))
+          root = pathlib.Path(evidence_root)
+          assert report["status"] == "RMC011_DEBT_FAMILY_EXHAUSTIVE_REJECTION_READY"
+          assert report["family_count"] == 2
+          for row in report["families"]:
+              family = row["family"]
+              target = root / "families" / family
+              target.mkdir(parents=True, exist_ok=False)
+              evidence = {
+                  "schema_version": 1,
+                  "stage": "RMC-011",
+                  "kind": "EXHAUSTIVE_REJECTION",
+                  "family": family,
+                  "scope": row["scope"],
+                  "basis": row["basis"],
+                  "workflow_name": workflow,
+                  "head_sha": head_sha,
+                  "run_id": int(run_id),
+                  "run_attempt": int(run_attempt),
+                  "d08_authority_artifact_sha256": report["d08_authority_artifact_sha256"],
+                  "aave_coverage_commitment": report["aave_coverage_commitment"],
+                  "global_nonexistence_claimed": False,
+                  "nqc_borrowing_capacity_claimed": False,
+                  "terminal_d11_closed": False,
+              }
+              (target / "evidence.json").write_text(
+                  json.dumps(evidence, sort_keys=True, separators=(",", ":")) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+
+          test "$(find "$EVIDENCE/families" -name evidence.json -type f | wc -l)" -eq 2
+          echo "RMC011_DEBT_FAMILY_RESOLUTION=PASS"
+
       - name: Acquire and reconcile exact Balancer V2 flash capital
         shell: bash
         run: |
@@ -1016,6 +1103,10 @@ jobs:
           cp -- /tmp/rmc011-permissionless-debt-catalog-report.json "$PACKAGE/permissionless-debt-catalog-report.json"
           cp -- ci/nqc-census/rmc011-collateral-funding-path-catalog.json "$PACKAGE/rmc011-collateral-funding-path-catalog.json"
           cp -- /tmp/rmc011-collateral-path-report.json "$PACKAGE/collateral-funding-path-report.json"
+          cp -- "$RUNNER_TEMP/rmc011-debt-family-resolution.json" "$PACKAGE/debt-family-resolution.json"
+          test -d "$RUNNER_TEMP/rmc011-debt-family-evidence"
+          mkdir -p "$PACKAGE/debt-family-evidence"
+          cp -a "$RUNNER_TEMP/rmc011-debt-family-evidence/." "$PACKAGE/debt-family-evidence/"
           cp -- /tmp/rmc011-bounded-family-rejections.json "$PACKAGE/bounded-family-rejections.json"
           if [[ -d "$RUNNER_TEMP/rmc011-bounded-family-evidence" ]]; then
             mkdir -p "$PACKAGE/bounded-family-evidence"
