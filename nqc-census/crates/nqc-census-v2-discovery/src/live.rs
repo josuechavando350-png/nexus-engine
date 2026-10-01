@@ -17,8 +17,8 @@ use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
 use std::{error::Error, fs, path::Path};
 
-const ANCHOR_NUMBER: u64 = 25_437_474;
-const ANCHOR_HASH: &str = "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
+const ANCHOR_NUMBER: u64 = 26_095_351;
+const ANCHOR_HASH: &str = "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781";
 const FACTORY: &str = "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f";
 const CURRENT_NAMESPACE: u16 = 0x0701;
 
