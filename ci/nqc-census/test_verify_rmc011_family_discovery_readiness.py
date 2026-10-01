@@ -70,8 +70,9 @@ class FamilyDiscoveryReadinessTests(unittest.TestCase):
         self.assertFalse(result["ready"])
         self.assertFalse(result["already_authenticated"])
         self.assertEqual(result["family_count"], 13)
-        self.assertEqual(result["resolved_count"], 0)
-        self.assertEqual(result["unresolved_count"], 13)
+        expected_resolved = sum(1 for row in UNIVERSE["families"] if row["terminally_resolved"])
+        self.assertEqual(result["resolved_count"], expected_resolved)
+        self.assertEqual(result["unresolved_count"], 13 - expected_resolved)
         self.assertEqual(result["status"], "RMC011_FAMILY_DISCOVERY_BLOCKED")
 
     def test_all_thirteen_terminal_families_are_transport_ready(self) -> None:
@@ -93,14 +94,15 @@ class FamilyDiscoveryReadinessTests(unittest.TestCase):
 
     def test_partial_terminal_resolution_remains_blocked(self) -> None:
         universe = copy.deepcopy(UNIVERSE)
-        row = universe["families"][0]
+        baseline_resolved = sum(1 for row in universe["families"] if row["terminally_resolved"])
+        row = next(row for row in universe["families"] if not row["terminally_resolved"])
         row["status"] = "AUTHENTICATED_REAL_SOURCE"
         row["terminally_resolved"] = True
         row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", 1)
         result = mod.validate_documents(copy.deepcopy(DISCOVERY), universe)
         self.assertFalse(result["ready"])
-        self.assertEqual(result["resolved_count"], 1)
-        self.assertEqual(result["unresolved_count"], 12)
+        self.assertEqual(result["resolved_count"], baseline_resolved + 1)
+        self.assertEqual(result["unresolved_count"], 12 - baseline_resolved)
 
     def test_terminal_evidence_kind_mismatch_fails(self) -> None:
         universe = copy.deepcopy(UNIVERSE)
