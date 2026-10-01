@@ -9,6 +9,11 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # AXIOMA PR evidence for stale heads is superseded; push/dispatch is preserved.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   one-time-review:
     runs-on: ubuntu-24.04
