@@ -1,0 +1,94 @@
+name: NQC RMC-012 Portfolio Capacity
+
+on:
+  pull_request:
+    paths:
+      - "nqc-census/crates/nqc-census-portfolio/**"
+      - "nqc-census/crates/nqc-census-capital/**"
+      - "nqc-census/Cargo.toml"
+      - "nqc-census/Cargo.lock"
+      - "ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md"
+      - "ci/nqc-census/rmc012-pft-actionability-bridge/**"
+      - ".github/workflows/nqc-census-portfolio.yml"
+  push:
+    branches:
+      - "nqc/rmc-012-portfolio-capacity-conflict-20260929"
+      - "nqc/rmc-012-clean-restack-d11-20260930"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc012-portfolio-${{ github.ref }}
+  # Supersede stale PR heads, but never cancel authoritative push/dispatch runs.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  RUST_TOOLCHAIN: "1.98.1"
+
+jobs:
+  rmc-012-portfolio:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify stacked authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'RMC-012 — Portfolio Capacity and Conflict Contract' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          grep -F 'RMC-012 exists because isolated' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          grep -F 'feasibility is not portfolio feasibility.' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          grep -F 'Chain identity is part of every shared-resource key' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          grep -F '"pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf"' ci/nqc-census/rmc012-pft-actionability-bridge/PFT_BINDING.json
+          grep -F '"pft_certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853"' ci/nqc-census/rmc012-pft-actionability-bridge/PFT_BINDING.json
+          jq -e '
+            .flash_premium_semantics.compatibility_id == "PFT-COMPAT-009" and
+            .flash_premium_semantics.certified_git_blob_sha == "17eba73198f9d15e090a4099daaf1a4e099fb747" and
+            .flash_premium_semantics.rounding == "CEILING" and
+            .flash_premium_semantics.exact_witnesses == [
+              {"principal_units":"83727306811","bps":5,"expected_premium_units":"41863654"},
+              {"principal_units":"186298226","bps":5,"expected_premium_units":"93150"}
+            ]
+          ' ci/nqc-census/rmc012-pft-actionability-bridge/PFT_BINDING.json >/dev/null
+          test "$(git show -s --format=%T 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf)" = ef3498da528f85cdb9fdd82222d64773a557f853
+          test "$(git rev-parse 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf:ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json)" = 17eba73198f9d15e090a4099daaf1a4e099fb747
+          git diff --quiet 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf HEAD -- \
+            ci/nqc-protocol-fork/recovered-source/crates/nqc-aave-math \
+            ci/nqc-protocol-fork/recovered-source/crates/nqc-core
+
+      - name: Verify no execution or network authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction|reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket' \
+            nqc-census/crates/nqc-census-portfolio \
+            ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md \
+            ci/nqc-census/rmc012-pft-actionability-bridge/src
+
+      - name: Exact Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-portfolio --all-targets -- -D warnings
+          cargo test --locked -p nqc-census-portfolio -- --nocapture
+          cargo test --locked -p nqc-census-capital
+          cargo test --locked --workspace
+          cargo build --release --locked -p nqc-census-portfolio
+
+          cd ../ci/nqc-census/rmc012-pft-actionability-bridge
+          cargo fmt -- --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked -- --nocapture
+          echo RMC012_PFT_ACTIONABILITY_BRIDGE_PASS
+
+          echo RMC012_PORTFOLIO_FOUNDATION_PASS

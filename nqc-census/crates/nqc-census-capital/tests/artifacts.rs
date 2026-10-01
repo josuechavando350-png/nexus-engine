@@ -1,6 +1,6 @@
 use nqc_census_capital::{
     artifacts::{
-        export_capital_artifacts, verify_capital_artifact_bundle, ArtifactProvenance,
+        export_capital_artifacts, parse_capital_sources_artifact, verify_capital_artifact_bundle, ArtifactProvenance,
         CAPITAL_EVIDENCE_MANIFEST_FILE, CAPITAL_FEASIBILITY_FILE, CAPITAL_REJECTION_LEDGER_FILE,
         CAPITAL_REQUIREMENTS_FILE, CAPITAL_SOURCES_FILE, CAPITAL_SUMMARY_FILE,
         CAPITAL_UPSTREAM_AUTHORITY_FILE,
@@ -766,5 +766,29 @@ fn offline_verifier_rejects_rehashed_feasibility_allocation_substitution() -> Te
     };
 
     assert!(verify_capital_artifact_bundle(&bundle).is_err());
+    Ok(())
+}
+
+#[test]
+fn downstream_source_reader_reconstructs_exact_canonical_source_set() -> TestResult {
+    let ledger = ledger()?;
+    let provenance = ArtifactProvenance::new(
+        "2023-11-14T22:13:20Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
+    let source_file = bundle.file(CAPITAL_SOURCES_FILE).ok_or("missing sources")?;
+    let parsed = parse_capital_sources_artifact(&source_file.bytes)?;
+    assert_eq!(parsed.len(), 1);
+    assert_eq!(
+        parsed[0].id().to_hex(),
+        ledger
+            .sources()
+            .next()
+            .ok_or("missing ledger source")?
+            .id()
+            .to_hex()
+    );
     Ok(())
 }
