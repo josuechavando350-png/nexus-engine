@@ -25,6 +25,9 @@ on:
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
       - "ci/nqc-census/verify-rmc011-balancer-v2-capture.py"
@@ -64,6 +67,9 @@ on:
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
       - "ci/nqc-census/verify-rmc011-balancer-v2-capture.py"
@@ -117,6 +123,9 @@ jobs:
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
           python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-readiness.py ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-readiness.py /tmp/rmc011-family-discovery-readiness.json
           python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
           python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
           python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py
@@ -216,6 +225,9 @@ jobs:
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
           python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-readiness.py ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-readiness.py /tmp/rmc011-family-discovery-readiness.json
           python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
           python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
           python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/rmc011-execution-plan-requirement-catalog.json /tmp/rmc011-execution-plan-requirement-catalog-report.json
@@ -813,6 +825,7 @@ jobs:
             cp -a "$RUNNER_TEMP/rmc011-bounded-family-evidence/." "$PACKAGE/bounded-family-evidence/"
           fi
           cp -- ci/nqc-census/rmc011-capital-family-discovery.json "$PACKAGE/rmc011-capital-family-discovery.json"
+          cp -- /tmp/rmc011-family-discovery-readiness.json "$PACKAGE/rmc011-family-discovery-readiness.json"
           for stage in d06 d07 d08 d09 d10; do
             test -d "$RUNNER_TEMP/$stage-raw"
             cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
