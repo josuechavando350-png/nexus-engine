@@ -91,7 +91,7 @@ fn amount_text(value: &str) -> Result<Amount256, CapitalError> {
         ));
     }
     let mut bytes = [0_u8; 32];
-    for (index, pair) in raw.as_bytes().chunks_exact(2).enumerate() {
+    for (index, pair) in raw.as_bytes().as_chunks::<2>().0.iter().enumerate() {
         bytes[index] = (hex_nibble(pair[0])? << 4) | hex_nibble(pair[1])?;
     }
     Ok(Amount256::from_be_bytes(bytes))
@@ -145,6 +145,7 @@ fn write_optional_amount(hasher: &mut Sha256, value: Option<Amount256>) {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn external_gas_credit_terms_commitment(
     borrower: Address,
     lender: Address,
@@ -183,6 +184,7 @@ pub fn external_gas_credit_terms_commitment(
         .map_err(|_| CapitalError::InvalidCanonical("zero gas credit terms commitment"))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn external_gas_credit_facts_commitment(
     anchor: &StateAnchor,
     facility: Address,
