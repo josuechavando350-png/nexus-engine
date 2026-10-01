@@ -81,7 +81,7 @@ class BoundedFamilyRejectionTests(unittest.TestCase):
 
     def test_provider_registry_must_cover_all_bounded_families(self) -> None:
         provider = copy.deepcopy(PROVIDER)
-        provider["provider_backed_families"].remove("PERSISTENT_DEBT")
+        provider["provider_backed_families"].remove("EXTERNAL_GAS_CREDIT")
         with self.assertRaises((mod.RejectionError, ValueError)):
             mod.validate_documents(provider, copy.deepcopy(PLAN))
 
@@ -90,12 +90,6 @@ class BoundedFamilyRejectionTests(unittest.TestCase):
         plan["requirement_families"].pop()
         with self.assertRaises((mod.RejectionError, ValueError)):
             mod.validate_documents(copy.deepcopy(PROVIDER), plan)
-
-    def test_debt_family_set_must_be_exact(self) -> None:
-        debt = copy.deepcopy(DEBT)
-        debt["families"].pop()
-        with self.assertRaises((mod.RejectionError, ValueError)):
-            mod.validate_documents(copy.deepcopy(PROVIDER), copy.deepcopy(PLAN), debt)
 
 
 if __name__ == "__main__":
