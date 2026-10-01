@@ -3460,7 +3460,7 @@ impl CapitalCensusLedger {
             hasher.update(domain_hash(b"NQC-RMC011-REQUIREMENT-RECORD-V1", &encoded));
         }
         for result in self.results.values() {
-            let encoded = encode_feasibility(result);
+            let encoded = encode_feasibility(result)?;
             hasher.update(
                 u64::try_from(encoded.len())
                     .map_err(|_| CapitalError::InvalidCanonical("capital record length overflow"))?
@@ -3678,7 +3678,7 @@ impl CapitalCensusLedger {
     }
 }
 
-fn encode_feasibility(result: &CapitalFeasibility) -> Vec<u8> {
+fn encode_feasibility(result: &CapitalFeasibility) -> Result<Vec<u8>, CapitalError> {
     let mut writer = Writer::default();
     match result {
         CapitalFeasibility::Feasible {
@@ -3687,7 +3687,11 @@ fn encode_feasibility(result: &CapitalFeasibility) -> Vec<u8> {
         } => {
             writer.u8(1);
             writer.bytes(requirement_id.as_bytes());
-            writer.u32(u32::try_from(allocations.len()).unwrap_or(u32::MAX));
+            writer.u32(
+                u32::try_from(allocations.len()).map_err(|_| {
+                    CapitalError::InvalidCanonical("capital allocation count overflow")
+                })?,
+            );
             for allocation in allocations {
                 writer.bytes(allocation.source_id.as_bytes());
                 writer.u8(allocation.leg_kind.tag());
@@ -3711,7 +3715,7 @@ fn encode_feasibility(result: &CapitalFeasibility) -> Vec<u8> {
             }
         }
     }
-    writer.0
+    Ok(writer.0)
 }
 
 fn has_leg(requirement: &CapitalRequirement, kind: RequirementKind, asset: CapitalAsset) -> bool {
