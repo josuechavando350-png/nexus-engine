@@ -17,6 +17,9 @@ on:
       - "ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json"
       - "ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py"
       - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
       - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
@@ -62,6 +65,9 @@ on:
       - "ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json"
       - "ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py"
       - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
       - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
@@ -139,6 +145,9 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py
           python3 ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py -v
           python3 ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-rejections.py ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
           python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
           python3 ci/nqc-census/verify-rmc011-bounded-family-rejections.py /tmp/rmc011-bounded-family-rejections.json

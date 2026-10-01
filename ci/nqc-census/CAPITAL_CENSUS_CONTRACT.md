@@ -41,6 +41,8 @@ The model MUST represent, without collapsing distinct semantics:
 
 Persistent debt MUST remain distinct from atomic liquidity and MUST carry interest, collateral, liquidation, health-factor / solvency, oracle, liquidity-withdrawal, and facility-disappearance risk where applicable.
 
+Aave reserve liquidity alone is not NQC borrowing capacity. Under `OWN_CAPITAL=0`, collateralized or persistent borrowing is executable only when D11 binds an explicit non-operator collateral funding path whose collateral persists for the debt lifetime (or to an explicit positive block deadline), whose terms/availability are authenticated, and which does not depend on future strategy output. Operator-owned collateral, same-transaction temporary collateral, and hypothetical post-execution profits cannot satisfy this source-side funding boundary. The canonical catalog is `ci/nqc-census/rmc011-collateral-funding-path-catalog.json`; an empty catalog is a bounded NQC authorization fact, not a claim that external collateral markets do not exist.
+
 ## Source-universe truth
 
 RMC-011 distinguishes **semantic capability** from **live censused coverage**.

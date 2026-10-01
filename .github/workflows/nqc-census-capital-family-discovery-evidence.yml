@@ -12,6 +12,9 @@ on:
       - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
       - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
       - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
       - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
   push:
     branches:
@@ -26,6 +29,9 @@ on:
       - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
       - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
       - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
       - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
   workflow_dispatch:
 
@@ -65,6 +71,9 @@ jobs:
         run: |
           set -euo pipefail
           python3 -m py_compile             ci/nqc-census/verify-rmc011-family-discovery-readiness.py             ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py
           python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
           python3 -m py_compile \
             ci/nqc-census/verify-rmc011-family-discovery-promotion.py \

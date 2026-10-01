@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "stage": "RMC-011",
+  "contract": "NQC_RMC011_COLLATERAL_FUNDING_PATH_CATALOG_V1",
+  "catalog_scope": "NQC_AUTHORIZED_ZERO_OWN_CAPITAL_COLLATERAL_PATHS",
+  "completeness_basis": "AAVE_DEBT_AND_OTHER_COLLATERALIZED_CAPITAL_MAY_USE_ONLY_EXPLICITLY_REGISTERED_NON_OPERATOR_COLLATERAL_PATHS",
+  "supported_families": [
+    "COLLATERALIZED_BORROWING",
+    "PERSISTENT_DEBT"
+  ],
+  "status": "DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE",
+  "path_count": 0,
+  "paths": [],
+  "terminal_semantics": {
+    "empty_catalog_means": "NO_ZERO_OWN_CAPITAL_COLLATERAL_PATH_IS_AUTHORIZED_FOR_NQC_EXECUTION_IN_THIS_HEAD",
+    "does_not_mean": "NO_COLLATERAL_LIQUIDITY_OR_CREDIT_PATH_EXISTS_OUTSIDE_NQC",
+    "operator_owned_collateral_forbidden": true,
+    "strategy_output_dependent_collateral_forbidden": true,
+    "terminal_rejection_requires_authenticated_workflow_artifact": true,
+    "live_path_requires_authenticated_terms_and_availability": true
+  },
+  "non_claims": [
+    "EMPTY_CATALOG_IS_NOT_GLOBAL_COLLATERAL_NONEXISTENCE",
+    "MODEL_SUPPORT_IS_NOT_COLLATERAL_AVAILABILITY",
+    "AAVE_RESERVE_LIQUIDITY_IS_NOT_NQC_BORROWING_CAPACITY",
+    "STRATEGY_OUTPUT_IS_NOT_PRE_EXECUTION_COLLATERAL_AUTHORITY",
+    "D11_TERMINAL_NOT_CLOSED"
+  ]
+}

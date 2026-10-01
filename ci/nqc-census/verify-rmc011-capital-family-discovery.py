@@ -258,6 +258,16 @@ def validate_document(
             in by_id[family_id]["implementation"],
             f"{family_id}: debt family must bind the facility catalog verifier",
         )
+        require(
+            "rmc011-collateral-funding-path-catalog.json"
+            in by_id[family_id]["implementation"],
+            f"{family_id}: debt family must bind the zero-own-capital collateral path catalog",
+        )
+        require(
+            "verify-rmc011-collateral-funding-path-catalog.py"
+            in by_id[family_id]["implementation"],
+            f"{family_id}: debt family must bind the collateral path verifier",
+        )
 
     for family_id in {
         "EXTERNAL_GAS_CREDIT",
