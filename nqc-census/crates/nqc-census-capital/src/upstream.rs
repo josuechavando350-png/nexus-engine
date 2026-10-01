@@ -300,9 +300,12 @@ fn push_source(
     sources.push(source);
 }
 
-fn write_len_prefixed(hasher: &mut Sha256, value: &[u8]) {
-    hasher.update(u64::try_from(value.len()).unwrap_or(u64::MAX).to_be_bytes());
+fn write_len_prefixed(hasher: &mut Sha256, value: &[u8]) -> Result<(), CapitalError> {
+    let len = u64::try_from(value.len())
+        .map_err(|_| CapitalError::InvalidCanonical("capital import coverage length overflow"))?;
+    hasher.update(len.to_be_bytes());
     hasher.update(value);
+    Ok(())
 }
 
 fn protocol_contract_locator_hash(
@@ -326,12 +329,12 @@ fn coverage_commitment(outcomes: &mut [ImportOutcome]) -> Result<Hash32, Capital
     hasher.update([0]);
     hasher.update(
         u64::try_from(outcomes.len())
-            .unwrap_or(u64::MAX)
+            .map_err(|_| CapitalError::InvalidCanonical("capital import outcome count overflow"))?
             .to_be_bytes(),
     );
     for outcome in outcomes {
-        write_len_prefixed(&mut hasher, outcome.protocol.as_bytes());
-        write_len_prefixed(&mut hasher, outcome.market_id.as_bytes());
+        write_len_prefixed(&mut hasher, outcome.protocol.as_bytes())?;
+        write_len_prefixed(&mut hasher, outcome.market_id.as_bytes())?;
         match outcome.asset {
             CapitalAsset::NativeGas => hasher.update([0]),
             CapitalAsset::Token(address) => {
@@ -346,7 +349,7 @@ fn coverage_commitment(outcomes: &mut [ImportOutcome]) -> Result<Hash32, Capital
             }
             ImportOutcomeResult::Rejected(reason) => {
                 hasher.update([2]);
-                write_len_prefixed(&mut hasher, reason.code().as_bytes());
+                write_len_prefixed(&mut hasher, reason.code().as_bytes())?;
             }
         }
     }

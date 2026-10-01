@@ -409,7 +409,11 @@ fn digest_rows(domain: &[u8], rows: &[Json]) -> Result<String, ChainError> {
     hasher.update([0]);
     for row in rows {
         let bytes = row.canonical()?;
-        hasher.update((bytes.len() as u64).to_be_bytes());
+        hasher.update(
+            u64::try_from(bytes.len())
+                .map_err(|_| ChainError::Evidence("Uniswap V3 canonical row length overflow".into()))?
+                .to_be_bytes(),
+        );
         hasher.update(bytes);
     }
     Ok(hex::plain(&hasher.finalize()))
@@ -640,19 +644,17 @@ fn provider_capture(
         let last_pool = chunk
             .last()
             .ok_or_else(|| ChainError::Evidence("empty Uniswap V3 pool chunk".into()))?;
+        let job_index = u64::try_from(job_index)
+            .map_err(|_| ChainError::Evidence("Uniswap V3 job index overflow".into()))?;
+        let pool_count = u64::try_from(chunk.len())
+            .map_err(|_| ChainError::Evidence("Uniswap V3 pool chunk count overflow".into()))?;
         let spec = JobSpec::new(
             "rmc011-uniswap-v3-pool-state",
             1,
             POOL_STATE_NAMESPACE,
             Json::object([
-                (
-                    "job_index",
-                    Json::uint(u64::try_from(job_index).unwrap_or(u64::MAX)),
-                ),
-                (
-                    "pool_count",
-                    Json::uint(u64::try_from(chunk.len()).unwrap_or(u64::MAX)),
-                ),
+                ("job_index", Json::uint(job_index)),
+                ("pool_count", Json::uint(pool_count)),
                 (
                     "first_pool",
                     Json::string(first_pool.identity.pool.to_hex()),
