@@ -1,7 +1,6 @@
 {
   "schema_version": 2,
-  "status": "BLOCKED_AWAITING_D07_A1",
-  "blocked_reason": "D07_A1_EXACT_ANCHOR_CLOSEOUT_NOT_YET_AUTHENTICATED",
+  "status": "PINNED",
   "expected_anchor": {
     "block_number": 26095351,
     "block_hash": "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781"
@@ -17,6 +16,17 @@
       "artifact": "nqc-rmc006-evidence-26095351-a33a012591cd6625ddb921d995bb1bd95b4a5406-36820687233-1",
       "artifact_digest": "sha256:1cdb46fca52ebf1e0e2094b1c14b19384ecb7beceb50229b967592ab7a0308b4",
       "evidence_manifest_sha256": "005715e6f4479a6e9c12c62eed40b3d027107a1c9f4d31c6461845181dc733c4"
+    },
+    {
+      "node": "D07",
+      "pull_request": 572,
+      "code_commit": "1614b99a2bca9bd713df1f36e2cbecbaadf633f5",
+      "code_tree": "fed1de7899ad20a0e39eff6eee002cd356f63f20",
+      "workflow_run_id": 36952216731,
+      "artifact_id": 11207794300,
+      "artifact": "nqc-rmc007-closeout-1614b99a2bca9bd713df1f36e2cbecbaadf633f5-36952216731-1",
+      "artifact_digest": "sha256:f462289674f6fb84a580e490215d082bccf022f3e73a73da2f1fd217938531e8",
+      "evidence_manifest_sha256": "86e9a2c105a08cb9313ffeab9ffb4a6211b8fb6f415d3c0b434baaf0ca3a897e"
     }
   ],
   "files": [
@@ -39,6 +49,26 @@
       "role": "d06_evidence_manifest",
       "path": "d06/closeout/evidence-manifest.json",
       "sha256": "005715e6f4479a6e9c12c62eed40b3d027107a1c9f4d31c6461845181dc733c4"
+    },
+    {
+      "role": "d07_current_surface",
+      "path": "d07/v2-current-surface.json",
+      "sha256": "38c276c61c373f3759117a23a159775416778e3305a56368757c127044e87878"
+    },
+    {
+      "role": "d07_deployment_admission",
+      "path": "d07/closeout/v2-deployment-admission.json",
+      "sha256": "8f03bd14298d4e6680be8bb3886ebc3408b09a57b11aaf672a1004afa13bf03a"
+    },
+    {
+      "role": "d07_pair_manifest",
+      "path": "d07/closeout/v2-pair-manifest.jsonl",
+      "sha256": "ea2a451e9bdc5731d184ec3193ab779bb62c0bb69159aa020acb06ceb5d319de"
+    },
+    {
+      "role": "d07_evidence_manifest",
+      "path": "d07/closeout/evidence-manifest.json",
+      "sha256": "86e9a2c105a08cb9313ffeab9ffb4a6211b8fb6f415d3c0b434baaf0ca3a897e"
     }
   ]
 }
