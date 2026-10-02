@@ -14,7 +14,7 @@ use nqc_census_core::Address;
 use nqc_census_store::{Store, StoreConfig};
 use std::{error::Error, fs, path::Path};
 
-const ANCHOR_NUMBER: u64 = 25_437_474;
+const ANCHOR_NUMBER: u64 = 26_095_351;
 const FACTORY: &str = "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f";
 const BOUNDARY_NAMESPACE: u16 = 0x0702;
 
