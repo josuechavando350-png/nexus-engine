@@ -9,6 +9,8 @@
   },
   "recovery": {
     "d06_run_id": 36974088736,
-    "d09_run_id": 36977093849
+    "d09_run_id": 36977093849,
+    "d06_head_sha": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
+    "d09_head_sha": "6db82ca89d4ef3a66a1b236de95670a6967eb3ea"
   }
 }

@@ -123,7 +123,7 @@ jobs:
             test "$A1_NUMBER" = "$recovery_anchor"
             test "$A1_HASH" = "$recovery_hash"
             test "$(gh api "repos/$repo/actions/runs/$recovery_run" --jq .conclusion)" = success
-            expected_head=$(gh api "repos/$repo/git/ref/heads/$branch" --jq .object.sha)
+            expected_head=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["recovery"]["d06_head_sha"])')
             test "$(gh api "repos/$repo/actions/runs/$recovery_run" --jq .head_sha)" = "$expected_head"
             echo "run_id=$recovery_run" >> "$GITHUB_OUTPUT"
             echo "RMC010_D06_A1_REUSE run=$recovery_run anchor=$A1_NUMBER hash=$A1_HASH"
@@ -225,16 +225,20 @@ jobs:
           repo="${{ github.repository }}"
           branch="nqc/rmc-009-aave-account-universe-20260929"
           workflow="nqc-census-accounts.yml"
-          d09_head=$(gh api "repos/$repo/git/ref/heads/$branch" --jq .object.sha)
+          branch_head=$(gh api "repos/$repo/git/ref/heads/$branch" --jq .object.sha)
           recovery_run=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json")).get("recovery", {}).get("d09_run_id", ""))')
           if [ -n "$recovery_run" ]; then
             recovery_anchor=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["fixed_anchor"]["block_number"])')
             recovery_hash=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["fixed_anchor"]["block_hash"])')
+            recovery_head=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["recovery"]["d09_head_sha"])')
             test "$A1_NUMBER" = "$recovery_anchor"
             test "$A1_HASH" = "$recovery_hash"
             run_id="$recovery_run"
-            echo "RMC010_D09_A1_REUSE run=$run_id anchor=$A1_NUMBER hash=$A1_HASH"
+            d09_head="$recovery_head"
+            test "$(gh api "repos/$repo/actions/runs/$run_id" --jq .head_sha)" = "$d09_head"
+            echo "RMC010_D09_A1_REUSE run=$run_id head=$d09_head current_branch_head=$branch_head anchor=$A1_NUMBER hash=$A1_HASH"
           else
+            d09_head="$branch_head"
             before=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
             gh api --method POST "repos/$repo/actions/workflows/$workflow/dispatches" \
               -f ref="$branch" \

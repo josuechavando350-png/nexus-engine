@@ -175,7 +175,7 @@ jobs:
 
   dispatch-certification:
     needs: inputs
-    if: ${{ github.event_name == 'pull_request' && needs.inputs.result == 'success' }}
+    if: ${{ github.event_name == 'pull_request' && needs.inputs.result == 'success' && startsWith(github.event.pull_request.head.ref, 'nqc/rmc-008-') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
