@@ -1,0 +1,114 @@
+name: NQC RMC-009 Account Universe Gate
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-accounts.yml
+      - .github/workflows/nqc-census-accounts-gate.yml
+      - ci/nqc-census/ACCOUNT_UNIVERSE_CONTRACT.md
+      - ci/nqc-census/account-inputs.json
+      - ci/nqc-census/account-index-providers.json
+      - ci/nqc-census/state-providers.json
+      - nqc-census/Cargo.toml
+      - nqc-census/Cargo.lock
+      - nqc-census/crates/nqc-census-accounts/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+  PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+  RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+  # RMC-001 recertified freeze manifest (Amendment 1), pinned by digest.
+  RMC001_FREEZE_MANIFEST_SHA256: a0e5280175cfebadbbb225783873fde5d85364e3985224b20ba797fda0529842
+  RUST_TOOLCHAIN: "1.98.1"
+  D09_TESTS_EXPECTED: "19"
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify authority and upstream immutability
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          git merge-base --is-ancestor "$PFT_CERTIFIED_COMMIT" HEAD
+          git merge-base --is-ancestor "$RMC003_2_AUTHORITY" HEAD
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD -- \
+            ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation \
+            ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks
+          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- \
+            nqc-census/crates/nqc-census-core nqc-census/crates/nqc-census-store \
+            nqc-census/crates/nqc-census-chain \
+            ':(exclude)nqc-census/crates/nqc-census-core/src/identity.rs' \
+            ':(exclude)nqc-census/crates/nqc-census-core/tests/identity_amendment_1.rs' \
+            ':(exclude)nqc-census/crates/nqc-census-core/tests/support/identity_corpus.rs'
+          # Those three identity files changed only through RMC-001 Amendment 1
+          # (a V2 token may be the factory); the certified manifest pins them.
+          echo "$RMC001_FREEZE_MANIFEST_SHA256  ci/nqc-census/rmc001-freeze-manifest.json" | sha256sum --check --strict
+          python3 ci/nqc-census/verify_rmc001_freeze.py
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            git diff --check "$BASE"...HEAD
+            # One census node per PR: a PR that changes nqc-census-accounts
+            # changes no other crate (RMC-008 is consumed, never modified).
+            accounts=$(git diff --name-only "$BASE"...HEAD -- nqc-census/crates/nqc-census-accounts)
+            others=$(git diff --name-only "$BASE"...HEAD -- nqc-census/crates \
+              | grep -v '^nqc-census/crates/nqc-census-accounts/' || true)
+            if [ -n "$accounts" ] && [ -n "$others" ]; then
+              echo "RMC-009 change touches another crate: $others"
+              exit 1
+            fi
+          fi
+          echo RMC009_UPSTREAM_IMMUTABLE_PASS
+
+      - name: Verify no transaction path or network client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          root = Path("nqc-census/crates/nqc-census-accounts")
+          forbidden = re.compile(
+              r"private.?key|mnemonic|eth_send|eth_sign|personal_|sendRawTransaction|"
+              r"reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket|\bunsafe\b|f32|f64")
+          violations = []
+          for path in root.rglob("*.rs"):
+              for number, line in enumerate(path.read_text().splitlines(), 1):
+                  if line.strip().startswith("//"):
+                      continue
+                  if forbidden.search(line):
+                      violations.append(f"{path}:{number}: {line.strip()}")
+          assert not violations, "\n".join(violations)
+          print("RMC009_BOUNDARY_PASS no floating point, network client or transaction path")
+          PY
+
+      - name: Locked Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          count=$(cargo test --locked -p nqc-census-accounts --test account_universe -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$D09_TESTS_EXPECTED"
+          cargo test --locked -p nqc-census-accounts -- --nocapture
+          cargo test --workspace --all-targets --locked
+          echo RMC009_CORE_PASS

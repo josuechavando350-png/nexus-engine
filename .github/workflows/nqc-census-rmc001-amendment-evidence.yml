@@ -1,0 +1,120 @@
+name: NQC RMC-001 Amendment 1 Evidence
+
+# Block-pinned on-chain proof for RMC-001 Amendment 1: an Ethereum mainnet
+# Uniswap V2 pair may name its own factory as token0 or token1.
+#
+# 1. locate: every factory-token pair in the verified RMC-007 stage
+#    extracts. Two providers per surface; the allPairs enumeration and the
+#    PairCreated logs must name the same pairs.
+# 2. acquire: every declared provider at the census anchor, pinned by EIP-1898
+#    {blockHash, requireCanonical: true}. Each exact request and response is
+#    kept.
+# 3. verify: offline. The providers must agree. It proves pair.factory() ==
+#    factory, factory.getPair(token0, token1) == pair (in both orders),
+#    allPairs(index) == pair, the creation log, and CREATE2(factory, token0,
+#    token1) == pair. It records the factory's ERC-20 behaviour.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-rmc001-amendment-evidence.yml
+      - ci/nqc-census/rmc001_amendment_evidence.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-rmc001-a1-evidence-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  # The RMC-007 offline replay whose verified extracts are scanned, and the
+  # head that replayed them.
+  EXTRACTS_RUN: "36634878867"
+  EXTRACTS_HEAD: 7702a8c98579f336994ebc4877cc00cb4e97620c
+  A1_EVIDENCE: /tmp/nqc-rmc001-a1
+
+jobs:
+  evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Keccak and selector self-test
+        run: python3 ci/nqc-census/rmc001_amendment_evidence.py self-test
+
+      - name: Download the verified RMC-007 stage extracts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d07-extract-*-${{ env.EXTRACTS_HEAD }}-${{ env.EXTRACTS_RUN }}-*
+          path: /tmp/nqc-rmc001-a1-extracts
+          run-id: ${{ env.EXTRACTS_RUN }}
+          github-token: ${{ github.token }}
+
+      - name: Locate every factory-token pair
+        shell: bash
+        run: |
+          set -euo pipefail
+          count=$(find /tmp/nqc-rmc001-a1-extracts -name extract.json | wc -l)
+          echo "RMC001_A1_EXTRACTS files=$count"
+          test "$count" -eq 48
+          mkdir -p "$A1_EVIDENCE"
+          python3 ci/nqc-census/rmc001_amendment_evidence.py locate \
+            /tmp/nqc-rmc001-a1-extracts /tmp/nqc-rmc001-a1-candidates.json
+
+      - name: Acquire block-pinned evidence from every provider
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/rmc001_amendment_evidence.py acquire \
+            ci/nqc-census/rpc-providers.json ci/nqc-census/v2-discovery-scope.json \
+            /tmp/nqc-rmc001-a1-candidates.json "$A1_EVIDENCE"
+
+      - name: Verify offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo unshare --net -- sudo -u "$(id -un)" \
+            python3 ci/nqc-census/rmc001_amendment_evidence.py verify "$A1_EVIDENCE" \
+            | tee /tmp/nqc-rmc001-a1-verify.log
+          grep -F RMC001_AMENDMENT_1_EVIDENCE_PASS /tmp/nqc-rmc001-a1-verify.log
+          # A second verification must reproduce summary.json byte for byte.
+          python3 ci/nqc-census/rmc001_amendment_evidence.py verify "$A1_EVIDENCE" > /dev/null
+          cat "$A1_EVIDENCE/summary.json"
+
+      - name: Content-address the evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$A1_EVIDENCE"
+          find . -type f ! -name SHA256SUMS -printf '%P\n' | LC_ALL=C sort \
+            | xargs -d '\n' sha256sum > SHA256SUMS
+          sha256sum SHA256SUMS
+          cd /tmp
+          tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner \
+            -cf nqc-rmc001-a1-evidence.tar -C "$A1_EVIDENCE" .
+          gzip -n -9 -c nqc-rmc001-a1-evidence.tar > nqc-rmc001-a1-evidence.tar.gz
+          sha256sum nqc-rmc001-a1-evidence.tar nqc-rmc001-a1-evidence.tar.gz
+          echo "RMC001_A1_EVIDENCE_TAR_SHA256 $(sha256sum < nqc-rmc001-a1-evidence.tar | cut -d' ' -f1)"
+          echo "RMC001_A1_EVIDENCE_BEGIN_BASE64"
+          base64 -w 120 nqc-rmc001-a1-evidence.tar.gz
+          echo "RMC001_A1_EVIDENCE_END_BASE64"
+          cp nqc-rmc001-a1-evidence.tar.gz "$A1_EVIDENCE.tar.gz"
+
+      - name: Preserve the evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-rmc001-a1-evidence-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/nqc-rmc001-a1
+            /tmp/nqc-rmc001-a1.tar.gz
+            /tmp/nqc-rmc001-a1-candidates.json
+            /tmp/nqc-rmc001-a1-verify.log
+          if-no-files-found: warn
+          retention-days: 90

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "purpose": "RMC008_STATE_STAGE_TRANSPORTS_NOT_AUTHORITY",
+  "independence": {
+    "claim": "DISTINCT_DECLARED_OPERATORS_ONLY",
+    "infrastructure_independence": "NOT_PROVEN"
+  },
+  "notes": [
+    "both endpoints answered eth_call batches of 100 at anchor 25,437,474 (probes v5/v6, runs 36528043358 and 36579523684)",
+    "both endpoints sometimes omit the data member of an empty EVM revert; RMC-008 isolates such calls by bisection and never assumes their outcome",
+    "blastapi-public shares compute-unit capacity across all callers and answers HTTP 429 under load"
+  ],
+  "providers": [
+    {
+      "namespace": 257,
+      "label": "blastapi-public",
+      "url": "https://eth-mainnet.public.blastapi.io",
+      "operator": "Bware Labs Blast API public endpoint",
+      "min_interval_ms": 400,
+      "max_batch": 100,
+      "log_window": 10,
+      "pinning": "EIP1898_BLOCK_HASH"
+    },
+    {
+      "namespace": 258,
+      "label": "mevblocker-rpc",
+      "url": "https://rpc.mevblocker.io",
+      "operator": "MEV Blocker public RPC",
+      "min_interval_ms": 1250,
+      "max_batch": 100,
+      "log_window": 10000,
+      "pinning": "EIP1898_BLOCK_HASH"
+    }
+  ]
+}

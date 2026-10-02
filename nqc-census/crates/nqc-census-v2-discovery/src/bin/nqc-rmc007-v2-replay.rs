@@ -1,0 +1,79 @@
+//! Offline replay of one RMC-007 stage from its own store. Needs no network.
+//!
+//! `--stage-providers F --record F --store DIR --stage-artifact NAME --out F`
+//!
+//! The store is verified before and after the replay, and the replay must not
+//! move its evidence root. The output extract carries the record, its
+//! replayed rows, the replayed chain domain and anchor and the store summary.
+
+use nqc_census_chain::json::Json;
+use nqc_census_chain::provider::ProviderSet;
+use nqc_census_store::verify::{verify_store, VerifyReport, VerifyRequest};
+use nqc_census_store::Store;
+use nqc_census_v2_discovery::stage::V2Plan;
+use nqc_census_v2_discovery::verify::stage_extract;
+use std::collections::BTreeMap;
+use std::path::Path;
+use std::{env, error::Error, fs, path::PathBuf};
+
+fn verified(store: &Path) -> Result<VerifyReport, Box<dyn Error>> {
+    Ok(verify_store(store, &VerifyRequest::default()).map_err(|failure| failure.to_string())?)
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let mut flags = BTreeMap::new();
+    let mut args = env::args().skip(1);
+    while let Some(flag) = args.next() {
+        let value = args
+            .next()
+            .ok_or_else(|| format!("missing value for {flag}"))?;
+        if flags.insert(flag.clone(), value).is_some() {
+            return Err(format!("{flag} given twice").into());
+        }
+    }
+    let flag = |name: &str| -> Result<String, Box<dyn Error>> {
+        Ok(flags
+            .get(name)
+            .cloned()
+            .ok_or_else(|| format!("{name} is required"))?)
+    };
+    let providers: Vec<_> = ProviderSet::parse(&fs::read(flag("--stage-providers")?)?)?
+        .iter()
+        .cloned()
+        .collect();
+    let record = Json::parse(&fs::read(flag("--record")?)?)?;
+    let root = PathBuf::from(flag("--store")?);
+    let before = verified(&root)?;
+    let summary = Json::object([
+        ("stage_artifact", Json::string(flag("--stage-artifact")?)),
+        ("evidence_root", Json::string(before.evidence_root.clone())),
+        ("config_id", Json::string(before.config_id.clone())),
+        ("streams", Json::uint(before.streams.len() as u64)),
+        ("artifacts", Json::uint(before.artifacts)),
+        ("chunks", Json::uint(before.chunks)),
+        ("logical_bytes", Json::uint(before.logical_bytes)),
+    ]);
+    let extract = {
+        let store = Store::open_existing(&root)?;
+        stage_extract(&store, &providers, &V2Plan::mainnet()?, &record, summary)?
+    };
+    let after = verified(&root)?;
+    if after.evidence_root != before.evidence_root || after.streams != before.streams {
+        return Err("replay changed the stage store's evidence root".into());
+    }
+    fs::write(flag("--out")?, extract.canonical()?)?;
+    println!(
+        "RMC007_REPLAY_PASS stage={} provider={} rows={} record_sha256={} data_sha256={} evidence_root={} streams={}",
+        record.str_field("stage")?,
+        record
+            .get("provider")
+            .ok_or("record names no provider")?
+            .str_field("label")?,
+        extract.get("row_count").and_then(Json::as_i64).ok_or("row_count")?,
+        extract.str_field("record_sha256")?,
+        extract.str_field("data_sha256")?,
+        before.evidence_root,
+        before.streams.len()
+    );
+    Ok(())
+}

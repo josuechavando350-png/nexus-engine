@@ -1,0 +1,314 @@
+name: NQC RMC-010 Refresh Anchor Proposal
+
+# Proposes the later anchor A1 of an incremental refresh: the lowest block
+# every declared census provider reports as `finalized`, with the hash all of
+# them return for it. It proposes only. Every census run at A1 re-verifies
+# the anchor header on its own providers before observing anything.
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-refresh-anchor.yml
+      - ci/nqc-census/rpc-providers.json
+      - ci/nqc-census/refresh-bootstrap.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: nqc-rmc010-anchor-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  propose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    outputs:
+      anchor_number: ${{ steps.anchor.outputs.number }}
+      anchor_hash: ${{ steps.anchor.outputs.hash }}
+      d06_run: ${{ steps.d06.outputs.run_id }}
+      bootstrap_requested: ${{ steps.d06.outputs.requested }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Finalized block agreed by every declared provider
+        id: anchor
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, time, urllib.request
+
+          providers = json.load(open("ci/nqc-census/rpc-providers.json"))["providers"]
+
+          def call(provider, method, params):
+              body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode()
+              for attempt in range(6):
+                  try:
+                      request = urllib.request.Request(
+                          provider["url"],
+                          data=body,
+                          headers={
+                              "content-type": "application/json",
+                              "accept": "application/json",
+                              "user-agent": "nqc-census-chain/1",
+                          },
+                      )
+                      with urllib.request.urlopen(request, timeout=30) as response:
+                          reply = json.load(response)
+                      if "result" in reply and reply["result"] is not None:
+                          return reply["result"]
+                      print(f"{provider['label']} {method}: {reply.get('error')}")
+                  except Exception as error:  # transport failure: retry, never read as empty
+                      print(f"{provider['label']} {method}: {error}")
+                  time.sleep(2 ** attempt)
+              raise SystemExit(f"{provider['label']} did not answer {method}")
+
+          finalized = {p["label"]: int(call(p, "eth_getBlockByNumber", ["finalized", False])["number"], 16)
+                       for p in providers}
+          print("RMC010_FINALIZED " + json.dumps(finalized, sort_keys=True))
+          number = min(finalized.values())
+          hashes = {p["label"]: call(p, "eth_getBlockByNumber", [hex(number), False])["hash"] for p in providers}
+          print("RMC010_HASHES " + json.dumps(hashes, sort_keys=True))
+          if len(set(hashes.values())) != 1:
+              raise SystemExit("providers disagree on the finalized block hash: no anchor proposed")
+          block_hash = next(iter(hashes.values()))
+          print(f"RMC010_ANCHOR_PROPOSAL number={number} hash={block_hash}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"number={number}\n")
+              output.write(f"hash={block_hash}\n")
+          PY
+
+      - name: Dispatch and wait for D06 at A1
+        id: d06
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          A1_NUMBER: ${{ steps.anchor.outputs.number }}
+          A1_HASH: ${{ steps.anchor.outputs.hash }}
+        run: |
+          set -euo pipefail
+          bootstrap=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["status"])')
+          if [ "$bootstrap" != REQUEST_D06_A1 ]; then
+            echo "requested=false" >> "$GITHUB_OUTPUT"
+            echo "RMC010_D06_BOOTSTRAP_STANDING_DOWN status=$bootstrap"
+            exit 0
+          fi
+          echo "requested=true" >> "$GITHUB_OUTPUT"
+          repo="${{ github.repository }}"
+          branch=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["d06_ref"])')
+          workflow="nqc-census-aave-discovery.yml"
+          before=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
+          gh api --method POST "repos/$repo/actions/workflows/$workflow/dispatches" \
+            -f ref="$branch" \
+            -f "inputs[anchor_number]=$A1_NUMBER" \
+            -f "inputs[anchor_hash]=$A1_HASH"
+          for attempt in $(seq 1 60); do
+            after=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
+            run_id=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | head -n 1)
+            if [ -n "$run_id" ]; then break; fi
+            sleep 5
+          done
+          test -n "$run_id" || { echo "D06 dispatch created no discoverable run"; exit 1; }
+          echo "RMC010_D06_A1_DISPATCH run=$run_id anchor=$A1_NUMBER hash=$A1_HASH"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          for attempt in $(seq 1 480); do
+            status=$(gh api "repos/$repo/actions/runs/$run_id" --jq .status)
+            conclusion=$(gh api "repos/$repo/actions/runs/$run_id" --jq '.conclusion // ""')
+            if [ "$status" = completed ]; then
+              test "$conclusion" = success || {
+                echo "D06 A1 run $run_id concluded $conclusion"
+                exit 1
+              }
+              echo "RMC010_D06_A1_PASS run=$run_id anchor=$A1_NUMBER hash=$A1_HASH"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "D06 A1 run $run_id did not finish within 240 minutes"
+          exit 1
+
+
+  d09-a1:
+    needs: propose
+    if: ${{ needs.propose.outputs.bootstrap_requested == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    outputs:
+      d06_artifact_id: ${{ steps.d06-artifact.outputs.artifact_id }}
+      d06_artifact_name: ${{ steps.d06-artifact.outputs.artifact_name }}
+      d06_artifact_digest: ${{ steps.d06-artifact.outputs.artifact_digest }}
+      d06_head: ${{ steps.d06-artifact.outputs.d06_head }}
+      d09_run: ${{ steps.d09.outputs.run_id }}
+      d09_artifact_id: ${{ steps.d09.outputs.artifact_id }}
+      d09_artifact_name: ${{ steps.d09.outputs.artifact_name }}
+      d09_artifact_digest: ${{ steps.d09.outputs.artifact_digest }}
+      d09_head: ${{ steps.d09.outputs.d09_head }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Resolve exact D06 A1 artifact
+        id: d06-artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          D06_RUN: ${{ needs.propose.outputs.d06_run }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          d06_head=$(gh api "repos/$repo/actions/runs/$D06_RUN" --jq .head_sha)
+          conclusion=$(gh api "repos/$repo/actions/runs/$D06_RUN" --jq .conclusion)
+          test "$conclusion" = success
+          mapfile -t rows < <(gh api "repos/$repo/actions/runs/$D06_RUN/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name | startswith("nqc-rmc006-evidence-")) | [.id, .name, .digest] | @tsv')
+          test "${#rows[@]}" = 1 || {
+            echo "expected exactly one D06 evidence artifact, found ${#rows[@]}"
+            exit 1
+          }
+          IFS=$'\t' read -r artifact_id artifact_name artifact_digest <<< "${rows[0]}"
+          [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "artifact_id=$artifact_id" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=$artifact_name" >> "$GITHUB_OUTPUT"
+          echo "artifact_digest=$artifact_digest" >> "$GITHUB_OUTPUT"
+          echo "d06_head=$d06_head" >> "$GITHUB_OUTPUT"
+          echo "RMC010_D06_A1_ARTIFACT run=$D06_RUN head=$d06_head artifact=$artifact_id name=$artifact_name digest=$artifact_digest"
+
+      - name: Dispatch exact D09 full census at A1 and wait
+        id: d09
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          A1_NUMBER: ${{ needs.propose.outputs.anchor_number }}
+          A1_HASH: ${{ needs.propose.outputs.anchor_hash }}
+          D06_RUN: ${{ needs.propose.outputs.d06_run }}
+          D06_ARTIFACT_ID: ${{ steps.d06-artifact.outputs.artifact_id }}
+          D06_ARTIFACT_NAME: ${{ steps.d06-artifact.outputs.artifact_name }}
+          D06_ARTIFACT_DIGEST: ${{ steps.d06-artifact.outputs.artifact_digest }}
+          D06_HEAD: ${{ steps.d06-artifact.outputs.d06_head }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          branch="nqc/rmc-009-aave-account-universe-20260929"
+          workflow="nqc-census-accounts.yml"
+          d09_head=$(gh api "repos/$repo/git/ref/heads/$branch" --jq .object.sha)
+          before=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
+          gh api --method POST "repos/$repo/actions/workflows/$workflow/dispatches" \
+            -f ref="$branch" \
+            -f "inputs[anchor_number]=$A1_NUMBER" \
+            -f "inputs[anchor_hash]=$A1_HASH" \
+            -f "inputs[d06_run_id]=$D06_RUN" \
+            -f "inputs[d06_artifact_id]=$D06_ARTIFACT_ID" \
+            -f "inputs[d06_artifact_name]=$D06_ARTIFACT_NAME" \
+            -f "inputs[d06_artifact_digest]=$D06_ARTIFACT_DIGEST" \
+            -f "inputs[d06_code_commit]=$D06_HEAD"
+          run_id=""
+          for attempt in $(seq 1 60); do
+            after=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
+            run_id=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | head -n 1)
+            if [ -n "$run_id" ]; then break; fi
+            sleep 5
+          done
+          test -n "$run_id" || { echo "D09 A1 dispatch created no discoverable run"; exit 1; }
+          observed_head=$(gh api "repos/$repo/actions/runs/$run_id" --jq .head_sha)
+          test "$observed_head" = "$d09_head" || {
+            echo "D09 A1 run head=$observed_head but dispatch branch head was $d09_head"
+            exit 1
+          }
+          echo "RMC010_D09_A1_DISPATCH run=$run_id head=$observed_head anchor=$A1_NUMBER hash=$A1_HASH"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          echo "d09_head=$observed_head" >> "$GITHUB_OUTPUT"
+
+          for attempt in $(seq 1 700); do
+            status=$(gh api "repos/$repo/actions/runs/$run_id" --jq .status)
+            conclusion=$(gh api "repos/$repo/actions/runs/$run_id" --jq '.conclusion // ""')
+            if [ "$status" = completed ]; then
+              test "$conclusion" = success || {
+                echo "D09 A1 run $run_id concluded $conclusion"
+                exit 1
+              }
+              break
+            fi
+            sleep 30
+          done
+          test "$(gh api "repos/$repo/actions/runs/$run_id" --jq .conclusion)" = success || {
+            echo "D09 A1 run $run_id did not finish successfully within wait budget"
+            exit 1
+          }
+
+          mapfile -t rows < <(gh api "repos/$repo/actions/runs/$run_id/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name | startswith("nqc-rmc009-closeout-")) | [.id, .name, .digest] | @tsv')
+          test "${#rows[@]}" = 1 || {
+            echo "expected exactly one D09 closeout artifact, found ${#rows[@]}"
+            exit 1
+          }
+          IFS=$'\t' read -r artifact_id artifact_name artifact_digest <<< "${rows[0]}"
+          [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "artifact_id=$artifact_id" >> "$GITHUB_OUTPUT"
+          echo "artifact_name=$artifact_name" >> "$GITHUB_OUTPUT"
+          echo "artifact_digest=$artifact_digest" >> "$GITHUB_OUTPUT"
+          echo "RMC010_D09_A1_PASS run=$run_id head=$observed_head artifact=$artifact_id name=$artifact_name digest=$artifact_digest"
+
+      - name: Write exact A1 bootstrap record
+        shell: bash
+        env:
+          A1_NUMBER: ${{ needs.propose.outputs.anchor_number }}
+          A1_HASH: ${{ needs.propose.outputs.anchor_hash }}
+          D06_RUN: ${{ needs.propose.outputs.d06_run }}
+          D06_HEAD: ${{ steps.d06-artifact.outputs.d06_head }}
+          D06_ARTIFACT_ID: ${{ steps.d06-artifact.outputs.artifact_id }}
+          D06_ARTIFACT_NAME: ${{ steps.d06-artifact.outputs.artifact_name }}
+          D06_ARTIFACT_DIGEST: ${{ steps.d06-artifact.outputs.artifact_digest }}
+          D09_RUN: ${{ steps.d09.outputs.run_id }}
+          D09_HEAD: ${{ steps.d09.outputs.d09_head }}
+          D09_ARTIFACT_ID: ${{ steps.d09.outputs.artifact_id }}
+          D09_ARTIFACT_NAME: ${{ steps.d09.outputs.artifact_name }}
+          D09_ARTIFACT_DIGEST: ${{ steps.d09.outputs.artifact_digest }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          out = {
+              "schema": "nqc-rmc010-a1-bootstrap-v1",
+              "status": "A1_FULL_CENSUS_CERTIFIED",
+              "target_anchor": {
+                  "block_number": int(os.environ["A1_NUMBER"]),
+                  "block_hash": os.environ["A1_HASH"],
+              },
+              "d06": {
+                  "workflow_run_id": int(os.environ["D06_RUN"]),
+                  "code_commit": os.environ["D06_HEAD"],
+                  "artifact_id": int(os.environ["D06_ARTIFACT_ID"]),
+                  "artifact": os.environ["D06_ARTIFACT_NAME"],
+                  "artifact_digest": os.environ["D06_ARTIFACT_DIGEST"],
+              },
+              "d09": {
+                  "workflow_run_id": int(os.environ["D09_RUN"]),
+                  "code_commit": os.environ["D09_HEAD"],
+                  "artifact_id": int(os.environ["D09_ARTIFACT_ID"]),
+                  "artifact": os.environ["D09_ARTIFACT_NAME"],
+                  "artifact_digest": os.environ["D09_ARTIFACT_DIGEST"],
+              },
+          }
+          os.makedirs("/tmp/nqc-rmc010-a1-bootstrap", exist_ok=True)
+          with open("/tmp/nqc-rmc010-a1-bootstrap/bootstrap.json", "w") as handle:
+              json.dump(out, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          print(json.dumps(out, sort_keys=True))
+          PY
+          sha256sum /tmp/nqc-rmc010-a1-bootstrap/bootstrap.json
+
+      - name: Preserve exact A1 bootstrap record
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-rmc010-a1-bootstrap-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: /tmp/nqc-rmc010-a1-bootstrap/bootstrap.json
+          if-no-files-found: error
+          retention-days: 30

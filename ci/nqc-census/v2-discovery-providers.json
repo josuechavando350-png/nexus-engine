@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "purpose": "RMC007_PARTITIONED_STAGE_TRANSPORTS_NOT_AUTHORITY",
+  "independence": {
+    "claim": "DISTINCT_DECLARED_OPERATORS_ONLY",
+    "infrastructure_independence": "NOT_PROVEN"
+  },
+  "notes": [
+    "mevblocker-rpc documents eth_getLogs ranges up to 10,000 blocks with no response-size cap; larger ranges are capped at 10,000 logs (run 36521397718)",
+    "blastapi-public serves eth_getLogs over at most 10 blocks"
+  ],
+  "providers": [
+    {
+      "namespace": 257,
+      "label": "blastapi-public",
+      "url": "https://eth-mainnet.public.blastapi.io",
+      "operator": "Bware Labs Blast API public endpoint",
+      "min_interval_ms": 350,
+      "max_batch": 100,
+      "log_window": 10,
+      "pinning": "EIP1898_BLOCK_HASH"
+    },
+    {
+      "namespace": 258,
+      "label": "mevblocker-rpc",
+      "url": "https://rpc.mevblocker.io",
+      "operator": "MEV Blocker public RPC",
+      "min_interval_ms": 1250,
+      "max_batch": 100,
+      "log_window": 10000,
+      "pinning": "EIP1898_BLOCK_HASH"
+    }
+  ]
+}

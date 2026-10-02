@@ -6,15 +6,16 @@ on:
       - nqc-census/**
       - ci/nqc-census/identity-vectors.json
       - ci/nqc-census/IDENTITY_CONTRACT.md
+      - ci/nqc-census/rmc001-freeze-manifest.json
+      - ci/nqc-census/verify_rmc001_freeze.py
+      - ci/nqc-census/rmc001_amendment_evidence.py
+      - ci/nqc-census/rmc001-amendment-1/**
       - .github/workflows/nqc-census-identity.yml
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  actions: read
 
 jobs:
   identity-contract:
@@ -23,6 +24,8 @@ jobs:
     env:
       CERTIFIED_BASE: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
       CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      # Read-only token for verify_rmc001_freeze.py to check the certification run.
+      GH_TOKEN: ${{ github.token }}
 
     steps:
       - name: Checkout exact head
@@ -41,13 +44,13 @@ jobs:
             test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
           fi
           git merge-base --is-ancestor cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d HEAD
-          git diff --quiet cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d HEAD -- \
-            ci/nqc-census/IDENTITY_CONTRACT.md \
-            ci/nqc-census/identity-vectors.json \
-            nqc-census/rust-toolchain.toml \
-            nqc-census/crates/nqc-census-core/Cargo.toml \
-            nqc-census/crates/nqc-census-core/src/identity.rs \
-            nqc-census/crates/nqc-census-core/tests/identity.rs
+          # RMC-001 is frozen by content (rmc001-freeze-manifest.json). Every
+          # frozen file matches its pin at HEAD and at the amendment
+          # authority; vectors, toolchain, crate manifest and the original
+          # tests match cea25577; the Amendment 1 evidence re-verifies
+          # offline. This workflow is the certifying run, so it alone may see
+          # a PENDING certification. Every dependent gate requires CERTIFIED.
+          python3 ci/nqc-census/verify_rmc001_freeze.py --allow-pending
           echo RMC_001_IDENTITY_BYTES_IMMUTABLE_PASS
           git diff --check cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d...HEAD
 
@@ -163,3 +166,39 @@ jobs:
           cargo test --workspace --all-targets --locked
           cargo build --workspace --all-targets --locked
           echo RMC_001_CANONICAL_MARKET_IDENTITY_PASS
+
+      - name: Backward identity stability against the original authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Compile the exhaustive corpus against cea25577 itself. Its digest
+          # must equal the one the amended code reproduces once the amended
+          # class is written as the original rule answered it.
+          original=/tmp/nqc-rmc001-original
+          git worktree add --detach "$original" cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
+          support="$PWD/nqc-census/crates/nqc-census-core/tests/support/identity_corpus.rs"
+          cat > "$original/nqc-census/crates/nqc-census-core/tests/rmc001_original_corpus.rs" <<EOF
+          #[path = "$support"]
+          mod corpus;
+
+          #[test]
+          fn original_corpus_digest() -> Result<(), nqc_census_core::IdentityError> {
+              let entries = corpus::entries()?;
+              println!(
+                  "RMC001_ORIGINAL_CORPUS_SHA256 entries={} digest={}",
+                  entries.len(),
+                  corpus::digest(&entries, false)
+              );
+              Ok(())
+          }
+          EOF
+          (cd "$original/nqc-census" && cargo test --locked -p nqc-census-core \
+            --test rmc001_original_corpus -- --nocapture) | tee /tmp/nqc-rmc001-original.log
+          expected=$(python3 -c 'import re,sys; print(re.search(r"ORIGINAL_CORPUS_SHA256: &str =\s*\"([0-9a-f]{64})\"", open(sys.argv[1]).read()).group(1))' \
+            nqc-census/crates/nqc-census-core/tests/identity_amendment_1.rs)
+          test -n "$expected"
+          grep -F "RMC001_ORIGINAL_CORPUS_SHA256 entries=10704 digest=$expected" /tmp/nqc-rmc001-original.log
+          (cd nqc-census && cargo test --locked -p nqc-census-core --test identity_amendment_1 \
+            -- --nocapture) | tee /tmp/nqc-rmc001-amended.log
+          grep -F "RMC001_CORPUS_SHA256 entries=10704 amended_masked=$expected " /tmp/nqc-rmc001-amended.log
+          echo "RMC_001_A1_BACKWARD_IDENTITY_STABILITY_PASS original=$expected"

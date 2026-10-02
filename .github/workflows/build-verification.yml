@@ -6,9 +6,10 @@ on:
   pull_request:
 
 concurrency:
+  # Cancel only superseded runs of the same PR or branch; a run on one PR
+  # must never cancel another PR's verification.
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  # Supersede stale PR heads without cancelling authoritative branch/dispatch runs.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   build-verification:

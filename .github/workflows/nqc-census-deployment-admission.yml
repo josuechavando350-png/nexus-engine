@@ -12,12 +12,16 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   deployment-admission:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
+      # RMC-001 recertified freeze manifest (Amendment 1), pinned by digest.
+      RMC001_FREEZE_MANIFEST_SHA256: a0e5280175cfebadbbb225783873fde5d85364e3985224b20ba797fda0529842
+      GH_TOKEN: ${{ github.token }}
       RMC005_STACK_PARENT: 870d948d5092c01c372f4694b27dfc2eb1b42cd0
       RMC004_PARENT: be257a473cffd8c4f16fd6a2513411ce2d6153be
       RMC003_MERGE: 765dc30fdd178a4960ade1e106669eb0b023fbeb
@@ -78,7 +82,11 @@ jobs:
         run: |
           set -euo pipefail
           git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD --             ci/nqc-protocol-fork/recovered-source             ci/nqc-protocol-fork/reimplementation             ci/nqc-protocol-fork/compatibility             ci/nqc-protocol-fork/locks             ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
-          git diff --quiet "$RMC004_PARENT" HEAD --             ci/nqc-census/IDENTITY_CONTRACT.md             ci/nqc-census/identity-vectors.json             ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md             ci/nqc-census/effective-source-profile.json             ci/nqc-census/materialize_effective_source.py             ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md             ci/nqc-census/STORE_CONTRACT.md             nqc-census/crates/nqc-census-store
+          git diff --quiet "$RMC004_PARENT" HEAD --             ci/nqc-census/identity-vectors.json             ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md             ci/nqc-census/effective-source-profile.json             ci/nqc-census/materialize_effective_source.py             ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md             ci/nqc-census/STORE_CONTRACT.md             nqc-census/crates/nqc-census-store
+          # IDENTITY_CONTRACT.md and identity.rs changed only through RMC-001
+          # Amendment 1; the recertified freeze manifest pins them by content.
+          echo "$RMC001_FREEZE_MANIFEST_SHA256  ci/nqc-census/rmc001-freeze-manifest.json" | sha256sum --check --strict
+          python3 ci/nqc-census/verify_rmc001_freeze.py
           echo RMC_005_UPSTREAM_IMMUTABILITY_PASS
 
       - name: Verify provider-free admission boundary

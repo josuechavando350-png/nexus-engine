@@ -13,20 +13,23 @@ on:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  actions: read
 
 jobs:
   durable-evidence-store:
     runs-on: ubuntu-24.04
     timeout-minutes: 75
     env:
+      # RMC-001 recertified freeze manifest (Amendment 1), pinned by digest.
+      RMC001_FREEZE_MANIFEST_SHA256: a0e5280175cfebadbbb225783873fde5d85364e3985224b20ba797fda0529842
+      GH_TOKEN: ${{ github.token }}
       RMC004_BASE: 765dc30fdd178a4960ade1e106669eb0b023fbeb
       # RMC-003.1 advanced the observation module additively; its bytes are
       # pinned to that authority commit instead of the RMC-004 base.
       RMC003_TYPED_AUTHORITY: 5e032b2a601a2368334477e6ad9ee5c5b7ba219a
+      # RMC-003.2 (zero-permitting log topic words) advanced it again,
+      # additively; the RMC-003.1 authority must be its ancestor.
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
       RMC002_MERGE: 0d90ee7a7d439d2c658209c8fe176a8dda6bcbcb
       RMC001_MERGE: cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
       PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
@@ -124,42 +127,29 @@ jobs:
             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json \
             ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json
           echo RMC_004_PROTOCOL_FORK_IMMUTABLE_PASS
-          upstream_paths=(
-            ci/nqc-census/IDENTITY_CONTRACT.md
-            ci/nqc-census/identity-vectors.json
-            ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md
-            ci/nqc-census/effective-source-profile.json
-            ci/nqc-census/materialize_effective_source.py
-            ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md
-            nqc-census/rust-toolchain.toml
-            nqc-census/crates/nqc-census-core/Cargo.toml
-            nqc-census/crates/nqc-census-core/src/identity.rs
-            nqc-census/crates/nqc-census-core/src/pipeline.rs
-            nqc-census/crates/nqc-census-core/src/capability.rs
-            nqc-census/crates/nqc-census-core/tests/identity.rs
-            nqc-census/crates/nqc-census-core/tests/observation_pipeline.rs
-            .github/workflows/nqc-census-identity.yml
+          git diff --quiet "$RMC004_BASE" HEAD -- \
+            ci/nqc-census/identity-vectors.json \
+            ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md \
+            ci/nqc-census/effective-source-profile.json \
+            ci/nqc-census/materialize_effective_source.py \
+            ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md \
+            nqc-census/rust-toolchain.toml \
+            nqc-census/crates/nqc-census-core/Cargo.toml \
+            nqc-census/crates/nqc-census-core/src/pipeline.rs \
+            nqc-census/crates/nqc-census-core/src/capability.rs \
+            nqc-census/crates/nqc-census-core/tests/identity.rs \
+            nqc-census/crates/nqc-census-core/tests/observation_pipeline.rs \
             .github/workflows/nqc-census-effective-source.yml
-          )
-
-          if [ "${{ github.event_name }}" = "pull_request" ] && \
-             [ "${{ github.event.pull_request.base.sha }}" != "$RMC004_BASE" ]; then
-            # Later Census nodes may legitimately inherit post-RMC-004 upstream
-            # authorities. Prove this PR did not mutate any of them instead of
-            # incorrectly comparing the accumulated later tree to RMC-004.
-            later_base="${{ github.event.pull_request.base.sha }}"
-            git merge-base --is-ancestor "$RMC004_BASE" "$later_base"
-            git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" "$later_base"
-            git diff --quiet "$later_base" HEAD -- "${upstream_paths[@]}" \
-              nqc-census/crates/nqc-census-core/src/observation.rs
-            echo "RMC_004_LATER_PR_UPSTREAM_IMMUTABLE_PASS base=$later_base"
-          else
-            git diff --quiet "$RMC004_BASE" HEAD -- "${upstream_paths[@]}"
-            git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" HEAD
-            git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- \
-              nqc-census/crates/nqc-census-core/src/observation.rs
-            echo RMC_004_RMC001_RMC002_RMC003_IMMUTABLE_PASS
-          fi
+          # IDENTITY_CONTRACT.md, identity.rs and nqc-census-identity.yml changed only
+          # through RMC-001 Amendment 1; the recertified freeze manifest pins them.
+          echo "$RMC001_FREEZE_MANIFEST_SHA256  ci/nqc-census/rmc001-freeze-manifest.json" | sha256sum --check --strict
+          python3 ci/nqc-census/verify_rmc001_freeze.py
+          git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" HEAD
+          git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" "$RMC003_2_AUTHORITY"
+          git merge-base --is-ancestor "$RMC003_2_AUTHORITY" HEAD
+          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- \
+            nqc-census/crates/nqc-census-core/src/observation.rs
+          echo RMC_004_RMC001_RMC002_RMC003_IMMUTABLE_PASS
 
       - name: Verify dependency surface and network-free boundary
         shell: bash

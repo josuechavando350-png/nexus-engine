@@ -350,13 +350,10 @@ impl CanonicalMarketKey {
         if deployment.protocol() != ProtocolFamily::UniswapV2 {
             return Err(IdentityError::ProtocolMarketMismatch);
         }
-        if token0 >= token1
-            || pair == token0
-            || pair == token1
-            || pair == deployment.address()
-            || token0 == deployment.address()
-            || token1 == deployment.address()
-        {
+        // Amendment 1: a token may be the factory. The Uniswap V2 factory
+        // accepts any two distinct non-zero addresses, and mainnet pairs
+        // 0x14c3…53ce and 0x3b66…8446 name it as a token (IDENTITY_CONTRACT.md).
+        if token0 >= token1 || pair == token0 || pair == token1 || pair == deployment.address() {
             return Err(IdentityError::ContradictoryV2Pair);
         }
         Ok(Self {
