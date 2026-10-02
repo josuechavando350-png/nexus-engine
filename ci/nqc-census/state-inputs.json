@@ -2,8 +2,8 @@
   "schema_version": 2,
   "status": "PINNED",
   "expected_anchor": {
-    "block_number": 25437474,
-    "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8"
+    "block_number": 26095351,
+    "block_hash": "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781"
   },
   "sources": [
     {
@@ -11,64 +11,64 @@
       "pull_request": 521,
       "code_commit": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
       "code_tree": "eda36fdc07e82ccdcc9666799fa8fe21aacc7f1d",
-      "workflow_run_id": 36627517591,
-      "artifact_id": 11062164175,
-      "artifact": "nqc-rmc006-evidence-25437474-a33a012591cd6625ddb921d995bb1bd95b4a5406-36627517591-1",
-      "artifact_digest": "sha256:5f9a9bbd2182d9d65e22ad9b25f94abd5152baef7d1c2d559bda4e5a77433b03",
-      "evidence_manifest_sha256": "81e53c6f76ff71c47df6186afddef05756dbb4ed1261fa3b694183ecefdce44b"
+      "workflow_run_id": 36820687233,
+      "artifact_id": 11143129177,
+      "artifact": "nqc-rmc006-evidence-26095351-a33a012591cd6625ddb921d995bb1bd95b4a5406-36820687233-1",
+      "artifact_digest": "sha256:1cdb46fca52ebf1e0e2094b1c14b19384ecb7beceb50229b967592ab7a0308b4",
+      "evidence_manifest_sha256": "005715e6f4479a6e9c12c62eed40b3d027107a1c9f4d31c6461845181dc733c4"
     },
     {
       "node": "D07",
-      "pull_request": 520,
-      "code_commit": "7e223cc5f89374f5542ca862d2322201b46d1fc8",
-      "code_tree": "4934c97fb4f226a95af19c218606390a43b72ef9",
-      "workflow_run_id": 36673249129,
-      "artifact_id": 11081537391,
-      "artifact": "nqc-rmc007-closeout-7e223cc5f89374f5542ca862d2322201b46d1fc8-36673249129-1",
-      "artifact_digest": "sha256:dd4641b2f1437dc4d72e08b71d25ed42ba9245fdb8a31e900a2233c7160b1c66",
-      "evidence_manifest_sha256": "8d4dff5abd45b24a7169ac03a66ab9a34bb8993d4155623cb87121764f7311b2"
+      "pull_request": 572,
+      "code_commit": "1614b99a2bca9bd713df1f36e2cbecbaadf633f5",
+      "code_tree": "fed1de7899ad20a0e39eff6eee002cd356f63f20",
+      "workflow_run_id": 36952216731,
+      "artifact_id": 11207794300,
+      "artifact": "nqc-rmc007-closeout-1614b99a2bca9bd713df1f36e2cbecbaadf633f5-36952216731-1",
+      "artifact_digest": "sha256:f462289674f6fb84a580e490215d082bccf022f3e73a73da2f1fd217938531e8",
+      "evidence_manifest_sha256": "86e9a2c105a08cb9313ffeab9ffb4a6211b8fb6f415d3c0b434baaf0ca3a897e"
     }
   ],
   "files": [
     {
       "role": "d06_current_surface",
       "path": "d06/aave-current-surface.json",
-      "sha256": "643d39289467ff2b88a03a575c0d9fed3e5a9333cd66d7245ea43025054c714f"
+      "sha256": "e877128e1df0882fb76e1ad8839fcc70e30e16f24462dc659620ebc6baba7bb4"
     },
     {
       "role": "d06_deployment_manifest",
       "path": "d06/closeout/aave-deployment-manifest.jsonl",
-      "sha256": "2b93076630dfab9953858669b02b838032c7e787f1520ea53f014ac313c36eee"
+      "sha256": "38174ad020f22a8d644be10fca7099f9c1ebd33a60b6af044a0a9c6457cf47fb"
     },
     {
       "role": "d06_reserve_manifest",
       "path": "d06/closeout/aave-reserve-manifest.jsonl",
-      "sha256": "9f931f32c28a47cd0c73856c5a02e81bcb3db00a52abaa5a083283b4abf0a5c7"
+      "sha256": "bd4c28928eb74ce100cbd1d239936cc6e0a55def6bcc352545d111fb336feb72"
     },
     {
       "role": "d06_evidence_manifest",
       "path": "d06/closeout/evidence-manifest.json",
-      "sha256": "81e53c6f76ff71c47df6186afddef05756dbb4ed1261fa3b694183ecefdce44b"
+      "sha256": "005715e6f4479a6e9c12c62eed40b3d027107a1c9f4d31c6461845181dc733c4"
     },
     {
       "role": "d07_current_surface",
       "path": "d07/v2-current-surface.json",
-      "sha256": "8c6ad60ee7c56e7d4ba0c7222f5453e0ff591b7dd44874d1a60815f8f0553fb2"
+      "sha256": "38c276c61c373f3759117a23a159775416778e3305a56368757c127044e87878"
     },
     {
       "role": "d07_deployment_admission",
       "path": "d07/closeout/v2-deployment-admission.json",
-      "sha256": "7f555399d387b5d751a706fe592d4323a01106a1d030ff3d4bc05b98065bf0a3"
+      "sha256": "8f03bd14298d4e6680be8bb3886ebc3408b09a57b11aaf672a1004afa13bf03a"
     },
     {
       "role": "d07_pair_manifest",
       "path": "d07/closeout/v2-pair-manifest.jsonl",
-      "sha256": "920b9fae1d80d6508eacb95168964ebc2c1a063b39c6ba3062212cff4d33ed64"
+      "sha256": "ea2a451e9bdc5731d184ec3193ab779bb62c0bb69159aa020acb06ceb5d319de"
     },
     {
       "role": "d07_evidence_manifest",
       "path": "d07/closeout/evidence-manifest.json",
-      "sha256": "8d4dff5abd45b24a7169ac03a66ab9a34bb8993d4155623cb87121764f7311b2"
+      "sha256": "86e9a2c105a08cb9313ffeab9ffb4a6211b8fb6f415d3c0b434baaf0ca3a897e"
     }
   ]
 }
