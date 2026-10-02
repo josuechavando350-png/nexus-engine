@@ -332,4 +332,3 @@ The authorized terminal transition is `d11/d11-terminal-closeout.json` inside th
 - the terminal closeout binds SHA-256 of the source-universe bytes, real-source closeout bytes, authority-lock bytes, and authenticated family-discovery evidence.
 
 Only that file may carry `status=D11_TERMINAL_CLOSED`, `d11_terminal_closed=true`, and `terminal_capital_census_complete=true`. It still MUST keep RMC-012 actionability, repayment-cashflow sufficiency, portfolio concurrency, profitability, Shadow, Canary, and realized-P&L as explicit non-claims.
-
