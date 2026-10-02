@@ -143,7 +143,7 @@ jobs:
       contents: read
       actions: write
     steps:
-      - name: Dispatch exact-head A1 live certification once
+      - name: Dispatch exact-head A1 replay certification once
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -164,8 +164,9 @@ jobs:
             exit 0
           fi
           gh api --method POST "repos/$repo/actions/workflows/nqc-census-v2-discovery.yml/dispatches" \
-            -f ref="$HEAD_REF"
-          echo "RMC007_A1_CERTIFICATION_DISPATCHED head=$HEAD_SHA ref=$HEAD_REF"
+            -f ref="$HEAD_REF" \
+            -f "inputs[stages_run_id]=36902958321"
+          echo "RMC007_A1_REPLAY_CERTIFICATION_DISPATCHED head=$HEAD_SHA ref=$HEAD_REF stages_run=36902958321"
 
   plan:
     needs: gate
