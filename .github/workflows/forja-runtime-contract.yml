@@ -2,13 +2,6 @@ name: AXIOMA FORJA Executed GAUSS-Quantum Contract
 
 on:
   pull_request:
-    paths:
-      - "forja/**"
-      - "walle/**"
-      - "gauss/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "package-lock.json"
   push:
     branches: [main]
   schedule:
@@ -17,11 +10,6 @@ on:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  # AXIOMA PR evidence for stale heads is superseded; push/dispatch is preserved.
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   executed-contract:
