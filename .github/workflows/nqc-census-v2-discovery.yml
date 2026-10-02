@@ -157,6 +157,22 @@ jobs:
             echo "branch moved: PR head=$HEAD_SHA branch=$observed; refusing stale certification dispatch"
             exit 1
           }
+          # Cancel only obsolete live runs that have already proven failure.
+          # Healthy older runs are left intact; a failed stale run must not
+          # monopolize the live concurrency group and block the exact-head A1.
+          while read -r run head status; do
+            [ -n "$run" ] || continue
+            if [ "$head" != "$HEAD_SHA" ] && { [ "$status" = queued ] || [ "$status" = in_progress ]; }; then
+              failed=$(gh api "repos/$repo/actions/runs/$run/jobs?per_page=100" \
+                --jq '[.jobs[] | select(.conclusion == "failure")] | length')
+              if [ "$failed" != 0 ]; then
+                gh api --method POST "repos/$repo/actions/runs/$run/cancel"
+                echo "RMC007_CANCELLED_STALE_FAILED_RUN run=$run head=$head failed_jobs=$failed"
+              fi
+            fi
+          done < <(gh api "repos/$repo/actions/workflows/nqc-census-v2-discovery.yml/runs?event=workflow_dispatch&branch=$HEAD_REF&per_page=30" \
+            --jq '.workflow_runs[] | [.id, .head_sha, .status] | @tsv')
+
           existing=$(gh api "repos/$repo/actions/workflows/nqc-census-v2-discovery.yml/runs?event=workflow_dispatch&branch=$HEAD_REF&per_page=30" \
             --jq "[.workflow_runs[] | select(.head_sha == \"$HEAD_SHA\" and (.status == \"queued\" or .status == \"in_progress\" or .conclusion == \"success\"))] | length")
           if [ "$existing" != 0 ]; then
