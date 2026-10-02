@@ -699,7 +699,7 @@ jobs:
           done
           diff -r "$D07_EVIDENCE/closeout" "$D07_EVIDENCE/closeout-rerun"
           echo RMC007_DETERMINISTIC_CLOSEOUT_PASS
-          grep -F "RMC007_CLOSEOUT_PASS pairs=514624 unexplained=0 mismatches=0 records=48" "$D07_EVIDENCE/closeout.log"
+          grep -F "RMC007_CLOSEOUT_PASS pairs=523424 unexplained=0 mismatches=0 records=48" "$D07_EVIDENCE/closeout.log"
           (cd "$D07_EVIDENCE/closeout" && sha256sum * | tee ../closeout-SHA256SUMS)
           cat "$D07_EVIDENCE/closeout/v2-discovery-summary.json"; echo
           target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" > "$D07_EVIDENCE/final-store-verify.log"
