@@ -72,12 +72,26 @@ jobs:
           finalized = {p["label"]: int(call(p, "eth_getBlockByNumber", ["finalized", False])["number"], 16)
                        for p in providers}
           print("RMC010_FINALIZED " + json.dumps(finalized, sort_keys=True))
-          number = min(finalized.values())
-          hashes = {p["label"]: call(p, "eth_getBlockByNumber", [hex(number), False])["hash"] for p in providers}
-          print("RMC010_HASHES " + json.dumps(hashes, sort_keys=True))
-          if len(set(hashes.values())) != 1:
-              raise SystemExit("providers disagree on the finalized block hash: no anchor proposed")
-          block_hash = next(iter(hashes.values()))
+          bootstrap = json.load(open("ci/nqc-census/refresh-bootstrap.json"))
+          fixed = bootstrap.get("fixed_anchor")
+          if fixed:
+              number = int(fixed["block_number"])
+              expected_hash = fixed["block_hash"]
+              if any(height < number for height in finalized.values()):
+                  raise SystemExit(f"fixed A1 {number} is not finalized on every declared provider")
+              hashes = {p["label"]: call(p, "eth_getBlockByNumber", [hex(number), False])["hash"] for p in providers}
+              print("RMC010_FIXED_HASHES " + json.dumps(hashes, sort_keys=True))
+              if set(hashes.values()) != {expected_hash}:
+                  raise SystemExit("providers disagree with the pinned fixed A1 hash")
+              block_hash = expected_hash
+              print(f"RMC010_FIXED_ANCHOR_REUSED number={number} hash={block_hash}")
+          else:
+              number = min(finalized.values())
+              hashes = {p["label"]: call(p, "eth_getBlockByNumber", [hex(number), False])["hash"] for p in providers}
+              print("RMC010_HASHES " + json.dumps(hashes, sort_keys=True))
+              if len(set(hashes.values())) != 1:
+                  raise SystemExit("providers disagree on the finalized block hash: no anchor proposed")
+              block_hash = next(iter(hashes.values()))
           print(f"RMC010_ANCHOR_PROPOSAL number={number} hash={block_hash}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as output:
               output.write(f"number={number}\n")
@@ -102,6 +116,19 @@ jobs:
           echo "requested=true" >> "$GITHUB_OUTPUT"
           repo="${{ github.repository }}"
           branch=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["d06_ref"])')
+          recovery_run=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json")).get("recovery", {}).get("d06_run_id", ""))')
+          if [ -n "$recovery_run" ]; then
+            recovery_anchor=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["fixed_anchor"]["block_number"])')
+            recovery_hash=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["fixed_anchor"]["block_hash"])')
+            test "$A1_NUMBER" = "$recovery_anchor"
+            test "$A1_HASH" = "$recovery_hash"
+            test "$(gh api "repos/$repo/actions/runs/$recovery_run" --jq .conclusion)" = success
+            expected_head=$(gh api "repos/$repo/git/ref/heads/$branch" --jq .object.sha)
+            test "$(gh api "repos/$repo/actions/runs/$recovery_run" --jq .head_sha)" = "$expected_head"
+            echo "run_id=$recovery_run" >> "$GITHUB_OUTPUT"
+            echo "RMC010_D06_A1_REUSE run=$recovery_run anchor=$A1_NUMBER hash=$A1_HASH"
+            exit 0
+          fi
           workflow="nqc-census-aave-discovery.yml"
           before=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
           gh api --method POST "repos/$repo/actions/workflows/$workflow/dispatches" \
@@ -138,7 +165,7 @@ jobs:
     needs: propose
     if: ${{ needs.propose.outputs.bootstrap_requested == 'true' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 360
+    timeout-minutes: 720
     outputs:
       d06_artifact_id: ${{ steps.d06-artifact.outputs.artifact_id }}
       d06_artifact_name: ${{ steps.d06-artifact.outputs.artifact_name }}
@@ -199,24 +226,34 @@ jobs:
           branch="nqc/rmc-009-aave-account-universe-20260929"
           workflow="nqc-census-accounts.yml"
           d09_head=$(gh api "repos/$repo/git/ref/heads/$branch" --jq .object.sha)
-          before=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
-          gh api --method POST "repos/$repo/actions/workflows/$workflow/dispatches" \
-            -f ref="$branch" \
-            -f "inputs[anchor_number]=$A1_NUMBER" \
-            -f "inputs[anchor_hash]=$A1_HASH" \
-            -f "inputs[d06_run_id]=$D06_RUN" \
-            -f "inputs[d06_artifact_id]=$D06_ARTIFACT_ID" \
-            -f "inputs[d06_artifact_name]=$D06_ARTIFACT_NAME" \
-            -f "inputs[d06_artifact_digest]=$D06_ARTIFACT_DIGEST" \
-            -f "inputs[d06_code_commit]=$D06_HEAD"
-          run_id=""
-          for attempt in $(seq 1 60); do
-            after=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
-            run_id=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | head -n 1)
-            if [ -n "$run_id" ]; then break; fi
-            sleep 5
-          done
-          test -n "$run_id" || { echo "D09 A1 dispatch created no discoverable run"; exit 1; }
+          recovery_run=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json")).get("recovery", {}).get("d09_run_id", ""))')
+          if [ -n "$recovery_run" ]; then
+            recovery_anchor=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["fixed_anchor"]["block_number"])')
+            recovery_hash=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["fixed_anchor"]["block_hash"])')
+            test "$A1_NUMBER" = "$recovery_anchor"
+            test "$A1_HASH" = "$recovery_hash"
+            run_id="$recovery_run"
+            echo "RMC010_D09_A1_REUSE run=$run_id anchor=$A1_NUMBER hash=$A1_HASH"
+          else
+            before=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
+            gh api --method POST "repos/$repo/actions/workflows/$workflow/dispatches" \
+              -f ref="$branch" \
+              -f "inputs[anchor_number]=$A1_NUMBER" \
+              -f "inputs[anchor_hash]=$A1_HASH" \
+              -f "inputs[d06_run_id]=$D06_RUN" \
+              -f "inputs[d06_artifact_id]=$D06_ARTIFACT_ID" \
+              -f "inputs[d06_artifact_name]=$D06_ARTIFACT_NAME" \
+              -f "inputs[d06_artifact_digest]=$D06_ARTIFACT_DIGEST" \
+              -f "inputs[d06_code_commit]=$D06_HEAD"
+            run_id=""
+            for attempt in $(seq 1 60); do
+              after=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
+              run_id=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | head -n 1)
+              if [ -n "$run_id" ]; then break; fi
+              sleep 5
+            done
+            test -n "$run_id" || { echo "D09 A1 dispatch created no discoverable run"; exit 1; }
+          fi
           observed_head=$(gh api "repos/$repo/actions/runs/$run_id" --jq .head_sha)
           test "$observed_head" = "$d09_head" || {
             echo "D09 A1 run head=$observed_head but dispatch branch head was $d09_head"
@@ -226,7 +263,7 @@ jobs:
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
           echo "d09_head=$observed_head" >> "$GITHUB_OUTPUT"
 
-          for attempt in $(seq 1 700); do
+          for attempt in $(seq 1 1400); do
             status=$(gh api "repos/$repo/actions/runs/$run_id" --jq .status)
             conclusion=$(gh api "repos/$repo/actions/runs/$run_id" --jq '.conclusion // ""')
             if [ "$status" = completed ]; then
