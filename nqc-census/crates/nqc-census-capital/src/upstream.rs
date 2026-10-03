@@ -196,13 +196,39 @@ fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
     Ok(rows)
 }
 
+pub(crate) type TokenExecutionBlockers = BTreeMap<(Address, String), Vec<String>>;
+
 pub(crate) fn token_execution_blockers(
     bytes: &[u8],
-) -> Result<BTreeMap<Address, Vec<String>>, CapitalError> {
+) -> Result<TokenExecutionBlockers, CapitalError> {
     let mut tokens = BTreeMap::new();
     for row in parse_jsonl(bytes)? {
         let token = Address::parse_hex(text(&row, "token")?)
             .map_err(|_| CapitalError::InvalidCanonical("invalid D08 token address"))?;
+        let raw_roles = array(&row, "roles")?;
+        if raw_roles.is_empty() {
+            return Err(CapitalError::InvalidCanonical(
+                "D08 token admission has no role",
+            ));
+        }
+        let mut roles = raw_roles
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(ToOwned::to_owned)
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "D08 token admission role is not text",
+                    ))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        roles.sort();
+        if roles.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate D08 token admission role",
+            ));
+        }
+
         let execution = field(&row, "execution_compatibility")?;
         let raw_blockers = array(execution, "blockers")?;
         let mut blockers = raw_blockers
@@ -236,24 +262,28 @@ pub(crate) fn token_execution_blockers(
                 ))
             }
         }
-        if tokens.insert(token, blockers).is_some() {
-            return Err(CapitalError::InvalidCanonical(
-                "duplicate D08 token admission",
-            ));
+
+        for role in roles {
+            if tokens.insert((token, role), blockers.clone()).is_some() {
+                return Err(CapitalError::InvalidCanonical(
+                    "duplicate D08 token admission for role",
+                ));
+            }
         }
     }
     Ok(tokens)
 }
 
-pub(crate) fn execution_blockers(
-    tokens: &BTreeMap<Address, Vec<String>>,
+pub(crate) fn execution_blockers<'a>(
+    tokens: &'a TokenExecutionBlockers,
     token: Address,
-) -> Result<&[String], CapitalError> {
+    role: &str,
+) -> Result<&'a [String], CapitalError> {
     tokens
-        .get(&token)
+        .get(&(token, role.to_owned()))
         .map(Vec::as_slice)
         .ok_or(CapitalError::InvalidCanonical(
-            "D08 state row references token without admission record",
+            "D08 state row references token without role-scoped admission record",
         ))
 }
 
@@ -567,7 +597,9 @@ fn import_d08_capital_sources_unbound(
                     );
                     continue;
                 }
-                let token_blockers = execution_blockers(&tokens, asset_address)?.to_vec();
+                let token_blockers =
+                    execution_blockers(&tokens, asset_address, "AAVE_RESERVE_UNDERLYING")?
+                        .to_vec();
 
                 let facts = field(&row, "protocol_facts")?;
                 let active = bool_field(facts, "active")?;
@@ -695,14 +727,17 @@ fn import_d08_capital_sources_unbound(
                     ));
                 }
 
-                for (token, reserve_amount) in [(token0, reserve0), (token1, reserve1)] {
+                for (token, reserve_amount, role) in [
+                    (token0, reserve0, "V2_TOKEN0"),
+                    (token1, reserve1, "V2_TOKEN1"),
+                ] {
                     let asset = CapitalAsset::Token(token);
                     if !candidate_keys.insert((protocol.to_owned(), market_id.clone(), asset)) {
                         return Err(CapitalError::InvalidCanonical(
                             "duplicate D08 capital source candidate",
                         ));
                     }
-                    let mut source_blockers = execution_blockers(&tokens, token)?.to_vec();
+                    let mut source_blockers = execution_blockers(&tokens, token, role)?.to_vec();
                     if liquidity_state == "ZERO_LIQUIDITY_NOT_ROUTABLE" {
                         source_blockers.push(
                             CapitalImportRejectionReason::V2LiquidityUnavailable
