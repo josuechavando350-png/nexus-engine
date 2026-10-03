@@ -1,0 +1,86 @@
+name: GAUSS Clásico Historical Tournament
+
+on:
+  pull_request:
+    paths:
+      - 'gauss/tournament/**'
+      - 'gauss/tests/clasico-nacional-2026-tournament.test.mjs'
+      - '.github/workflows/gauss-clasico-tournament.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  historical-tournament:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact NEXUS revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Pin external historical data to an immutable commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          repository: CarlosYoung0/ligamx-data
+          ref: cec10701ac2f9673132fb48c3ea861ae58ae4f4d
+          path: _external/ligamx-data
+          persist-credentials: false
+          fetch-depth: 1
+
+      - name: Verify source identity and historical blob
+        run: |
+          set -euo pipefail
+          test "$(git -C _external/ligamx-data rev-parse HEAD)" = 'cec10701ac2f9673132fb48c3ea861ae58ae4f4d'
+          test "$(git -C _external/ligamx-data hash-object data/historical.csv)" = '5761a796486d10768ad489a1fb40907f550603af'
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+
+      - name: Use Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+
+      - name: Execute holdout, recent sample and pre-match forecast
+        run: |
+          set -euo pipefail
+          node --check gauss/tournament/clasico-benchmark.mjs
+          node gauss/tournament/clasico-benchmark.mjs \
+            _external/ligamx-data/data/historical.csv \
+            "$RUNNER_TEMP/clasico-full-tournament.json"
+          node - "$RUNNER_TEMP/clasico-full-tournament.json" <<'NODE'
+          const fs=require('node:fs');
+          const assert=require('node:assert/strict');
+          const r=JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+          assert(r.validation.matches>=150 && r.holdout.matches>=150);
+          assert.equal(r.recent2026.matches,15);
+          assert.equal(r.prematch.resultKnown,false);
+          assert.equal(r.quantum.hardwareExecution,false);
+          for(const [model,probs] of Object.entries(r.prematch.probabilities)) {
+            assert.equal(probs.length,3,model);
+            assert(Math.abs(probs.reduce((s,v)=>s+v,0)-1)<1e-10,model);
+          }
+          for(const [model,metrics] of Object.entries(r.holdout.scores)) {
+            assert(Number.isFinite(metrics.meanBrier) && metrics.meanBrier>=0 && metrics.meanBrier<=2,model);
+            assert(Number.isFinite(metrics.meanLogLoss) && metrics.meanLogLoss>=0,model);
+          }
+          NODE
+
+      - name: Upload reproducible tournament report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: clasico-2026-tournament-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/clasico-full-tournament.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Assert NEXUS source unmodified
+        if: always()
+        run: |
+          set -euo pipefail
+          rm -rf -- _external/ligamx-data
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
