@@ -931,9 +931,115 @@ mod tests {
                     ),
                     ("vault_balance", Json::string(balance.to_owned())),
                     ("code_sha256", Json::string("56".repeat(32))),
+                    ("execution_blockers", Json::array(Vec::<Json>::new())),
                 ])]),
             ),
         ])
+    }
+
+    #[test]
+    fn aave_asset_census_preserves_role_scoped_execution_blockers() -> Result<(), Box<dyn Error>> {
+        let asset = "0x7777777777777777777777777777777777777777";
+        let market = Json::object([
+            ("protocol", Json::string("AAVE_V3")),
+            ("lifecycle", Json::string("CURRENT")),
+            ("asset", Json::string(asset)),
+        ])
+        .canonical()?;
+        let mut market_state = market;
+        market_state.push(b'\n');
+
+        let aave = Json::object([
+            ("token", Json::string(asset)),
+            ("roles", Json::array([Json::string("AAVE_RESERVE_UNDERLYING")])),
+            (
+                "execution_compatibility",
+                Json::object([
+                    ("status", Json::string("BLOCKED")),
+                    (
+                        "blockers",
+                        Json::array([Json::string("FEE_ON_TRANSFER_UNPROVEN")]),
+                    ),
+                ]),
+            ),
+        ])
+        .canonical()?;
+        let v2 = Json::object([
+            ("token", Json::string(asset)),
+            ("roles", Json::array([Json::string("V2_TOKEN0")])),
+            (
+                "execution_compatibility",
+                Json::object([
+                    ("status", Json::string("BLOCKED")),
+                    (
+                        "blockers",
+                        Json::array([Json::string("RUNTIME_CODE_IDENTITY_NOT_ACQUIRED")]),
+                    ),
+                ]),
+            ),
+        ])
+        .canonical()?;
+        let mut token_admission = aave;
+        token_admission.push(b'\n');
+        token_admission.extend_from_slice(&v2);
+        token_admission.push(b'\n');
+
+        let assets = census_assets(&market_state, &token_admission)?;
+        assert_eq!(assets.len(), 1);
+        assert_eq!(
+            assets
+                .get(&Address::parse_hex(asset)?)
+                .ok_or("missing Aave asset")?,
+            &vec!["FEE_ON_TRANSFER_UNPROVEN".to_owned()]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn dual_provider_reconcile_preserves_d08_execution_blockers() -> Result<(), Box<dyn Error>> {
+        let mut first = test_capture("provider-a", "operator-a", &"ab".repeat(32), "123456");
+        let mut second = test_capture("provider-b", "operator-b", &"cd".repeat(32), "123456");
+        for capture in [&mut first, &mut second] {
+            let mut assets = capture
+                .get("assets")
+                .and_then(Json::as_array)
+                .ok_or("missing assets")?
+                .to_vec();
+            let row = assets.first().ok_or("missing asset row")?;
+            assets[0] = Json::object([
+                ("asset", Json::string(row.str_field("asset")?.to_owned())),
+                (
+                    "vault_balance",
+                    Json::string(row.str_field("vault_balance")?.to_owned()),
+                ),
+                (
+                    "code_sha256",
+                    Json::string(row.str_field("code_sha256")?.to_owned()),
+                ),
+                (
+                    "execution_blockers",
+                    Json::array([Json::string("FEE_ON_TRANSFER_UNPROVEN")]),
+                ),
+            ]);
+            let mut members = capture
+                .as_object()
+                .ok_or("capture is not object")?
+                .iter()
+                .filter(|(key, _)| key.as_str() != "assets")
+                .map(|(key, value)| (key.as_str(), value.clone()))
+                .collect::<Vec<_>>();
+            members.push(("assets", Json::array(assets)));
+            *capture = Json::object(members);
+        }
+
+        let sources = reconcile_balancer_captures(&first, &second)?;
+        assert_eq!(sources.len(), 1);
+        assert_eq!(
+            sources[0].execution_blockers(),
+            &["FEE_ON_TRANSFER_UNPROVEN".to_owned()]
+        );
+        assert!(!sources[0].execution_eligible());
+        Ok(())
     }
 
     #[test]
