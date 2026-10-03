@@ -12,6 +12,8 @@ on:
       - ci/nqc-census/v2-discovery-providers.json
       - ci/nqc-census/verify_rmc007_recovery_surface.py
       - ci/nqc-census/test_rmc007_recovery_surface.py
+      - ci/nqc-census/verify_rmc007_recovery_archive.py
+      - ci/nqc-census/test_rmc007_recovery_archive.py
   workflow_dispatch:
     inputs:
       stages_run_id:
@@ -32,6 +34,8 @@ permissions:
 env:
   D07_RECOVERY_RUN: "37050685084"
   D07_RECOVERY_HEAD: "3c695a99e4f14cc5e5355c1d3ebfb9eb0657afc9"
+  D07_RECOVERY_SURFACE_ID: "11248347776"
+  D07_RECOVERY_SURFACE_SHA256: "14da94b5bc74100fa470e5079e41df695637a67cc704b41325f2b267e01d5d70"
   D07_A1_NUMBER: "26095351"
   D07_A1_HASH: "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781"
   # Exact consumed bytes from seed artifact 11248347776, independently hashed.
@@ -164,9 +168,21 @@ jobs:
           set -euo pipefail
           python3 -m unittest discover -s ci/nqc-census -p test_rmc007_recovery_surface.py -v
           python3 -O -m unittest discover -s ci/nqc-census -p test_rmc007_recovery_surface.py -v
+          python3 -m unittest discover -s ci/nqc-census -p test_rmc007_recovery_archive.py -v
+          python3 -O -m unittest discover -s ci/nqc-census -p test_rmc007_recovery_archive.py -v
           seed_dir=/tmp/nqc-rmc007-recovery-contract
-          gh run download "$D07_RECOVERY_RUN" --repo "${{ github.repository }}" \
-            --name "d07-surface-$D07_RECOVERY_HEAD-$D07_RECOVERY_RUN" --dir "$seed_dir"
+          repo="${{ github.repository }}"
+          meta="$(gh api "repos/$repo/actions/artifacts/$D07_RECOVERY_SURFACE_ID")"
+          test "$(jq -r '.expired' <<<"$meta")" = false
+          test "$(jq -r '.name' <<<"$meta")" = "d07-surface-$D07_RECOVERY_HEAD-$D07_RECOVERY_RUN"
+          test "$(jq -r '.workflow_run.id' <<<"$meta")" = "$D07_RECOVERY_RUN"
+          test "$(jq -r '.workflow_run.head_sha' <<<"$meta")" = "$D07_RECOVERY_HEAD"
+          test "$(jq -r '.digest' <<<"$meta")" = "sha256:$D07_RECOVERY_SURFACE_SHA256"
+          archive="$(mktemp)"
+          trap 'rm -f "$archive"' EXIT
+          gh api "repos/$repo/actions/artifacts/$D07_RECOVERY_SURFACE_ID/zip" > "$archive"
+          python3 ci/nqc-census/verify_rmc007_recovery_archive.py \
+            --archive "$archive" --sha256 "$D07_RECOVERY_SURFACE_SHA256" --out-dir "$seed_dir"
           echo "$D07_RECOVERY_CURRENT_SHA256  $seed_dir/v2-current-surface.json" | sha256sum --check --strict
           echo "$D07_RECOVERY_BOUNDARY_SHA256  $seed_dir/v2-factory-boundary.json" | sha256sum --check --strict
           python3 ci/nqc-census/verify_rmc007_recovery_surface.py \
@@ -385,7 +401,14 @@ jobs:
             artifact_id="$(jq -r '.id' <<<"$meta")"
             artifact_digest="$(jq -r '.digest' <<<"$meta")"
             test "$(jq -r '.workflow_run.id' <<<"$meta")" = "$D07_RECOVERY_RUN"
-            gh run download "$D07_RECOVERY_RUN" --repo "$repo" --name "$name" --dir "$D07_EVIDENCE"
+            test "$artifact_id" = "$D07_RECOVERY_SURFACE_ID"
+            test "$artifact_digest" = "sha256:$D07_RECOVERY_SURFACE_SHA256"
+            test "$(jq -r '.workflow_run.head_sha' <<<"$meta")" = "$D07_RECOVERY_HEAD"
+            archive="$(mktemp)"
+            trap 'rm -f "$archive"' EXIT
+            gh api "repos/$repo/actions/artifacts/$artifact_id/zip" > "$archive"
+            python3 ../ci/nqc-census/verify_rmc007_recovery_archive.py \
+              --archive "$archive" --sha256 "$artifact_digest" --out-dir "$D07_EVIDENCE"
             test -f "$D07_EVIDENCE/v2-current-surface.json"
             test -f "$D07_EVIDENCE/v2-factory-boundary.json"
             test -f "$D07_EVIDENCE/store/STORE"
@@ -514,7 +537,12 @@ jobs:
           test "$(jq -r '.digest' <<<"$meta")" = "$artifact_digest"
           test "$(jq -r '.workflow_run.id' <<<"$meta")" = "$source_run"
           mkdir -p "$D07_EVIDENCE"
-          gh run download "$source_run" --repo "$repo" --name "$artifact_name" --dir "$D07_EVIDENCE"
+          test "$(jq -r '.workflow_run.head_sha' <<<"$meta")" = "$source_head"
+          archive="$(mktemp)"
+          trap 'rm -f "$archive"' EXIT
+          gh api "repos/$repo/actions/artifacts/$artifact_id/zip" > "$archive"
+          python3 ../ci/nqc-census/verify_rmc007_recovery_archive.py \
+            --archive "$archive" --sha256 "$artifact_digest" --out-dir "$D07_EVIDENCE"
           test -f "$D07_EVIDENCE/store/STORE"
           mkdir -p "$D07_EVIDENCE/store/tmp" "$D07_EVIDENCE/store/objects/chunks" "$D07_EVIDENCE/store/objects/artifacts" "$D07_EVIDENCE/store/streams"
           for stream in "$D07_EVIDENCE"/store/streams/*/; do
@@ -645,7 +673,12 @@ jobs:
           test "$(jq -r '.digest' <<<"$meta")" = "$artifact_digest"
           test "$(jq -r '.workflow_run.id' <<<"$meta")" = "$source_run"
           mkdir -p "$D07_EVIDENCE"
-          gh run download "$source_run" --repo "$repo" --name "$artifact_name" --dir "$D07_EVIDENCE"
+          test "$(jq -r '.workflow_run.head_sha' <<<"$meta")" = "$source_head"
+          archive="$(mktemp)"
+          trap 'rm -f "$archive"' EXIT
+          gh api "repos/$repo/actions/artifacts/$artifact_id/zip" > "$archive"
+          python3 ../ci/nqc-census/verify_rmc007_recovery_archive.py \
+            --archive "$archive" --sha256 "$artifact_digest" --out-dir "$D07_EVIDENCE"
           test -f "$D07_EVIDENCE/store/STORE"
           mkdir -p "$D07_EVIDENCE/store/tmp" "$D07_EVIDENCE/store/objects/chunks" "$D07_EVIDENCE/store/objects/artifacts" "$D07_EVIDENCE/store/streams"
           for stream in "$D07_EVIDENCE"/store/streams/*/; do
