@@ -60,11 +60,13 @@ def capture(
                 "asset": "0x" + "1" * 40,
                 "vault_balance": "0",
                 "code_sha256": "d" * 64,
+                "execution_blockers": ["FEE_ON_TRANSFER_UNPROVEN"],
             },
             {
                 "asset": "0x" + "2" * 40,
                 "vault_balance": "123456789",
                 "code_sha256": "e" * 64,
+                "execution_blockers": [],
             },
         ],
     }
@@ -103,6 +105,23 @@ class BalancerCaptureTests(unittest.TestCase):
     def test_asset_order_is_canonical(self) -> None:
         doc = capture("a", "operator-a", "1")
         doc["assets"] = list(reversed(doc["assets"]))
+        with self.assertRaises(mod.CaptureError):
+            mod.validate_capture(doc)
+
+    def test_execution_blockers_are_sorted_unique_text(self) -> None:
+        doc = capture("a", "operator-a", "1")
+        doc["assets"][0]["execution_blockers"] = [
+            "UPGRADEABLE_UNPROVEN",
+            "FEE_ON_TRANSFER_UNPROVEN",
+        ]
+        with self.assertRaises(mod.CaptureError):
+            mod.validate_capture(doc)
+
+        doc = capture("a", "operator-a", "1")
+        doc["assets"][0]["execution_blockers"] = [
+            "FEE_ON_TRANSFER_UNPROVEN",
+            "FEE_ON_TRANSFER_UNPROVEN",
+        ]
         with self.assertRaises(mod.CaptureError):
             mod.validate_capture(doc)
 
