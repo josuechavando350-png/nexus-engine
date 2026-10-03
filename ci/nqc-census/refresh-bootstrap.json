@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "status": "REQUEST_D06_A1",
+  "d06_ref": "nqc/rmc-006-aave-reconciled-discovery-20260929",
+  "purpose": "D09 A0 is terminally certified; request one exact D06 A1 bootstrap, then derive the full D09 A1 authority for RMC-010 live parity"
+}

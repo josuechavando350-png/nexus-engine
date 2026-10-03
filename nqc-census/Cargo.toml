@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/nqc-census-core", "crates/nqc-census-store", "crates/nqc-census-chain", "crates/nqc-census-v2-discovery", "crates/nqc-census-state", "crates/nqc-census-accounts"]
+members = ["crates/nqc-census-core", "crates/nqc-census-store", "crates/nqc-census-chain", "crates/nqc-census-v2-discovery", "crates/nqc-census-state", "crates/nqc-census-accounts", "crates/nqc-census-refresh"]
 resolver = "2"
 
 [workspace.package]
