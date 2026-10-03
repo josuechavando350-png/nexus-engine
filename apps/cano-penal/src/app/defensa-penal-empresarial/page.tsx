@@ -11,12 +11,12 @@ export const metadata: Metadata = {
 export default function CorporateDefensePage() {
   return <PageShell><StrategicLanding
     eyebrow="Empresas y directivos"
-    title="Defensa penal cuando también están en juego empresa, patrimonio y reputación."
-    lead="Un expediente penal puede afectar simultáneamente personas, operaciones, información financiera y continuidad empresarial."
+    title="Defensa penal cuando el expediente también amenaza patrimonio, empresa y reputación."
+    lead="Un expediente penal puede comprometer simultáneamente personas, decisiones, información financiera, patrimonio y continuidad empresarial."
     marker="EMPRESA"
     context={[
-      "La defensa empresarial requiere distinguir la posición de la organización de la de administradores, socios, representantes y asesores.",
-      "No conviene tratar como un solo problema lo que puede contener conflictos societarios, financieros, contables, laborales y penales distintos."
+      "La defensa empresarial exige separar con precisión la posición de la organización de la exposición personal de administradores, socios, representantes y asesores.",
+      "Cuando un asunto mezcla frentes societarios, financieros, contables o contractuales, convertirlos en un solo problema penal suele borrar diferencias que son estratégicamente importantes."
     ]}
     scenarios={[
       { title: "Investigaciones a directivos", copy: "Definición de exposición individual, funciones reales, decisiones adoptadas y documentación disponible." },
@@ -28,6 +28,6 @@ export default function CorporateDefensePage() {
       { label: "Delitos financieros", href: "/delitos-financieros" },
       { label: "Evaluación empresarial confidencial", href: "/evaluacion-empresarial" }
     ]}
-    ctaTitle="El primer paso es separar el riesgo personal del riesgo de la empresa."
+    ctaTitle="El primer paso es distinguir qué riesgo pertenece a la persona, cuál a la empresa y qué requiere atención inmediata."
   /></PageShell>;
 }
