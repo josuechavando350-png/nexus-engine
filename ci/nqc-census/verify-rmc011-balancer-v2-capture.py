@@ -100,6 +100,14 @@ def validate_capture(doc: dict) -> dict:
         decimal(row.get("vault_balance"), f"{asset} vault_balance")
         code_sha = row.get("code_sha256")
         require(isinstance(code_sha, str) and SHA_RE.fullmatch(code_sha) is not None, f"{asset} code_sha256 invalid")
+        blockers = row.get("execution_blockers")
+        require(isinstance(blockers, list), f"{asset} execution_blockers must be an array")
+        require(
+            all(isinstance(blocker, str) and blocker for blocker in blockers),
+            f"{asset} execution_blockers must contain non-empty text",
+        )
+        require(blockers == sorted(blockers), f"{asset} execution_blockers must be sorted")
+        require(len(blockers) == len(set(blockers)), f"{asset} execution_blockers must be unique")
         observed.append(asset)
     require(observed == sorted(observed), "assets must be sorted")
     require(len(observed) == len(set(observed)), "assets must be unique")
