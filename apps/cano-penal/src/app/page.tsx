@@ -73,10 +73,10 @@ export default async function HomePage() {
           <div>
             <p className="cp-eyebrow">Empresas y directivos</p>
             <h2>Defensa penal <strong>patrimonial, fiscal y empresarial.</strong></h2>
-            <p className="cp-v2-muted">Intervengo cuando una investigación puede afectar al mismo tiempo libertad, patrimonio, operación empresarial y reputación. El primer paso es separar el riesgo personal del riesgo de la empresa.</p>
+            <p className="cp-v2-muted">Intervengo cuando una investigación puede comprometer, al mismo tiempo, libertad, patrimonio, operación empresarial y reputación. La estrategia empieza por distinguir con precisión la exposición personal de la exposición de la empresa.</p>
             <div className="cp-actions">
               <Link className="cp-btn cp-btn-solid" href="/evaluacion-empresarial" data-nexus-signal="home-enterprise-evaluation">Solicitar evaluación confidencial</Link>
-              <Link className="cp-btn" href="/defensa-penal-empresarial">Conocer la defensa empresarial</Link>
+              <Link className="cp-btn" href="/defensa-penal-empresarial">Ver enfoque para empresas</Link>
             </div>
           </div>
           <div className="cp-v2-service-list">
@@ -153,23 +153,23 @@ export default async function HomePage() {
               <p className="cp-eyebrow">CANO Intelligence</p>
               <h2>Entender el riesgo <strong>antes de reaccionar.</strong></h2>
             </div>
-            <p>Escribo sobre investigaciones, riesgo penal-fiscal, responsabilidad de directivos y decisiones empresariales desde la experiencia de haber trabajado dentro de la autoridad y hoy ejercer la defensa.</p>
+            <p>Analizo investigaciones, riesgo penal-fiscal, responsabilidad de directivos y decisiones empresariales desde una perspectiva que combina experiencia institucional y defensa penal.</p>
           </div>
           <div className="cp-v2-intelligence-grid">
             <Link href="/guias/requerimiento-sat-riesgo-penal" data-nexus-signal="intelligence-sat">
               <span>Análisis</span>
               <strong>Requerimientos del SAT y riesgo penal</strong>
-              <p>Qué cambia cuando un asunto deja de ser únicamente fiscal.</p>
+              <p>Cuándo un asunto fiscal empieza a exigir también una lectura penal.</p>
             </Link>
             <Link href="/guias/responsabilidad-penal-representante-legal-contador" data-nexus-signal="intelligence-representative">
               <span>Análisis</span>
               <strong>Representante legal y contador</strong>
-              <p>Responsabilidad, exposición y decisiones que no conviene improvisar.</p>
+              <p>Cómo separar cargo, funciones, conocimiento y participación real.</p>
             </Link>
             <Link href="/guias/defensa-penal-empresa-delitos-financieros" data-nexus-signal="intelligence-enterprise">
               <span>Análisis</span>
               <strong>Defensa penal empresarial</strong>
-              <p>Cómo estructuro una respuesta cuando el expediente también afecta al negocio.</p>
+              <p>Cómo ordenar la defensa cuando el expediente también puede afectar a la empresa.</p>
             </Link>
           </div>
           <Link className="cp-text-link cp-intelligence-more" href="/intelligence">Explorar CANO Intelligence</Link>
@@ -182,7 +182,7 @@ export default async function HomePage() {
           <div>
             <p className="cp-eyebrow">Para empresas y directivos</p>
             <h2><span className="cp-title-line">Evaluación penal</span><span className="cp-title-line">empresarial confidencial</span></h2>
-            <p>Esta vía es distinta de la consulta individual. Está pensada para empresarios, administradores, representantes legales y organizaciones que necesitan identificar exposición, urgencia y siguiente movimiento sin compartir datos sensibles de más.</p>
+            <p>Una vía reservada para empresarios, administradores, representantes legales y organizaciones que necesitan identificar exposición, urgencia y siguiente movimiento con discreción desde el primer contacto.</p>
           </div>
           <div className="cp-price cp-enterprise-bridge-action">
             <span>Primer contacto</span>
