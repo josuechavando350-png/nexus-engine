@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "gate": "REORG_INVALIDATION_AND_REPLAY_REFRESH",
+  "status": "PASS",
+  "real_historical_reorg_binding": {
+    "source": "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json",
+    "evidence_pr": 482,
+    "workflow_run_id": 36342992023,
+    "artifact_id": 10939117736,
+    "artifact_zip_sha256": "8778899794de93c72d9d2f0525eb222155842ddaa0ae14e5a8af67baee483da6",
+    "execution_height": 10500011,
+    "orphan_hash": "0xb4e222da7f14708b71c9cf64a68e40017e5b49870d840d343412a5f899474f67",
+    "canonical_hash": "0xa1f5eb25631c2d47d91071fb0c6ff7d925a4a45e07fc1d3fe47d7a268d5ff0c1",
+    "providers": [
+      "blastapi-public",
+      "mevblocker-rpc"
+    ],
+    "including_block_number": 10500014,
+    "discovery_rule": "SCAN_ALL_UNCLES_IN_INCLUDED_BLOCK_AND_REQUIRE_EXACT_ORPHAN_HASH",
+    "anchor_identity_fields": [
+      "number",
+      "hash",
+      "timestamp",
+      "base_fee_per_gas"
+    ],
+    "replacement_relation": "SAME_HEIGHT_SAME_PARENT_DIRECT_SIBLING"
+  },
+  "aave_reconciler_deterministic_binding": {
+    "head": "e6adfe592047ab0ea6e3ed95d3113f7d38887f8e",
+    "workflow_run_id": 36349722000,
+    "artifact_id": 10941793422,
+    "artifact_zip_sha256": "1f5f6651ed13bf1b992d713068ed764eb857320108432c9978539a461e2052cc",
+    "cases": [
+      "ORPHAN_BRANCH_POSITIONS_REMOVED_BY_FULL_REBUILD",
+      "SAME_HEIGHT_HASH_DRIFT_FAILS_CLOSED_AND_PRESERVES_CURRENT_STATE",
+      "OLD_REPLAY_CAPSULE_REJECTS_REPLACEMENT_BRANCH"
+    ]
+  },
+  "required_runtime_checks": [
+    "REAL_ORPHAN_AND_CANONICAL_FULL_ANCHOR_BINDING_RECONFIRMED_BY_TWO_ARCHIVAL_PROVIDERS",
+    "OLD_REPLAY_CAPSULE_REJECTS_REAL_REPLACEMENT_HASH",
+    "REFRESHED_REPLAY_CAPSULE_ACCEPTS_CANONICAL_HASH",
+    "REORG_CHANGES_REPLAY_FINGERPRINT",
+    "DETERMINISTIC_TWO_BLOCK_REPLACEMENT_INVALIDATES_BOTH_OLD_CAPSULES",
+    "ZERO_UNEXPLAINED_MISMATCH"
+  ],
+  "truth_boundary": "Historical reorg evidence proves canonical invalidation/replay refresh semantics; it is not live-market or production-authority evidence.",
+  "protocol_fork_truth": "NOT_CLOSED",
+  "build_compatibility_overlays": [
+    {
+      "id": "PFT-COMPAT-003",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch",
+      "sha256": "7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5",
+      "scope": "TEST_ONLY_DEV_DEPENDENCY_LOCK_ALIGNMENT"
+    },
+    {
+      "id": "PFT-COMPAT-005",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch",
+      "sha256": "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664",
+      "scope": "TEST_ONLY_DEV_DEPENDENCY_LOCK_ALIGNMENT"
+    }
+  ],
+  "runtime_evidence": {
+    "head": "a441c81c462e003cd56d4033fee30af2060ceae3",
+    "workflow_run_id": 36389320409,
+    "artifact_id": 10956230184,
+    "artifact_sha256": "ca76e167fa9f7a9369d2c6eabdc0dee22747ef15ca0f07ce72364c4bbd2cf189",
+    "providers": [
+      "blastapi-public",
+      "mevblocker-rpc"
+    ],
+    "unexplained_mismatches": 0
+  }
+}

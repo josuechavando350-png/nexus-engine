@@ -1,0 +1,18 @@
+[package]
+name = "nqc-aave-market"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+alloy = { workspace = true, features = ["contract", "sol-types"] }
+nqc-aave-events = { path = "../nqc-aave-events" }
+nqc-aave-reader = { path = "../nqc-aave-reader" }
+nqc-aave-sync = { path = "../nqc-aave-sync" }
+nqc-core = { path = "../nqc-core" }
+nqc-hot-state = { path = "../nqc-hot-state" }
+nqc-state = { path = "../nqc-state" }
+thiserror.workspace = true
+
+[lints]
+workspace = true

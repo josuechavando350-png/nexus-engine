@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  # Cancel only superseded runs of the same PR or branch; a run on one PR
+  # must never cancel another PR's verification.
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-verification:
     runs-on: ubuntu-24.04

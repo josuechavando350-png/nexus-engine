@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "case_id": "aave-liquidation-usdc-2026-a36f",
+  "strategy_family": "liquidation",
+  "class_tags": [
+    "ordinary_liquidation",
+    "interest_index_sensitive",
+    "standard_erc20"
+  ],
+  "chain_id": 1,
+  "block_number": 25437474,
+  "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
+  "parent_hash": "0x033656168ee1dba1934f77171fe572c866282e97738b79434cb8c01b6e6f88f2",
+  "source_commit": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
+  "provider": {
+    "kind": "archive_rpc",
+    "identity": "{\"block_hash\":\"0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8\",\"consensus_providers\":[\"blastapi-public\",\"drpc-public\",\"mevblocker-rpc\"],\"exact_state_providers\":[\"blastapi-public\",\"drpc-public\",\"mevblocker-rpc\"],\"protocol_identity_providers\":[\"blastapi-public\",\"drpc-public\",\"mevblocker-rpc\"]}",
+    "identity_sha256": "2865470a2af71fc287a564686a0b21e29b21a120f6d0d8ef8d466741050a9fd9",
+    "historical_state_served": true
+  },
+  "protocol": {
+    "aave_pool": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+    "addresses_provider": "0x2f39d218133afab8f2b819b1066c7e434ad94e9e",
+    "price_oracle": "0x54586be62e3c3580375ae3723c145253060ca0c2",
+    "flash_loan_premium_bps": 5,
+    "reserves_count": 67,
+    "liquidation_call_topic0": "0xe413a321e8681d831f4dbccbca790d2952b56f977908e45be37335533e005286",
+    "selectors": {
+      "ADDRESSES_PROVIDER": "0x0542975c",
+      "FLASHLOAN_PREMIUM_TOTAL": "0x074b2e43",
+      "getPriceOracle": "0xfca513a8",
+      "getReservesCount": "0x72218d04"
+    }
+  },
+  "account": {
+    "total_liquidation_log_count": 1,
+    "observed_liquidations": [
+      {
+        "log_index": "0x16",
+        "borrower": "0x8a47b469d1023f43df528e0c020aa212e962ac27",
+        "collateral_asset": "0xe6a934089bbee34f832060ce98848359883749b3",
+        "debt_asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "debt_to_cover": "186298226",
+        "liquidated_collateral_amount": "191729812904943722712",
+        "liquidator": "0x1f2f10d1c40777ae1da742455c65828ff36df387",
+        "receive_atoken": false
+      }
+    ]
+  },
+  "expected": {
+    "receipt_status": "0x1",
+    "liquidation_log_count": 1
+  },
+  "provenance": {
+    "discovery_source_sha": "93948f754a3330e52f46cfb985afe373a65be7f5",
+    "discovery_artifact_id": 10955228275,
+    "discovery_artifact_sha256": "cce779341a3331701b2a12859d73b065636f8134234e630990aedfd64d7fd698",
+    "fixture_admitted": true,
+    "transaction_hash": "0xa36fcaa8b9572a15b81dbeeb9731ff9c7b9e7542de7b52834b9349526364cfc5",
+    "candidate_discovery_sha256": "c59c866642ea258573ae111c7d761c7166e74a6886db4a217c29d7bc62e77b98",
+    "provider_observations_sha256": "1d5080c79b9004f461bab6baaffa3ecf562c0ce7631ca25cf8c30bcd4e7e2480",
+    "evidence_source": "cross-provider-consensus-receipt"
+  },
+  "result": {
+    "status": "PASS",
+    "evidence_sha256": "62f36749c2b9643e69de8db29aa86dad1869e775f61f456f3b8f52fbed06b835",
+    "failure_artifact": null
+  }
+}

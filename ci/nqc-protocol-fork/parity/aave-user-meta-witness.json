@@ -1,0 +1,50 @@
+{
+  "cases": [
+    {
+      "block_hash": "0x49edc621ec5fe843353be319ae1a307be4e37d2a51111ccc07a2c8aae3ff6470",
+      "block_number": 25252136,
+      "canonical_users": {
+        "0x01b55690fe60653a0e14fe49a3e24fd0b8fd8e7f": {"available_borrows_base":"185785341667","current_liquidation_threshold_bps":8299,"e_mode_category":0,"health_factor_wad":"1125283678778145231","ltv_bps":8049,"total_collateral_base":"2760069635983","total_debt_base":"2035794708335","user_configuration_raw":"194"},
+        "0x0ece0b16103922a4288f17832b83b3bfcdfb64f8": {"available_borrows_base":"2293869192906","current_liquidation_threshold_bps":8300,"e_mode_category":0,"health_factor_wad":"1124546164405620512","ltv_bps":8050,"total_collateral_base":"34275489978332","total_debt_base":"25297900239651","user_configuration_raw":"65538"},
+        "0x2b7c013fd7cd09d315fc431030db55d58ffac21e": {"available_borrows_base":"499372977664","current_liquidation_threshold_bps":7915,"e_mode_category":2,"health_factor_wad":"1122848703245364885","ltv_bps":7473,"total_collateral_base":"11795517032532","total_debt_base":"8315416900747","user_configuration_raw":"65634"},
+        "0x5e0481cad8bff5453635f4770f44b2194ddf6e02": {"available_borrows_base":"5081006609362","current_liquidation_threshold_bps":8300,"e_mode_category":0,"health_factor_wad":"1125000056744309930","ltv_bps":8050,"total_collateral_base":"75585180445396","total_debt_base":"55765063649181","user_configuration_raw":"67"},
+        "0x63fedfa44b742d43c430f416db596d7bec8ed0b8": {"available_borrows_base":"3742380650310","current_liquidation_threshold_bps":8006,"e_mode_category":0,"health_factor_wad":"1125082132243320274","ltv_bps":7609,"total_collateral_base":"75904755564044","total_debt_base":"54013547858371","user_configuration_raw":"19807041366435847346768052258"},
+        "0x7f6e4c9ccab9334cd205a06d0d3edc2be174f458": {"available_borrows_base":"195758977594","current_liquidation_threshold_bps":8299,"e_mode_category":0,"health_factor_wad":"1125993005600449338","ltv_bps":8049,"total_collateral_base":"2888456642459","total_debt_base":"2129159773921","user_configuration_raw":"144115188075921410"},
+        "0x84ee0a392652a008deb77a2486d88afda547fc40": {"available_borrows_base":"0","current_liquidation_threshold_bps":7980,"e_mode_category":0,"health_factor_wad":"1132661238048960701","ltv_bps":6945,"total_collateral_base":"7448931432896","total_debt_base":"5248061181522","user_configuration_raw":"67682"},
+        "0x95368a0462b6caaf86f0afe41bdd48469b734a3f": {"available_borrows_base":"0","current_liquidation_threshold_bps":8144,"e_mode_category":0,"health_factor_wad":"1122409876635172705","ltv_bps":7004,"total_collateral_base":"4775338404511","total_debt_base":"3464981335483","user_configuration_raw":"67650"},
+        "0x95a46112679f65da65b81a544b5b86ff270dd865": {"available_borrows_base":"212058904930","current_liquidation_threshold_bps":8000,"e_mode_category":0,"health_factor_wad":"1140972316120449328","ltv_bps":7750,"total_collateral_base":"2871728897957","total_debt_base":"2013530990986","user_configuration_raw":"144115188075855936"},
+        "0x9d36250d3c929b5c4f70fa4125aab0951f8a250e": {"available_borrows_base":"1775520211995","current_liquidation_threshold_bps":8300,"e_mode_category":0,"health_factor_wad":"1120645627298411733","ltv_bps":8050,"total_collateral_base":"27589245861520","total_debt_base":"20433822706528","user_configuration_raw":"65538"},
+        "0xa1025868e2a0455b9b17792fd434273884102d38": {"available_borrows_base":"799470019948","current_liquidation_threshold_bps":7903,"e_mode_category":0,"health_factor_wad":"1177914088486566458","ltv_bps":7455,"total_collateral_base":"10731994692552","total_debt_base":"7201232023349","user_configuration_raw":"65650"},
+        "0xc087195a816e1f247f1865189d76c6be0aed9982": {"available_borrows_base":"658342591313","current_liquidation_threshold_bps":8194,"e_mode_category":0,"health_factor_wad":"1119682499059165824","ltv_bps":7891,"total_collateral_base":"11503980105702","total_debt_base":"8419448110096","user_configuration_raw":"98"},
+        "0xf65db52a04372f8529ec077844d2164af432de38": {"available_borrows_base":"166386686686","current_liquidation_threshold_bps":8052,"e_mode_category":0,"health_factor_wad":"1075769845465880364","ltv_bps":7678,"total_collateral_base":"8641919019917","total_debt_base":"6468878736806","user_configuration_raw":"65570"},
+        "0xffefa70b6deaab975ef15a6474ce9c4214d82b02": {"available_borrows_base":"0","current_liquidation_threshold_bps":8100,"e_mode_category":0,"health_factor_wad":"1013288019383495905","ltv_bps":7850,"total_collateral_base":"2383884841103930","total_debt_base":"1905624742774526","user_configuration_raw":"65544"}
+      },
+      "case_evidence_sha256": "f9fbb0cd73ce7038a789f54e4ee5546c7c0c7937e67fffbcfd7aab45daa86283",
+      "case_id": "aave-liquidation-multiasset-2026-06-c953",
+      "parent_hash": "0x04a2465e3a87b1103521c1f54e568de209062f08742a0212da24d34eee4aac78"
+    },
+    {
+      "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
+      "block_number": 25437474,
+      "canonical_users": {
+        "0x8a47b469d1023f43df528e0c020aa212e962ac27": {"available_borrows_base":"937719481","current_liquidation_threshold_bps":9194,"e_mode_category":24,"health_factor_wad":"115792089237316195423570985008687907853269984665640564039457584007913129639935","ltv_bps":8994,"total_collateral_base":"1042605605","total_debt_base":"0","user_configuration_raw":"162259276829213363391578010288136"}
+      },
+      "case_evidence_sha256": "90aa5481253bcc9a19ad8fb6e76af84cd83ef53ee9dcf628a055f7dd79522ea1",
+      "case_id": "aave-liquidation-usdc-2026-a36f",
+      "parent_hash": "0x033656168ee1dba1934f77171fe572c866282e97738b79434cb8c01b6e6f88f2"
+    }
+  ],
+  "discovery_artifact_id": 10924684411,
+  "discovery_artifact_sha256": "334d5663e5bfe95782683472b5128ca1c0a1ca5e6634e2160f7d6bb86fa28993",
+  "discovery_source_sha": "7b2408778f5e0b053112220d7f3ee7970861462b",
+  "gate": "AAVE_CANONICAL_STATE_WITNESS_LOCK",
+  "parity_status": "NOT_TESTED",
+  "physical_checkpoint": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
+  "pool": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+  "schema_version": 1,
+  "selectors": {
+    "getUserAccountData(address)": "0xbf92857c",
+    "getUserConfiguration(address)": "0x4417a583",
+    "getUserEMode(address)": "0xeddf1b79"
+  }
+}

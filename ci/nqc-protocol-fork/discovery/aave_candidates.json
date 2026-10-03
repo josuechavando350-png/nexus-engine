@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "chain_id": 1,
+  "protocol": {
+    "name": "Aave V3 Ethereum",
+    "pool": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+    "liquidation_call_topic0": "0xe413a321e8681d831f4dbccbca790d2952b56f977908e45be37335533e005286",
+    "selectors": {
+      "ADDRESSES_PROVIDER": "0x0542975c",
+      "getPriceOracle": "0xfca513a8",
+      "FLASHLOAN_PREMIUM_TOTAL": "0x074b2e43",
+      "getReservesCount": "0x72218d04"
+    }
+  },
+  "discovery_policy": {
+    "minimum_anchor_consensus_providers": 2,
+    "minimum_exact_state_providers": 2,
+    "fixture_admission": "FORBIDDEN_BY_THIS_DISCOVERY_GATE",
+    "result_status": "NOT_TESTED"
+  },
+  "providers": [
+    {
+      "id": "drpc-public",
+      "url": "https://eth.drpc.org"
+    },
+    {
+      "id": "mevblocker-rpc",
+      "url": "https://rpc.mevblocker.io"
+    },
+    {
+      "id": "blastapi-public",
+      "url": "https://eth-mainnet.public.blastapi.io"
+    },
+    {
+      "id": "1rpc-ethereum",
+      "url": "https://1rpc.io/eth"
+    }
+  ],
+  "candidates": [
+    {
+      "case_id": "aave-liquidation-multiasset-2026-06-c953",
+      "transaction_hash": "0xc953d5da04ee4dc9f421ac5418f05add5244d9816c50420bbf7bb6cbafc1150a",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "multiple_collateral_debt_pairs",
+        "liquidation_bonus_path",
+        "protocol_fee_path",
+        "oracle_dependent_valuation",
+        "standard_erc20"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-usdc-2026-a36f",
+      "transaction_hash": "0xa36fcaa8b9572a15b81dbeeb9731ff9c7b9e7542de7b52834b9349526364cfc5",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-revert-2026-d5cf",
+      "transaction_hash": "0xd5cf47f4a895f6e44eb09fd7fe98357e91c5b94a3a985e580b5e5411d89d700c",
+      "expected_receipt_status": "0x0",
+      "expected_pool_liquidation_log": false,
+      "expected_direct_to_pool": true,
+      "class_tags": [
+        "ordinary_liquidation"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-candidate-2026-09-bc34",
+      "transaction_hash": "0xbc34c100101a2e0b9e7cfa1fed70bfeab7000110b99238aa68e8bbbf29834f96",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "post_v3_3_large_position",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-candidate-2026-09-d314",
+      "transaction_hash": "0xd314919adb617fe633f8b2bcd092fb8f58755d4e1e0a538da9ccd29103eec198",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "post_v3_3_large_position",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-candidate-2026-09-ee19",
+      "transaction_hash": "0xee197f76ac1949675f32887132514e8e9aaf69ac7e1fa709a979c78828647ccb",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "post_v3_3_large_position",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-candidate-2026-09-c3a4",
+      "transaction_hash": "0xc3a4bf252ece2eac54f25ff05acbbe1be9ef8448a5fd1c6241b3db2027923093",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "post_v3_3_large_position",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-candidate-2026-09-ea2e",
+      "transaction_hash": "0xea2e1b49f0f6edf54e1ca285aac21f20581b491637da7faeebec8f65cff54abe",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "post_v3_3_large_position",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
+    }
+  ]
+}

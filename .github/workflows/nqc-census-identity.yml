@@ -1,0 +1,161 @@
+name: NQC RMC-001 Canonical Market Identity
+
+on:
+  pull_request:
+    paths:
+      - nqc-census/**
+      - ci/nqc-census/identity-vectors.json
+      - ci/nqc-census/IDENTITY_CONTRACT.md
+      - .github/workflows/nqc-census-identity.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  identity-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CERTIFIED_BASE: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify base, exact head and closed scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$CERTIFIED_BASE")" = "$CERTIFIED_TREE"
+          git merge-base --is-ancestor "$CERTIFIED_BASE" HEAD
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          fi
+          git merge-base --is-ancestor cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d HEAD
+          git diff --quiet cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d HEAD -- \
+            ci/nqc-census/IDENTITY_CONTRACT.md \
+            ci/nqc-census/identity-vectors.json \
+            nqc-census/rust-toolchain.toml \
+            nqc-census/crates/nqc-census-core/Cargo.toml \
+            nqc-census/crates/nqc-census-core/src/identity.rs \
+            nqc-census/crates/nqc-census-core/tests/identity.rs
+          echo RMC_001_IDENTITY_BYTES_IMMUTABLE_PASS
+          git diff --check cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d...HEAD
+
+      - name: Verify dependency and no-I/O boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'sha2 = "=0.10.9"' nqc-census/Cargo.toml
+          grep -F 'version = "0.10.9"' nqc-census/Cargo.lock
+          grep -F 'a7507d819769d01a365ab707794a4084392c824f54a7a6a7862f8c3d0892b283' nqc-census/Cargo.lock
+          ! grep -R -nE 'reqwest|alloy-provider|tokio|std::net|TcpStream|UdpSocket|process::Command|std::env::var|signer|private.?key|secret'               nqc-census/crates/nqc-census-core
+          echo RMC_001_NO_IO_BOUNDARY_PASS
+
+      - name: Verify independent golden vectors
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          MAGIC=b"NQC-CENSUS-ID"
+          VERSION=1
+          def raw(v,n):
+              s=v[2:] if v.startswith("0x") else v
+              b=bytes.fromhex(s)
+              assert len(b)==n
+              return b
+          def obj(kind, fields):
+              out=bytearray(MAGIC+VERSION.to_bytes(2,"big")+bytes([kind]))
+              for tag,value in fields:
+                  out += bytes([tag])+len(value).to_bytes(4,"big")+value
+              return bytes(out)
+          def chain(d):
+              return obj(1,[
+                  (1,int(d["chain_id"]).to_bytes(8,"big")),
+                  (2,raw(d["genesis_hash"],32)),
+                  (3,raw(d["fork_lineage"],32)),
+              ])
+          def deployment(c,v):
+              return obj(2,[
+                  (1,chain(c)),
+                  (2,int(v["protocol_tag"]).to_bytes(2,"big")),
+                  (3,raw(v["deployment_address"],20)),
+                  (4,raw(v["deployment_instance"],32)),
+              ])
+          def market(c,v):
+              dep=deployment(c,v)
+              if v["kind"]=="AAVE_RESERVE":
+                  return obj(16,[(1,b"\x02"),(2,dep),(3,raw(v["reserve_asset"],20))])
+              if v["kind"]=="V2_PAIR":
+                  return obj(16,[
+                      (1,b"\x03"),(2,dep),(3,raw(v["pair"],20)),
+                      (4,raw(v["token0"],20)),(5,raw(v["token1"],20)),
+                  ])
+              raise AssertionError(v["kind"])
+          def digest(domain,payload):
+              return hashlib.sha256(domain.encode()+b"\x00"+payload).hexdigest()
+
+          data=json.loads(Path("ci/nqc-census/identity-vectors.json").read_text())
+          assert data["schema_version"]==1
+          assert data["purpose"]=="SYNTHETIC_IDENTITY_SERIALIZATION_VECTORS_ONLY_NOT_ECONOMIC_EVIDENCE"
+          mids={}
+          for v in data["vectors"]:
+              b=market(data["chain"],v)
+              assert b.hex()==v["canonical_hex"]
+              mid=digest(data["domain_separation"]["market_id"],b)
+              assert mid==v["market_id"]
+              mids[v["name"]]=bytes.fromhex(mid)
+
+          s=data["state_vector"]
+          anchor=obj(3,[
+              (1,int(s["block_number"]).to_bytes(8,"big")),
+              (2,raw(s["block_hash"],32)),
+              (3,raw(s["parent_hash"],32)),
+          ])
+          semantics=obj(4,[
+              (1,int(s["semantics_version"]).to_bytes(4,"big")),
+              (2,raw(s["implementation_code_hash"],32)),
+              (3,raw(s["configuration_hash"],32)),
+              (4,raw(s["oracle_configuration_hash"],32)),
+          ])
+          state=obj(18,[(1,mids[s["market_vector"]]),(2,anchor),(3,semantics)])
+          assert state.hex()==s["canonical_hex"]
+          assert digest(data["domain_separation"]["market_state_id"],state)==s["market_state_id"]
+
+          a=data["action_vector"]
+          strategy=obj(5,[
+              (1,int(a["strategy_namespace"]).to_bytes(2,"big")),
+              (2,int(a["strategy_version"]).to_bytes(2,"big")),
+              (3,raw(a["strategy_semantics_hash"],32)),
+          ])
+          action=obj(17,[
+              (1,mids[a["market_vector"]]),
+              (2,raw(a["collateral_asset"],20)),
+              (3,raw(a["debt_asset"],20)),
+              (4,strategy),
+          ])
+          assert action.hex()==a["canonical_hex"]
+          assert digest(data["domain_separation"]["action_surface_id"],action)==a["action_surface_id"]
+          print("RMC_001_INDEPENDENT_VECTORS_PASS")
+          PY
+
+      - name: Rust format, lint, test and build locked
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version
+          cargo --version
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          cargo test --workspace --all-targets --locked
+          cargo build --workspace --all-targets --locked
+          echo RMC_001_CANONICAL_MARKET_IDENTITY_PASS

@@ -1,0 +1,108 @@
+name: NQC T39 Aave Reconciler Reimplementation
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-reconciler-reimplementation.yml
+      - ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/**
+      - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-reimplementation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      NQC_RECON_WORK: /tmp/nqc-aave-reconciler-reimplementation
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify immutable source and prepare isolated build
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_RECON_WORK"
+          mkdir -p "$NQC_RECON_WORK/recovered-source" "$NQC_RECON_WORK/reimplementation" "$NQC_RECON_WORK/evidence"
+          (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+          cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_RECON_WORK/recovered-source/"
+          cp -a ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler "$NQC_RECON_WORK/reimplementation/"
+          declare -A patches=(
+            [PFT-COMPAT-001-aave-u40.patch]=9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca
+            [PFT-COMPAT-003-sync-devdep.patch]=7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5
+            [PFT-COMPAT-005-opportunity-devdep.patch]=12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664
+          )
+          for name in "${!patches[@]}"; do
+            patch="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/$name"
+            test "$(sha256sum "$patch" | cut -d' ' -f1)" = "${patches[$name]}"
+            git -C "$NQC_RECON_WORK/recovered-source" apply --unidiff-zero "$patch"
+          done
+          cp ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock "$NQC_RECON_WORK/recovered-source/Cargo.lock"
+          cp ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock "$NQC_RECON_WORK/reimplementation/nqc-aave-reconciler/Cargo.lock"
+          sha256sum ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/Cargo.toml                     ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/src/lib.rs                     ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/REIMPLEMENTATION_CONTRACT.json             > "$NQC_RECON_WORK/evidence/reimplementation-source.sha256"
+          git rev-parse HEAD > "$NQC_RECON_WORK/evidence/repo-head.txt"
+
+      - name: Pin toolchain and fetch recovered dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee "$NQC_RECON_WORK/evidence/rustc.txt"
+          cargo -V | tee "$NQC_RECON_WORK/evidence/cargo.txt"
+          cargo fetch --locked --manifest-path "$NQC_RECON_WORK/recovered-source/Cargo.toml"
+
+      - name: Execute deterministic reconciler tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cp "$NQC_RECON_WORK/reimplementation/nqc-aave-reconciler/Cargo.lock" "$NQC_RECON_WORK/evidence/Cargo.lock.before"
+          cargo test --offline --manifest-path "$NQC_RECON_WORK/reimplementation/nqc-aave-reconciler/Cargo.toml" 2>&1             | tee "$NQC_RECON_WORK/evidence/cargo-test.log"
+          cp "$NQC_RECON_WORK/reimplementation/nqc-aave-reconciler/Cargo.lock" "$NQC_RECON_WORK/evidence/Cargo.lock.after"
+          python3 - <<'PY'
+          import tomllib
+          from pathlib import Path
+          root = Path("/tmp/nqc-aave-reconciler-reimplementation/evidence")
+          before = tomllib.loads((root / "Cargo.lock.before").read_text())
+          after = tomllib.loads((root / "Cargo.lock.after").read_text())
+          def external(doc):
+              return {
+                  (p["name"], p["version"], p.get("source"), p.get("checksum"))
+                  for p in doc["package"] if p.get("source") is not None
+              }
+          baseline = external(before)
+          resolved = external(after)
+          unexpected = sorted(resolved - baseline)
+          if unexpected:
+              raise SystemExit(f"new or changed external dependency tuples: {unexpected}")
+          (root / "dependency-pruning.txt").write_text(
+              f"baseline_external={len(baseline)}\nresolved_external={len(resolved)}\n"
+              f"pruned_external={len(baseline - resolved)}\nunexpected_external=0\n"
+          )
+          PY
+          grep -q 'test result: ok' "$NQC_RECON_WORK/evidence/cargo-test.log"
+          printf '%s\n' 'NEW_SOURCE_DETERMINISTIC_TESTS_PASS_ONLY' > "$NQC_RECON_WORK/evidence/reimplementation-status.txt"
+          printf '%s\n' 'OPEN_PENDING_HISTORICAL_CANONICAL_REORG_PARITY' > "$NQC_RECON_WORK/evidence/PFT-SRC-003-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_RECON_WORK/evidence/protocol-fork-truth.txt"
+
+      - name: Preserve evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-reconciler-reimplementation-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-aave-reconciler-reimplementation/evidence
+          if-no-files-found: error
+          retention-days: 30
+
+# exact-head certification trigger: T39 Protocol/Fork closeout

@@ -1,0 +1,96 @@
+name: NQC T39 Aave V3 Deployment Version Lock
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-deployment-version-lock.yml
+      - ci/nqc-protocol-fork/parity/aave_deployment_version_lock.py
+      - ci/nqc-protocol-fork/parity/AAVE_V3_DEPLOYMENT_BASELINE.json
+      - ci/nqc-protocol-fork/corpus/cases/aave-liquidation-*.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deployment-version-lock:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf /tmp/nqc-aave-deployment-lock
+          mkdir -p /tmp/nqc-aave-deployment-lock
+          git rev-parse HEAD > /tmp/nqc-aave-deployment-lock/repository-source-sha.txt
+          python3 -m py_compile ci/nqc-protocol-fork/parity/aave_deployment_version_lock.py
+          sha256sum             ci/nqc-protocol-fork/parity/aave_deployment_version_lock.py             ci/nqc-protocol-fork/parity/AAVE_V3_DEPLOYMENT_BASELINE.json             ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json             ci/nqc-protocol-fork/corpus/cases/aave-liquidation-usdc-2026-a36f.json             > /tmp/nqc-aave-deployment-lock/input-source.sha256
+
+      - name: Execute exact two-provider deployment and implementation lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u ci/nqc-protocol-fork/parity/aave_deployment_version_lock.py             --out /tmp/nqc-aave-deployment-lock             --baseline ci/nqc-protocol-fork/parity/AAVE_V3_DEPLOYMENT_BASELINE.json             2>&1 | tee /tmp/nqc-aave-deployment-lock/deployment-lock.log
+
+          grep -F 'AAVE_V3_DEPLOYMENT_VERSION_LOCK_PASS anchors=2 providers=2 unexplained_mismatches=0'             /tmp/nqc-aave-deployment-lock/deployment-lock.log
+          test "$(grep -c '^AAVE_DEPLOYMENT_OBSERVATION ' /tmp/nqc-aave-deployment-lock/deployment-lock.log)" -eq 4
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          p=Path("/tmp/nqc-aave-deployment-lock/aave-deployment-version-lock.json")
+          doc=json.loads(p.read_text())
+          att=doc.pop("attestation_sha256")
+          payload=json.dumps(doc,sort_keys=True,separators=(",",":")).encode()
+          assert hashlib.sha256(payload).hexdigest()==att
+          assert doc["gate"]=="AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK"
+          assert len(doc["cases"])==2
+          assert doc["providers"]==["blastapi-public","mevblocker-rpc"]
+          assert doc["unexplained_mismatches"]==0
+          baseline=Path("ci/nqc-protocol-fork/parity/AAVE_V3_DEPLOYMENT_BASELINE.json")
+          assert doc["baseline_sha256"]==hashlib.sha256(baseline.read_bytes()).hexdigest()
+          b=json.loads(baseline.read_text())
+          assert doc["baseline_provenance"]==b["provenance"]
+          identity=b["identity"]
+          for case in doc["cases"]:
+              for key,value in identity.items():
+                  assert case[key]==value
+              assert case["pool"]=="0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
+              assert case["addresses_provider"]=="0x2f39d218133afab8f2b819b1066c7e434ad94e9e"
+              assert case["price_oracle"]=="0x54586be62e3c3580375ae3723c145253060ca0c2"
+              assert case["flash_loan_premium_bps"]==5
+              assert case["implementation"]!="0x0000000000000000000000000000000000000000"
+              for key in (
+                  "pool_proxy_code_sha256",
+                  "implementation_code_sha256",
+                  "addresses_provider_code_sha256",
+                  "price_oracle_code_sha256",
+              ):
+                  assert len(case[key])==64 and int(case[key],16)!=0
+          PY
+
+          printf '%s\n' 'PASS' > /tmp/nqc-aave-deployment-lock/gate-status.txt
+          printf '%s\n' '0' > /tmp/nqc-aave-deployment-lock/unexplained-mismatch-count.txt
+          printf '%s\n' 'NOT_CLOSED' > /tmp/nqc-aave-deployment-lock/protocol-fork-truth.txt
+          (
+            cd /tmp/nqc-aave-deployment-lock
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve exact deployment-lock evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-deployment-version-lock-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-aave-deployment-lock
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,176 @@
+name: NQC T39 Historical Corpus Contract
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-corpus-contract.yml
+      - ci/nqc-protocol-fork/corpus/**
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/nqc-protocol-fork-corpus-contract.yml
+      - ci/nqc-protocol-fork/corpus/**
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  corpus-contract:
+    name: Immutable historical corpus contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Validate pristine source and corpus contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          git diff --check
+          mkdir -p /tmp/nqc-pft-corpus
+          python3 ci/nqc-protocol-fork/corpus/validate_corpus.py \
+            | tee /tmp/nqc-pft-corpus/validation-summary.json
+          git rev-parse HEAD > /tmp/nqc-pft-corpus/repository-source-sha.txt
+          sha256sum \
+            ci/nqc-protocol-fork/corpus/fixture.schema.json \
+            ci/nqc-protocol-fork/corpus/manifest.json \
+            ci/nqc-protocol-fork/corpus/validate_corpus.py \
+            > /tmp/nqc-pft-corpus/corpus-inputs.sha256
+          (
+            cd /tmp/nqc-pft-corpus
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Verify exact-head external class coverage for closure candidate
+        shell: bash
+        env:
+          NQC_GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess, urllib.request
+          from pathlib import Path
+
+          contract=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
+          corpus=json.loads(Path("ci/nqc-protocol-fork/corpus/manifest.json").read_text())
+          head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
+          out=Path("/tmp/nqc-pft-corpus/external-coverage.json")
+          if contract["status"]!="RUNTIME_CLOSEOUT_CANDIDATE_READY":
+              out.write_text(json.dumps({
+                  "status":"DEFERRED_UNTIL_CLOSURE_CANDIDATE",
+                  "head":head,
+              },indent=2,sort_keys=True)+"\n")
+              raise SystemExit(0)
+
+          assert corpus["status"]=="PASS"
+          classes={
+              item["id"]:item["status"]
+              for domain in corpus["required_classes"].values()
+              for item in domain
+          }
+          assert classes and all(status=="PASS" for status in classes.values())
+          coverage=corpus["external_gate_coverage"]
+          assert set(coverage)==set(classes)
+
+          expected_paths={
+              "NQC T39 Aave Full Liquidation Integer Matrix":".github/workflows/nqc-protocol-fork-aave-liquidation-matrix.yml",
+              "NQC T39 Aave Full Account Risk Parity":".github/workflows/nqc-protocol-fork-aave-full-account-risk-parity.yml",
+              "NQC T39 Aave Account Risk Exact Parity":".github/workflows/nqc-protocol-fork-aave-account-risk-parity.yml",
+              "NQC T39 Aave Reserve Balance Parity":".github/workflows/nqc-protocol-fork-aave-reserve-parity.yml",
+              "NQC T39 Aave Executor Historical Fork Parity":".github/workflows/nqc-protocol-fork-aave-executor-historical.yml",
+              "NQC T39 V2 Executor Historical Fork Execution":".github/workflows/nqc-protocol-fork-v2-executor-historical-fork.yml",
+              "NQC T39 V2 Executor Authority Baseline Matrix":".github/workflows/nqc-protocol-fork-v2-executor-authority-matrix.yml",
+              "NQC T39 Protocol Fork Recovered Source Binding":".github/workflows/nqc-protocol-fork-source-binding.yml",
+              "NQC T39 V2 Historical Sync Parity":".github/workflows/nqc-protocol-fork-v2-sync-parity.yml",
+              "NQC T39 V2 State Reimplementation":".github/workflows/nqc-protocol-fork-v2-state-reimplementation.yml",
+              "NQC T39 V2 Backrun Executor Reimplementation":".github/workflows/nqc-protocol-fork-v2-backrun-executor-reimplementation.yml",
+              "NQC T39 V2 Real Historical Reorg Invalidation":".github/workflows/nqc-protocol-fork-v2-real-reorg.yml",
+              "NQC T39 Reorg Invalidation Replay Refresh":".github/workflows/nqc-protocol-fork-reorg-replay-refresh.yml",
+          }
+          required_names={name for names in coverage.values() for name in names}
+          assert required_names.issubset(expected_paths), sorted(required_names-set(expected_paths))
+
+          token=os.environ["NQC_GITHUB_TOKEN"]
+          repo=os.environ["GITHUB_REPOSITORY"]
+          api=os.environ.get("GITHUB_API_URL","https://api.github.com").rstrip("/")
+          def get(path):
+              req=urllib.request.Request(
+                  api+path,
+                  headers={
+                      "Authorization":"Bearer "+token,
+                      "Accept":"application/vnd.github+json",
+                      "X-GitHub-Api-Version":"2022-11-28",
+                      "User-Agent":"nqc-historical-corpus-coverage",
+                  },
+              )
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  return json.loads(response.read())
+
+          runs=[]
+          for page in range(1,21):
+              doc=get(f"/repos/{repo}/actions/runs?head_sha={head}&per_page=100&page={page}")
+              batch=doc.get("workflow_runs",[])
+              runs.extend(batch)
+              if len(batch)<100:
+                  break
+
+          latest={}
+          for run in runs:
+              name=run.get("name")
+              if name not in required_names or run.get("head_sha")!=head:
+                  continue
+              if run.get("path")!=expected_paths[name]:
+                  continue
+              prior=latest.get(name)
+              rank=(int(run.get("id",0)),int(run.get("run_attempt",0) or 0))
+              prior_rank=(-1,-1) if prior is None else (
+                  int(prior.get("id",0)),int(prior.get("run_attempt",0) or 0)
+              )
+              if rank>prior_rank:
+                  latest[name]=run
+
+          missing=[]
+          attested={}
+          for name in sorted(required_names):
+              run=latest.get(name)
+              if run is None or run.get("status")!="completed" or run.get("conclusion")!="success":
+                  missing.append(name)
+                  continue
+              attested[name]={
+                  "workflow_run_id":int(run["id"]),
+                  "run_attempt":int(run.get("run_attempt",0) or 0),
+                  "path":run["path"],
+                  "head_sha":run["head_sha"],
+              }
+          if missing:
+              raise SystemExit("exact-head corpus coverage producers not successful: "+",".join(missing))
+
+          out.write_text(json.dumps({
+              "status":"PASS",
+              "head":head,
+              "class_coverage":coverage,
+              "workflow_attestations":attested,
+          },indent=2,sort_keys=True)+"\n")
+          print("HISTORICAL_CORPUS_EXTERNAL_CLASS_COVERAGE_PASS classes="+str(len(classes)))
+          PY
+
+      - name: Upload corpus contract evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-corpus-contract-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-pft-corpus/
+          if-no-files-found: error
+          retention-days: 30

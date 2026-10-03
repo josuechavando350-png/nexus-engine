@@ -1,0 +1,16 @@
+[package]
+name = "nqc-v2-router"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+alloy.workspace = true
+nqc-aave-opportunity = { path = "../nqc-aave-opportunity" }
+nqc-core = { path = "../nqc-core" }
+nqc-executor = { path = "../nqc-executor" }
+nqc-state = { path = "../nqc-state" }
+thiserror.workspace = true
+
+[lints]
+workspace = true

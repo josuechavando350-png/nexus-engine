@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "source_blocker": "PFT-SRC-003",
+  "component": "nqc-aave-reconciler",
+  "classification": "NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE",
+  "recovery_status": "RECOVERY_EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
+  "status": "CLOSED",
+  "evidence": {
+    "deterministic_reimplementation": {
+      "pr": 484,
+      "head": "e6adfe592047ab0ea6e3ed95d3113f7d38887f8e",
+      "workflow_run_id": 36349722000,
+      "artifact_id": 10941793422,
+      "artifact_sha256": "1f5f6651ed13bf1b992d713068ed764eb857320108432c9978539a461e2052cc",
+      "status": "PASS"
+    },
+    "historical_canonical_rebuild": {
+      "pr": 484,
+      "head": "e6adfe592047ab0ea6e3ed95d3113f7d38887f8e",
+      "workflow_run_id": 36349721980,
+      "artifact_id": 10943640624,
+      "artifact_sha256": "e355fb2370e4fa1f91ac11f73d97527f336007daaa0715682ad64621a99fd0ca",
+      "status": "PASS"
+    }
+  },
+  "required_historical_dimensions": [
+    "EXACT_CANONICAL_ANCHOR",
+    "FULL_MARKET_REBUILD",
+    "USER_STATE_REBUILD",
+    "SAME_HEIGHT_HASH_DRIFT_FAIL_CLOSED",
+    "ORPHAN_STATE_REMOVAL",
+    "OLD_REPLAY_CAPSULE_REJECTION",
+    "DEPENDENCY_GRAPH_BOUND_TO_RESOLVED_CARGO_LOCK",
+    "ZERO_UNEXPLAINED_MISMATCH"
+  ],
+  "close_condition": "historical_canonical_rebuild=PASS AND exact dependency graph content-addressed AND unexplained_mismatches=0",
+  "unexplained_mismatches": 0,
+  "protocol_fork_truth": "NOT_CLOSED"
+}

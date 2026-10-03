@@ -1,0 +1,12 @@
+[package]
+name = "nqc-core"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+alloy.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

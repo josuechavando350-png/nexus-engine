@@ -1,0 +1,729 @@
+name: NQC T39 Protocol Fork Final Closeout Contract
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-final-closeout.yml
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json
+      - ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json
+      - ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  final-closeout-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Enforce fail-closed runtime-bound Protocol/Fork certification
+        shell: bash
+        env:
+          NQC_CLOSEOUT_RECEIPT: ${{ runner.temp }}/nqc-protocol-fork-final-closeout.json
+          NQC_CERTIFICATION_PR_NUMBER: ${{ github.event.pull_request.number || 0 }}
+          NQC_CERTIFICATION_HEAD_REF: ${{ github.head_ref || github.ref_name }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_API_URL: ${{ github.api_url }}
+        run: |
+          set -euo pipefail
+          git diff --check
+          python3 - <<'PY'
+          import hashlib, json, os, re, subprocess, urllib.error, urllib.request
+          from pathlib import Path
+
+          SHA40=re.compile(r'^[0-9a-f]{40}$')
+          SHA256=re.compile(r'^[0-9a-f]{64}$')
+
+          def load(path):
+              return json.loads(Path(path).read_text())
+
+          def digest(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+          head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          assert SHA40.fullmatch(head) and SHA40.fullmatch(tree)
+
+          policy_path=Path('ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json')
+          truth_path=Path('ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json')
+          manifest_path=Path('ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json')
+          ledger_path=Path('ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json')
+
+          d=load(policy_path)
+          truth=load(truth_path)
+          manifest=load(manifest_path)
+          ledger=load(ledger_path)
+
+          assert d['schema_version']==1
+          assert d['closeout']=='PROTOCOL_FORK_TRUTH'
+          assert d['status']=='NOT_CLOSED'
+          assert d['certification_binding']=='RUNTIME_GIT_HEAD_AND_TREE_ARTIFACT'
+          authority=d['state_authority']
+          assert authority['tracked_required_gate_values']=='CHECKPOINT_ONLY_NOT_CERTIFICATION_AUTHORITY'
+          assert authority['tracked_source_blocker_values']=='CHECKPOINT_ONLY_NOT_CERTIFICATION_AUTHORITY'
+          assert authority['runtime_gate_authority']=='PROTOCOL_FORK_EVIDENCE_MANIFEST.json_PLUS_EXACT_HEAD_WORKFLOW_SUCCESS'
+          assert authority['runtime_source_blocker_authority']=='PFT_SRC_CLOSEOUT_FILES'
+          assert authority['runtime_compatibility_authority']=='PARITY_MISMATCH_LEDGER.json'
+          assert authority['final_status_authority']=='RUNTIME_CLOSEOUT_RECEIPT_BOUND_TO_GIT_HEAD_TREE_AND_RUN_ATTEMPT'
+          assert truth['schema_version']==1
+          assert truth.get('runtime_closeout_candidate_target')=='RUNTIME_CLOSEOUT_CANDIDATE_READY'
+          assert truth.get('status_authority')=='TRACKED_CONTRACT_MAY_ONLY_REACH_RUNTIME_CLOSEOUT_CANDIDATE_READY; PROTOCOL_FORK_TRUTH_CLOSED_IS_RUNTIME_RECEIPT_ONLY'
+
+          expected={
+            'SOURCE_BINDING_COMPLETE',
+            'AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK',
+            'AAVE_CANONICAL_STATE_PARITY',
+            'AAVE_LIQUIDATION_INTEGER_MATH_PARITY',
+            'V2_CANONICAL_STATE_AND_REORG_PARITY',
+            'RUST_SOLIDITY_ABI_ROUNDTRIP',
+            'REVM_HISTORICAL_FORK_DIFFERENTIAL',
+            'REORG_INVALIDATION_AND_REPLAY_REFRESH',
+            'EXECUTOR_CODE_IDENTITY_BINDING',
+            'PARITY_MISMATCH_LEDGER_OPEN_ZERO',
+            'EVIDENCE_MANIFEST_CONTENT_ADDRESSED',
+          }
+          assert set(d['required_gates'])==expected
+          assert set(truth['required_gates'])==expected
+          assert set(d['source_blockers'])=={'PFT-SRC-001','PFT-SRC-002','PFT-SRC-003'}
+
+          gate_status={}
+          for gate in expected:
+              if gate=='EVIDENCE_MANIFEST_CONTENT_ADDRESSED':
+                  gate_status[gate]=manifest.get('status')
+              else:
+                  gate_status[gate]=manifest.get('entries',{}).get(gate,{}).get('status')
+
+          required_evidence_heads=set()
+          for gate,item in manifest.get('entries',{}).items():
+              if item.get('status')!='PASS':
+                  continue
+              item_head=item.get('head')
+              assert isinstance(item_head,str) and SHA40.fullmatch(item_head), (
+                  gate,'PASS manifest entry lacks exact head'
+              )
+              required_evidence_heads.add(item_head)
+              for ref in item.get('evidence',[])+item.get('bound_underlying_evidence',[]):
+                  ref_head=ref.get('head')
+                  assert isinstance(ref_head,str) and SHA40.fullmatch(ref_head), (
+                      gate,'nested evidence lacks exact head'
+                  )
+                  required_evidence_heads.add(ref_head)
+
+          exact_head_workflow_requirements={
+              'SOURCE_BINDING_COMPLETE':[
+                  'NQC T39 Protocol Fork Recovered Source Binding',
+              ],
+              'AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK':[
+                  'NQC T39 Aave V3 Deployment Version Lock',
+              ],
+              'AAVE_CANONICAL_STATE_PARITY':[
+                  'NQC T39 Aave Recovered Reader Parity',
+                  'NQC T39 Aave Canonical State Witness',
+                  'NQC T39 Aave Reserve Balance Parity',
+                  'NQC T39 Aave Full Account Risk Parity',
+                  'NQC T39 Aave Account Risk Exact Parity',
+                  'NQC T39 Aave Canonical State Parity Closeout',
+              ],
+              'AAVE_LIQUIDATION_INTEGER_MATH_PARITY':[
+                  'NQC T39 Aave Liquidation Integer Math Parity',
+                  'NQC T39 Aave Full Liquidation Integer Matrix',
+              ],
+              'V2_CANONICAL_STATE_AND_REORG_PARITY':[
+                  'NQC T39 V2 State Reimplementation',
+                  'NQC T39 V2 Historical State Quote Parity',
+                  'NQC T39 V2 Historical Sync Parity',
+                  'NQC T39 V2 Real Historical Reorg Invalidation',
+              ],
+              'RUST_SOLIDITY_ABI_ROUNDTRIP':[
+                  'NQC T39 V2 Runtime ABI Roundtrip',
+              ],
+              'REVM_HISTORICAL_FORK_DIFFERENTIAL':[
+                  'NQC T39 REVM Historical Fork Differential',
+              ],
+              'REORG_INVALIDATION_AND_REPLAY_REFRESH':[
+                  'NQC T39 Reorg Invalidation Replay Refresh',
+              ],
+              'EXECUTOR_CODE_IDENTITY_BINDING':[
+                  'NQC T39 Executor Code Identity Binding',
+              ],
+              'PARITY_MISMATCH_LEDGER_OPEN_ZERO':[
+                  'NQC T39 Aave Executor Historical Fork Parity',
+                  'NQC T39 Aave Full Liquidation Integer Matrix',
+                  'NQC T39 Parity Mismatch Ledger',
+              ],
+              'EVIDENCE_MANIFEST_CONTENT_ADDRESSED':[
+                  'NQC T39 Content Addressed Evidence Manifest',
+              ],
+          }
+          support_workflows=[
+              'Build Verification',
+              'NQC T39 Historical Corpus Contract',
+              'NQC T39 Protocol Fork Source Census',
+              'NQC T39 Aave Canonical State Witness',
+              'NQC T39 Aave Reserve Balance Parity',
+              'NQC T39 Aave Full Account Risk Parity',
+              'NQC T39 Aave Account Risk Exact Parity',
+              'NQC T39 Aave Executor Historical Fork Parity',
+              'NQC T39 Aave Reconciler Reimplementation',
+              'NQC T39 Aave Reconciler Historical Canonical Parity',
+              'NQC T39 V2 Backrun Executor Reimplementation',
+              'NQC T39 V2 Executor Authority Baseline Matrix',
+              'NQC T39 V2 Executor Historical Fork Execution',
+              'NQC T39 Source Blocker Closeout Contracts',
+          ]
+          workflow_paths={
+              'Build Verification':'.github/workflows/build-verification.yml',
+              'NQC T39 Historical Corpus Contract':'.github/workflows/nqc-protocol-fork-corpus-contract.yml',
+              'NQC T39 Protocol Fork Source Census':'.github/workflows/nqc-protocol-fork-source-census.yml',
+              'NQC T39 Aave Recovered Reader Parity':'.github/workflows/nqc-protocol-fork-aave-reader-parity.yml',
+              'NQC T39 Aave Canonical State Witness':'.github/workflows/nqc-protocol-fork-aave-state-witness.yml',
+              'NQC T39 Aave Reserve Balance Parity':'.github/workflows/nqc-protocol-fork-aave-reserve-parity.yml',
+              'NQC T39 Aave Full Account Risk Parity':'.github/workflows/nqc-protocol-fork-aave-full-account-risk-parity.yml',
+              'NQC T39 Aave Account Risk Exact Parity':'.github/workflows/nqc-protocol-fork-aave-account-risk-parity.yml',
+              'NQC T39 Aave Executor Historical Fork Parity':'.github/workflows/nqc-protocol-fork-aave-executor-historical.yml',
+              'NQC T39 Protocol Fork Recovered Source Binding':'.github/workflows/nqc-protocol-fork-source-binding.yml',
+              'NQC T39 Aave V3 Deployment Version Lock':'.github/workflows/nqc-protocol-fork-aave-deployment-version-lock.yml',
+              'NQC T39 Aave Canonical State Parity Closeout':'.github/workflows/nqc-protocol-fork-aave-canonical-state-closeout.yml',
+              'NQC T39 Aave Liquidation Integer Math Parity':'.github/workflows/nqc-protocol-fork-aave-liquidation-math-parity.yml',
+              'NQC T39 Aave Full Liquidation Integer Matrix':'.github/workflows/nqc-protocol-fork-aave-liquidation-matrix.yml',
+              'NQC T39 V2 State Reimplementation':'.github/workflows/nqc-protocol-fork-v2-state-reimplementation.yml',
+              'NQC T39 V2 Historical State Quote Parity':'.github/workflows/nqc-protocol-fork-v2-historical-parity.yml',
+              'NQC T39 V2 Historical Sync Parity':'.github/workflows/nqc-protocol-fork-v2-sync-parity.yml',
+              'NQC T39 V2 Real Historical Reorg Invalidation':'.github/workflows/nqc-protocol-fork-v2-real-reorg.yml',
+              'NQC T39 V2 Runtime ABI Roundtrip':'.github/workflows/nqc-protocol-fork-v2-abi-runtime-roundtrip.yml',
+              'NQC T39 REVM Historical Fork Differential':'.github/workflows/nqc-protocol-fork-revm-historical-differential.yml',
+              'NQC T39 Reorg Invalidation Replay Refresh':'.github/workflows/nqc-protocol-fork-reorg-replay-refresh.yml',
+              'NQC T39 Executor Code Identity Binding':'.github/workflows/nqc-protocol-fork-executor-code-identity.yml',
+              'NQC T39 Parity Mismatch Ledger':'.github/workflows/nqc-protocol-fork-mismatch-ledger.yml',
+              'NQC T39 Content Addressed Evidence Manifest':'.github/workflows/nqc-protocol-fork-evidence-manifest.yml',
+              'NQC T39 Aave Reconciler Reimplementation':'.github/workflows/nqc-protocol-fork-aave-reconciler-reimplementation.yml',
+              'NQC T39 Aave Reconciler Historical Canonical Parity':'.github/workflows/nqc-protocol-fork-aave-reconciler-historical-parity.yml',
+              'NQC T39 V2 Backrun Executor Reimplementation':'.github/workflows/nqc-protocol-fork-v2-backrun-executor-reimplementation.yml',
+              'NQC T39 V2 Executor Authority Baseline Matrix':'.github/workflows/nqc-protocol-fork-v2-executor-authority-matrix.yml',
+              'NQC T39 V2 Executor Historical Fork Execution':'.github/workflows/nqc-protocol-fork-v2-executor-historical-fork.yml',
+              'NQC T39 Source Blocker Closeout Contracts':'.github/workflows/nqc-protocol-fork-source-blocker-closeout.yml',
+          }
+
+          exact_head_runs={}
+          exact_head_api_error=None
+          try:
+              token=os.environ.get('GITHUB_TOKEN','')
+              api=os.environ.get('GITHUB_API_URL','https://api.github.com').rstrip('/')
+              repository=os.environ.get('GITHUB_REPOSITORY','')
+              if not token or '/' not in repository:
+                  raise RuntimeError('missing GitHub runtime identity/token')
+
+              def github_json(path):
+                  req=urllib.request.Request(
+                      api+path,
+                      headers={
+                          'Authorization':'Bearer '+token,
+                          'Accept':'application/vnd.github+json',
+                          'X-GitHub-Api-Version':'2022-11-28',
+                          'User-Agent':'nqc-protocol-fork-final-closeout',
+                      },
+                  )
+                  with urllib.request.urlopen(req,timeout=30) as response:
+                      return json.loads(response.read())
+
+              expected_pr_number=int(os.environ.get('NQC_CERTIFICATION_PR_NUMBER','0') or 0)
+              expected_head_ref=os.environ.get('NQC_CERTIFICATION_HEAD_REF','')
+              if expected_pr_number<=0 or not expected_head_ref:
+                  raise RuntimeError('final closeout must run in pull_request context')
+
+              all_runs=[]
+              for page in range(1,21):
+                  runs_doc=github_json(
+                      f'/repos/{repository}/actions/runs?head_sha={head}&per_page=100&page={page}'
+                  )
+                  batch=runs_doc.get('workflow_runs',[])
+                  all_runs.extend(batch)
+                  if len(batch)<100:
+                      break
+              else:
+                  raise RuntimeError('exact-head workflow pagination exceeded 2000 runs')
+
+              latest={}
+              for run in all_runs:
+                  if run.get('head_sha')!=head:
+                      continue
+                  if run.get('head_branch')!=expected_head_ref:
+                      continue
+                  run_prs=run.get('pull_requests') or []
+                  if expected_pr_number not in {
+                      int(item.get('number',0) or 0)
+                      for item in run_prs
+                  }:
+                      continue
+                  name=run.get('name')
+                  if not isinstance(name,str) or name not in workflow_paths:
+                      continue
+                  if run.get('path')!=workflow_paths[name]:
+                      continue
+                  rank=(int(run.get('id',0)),int(run.get('run_attempt',0) or 0))
+                  prior=latest.get(name)
+                  if prior is None:
+                      latest[name]=run
+                  else:
+                      prior_rank=(int(prior.get('id',0)),int(prior.get('run_attempt',0) or 0))
+                      if rank>prior_rank:
+                          latest[name]=run
+
+              exact_head_latest={
+                  name:{
+                      'workflow_run_id':int(run.get('id',0)),
+                      'run_attempt':int(run.get('run_attempt',0) or 0),
+                      'status':run.get('status'),
+                      'conclusion':run.get('conclusion'),
+                      'event':run.get('event'),
+                      'path':run.get('path'),
+                  }
+                  for name,run in latest.items()
+              }
+
+              required_names=sorted({
+                  name
+                  for names in exact_head_workflow_requirements.values()
+                  for name in names
+              } | set(support_workflows))
+              for name in required_names:
+                  run=latest.get(name)
+                  if (
+                      run is None
+                      or run.get('status')!='completed'
+                      or run.get('conclusion')!='success'
+                  ):
+                      continue
+                  run_id=int(run['id'])
+                  artifacts_doc=github_json(
+                      f'/repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100'
+                  )
+                  artifacts=[]
+                  for artifact in artifacts_doc.get('artifacts',[]):
+                      item={
+                          'id':int(artifact['id']),
+                          'name':artifact['name'],
+                      }
+                      artifact_digest=artifact.get('digest')
+                      if artifact_digest is not None:
+                          if not re.fullmatch(r'sha256:[0-9a-f]{64}',artifact_digest):
+                              raise RuntimeError(
+                                  f'noncanonical artifact digest workflow={name} artifact={artifact.get("name")}'
+                              )
+                          item['digest']=artifact_digest
+                      artifacts.append(item)
+                  exact_head_runs[name]={
+                      'workflow_run_id':run_id,
+                      'event':run.get('event'),
+                      'head_sha':run.get('head_sha'),
+                      'path':run.get('path'),
+                      'artifacts':artifacts,
+                  }
+          except Exception as exc:
+              exact_head_api_error=f'{type(exc).__name__}: {exc}'
+
+          exact_head_missing={}
+          for gate,names in exact_head_workflow_requirements.items():
+              missing=[name for name in names if name not in exact_head_runs]
+              if missing:
+                  exact_head_missing[gate]=missing
+          missing_support=[name for name in support_workflows if name not in exact_head_runs]
+          exact_head_ci_ready=(
+              exact_head_api_error is None
+              and not exact_head_missing
+              and not missing_support
+          )
+
+          blocker_paths={
+            'PFT-SRC-001':Path('ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json'),
+            'PFT-SRC-002':Path('ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json'),
+            'PFT-SRC-003':Path('ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json'),
+          }
+          expected_blocker_evidence={
+              'PFT-SRC-001':{
+                  'reimplementation','abi_runtime','callback_authority_baseline',
+                  'code_identity','historical_fork_execution','revm_historical_fork_differential',
+              },
+              'PFT-SRC-002':{
+                  'deterministic_reimplementation','historical_state_quote','historical_sync','reorg',
+              },
+              'PFT-SRC-003':{
+                  'deterministic_reimplementation','historical_canonical_rebuild',
+              },
+          }
+          expected_blocker_workflow={
+              ('PFT-SRC-001','reimplementation'):(
+                  'NQC T39 V2 Backrun Executor Reimplementation',
+                  '.github/workflows/nqc-protocol-fork-v2-backrun-executor-reimplementation.yml',
+              ),
+              ('PFT-SRC-001','abi_runtime'):(
+                  'NQC T39 V2 Runtime ABI Roundtrip',
+                  '.github/workflows/nqc-protocol-fork-v2-abi-runtime-roundtrip.yml',
+              ),
+              ('PFT-SRC-001','callback_authority_baseline'):(
+                  'NQC T39 V2 Executor Authority Baseline Matrix',
+                  '.github/workflows/nqc-protocol-fork-v2-executor-authority-matrix.yml',
+              ),
+              ('PFT-SRC-001','code_identity'):(
+                  'NQC T39 Executor Code Identity Binding',
+                  '.github/workflows/nqc-protocol-fork-executor-code-identity.yml',
+              ),
+              ('PFT-SRC-001','historical_fork_execution'):(
+                  'NQC T39 V2 Executor Historical Fork Execution',
+                  '.github/workflows/nqc-protocol-fork-v2-executor-historical-fork.yml',
+              ),
+              ('PFT-SRC-001','revm_historical_fork_differential'):(
+                  'NQC T39 REVM Historical Fork Differential',
+                  '.github/workflows/nqc-protocol-fork-revm-historical-differential.yml',
+              ),
+              ('PFT-SRC-002','deterministic_reimplementation'):(
+                  'NQC T39 V2 State Reimplementation',
+                  '.github/workflows/nqc-protocol-fork-v2-state-reimplementation.yml',
+              ),
+              ('PFT-SRC-002','historical_state_quote'):(
+                  'NQC T39 V2 Historical State Quote Parity',
+                  '.github/workflows/nqc-protocol-fork-v2-historical-parity.yml',
+              ),
+              ('PFT-SRC-002','historical_sync'):(
+                  'NQC T39 V2 Historical Sync Parity',
+                  '.github/workflows/nqc-protocol-fork-v2-sync-parity.yml',
+              ),
+              ('PFT-SRC-002','reorg'):(
+                  'NQC T39 V2 Real Historical Reorg Invalidation',
+                  '.github/workflows/nqc-protocol-fork-v2-real-reorg.yml',
+              ),
+              ('PFT-SRC-003','deterministic_reimplementation'):(
+                  'NQC T39 Aave Reconciler Reimplementation',
+                  '.github/workflows/nqc-protocol-fork-aave-reconciler-reimplementation.yml',
+              ),
+              ('PFT-SRC-003','historical_canonical_rebuild'):(
+                  'NQC T39 Aave Reconciler Historical Canonical Parity',
+                  '.github/workflows/nqc-protocol-fork-aave-reconciler-historical-parity.yml',
+              ),
+          }
+          blocker_status={}
+          blocker_digests={}
+          source_artifact_errors=[]
+          for blocker_id,path in blocker_paths.items():
+              if not path.is_file():
+                  blocker_status[blocker_id]='MISSING'
+                  continue
+              b=load(path)
+              assert b['schema_version']==1
+              assert b['source_blocker']==blocker_id
+              assert b['classification']=='NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE'
+              recovery=b.get('recovery_status',b.get('source_recovery_status'))
+              assert recovery in {
+                  'RECOVERY_EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS',
+                  'EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS',
+              }, (blocker_id,'invalid recovery status',recovery)
+              blocker_status[blocker_id]=b['status']
+              blocker_digests[blocker_id]=digest(path)
+              evidence=b.get('evidence',{})
+              assert set(evidence)==expected_blocker_evidence[blocker_id], (
+                  blocker_id,'incomplete or unexpected evidence set',sorted(evidence)
+              )
+              if blocker_id=='PFT-SRC-002':
+                  assert set(b.get('closure_basis',[]))=={
+                      'DETERMINISTIC_REIMPLEMENTATION_TESTS_PASS',
+                      'HISTORICAL_FACTORY_PAIR_RESERVE_PARITY_PASS',
+                      'SYNC_UPDATE_PARITY_PASS',
+                      'ZERO_LIQUIDITY_DEATH_REVIVAL_PASS',
+                      'REAL_ONE_BLOCK_ORPHAN_INVALIDATION_PASS',
+                      'DETERMINISTIC_MULTI_BLOCK_REORG_REPLACEMENT_PASS',
+                      'ZERO_UNEXPLAINED_MISMATCH',
+                  }
+              if blocker_id=='PFT-SRC-003':
+                  assert set(b.get('required_historical_dimensions',[]))=={
+                      'EXACT_CANONICAL_ANCHOR',
+                      'FULL_MARKET_REBUILD',
+                      'USER_STATE_REBUILD',
+                      'SAME_HEIGHT_HASH_DRIFT_FAIL_CLOSED',
+                      'ORPHAN_STATE_REMOVAL',
+                      'OLD_REPLAY_CAPSULE_REJECTION',
+                      'DEPENDENCY_GRAPH_BOUND_TO_RESOLVED_CARGO_LOCK',
+                      'ZERO_UNEXPLAINED_MISMATCH',
+                  }
+              if b['status']=='CLOSED':
+                  assert b['protocol_fork_truth']=='NOT_CLOSED'
+                  assert int(b.get('unexplained_mismatches',0))==0
+                  for name,item in evidence.items():
+                      assert SHA40.fullmatch(item['head']), (blocker_id,name,'bad head')
+                      required_evidence_heads.add(item['head'])
+                      run_id=int(item['workflow_run_id'])
+                      artifact_id=int(item['artifact_id'])
+                      assert run_id>0, (blocker_id,name,'bad workflow run')
+                      assert artifact_id>0, (blocker_id,name,'bad artifact id')
+                      artifact_sha=item.get('artifact_sha256') or item.get('artifact_zip_sha256')
+                      assert artifact_sha and SHA256.fullmatch(artifact_sha), (blocker_id,name,'bad artifact digest')
+                      if 'status' in item:
+                          assert item['status']=='PASS', (blocker_id,name,'evidence not PASS')
+                      if exact_head_api_error is None:
+                          try:
+                              actual=github_json(f'/repos/{repository}/actions/artifacts/{artifact_id}')
+                              run_detail=github_json(f'/repos/{repository}/actions/runs/{run_id}')
+                              if int(actual.get('id',0))!=artifact_id:
+                                  raise RuntimeError('artifact id mismatch')
+                              if actual.get('expired') is not False:
+                                  raise RuntimeError('artifact expired')
+                              if actual.get('digest')!=f'sha256:{artifact_sha}':
+                                  raise RuntimeError('artifact digest mismatch')
+                              producer=actual.get('workflow_run') or {}
+                              if int(producer.get('id',0))!=run_id:
+                                  raise RuntimeError('artifact producer run mismatch')
+                              if producer.get('head_sha')!=item['head']:
+                                  raise RuntimeError('artifact producer head mismatch')
+                              if run_detail.get('head_sha')!=item['head']:
+                                  raise RuntimeError('workflow run head mismatch')
+                              expected_name,expected_path=expected_blocker_workflow[(blocker_id,name)]
+                              if run_detail.get('name')!=expected_name:
+                                  raise RuntimeError('workflow producer name mismatch')
+                              if run_detail.get('path')!=expected_path:
+                                  raise RuntimeError('workflow producer path mismatch')
+                              if run_detail.get('status')!='completed' or run_detail.get('conclusion')!='success':
+                                  raise RuntimeError('workflow producer not successful')
+                          except Exception as exc:
+                              source_artifact_errors.append(
+                                  f'{blocker_id}:{name}:{type(exc).__name__}:{exc}'
+                              )
+
+          source_artifact_attestation_ready=(
+              exact_head_api_error is None and not source_artifact_errors
+          )
+
+          all_manifest_gates=all(v=='PASS' for v in gate_status.values())
+          all_policy_gates=all(v=='PASS' for v in d['required_gates'].values())
+          all_blockers=all(blocker_status.get(k)=='CLOSED' for k in blocker_paths)
+          all_policy_blockers=all(v=='CLOSED' for v in d['source_blockers'].values())
+          manifest_blockers=manifest.get('source_blockers',{})
+          all_manifest_blockers=set(manifest_blockers)==set(blocker_paths) and all(v=='CLOSED' for v in manifest_blockers.values())
+
+          ledger_ready=(
+              ledger.get('status')=='PASS' and
+              ledger.get('counts',{}).get('open_total')==0 and
+              ledger.get('counts',{}).get('unexplained_open')==0
+          )
+
+          truth_blocker_docs=truth.get('current_blockers',[])
+          truth_blocker_ids={b.get('id') for b in truth_blocker_docs}
+          scope=truth.get('certification_scope',{})
+          aave_scope=scope.get('aave_v3',{})
+          v2_scope=scope.get('v2_execution_family',{})
+          expected_exclusions={
+              'ALL_EVM_CHAINS',
+              'ALL_AAVE_V3_DEPLOYMENTS',
+              'ALL_V2_COMPATIBLE_DEPLOYMENTS',
+              'REAL_MARKET_CENSUS',
+              'LIVE_MARKET_EDGE',
+              'LIVE_PNL',
+              'PRODUCTION_AUTHORITY',
+          }
+          scope_ready=(
+              scope.get('chain_id')==1
+              and scope.get('network')=='ethereum-mainnet'
+              and aave_scope.get('pool')=='0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2'
+              and aave_scope.get('addresses_provider')=='0x2f39d218133afab8f2b819b1066c7e434ad94e9e'
+              and aave_scope.get('price_oracle')=='0x54586be62e3c3580375ae3723c145253060ca0c2'
+              and {
+                  (x.get('block_number'),x.get('block_hash'))
+                  for x in aave_scope.get('admitted_historical_anchors',[])
+              }=={
+                  (25252136,'0x49edc621ec5fe843353be319ae1a307be4e37d2a51111ccc07a2c8aae3ff6470'),
+                  (25437474,'0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8'),
+                  (25939131,'0x7001a6baa0589021cd01d1cdd43366b27281f349024e131c341dc443060fdfe2'),
+              }
+              and v2_scope.get('semantics')=='UNISWAP_V2_COMPATIBLE_CONSTANT_PRODUCT'
+              and set(v2_scope.get('historical_execution_pairs',[]))=={
+                  '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc',
+                  '0x397ff1542f962076d0bfe58ea045ffa2d347aca0',
+              }
+              and v2_scope.get('real_reorg_execution_height')==10500011
+              and v2_scope.get('real_reorg_canonical_hash')=='0xa1f5eb25631c2d47d91071fb0c6ff7d925a4a45e07fc1d3fe47d7a268d5ff0c1'
+              and v2_scope.get('real_reorg_orphan_hash')=='0xb4e222da7f14708b71c9cf64a68e40017e5b49870d840d343412a5f899474f67'
+              and scope.get('execution_scope')=='RECOVERED_OR_EXPLICITLY_MEASURED_REIMPLEMENTED_COMPONENTS_EXERCISED_BY_REQUIRED_GATES'
+              and set(scope.get('excluded_claims',[]))==expected_exclusions
+          )
+          truth_contract_candidate_ready=(
+              truth.get('status')=='RUNTIME_CLOSEOUT_CANDIDATE_READY'
+              and truth_blocker_ids==set(blocker_paths)
+              and all(
+                  b.get('severity')=='HARD' and b.get('status')=='CLOSED'
+                  for b in truth_blocker_docs
+              )
+          )
+          truth_policy_ready=(
+              truth_contract_candidate_ready
+              and truth.get('parity_rules',{}).get('unexplained_mismatch_terminal_count')==0
+              and truth.get('truth_boundaries',{}).get('production_certification')=='NOT_CERTIFIED'
+              and scope_ready
+          )
+
+          compatibility_docs=truth.get('measured_compatibility_repairs',[])
+          compatibility_ids={item.get('id') for item in compatibility_docs}
+          compatibility_status={
+              item.get('id'):item.get('status')
+              for item in compatibility_docs
+          }
+          expected_compatibility_ids={
+              'PFT-COMPAT-001','PFT-COMPAT-002','PFT-COMPAT-003',
+              'PFT-COMPAT-004','PFT-COMPAT-005','PFT-COMPAT-006',
+              'PFT-COMPAT-007','PFT-COMPAT-008','PFT-COMPAT-009',
+          }
+          all_compatibility_repairs_resolved=(
+              compatibility_ids==expected_compatibility_ids
+              and all(
+                  isinstance(compatibility_status[item],str)
+                  and compatibility_status[item].startswith('RESOLVED')
+                  for item in expected_compatibility_ids
+              )
+          )
+
+          ledger_resolved_repairs={
+              entry.get('resolution') or entry.get('repair')
+              for entry in ledger.get('entries',[])
+              if entry.get('classification')=='SEMANTIC_MISMATCH'
+              and entry.get('status')=='RESOLVED'
+          }
+          ledger_resolved_repairs.discard(None)
+
+          ledger_evidence_heads=set()
+          for entry in ledger.get('entries',[]):
+              if entry.get('classification')!='SEMANTIC_MISMATCH':
+                  continue
+              refs=entry.get('evidence_refs',[])
+              assert refs, (entry.get('id'),'semantic mismatch lacks evidence refs')
+              for ref in refs:
+                  ref_head=ref.get('head')
+                  assert isinstance(ref_head,str) and SHA40.fullmatch(ref_head), (
+                      entry.get('id'),'ledger evidence lacks exact head'
+                  )
+                  ledger_evidence_heads.add(ref_head)
+                  required_evidence_heads.add(ref_head)
+
+          # Ancestry must be evaluated only after every authoritative evidence
+          # source, including mismatch-ledger resolution evidence, has joined
+          # the required evidence-head set.
+          evidence_heads_not_ancestors=[]
+          ancestry_checked_heads=set()
+          for evidence_head in sorted(required_evidence_heads):
+              ancestry_checked_heads.add(evidence_head)
+              result=subprocess.run(
+                  ['git','merge-base','--is-ancestor',evidence_head,head],
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+              )
+              if result.returncode!=0:
+                  evidence_heads_not_ancestors.append(evidence_head)
+          assert ancestry_checked_heads==required_evidence_heads
+          evidence_ancestry_ready=not evidence_heads_not_ancestors
+
+          assert ledger_evidence_heads.issubset(ancestry_checked_heads)
+          compat_resolution_ready={
+              'PFT-COMPAT-008','PFT-COMPAT-009'
+          }.issubset(ledger_resolved_repairs)
+
+          reasons=[]
+          if not all_manifest_gates: reasons.append('MANIFEST_REQUIRED_GATES_NOT_ALL_PASS')
+          if not all_policy_gates: reasons.append('TRACKED_POLICY_GATES_NOT_ALL_PASS')
+          if not all_blockers: reasons.append('AUTHORITATIVE_SOURCE_CLOSEOUTS_NOT_ALL_CLOSED')
+          if not all_policy_blockers: reasons.append('TRACKED_POLICY_SOURCE_BLOCKERS_NOT_ALL_CLOSED')
+          if not all_manifest_blockers: reasons.append('MANIFEST_SOURCE_BLOCKERS_NOT_ALL_CLOSED')
+          if not ledger_ready: reasons.append('MISMATCH_LEDGER_NOT_ZERO_PASS')
+          if not compat_resolution_ready: reasons.append('COMPAT_REPAIRS_NOT_RESOLVED_IN_LEDGER')
+          if not all_compatibility_repairs_resolved: reasons.append('TRUTH_CONTRACT_COMPATIBILITY_REPAIRS_NOT_ALL_RESOLVED')
+          if not truth_policy_ready: reasons.append('TRUTH_POLICY_CONTRACT_INVALID')
+          if not evidence_ancestry_ready: reasons.append('EVIDENCE_HEAD_NOT_ANCESTOR_OF_CERTIFIED_HEAD')
+          if not source_artifact_attestation_ready: reasons.append('SOURCE_BLOCKER_ARTIFACT_ATTESTATION_FAILED')
+          if exact_head_api_error is not None:
+              reasons.append('EXACT_HEAD_ACTIONS_API_UNAVAILABLE')
+          if exact_head_missing:
+              reasons.append('EXACT_HEAD_REQUIRED_WORKFLOWS_NOT_ALL_SUCCESS')
+          if missing_support:
+              reasons.append('EXACT_HEAD_SUPPORT_WORKFLOWS_NOT_ALL_SUCCESS')
+
+          ready=not reasons
+          receipt={
+              'schema_version':1,
+              'closeout':'PROTOCOL_FORK_TRUTH',
+              'status':'PROTOCOL_FORK_TRUTH_CLOSED' if ready else 'NOT_CLOSED_FAIL_CLOSED',
+              'certified_commit':head,
+              'certified_tree':tree,
+              'repository':os.environ.get('GITHUB_REPOSITORY'),
+              'certification_pr_number':int(os.environ.get('NQC_CERTIFICATION_PR_NUMBER','0') or 0),
+              'certification_head_ref':os.environ.get('NQC_CERTIFICATION_HEAD_REF'),
+              'workflow_run_id':int(os.environ.get('GITHUB_RUN_ID','0') or 0),
+              'workflow_run_attempt':int(os.environ.get('GITHUB_RUN_ATTEMPT','0') or 0),
+              'policy_sha256':digest(policy_path),
+              'truth_contract_sha256':digest(truth_path),
+              'evidence_manifest_sha256':digest(manifest_path),
+              'mismatch_ledger_sha256':digest(ledger_path),
+              'source_closeout_sha256':blocker_digests,
+              'gate_status':dict(sorted(gate_status.items())),
+              'source_blocker_status':dict(sorted(blocker_status.items())),
+              'tracked_policy_gate_status':d['required_gates'],
+              'tracked_policy_source_blockers':d['source_blockers'],
+              'tracked_truth_contract_status':truth.get('status'),
+              'tracked_truth_status_authority':truth.get('status_authority'),
+              'truth_contract_candidate_ready':truth_contract_candidate_ready,
+              'truth_contract_closed':False,
+              'truth_contract_blocker_status':{
+                  b.get('id'):b.get('status') for b in truth_blocker_docs
+              },
+              'ledger_resolved_repairs':sorted(ledger_resolved_repairs),
+              'ledger_evidence_heads':sorted(ledger_evidence_heads),
+              'compatibility_repair_status':dict(sorted(compatibility_status.items())),
+              'all_compatibility_repairs_resolved':all_compatibility_repairs_resolved,
+              'truth_policy_ready':truth_policy_ready,
+              'certification_scope_ready':scope_ready,
+              'certification_scope':scope,
+              'required_evidence_heads':sorted(required_evidence_heads),
+              'ancestry_checked_heads':sorted(ancestry_checked_heads),
+              'evidence_heads_not_ancestors':evidence_heads_not_ancestors,
+              'evidence_ancestry_ready':evidence_ancestry_ready,
+              'source_artifact_attestation_ready':source_artifact_attestation_ready,
+              'source_artifact_errors':source_artifact_errors,
+              'exact_head_ci_ready':exact_head_ci_ready,
+              'exact_head_workflow_runs':dict(sorted(exact_head_runs.items())),
+              'exact_head_latest_observed':dict(sorted(exact_head_latest.items())),
+              'exact_head_missing_required':exact_head_missing,
+              'exact_head_missing_support':missing_support,
+              'exact_head_api_error':exact_head_api_error,
+              'reasons':reasons,
+              'truth_boundaries':d['known_truth_boundaries'],
+          }
+
+          out=Path(os.environ['NQC_CLOSEOUT_RECEIPT'])
+          out.write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          out.with_suffix(out.suffix+'.sha256').write_text(hashlib.sha256(out.read_bytes()).hexdigest()+'  '+out.name+'\n')
+
+          if ready:
+              print('PROTOCOL_FORK_TRUTH_CLOSED certified_commit='+head+' certified_tree='+tree)
+          else:
+              print('PROTOCOL_FORK_TRUTH_NOT_CLOSED_FAIL_CLOSED reasons='+','.join(reasons))
+              raise SystemExit(1)
+          PY
+
+      - name: Preserve exact-head closeout receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-protocol-fork-final-certificate-${{ github.event.pull_request.head.sha || github.sha }}-attempt-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/nqc-protocol-fork-final-closeout.json
+            ${{ runner.temp }}/nqc-protocol-fork-final-closeout.json.sha256
+          if-no-files-found: error
+          retention-days: 90

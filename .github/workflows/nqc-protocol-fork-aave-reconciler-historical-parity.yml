@@ -1,0 +1,170 @@
+name: NQC T39 Aave Reconciler Historical Canonical Parity
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-reconciler-historical-parity.yml
+      - ci/nqc-protocol-fork/parity/**
+      - ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/**
+      - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  historical-reconciler-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      NQC_REC_HIST: /tmp/nqc-aave-reconciler-historical
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify source and prepare measured isolated graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_REC_HIST"
+          mkdir -p "$NQC_REC_HIST/recovered-source" "$NQC_REC_HIST/reimplementation" "$NQC_REC_HIST/evidence"
+          git rev-parse HEAD > "$NQC_REC_HIST/evidence/repository-source-sha.txt"
+
+          test "$(sha256sum ci/nqc-protocol-fork/parity/aave-user-meta-witness.json | cut -d' ' -f1)" =             "16a4260977fa7784fd5b1282de8eee71710fdb49ca171b42e99592e8cf870441"
+          (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+
+          cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_REC_HIST/recovered-source/"
+          cp -a ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler             "$NQC_REC_HIST/reimplementation/"
+
+          python3 ci/nqc-protocol-fork/parity/prepare_reserve_parity.py             "$NQC_REC_HIST/recovered-source"
+          python3 ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py             "$NQC_REC_HIST/recovered-source"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path("/tmp/nqc-aave-reconciler-historical/reimplementation/nqc-aave-reconciler/Cargo.toml")
+          text=p.read_text()
+          if 'tokio = { version = "1", features = ["macros", "rt-multi-thread"] }' not in text:
+              anchor='[dev-dependencies]\n'
+              if text.count(anchor)!=1:
+                  raise SystemExit("reconciler dev-dependency anchor mismatch")
+              text=text.replace(
+                  anchor,
+                  anchor+'tokio = { version = "1", features = ["macros", "rt-multi-thread"] }\n',
+                  1,
+              )
+          p.write_text(text)
+          PY
+
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee "$NQC_REC_HIST/evidence/rustc.txt"
+          cargo -V | tee "$NQC_REC_HIST/evidence/cargo.txt"
+
+          cargo fetch --locked --manifest-path "$NQC_REC_HIST/recovered-source/Cargo.toml"
+          export CARGO_NET_OFFLINE=true
+          cargo generate-lockfile --offline             --manifest-path "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/Cargo.toml"
+
+          python3 - <<'PYLOCK'
+          import hashlib, json, tomllib
+          from pathlib import Path
+          root=Path("/tmp/nqc-aave-reconciler-historical")
+          pinned=root/"recovered-source/Cargo.lock"
+          resolved=root/"reimplementation/nqc-aave-reconciler/Cargo.lock"
+          def external(path):
+              return {(p["name"],p["version"],p["source"],p.get("checksum"))
+                      for p in tomllib.loads(path.read_text())["package"] if "source" in p}
+          drift=external(resolved)-external(pinned)
+          if drift:
+              raise SystemExit(f"external dependency drift: {sorted(drift)}")
+          packet={"external_dependency_drift":0,"resolved_external_package_count":len(external(resolved)),"files":{}}
+          for name,source in [("recovered-Cargo.lock",pinned),("reconciler-Cargo.lock",resolved),
+                              ("reconciler-Cargo.toml",resolved.with_name("Cargo.toml"))]:
+              raw=source.read_bytes()
+              (root/"evidence"/name).write_bytes(raw)
+              packet["files"][name]=hashlib.sha256(raw).hexdigest()
+          (root/"evidence/dependency-binding.json").write_text(json.dumps(packet,indent=2,sort_keys=True)+"\n")
+          PYLOCK
+
+          sha256sum             ci/nqc-protocol-fork/parity/aave-user-meta-witness.json             ci/nqc-protocol-fork/parity/generate_aave_reconciler_historical_parity.py             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py             ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/src/lib.rs             ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/HISTORICAL_PARITY_CONTRACT.json             > "$NQC_REC_HIST/evidence/input-source.sha256"
+
+      - name: Execute deterministic deep replacement regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo test --locked --offline             --manifest-path "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/Cargo.toml"             -- --nocapture             2>&1 | tee "$NQC_REC_HIST/evidence/deep-replacement.log"
+          grep -F "5 passed; 0 failed" "$NQC_REC_HIST/evidence/deep-replacement.log"
+
+      - name: Generate and build exact historical reconciler probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-protocol-fork/parity/generate_aave_reconciler_historical_parity.py             ci/nqc-protocol-fork/parity/aave-user-meta-witness.json             "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/examples/pft_historical_reconciler.rs"
+          cp "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/examples/pft_historical_reconciler.rs"             "$NQC_REC_HIST/evidence/"
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo build --locked --offline             --manifest-path "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/Cargo.toml"             --example pft_historical_reconciler
+
+      - name: Execute canonical rebuild parity against both providers
+        shell: bash
+        run: |
+          set -euo pipefail
+          for entry in 'blastapi-public|https://eth-mainnet.public.blastapi.io|18591|0.35' 'mevblocker-rpc|https://rpc.mevblocker.io|18592|1.25'; do
+            IFS='|' read -r provider_id provider_url port min_interval <<< "$entry"
+            socket="$NQC_REC_HIST/$provider_id.ipc"
+
+            NQC_PFT_PROXY_PORT="$port"             NQC_PFT_UPSTREAM_URL="$provider_url"             NQC_PFT_UPSTREAM_ID="$provider_id"             NQC_PFT_MIN_INTERVAL_SECONDS="$min_interval"             NQC_PFT_MAX_ATTEMPTS=12             NQC_PFT_UPSTREAM_TIMEOUT_SECONDS=60             NQC_PFT_PROXY_LOG="$NQC_REC_HIST/evidence/$provider_id-throttle.jsonl"               python3 ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py               > "$NQC_REC_HIST/evidence/$provider_id-throttle.log" 2>&1 &
+            throttle_pid=$!
+
+            NQC_PFT_IPC_SOCKET="$socket"             NQC_PFT_UPSTREAM_URL="http://127.0.0.1:$port"             NQC_PFT_UPSTREAM_ID="$provider_id"             NQC_PFT_BRIDGE_TIMEOUT_SECONDS=180               python3 ci/nqc-protocol-fork/parity/ipc_http_bridge.py               > "$NQC_REC_HIST/evidence/$provider_id-bridge.log" 2>&1 &
+            bridge_pid=$!
+            trap 'kill "$bridge_pid" "$throttle_pid" 2>/dev/null || true' EXIT
+
+            ready=0
+            for _ in $(seq 1 150); do
+              if test -S "$socket" && curl --silent --fail "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
+                ready=1; break
+              fi
+              sleep 0.1
+            done
+            test "$ready" -eq 1
+
+            NQC_PFT_IPC_PATH="$socket" NQC_PFT_UPSTREAM_ID="$provider_id"               "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/target/debug/examples/pft_historical_reconciler"               2>&1 | tee "$NQC_REC_HIST/evidence/$provider_id-reconciler.log"
+
+            test "$(grep -c '^AAVE_RECONCILER_HISTORICAL_USER_PASS ' "$NQC_REC_HIST/evidence/$provider_id-reconciler.log")" -eq 15
+            test "$(grep -c '^AAVE_RECONCILER_HISTORICAL_BLOCK_PASS ' "$NQC_REC_HIST/evidence/$provider_id-reconciler.log")" -eq 2
+            grep -F "AAVE_RECONCILER_HISTORICAL_TOTAL upstream=$provider_id real_orphan_rejections=1 canonical_rebuilds=2 users=15 exact_integer_checks=60"               "$NQC_REC_HIST/evidence/$provider_id-reconciler.log"
+
+            kill "$bridge_pid" "$throttle_pid"
+            wait "$bridge_pid" "$throttle_pid" 2>/dev/null || true
+            trap - EXIT
+          done
+
+          printf '%s\n' 'PASS_HISTORICAL_CANONICAL_REBUILD_PLUS_REAL_SOURCE_ORPHAN_REJECTION_AND_DEEP_REPLACEMENT'             > "$NQC_REC_HIST/evidence/parity-status.txt"
+          printf '%s\n' 'PARITY_EVIDENCE_COMPLETE_PENDING_SOURCE_BLOCKER_CLOSEOUT_REVIEW'             > "$NQC_REC_HIST/evidence/PFT-SRC-003-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_REC_HIST/evidence/protocol-fork-truth.txt"
+          (
+            cd "$NQC_REC_HIST/evidence"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-reconciler-historical-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-aave-reconciler-historical/evidence
+          if-no-files-found: error
+          retention-days: 30

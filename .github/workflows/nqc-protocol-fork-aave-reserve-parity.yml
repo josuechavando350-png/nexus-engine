@@ -1,0 +1,109 @@
+name: NQC T39 Aave Reserve Balance Parity
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-reserve-parity.yml
+      - ci/nqc-protocol-fork/parity/**
+      - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  reserve-balance-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      NQC_RESERVE_WORK: /tmp/nqc-reserve-parity
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify inputs and prepare isolated recovered source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          python3 -m unittest discover -s ci/nqc-protocol-fork/parity -p test_reserve_parity.py -v
+          mkdir -p "$NQC_RESERVE_WORK/evidence" "$NQC_RESERVE_WORK/source"
+          git rev-parse HEAD > "$NQC_RESERVE_WORK/evidence/source-sha.txt"
+          (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+          cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_RESERVE_WORK/source/"
+          python3 ci/nqc-protocol-fork/parity/prepare_reserve_parity.py "$NQC_RESERVE_WORK/source"
+          cp "$NQC_RESERVE_WORK/source/Cargo.lock" "$NQC_RESERVE_WORK/evidence/Cargo.lock"
+          sha256sum ci/nqc-protocol-fork/parity/*.py > "$NQC_RESERVE_WORK/evidence/harness.sha256"
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv > "$NQC_RESERVE_WORK/evidence/rustc.txt"
+          cargo fetch --locked --manifest-path "$NQC_RESERVE_WORK/source/Cargo.toml"
+
+      - name: Capture independent exact-state witnesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u ci/nqc-protocol-fork/parity/reserve_balance_witness.py --out "$NQC_RESERVE_WORK/evidence"
+          python3 ci/nqc-protocol-fork/parity/generate_reserve_parity.py \
+            "$NQC_RESERVE_WORK/evidence/reserve-balance-witness.json" \
+            "$NQC_RESERVE_WORK/source/crates/nqc-aave-market/examples/pft_reserve_parity.rs"
+          cp "$NQC_RESERVE_WORK/source/crates/nqc-aave-market/examples/pft_reserve_parity.rs" "$NQC_RESERVE_WORK/evidence/"
+
+      - name: Run recovered bootstrap and reader against both providers
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo build --locked --offline --manifest-path "$NQC_RESERVE_WORK/source/Cargo.toml" -p nqc-aave-market --example pft_reserve_parity
+          for entry in 'blastapi-public|https://eth-mainnet.public.blastapi.io' 'mevblocker-rpc|https://rpc.mevblocker.io'; do
+            provider_id="${entry%%|*}"
+            provider_url="${entry#*|}"
+            socket="$NQC_RESERVE_WORK/$provider_id.ipc"
+            if test "$provider_id" = "mevblocker-rpc"; then
+              min_interval="1.25"
+            else
+              min_interval="0.35"
+            fi
+            NQC_PFT_PROXY_PORT=18546 NQC_PFT_UPSTREAM_URL="$provider_url" \
+              NQC_PFT_UPSTREAM_ID="$provider_id" NQC_PFT_MIN_INTERVAL_SECONDS="$min_interval" \
+              NQC_PFT_MAX_ATTEMPTS=12 NQC_PFT_PROXY_LOG="$NQC_RESERVE_WORK/evidence/$provider_id-throttle.jsonl" \
+              python3 ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py > "$NQC_RESERVE_WORK/evidence/$provider_id-throttle.log" 2>&1 &
+            throttle_pid=$!
+            NQC_PFT_IPC_SOCKET="$socket" NQC_PFT_UPSTREAM_URL=http://127.0.0.1:18546 NQC_PFT_UPSTREAM_ID="$provider_id" \
+              python3 ci/nqc-protocol-fork/parity/ipc_http_bridge.py > "$NQC_RESERVE_WORK/evidence/$provider_id-bridge.log" 2>&1 &
+            bridge_pid=$!
+            trap 'kill "$bridge_pid" "$throttle_pid" 2>/dev/null || true' EXIT
+            for _ in $(seq 1 100); do
+              if test -S "$socket" && python3 -c 'import socket; s=socket.create_connection(("127.0.0.1",18546),timeout=1); s.close()' 2>/dev/null; then break; fi
+              sleep 0.1
+            done
+            test -S "$socket"
+            NQC_PFT_IPC_PATH="$socket" NQC_PFT_UPSTREAM_ID="$provider_id" \
+              "$NQC_RESERVE_WORK/source/target/debug/examples/pft_reserve_parity" 2>&1 | tee "$NQC_RESERVE_WORK/evidence/$provider_id-parity.log"
+            test "$(grep -c '^BALANCE_PARITY_PASS ' "$NQC_RESERVE_WORK/evidence/$provider_id-parity.log")" -eq 15
+            grep '^RESERVE_BALANCE_TOTAL ' "$NQC_RESERVE_WORK/evidence/$provider_id-parity.log"
+            kill "$bridge_pid" "$throttle_pid"
+            wait "$bridge_pid" "$throttle_pid" 2>/dev/null || true
+            trap - EXIT
+          done
+          printf '%s\n' 'PARTIAL_RESERVE_INDEX_SCALED_BALANCE_ONLY' > "$NQC_RESERVE_WORK/evidence/parity-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_RESERVE_WORK/evidence/protocol-fork-truth.txt"
+
+      - name: Preserve evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-reserve-parity-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-reserve-parity/evidence
+          if-no-files-found: error
+          retention-days: 30

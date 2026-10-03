@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "gate": "PARITY_MISMATCH_LEDGER_OPEN_ZERO",
+  "status": "PASS",
+  "counts": {
+    "detected_semantic_mismatches": 2,
+    "resolved_semantic_mismatches": 2,
+    "explained_repair_pending": 0,
+    "unexplained_open": 0,
+    "open_total": 0
+  },
+  "entries": [
+    {
+      "id": "PFT-MISMATCH-AAVE-ACCOUNTING-001",
+      "domain": "AAVE_CANONICAL_ACCOUNT_RISK",
+      "classification": "SEMANTIC_MISMATCH",
+      "first_observed": {
+        "pr": 476,
+        "head": "3b9a8b6f44e42dc5fd2dccaf8ff759e8fce7e093",
+        "workflow_run": 36338559955,
+        "checks": 39,
+        "mismatches": 34
+      },
+      "resolution": "PFT-COMPAT-008",
+      "verification": {
+        "pr": 480,
+        "head": "7494e76f9e8b942f021468578de4ff19aef68dbd",
+        "full_account_risk_run": 36341553888,
+        "full_account_risk_artifact": 10940935416,
+        "full_account_risk_artifact_sha256": "de97034024643d11f52f7e28a0b2b52f56919adeed5294c84cea542538fcfa49",
+        "exact_account_risk_run": 36341554012,
+        "exact_account_risk_artifact": 10939116521,
+        "exact_account_risk_artifact_sha256": "d1242e9acff2a1a2eba8fef7d7957b40af247e55107ed35bb508f7ebc6f6eb8c",
+        "result": "PASS"
+      },
+      "status": "RESOLVED",
+      "evidence_refs": [
+        {
+          "role": "resolution_full_account_risk",
+          "head": "7494e76f9e8b942f021468578de4ff19aef68dbd",
+          "workflow_run_id": 36341553888,
+          "artifact_id": 10940935416,
+          "artifact_sha256": "de97034024643d11f52f7e28a0b2b52f56919adeed5294c84cea542538fcfa49"
+        },
+        {
+          "role": "resolution_exact_account_risk",
+          "head": "7494e76f9e8b942f021468578de4ff19aef68dbd",
+          "workflow_run_id": 36341554012,
+          "artifact_id": 10939116521,
+          "artifact_sha256": "d1242e9acff2a1a2eba8fef7d7957b40af247e55107ed35bb508f7ebc6f6eb8c"
+        }
+      ]
+    },
+    {
+      "id": "PFT-MISMATCH-AAVE-FLASH-PREMIUM-001",
+      "domain": "AAVE_FLASH_LOAN_FEE_MODEL",
+      "classification": "SEMANTIC_MISMATCH",
+      "first_observed": {
+        "pr": 483,
+        "head": "ba35212c96a5a335a67c6ec587d620f6b4f8d012",
+        "workflow_run": 36349409719,
+        "artifact": 10941698957,
+        "artifact_sha256": "437a7ae1e633d1053cdba9aaeaada9352aca03299bb6929d8f08ee31b2bce3d1",
+        "principal_units": "83727306811",
+        "premium_bps": 5,
+        "deployed_callback_premium_units": "41863654",
+        "recovered_half_up_model_units": "41863653",
+        "delta_units": 1
+      },
+      "explanation": "DEPLOYED_AAVE_V3_FLASHLOANSIMPLE_USES_CEILING_ROUNDING_FOR_PREMIUM_AT_THE_PINNED_HISTORICAL_STATE_WHILE_RECOVERED_OPPORTUNITY_MODEL_USED_HALF_UP",
+      "repair": "PFT-COMPAT-009",
+      "preserved_boundaries": [
+        "NO_TOLERANCE",
+        "NO_NEARBY_BLOCK_SUBSTITUTION",
+        "LIQUIDATION_DEBT_AND_COLLATERAL_MATH_UNCHANGED"
+      ],
+      "verification": {
+        "result": "PASS",
+        "executor_historical": {
+          "head": "a441c81c462e003cd56d4033fee30af2060ceae3",
+          "workflow_run_id": 36389320408,
+          "artifact_id": 10955334368,
+          "artifact_sha256": "2b44677bce9d36c9588bf03932884f15c381054ca1e378e7540264c02d404a03"
+        },
+        "full_liquidation_matrix": {
+          "head": "a441c81c462e003cd56d4033fee30af2060ceae3",
+          "workflow_run_id": 36389320492,
+          "artifact_id": 10956166857,
+          "artifact_sha256": "62f36749c2b9643e69de8db29aa86dad1869e775f61f456f3b8f52fbed06b835"
+        },
+        "exact_integer_checks": 64,
+        "deployed_callback_premium_checks": 16,
+        "default_close_cap_matches": 1,
+        "full_close_cap_matches": 1,
+        "unexplained_mismatches": 0
+      },
+      "status": "RESOLVED",
+      "evidence_refs": [
+        {
+          "role": "observed_mismatch",
+          "head": "ba35212c96a5a335a67c6ec587d620f6b4f8d012",
+          "workflow_run_id": 36349409719,
+          "artifact_id": 10941698957,
+          "artifact_sha256": "437a7ae1e633d1053cdba9aaeaada9352aca03299bb6929d8f08ee31b2bce3d1"
+        },
+        {
+          "role": "resolution_executor_historical",
+          "head": "a441c81c462e003cd56d4033fee30af2060ceae3",
+          "workflow_run_id": 36389320408,
+          "artifact_id": 10955334368,
+          "artifact_sha256": "2b44677bce9d36c9588bf03932884f15c381054ca1e378e7540264c02d404a03"
+        },
+        {
+          "role": "resolution_full_liquidation_matrix",
+          "head": "a441c81c462e003cd56d4033fee30af2060ceae3",
+          "workflow_run_id": 36389320492,
+          "artifact_id": 10956166857,
+          "artifact_sha256": "62f36749c2b9643e69de8db29aa86dad1869e775f61f456f3b8f52fbed06b835"
+        }
+      ]
+    }
+  ],
+  "excluded_non_semantic_incidents": [
+    {
+      "id": "PFT-INFRA-V2-RPC-TIMEOUT-001",
+      "classification": "RPC_TRANSPORT_TIMEOUT",
+      "reason": "MEV_BLOCKER_BRIDGE_TIMEOUT_EXPIRED_BEFORE_RATE_CONTROLLED_UPSTREAM_RETRY",
+      "semantic_mismatch_recorded": false,
+      "repair": "BRIDGE_TIMEOUT_BUDGET_RAISED_WITHOUT_PARITY_TOLERANCE_CHANGE"
+    },
+    {
+      "id": "PFT-HARNESS-REVM-U256-JSON-001",
+      "classification": "HARNESS_SERIALIZATION_DEFECT",
+      "reason": "U256_CALLER_BALANCE_EXCEEDED_U64_AND_WAS_LOSSILY_PARSED_VIA_JSON_NUMBER",
+      "semantic_mismatch_recorded": false,
+      "repair": "DECIMAL_STRING_SERIALIZATION_AND_EXACT_U256_PARSER"
+    },
+    {
+      "id": "PFT-ECONOMIC-NEGATIVE-AAVE-001",
+      "classification": "EXPECTED_NEGATIVE_CASE_NOT_MISMATCH",
+      "reason": "ORIGINAL_LARGE_HISTORICAL_LIQUIDATION_ROUTE_HAD_NEGATIVE_EDGE_ON_SELECTED_UNISWAP_PATH",
+      "semantic_mismatch_recorded": false,
+      "verification": "ATOMIC_INSUFFICIENT_PROFIT_REJECTION_PASS"
+    }
+  ],
+  "close_condition": "open_total == 0 && unexplained_open == 0 && every semantic repair has exact-head two-provider or differential PASS evidence",
+  "protocol_fork_truth": "NOT_CLOSED"
+}

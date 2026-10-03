@@ -1,0 +1,18 @@
+diff --git a/crates/nqc-aave-market/src/lib.rs b/crates/nqc-aave-market/src/lib.rs
+index 526aaba..67bc6ed 100644
+--- a/crates/nqc-aave-market/src/lib.rs
++++ b/crates/nqc-aave-market/src/lib.rs
+@@ -420,11 +420,11 @@ impl AaveMarketBootstrap {
+                 variable_borrow_index_ray: U256::from(reserve_data.variable_borrow_index),
+                 liquidity_rate_ray: U256::from(reserve_data.current_liquidity_rate),
+                 variable_borrow_rate_ray: U256::from(reserve_data.current_variable_borrow_rate),
+-                last_update_timestamp: reserve_data.last_update_timestamp,
++                last_update_timestamp: reserve_data.last_update_timestamp.to::<u64>(),
+                 liquidation_bonus_bps: configuration.liquidation_bonus_bps(),
+                 liquidation_protocol_fee_bps: configuration.liquidation_protocol_fee_bps(),
+                 flash_loan_enabled: configuration.flash_loan_enabled(),
+-                liquidation_grace_period_until,
++                liquidation_grace_period_until: liquidation_grace_period_until.to::<u64>(),
+             });
+         }
+         reserves.sort_unstable_by_key(|reserve| reserve.reserve_id);
