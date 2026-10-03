@@ -34,7 +34,7 @@ export default function IntelligencePage() {
     <section className="cp-intel-hero">
       <div className="cp-wrap cp-intel-hero-grid">
         <div><p className="cp-eyebrow">CANO Intelligence</p><h1>Entender cómo se construye el riesgo antes de reaccionar.</h1></div>
-        <div><p>Análisis para empresarios, directivos y particulares sobre investigaciones, decisiones procesales y exposición penal. Sin promesas de resultado y sin contenido genérico disfrazado de especialización.</p></div>
+        <div><p>Comparto análisis para empresarios, directivos y particulares sobre investigaciones, decisiones procesales y exposición penal. El objetivo es aportar criterio antes de actuar, no sustituir el estudio particular de un expediente.</p></div>
       </div>
     </section>
     <section className="cp-intel-index">
@@ -49,7 +49,7 @@ export default function IntelligencePage() {
     <section className="cp-intel-method">
       <div className="cp-wrap cp-intel-method-grid">
         <div><p className="cp-eyebrow">Criterio editorial</p><h2>Experiencia, norma, procedimiento y hechos <strong>por separado.</strong></h2></div>
-        <div><p>Cada publicación debe distinguir lo que deriva de una norma, lo que depende de hechos concretos y lo que corresponde a experiencia profesional. El contenido informa; no sustituye el análisis particular de un asunto.</p></div>
+        <div><p>En cada publicación distingo lo que deriva de la norma, lo que depende de hechos concretos y lo que corresponde a experiencia profesional. El contenido orienta; la estrategia sólo puede definirse a partir del asunto particular.</p></div>
       </div>
     </section>
   </PageShell>;
