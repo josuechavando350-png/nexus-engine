@@ -7,7 +7,7 @@
   },
   "notes": [
     "mevblocker-rpc documents eth_getLogs ranges up to 10,000 blocks with no response-size cap; larger ranges are capped at 10,000 logs (run 36521397718)",
-    "blastapi-public serves eth_getLogs over at most 10 blocks; paced at 1.25s per HTTP request in partitioned acquisition to avoid public compute-unit saturation under concurrent matrix workers"
+    "blastapi-public serves eth_getLogs over at most 10 blocks"
   ],
   "providers": [
     {
@@ -15,7 +15,7 @@
       "label": "blastapi-public",
       "url": "https://eth-mainnet.public.blastapi.io",
       "operator": "Bware Labs Blast API public endpoint",
-      "min_interval_ms": 1250,
+      "min_interval_ms": 350,
       "max_batch": 100,
       "log_window": 10,
       "pinning": "EIP1898_BLOCK_HASH"
