@@ -109,7 +109,7 @@ fn state_row(
     bytes
 }
 
-fn token_admission(blockers: &[&str]) -> Vec<u8> {
+fn token_admission_with_roles(blockers: &[&str], roles: &[&str]) -> Vec<u8> {
     let status = if blockers.is_empty() {
         "PROVEN_COMPATIBLE"
     } else {
@@ -119,8 +119,13 @@ fn token_admission(blockers: &[&str]) -> Vec<u8> {
         .iter()
         .map(|blocker| Json::string(*blocker))
         .collect::<Vec<_>>();
+    let role_rows = roles
+        .iter()
+        .map(|role| Json::string(*role))
+        .collect::<Vec<_>>();
     let row = Json::object([
         ("token", Json::string(address(31).to_hex())),
+        ("roles", Json::array(role_rows)),
         (
             "execution_compatibility",
             Json::object([
@@ -132,6 +137,10 @@ fn token_admission(blockers: &[&str]) -> Vec<u8> {
     let mut bytes = canonical(row);
     bytes.push(b'\n');
     bytes
+}
+
+fn token_admission(blockers: &[&str]) -> Vec<u8> {
+    token_admission_with_roles(blockers, &["AAVE_RESERVE_UNDERLYING"])
 }
 
 struct Bundle {
@@ -151,8 +160,14 @@ fn build_bundle_with_token_blockers(
     state: Vec<u8>,
     token_blockers: &[&str],
 ) -> Result<Bundle, CapitalError> {
+    build_bundle_with_token_bytes(state, token_admission(token_blockers))
+}
+
+fn build_bundle_with_token_bytes(
+    state: Vec<u8>,
+    token: Vec<u8>,
+) -> Result<Bundle, CapitalError> {
     let observation_anchor = anchor();
-    let token = token_admission(token_blockers);
     let pool = canonical(Json::object([(
         "aave_pool",
         Json::object([
@@ -353,6 +368,54 @@ fn d08_token_blocker_preserves_protocol_capacity_but_blocks_execution_compatibil
         compatible_facility.facility_commitment,
         blocked_facility.facility_commitment
     );
+    Ok(())
+}
+
+#[test]
+fn same_token_across_aave_and_v2_roles_uses_aave_scoped_admission() -> TestResult {
+    let state = state_row("400000000", "800000000", false, true, true);
+    let mut token = token_admission_with_roles(&[], &["AAVE_RESERVE_UNDERLYING"]);
+    token.extend_from_slice(&token_admission_with_roles(
+        &["RUNTIME_CODE_IDENTITY_NOT_ACQUIRED"],
+        &["V2_TOKEN0", "V2_TOKEN1"],
+    ));
+    let bundle = build_bundle_with_token_bytes(state, token)?;
+
+    let discovery = discover_d08_aave_debt_facilities(
+        &bundle.state,
+        &bundle.token,
+        &bundle.pool,
+        &bundle.manifest,
+        &bundle.authority,
+        &bundle.context,
+    )?;
+    assert_eq!(discovery.facility_count, 1);
+    assert!(discovery.facilities[0].token_execution_blockers.is_empty());
+    assert!(!discovery.facilities[0]
+        .token_execution_blockers
+        .contains(&"RUNTIME_CODE_IDENTITY_NOT_ACQUIRED".to_owned()));
+    Ok(())
+}
+
+#[test]
+fn duplicate_token_admission_within_same_role_is_rejected() -> TestResult {
+    let state = state_row("400000000", "800000000", false, true, true);
+    let row = token_admission_with_roles(&[], &["AAVE_RESERVE_UNDERLYING"]);
+    let mut token = row.clone();
+    token.extend_from_slice(&row);
+    let bundle = build_bundle_with_token_bytes(state, token)?;
+
+    assert!(matches!(
+        discover_d08_aave_debt_facilities(
+            &bundle.state,
+            &bundle.token,
+            &bundle.pool,
+            &bundle.manifest,
+            &bundle.authority,
+            &bundle.context,
+        ),
+        Err(CapitalError::InvalidCanonical(_))
+    ));
     Ok(())
 }
 
