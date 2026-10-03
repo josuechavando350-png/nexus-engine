@@ -361,13 +361,35 @@ jobs:
           name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
 
-      - name: Restore previous PairCreated partition evidence on rerun
+      - name: Restore latest PairCreated checkpoint on rerun
         if: ${{ github.run_attempt > 1 }}
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          pattern: d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-*
-          path: /tmp/nqc-rmc007-evidence
-          merge-multiple: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESUME_PREFIX: d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-
+        run: |
+          set -euo pipefail
+          mkdir -p "$D07_EVIDENCE"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" > /tmp/d07-artifacts.json
+          resume_name="$(python3 - <<'PY'
+          import json, os
+          current = int(os.environ["GITHUB_RUN_ATTEMPT"])
+          prefix = os.environ["RESUME_PREFIX"]
+          rows = []
+          for artifact in json.load(open("/tmp/d07-artifacts.json"))["artifacts"]:
+              name = artifact["name"]
+              if not name.startswith(prefix):
+                  continue
+              suffix = name[len(prefix):]
+              if suffix.isdigit() and int(suffix) < current and not artifact.get("expired", False):
+                  rows.append((int(suffix), name))
+          if not rows:
+              raise SystemExit("no prior non-expired partition artifact available for resumable rerun")
+          print(max(rows)[1])
+          PY
+          )"
+          gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$resume_name" --dir "$D07_EVIDENCE"
+          echo "RMC007_RERUN_CHECKPOINT_RESTORED artifact=$resume_name current_attempt=$GITHUB_RUN_ATTEMPT"
 
       - name: PairCreated block partition
         working-directory: nqc-census
@@ -445,13 +467,35 @@ jobs:
           name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
 
-      - name: Restore previous pairs partition evidence on rerun
+      - name: Restore latest pairs checkpoint on rerun
         if: ${{ github.run_attempt > 1 }}
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
-        with:
-          pattern: d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-*
-          path: /tmp/nqc-rmc007-evidence
-          merge-multiple: true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESUME_PREFIX: d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-
+        run: |
+          set -euo pipefail
+          mkdir -p "$D07_EVIDENCE"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100" > /tmp/d07-artifacts.json
+          resume_name="$(python3 - <<'PY'
+          import json, os
+          current = int(os.environ["GITHUB_RUN_ATTEMPT"])
+          prefix = os.environ["RESUME_PREFIX"]
+          rows = []
+          for artifact in json.load(open("/tmp/d07-artifacts.json"))["artifacts"]:
+              name = artifact["name"]
+              if not name.startswith(prefix):
+                  continue
+              suffix = name[len(prefix):]
+              if suffix.isdigit() and int(suffix) < current and not artifact.get("expired", False):
+                  rows.append((int(suffix), name))
+          if not rows:
+              raise SystemExit("no prior non-expired partition artifact available for resumable rerun")
+          print(max(rows)[1])
+          PY
+          )"
+          gh run download "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY" --name "$resume_name" --dir "$D07_EVIDENCE"
+          echo "RMC007_RERUN_CHECKPOINT_RESTORED artifact=$resume_name current_attempt=$GITHUB_RUN_ATTEMPT"
 
       - name: allPairs, pair runtime and getPair index partition
         working-directory: nqc-census
