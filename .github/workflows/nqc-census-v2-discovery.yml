@@ -373,24 +373,24 @@ jobs:
             target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/store-verify.log"
             grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/store-verify.log"
             python3 - "$D07_EVIDENCE/v2-current-surface.json" "$D07_EVIDENCE/v2-factory-boundary.json" <<'PY'
-import json, sys
-current, boundary = map(lambda p: json.load(open(p)), sys.argv[1:])
-anchors = []
-def walk(value):
-    if isinstance(value, dict):
-        if "block_number" in value and "block_hash" in value:
-            anchors.append((value["block_number"], value["block_hash"]))
-        for child in value.values():
-            walk(child)
-    elif isinstance(value, list):
-        for child in value:
-            walk(child)
-walk(current); walk(boundary)
-expected = (26095351, "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781")
-assert anchors, "recovered surface contains no anchor"
-assert all(tuple(a) == expected for a in anchors), sorted(set(map(tuple, anchors)))
-print(f"RMC007_RECOVERED_SURFACE_ANCHOR_PASS anchors={len(anchors)}")
-PY
+          import json, sys
+          current, boundary = map(lambda p: json.load(open(p)), sys.argv[1:])
+          anchors = []
+          def walk(value):
+              if isinstance(value, dict):
+                  if "block_number" in value and "block_hash" in value:
+                      anchors.append((value["block_number"], value["block_hash"]))
+                  for child in value.values():
+                      walk(child)
+              elif isinstance(value, list):
+                  for child in value:
+                      walk(child)
+          walk(current); walk(boundary)
+          expected = (26095351, "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781")
+          assert anchors, "recovered surface contains no anchor"
+          assert all(tuple(a) == expected for a in anchors), sorted(set(map(tuple, anchors)))
+          print(f"RMC007_RECOVERED_SURFACE_ANCHOR_PASS anchors={len(anchors)}")
+          PY
             echo "RMC007_SURFACE_RECOVERY_PASS run=$D07_RECOVERY_RUN artifact=$artifact_id digest=$artifact_digest"
             exit 0
           fi
@@ -471,11 +471,19 @@ PY
         run: |
           set -euo pipefail
           repo="${{ github.repository }}"
-          prefix="d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-"
           current="${{ github.run_attempt }}"
+          source_run="${{ github.run_id }}"
+          source_head="${{ github.event.pull_request.head.sha || github.sha }}"
+          if [ "$current" = 1 ] && [ -n "$D07_RECOVERY_RUN" ]; then
+            source_run="$D07_RECOVERY_RUN"
+            source_head="$D07_RECOVERY_HEAD"
+          fi
+          prefix="d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-$source_head-$source_run-"
           artifact_json="$(
-            gh api --paginate "repos/$repo/actions/runs/$source_run/artifacts?per_page=100"               --jq '.artifacts[] | select(.expired == false)' |
-            jq -s --arg prefix "$prefix" --argjson current "$current" --arg source_run "$source_run" --arg current_run "${{ github.run_id }}" '
+            gh api --paginate "repos/$repo/actions/runs/$source_run/artifacts?per_page=100" \
+              --jq '.artifacts[] | select(.expired == false)' |
+            jq -s --arg prefix "$prefix" --argjson current "$current" \
+              --arg source_run "$source_run" --arg current_run "${{ github.run_id }}" '
               map(select(.name | startswith($prefix)))
               | map(. + {attempt: ((.name | capture("-(?<attempt>[0-9]+)$").attempt) | tonumber)})
               | map(select(($source_run != $current_run) or (.attempt < $current)))
@@ -514,6 +522,7 @@ PY
         run: |
           set -euo pipefail
           mkdir -p "$D07_EVIDENCE"
+          rm -f "$D07_EVIDENCE/record.json" "$D07_EVIDENCE/stage.log"
           cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-stage
           # A public-provider outage longer than the per-request retry budget
           # aborts a run; the next attempt resumes from committed RMC-004
@@ -593,11 +602,19 @@ PY
         run: |
           set -euo pipefail
           repo="${{ github.repository }}"
-          prefix="d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-"
           current="${{ github.run_attempt }}"
+          source_run="${{ github.run_id }}"
+          source_head="${{ github.event.pull_request.head.sha || github.sha }}"
+          if [ "$current" = 1 ] && [ -n "$D07_RECOVERY_RUN" ]; then
+            source_run="$D07_RECOVERY_RUN"
+            source_head="$D07_RECOVERY_HEAD"
+          fi
+          prefix="d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-$source_head-$source_run-"
           artifact_json="$(
-            gh api --paginate "repos/$repo/actions/runs/$source_run/artifacts?per_page=100"               --jq '.artifacts[] | select(.expired == false)' |
-            jq -s --arg prefix "$prefix" --argjson current "$current" --arg source_run "$source_run" --arg current_run "${{ github.run_id }}" '
+            gh api --paginate "repos/$repo/actions/runs/$source_run/artifacts?per_page=100" \
+              --jq '.artifacts[] | select(.expired == false)' |
+            jq -s --arg prefix "$prefix" --argjson current "$current" \
+              --arg source_run "$source_run" --arg current_run "${{ github.run_id }}" '
               map(select(.name | startswith($prefix)))
               | map(. + {attempt: ((.name | capture("-(?<attempt>[0-9]+)$").attempt) | tonumber)})
               | map(select(($source_run != $current_run) or (.attempt < $current)))
@@ -636,6 +653,7 @@ PY
         run: |
           set -euo pipefail
           mkdir -p "$D07_EVIDENCE"
+          rm -f "$D07_EVIDENCE/record.json" "$D07_EVIDENCE/stage.log"
           cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-stage
           # A public-provider outage longer than the per-request retry budget
           # aborts a run; the next attempt resumes from committed RMC-004
