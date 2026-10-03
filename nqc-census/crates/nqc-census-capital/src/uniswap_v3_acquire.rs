@@ -924,6 +924,63 @@ mod tests {
     use super::*;
 
     #[test]
+    fn aave_seed_assets_are_role_scoped_and_preserve_blockers() -> Result<(), Box<dyn Error>> {
+        let asset = "0x7777777777777777777777777777777777777777";
+        let mut market_state = Json::object([
+            ("protocol", Json::string("AAVE_V3")),
+            ("lifecycle", Json::string("CURRENT")),
+            ("asset", Json::string(asset)),
+        ])
+        .canonical()?;
+        market_state.push(b'\n');
+
+        let mut token_admission = Json::object([
+            ("token", Json::string(asset)),
+            ("roles", Json::array([Json::string("AAVE_RESERVE_UNDERLYING")])),
+            (
+                "execution_compatibility",
+                Json::object([
+                    ("status", Json::string("BLOCKED")),
+                    (
+                        "blockers",
+                        Json::array([Json::string("FEE_ON_TRANSFER_UNPROVEN")]),
+                    ),
+                ]),
+            ),
+        ])
+        .canonical()?;
+        token_admission.push(b'\n');
+        token_admission.extend_from_slice(
+            &Json::object([
+                ("token", Json::string(asset)),
+                ("roles", Json::array([Json::string("V2_TOKEN0")])),
+                (
+                    "execution_compatibility",
+                    Json::object([
+                        ("status", Json::string("BLOCKED")),
+                        (
+                            "blockers",
+                            Json::array([Json::string("RUNTIME_CODE_IDENTITY_NOT_ACQUIRED")]),
+                        ),
+                    ]),
+                ),
+            ])
+            .canonical()?,
+        );
+        token_admission.push(b'\n');
+
+        let assets = census_assets(&market_state, &token_admission)?;
+        assert_eq!(assets.len(), 1);
+        assert_eq!(
+            assets
+                .get(&Address::parse_hex(asset)?)
+                .ok_or("missing seed asset")?,
+            &vec!["FEE_ON_TRANSFER_UNPROVEN".to_owned()]
+        );
+        Ok(())
+    }
+
+    #[test]
     fn decimal_conversion_handles_uint256_boundaries() {
         assert_eq!(amount_decimal([0; 32]), "0");
         let mut one = [0_u8; 32];
