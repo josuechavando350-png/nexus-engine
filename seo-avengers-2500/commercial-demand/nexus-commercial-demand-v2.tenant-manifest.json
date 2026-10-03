@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "TENANT_SOURCE_DECLARATION_NOT_PROVIDER_AUTHORIZATION",
+  "siteId": "nexus-bot-studio",
+  "siteHostname": "nexusbotstudio.com",
+  "observedSearchAccount": "sc-domain:nexusbotstudio.com",
+  "market": { "country": "Mexico", "language": "Spanish" },
+  "researchSnapshotResultIds": [
+    "167f408f-048d-476d-a610-91fd1248ebe2",
+    "V1_HANDOFF_RESEARCH_SNAPSHOT"
+  ],
+  "commercialBoundary": "PLANNING_ONLY_NOT_VALIDATED_FOR_SALES_CLAIMS"
+}

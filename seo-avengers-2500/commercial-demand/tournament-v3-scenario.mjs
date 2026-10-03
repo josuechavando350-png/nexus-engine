@@ -140,6 +140,16 @@ export function buildCommercialDemandScenarioV3(rawBaseScenario) {
   const scenario = structuredClone(rawBaseScenario);
   if (scenario?.schemaVersion !== 2) throw new Error("V3 requires the validated V2 scenario schema");
   if (scenario?.scenarioId !== "NEXUS_COMMERCIAL_DEMAND_V2") throw new Error("V3 must be derived from the NEXUS V2 scenario");
+  // The V3/V4 research, service evidence and page portfolio belong only to Nexus
+  // Bot Studio. A changed label must not make the software tournament a CANO run.
+  // This is identity-scope validation, NOT proof of Google provider ownership.
+  if (scenario.siteId !== "nexus-bot-studio"
+      || scenario.observedSearch?.account !== "sc-domain:nexusbotstudio.com") {
+    throw new Error("NEXUS_COMMERCIAL_TOURNAMENT_CROSS_TENANT_BASELINE");
+  }
+  if (scenario.market?.country !== "Mexico" || scenario.market?.language !== "Spanish") {
+    throw new Error("NEXUS_COMMERCIAL_TOURNAMENT_MARKET_MISMATCH");
+  }
 
   const v2Winner = scenario.strategies.find((row) => row.id === "EVIDENCE_WEIGHTED_HYBRID_26");
   if (!v2Winner) throw new Error("V2 evidence-weighted 26-page baseline is missing");
