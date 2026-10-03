@@ -1,0 +1,46 @@
+name: CANO Penal Tournament Zero
+
+on:
+  push:
+    paths:
+      - 'tournaments/cano-penal-zero/**'
+      - '.github/workflows/cano-penal-tournament-zero.yml'
+  pull_request:
+    paths:
+      - 'tournaments/cano-penal-zero/**'
+      - '.github/workflows/cano-penal-tournament-zero.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact event head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Check tournament engine
+        run: node --check tournaments/cano-penal-zero/tournament-zero.mjs
+
+      - name: Prove zero-state isolation
+        run: node --test tournaments/cano-penal-zero/test-tournament-zero.mjs
+
+      - name: Assert pre-audit output
+        shell: bash
+        run: |
+          set -euo pipefail
+          output="$(node tournaments/cano-penal-zero/tournament-zero.mjs)"
+          printf '%s\n' "$output"
+          grep -F '"status": "READY_FOR_AUDIT"' <<<"$output"
+          grep -F '"strategyCount": 0' <<<"$output"
+          grep -F '"selectedStrategyId": null' <<<"$output"
+          grep -F '"productionMutation": "FORBIDDEN"' <<<"$output"
