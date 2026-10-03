@@ -1,0 +1,49 @@
+name: Nexus Site V2 Build
+
+on:
+  push:
+    branches: [feat/nexus-site-v2]
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/nexus-bot-studio/**'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/nexus-site-v2-build.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  site-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+      - name: Regenerate lockfile for site dependencies
+        run: pnpm install --no-frozen-lockfile
+      - name: Commit regenerated lockfile on feature branch
+        if: github.event_name == 'push'
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "pnpm-lock.yaml already current"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add pnpm-lock.yaml
+            git commit -m "chore(nexus-site): regenerate pnpm lockfile"
+            git push origin HEAD:feat/nexus-site-v2
+          fi
+      - name: Typecheck site
+        run: pnpm --filter @nexus/nexus-bot-studio typecheck
+      - name: Build site
+        run: pnpm --filter @nexus/nexus-bot-studio build
