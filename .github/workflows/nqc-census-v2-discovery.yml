@@ -325,9 +325,10 @@ jobs:
     timeout-minutes: 350
     strategy:
       fail-fast: false
-      # Public endpoints share capacity across every caller; bounded
-      # parallelism keeps this workflow from exhausting it by itself.
-      max-parallel: 6
+      # Public endpoints share capacity across every caller. Two live
+      # partitions per stage plus provider pacing bound aggregate pressure;
+      # reruns restore verified RMC-004 checkpoints before issuing new RPC.
+      max-parallel: 2
       matrix:
         partition: [0, 1, 2, 3, 4, 5, 6, 7]
         provider: [blastapi-public, mevblocker-rpc]
@@ -360,6 +361,52 @@ jobs:
         with:
           name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
+
+      - name: Restore latest prior-attempt checkpoint
+        if: ${{ github.run_attempt > 1 }}
+        working-directory: nqc-census
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          prefix="d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-"
+          current="${{ github.run_attempt }}"
+          artifact_json="$(
+            gh api --paginate "repos/$repo/actions/runs/${{ github.run_id }}/artifacts?per_page=100"               --jq '.artifacts[] | select(.expired == false)' |
+            jq -s --arg prefix "$prefix" --argjson current "$current" '
+              map(select(.name | startswith($prefix)))
+              | map(. + {attempt: ((.name | capture("-(?<attempt>[0-9]+)$").attempt) | tonumber)})
+              | map(select(.attempt < $current))
+              | sort_by(.attempt)
+              | last // empty
+            '
+          )"
+          if [ -z "$artifact_json" ] || [ "$artifact_json" = null ]; then
+            echo "RMC007_CHECKPOINT_RESTORE_NONE stage=pair-created provider=${{ matrix.provider }} partition=${{ matrix.partition }}"
+            exit 0
+          fi
+          artifact_id="$(jq -r '.id' <<<"$artifact_json")"
+          artifact_name="$(jq -r '.name' <<<"$artifact_json")"
+          artifact_digest="$(jq -r '.digest' <<<"$artifact_json")"
+          artifact_attempt="$(jq -r '.attempt' <<<"$artifact_json")"
+          meta="$(gh api "repos/$repo/actions/artifacts/$artifact_id")"
+          test "$(jq -r '.expired' <<<"$meta")" = false
+          test "$(jq -r '.name' <<<"$meta")" = "$artifact_name"
+          test "$(jq -r '.digest' <<<"$meta")" = "$artifact_digest"
+          test "$(jq -r '.workflow_run.id' <<<"$meta")" = "${{ github.run_id }}"
+          mkdir -p "$D07_EVIDENCE"
+          gh run download "${{ github.run_id }}" --repo "$repo" --name "$artifact_name" --dir "$D07_EVIDENCE"
+          test -f "$D07_EVIDENCE/store/NQC_STORE"
+          mkdir -p "$D07_EVIDENCE/store/tmp" "$D07_EVIDENCE/store/objects/chunks" "$D07_EVIDENCE/store/objects/artifacts" "$D07_EVIDENCE/store/streams"
+          for stream in "$D07_EVIDENCE"/store/streams/*/; do
+            if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
+          done
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/prior-attempt-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/prior-attempt-store-verify.log"
+          echo "RMC007_CHECKPOINT_RESTORE_PASS stage=pair-created provider=${{ matrix.provider }} partition=${{ matrix.partition }} prior_attempt=$artifact_attempt artifact=$artifact_id digest=$artifact_digest"
 
       - name: PairCreated block partition
         working-directory: nqc-census
@@ -403,7 +450,7 @@ jobs:
     timeout-minutes: 350
     strategy:
       fail-fast: false
-      max-parallel: 6
+      max-parallel: 2
       matrix:
         partition: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
         provider: [blastapi-public, mevblocker-rpc]
@@ -436,6 +483,52 @@ jobs:
         with:
           name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
+
+      - name: Restore latest prior-attempt checkpoint
+        if: ${{ github.run_attempt > 1 }}
+        working-directory: nqc-census
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          prefix="d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-"
+          current="${{ github.run_attempt }}"
+          artifact_json="$(
+            gh api --paginate "repos/$repo/actions/runs/${{ github.run_id }}/artifacts?per_page=100"               --jq '.artifacts[] | select(.expired == false)' |
+            jq -s --arg prefix "$prefix" --argjson current "$current" '
+              map(select(.name | startswith($prefix)))
+              | map(. + {attempt: ((.name | capture("-(?<attempt>[0-9]+)$").attempt) | tonumber)})
+              | map(select(.attempt < $current))
+              | sort_by(.attempt)
+              | last // empty
+            '
+          )"
+          if [ -z "$artifact_json" ] || [ "$artifact_json" = null ]; then
+            echo "RMC007_CHECKPOINT_RESTORE_NONE stage=pairs provider=${{ matrix.provider }} partition=${{ matrix.partition }}"
+            exit 0
+          fi
+          artifact_id="$(jq -r '.id' <<<"$artifact_json")"
+          artifact_name="$(jq -r '.name' <<<"$artifact_json")"
+          artifact_digest="$(jq -r '.digest' <<<"$artifact_json")"
+          artifact_attempt="$(jq -r '.attempt' <<<"$artifact_json")"
+          meta="$(gh api "repos/$repo/actions/artifacts/$artifact_id")"
+          test "$(jq -r '.expired' <<<"$meta")" = false
+          test "$(jq -r '.name' <<<"$meta")" = "$artifact_name"
+          test "$(jq -r '.digest' <<<"$meta")" = "$artifact_digest"
+          test "$(jq -r '.workflow_run.id' <<<"$meta")" = "${{ github.run_id }}"
+          mkdir -p "$D07_EVIDENCE"
+          gh run download "${{ github.run_id }}" --repo "$repo" --name "$artifact_name" --dir "$D07_EVIDENCE"
+          test -f "$D07_EVIDENCE/store/NQC_STORE"
+          mkdir -p "$D07_EVIDENCE/store/tmp" "$D07_EVIDENCE/store/objects/chunks" "$D07_EVIDENCE/store/objects/artifacts" "$D07_EVIDENCE/store/streams"
+          for stream in "$D07_EVIDENCE"/store/streams/*/; do
+            if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
+          done
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/prior-attempt-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/prior-attempt-store-verify.log"
+          echo "RMC007_CHECKPOINT_RESTORE_PASS stage=pairs provider=${{ matrix.provider }} partition=${{ matrix.partition }} prior_attempt=$artifact_attempt artifact=$artifact_id digest=$artifact_digest"
 
       - name: allPairs, pair runtime and getPair index partition
         working-directory: nqc-census
