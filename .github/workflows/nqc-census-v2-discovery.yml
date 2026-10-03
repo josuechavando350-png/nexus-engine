@@ -325,9 +325,10 @@ jobs:
     timeout-minutes: 350
     strategy:
       fail-fast: false
-      # Public endpoints share capacity across every caller; bounded
-      # parallelism keeps this workflow from exhausting it by itself.
-      max-parallel: 6
+      # Public endpoints share capacity across every caller. PairCreated runs
+      # before the pairs matrix and bounded parallelism limits aggregate
+      # pressure on either provider.
+      max-parallel: 4
       matrix:
         partition: [0, 1, 2, 3, 4, 5, 6, 7]
         provider: [blastapi-public, mevblocker-rpc]
@@ -360,6 +361,48 @@ jobs:
         with:
           name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
+
+      - name: Restore and verify latest prior-attempt checkpoint
+        working-directory: nqc-census
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_RUN_ATTEMPT" -le 1 ]; then
+            echo "RMC007_PRIOR_ATTEMPT_RESTORE=NOT_APPLICABLE attempt=$GITHUB_RUN_ATTEMPT"
+            exit 0
+          fi
+          prefix="d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-$HEAD_SHA-$GITHUB_RUN_ID-"
+          listing="$RUNNER_TEMP/d07-prior-artifacts.txt"
+          gh api --paginate "repos/$REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100"             --jq '.artifacts[] | select(.expired == false) | .name' > "$listing"
+          chosen=""
+          best=0
+          while IFS= read -r name; do
+            case "$name" in
+              "$prefix"*)
+                attempt="${name##*-}"
+                if [[ "$attempt" =~ ^[0-9]+$ ]] && [ "$attempt" -lt "$GITHUB_RUN_ATTEMPT" ] && [ "$attempt" -gt "$best" ]; then
+                  chosen="$name"
+                  best="$attempt"
+                fi
+                ;;
+            esac
+          done < "$listing"
+          test -n "$chosen" || {
+            echo "RMC007_PRIOR_ATTEMPT_RESTORE=FAIL reason=no_prior_artifact prefix=$prefix" >&2
+            exit 1
+          }
+          rm -rf "$D07_EVIDENCE"
+          mkdir -p "$D07_EVIDENCE"
+          gh run download "$GITHUB_RUN_ID" --repo "$REPOSITORY" --name "$chosen" --dir "$D07_EVIDENCE"
+          test -d "$D07_EVIDENCE/store"
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/prior-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/prior-store-verify.log"
+          echo "RMC007_PRIOR_ATTEMPT_RESTORE=PASS artifact=$chosen attempt=$best"
 
       - name: PairCreated block partition
         working-directory: nqc-census
@@ -397,13 +440,13 @@ jobs:
           retention-days: 30
 
   pairs:
-    needs: [plan, surface]
+    needs: [plan, surface, pair-created]
     if: ${{ needs.plan.outputs.mode == 'acquire' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 350
     strategy:
       fail-fast: false
-      max-parallel: 6
+      max-parallel: 4
       matrix:
         partition: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
         provider: [blastapi-public, mevblocker-rpc]
@@ -436,6 +479,48 @@ jobs:
         with:
           name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
+
+      - name: Restore and verify latest prior-attempt checkpoint
+        working-directory: nqc-census
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_RUN_ATTEMPT" -le 1 ]; then
+            echo "RMC007_PRIOR_ATTEMPT_RESTORE=NOT_APPLICABLE attempt=$GITHUB_RUN_ATTEMPT"
+            exit 0
+          fi
+          prefix="d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-$HEAD_SHA-$GITHUB_RUN_ID-"
+          listing="$RUNNER_TEMP/d07-prior-artifacts.txt"
+          gh api --paginate "repos/$REPOSITORY/actions/runs/$GITHUB_RUN_ID/artifacts?per_page=100"             --jq '.artifacts[] | select(.expired == false) | .name' > "$listing"
+          chosen=""
+          best=0
+          while IFS= read -r name; do
+            case "$name" in
+              "$prefix"*)
+                attempt="${name##*-}"
+                if [[ "$attempt" =~ ^[0-9]+$ ]] && [ "$attempt" -lt "$GITHUB_RUN_ATTEMPT" ] && [ "$attempt" -gt "$best" ]; then
+                  chosen="$name"
+                  best="$attempt"
+                fi
+                ;;
+            esac
+          done < "$listing"
+          test -n "$chosen" || {
+            echo "RMC007_PRIOR_ATTEMPT_RESTORE=FAIL reason=no_prior_artifact prefix=$prefix" >&2
+            exit 1
+          }
+          rm -rf "$D07_EVIDENCE"
+          mkdir -p "$D07_EVIDENCE"
+          gh run download "$GITHUB_RUN_ID" --repo "$REPOSITORY" --name "$chosen" --dir "$D07_EVIDENCE"
+          test -d "$D07_EVIDENCE/store"
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/prior-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/prior-store-verify.log"
+          echo "RMC007_PRIOR_ATTEMPT_RESTORE=PASS artifact=$chosen attempt=$best"
 
       - name: allPairs, pair runtime and getPair index partition
         working-directory: nqc-census
