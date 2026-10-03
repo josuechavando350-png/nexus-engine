@@ -329,6 +329,7 @@ jobs:
       D07_TESTS_EXPECTED: "11"
       D07_PIPELINE_TESTS_EXPECTED: "10"
       D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+      GH_TOKEN: ${{ github.token }}
 
     steps:
       - name: Checkout exact head
