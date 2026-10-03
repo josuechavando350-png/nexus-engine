@@ -17,17 +17,17 @@ export default function EnterpriseEvaluationPage() {
           <h1>Cuando el asunto penal también puede afectar empresa, patrimonio y reputación.</h1>
         </div>
         <div>
-          <p>No todos los asuntos deben entrar por una consulta estándar. Esta vía está pensada para empresarios, directivos, representantes legales, contadores y organizaciones que necesitan entender exposición, urgencia y siguiente movimiento.</p>
+          <p>No todos los asuntos deben entrar por una consulta estándar. Esta vía está pensada para empresarios, directivos, representantes legales, contadores y organizaciones que necesitan entender con precisión su exposición, la urgencia real y el siguiente movimiento.</p>
         </div>
       </div>
     </section>
     <section className="cp-section">
       <div className="cp-wrap cp-enterprise-process">
-        <div><p className="cp-eyebrow">Qué ocurre después</p><h2>Primero se determina si el asunto requiere <strong>intervención inmediata.</strong></h2></div>
+        <div><p className="cp-eyebrow">Qué ocurre después</p><h2>Primero determino si el asunto requiere <strong>intervención inmediata.</strong></h2></div>
         <div className="cp-enterprise-steps">
-          <article><h3>Contexto</h3><p>Identificamos autoridad, etapa, personas involucradas y plazo relevante sin pedir información sensible innecesaria.</p></article>
-          <article><h3>Riesgo</h3><p>Separa riesgo penal personal, riesgo corporativo y consecuencias operativas para evitar respuestas improvisadas.</p></article>
-          <article><h3>Estrategia</h3><p>Si el asunto es atendible, el despacho define el siguiente paso y el canal adecuado para documentos y análisis.</p></article>
+          <article><h3>Contexto</h3><p>Identifico autoridad, etapa, personas involucradas y plazos relevantes sin pedir información sensible innecesaria.</p></article>
+          <article><h3>Riesgo</h3><p>Distingo el riesgo penal personal, el riesgo corporativo y las consecuencias operativas antes de plantear una respuesta.</p></article>
+          <article><h3>Estrategia</h3><p>Si el asunto requiere intervención, defino el siguiente paso y el canal adecuado para revisar documentos y profundizar el análisis.</p></article>
         </div>
       </div>
     </section>
