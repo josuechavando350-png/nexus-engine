@@ -11,12 +11,12 @@ export const metadata: Metadata = {
 export default function RepresentativePage() {
   return <PageShell><StrategicLanding
     eyebrow="Representantes y administradores"
-    title="El cargo no explica por sí solo la responsabilidad."
-    lead="Firma, nombramiento y posición corporativa deben separarse de las decisiones, conocimiento y participación efectiva de cada persona."
+    title="El cargo importa. La participación real importa más."
+    lead="Firma, nombramiento y posición corporativa no sustituyen el análisis de decisiones, conocimiento y participación efectiva de cada persona."
     marker="RESPONSABILIDAD"
     context={[
-      "Una investigación puede partir de documentos donde aparece un representante, administrador o contador sin que eso describa por completo su intervención.",
-      "La defensa requiere reconstruir facultades, instrucciones, cadena de decisiones, acceso a información y actos concretos."
+      "Una investigación puede partir de documentos donde aparece un representante, administrador o contador. Eso, por sí solo, no describe toda su intervención ni el contexto de sus decisiones.",
+      "La defensa requiere reconstruir facultades, instrucciones, cadena de decisiones, acceso real a información y actos concretos."
     ]}
     scenarios={[
       { title: "Representante legal", copy: "Análisis de facultades formales frente a decisiones realmente adoptadas y ejecutadas." },
@@ -28,6 +28,6 @@ export default function RepresentativePage() {
       { label: "Defensa penal fiscal", href: "/defensa-penal-fiscal" },
       { label: "Evaluación empresarial", href: "/evaluacion-empresarial" }
     ]}
-    ctaTitle="La defensa empieza por reconstruir qué hizo realmente cada persona."
+    ctaTitle="La defensa empieza por separar el cargo formal de lo que cada persona hizo, supo y decidió realmente."
   /></PageShell>;
 }
