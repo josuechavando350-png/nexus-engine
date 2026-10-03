@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "REQUEST_D06_A1",
+  "d06_ref": "nqc/rmc-006-aave-reconciled-discovery-20260929",
+  "purpose": "D09 A0 is terminally certified; request one exact D06 A1 bootstrap, then derive the full D09 A1 authority for RMC-010 live parity",
+  "fixed_anchor": {
+    "block_number": 26102780,
+    "block_hash": "0x82e3ae0d9202704623d7805a594cf89a6577a2473106d0581b9221323e89d2fb"
+  },
+  "recovery": {
+    "d06_run_id": 36974088736,
+    "d09_run_id": 36977093849,
+    "d06_head_sha": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
+    "d09_head_sha": "6db82ca89d4ef3a66a1b236de95670a6967eb3ea"
+  }
+}

@@ -552,6 +552,19 @@ impl RealSourceCloseout {
         self.feasible_count > 0
     }
 
+    /// The current real-source artifact certifies only the exact source subset
+    /// imported from admitted RMC-008 bytes. It is intentionally not the
+    /// terminal, globally exhaustive Capital Census.
+    pub const fn terminal_capital_census_complete(&self) -> bool {
+        false
+    }
+
+    /// RMC-009 explicitly does not claim liquidatability, so actionable
+    /// requirement construction remains downstream RMC-012 authority.
+    pub const fn actionable_requirement_coverage_complete(&self) -> bool {
+        false
+    }
+
     fn payload_json(&self) -> Result<Json, CapitalError> {
         Ok(Json::object([
             ("schema_version", Json::uint(3)),
@@ -565,6 +578,26 @@ impl RealSourceCloseout {
                 Json::Bool(false),
             ),
             ("repayment_cashflow_sufficiency_claimed", Json::Bool(false)),
+            (
+                "terminal_capital_census_complete",
+                Json::Bool(self.terminal_capital_census_complete()),
+            ),
+            (
+                "actionable_requirement_coverage_complete",
+                Json::Bool(self.actionable_requirement_coverage_complete()),
+            ),
+            (
+                "terminal_blockers",
+                Json::array(
+                    [
+                        "GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED",
+                        "ACTIONABLE_REQUIREMENT_COVERAGE_DEFERRED_TO_RMC012",
+                        "REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED",
+                    ]
+                    .into_iter()
+                    .map(Json::string),
+                ),
+            ),
             ("generated_at", Json::string(self.generated_at.clone())),
             (
                 "generated_at_basis",
@@ -697,6 +730,8 @@ impl RealSourceCloseout {
                         "REAL_PNL_NOT_CERTIFIED",
                         "GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED",
                         "REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED",
+                        "TERMINAL_CAPITAL_CENSUS_NOT_CERTIFIED",
+                        "ACTIONABLE_REQUIREMENT_COVERAGE_NOT_CERTIFIED",
                     ]
                     .into_iter()
                     .chain(
@@ -908,7 +943,59 @@ pub fn verify_capital_bundle_with_upstream_replay_for_code(
 
 #[cfg(test)]
 mod real_source_shape_tests {
-    use super::require_nonempty_real_source_census;
+    use super::{require_nonempty_real_source_census, RealSourceCloseout};
+    use nqc_census_core::{ChainDomain, Hash32, StateAnchor};
+
+    fn hash(byte: u8) -> Hash32 {
+        Hash32::new([byte; 32]).unwrap_or_else(|_| unreachable!())
+    }
+
+    fn anchor() -> StateAnchor {
+        StateAnchor::new(
+            ChainDomain::new(1, hash(1), hash(2)).unwrap_or_else(|_| unreachable!()),
+            25_437_474,
+            hash(3),
+            hash(4),
+            1_700_000_000,
+            hash(5),
+        )
+        .unwrap_or_else(|_| unreachable!())
+    }
+
+    fn closeout_shape() -> RealSourceCloseout {
+        RealSourceCloseout {
+            generated_at: "2023-11-14T22:13:20Z".to_owned(),
+            observation_anchor: anchor(),
+            code_commit: "0123456789abcdef0123456789abcdef01234567".to_owned(),
+            code_tree: "89abcdef0123456789abcdef0123456789abcdef".to_owned(),
+            source_count: 1,
+            requirement_count: 0,
+            feasible_count: 0,
+            feasible_external_gas_count: 0,
+            rejected_count: 0,
+            d08_candidate_count: 1,
+            d08_source_count: 1,
+            d08_rejected_count: 0,
+            d09_borrower_count: 1,
+            d09_below_one_count: 1,
+            d09_not_below_one_count: 0,
+            d09_unavailable_count: 0,
+            d09_blocked_count: 1,
+            d09_requirement_count: 0,
+            d08_authority_artifact_sha256: hash(6),
+            d08_coverage_commitment: hash(7),
+            d08_output_set_commitment: hash(8),
+            d09_authority_artifact_sha256: hash(9),
+            d09_coverage_commitment: hash(10),
+            d09_output_set_commitment: hash(11),
+            zero_own_capital_proven: false,
+            capital_commitment: hash(12).to_hex(),
+            upstream_authority_commitment: hash(13).to_hex(),
+            upstream_authority_lock_commitment: hash(14),
+            upstream_authority_lock_sha256: hash(15),
+            closeout_commitment: hash(16),
+        }
+    }
 
     #[test]
     fn real_source_closeout_rejects_empty_source_census() {
@@ -916,5 +1003,51 @@ mod real_source_shape_tests {
         assert!(require_nonempty_real_source_census(0, 1).is_err());
         assert!(require_nonempty_real_source_census(1, 0).is_err());
         assert!(require_nonempty_real_source_census(1, 1).is_ok());
+    }
+
+    #[test]
+    fn real_source_subset_cannot_masquerade_as_terminal_capital_census() {
+        let closeout = closeout_shape();
+        assert!(!closeout.terminal_capital_census_complete());
+        assert!(!closeout.actionable_requirement_coverage_complete());
+
+        let payload = closeout.payload_json().unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            payload
+                .get("terminal_capital_census_complete")
+                .and_then(nqc_census_chain::json::Json::as_bool),
+            Some(false)
+        );
+        assert_eq!(
+            payload
+                .get("actionable_requirement_coverage_complete")
+                .and_then(nqc_census_chain::json::Json::as_bool),
+            Some(false)
+        );
+        let blockers = payload
+            .get("terminal_blockers")
+            .and_then(nqc_census_chain::json::Json::as_array)
+            .unwrap_or_else(|| unreachable!());
+        for expected in [
+            "GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED",
+            "ACTIONABLE_REQUIREMENT_COVERAGE_DEFERRED_TO_RMC012",
+            "REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED",
+        ] {
+            assert!(blockers
+                .iter()
+                .any(|value| value.as_str() == Some(expected)));
+        }
+        let non_claims = payload
+            .get("non_claims")
+            .and_then(nqc_census_chain::json::Json::as_array)
+            .unwrap_or_else(|| unreachable!());
+        for expected in [
+            "TERMINAL_CAPITAL_CENSUS_NOT_CERTIFIED",
+            "ACTIONABLE_REQUIREMENT_COVERAGE_NOT_CERTIFIED",
+        ] {
+            assert!(non_claims
+                .iter()
+                .any(|value| value.as_str() == Some(expected)));
+        }
     }
 }

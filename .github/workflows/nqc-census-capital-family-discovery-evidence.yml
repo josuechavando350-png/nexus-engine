@@ -1,0 +1,240 @@
+name: NQC RMC-011 Family Discovery Evidence
+# D11 queue-alignment marker: authoritative head only.
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
+      - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
+      - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
+      - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
+  push:
+    branches:
+      - "nqc/rmc-011-derived-authority-lock-20260930"
+    paths:
+      - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
+      - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
+      - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
+      - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc011-family-discovery-${{ github.event.pull_request.number || github.ref }}
+  # Supersede stale PR heads, but never cancel authoritative push/dispatch runs.
+  cancel-in-progress: true
+
+jobs:
+  family-discovery-evidence:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact head identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXACT_HEAD"
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Derive family discovery readiness
+        id: readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile             ci/nqc-census/verify-rmc011-family-discovery-readiness.py             ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
+          python3 -m py_compile \
+            ci/nqc-census/verify-rmc011-family-discovery-promotion.py \
+            ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-promotion.py
+          python3             ci/nqc-census/verify-rmc011-family-discovery-readiness.py             "$RUNNER_TEMP/rmc011-family-discovery-readiness.json"
+          ready="$(jq -r '.ready' "$RUNNER_TEMP/rmc011-family-discovery-readiness.json")"
+          already="$(jq -r '.already_authenticated' "$RUNNER_TEMP/rmc011-family-discovery-readiness.json")"
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+          echo "already_authenticated=$already" >> "$GITHUB_OUTPUT"
+          if [[ "$ready" != "true" ]]; then
+            echo "RMC011_FAMILY_DISCOVERY_EVIDENCE=BLOCKED"
+            jq -r '.unresolved_families[]? | "RMC011_UNRESOLVED_DISCOVERY_FAMILY=" + .'               "$RUNNER_TEMP/rmc011-family-discovery-readiness.json"
+          fi
+
+      - name: Fail closed while family discovery is unresolved
+        if: steps.readiness.outputs.ready != 'true' && steps.readiness.outputs.already_authenticated != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RMC011_FAMILY_DISCOVERY_EVIDENCE=BLOCKED_UNRESOLVED_FAMILIES" >&2
+          jq -r '.unresolved_families[]? | "RMC011_UNRESOLVED_DISCOVERY_FAMILY=" + .' \
+            "$RUNNER_TEMP/rmc011-family-discovery-readiness.json" >&2
+          exit 1
+
+      - name: Verify previously authenticated discovery reference
+        if: steps.readiness.outputs.already_authenticated == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/verify-rmc011-family-discovery-promotion.py
+          echo "RMC011_FAMILY_DISCOVERY_EVIDENCE=ALREADY_AUTHENTICATED"
+      - name: Authenticate all thirteen family evidence transports
+        if: steps.readiness.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT="$RUNNER_TEMP/rmc011-family-discovery-readiness.json"
+          ROOT="$RUNNER_TEMP/rmc011-family-discovery-transport"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT/artifacts"
+          : > "$ROOT/family-evidence-authentication.jsonl"
+
+          jq -c '.family_evidence[]' "$REPORT" | while read -r row; do
+            family="$(jq -r '.family' <<<"$row")"
+            repository="$(jq -r '.repository' <<<"$row")"
+            workflow_name="$(jq -r '.workflow_name' <<<"$row")"
+            run_id="$(jq -r '.run_id' <<<"$row")"
+            head_sha="$(jq -r '.head_sha' <<<"$row")"
+            artifact_id="$(jq -r '.artifact_id' <<<"$row")"
+            artifact_name="$(jq -r '.artifact_name' <<<"$row")"
+            artifact_digest="$(jq -r '.artifact_digest' <<<"$row")"
+            evidence_file="$(jq -r '.file' <<<"$row")"
+            evidence_sha="$(jq -r '.sha256' <<<"$row")"
+
+            test "$repository" = "$REPOSITORY"
+            [[ "$run_id" =~ ^[0-9]+$ ]]
+            [[ "$artifact_id" =~ ^[0-9]+$ ]]
+            [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+            [[ "$evidence_sha" =~ ^[0-9a-f]{64}$ ]]
+
+            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+            test "$(jq -r '.status' <<<"$run_json")" = "completed"
+            test "$(jq -r '.conclusion' <<<"$run_json")" = "success"
+            test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+            test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+            artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+            test "$(jq -r '.expired' <<<"$artifact_json")" = "false"
+            test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+            test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+            test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+            artifact_root="$ROOT/artifacts/$artifact_id"
+            if [[ ! -d "$artifact_root" ]]; then
+              mkdir -p "$artifact_root"
+              gh run download "$run_id"                 --repo "$REPOSITORY"                 --name "$artifact_name"                 --dir "$artifact_root"
+            fi
+
+            test -f "$artifact_root/$evidence_file"
+            actual_sha="$(sha256sum "$artifact_root/$evidence_file" | awk '{print $1}')"
+            test "$actual_sha" = "$evidence_sha"
+
+            jq -cn               --arg family "$family"               --arg repository "$repository"               --arg workflow_name "$workflow_name"               --argjson run_id "$run_id"               --arg head_sha "$head_sha"               --argjson artifact_id "$artifact_id"               --arg artifact_name "$artifact_name"               --arg artifact_digest "$artifact_digest"               --arg file "$evidence_file"               --arg sha256 "$actual_sha"               '{
+                family: $family,
+                repository: $repository,
+                workflow_name: $workflow_name,
+                run_id: $run_id,
+                head_sha: $head_sha,
+                artifact_id: $artifact_id,
+                artifact_name: $artifact_name,
+                artifact_digest: $artifact_digest,
+                file: $file,
+                sha256: $sha256
+              }' >> "$ROOT/family-evidence-authentication.jsonl"
+          done
+
+          test "$(wc -l < "$ROOT/family-evidence-authentication.jsonl")" -eq 13
+          test "$(jq -rs 'map(.family) | unique | length' "$ROOT/family-evidence-authentication.jsonl")" -eq 13
+          echo "RMC011_FAMILY_EVIDENCE_TRANSPORT_AUTHENTICATION=PASS families=13"
+
+      - name: Build authenticated family discovery evidence package
+        if: steps.readiness.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT="$RUNNER_TEMP/rmc011-family-discovery-readiness.json"
+          TRANSPORT="$RUNNER_TEMP/rmc011-family-discovery-transport"
+          PACKAGE="$RUNNER_TEMP/rmc011-family-discovery-evidence"
+          rm -rf "$PACKAGE"
+          mkdir -p "$PACKAGE"
+
+          cp --             ci/nqc-census/rmc011-capital-family-discovery.json             "$PACKAGE/rmc011-capital-family-discovery.json"
+          cp --             ci/nqc-census/rmc011-capital-source-universe.json             "$PACKAGE/rmc011-capital-source-universe.json"
+          cp --             "$REPORT"             "$PACKAGE/rmc011-family-discovery-readiness.json"
+          cp --             "$TRANSPORT/family-evidence-authentication.jsonl"             "$PACKAGE/family-evidence-authentication.jsonl"
+          cp -a "$TRANSPORT/artifacts" "$PACKAGE/artifacts"
+
+          discovery_sha="$(sha256sum "$PACKAGE/rmc011-capital-family-discovery.json" | awk '{print $1}')"
+          universe_sha="$(sha256sum "$PACKAGE/rmc011-capital-source-universe.json" | awk '{print $1}')"
+          readiness_sha="$(sha256sum "$PACKAGE/rmc011-family-discovery-readiness.json" | awk '{print $1}')"
+          transport_sha="$(sha256sum "$PACKAGE/family-evidence-authentication.jsonl" | awk '{print $1}')"
+
+          jq -n             --arg workflow "$GITHUB_WORKFLOW"             --arg head_sha "$EXACT_HEAD"             --arg run_id "$GITHUB_RUN_ID"             --arg run_attempt "$GITHUB_RUN_ATTEMPT"             --arg discovery_sha256 "$discovery_sha"             --arg source_universe_sha256 "$universe_sha"             --arg readiness_sha256 "$readiness_sha"             --arg transport_sha256 "$transport_sha"             '{
+              schema_version: 1,
+              stage: "RMC-011",
+              kind: "AUTHENTICATED_DISCOVERY",
+              status: "RMC011_FAMILY_DISCOVERY_AUTHENTICATED_COMPLETE",
+              workflow_name: $workflow,
+              head_sha: $head_sha,
+              run_id: ($run_id | tonumber),
+              run_attempt: ($run_attempt | tonumber),
+              family_count: 13,
+              unresolved_family_count: 0,
+              discovery_contract_sha256: $discovery_sha256,
+              source_universe_sha256: $source_universe_sha256,
+              readiness_sha256: $readiness_sha256,
+              family_evidence_transport_sha256: $transport_sha256,
+              global_source_nonexistence_claimed: false,
+              d11_terminal_closed: false
+            }' > "$PACKAGE/discovery-evidence.json"
+
+          (
+            cd "$PACKAGE"
+            LC_ALL=C find . -type f ! -name SHA256SUMS -print0               | LC_ALL=C sort -z               | xargs -0 sha256sum > SHA256SUMS
+            test -s SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+          echo "RMC011_FAMILY_DISCOVERY_AUTHENTICATED_COMPLETE=PASS"
+          echo "RMC011_FAMILY_DISCOVERY_EVIDENCE_SHA256=$(sha256sum "$PACKAGE/discovery-evidence.json" | awk '{print $1}')"
+
+      - name: Upload immutable family discovery evidence
+        if: steps.readiness.outputs.ready == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-family-discovery-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/rmc011-family-discovery-evidence/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

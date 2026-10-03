@@ -1,0 +1,57 @@
+{
+  "schema_version": 3,
+  "repository": "josuechavando350-png/nexus-engine",
+  "d06": {
+    "run_id": 36820687233,
+    "head_sha": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
+    "workflow_name": "NQC RMC-006 Aave Discovery",
+    "artifact_id": 11143129177,
+    "artifact_name": "nqc-rmc006-evidence-26095351-a33a012591cd6625ddb921d995bb1bd95b4a5406-36820687233-1",
+    "artifact_digest": "sha256:1cdb46fca52ebf1e0e2094b1c14b19384ecb7beceb50229b967592ab7a0308b4",
+    "authority_file": "closeout/evidence-manifest.json",
+    "anchor_file": "closeout/aave-discovery-run.json"
+  },
+  "d07": {
+    "run_id": 36952216731,
+    "head_sha": "1614b99a2bca9bd713df1f36e2cbecbaadf633f5",
+    "workflow_name": "NQC RMC-007 V2 Discovery",
+    "artifact_id": 11207794300,
+    "artifact_name": "nqc-rmc007-closeout-1614b99a2bca9bd713df1f36e2cbecbaadf633f5-36952216731-1",
+    "artifact_digest": "sha256:f462289674f6fb84a580e490215d082bccf022f3e73a73da2f1fd217938531e8",
+    "authority_file": "closeout/evidence-manifest.json",
+    "anchor_file": "closeout/v2-discovery-run.json"
+  },
+  "d08": {
+    "run_id": 36964016388,
+    "head_sha": "36c732a36789e1967ce7178010889427ad7cf0f2",
+    "workflow_name": "NQC RMC-008 State Oracle Token Admission",
+    "artifact_id": 11237887761,
+    "artifact_name": "nqc-rmc008-closeout-36c732a36789e1967ce7178010889427ad7cf0f2-36964016388-1",
+    "artifact_digest": "sha256:9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913",
+    "authority_file": "closeout/evidence-manifest.json",
+    "market_state_manifest": "closeout/market-state-manifest.jsonl",
+    "oracle_manifest": "closeout/oracle-manifest.jsonl",
+    "token_admission": "closeout/token-admission.jsonl",
+    "pool_and_factory_facts": "closeout/pool-and-factory-facts.json"
+  },
+  "d09": {
+    "run_id": 36823489219,
+    "head_sha": "6db82ca89d4ef3a66a1b236de95670a6967eb3ea",
+    "workflow_name": "NQC RMC-009 Aave Account Universe",
+    "artifact_id": 11159396055,
+    "artifact_name": "nqc-rmc009-closeout-6db82ca89d4ef3a66a1b236de95670a6967eb3ea-36823489219-1",
+    "artifact_digest": "sha256:9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6",
+    "authority_file": "closeout/evidence-manifest.json",
+    "account_manifest": "closeout/account-manifest.jsonl",
+    "account_summary": "closeout/account-summary.json"
+  },
+  "d10": {
+    "run_id": 37053225954,
+    "head_sha": "bcd5fd0dd454c367a0fb1b1b3f19a9a85eb1dee2",
+    "workflow_name": "NQC RMC-010 Live Full Incremental Parity",
+    "artifact_id": 11251694539,
+    "artifact_name": "nqc-rmc010-live-closeout-bcd5fd0dd454c367a0fb1b1b3f19a9a85eb1dee2-37053225954-1",
+    "artifact_digest": "sha256:9900ffa1dda1b0d6bd843a9f05776d8e7a47ff7d10934a8d5332c174fa9abde5",
+    "authority_file": "rmc010-certification.json"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "stage": "RMC-011",
+  "contract": "NQC_RMC011_CAPITAL_FAMILY_DISCOVERY_V1",
+  "observation_scope": "ETHEREUM_MAINNET_RMC008_CURRENT_ASSET_UNIVERSE_PLUS_AUTHENTICATED_EXTERNAL_PROVIDER_REGISTRY_AND_EXECUTION_PLAN_REQUIREMENT_CATALOG",
+  "completeness_rule": "EVERY_REQUIRED_FAMILY_HAS_ONE_EXHAUSTIVE_DISCOVERY_SURFACE_AND_EVERY_SURFACE_IS_AUTHENTICATED_AT_OR_FOR_THE_CERTIFIED_ANCHOR",
+  "families": [
+    {
+      "id": "AAVE_V3_FLASH_LOAN",
+      "surface": "RMC008_ADMITTED_AAVE_V3_RESERVES",
+      "authority": "RMC008_AUTHORITY_ARTIFACT",
+      "anchor_mode": "EXACT_STATE_ANCHOR",
+      "completeness": "EVERY_CURRENT_ADMITTED_AAVE_V3_RESERVE_ASSET_EVALUATED_FOR_FLASH_LOAN_TERMS_AND_AVAILABLE_LIQUIDITY",
+      "negative_proof": "RMC008_RESERVE_AND_TOKEN_ADMISSION_LEDGER",
+      "implementation": "nqc-census/crates/nqc-census-capital/src/upstream.rs"
+    },
+    {
+      "id": "UNISWAP_V2_FLASH_SWAP",
+      "surface": "RMC007_RMC008_ADMITTED_UNISWAP_V2_PAIRS",
+      "authority": "RMC008_AUTHORITY_ARTIFACT",
+      "anchor_mode": "EXACT_STATE_ANCHOR",
+      "completeness": "EVERY_ADMITTED_V2_PAIR_EVALUATED_ON_BOTH_TOKEN_SIDES_WITH_D08_TOKEN_BLOCKERS_PRESERVED",
+      "negative_proof": "RMC007_DISCOVERY_PLUS_RMC008_STATE_ADMISSION",
+      "implementation": "nqc-census/crates/nqc-census-capital/src/upstream.rs"
+    },
+    {
+      "id": "BALANCER_V2_FLASH_LOAN",
+      "surface": "CANONICAL_BALANCER_V2_VAULT",
+      "authority": "D11_DUAL_PROVIDER_RPC_ACQUISITION",
+      "anchor_mode": "EXACT_STATE_ANCHOR",
+      "completeness": "CANONICAL_VAULT_CODE_IDENTITY_PAUSE_STATE_FEE_COLLECTOR_FEE_AND_VAULT_BALANCE_EVALUATED_FOR_EVERY_RMC008_CURRENT_AAVE_ASSET_WITH_TOKEN_BLOCKERS_PRESERVED",
+      "negative_proof": "DUAL_PROVIDER_EXACT_VAULT_AND_ASSET_STATE",
+      "implementation": "nqc-census/crates/nqc-census-capital/src/balancer_live.rs + .github/workflows/nqc-census-capital-real-source-certification.yml"
+    },
+    {
+      "id": "UNISWAP_V3_FLASH",
+      "surface": "CANONICAL_UNISWAP_V3_FACTORY_POOLCREATED_EVENT_UNION",
+      "authority": "D11_DUAL_PROVIDER_RPC_ACQUISITION",
+      "anchor_mode": "DEPLOYMENT_TO_EXACT_STATE_ANCHOR",
+      "completeness": "ALL_FACTORY_POOLCREATED_EVENTS_THROUGH_ANCHOR_RECONCILED_AND_EVERY_POOL_INTERSECTING_AN_RMC008_CURRENT_AAVE_ASSET_EVALUATED_FOR_RUNTIME_MEMBERSHIP_TOKEN_BALANCE_ACTIVE_LIQUIDITY_FEE_AND_D08_TOKEN_BLOCKERS",
+      "negative_proof": "FACTORY_EVENT_CENSUS_PLUS_DUAL_PROVIDER_POOL_STATE",
+      "implementation": "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs + nqc-census/crates/nqc-census-capital/src/uniswap_v3_live.rs + nqc-census/crates/nqc-census-capital/src/uniswap_v3_acquire.rs + .github/workflows/nqc-census-capital-real-source-certification.yml"
+    },
+    {
+      "id": "EXTERNAL_GAS_CREDIT",
+      "surface": "NQC_AUTHENTICATED_EXTERNAL_CAPITAL_PROVIDER_REGISTRY",
+      "authority": "D11_SIGNED_OR_CONTENT_ADDRESSED_PROVIDER_TRANSCRIPTS",
+      "anchor_mode": "ANCHOR_AVAILABILITY_PLUS_TERMS_VALIDITY_WINDOW",
+      "completeness": "EVERY_REGISTERED_GAS_CREDIT_FACILITY_HAS_TWO_INDEPENDENT_MATCHING_PROVIDER_TRANSCRIPTS_OR_EXPLICIT_REJECTION",
+      "negative_proof": "REGISTRY_MEMBERSHIP_AND_PROVIDER_TRANSCRIPT_REJECTION_LEDGER",
+      "implementation": "nqc-census/crates/nqc-census-capital/src/gas_credit.rs"
+    },
+    {
+      "id": "EXTERNAL_GAS_SPONSOR",
+      "surface": "NQC_AUTHENTICATED_EXTERNAL_CAPITAL_PROVIDER_REGISTRY",
+      "authority": "D11_SIGNED_OR_CONTENT_ADDRESSED_PROVIDER_TRANSCRIPTS",
+      "anchor_mode": "ANCHOR_AVAILABILITY_PLUS_TERMS_VALIDITY_WINDOW",
+      "completeness": "EVERY_REGISTERED_GAS_SPONSOR_EVALUATED_FOR_NATIVE_GAS_LIMIT_FEE_ASSET_TERMS_AND_AVAILABILITY",
+      "negative_proof": "REGISTRY_MEMBERSHIP_AND_PROVIDER_TRANSCRIPT_REJECTION_LEDGER",
+      "implementation": "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs + PENDING_D11_AUTHENTICATED_ACQUISITION"
+    },
+    {
+      "id": "TRANSIENT_EXTERNAL_CREDIT",
+      "surface": "NQC_AUTHENTICATED_EXTERNAL_CAPITAL_PROVIDER_REGISTRY",
+      "authority": "D11_SIGNED_OR_CONTENT_ADDRESSED_PROVIDER_TRANSCRIPTS",
+      "anchor_mode": "ANCHOR_AVAILABILITY_PLUS_TERMS_VALIDITY_WINDOW",
+      "completeness": "EVERY_REGISTERED_TRANSIENT_CREDIT_FACILITY_EVALUATED_FOR_ASSET_LIMIT_FEE_REPAYMENT_ATOMICITY_COLLATERAL_AND_CAPS",
+      "negative_proof": "REGISTRY_MEMBERSHIP_AND_PROVIDER_TRANSCRIPT_REJECTION_LEDGER",
+      "implementation": "nqc-census/crates/nqc-census-capital/src/transient_credit.rs + PENDING_D11_AUTHENTICATED_ACQUISITION"
+    },
+    {
+      "id": "COLLATERALIZED_BORROWING",
+      "surface": "RMC008_ADMITTED_AAVE_V3_RESERVES_PLUS_NQC_AUTHENTICATED_EXTERNAL_PROVIDER_REGISTRY_PLUS_DECLARED_PERMISSIONLESS_FACILITY_CATALOG_PLUS_NQC_ZERO_OWN_CAPITAL_COLLATERAL_PATH_CATALOG",
+      "authority": "RMC008_AUTHORITY_ARTIFACT_PLUS_D11_PROVIDER_TRANSCRIPTS_AND_BLOCK_PINNED_ONCHAIN_STATE",
+      "anchor_mode": "EXACT_STATE_ANCHOR",
+      "completeness": "EVERY_RMC008_CURRENT_AAVE_V3_RESERVE_EVALUATED_FOR_PROTOCOL_SIDE_BORROWABILITY_AND_EVERY_ADDITIONAL_DECLARED_FACILITY_EVALUATED_FOR_COLLATERAL_ORACLE_LIQUIDATION_INTEREST_LIMITS_AND_CAPS; D08_TOKEN_EXECUTION_BLOCKERS_PRESERVED; PORTFOLIO_COLLATERAL_FEASIBILITY_REMAINS_UNCLAIMED; EVERY_EXECUTABLE_DEBT_PATH_REQUIRES_AN_AUTHORIZED_NON_OPERATOR_COLLATERAL_FUNDING_PATH",
+      "negative_proof": "CATALOG_COVERAGE_AND_FACILITY_REJECTION_LEDGER_PLUS_COLLATERAL_PATH_CATALOG_PLUS_ZERO_OWN_CAPITAL_DEBT_FAMILY_RESOLUTION",
+      "implementation": "nqc-census/crates/nqc-census-capital/src/aave_debt_discovery.rs + nqc-census/crates/nqc-census-capital/src/bin/nqc-rmc011-aave-debt-discovery.rs + nqc-census/crates/nqc-census-capital/src/external_debt.rs + ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json + ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py + PENDING_D11_PORTFOLIO_COLLATERAL_ORACLE_EMODE_RESOLUTION + PENDING_D11_AUTHENTICATED_ACQUISITION + ci/nqc-census/rmc011-collateral-funding-path-catalog.json + ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py + ci/nqc-census/verify-rmc011-debt-family-resolution.py"
+    },
+    {
+      "id": "PERSISTENT_DEBT",
+      "surface": "RMC008_ADMITTED_AAVE_V3_RESERVES_PLUS_NQC_AUTHENTICATED_EXTERNAL_PROVIDER_REGISTRY_PLUS_DECLARED_PERMISSIONLESS_FACILITY_CATALOG_PLUS_NQC_ZERO_OWN_CAPITAL_COLLATERAL_PATH_CATALOG",
+      "authority": "RMC008_AUTHORITY_ARTIFACT_PLUS_D11_PROVIDER_TRANSCRIPTS_AND_BLOCK_PINNED_ONCHAIN_STATE",
+      "anchor_mode": "EXACT_STATE_ANCHOR_PLUS_TERMS_VALIDITY_WINDOW",
+      "completeness": "EVERY_RMC008_CURRENT_AAVE_V3_RESERVE_EVALUATED_FOR_PROTOCOL_SIDE_PERSISTENT_BORROWING_TERMS_AND_EVERY_ADDITIONAL_DECLARED_PERSISTENT_FACILITY_EVALUATED_FOR_INTEREST_COLLATERAL_LIQUIDATION_SOLVENCY_ORACLE_LIQUIDITY_WITHDRAWAL_AND_DISAPPEARANCE_RISK; D08_TOKEN_EXECUTION_BLOCKERS_PRESERVED; PORTFOLIO_COLLATERAL_FEASIBILITY_REMAINS_UNCLAIMED; EVERY_EXECUTABLE_DEBT_PATH_REQUIRES_AN_AUTHORIZED_NON_OPERATOR_COLLATERAL_FUNDING_PATH",
+      "negative_proof": "CATALOG_COVERAGE_AND_FACILITY_REJECTION_LEDGER_PLUS_COLLATERAL_PATH_CATALOG_PLUS_ZERO_OWN_CAPITAL_DEBT_FAMILY_RESOLUTION",
+      "implementation": "nqc-census/crates/nqc-census-capital/src/aave_debt_discovery.rs + nqc-census/crates/nqc-census-capital/src/bin/nqc-rmc011-aave-debt-discovery.rs + nqc-census/crates/nqc-census-capital/src/external_debt.rs + ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json + ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py + PENDING_D11_PORTFOLIO_COLLATERAL_ORACLE_EMODE_RESOLUTION + PENDING_D11_AUTHENTICATED_ACQUISITION + ci/nqc-census/rmc011-collateral-funding-path-catalog.json + ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py + ci/nqc-census/verify-rmc011-debt-family-resolution.py"
+    },
+    {
+      "id": "INVENTORY_REQUIREMENT",
+      "surface": "NQC_EXECUTION_PLAN_REQUIREMENT_CATALOG_PLUS_EXTERNAL_PROVIDER_REGISTRY",
+      "authority": "CONTENT_ADDRESSED_EXECUTION_PLAN_AND_PROVIDER_REGISTRY",
+      "anchor_mode": "PLAN_VERSION_PLUS_EXACT_STATE_ANCHOR_WHERE_ASSET_BALANCE_IS_OBSERVED",
+      "completeness": "EVERY_EXECUTION_PLAN_INVENTORY_LEG_CLASSIFIED_AND_ANY_EXTERNAL_INVENTORY_PROVIDER_EVALUATED; OPERATOR_INVENTORY_IS_ALWAYS_INELIGIBLE_FOR_ZERO_OWN_CAPITAL",
+      "negative_proof": "EXECUTION_PLAN_REQUIREMENT_RECOUNT_AND_PROVIDER_REJECTION_LEDGER",
+      "implementation": "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json + ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+    },
+    {
+      "id": "BOND_OR_STAKE",
+      "surface": "NQC_EXECUTION_PLAN_REQUIREMENT_CATALOG_PLUS_EXTERNAL_PROVIDER_REGISTRY",
+      "authority": "CONTENT_ADDRESSED_EXECUTION_PLAN_AND_PROVIDER_REGISTRY",
+      "anchor_mode": "PLAN_VERSION_PLUS_EXACT_STATE_ANCHOR_WHERE_ONCHAIN",
+      "completeness": "EVERY_BOND_OR_STAKE_REQUIREMENT_IN_SUPPORTED_EXECUTION_PLANS_ENUMERATED_AND_ITS_EXTERNAL_FUNDING_PATH_ADMITTED_OR_REJECTED",
+      "negative_proof": "EXECUTION_PLAN_REQUIREMENT_RECOUNT_AND_PROVIDER_REJECTION_LEDGER",
+      "implementation": "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json + ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+    },
+    {
+      "id": "SOLVER_OR_BUILDER_DEPOSIT",
+      "surface": "NQC_EXECUTION_PLAN_REQUIREMENT_CATALOG_PLUS_AUTHENTICATED_BUILDER_SOLVER_PROVIDER_REGISTRY",
+      "authority": "CONTENT_ADDRESSED_EXECUTION_PLAN_AND_PROVIDER_TERMS",
+      "anchor_mode": "PLAN_VERSION_PLUS_TERMS_VALIDITY_WINDOW",
+      "completeness": "EVERY_SUPPORTED_BUILDER_OR_SOLVER_DEPOSIT_REQUIREMENT_AND_FUNDING_PROVIDER_ENUMERATED",
+      "negative_proof": "EXECUTION_PLAN_REQUIREMENT_RECOUNT_AND_PROVIDER_REJECTION_LEDGER",
+      "implementation": "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json + ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+    },
+    {
+      "id": "INTRA_BLOCK_TEMPORARY_LOCK",
+      "surface": "NQC_EXECUTION_PLAN_REQUIREMENT_CATALOG_PLUS_EXTERNAL_PROVIDER_REGISTRY",
+      "authority": "CONTENT_ADDRESSED_EXECUTION_PLAN_AND_BLOCK_PINNED_PROVIDER_STATE",
+      "anchor_mode": "EXACT_STATE_ANCHOR",
+      "completeness": "EVERY_TEMPORARY_LOCK_REQUIREMENT_ENUMERATED_WITH_ASSET_AMOUNT_RELEASE_SEMANTICS_AND_EXTERNAL_FUNDING_PATH",
+      "negative_proof": "EXECUTION_PLAN_REQUIREMENT_RECOUNT_AND_PROVIDER_REJECTION_LEDGER",
+      "implementation": "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json + ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+    }
+  ],
+  "non_claims": [
+    "DISCOVERY_PLAN_IS_NOT_DISCOVERY_EVIDENCE",
+    "MODEL_OR_IMPLEMENTATION_IS_NOT_SOURCE_AVAILABILITY",
+    "HISTORICAL_T36_BALANCER_PARITY_IS_NOT_CURRENT_D11_SOURCE_EVIDENCE",
+    "PUBLIC_WEB_SEARCH_IS_NOT_CAPITAL_SOURCE_AUTHORITY",
+    "D11_DOES_NOT_CLAIM_ACTIONABILITY"
+  ]
+}

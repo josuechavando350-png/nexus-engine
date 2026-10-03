@@ -1,0 +1,43 @@
+name: NQC RMC-007 Stale Run Cleanup
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-011-derived-authority-lock-20260930"
+    paths:
+      - ".github/workflows/nqc-rmc007-stale-run-cleanup.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  cancel-stale-failed-rmc007:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Cancel stale failed D07 live acquisitions only
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          CURRENT_HEAD: ${{ github.sha }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          cancelled=0
+          while read -r run head status; do
+            [ -n "$run" ] || continue
+            [ "$head" != "$CURRENT_HEAD" ] || continue
+            if [ "$status" = queued ] || [ "$status" = in_progress ]; then
+              failed=$(gh api "repos/$REPOSITORY/actions/runs/$run/jobs?per_page=100" \
+                --jq '[.jobs[] | select(.conclusion == "failure")] | length')
+              if [ "$failed" != 0 ]; then
+                gh api --method POST "repos/$REPOSITORY/actions/runs/$run/cancel"
+                echo "RMC007_STALE_FAILED_CANCELLED run=$run head=$head failed_jobs=$failed"
+                cancelled=$((cancelled + 1))
+              fi
+            fi
+          done < <(gh api "repos/$REPOSITORY/actions/workflows/nqc-census-v2-discovery.yml/runs?event=workflow_dispatch&branch=$BRANCH&per_page=50" \
+            --jq '.workflow_runs[] | [.id, .head_sha, .status] | @tsv')
+          echo "RMC007_STALE_FAILED_CANCEL_COUNT=$cancelled"

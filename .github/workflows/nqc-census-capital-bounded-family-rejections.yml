@@ -1,0 +1,172 @@
+name: NQC RMC-011 Bounded Family Rejection Evidence
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
+      - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - ".github/workflows/nqc-census-capital-bounded-family-rejections.yml"
+  push:
+    branches:
+      - "nqc/rmc-011-derived-authority-lock-20260930"
+    paths:
+      - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
+      - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - ".github/workflows/nqc-census-capital-bounded-family-rejections.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc011-bounded-family-rejections-${{ github.event.pull_request.number || github.ref }}
+  # Supersede stale PR heads, but never cancel authoritative push/dispatch runs.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  bounded-family-rejection-evidence:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact head identity
+        shell: bash
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXACT_HEAD"
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Validate bounded rejection derivation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile             ci/nqc-census/verify-rmc011-bounded-family-rejections.py             ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
+          python3             ci/nqc-census/verify-rmc011-bounded-family-rejections.py             "$RUNNER_TEMP/rmc011-bounded-family-rejections.json"
+
+      - name: Build per-family immutable evidence
+        shell: bash
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          PACKAGE="$RUNNER_TEMP/rmc011-bounded-family-rejection-evidence"
+          REPORT="$RUNNER_TEMP/rmc011-bounded-family-rejections.json"
+          rm -rf "$PACKAGE"
+          mkdir -p "$PACKAGE/families"
+          cp -- "$REPORT" "$PACKAGE/rejection-report.json"
+
+          python3 - "$REPORT" "$PACKAGE" "$EXACT_HEAD" "$GITHUB_WORKFLOW" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          report_path, package_path, head_sha, workflow, run_id, run_attempt = sys.argv[1:]
+          report = json.loads(pathlib.Path(report_path).read_text(encoding="utf-8"))
+          package = pathlib.Path(package_path)
+
+          assert report["status"] == "RMC011_BOUNDED_FAMILY_REJECTIONS_READY"
+          assert report["family_count"] == 7
+          assert report["global_nonexistence_claimed"] is False
+          assert report["d11_terminal_closed"] is False
+
+          for row in report["families"]:
+              family = row["family"]
+              target = package / "families" / family
+              target.mkdir(parents=True, exist_ok=False)
+              evidence = {
+                  "schema_version": 1,
+                  "stage": "RMC-011",
+                  "kind": "EXHAUSTIVE_REJECTION",
+                  "family": family,
+                  "outcome": row["outcome"],
+                  "scope": row["scope"],
+                  "basis": row["basis"],
+                  "workflow_name": workflow,
+                  "head_sha": head_sha,
+                  "run_id": int(run_id),
+                  "run_attempt": int(run_attempt),
+                  "global_nonexistence_claimed": False,
+                  "source_availability_claimed": False,
+                  "d11_terminal_closed": False,
+              }
+              (target / "evidence.json").write_text(
+                  json.dumps(evidence, sort_keys=True, separators=(",", ":")) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+
+          test "$(find "$PACKAGE/families" -mindepth 1 -maxdepth 1 -type d | wc -l)" -eq 7
+          test "$(find "$PACKAGE/families" -name evidence.json -type f | wc -l)" -eq 7
+
+          python3 - "$PACKAGE" "$EXACT_HEAD" "$GITHUB_WORKFLOW" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          package_path, head_sha, workflow, run_id, run_attempt = sys.argv[1:]
+          package = pathlib.Path(package_path)
+          rows = []
+          for evidence_path in sorted((package / "families").glob("*/evidence.json")):
+              data = evidence_path.read_bytes()
+              row = json.loads(data)
+              rows.append({
+                  "family": row["family"],
+                  "file": evidence_path.relative_to(package).as_posix(),
+                  "sha256": hashlib.sha256(data).hexdigest(),
+              })
+
+          assert len(rows) == 7
+          assert len({row["family"] for row in rows}) == 7
+          index = {
+              "schema_version": 1,
+              "stage": "RMC-011",
+              "status": "RMC011_BOUNDED_FAMILY_REJECTION_EVIDENCE_INDEX",
+              "workflow_name": workflow,
+              "head_sha": head_sha,
+              "run_id": int(run_id),
+              "run_attempt": int(run_attempt),
+              "family_count": len(rows),
+              "families": rows,
+              "artifact_metadata_pending_upload": True,
+              "d11_terminal_closed": False,
+          }
+          (package / "evidence-index.json").write_text(
+              json.dumps(index, sort_keys=True, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          (
+            cd "$PACKAGE"
+            LC_ALL=C find . -type f ! -name SHA256SUMS -print0               | LC_ALL=C sort -z               | xargs -0 sha256sum > SHA256SUMS
+            test -s SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+          echo "RMC011_BOUNDED_FAMILY_REJECTION_EVIDENCE=PASS"
+          echo "RMC011_BOUNDED_REJECTION_REPORT_SHA256=$(sha256sum "$PACKAGE/rejection-report.json" | awk '{print $1}')"
+
+      - name: Upload immutable bounded-family rejection evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-bounded-family-rejections-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/rmc011-bounded-family-rejection-evidence/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

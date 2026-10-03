@@ -287,6 +287,51 @@ fn source_constructor_rejects_public_semantic_bypasses() -> TestResult {
 }
 
 #[test]
+fn bond_or_stake_requirement_is_canonical_and_class_separated() -> TestResult {
+    let asset = CapitalAsset::Token(address(20));
+    let requirement = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(99)),
+        anchor(100),
+        RequiredAtomicity::Flexible,
+        false,
+        vec![CapitalRequirementLeg::new(
+            RequirementKind::BondOrStake,
+            asset,
+            Amount256::from_u128(250),
+            vec![CapitalClass::BondOrStake],
+        )?],
+        evidence(),
+    )?;
+
+    let encoded = requirement.canonical_encode();
+    let decoded = CapitalRequirement::decode_canonical(&encoded)?;
+    assert_eq!(decoded, requirement);
+    assert_eq!(decoded.legs().len(), 1);
+    assert_eq!(decoded.legs()[0].kind(), RequirementKind::BondOrStake);
+    assert_eq!(
+        decoded.legs()[0].allowed_classes(),
+        &[CapitalClass::BondOrStake]
+    );
+
+    let wrong_class_source = source(
+        CapitalClass::InventoryRequirement,
+        asset,
+        1_000,
+        asset,
+        RepaymentSemantics::NoRepayment,
+    )?;
+    assert!(matches!(
+        evaluate_capital_feasibility(&requirement, &[wrong_class_source]),
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::NoCompatibleSource,
+            failed_leg: Some(RequirementKind::BondOrStake),
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
 fn requirement_constructor_rejects_zero_observation_evidence() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let principal = CapitalRequirementLeg::new(
@@ -542,6 +587,148 @@ fn native_gas_flag_and_gas_leg_must_match_exactly() -> TestResult {
             vec![CapitalClass::GasFunding, CapitalClass::FlashSwap],
         ),
         Err(CapitalError::GasLegMustUseGasFundingOnly)
+    ));
+    Ok(())
+}
+
+#[test]
+fn same_transaction_action_can_use_deadline_bound_external_gas_credit() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let gas = CapitalAsset::NativeGas;
+
+    let principal_source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(100),
+        provider_namespace: 101,
+        provider_locator_hash: hash(31),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(32)),
+        asset: token,
+        maximum_available: Amount256::from_u128(100),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::RepaymentFailure,
+        ],
+        evidence: evidence(),
+    })?;
+    let gas_credit = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::GasFunding,
+        anchor: anchor(100),
+        provider_namespace: 102,
+        provider_locator_hash: hash(33),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(34)),
+        asset: gas,
+        maximum_available: Amount256::from_u128(10),
+        fee_model: FeeModel::None,
+        repayment_asset: gas,
+        repayment: RepaymentSemantics::DeadlineBlocks(64),
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::RepaymentFailure,
+        ],
+        evidence: evidence(),
+    })?;
+
+    let required = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Gas,
+                gas,
+                Amount256::from_u128(10),
+                vec![CapitalClass::GasFunding],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                gas,
+                Amount256::from_u128(10),
+                vec![CapitalClass::GasFunding],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        true,
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &required,
+            &[principal_source, gas_credit],
+        )?,
+        CapitalFeasibility::Feasible { .. }
+    ));
+    Ok(())
+}
+
+#[test]
+fn deadline_bound_gas_credit_cannot_fund_same_transaction_action_principal() -> TestResult {
+    let gas = CapitalAsset::NativeGas;
+    let gas_credit = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::GasFunding,
+        anchor: anchor(100),
+        provider_namespace: 103,
+        provider_locator_hash: hash(35),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(36)),
+        asset: gas,
+        maximum_available: Amount256::from_u128(10),
+        fee_model: FeeModel::None,
+        repayment_asset: gas,
+        repayment: RepaymentSemantics::DeadlineBlocks(64),
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::RepaymentFailure,
+        ],
+        evidence: evidence(),
+    })?;
+
+    let required = requirement(
+        vec![CapitalRequirementLeg::new(
+            RequirementKind::ActionPrincipal,
+            gas,
+            Amount256::from_u128(10),
+            vec![CapitalClass::GasFunding],
+        )?],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(&required, &[gas_credit])?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::AtomicityMismatch,
+            failed_leg: Some(RequirementKind::ActionPrincipal),
+            ..
+        }
     ));
     Ok(())
 }
@@ -3104,6 +3291,277 @@ fn operator_treasury_cannot_claim_external_ownership() -> TestResult {
     assert!(matches!(
         result,
         Err(nqc_census_capital::CapitalError::OwnershipProviderMismatch)
+    ));
+    Ok(())
+}
+
+#[test]
+fn canonical_objects_reject_evidence_counts_above_u16() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let oversized_evidence = (1_u32..=u32::from(u16::MAX) + 1)
+        .map(|index| {
+            let mut digest = [0_u8; 32];
+            digest[28..].copy_from_slice(&index.to_be_bytes());
+            CapitalEvidenceRef::Observation(digest)
+        })
+        .collect::<Vec<_>>();
+    assert_eq!(oversized_evidence.len(), usize::from(u16::MAX) + 1);
+
+    let source_result = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: oversized_evidence.clone(),
+    });
+    assert!(matches!(
+        source_result,
+        Err(nqc_census_capital::CapitalError::InvalidCanonical(
+            "too many capital source evidence references"
+        ))
+    ));
+
+    let requirement_result = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(50)),
+        anchor(100),
+        RequiredAtomicity::SameTransaction,
+        false,
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(1),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(1),
+                vec![CapitalClass::FlashSwap],
+            )?,
+        ],
+        oversized_evidence,
+    );
+    assert!(matches!(
+        requirement_result,
+        Err(nqc_census_capital::CapitalError::InvalidCanonical(
+            "too many capital requirement evidence references"
+        ))
+    ));
+    Ok(())
+}
+
+#[test]
+fn proportional_collateral_tracks_allocated_draw_exactly() -> TestResult {
+    let debt = CapitalAsset::Token(address(60));
+    let collateral = CapitalAsset::Token(address(61));
+    let terms = PersistentDebtTerms {
+        interest_model_hash: hash(70),
+        liquidation_model_hash: hash(71),
+        solvency_model_hash: hash(72),
+        oracle_risk_hash: hash(73),
+        liquidity_withdrawal_risk_hash: hash(74),
+        facility_disappearance_risk_hash: hash(75),
+    };
+
+    let borrowing = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::CollateralizedBorrowing,
+        anchor: anchor(100),
+        provider_namespace: 201,
+        provider_locator_hash: hash(62),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(63)),
+        asset: debt,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: debt,
+        repayment: RepaymentSemantics::Persistent(terms),
+        collateral: CollateralRequirement::Proportional {
+            asset: collateral,
+            numerator: 3,
+            denominator: 2,
+            rounding: RoundingMode::Ceil,
+            liquidation_conditions_hash: hash(64),
+        },
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::CapacityChanged,
+            CapitalFailureMode::CollateralLiquidation,
+            CapitalFailureMode::OracleRisk,
+            CapitalFailureMode::LiquidityWithdrawal,
+            CapitalFailureMode::FacilityDisappearance,
+        ],
+        evidence: evidence(),
+    })?;
+
+    let collateral_funder = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::InventoryRequirement,
+        anchor: anchor(100),
+        provider_namespace: 202,
+        provider_locator_hash: hash(65),
+        provider_kind: CapitalProviderKind::OtherExternal,
+        ownership: CapitalOwnership::External,
+        source_contract: None,
+        asset: collateral,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: collateral,
+        repayment: RepaymentSemantics::NoRepayment,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::CapacityChanged,
+        ],
+        evidence: evidence(),
+    })?;
+
+    let exact = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(80)),
+        anchor(100),
+        RequiredAtomicity::Flexible,
+        false,
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                debt,
+                Amount256::from_u128(100),
+                vec![CapitalClass::CollateralizedBorrowing],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Collateral,
+                collateral,
+                Amount256::from_u128(150),
+                vec![CapitalClass::InventoryRequirement],
+            )?,
+        ],
+        evidence(),
+    )?;
+
+    assert!(matches!(
+        evaluate_capital_feasibility(&exact, &[borrowing.clone(), collateral_funder.clone()]),
+        CapitalFeasibility::Feasible { .. }
+    ));
+
+    let underfunded = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(81)),
+        anchor(100),
+        RequiredAtomicity::Flexible,
+        false,
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                debt,
+                Amount256::from_u128(100),
+                vec![CapitalClass::CollateralizedBorrowing],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Collateral,
+                collateral,
+                Amount256::from_u128(149),
+                vec![CapitalClass::InventoryRequirement],
+            )?,
+        ],
+        evidence(),
+    )?;
+
+    assert!(matches!(
+        evaluate_capital_feasibility(&underfunded, &[borrowing, collateral_funder]),
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::CollateralRequirementUnfunded,
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
+fn proportional_collateral_must_round_up_and_have_a_positive_ratio() -> TestResult {
+    let debt = CapitalAsset::Token(address(60));
+    let collateral = CapitalAsset::Token(address(61));
+    let terms = PersistentDebtTerms {
+        interest_model_hash: hash(70),
+        liquidation_model_hash: hash(71),
+        solvency_model_hash: hash(72),
+        oracle_risk_hash: hash(73),
+        liquidity_withdrawal_risk_hash: hash(74),
+        facility_disappearance_risk_hash: hash(75),
+    };
+    let base = CapitalSourceSpec {
+        class: CapitalClass::CollateralizedBorrowing,
+        anchor: anchor(100),
+        provider_namespace: 203,
+        provider_locator_hash: hash(66),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(67)),
+        asset: debt,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: debt,
+        repayment: RepaymentSemantics::Persistent(terms),
+        collateral: CollateralRequirement::Proportional {
+            asset: collateral,
+            numerator: 3,
+            denominator: 2,
+            rounding: RoundingMode::Ceil,
+            liquidation_conditions_hash: hash(68),
+        },
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::CollateralLiquidation,
+        ],
+        evidence: evidence(),
+    };
+
+    let mut floor = base.clone();
+    floor.collateral = CollateralRequirement::Proportional {
+        asset: collateral,
+        numerator: 3,
+        denominator: 2,
+        rounding: RoundingMode::Floor,
+        liquidation_conditions_hash: hash(68),
+    };
+    assert!(matches!(
+        CapitalSource::new(floor),
+        Err(CapitalError::InvalidCanonical(
+            "proportional collateral must round up"
+        ))
+    ));
+
+    let mut zero_ratio = base;
+    zero_ratio.collateral = CollateralRequirement::Proportional {
+        asset: collateral,
+        numerator: 0,
+        denominator: 2,
+        rounding: RoundingMode::Ceil,
+        liquidation_conditions_hash: hash(68),
+    };
+    assert!(matches!(
+        CapitalSource::new(zero_ratio),
+        Err(CapitalError::InvalidRatio)
     ));
     Ok(())
 }

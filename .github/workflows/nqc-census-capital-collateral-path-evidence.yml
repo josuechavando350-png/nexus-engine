@@ -1,0 +1,89 @@
+name: NQC RMC-011 Collateral Funding Path Catalog Evidence
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
+      - ".github/workflows/nqc-census-capital-collateral-path-evidence.yml"
+  push:
+    branches:
+      - "nqc/rmc-011-derived-authority-lock-20260930"
+    paths:
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
+      - ".github/workflows/nqc-census-capital-collateral-path-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc011-collateral-path-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  collateral-path-catalog-evidence:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify exact head identity
+        shell: bash
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXACT_HEAD"
+      - name: Validate collateral funding path catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile             ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py             ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py -v
+          python3             ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py             ci/nqc-census/rmc011-collateral-funding-path-catalog.json             "$RUNNER_TEMP/rmc011-collateral-path-report.json"
+      - name: Build immutable evidence package
+        shell: bash
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          PACKAGE="$RUNNER_TEMP/rmc011-collateral-path-evidence"
+          rm -rf "$PACKAGE"
+          mkdir -p "$PACKAGE"
+          cp ci/nqc-census/rmc011-collateral-funding-path-catalog.json "$PACKAGE/catalog.json"
+          cp "$RUNNER_TEMP/rmc011-collateral-path-report.json" "$PACKAGE/report.json"
+          catalog_sha="$(sha256sum "$PACKAGE/catalog.json" | awk '{print $1}')"
+          report_sha="$(sha256sum "$PACKAGE/report.json" | awk '{print $1}')"
+          jq -n             --arg workflow "$GITHUB_WORKFLOW"             --arg head_sha "$EXACT_HEAD"             --arg run_id "$GITHUB_RUN_ID"             --arg run_attempt "$GITHUB_RUN_ATTEMPT"             --arg catalog_sha256 "$catalog_sha"             --arg report_sha256 "$report_sha"             '{
+              schema_version: 1,
+              stage: "RMC-011",
+              status: "RMC011_COLLATERAL_FUNDING_PATH_EVIDENCE_PASS",
+              workflow_name: $workflow,
+              head_sha: $head_sha,
+              run_id: ($run_id | tonumber),
+              run_attempt: ($run_attempt | tonumber),
+              terminal_claim: false,
+              files: [
+                {path:"catalog.json",sha256:$catalog_sha256},
+                {path:"report.json",sha256:$report_sha256}
+              ]
+            }' > "$PACKAGE/evidence.json"
+          (
+            cd "$PACKAGE"
+            LC_ALL=C find . -type f ! -name SHA256SUMS -print0               | LC_ALL=C sort -z               | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+      - name: Upload collateral-path evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-collateral-path-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/rmc011-collateral-path-evidence/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

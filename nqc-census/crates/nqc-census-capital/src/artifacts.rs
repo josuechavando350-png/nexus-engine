@@ -1,7 +1,7 @@
 use crate::{
     Amount256, CapitalAsset, CapitalCensusLedger, CapitalCertificationContext, CapitalClass,
-    CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement, CapitalSource,
-    CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
+    CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalOwnership, CapitalRequirement,
+    CapitalSource, CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
     RepaymentSemantics, RequirementKind, TemporaryLock, UpstreamCensusStage,
     UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
     CAPITAL_SCHEMA_VERSION,
@@ -19,7 +19,7 @@ pub const CAPITAL_SUMMARY_FILE: &str = "capital-census-summary.json";
 pub const CAPITAL_UPSTREAM_AUTHORITY_FILE: &str = "capital-upstream-authority.json";
 pub const CAPITAL_EVIDENCE_MANIFEST_FILE: &str = "capital-evidence-manifest.json";
 
-const CAPITAL_SUMMARY_SCHEMA_VERSION: u64 = 6;
+const CAPITAL_SUMMARY_SCHEMA_VERSION: u64 = 7;
 const CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION: u64 = 3;
 const UPSTREAM_AUTHORITY_SCHEMA_VERSION: u64 = 7;
 const GENERATED_AT_BASIS: &str = "OBSERVATION_ANCHOR_BLOCK_TIMESTAMP";
@@ -100,6 +100,10 @@ pub struct CapitalArtifactFile {
 }
 
 impl CapitalArtifactFile {
+    pub fn from_bytes(name: &'static str, bytes: Vec<u8>) -> Self {
+        Self::new(name, bytes)
+    }
+
     fn new(name: &'static str, bytes: Vec<u8>) -> Self {
         let sha256 = sha256(&bytes);
         Self {
@@ -132,6 +136,9 @@ pub struct CapitalArtifactVerification {
     pub feasibility_count: usize,
     pub feasible_count: usize,
     pub feasible_external_gas_count: usize,
+    pub external_gas_funding_source_count: usize,
+    pub external_gas_funding_executable_capacity: Amount256,
+    pub external_gas_funding_available_at_anchor: bool,
     pub rejection_count: usize,
     pub capital_commitment: String,
     pub upstream_authority_commitment: String,
@@ -469,6 +476,29 @@ pub fn verify_capital_artifact_bundle(
     let requirement_count = usize_json(&summary, "requirement_count")?;
     let feasible_count = usize_json(&summary, "feasible_count")?;
     let feasible_external_gas_count = usize_json(&summary, "feasible_external_gas_count")?;
+    let external_gas_funding_source_count =
+        usize_json(&summary, "external_gas_funding_source_count")?;
+    let external_gas_funding_executable_capacity = summary
+        .str_field("external_gas_funding_executable_capacity")
+        .map_err(|_| CapitalError::InvalidCanonical("external gas capacity missing"))?;
+    validate_amount_hex(external_gas_funding_executable_capacity)?;
+    let external_gas_funding_available_at_anchor = summary
+        .get("external_gas_funding_available_at_anchor")
+        .and_then(Json::as_bool)
+        .ok_or(CapitalError::InvalidCanonical(
+            "external gas availability flag missing",
+        ))?;
+    let (recounted_external_gas_sources, recounted_external_gas_capacity) =
+        external_gas_funding_snapshot(reconstructed.sources())?;
+    if external_gas_funding_source_count != recounted_external_gas_sources
+        || external_gas_funding_executable_capacity != recounted_external_gas_capacity.to_hex()
+        || external_gas_funding_available_at_anchor
+            != (recounted_external_gas_sources > 0 && !recounted_external_gas_capacity.is_zero())
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "external gas funding summary differs from canonical sources",
+        ));
+    }
     let rejected_count = usize_json(&summary, "rejected_count")?;
     if source_count != sources.len()
         || requirement_count != requirements.len()
@@ -597,6 +627,9 @@ pub fn verify_capital_artifact_bundle(
         feasibility_count: feasibility.len(),
         feasible_count,
         feasible_external_gas_count,
+        external_gas_funding_source_count,
+        external_gas_funding_executable_capacity: recounted_external_gas_capacity,
+        external_gas_funding_available_at_anchor,
         rejection_count: rejected_count,
         capital_commitment,
         upstream_authority_commitment,
@@ -668,6 +701,11 @@ pub fn export_capital_artifacts(
         canonical(&upstream_authority_json(authority, provenance))?,
     );
 
+    let (external_gas_funding_source_count, external_gas_funding_executable_capacity) =
+        external_gas_funding_snapshot(ledger.sources())?;
+    let external_gas_funding_available_at_anchor = external_gas_funding_source_count > 0
+        && !external_gas_funding_executable_capacity.is_zero();
+
     let summary_json = Json::object([
         ("schema_version", Json::uint(CAPITAL_SUMMARY_SCHEMA_VERSION)),
         (
@@ -691,33 +729,45 @@ pub fn export_capital_artifacts(
         ),
         (
             "source_count",
-            Json::uint(u64_count(certificate.summary.source_count)),
+            Json::uint(u64_count(certificate.summary.source_count)?),
         ),
         (
             "requirement_count",
-            Json::uint(u64_count(certificate.summary.requirement_count)),
+            Json::uint(u64_count(certificate.summary.requirement_count)?),
         ),
         (
             "feasible_count",
-            Json::uint(u64_count(certificate.summary.feasible_count)),
+            Json::uint(u64_count(certificate.summary.feasible_count)?),
         ),
         (
             "feasible_external_gas_count",
-            Json::uint(u64_count(certificate.summary.feasible_external_gas_count)),
+            Json::uint(u64_count(certificate.summary.feasible_external_gas_count)?),
+        ),
+        (
+            "external_gas_funding_source_count",
+            Json::uint(u64_count(external_gas_funding_source_count)?),
+        ),
+        (
+            "external_gas_funding_executable_capacity",
+            Json::string(external_gas_funding_executable_capacity.to_hex()),
+        ),
+        (
+            "external_gas_funding_available_at_anchor",
+            Json::Bool(external_gas_funding_available_at_anchor),
         ),
         (
             "rejected_count",
-            Json::uint(u64_count(certificate.summary.rejected_count)),
+            Json::uint(u64_count(certificate.summary.rejected_count)?),
         ),
         (
             "operator_owned_sources_observed",
             Json::uint(u64_count(
                 certificate.summary.operator_owned_sources_observed,
-            )),
+            )?),
         ),
         (
             "operator_owned_sources_used",
-            Json::uint(u64_count(certificate.summary.operator_owned_sources_used)),
+            Json::uint(u64_count(certificate.summary.operator_owned_sources_used)?),
         ),
         (
             "zero_own_capital_proven",
@@ -736,7 +786,8 @@ pub fn export_capital_artifacts(
                     .summary
                     .sources_by_class
                     .iter()
-                    .map(|(class, count)| (class.code(), Json::uint(u64_count(*count)))),
+                    .map(|(class, count)| Ok((class.code(), Json::uint(u64_count(*count)?))))
+                    .collect::<Result<Vec<_>, CapitalError>>()?,
             ),
         ),
         ("unexplained_capital_failure_count", Json::uint(0)),
@@ -752,6 +803,22 @@ pub fn export_capital_artifacts(
         &summary,
         &upstream_authority,
     ];
+    let manifest_artifacts = listed
+        .iter()
+        .map(|file| {
+            Ok(Json::object([
+                ("name", Json::string(file.name)),
+                ("sha256", Json::string(file.sha256_hex())),
+                (
+                    "size_bytes",
+                    Json::uint(u64::try_from(file.bytes.len()).map_err(|_| {
+                        CapitalError::InvalidCanonical("capital artifact size overflow")
+                    })?),
+                ),
+            ]))
+        })
+        .collect::<Result<Vec<_>, CapitalError>>()?;
+
     let manifest_json = Json::object([
         (
             "schema_version",
@@ -776,19 +843,7 @@ pub fn export_capital_artifacts(
             "upstream_authority_commitment",
             Json::string(hex(certificate.upstream_authority_commitment.as_bytes())),
         ),
-        (
-            "artifacts",
-            Json::array(listed.into_iter().map(|file| {
-                Json::object([
-                    ("name", Json::string(file.name)),
-                    ("sha256", Json::string(file.sha256_hex())),
-                    (
-                        "size_bytes",
-                        Json::uint(u64::try_from(file.bytes.len()).unwrap_or(u64::MAX)),
-                    ),
-                ])
-            })),
-        ),
+        ("artifacts", Json::array(manifest_artifacts)),
         (
             "non_claims",
             Json::array([
@@ -897,6 +952,12 @@ fn upstream_authority_json(
             })),
         ),
     ])
+}
+
+pub fn decode_upstream_authority_artifact(
+    bytes: &[u8],
+) -> Result<(CapitalCertificationContext, ArtifactProvenance), CapitalError> {
+    parse_upstream_authority(bytes)
 }
 
 pub(crate) fn parse_upstream_authority(
@@ -1261,8 +1322,27 @@ fn collateral_json(collateral: CollateralRequirement) -> Json {
             liquidation_conditions_hash,
         } => Json::object([
             ("required", Json::Bool(true)),
+            ("kind", Json::string("FIXED")),
             ("asset", Json::string(asset.code())),
             ("amount", Json::string(amount.to_hex())),
+            (
+                "liquidation_conditions_hash",
+                Json::string(liquidation_conditions_hash.to_hex()),
+            ),
+        ]),
+        CollateralRequirement::Proportional {
+            asset,
+            numerator,
+            denominator,
+            rounding,
+            liquidation_conditions_hash,
+        } => Json::object([
+            ("required", Json::Bool(true)),
+            ("kind", Json::string("PROPORTIONAL")),
+            ("asset", Json::string(asset.code())),
+            ("numerator", Json::uint(numerator)),
+            ("denominator", Json::uint(denominator)),
+            ("rounding", Json::string(rounding.code())),
             (
                 "liquidation_conditions_hash",
                 Json::string(liquidation_conditions_hash.to_hex()),
@@ -1566,8 +1646,8 @@ fn hex(bytes: &[u8]) -> String {
     out
 }
 
-fn u64_count(value: usize) -> u64 {
-    u64::try_from(value).unwrap_or(u64::MAX)
+fn u64_count(value: usize) -> Result<u64, CapitalError> {
+    u64::try_from(value).map_err(|_| CapitalError::InvalidCanonical("capital count overflow"))
 }
 
 #[allow(dead_code)]
@@ -1691,6 +1771,30 @@ fn nullable_string(value: &Json) -> Result<Option<String>, CapitalError> {
             "expected string or null in capital artifact",
         )),
     }
+}
+
+fn external_gas_funding_snapshot<'a>(
+    sources: impl Iterator<Item = &'a CapitalSource>,
+) -> Result<(usize, Amount256), CapitalError> {
+    let mut count = 0_usize;
+    let mut capacity = Amount256::ZERO;
+    for source in sources {
+        if source.class() != CapitalClass::GasFunding
+            || source.ownership() != CapitalOwnership::External
+            || !source.execution_eligible()
+        {
+            continue;
+        }
+        let executable = source.executable_capacity()?;
+        if executable.is_zero() {
+            continue;
+        }
+        count = count.checked_add(1).ok_or(CapitalError::InvalidCanonical(
+            "external gas source count overflow",
+        ))?;
+        capacity = capacity.checked_add(executable)?;
+    }
+    Ok((count, capacity))
 }
 
 fn decode_plain_hex(text: &str) -> Result<Vec<u8>, CapitalError> {

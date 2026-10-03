@@ -1,0 +1,256 @@
+name: NQC RMC-011 Terminal Readiness
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
+      - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
+      - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - "ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json"
+      - "ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-debt-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_debt_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-protocol-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-terminal-family-partition.py"
+      - "ci/nqc-census/test_verify_rmc011_terminal_family_partition.py"
+      - ".github/workflows/nqc-census-capital-bounded-family-rejections.yml"
+      - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
+      - "ci/nqc-census/acquire_rmc011_balancer_v2.py"
+      - "ci/nqc-census/test_acquire_rmc011_balancer_v2.py"
+      - "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs"
+      - "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs"
+      - "nqc-census/crates/nqc-census-capital/tests/gas_sponsor.rs"
+      - "nqc-census/crates/nqc-census-capital/src/external_debt.rs"
+      - "nqc-census/crates/nqc-census-capital/tests/external_debt.rs"
+      - "nqc-census/crates/nqc-census-capital/src/transient_credit.rs"
+      - "nqc-census/crates/nqc-census-capital/tests/transient_credit.rs"
+      - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
+      - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
+      - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
+      - "ci/nqc-census/capital-census-scope.json"
+      - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
+      - ".github/workflows/nqc-census-capital-terminal-readiness.yml"
+  push:
+    branches:
+      - "nqc/rmc-011-derived-authority-lock-20260930"
+    paths:
+      - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
+      - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
+      - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - "ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json"
+      - "ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-debt-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_debt_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-protocol-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-terminal-family-partition.py"
+      - "ci/nqc-census/test_verify_rmc011_terminal_family_partition.py"
+      - ".github/workflows/nqc-census-capital-bounded-family-rejections.yml"
+      - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
+      - "ci/nqc-census/acquire_rmc011_balancer_v2.py"
+      - "ci/nqc-census/test_acquire_rmc011_balancer_v2.py"
+      - "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs"
+      - "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs"
+      - "nqc-census/crates/nqc-census-capital/tests/gas_sponsor.rs"
+      - "nqc-census/crates/nqc-census-capital/src/external_debt.rs"
+      - "nqc-census/crates/nqc-census-capital/tests/external_debt.rs"
+      - "nqc-census/crates/nqc-census-capital/src/transient_credit.rs"
+      - "nqc-census/crates/nqc-census-capital/tests/transient_credit.rs"
+      - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
+      - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
+      - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
+      - "ci/nqc-census/capital-census-scope.json"
+      - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
+      - ".github/workflows/nqc-census-capital-terminal-readiness.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc011-terminal-readiness-${{ github.event.pull_request.number || github.ref }}
+  # Supersede stale PR heads, but never cancel authoritative push/dispatch runs.
+  cancel-in-progress: true
+
+jobs:
+  source-universe-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify exact head identity
+        shell: bash
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXACT_HEAD"
+      - name: Validate D11 source-universe truth
+        run: |
+          python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-readiness.py ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-readiness.py /tmp/rmc011-family-discovery-readiness.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-promotion.py ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
+          python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
+          python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-rejections.py ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-rejections.py /tmp/rmc011-bounded-family-rejections.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-promotion.py ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-debt-family-promotion.py ci/nqc-census/test_verify_rmc011_debt_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_debt_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-debt-family-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-protocol-family-promotion.py ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-protocol-family-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-terminal-family-partition.py ci/nqc-census/test_verify_rmc011_terminal_family_partition.py
+          python3 ci/nqc-census/test_verify_rmc011_terminal_family_partition.py -v
+          python3 ci/nqc-census/verify-rmc011-terminal-family-partition.py
+          python3 -m py_compile ci/nqc-census/acquire_rmc011_balancer_v2.py ci/nqc-census/test_acquire_rmc011_balancer_v2.py
+          python3 ci/nqc-census/test_acquire_rmc011_balancer_v2.py -v
+      - name: Enforce terminal claim boundary
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          FILE=ci/nqc-census/rmc011-capital-source-universe.json
+          if jq -e '.terminal_claim_allowed == true' "$FILE" >/dev/null; then
+            jq -e '
+              .claim_scope == "SOURCE_UNIVERSE_READINESS_ONLY" and
+              .status == "CAPITAL_SOURCE_UNIVERSE_COMPLETE" and
+              .d11_terminal_closed == false and
+              (.families | all(.terminally_resolved == true)) and
+              .family_universe_discovery.status == "AUTHENTICATED_COMPLETE" and
+              .unknown_family_count == 0
+            ' "$FILE" >/dev/null
+
+            python3 - "$FILE" > /tmp/rmc011-terminal-evidence.tsv <<'PY'
+          import json
+          import sys
+
+          doc = json.load(open(sys.argv[1]))
+          rows = []
+          for family in doc["families"]:
+              evidence = family["resolution_evidence"]
+              rows.append((family["id"], evidence))
+          rows.append(("FAMILY_UNIVERSE_DISCOVERY", doc["family_universe_discovery"]["evidence"]))
+
+          for label, evidence in rows:
+              print("\t".join([
+                  label,
+                  evidence["repository"],
+                  evidence["workflow_name"],
+                  str(evidence["run_id"]),
+                  evidence["head_sha"],
+                  str(evidence["artifact_id"]),
+                  evidence["artifact_name"],
+                  evidence["artifact_digest"],
+                  evidence["file"],
+                  evidence["sha256"],
+              ]))
+          PY
+
+            while IFS=$'\t' read -r label repository workflow_name run_id head_sha artifact_id artifact_name artifact_digest evidence_file evidence_sha; do
+              test "$repository" = "$REPOSITORY"
+
+              run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+              test "$(jq -r '.status' <<<"$run_json")" = completed
+              test "$(jq -r '.conclusion' <<<"$run_json")" = success
+              test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+              test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+              artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+              test "$(jq -r '.expired' <<<"$artifact_json")" = false
+              test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+              test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+              test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+              out="$RUNNER_TEMP/rmc011-terminal-evidence/$label"
+              rm -rf "$out"
+              mkdir -p "$out"
+              gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$out"
+
+              test -f "$out/$evidence_file"
+              actual="$(sha256sum "$out/$evidence_file" | awk '{print $1}')"
+              test "$actual" = "$evidence_sha"
+              echo "RMC011_TERMINAL_EVIDENCE_AUTHENTICATED label=$label run=$run_id artifact=$artifact_id head=$head_sha sha256=$actual"
+            done < /tmp/rmc011-terminal-evidence.tsv
+
+            echo RMC011_SOURCE_UNIVERSE_READINESS=PASS
+          else
+            echo "RMC011_SOURCE_UNIVERSE_READINESS=BLOCKED_INCOMPLETE_SOURCE_UNIVERSE" >&2
+            jq -r '.families[] | select(.terminally_resolved == false) | "RMC011_UNRESOLVED_FAMILY=" + .id + " status=" + .status' "$FILE" >&2
+            jq -r '"RMC011_FAMILY_UNIVERSE_DISCOVERY=" + .family_universe_discovery.status' "$FILE" >&2
+            exit 1
+          fi

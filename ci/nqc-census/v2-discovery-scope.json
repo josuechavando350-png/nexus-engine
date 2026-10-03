@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "status": "DECLARED_NOT_YET_CERTIFIED",
+  "chain": "ethereum-mainnet",
+  "chain_id": 1,
+  "protocol": "UniswapV2",
+  "discovery_root_kind": "V2Factory",
+  "factory": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
+  "factory_basis": "Protocol/Fork PFT-SRC-002 historical witness",
+  "observation_anchor": {
+    "block_number": 26102780,
+    "block_hash": "0x82e3ae0d9202704623d7805a594cf89a6577a2473106d0581b9221323e89d2fb"
+  },
+  "excluded_claims": [
+    "ALL_UNISWAP_V2_FORKS",
+    "ALL_V2_DEXES",
+    "GLOBAL_MARKET_CENSUS",
+    "PROFITABILITY",
+    "ROUTING_CAPACITY"
+  ]
+}
