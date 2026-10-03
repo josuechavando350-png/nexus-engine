@@ -2,12 +2,13 @@
 //!
 //! The provider capture proves the complete factory PoolCreated history through
 //! the certified D08 anchor, intersects that universe with D08 execution-
-//! compatible assets, verifies direct factory membership plus pool runtime
+//! scoped assets (preserving D08 execution blockers), verifies direct factory membership plus pool runtime
 //! identity at the exact anchor, and records the exact pool token balances that
 //! bound flash capacity. A separate reconciler requires two independent
 //! provider captures to agree byte-canonically on every semantic field.
 
 use crate::{
+    upstream::{execution_blockers, token_execution_blockers},
     uniswap_v3_live::{
         decode_uniswap_v3_pool_created, uniswap_v3_factory_interface,
         verify_uniswap_v3_factory_runtime, verify_uniswap_v3_pool_runtime, UniswapV3PoolIdentity,
@@ -229,55 +230,8 @@ fn census_assets(
     market_state: &[u8],
     token_admission: &[u8],
 ) -> Result<BTreeMap<Address, Vec<String>>, ChainError> {
-    let mut token_blockers = BTreeMap::new();
-    let token_text = std::str::from_utf8(token_admission)
-        .map_err(|_| ChainError::Evidence("D08 token admission is not UTF-8".into()))?;
-    for line in token_text.lines().filter(|line| !line.is_empty()) {
-        let row = Json::parse(line.as_bytes())?;
-        let token = Address::parse_hex(row.str_field("token")?)?;
-        let execution = row.get("execution_compatibility").ok_or_else(|| {
-            ChainError::Evidence("D08 token row has no execution_compatibility".into())
-        })?;
-        let blocker_rows = execution
-            .get("blockers")
-            .and_then(Json::as_array)
-            .ok_or_else(|| {
-                ChainError::Evidence("D08 token execution blockers are not an array".into())
-            })?;
-        let mut blockers = blocker_rows
-            .iter()
-            .map(|value| {
-                value.as_str().map(ToOwned::to_owned).ok_or_else(|| {
-                    ChainError::Evidence("D08 token execution blocker is not text".into())
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-        blockers.sort();
-        if blockers.windows(2).any(|pair| pair[0] == pair[1]) {
-            return Err(ChainError::Evidence(
-                "D08 token execution blockers contain duplicates".into(),
-            ));
-        }
-        match execution.str_field("status")? {
-            "PROVEN_COMPATIBLE" if blockers.is_empty() => {}
-            "BLOCKED" if !blockers.is_empty() => {}
-            "PROVEN_COMPATIBLE" | "BLOCKED" => {
-                return Err(ChainError::Evidence(
-                    "D08 token compatibility status contradicts blockers".into(),
-                ))
-            }
-            _ => {
-                return Err(ChainError::Evidence(
-                    "D08 token compatibility status is unknown".into(),
-                ))
-            }
-        }
-        if token_blockers.insert(token, blockers).is_some() {
-            return Err(ChainError::Evidence(
-                "D08 token admission repeats token".into(),
-            ));
-        }
-    }
+    let token_blockers = token_execution_blockers(token_admission)
+        .map_err(|error| ChainError::Evidence(format!("D08 token admission invalid: {error}")))?;
 
     let mut assets = BTreeMap::new();
     let state_text = std::str::from_utf8(market_state)
@@ -290,16 +244,19 @@ fn census_assets(
             continue;
         }
         let asset = Address::parse_hex(row.str_field("asset")?)?;
-        let blockers = token_blockers
-            .get(&asset)
-            .ok_or_else(|| {
-                ChainError::Evidence("D08 current Aave asset has no token-admission row".into())
-            })?
-            .clone();
+        let blockers = execution_blockers(
+            &token_blockers,
+            asset,
+            "AAVE_RESERVE_UNDERLYING",
+        )
+        .map_err(|error| ChainError::Evidence(format!(
+            "D08 current Aave asset has no role-scoped token admission: {error}"
+        )))?
+        .to_vec();
         if let Some(existing) = assets.insert(asset, blockers.clone()) {
             if existing != blockers {
                 return Err(ChainError::Evidence(
-                    "D08 token blockers disagree across current Aave markets".into(),
+                    "D08 Aave token blockers disagree across current markets".into(),
                 ));
             }
         }
