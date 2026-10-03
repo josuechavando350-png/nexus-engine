@@ -1,0 +1,44 @@
+name: TMP Cancel Stale D07 Rerun
+
+on:
+  push:
+    branches:
+      - "nqc/rmc007-resumable-rerun-hardening-20261002"
+    paths:
+      - ".github/workflows/tmp-cancel-stale-d07-rerun.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  cancel-exact-stale-rerun:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Cancel only the obsolete D07 rerun
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          TARGET_RUN: "37050685084"
+          TARGET_HEAD: "3c695a99e4f14cc5e5355c1d3ebfb9eb0657afc9"
+        run: |
+          set -euo pipefail
+          run_json="$(gh api "repos/$REPOSITORY/actions/runs/$TARGET_RUN")"
+          test "$(jq -r '.head_sha' <<<"$run_json")" = "$TARGET_HEAD"
+          test "$(jq -r '.run_attempt' <<<"$run_json")" = "2"
+          status="$(jq -r '.status' <<<"$run_json")"
+          case "$status" in
+            pending|queued|in_progress)
+              gh api --method POST "repos/$REPOSITORY/actions/runs/$TARGET_RUN/cancel"
+              echo "TMP_STALE_D07_RERUN_CANCELLED run=$TARGET_RUN head=$TARGET_HEAD status=$status"
+              ;;
+            completed)
+              echo "target already completed; no cancellation needed"
+              ;;
+            *)
+              echo "unexpected target status: $status" >&2
+              exit 1
+              ;;
+          esac
