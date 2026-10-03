@@ -9,15 +9,15 @@ export const metadata: Metadata = {
 };
 
 const paragraphs = [
-  "Un asunto de defraudación fiscal exige leer simultáneamente hechos, contabilidad, actos de autoridad y consecuencias penales. La defensa no puede limitarse a repetir la discusión tributaria.",
-  "Importa distinguir quién tomó decisiones, quién produjo o recibió información, qué documentación respalda las operaciones y cómo se construyó la hipótesis de la autoridad.",
-  "Eduardo Cano inició su trayectoria profesional en el área de Delitos Fiscales y Financieros de la Procuraduría Fiscal de la Federación y posteriormente dirigió investigaciones en esa materia. Esa experiencia institucional forma parte del enfoque actual de defensa."
+  "Un asunto de defraudación fiscal exige leer, al mismo tiempo, los hechos, la contabilidad, los actos de autoridad y su posible dimensión penal. La defensa pierde precisión cuando se limita a repetir la discusión tributaria.",
+  "La reconstrucción debe distinguir quién decidió, quién produjo o recibió información, qué documentación respalda las operaciones y sobre qué elementos se construye la hipótesis de la autoridad.",
+  "Inicié mi trayectoria profesional en el área de Delitos Fiscales y Financieros de la Procuraduría Fiscal de la Federación y posteriormente dirigí investigaciones en esa materia. Hoy esa experiencia institucional forma parte de mi manera de leer y defender un expediente penal-fiscal."
 ] as const;
 
 export default function TaxFraudDefensePage() {
   return <PageShell>
-    <InteriorHero eyebrow="Defraudación fiscal" title="El expediente penal empieza mucho antes de la imputación." lead="Fiscal, financiero y penal deben leerse como un solo problema cuando la investigación converge." marker="PENAL FISCAL" />
+    <InteriorHero eyebrow="Defraudación fiscal" title="El expediente penal empieza mucho antes de la imputación." lead="Cuando una investigación converge, lo fiscal, lo financiero y lo penal deben leerse como partes de un mismo problema, sin confundir sus reglas ni sus consecuencias." marker="PENAL FISCAL" />
     <section className="cp-page"><div className="cp-wrap cp-page-copy"><EditorialParagraphs paragraphs={paragraphs} /></div></section>
-    <InteriorCta eyebrow="Evaluación penal-fiscal" title="Primero hay que reconstruir qué está sosteniendo la autoridad." />
+    <InteriorCta eyebrow="Evaluación penal-fiscal" title="Antes de reaccionar, hay que reconstruir con precisión qué sostiene la autoridad y sobre qué evidencia." />
   </PageShell>;
 }
