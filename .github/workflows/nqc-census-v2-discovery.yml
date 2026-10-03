@@ -10,6 +10,8 @@ on:
       - nqc-census/Cargo.lock
       - nqc-census/crates/nqc-census-v2-discovery/**
       - ci/nqc-census/v2-discovery-providers.json
+      - ci/nqc-census/verify_rmc007_recovery_surface.py
+      - ci/nqc-census/test_rmc007_recovery_surface.py
   workflow_dispatch:
     inputs:
       stages_run_id:
@@ -30,6 +32,11 @@ permissions:
 env:
   D07_RECOVERY_RUN: "37050685084"
   D07_RECOVERY_HEAD: "3c695a99e4f14cc5e5355c1d3ebfb9eb0657afc9"
+  D07_A1_NUMBER: "26095351"
+  D07_A1_HASH: "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781"
+  # Exact consumed bytes from seed artifact 11248347776, independently hashed.
+  D07_RECOVERY_CURRENT_SHA256: "888654f4bc61f68beaf2da676440848a1d0a2d73383fafaa756e7a656176b931"
+  D07_RECOVERY_BOUNDARY_SHA256: "a24ed12e4d6d235bb37ee01d2a45c7d4516aa05272646dc8f0d0d05c6581b172"
 
 # Every live Census acquisition that loads the shared public RPC endpoints
 # joins one repository-wide group: at most one runs at a time and none is
@@ -150,6 +157,21 @@ jobs:
           print(f"RMC007_RECOVERY_SEED_ARTIFACTS_PASS expected={len(expected)}")
           PY
           echo "RMC007_RECOVERY_SEED_IDENTITY_PASS run=$D07_RECOVERY_RUN head=$D07_RECOVERY_HEAD"
+
+      - name: Recovery contract regressions and exact real seed bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s ci/nqc-census -p test_rmc007_recovery_surface.py -v
+          python3 -O -m unittest discover -s ci/nqc-census -p test_rmc007_recovery_surface.py -v
+          seed_dir=/tmp/nqc-rmc007-recovery-contract
+          gh run download "$D07_RECOVERY_RUN" --repo "${{ github.repository }}" \
+            --name "d07-surface-$D07_RECOVERY_HEAD-$D07_RECOVERY_RUN" --dir "$seed_dir"
+          echo "$D07_RECOVERY_CURRENT_SHA256  $seed_dir/v2-current-surface.json" | sha256sum --check --strict
+          echo "$D07_RECOVERY_BOUNDARY_SHA256  $seed_dir/v2-factory-boundary.json" | sha256sum --check --strict
+          python3 ci/nqc-census/verify_rmc007_recovery_surface.py \
+            --current "$seed_dir/v2-current-surface.json" --boundary "$seed_dir/v2-factory-boundary.json" \
+            --number "$D07_A1_NUMBER" --hash "$D07_A1_HASH"
 
       - name: Verify no authority duplication or transaction path
         shell: bash
@@ -373,25 +395,11 @@ jobs:
             done
             target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/store-verify.log"
             grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/store-verify.log"
-            python3 - "$D07_EVIDENCE/v2-current-surface.json" "$D07_EVIDENCE/v2-factory-boundary.json" <<'PY'
-          import json, sys
-          current, boundary = map(lambda p: json.load(open(p)), sys.argv[1:])
-          anchors = []
-          def walk(value):
-              if isinstance(value, dict):
-                  if "block_number" in value and "block_hash" in value:
-                      anchors.append((value["block_number"], value["block_hash"]))
-                  for child in value.values():
-                      walk(child)
-              elif isinstance(value, list):
-                  for child in value:
-                      walk(child)
-          walk(current); walk(boundary)
-          expected = (26095351, "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781")
-          assert anchors, "recovered surface contains no anchor"
-          assert all(tuple(a) == expected for a in anchors), sorted(set(map(tuple, anchors)))
-          print(f"RMC007_RECOVERED_SURFACE_ANCHOR_PASS anchors={len(anchors)}")
-          PY
+            echo "$D07_RECOVERY_CURRENT_SHA256  $D07_EVIDENCE/v2-current-surface.json" | sha256sum --check --strict
+            echo "$D07_RECOVERY_BOUNDARY_SHA256  $D07_EVIDENCE/v2-factory-boundary.json" | sha256sum --check --strict
+            python3 ../ci/nqc-census/verify_rmc007_recovery_surface.py \
+              --current "$D07_EVIDENCE/v2-current-surface.json" --boundary "$D07_EVIDENCE/v2-factory-boundary.json" \
+              --number "$D07_A1_NUMBER" --hash "$D07_A1_HASH"
             echo "RMC007_SURFACE_RECOVERY_PASS run=$D07_RECOVERY_RUN artifact=$artifact_id digest=$artifact_digest"
             exit 0
           fi
@@ -927,7 +935,11 @@ jobs:
           done
           diff -r "$D07_EVIDENCE/closeout" "$D07_EVIDENCE/closeout-rerun"
           echo RMC007_DETERMINISTIC_CLOSEOUT_PASS
-          grep -F "RMC007_CLOSEOUT_PASS pairs=514624 unexplained=0 mismatches=0 records=48" "$D07_EVIDENCE/closeout.log"
+          for out in closeout closeout-rerun; do
+            python3 ../ci/nqc-census/verify_rmc007_recovery_surface.py \
+              --current "$D07_EVIDENCE/v2-current-surface.json" --boundary "$D07_EVIDENCE/v2-factory-boundary.json" \
+              --number "$D07_A1_NUMBER" --hash "$D07_A1_HASH" --closeout-log "$D07_EVIDENCE/$out.log"
+          done
           (cd "$D07_EVIDENCE/closeout" && sha256sum * | tee ../closeout-SHA256SUMS)
           cat "$D07_EVIDENCE/closeout/v2-discovery-summary.json"; echo
           target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" > "$D07_EVIDENCE/final-store-verify.log"
