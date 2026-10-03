@@ -25,7 +25,7 @@ describe("SEO Profesional connected topology", () => {
     const folders = implementedStrategyFolders();
     const coreRegistered = SEO_PROFESSIONAL_STRATEGIES.map((strategy) => strategy.number).sort((left, right) => left - right);
     const masterRegistered = SEO_PROFESSIONAL_MASTER_STRATEGIES.map((strategy) => strategy.number).sort((left, right) => left - right);
-    expect(folders).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(folders).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
     expect(coreRegistered).toEqual([1, 2, 3, 4]);
     expect(masterRegistered).toEqual(folders);
     expect(() => assertConnectedSeoProfessionalTopology()).not.toThrow();
@@ -42,7 +42,7 @@ describe("SEO Profesional connected topology", () => {
     ]);
   });
 
-  it("extends the master graph with #5 through #11 and makes #10 -> #11 -> #1 the guarded edge delivery path", () => {
+  it("extends the master graph with #5 through #12 and materializes #12 -> #2 incrementality gating", () => {
     expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.slice(0, SEO_PROFESSIONAL_CONNECTIONS.length)).toEqual(SEO_PROFESSIONAL_CONNECTIONS);
     expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.slice(SEO_PROFESSIONAL_CONNECTIONS.length)).toEqual([
       { from: 4, to: 5, channel: "VERIFIED_SENDER_IDENTITY", boundary: "WHATSAPP_BUSINESS" },
@@ -58,6 +58,8 @@ describe("SEO Profesional connected topology", () => {
       { from: 4, to: 10, channel: "VERIFIED_EDGE_OPERATOR_IDENTITY", boundary: "EDGE_DELIVERY" },
       { from: 10, to: 11, channel: "RESILIENT_EDGE_RUNTIME_HANDOFF", boundary: "EDGE_DELIVERY" },
       { from: 11, to: 1, channel: "GUARDED_WEB_LANDING", boundary: "EDGE_DELIVERY" },
+      { from: 4, to: 12, channel: "VERIFIED_EXPERIMENT_OPERATOR_IDENTITY", boundary: "GOOGLE_ADS" },
+      { from: 12, to: 2, channel: "INCREMENTALITY_GATED_OPTIMIZATION", boundary: "GOOGLE_ADS" },
     ]);
     for (const strategy of SEO_PROFESSIONAL_MASTER_STRATEGIES) {
       expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.some((edge) => edge.from === strategy.number)).toBe(true);
@@ -65,10 +67,10 @@ describe("SEO Profesional connected topology", () => {
     }
   });
 
-  it("rejects a master graph that isolates Guardián de Latencia Cero", () => {
+  it("rejects a master graph that isolates Incrementalidad Geo-Holdout", () => {
     expect(() => assertConnectedSeoProfessionalMasterTopology(
       SEO_PROFESSIONAL_MASTER_STRATEGIES,
-      SEO_PROFESSIONAL_MASTER_CONNECTIONS.filter((edge) => edge.from !== 11 && edge.to !== 11),
-    )).toThrow(/strategy 11|strongly connected|connection/u);
+      SEO_PROFESSIONAL_MASTER_CONNECTIONS.filter((edge) => edge.from !== 12 && edge.to !== 12),
+    )).toThrow(/strategy 12|strongly connected|connection/u);
   });
 });

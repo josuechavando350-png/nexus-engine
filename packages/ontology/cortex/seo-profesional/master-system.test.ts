@@ -16,18 +16,24 @@ import {
   type AuthorizedProgrammaticSeoPort,
   type EdgeResiliencePort,
   type EdgeRuntimeGuardPort,
+  type GeoIncrementalityPort,
   type PassiveRevivalIntelligencePort,
   type SeoProfessionalCorePort,
 } from "./master-system.js";
 
 const NOW = Date.parse("2026-09-08T12:00:00.000Z");
+const SCOPE_DIGEST = `sha256:${"1".repeat(64)}` as const;
+const DESIGN_DIGEST = `sha256:${"2".repeat(64)}` as const;
 
-function core(origin = "https://example.test"): SeoProfessionalCorePort<unknown, unknown> {
+function core(
+  origin = "https://example.test",
+  optimizeExactMatches: SeoProfessionalCorePort<unknown, unknown>["optimizeExactMatches"] = async () => { throw new Error("not exercised in master wiring test"); },
+): SeoProfessionalCorePort<unknown, unknown> {
   return {
     snapshot: () => ({ googleAdsCustomerId: "1234567890", offlineConversionProvider: "GOOGLE_ADS_API", canonicalWebsiteOrigin: origin }),
     assessLanding: async () => { throw new Error("not exercised in master wiring test"); },
     recordQualifiedConversion: async () => { throw new Error("not exercised in master wiring test"); },
-    optimizeExactMatches: async () => { throw new Error("not exercised in master wiring test"); },
+    optimizeExactMatches,
   };
 }
 
@@ -95,7 +101,44 @@ function guard(origin = "https://example.test", platform: "CLOUDFLARE" | "VERCEL
   });
 }
 
-function system(origin = "https://example.test", overrides: Partial<{ outreachOrigin: string; procurementOrigin: string; structuredOrigin: string; revivalOrigin: string; programmaticOrigin: string; edgeOrigin: string; guardOrigin: string; edgePlatform: "CLOUDFLARE" | "VERCEL"; guardPlatform: "CLOUDFLARE" | "VERCEL" }> = {}) {
+function incrementality(
+  origin = "https://example.test",
+  customer = "1234567890",
+  gate: "ALLOW_OPTIMIZATION" | "HOLD" | "BLOCK_REGRESSION" = "ALLOW_OPTIMIZATION",
+): GeoIncrementalityPort {
+  const verdict = gate === "ALLOW_OPTIMIZATION" ? "POSITIVE" as const : gate === "BLOCK_REGRESSION" ? "NEGATIVE" as const : "INCONCLUSIVE" as const;
+  const analysis = Object.freeze({
+    experimentId: "seo12:1111111111111111:master-lift-001",
+    designDigest: DESIGN_DIGEST,
+    treatmentGeos: 4,
+    controlGeos: 4,
+    treatmentMeanDelta: gate === "ALLOW_OPTIMIZATION" ? 20 : gate === "BLOCK_REGRESSION" ? 0 : 10,
+    controlMeanDelta: gate === "BLOCK_REGRESSION" ? 20 : gate === "HOLD" ? 10 : 0,
+    incrementalDelta: gate === "ALLOW_OPTIMIZATION" ? 20 : gate === "BLOCK_REGRESSION" ? -20 : 0,
+    standardError: 0,
+    confidenceInterval95: Object.freeze(gate === "ALLOW_OPTIMIZATION" ? [20, 20] as const : gate === "BLOCK_REGRESSION" ? [-20, -20] as const : [0, 0] as const),
+    verdict,
+  });
+  return {
+    identity: () => Object.freeze({ strategy: 12 as const, provider: "CORTEX_GEO_HOLDOUT_INCREMENTALITY" as const, engine: "CORTEX_12_GEO_HOLDOUT" as const, operatorWebsiteOrigin: origin, googleAdsCustomerId: customer, scopeDigest: SCOPE_DIGEST }),
+    registerDesign: () => { throw new Error("not exercised in master wiring test"); },
+    analyze: (input) => Object.freeze({ experimentKey: input.experimentKey, experimentId: analysis.experimentId, scopeDigest: SCOPE_DIGEST, analysis, gate }),
+  };
+}
+
+function system(origin = "https://example.test", overrides: Partial<{
+  outreachOrigin: string;
+  procurementOrigin: string;
+  structuredOrigin: string;
+  revivalOrigin: string;
+  programmaticOrigin: string;
+  edgeOrigin: string;
+  guardOrigin: string;
+  incrementalityOrigin: string;
+  incrementalityCustomer: string;
+  edgePlatform: "CLOUDFLARE" | "VERCEL";
+  guardPlatform: "CLOUDFLARE" | "VERCEL";
+}> = {}) {
   const edgePlatform = overrides.edgePlatform ?? "VERCEL";
   return new SeoProfessionalMasterSystem({
     core: core(origin),
@@ -106,13 +149,28 @@ function system(origin = "https://example.test", overrides: Partial<{ outreachOr
     programmaticSeo: programmatic(overrides.programmaticOrigin ?? origin),
     edgeResilience: edge(overrides.edgeOrigin ?? origin, edgePlatform),
     edgeRuntimeGuard: guard(overrides.guardOrigin ?? origin, overrides.guardPlatform ?? edgePlatform),
+    geoIncrementality: incrementality(overrides.incrementalityOrigin ?? origin, overrides.incrementalityCustomer ?? "1234567890"),
   });
 }
 
-describe("SeoProfessionalMasterSystem #1..#11", () => {
-  it("binds #5 through #11 to the canonical #4 identity and executes the real #10 -> #11 guarded request chain", async () => {
+function dependencies(corePort: SeoProfessionalCorePort<unknown, unknown>, geoPort: GeoIncrementalityPort) {
+  return {
+    core: corePort,
+    domainBirthOutreach: outreach(),
+    corporateProcurement: procurement(),
+    structuredKnowledge: structuredKnowledge(),
+    revivalIntelligence: revival(),
+    programmaticSeo: programmatic(),
+    edgeResilience: edge(),
+    edgeRuntimeGuard: guard(),
+    geoIncrementality: geoPort,
+  };
+}
+
+describe("SeoProfessionalMasterSystem #1..#12", () => {
+  it("binds #5 through #12 to canonical identities and keeps the real #10 -> #11 guarded request chain", async () => {
     const requests: string[] = [];
-    const master = new SeoProfessionalMasterSystem({ core: core(), domainBirthOutreach: outreach("https://example.test", requests), corporateProcurement: procurement(), structuredKnowledge: structuredKnowledge(), revivalIntelligence: revival(), programmaticSeo: programmatic(), edgeResilience: edge(), edgeRuntimeGuard: guard() });
+    const master = new SeoProfessionalMasterSystem({ core: core(), domainBirthOutreach: outreach("https://example.test", requests), corporateProcurement: procurement(), structuredKnowledge: structuredKnowledge(), revivalIntelligence: revival(), programmaticSeo: programmatic(), edgeResilience: edge(), edgeRuntimeGuard: guard(), geoIncrementality: incrementality() });
     expect(master.snapshot()).toEqual({
       googleAdsCustomerId: "1234567890",
       offlineConversionProvider: "GOOGLE_ADS_API",
@@ -126,12 +184,14 @@ describe("SeoProfessionalMasterSystem #1..#11", () => {
       programmaticSeoEngine: "CORTEX_HEADLESS_PROGRAMMATIC_SEO",
       edgeResilienceProvider: "PORTABLE_EDGE_RESILIENCE",
       edgeRuntimeGuardProvider: "EDGE_RUNTIME_GLOBAL_GUARD",
+      geoIncrementalityProvider: "CORTEX_GEO_HOLDOUT_INCREMENTALITY",
+      geoIncrementalityEngine: "CORTEX_12_GEO_HOLDOUT",
       edgePlatform: "VERCEL",
-      strategyNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      connectionCount: 18,
+      strategyNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      connectionCount: 20,
       connected: true,
     });
-    expect(master.topology().strategies.map((strategy) => strategy.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(master.topology().strategies.map((strategy) => strategy.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 
     const outreachResult = await master.runDomainBirthOutreach({ domain: "newco.com", recipientE164: "+525512345678", consent: { status: "OPTED_IN", purpose: "DOMAIN_BIRTH_OUTREACH", recipientE164: "+525512345678", capturedAt: "2026-09-01T10:00:00.000Z", source: "first-party CRM", proofId: "consent-proof-master-0001" }, leadSource: "FIRST_PARTY_CRM", landingUrl: "https://example.test/domain-intelligence?utm_source=whatsapp", executionMode: "APPLY" });
     expect(outreachResult).toMatchObject({ status: "SENT", assessment: { classification: "NEWLY_REGISTERED_ACTIVE" } });
@@ -149,6 +209,30 @@ describe("SeoProfessionalMasterSystem #1..#11", () => {
     expect(await guarded.text()).toBe("guarded-fallback");
   });
 
+  it("materializes #12 -> #2: positive incrementality invokes exact-match optimization", async () => {
+    const optimize = vi.fn(async () => ({ status: "APPLIED" } as never));
+    const master = new SeoProfessionalMasterSystem(dependencies(core("https://example.test", optimize), incrementality("https://example.test", "1234567890", "ALLOW_OPTIMIZATION")));
+    const result = await master.optimizeExactMatchesWithIncrementality({
+      incrementality: { experimentKey: "master-lift-001", operatorWebsiteOrigin: "https://example.test", googleAdsCustomerId: "1234567890", outcomes: [] },
+      optimization: {} as never,
+    });
+    expect(result.status).toBe("OPTIMIZED");
+    expect(result.decision.gate).toBe("ALLOW_OPTIMIZATION");
+    expect(optimize).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["HOLD", "BLOCK_REGRESSION"] as const)("does not call #2 when #12 returns %s", async (gate) => {
+    const optimize = vi.fn(async () => ({ status: "APPLIED" } as never));
+    const master = new SeoProfessionalMasterSystem(dependencies(core("https://example.test", optimize), incrementality("https://example.test", "1234567890", gate)));
+    const result = await master.optimizeExactMatchesWithIncrementality({
+      incrementality: { experimentKey: "master-lift-001", operatorWebsiteOrigin: "https://example.test", googleAdsCustomerId: "1234567890", outcomes: [] },
+      optimization: {} as never,
+    });
+    expect(result.status).toBe("BLOCKED");
+    expect(result.decision.gate).toBe(gate);
+    expect(optimize).not.toHaveBeenCalled();
+  });
+
   it("fails closed when #5 sender identity does not match #4", () => { expect(() => system("https://example.test", { outreachOrigin: "https://other.example" })).toThrowError(/#5 sender website origin/u); });
   it("fails closed when #6 seller identity does not match #4", () => { expect(() => system("https://example.test", { procurementOrigin: "https://other.example" })).toThrowError(/#6 seller website origin/u); });
   it("fails closed when #7 publisher identity does not match #4", () => { expect(() => system("https://example.test", { structuredOrigin: "https://other.example" })).toThrowError(/#7 publisher website origin/u); });
@@ -157,4 +241,6 @@ describe("SeoProfessionalMasterSystem #1..#11", () => {
   it("fails closed when #10 edge operator identity does not match #4", () => { expect(() => system("https://example.test", { edgeOrigin: "https://other.example" })).toThrowError(/#10 operator website origin/u); });
   it("fails closed when #11 guard identity does not match #4", () => { expect(() => system("https://example.test", { guardOrigin: "https://other.example" })).toThrowError(/#11 operator website origin/u); });
   it("fails closed when #11 platform does not match #10", () => { expect(() => system("https://example.test", { edgePlatform: "VERCEL", guardPlatform: "CLOUDFLARE" })).toThrowError(/#11 edge platform must match #10/u); });
+  it("fails closed when #12 operator identity does not match #4", () => { expect(() => system("https://example.test", { incrementalityOrigin: "https://other.example" })).toThrowError(/#12 operator website origin/u); });
+  it("fails closed when #12 Google Ads customer does not match #1/#2", () => { expect(() => system("https://example.test", { incrementalityCustomer: "0000000000" })).toThrowError(/#12 Google Ads customer must match/u); });
 });
