@@ -339,7 +339,8 @@ pub fn discover_d08_aave_debt_facilities(
 
         let market_id = Hash32::parse_hex(&market_id_text)
             .map_err(|_| CapitalError::InvalidCanonical("invalid Aave debt market id"))?;
-        let token_blockers = execution_blockers(&token_admissions, asset)?.to_vec();
+        let token_blockers =
+            execution_blockers(&token_admissions, asset, "AAVE_RESERVE_UNDERLYING")?.to_vec();
         let reserve_id = u16_field(&row, "reserve_id")?;
         let configuration = field(&row, "configuration")?;
         let indexes = field(&row, "indexes")?;
