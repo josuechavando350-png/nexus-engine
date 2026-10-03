@@ -57,8 +57,8 @@ export default function AboutPage() {
           </div>
 
           <div className="cp-proof-center-note">
-            <p className="cp-eyebrow">Criterio de prueba</p>
-            <p>Esta página distingue trayectoria profesional, formación y experiencia de cualquier promesa de resultado. Los cargos, estudios, participaciones y demás credenciales que se publiquen deben contar con respaldo verificable antes de presentarse como prueba.</p>
+            <p className="cp-eyebrow">Transparencia</p>
+            <p>Distingo trayectoria, formación y experiencia de cualquier promesa de resultado. Las credenciales y participaciones que presento deben poder respaldarse de forma verificable.</p>
           </div>
         </div>
       </section>
