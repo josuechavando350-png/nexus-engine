@@ -11,12 +11,12 @@ export const metadata: Metadata = {
 export default function PenalFiscalPage() {
   return <PageShell><StrategicLanding
     eyebrow="Defensa penal fiscal"
-    title="Cuando el problema deja de ser sólo tributario."
-    lead="La defensa penal-fiscal exige leer hechos, contabilidad, autoridad y riesgo personal como partes del mismo expediente."
+    title="Cuando lo fiscal empieza a adquirir dimensión penal."
+    lead="La defensa penal-fiscal exige leer hechos, contabilidad, actos de autoridad y exposición personal dentro de una misma estrategia, sin confundir sus reglas."
     marker="PENAL FISCAL"
     context={[
-      "No toda controversia fiscal constituye un asunto penal. La prioridad es identificar qué hechos, personas, documentos y autoridades están realmente involucrados.",
-      "Cuando existe una investigación penal o riesgo de que el asunto escale, la estrategia debe separar la posición de la empresa de la exposición individual de directivos, representantes y asesores."
+      "No toda controversia fiscal constituye un asunto penal. La prioridad es identificar qué hechos, personas, documentos y autoridades pueden cambiar realmente el nivel de exposición.",
+      "Cuando aparece una dimensión penal, la estrategia debe separar la posición de la empresa de la exposición individual de directivos, representantes y asesores."
     ]}
     scenarios={[
       { title: "Investigación fiscal con dimensión penal", copy: "Revisión de antecedentes, actos de autoridad, documentación contable y posibles líneas de investigación." },
@@ -28,6 +28,6 @@ export default function PenalFiscalPage() {
       { label: "Requerimientos del SAT y riesgo penal", href: "/guias/requerimiento-sat-riesgo-penal" },
       { label: "Evaluación empresarial confidencial", href: "/evaluacion-empresarial" }
     ]}
-    ctaTitle="Primero hay que determinar si el asunto ya tiene una dimensión penal real."
+    ctaTitle="Primero hay que determinar si existe una dimensión penal real y qué hechos la sostienen."
   /></PageShell>;
 }
