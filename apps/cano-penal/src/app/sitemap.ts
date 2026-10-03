@@ -3,19 +3,36 @@ import { areas } from "./content";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = "https://canopenal.com";
+  const strategic = [
+    "/defensa-penal-fiscal",
+    "/defraudacion-fiscal",
+    "/defensa-penal-empresarial",
+    "/delitos-financieros",
+    "/fraude-empresarial",
+    "/representante-legal-investigacion-penal",
+    "/detenido-cdmx",
+    "/citatorio-ministerio-publico-cdmx",
+    "/citatorio-fgr",
+    "/orden-aprehension",
+    "/audiencia-inicial",
+    "/audiencia-inicial-control-detencion-cdmx",
+    "/carpeta-investigacion",
+    "/diagnostico-penal",
+    "/evaluacion-empresarial",
+    "/intelligence",
+    "/acerca-de-mi",
+    "/casos",
+    "/guias/requerimiento-sat-riesgo-penal",
+    "/guias/honorarios-abogado-penalista-cdmx",
+    "/guias/responsabilidad-penal-representante-legal-contador",
+    "/guias/defensa-penal-empresa-delitos-financieros",
+    "/herramientas/calendario-fiscal",
+    "/aviso-de-privacidad",
+  ] as const;
+
   return [
     { url: `${base}/` },
-    { url: `${base}/acerca-de-mi` },
-    { url: `${base}/casos` },
+    ...strategic.map((path) => ({ url: `${base}${path}` })),
     ...areas.map(([, href]) => ({ url: `${base}${href}` })),
-    { url: `${base}/aviso-de-privacidad` },
-    { url: `${base}/detenido-cdmx` },
-    { url: `${base}/citatorio-ministerio-publico-cdmx` },
-    { url: `${base}/audiencia-inicial-control-detencion-cdmx` },
-    { url: `${base}/diagnostico-penal` },
-    { url: `${base}/guias/requerimiento-sat-riesgo-penal` },
-    { url: `${base}/guias/honorarios-abogado-penalista-cdmx` },
-    { url: `${base}/guias/responsabilidad-penal-representante-legal-contador` },
-    { url: `${base}/guias/defensa-penal-empresa-delitos-financieros` }
   ];
 }

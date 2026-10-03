@@ -6,8 +6,10 @@ import { site } from "./content";
 const issues = [
   ["", "Selecciona el motivo de contacto"],
   ["Detención o urgencia", "Detención o urgencia"],
+  ["Empresa o directivo", "Empresa o directivo"],
   ["Citatorio o audiencia", "Citatorio o audiencia"],
   ["Delitos fiscales o SAT", "Delitos fiscales o SAT"],
+  ["Fraude o delito financiero", "Fraude o delito financiero"],
   ["Diagnóstico penal", "Diagnóstico penal"],
   ["Otra consulta penal", "Otra consulta penal"],
 ] as const;
@@ -20,8 +22,10 @@ export function ContactForm({ compact = false }: { compact?: boolean }) {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const landingPath = window.location.pathname;
     const message = [
       "Hola, deseo contactar a CANO Estrategia Penal.",
+      `Página de origen: ${landingPath}`,
       `Nombre: ${name.trim()}`,
       `Motivo general: ${issue}`,
       reply.trim() ? `Medio de respuesta: ${reply.trim()}` : "",
@@ -33,7 +37,7 @@ export function ContactForm({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <form className={`cp-contact-form-live${compact ? " cp-contact-form-live-compact" : ""}`} onSubmit={submit}>
+    <form className={`cp-contact-form-live${compact ? " cp-contact-form-live-compact" : ""}`} onSubmit={submit} data-nexus-signal="lead-intake-general">
       <label>
         <span>Tu nombre</span>
         <input name="nombre" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" maxLength={80} required placeholder="Nombre" />
@@ -50,7 +54,7 @@ export function ContactForm({ compact = false }: { compact?: boolean }) {
       </label>
       <div className="cp-contact-form-full cp-contact-form-bottom">
         <p>Al continuar se abrirá WhatsApp con el mensaje preparado. No se envía ni se guarda este formulario en la web. Evita escribir datos sensibles del asunto.</p>
-        <button className="cp-btn cp-btn-solid" type="submit">Comunícate conmigo →</button>
+        <button className="cp-btn cp-btn-solid" type="submit" data-nexus-signal="lead-submit-general-whatsapp">Comunícate conmigo →</button>
       </div>
       {prepared ? <p className="cp-contact-form-full" role="status">Si WhatsApp no se abrió, utiliza el botón flotante de contacto.</p> : null}
     </form>

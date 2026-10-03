@@ -29,6 +29,12 @@ const routes = [
   "/guias/defensa-penal-empresa-delitos-financieros",
   "/guias/honorarios-abogado-penalista-cdmx",
   "/herramientas/calendario-fiscal",
+  "/evaluacion-empresarial", "/intelligence",
+  "/orden-aprehension", "/carpeta-investigacion",
+  "/fraude-empresarial", "/defraudacion-fiscal",
+  "/defensa-penal-fiscal", "/defensa-penal-empresarial",
+  "/delitos-financieros", "/representante-legal-investigacion-penal",
+  "/citatorio-fgr", "/audiencia-inicial",
 ];
 const visualRoutes = new Set([
   "/", "/areas/delitos-fiscales-y-financieros", "/areas/delitos-patrimoniales-y-fraude",
@@ -38,6 +44,11 @@ const visualRoutes = new Set([
   "/detenido-cdmx", "/diagnostico-penal", "/herramientas/calendario-fiscal",
   "/guias/responsabilidad-penal-representante-legal-contador",
   "/guias/requerimiento-sat-riesgo-penal",
+  "/evaluacion-empresarial", "/intelligence",
+  "/fraude-empresarial", "/defraudacion-fiscal",
+  "/defensa-penal-fiscal", "/defensa-penal-empresarial",
+  "/delitos-financieros", "/representante-legal-investigacion-penal",
+  "/citatorio-fgr", "/audiencia-inicial",
 ]);
 const failures = [];
 const results = [];
@@ -58,6 +69,8 @@ function noteFailure(label, error) {
 await mkdir(output, { recursive: true });
 for (const spec of [
   { name: "chromium-mobile", engine: chromium, viewport: { width: 390, height: 844 }, isMobile: true, routes },
+  { name: "chromium-narrow", engine: chromium, viewport: { width: 360, height: 800 }, isMobile: true,
+    routes: ["/", "/fraude-empresarial", "/defraudacion-fiscal", "/defensa-penal-fiscal", "/defensa-penal-empresarial", "/delitos-financieros", "/representante-legal-investigacion-penal", "/citatorio-fgr", "/audiencia-inicial"] },
   { name: "chromium-tablet", engine: chromium, viewport: { width: 820, height: 1180 }, isMobile: false, routes },
   { name: "chromium-laptop", engine: chromium, viewport: { width: 1024, height: 768 }, isMobile: false, routes },
   { name: "chromium-desktop", engine: chromium, viewport: { width: 1440, height: 900 }, isMobile: false, routes },
@@ -98,6 +111,13 @@ for (const spec of [
         assert(measurements.document <= measurements.viewport + 3
           && measurements.body <= measurements.viewport + 3,
           "horizontal overflow " + JSON.stringify(measurements));
+        if (spec.isMobile) {
+          const editorialWidths = await page.locator(".cp-interior-editorial-row p").evaluateAll((nodes) =>
+            nodes.map((node) => Math.round(node.getBoundingClientRect().width)));
+          const minimumReadableWidth = Math.min(260, measurements.viewport - 80);
+          assert(editorialWidths.every((width) => width >= minimumReadableWidth),
+            "editorial paragraph collapsed into narrow mobile column " + JSON.stringify({ editorialWidths, minimumReadableWidth }));
+        }
         assert(pageErrors.length === 0, "browser exceptions: " + pageErrors.join(" | "));
         if (route === "/herramientas/calendario-fiscal") {
           assert(await page.getByText("Aviso de carácter informativo").count() > 0,
@@ -115,6 +135,10 @@ for (const spec of [
             "/guias/responsabilidad-penal-representante-legal-contador",
             "/guias/defensa-penal-empresa-delitos-financieros",
             "/guias/honorarios-abogado-penalista-cdmx",
+            "/evaluacion-empresarial", "/intelligence",
+            "/defensa-penal-fiscal", "/defraudacion-fiscal",
+            "/defensa-penal-empresarial", "/delitos-financieros",
+            "/fraude-empresarial", "/representante-legal-investigacion-penal",
           ]) {
             assert(await page.locator('main a[href="' + destination + '"]').count() > 0,
               "homepage commercial route missing " + destination);

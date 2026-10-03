@@ -1,0 +1,14 @@
+{
+  "locationId": "cano-wtc-cdmx",
+  "name": "CANO Estrategia Penal",
+  "phone": "+52 55 6050 1901",
+  "website": "https://canopenal.com/",
+  "address": {
+    "addressLines": ["Montecito 38, piso 28, oficina 16, colonia Nápoles"],
+    "locality": "Benito Juárez",
+    "administrativeArea": "CDMX",
+    "postalCode": "03810",
+    "regionCode": "MX"
+  },
+  "categories": ["Abogado penalista", "Defensa penal", "Delitos fiscales y financieros"]
+}

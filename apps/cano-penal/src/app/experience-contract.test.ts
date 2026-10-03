@@ -29,7 +29,7 @@ describe("CANO production contact and splash contract", () => {
 describe("CANO organic integration contract", () => {
   it("imports commercial, fiscal and area-specific styles before preview", () => {
     const layout = readFileSync(new URL("./layout.tsx", import.meta.url), "utf8");
-    for (const css of ["organic-core.css", "organic-editorial.css", "fiscal-calendar.css", "areas-unique.css"]) {
+    for (const css of ["organic-core.css", "organic-editorial.css", "fiscal-calendar.css", "areas-unique.css", "vip-polish.css"]) {
       expect(layout).toContain('import "./' + css + '";');
     }
   });
@@ -45,7 +45,7 @@ describe("CANO organic integration contract", () => {
     const form = readFileSync(new URL("./ContactForm.tsx", import.meta.url), "utf8");
     const cta = readFileSync(new URL("./InteriorSections.tsx", import.meta.url), "utf8");
     const areas = readFileSync(new URL("./AreaExperience.tsx", import.meta.url), "utf8");
-    expect(navigation).toContain('["Contáctame", "/#contacto"]');
+    expect(navigation).toContain('["Contacto", "/#contacto"]');
     expect(form).toContain("Comunícate conmigo →");
     expect(cta).toContain("Cuéntame qué está pasando.");
     expect(cta).toContain("Contáctame");
@@ -55,12 +55,11 @@ describe("CANO organic integration contract", () => {
 
   it("replaces the inoperative homepage form and links into the acquisition routes", () => {
     const home = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
-    const nav = readFileSync(new URL("./content.ts", import.meta.url), "utf8");
     expect(home).toContain("<ContactForm compact />");
     expect(home).not.toContain('<form className="cp-form">');
     expect(home).toContain('href="/detenido-cdmx"');
-    expect(home).toContain('href="/diagnostico-penal"');
-    expect(nav).toContain('["Calendario fiscal", "/herramientas/calendario-fiscal"]');
+    expect(home).toContain('href="/evaluacion-empresarial"');
+    expect(home).toContain('href="/intelligence"');
   });
 
   it("displays the approved informative fiscal notice prominently", () => {
@@ -73,23 +72,26 @@ describe("CANO organic integration contract", () => {
     expect(stylesheet).toContain(".cp-cal-disclaimer{");
   });
 
-  it("makes all eight new consultation routes discoverable while leaving calendar in its section", () => {
+  it("keeps the strategic routes discoverable from the homepage and navigation", () => {
     const home = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
     const nav = readFileSync(new URL("./content.ts", import.meta.url), "utf8");
-    const paths = [
+    for (const path of [
       "/detenido-cdmx",
-      "/citatorio-ministerio-publico-cdmx",
-      "/audiencia-inicial-control-detencion-cdmx",
-      "/diagnostico-penal",
+      "/evaluacion-empresarial",
+      "/intelligence",
+      "/defensa-penal-fiscal",
+      "/defraudacion-fiscal",
+      "/delitos-financieros",
+      "/fraude-empresarial",
+      "/representante-legal-investigacion-penal",
       "/guias/requerimiento-sat-riesgo-penal",
       "/guias/responsabilidad-penal-representante-legal-contador",
       "/guias/defensa-penal-empresa-delitos-financieros",
-      "/guias/honorarios-abogado-penalista-cdmx",
-    ];
-    expect(home).toContain('className="cp-route-index"');
-    for (const path of paths) expect(home).toContain('href="' + path + '"');
-    expect(home).not.toContain('className="cp-organic-bridge"');
-    expect(nav).toContain('["Calendario fiscal", "/herramientas/calendario-fiscal"]');
+    ]) expect(home).toContain('href="' + path + '"');
+    expect(nav).toContain('["Inicio", "/"]');
+    expect(nav).toContain('["Acerca de mí", "/acerca-de-mi"]');
+    expect(nav).toContain('["Áreas", "/#areas"]');
+    expect(nav).toContain('["Casos", "/casos"]');
   });
 
   it("keeps fiscal deadlines unlisted until evidence and fiscal approval exist", () => {
@@ -120,6 +122,12 @@ describe("CANO organic integration contract", () => {
       "guias/responsabilidad-penal-representante-legal-contador/page.tsx",
       "guias/defensa-penal-empresa-delitos-financieros/page.tsx",
       "guias/honorarios-abogado-penalista-cdmx/page.tsx",
+      "evaluacion-empresarial/page.tsx",
+      "intelligence/page.tsx",
+      "orden-aprehension/page.tsx",
+      "carpeta-investigacion/page.tsx",
+      "fraude-empresarial/page.tsx",
+      "defraudacion-fiscal/page.tsx",
     ];
     for (const path of pageFiles) {
       const page = readFileSync(new URL(path, app), "utf8");
@@ -132,6 +140,27 @@ describe("CANO organic integration contract", () => {
     expect(interior).not.toContain("decimal-leading-zero");
     const routeIndex = readFileSync(new URL("./organic-core.css", import.meta.url), "utf8");
     expect(routeIndex).toContain(".cp-route-index-group-title::before");
+  });
+
+  it("prevents narrow-column mobile reading regressions on premium interior pages", () => {
+    const layout = readFileSync(new URL("./layout.tsx", import.meta.url), "utf8");
+    const polish = readFileSync(new URL("./vip-polish.css", import.meta.url), "utf8");
+    expect(layout.indexOf('import "./vip-polish.css";')).toBeGreaterThan(layout.indexOf('import "./areas-unique.css";'));
+    expect(polish).toContain(".cp-interior-editorial-row{");
+    expect(polish).toContain("display:block!important");
+    expect(polish).toContain("grid-template-columns:1fr!important");
+    expect(polish).toContain("word-break:normal");
+    expect(polish).toContain("overflow-wrap:normal");
+  });
+
+  it("keeps the approved patrimonial language and first-person personal-brand voice", () => {
+    const home = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
+    const about = readFileSync(new URL("./acerca-de-mi/page.tsx", import.meta.url), "utf8");
+    const intelligence = readFileSync(new URL("./intelligence/page.tsx", import.meta.url), "utf8");
+    expect(home).toContain("Defensa penal <strong>patrimonial, fiscal y empresarial.</strong>");
+    expect(home).not.toContain("Defensa penal económica");
+    expect(about).toContain("Primero investigué. Ahora defiendo.");
+    expect(intelligence).not.toContain("Penal económico");
   });
 
   it("provides a distinct composition for each approved practice area", () => {

@@ -57,13 +57,13 @@ export function InteriorCta({
         <div className="cp-interior-cta-actions">
           <p>{copy}</p>
           <div className="cp-actions">
-            <a className="cp-btn cp-btn-solid" href={site.whatsapp} target="_blank" rel="noopener noreferrer">
+            <a className="cp-btn cp-btn-solid" href={site.whatsapp} target="_blank" rel="noopener noreferrer" data-nexus-signal="interior-whatsapp">
               Escribir por WhatsApp
             </a>
-            <a className="cp-btn" href={site.phoneHref}>
+            <a className="cp-btn" href={site.phoneHref} data-nexus-signal="interior-call">
               Llamar {site.phoneDisplay}
             </a>
-            <Link className="cp-text-link" href="/#contacto">
+            <Link className="cp-text-link" href="/#contacto" data-nexus-signal="interior-contact">
               Contáctame
             </Link>
           </div>
