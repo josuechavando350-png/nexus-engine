@@ -398,7 +398,7 @@ jobs:
           test "$(jq -r '.workflow_run.id' <<<"$meta")" = "${{ github.run_id }}"
           mkdir -p "$D07_EVIDENCE"
           gh run download "${{ github.run_id }}" --repo "$repo" --name "$artifact_name" --dir "$D07_EVIDENCE"
-          test -f "$D07_EVIDENCE/store/NQC_STORE"
+          test -f "$D07_EVIDENCE/store/STORE"
           mkdir -p "$D07_EVIDENCE/store/tmp" "$D07_EVIDENCE/store/objects/chunks" "$D07_EVIDENCE/store/objects/artifacts" "$D07_EVIDENCE/store/streams"
           for stream in "$D07_EVIDENCE"/store/streams/*/; do
             if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
@@ -520,7 +520,7 @@ jobs:
           test "$(jq -r '.workflow_run.id' <<<"$meta")" = "${{ github.run_id }}"
           mkdir -p "$D07_EVIDENCE"
           gh run download "${{ github.run_id }}" --repo "$repo" --name "$artifact_name" --dir "$D07_EVIDENCE"
-          test -f "$D07_EVIDENCE/store/NQC_STORE"
+          test -f "$D07_EVIDENCE/store/STORE"
           mkdir -p "$D07_EVIDENCE/store/tmp" "$D07_EVIDENCE/store/objects/chunks" "$D07_EVIDENCE/store/objects/artifacts" "$D07_EVIDENCE/store/streams"
           for stream in "$D07_EVIDENCE"/store/streams/*/; do
             if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
