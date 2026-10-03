@@ -1026,7 +1026,7 @@ mod tests {
                 .ok_or("capture is not object")?
                 .iter()
                 .filter(|(key, _)| key.as_str() != "assets")
-                .map(|(key, value)| (key.as_str(), value.clone()))
+                .map(|(key, value)| (key.clone(), value.clone()))
                 .collect::<Vec<_>>();
             members.push(("assets", Json::array(assets)));
             *capture = Json::object(members);
