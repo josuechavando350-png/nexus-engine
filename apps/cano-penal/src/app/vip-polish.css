@@ -290,3 +290,103 @@ body{
 @media(prefers-reduced-motion:reduce){
   .cp-btn,.cp-main a{transition:none!important}
 }
+
+
+/* Final VIP pass: bespoke route resilience and small-screen editorial control */
+@media(max-width:900px){
+  .cp-biz-hero-grid,.cp-biz-proof-grid,.cp-sat-hero-grid,.cp-sat-next>div,
+  .cp-cit-hero-layout,.cp-cit-content-grid,.cp-aud-follow>div,
+  .cp-af-hero-grid,.cp-af-record-grid,.cp-ac-context-grid{
+    grid-template-columns:1fr!important;
+  }
+  .cp-biz-axis{display:none!important}
+  .cp-biz-proof-grid>div,.cp-sat-next>div>*,.cp-cit-content-grid>*,.cp-af-record-grid>*{min-width:0}
+}
+
+@media(max-width:700px){
+  .cp-main section{max-width:100%}
+  .cp-biz-hero,.cp-sat-hero,.cp-cit-hero,.cp-af-hero,.cp-ac-hero{
+    overflow:hidden;
+  }
+  .cp-biz-hero h1,.cp-sat-headline h1,.cp-cit-title h1,.cp-af-hero h1,.cp-ac-hero h1{
+    max-width:12ch;
+    overflow-wrap:normal!important;
+    word-break:normal!important;
+    hyphens:none!important;
+    text-wrap:balance;
+  }
+  .cp-biz-hero p,.cp-biz-proof p,.cp-sat-headline>p:not(.cp-eyebrow),
+  .cp-sat-next p:not(.cp-eyebrow),.cp-cit-title>p,.cp-cit-content-grid>div:first-child>p,
+  .cp-af-intro,.cp-af-record p,.cp-ac-hero-foot p,.cp-ac-context-grid>div:last-child>p{
+    max-width:none!important;
+    width:100%;
+    font-size:1rem;
+    line-height:1.78;
+    overflow-wrap:normal!important;
+    word-break:normal!important;
+  }
+
+  .cp-biz-row-list article{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    gap:.8rem 1rem!important;
+    padding:1.65rem 0!important;
+  }
+  .cp-biz-row-list h3{font-size:1.45rem;line-height:1.06}
+  .cp-biz-row-list p{
+    grid-column:1/-1!important;
+    grid-row:auto!important;
+    max-width:none!important;
+  }
+  .cp-biz-row-list article>span:last-child{grid-column:2!important;grid-row:1!important}
+
+  .cp-sat-document{
+    width:100%;
+    max-width:none!important;
+    min-height:22rem;
+    padding:1.6rem;
+  }
+  .cp-sat-document>strong{font-size:2rem;max-width:11ch}
+  .cp-sat-question-list article{padding:1.75rem 0 2rem!important}
+  .cp-sat-question-list h3{font-size:1.55rem}
+  .cp-sat-next h2{font-size:clamp(2.3rem,10.5vw,3.4rem)}
+
+  .cp-cit-hero-line,.cp-cit-fields{width:100%;max-width:none}
+  .cp-cit-hero-line a{min-height:3.25rem}
+  .cp-cit-fields article{padding:1.65rem 0}
+  .cp-cit-fields h3{font-size:1.5rem}
+
+  .cp-af-hero-aside,.cp-af-record-list{
+    width:100%;
+    padding-left:0!important;
+    border-left:0!important;
+  }
+  .cp-af-hero-aside{border-top:1px solid #95a2a9;padding-top:1.5rem}
+  .cp-af-record-list{border-top:1px solid #485661;padding-top:1.5rem}
+  .cp-af-record-list a{padding:.95rem 0}
+  .cp-ac-hero-foot{grid-template-columns:1fr!important;gap:1.25rem!important}
+  .cp-ac-context h2{font-size:clamp(2.35rem,10vw,3.5rem)}
+
+  .cp-contact-form-live,.cp-enterprise-intake{gap:1.4rem}
+  .cp-contact-form-bottom button,.cp-enterprise-intake-bottom .cp-btn{width:100%}
+  .cp-enterprise-intake-bottom{gap:1rem!important}
+}
+
+/* Very narrow Android devices: preserve reading rhythm without shrinking copy into columns. */
+@media(max-width:360px){
+  .cp-wrap{width:calc(100% - 1.75rem)}
+  .cp-main p{font-size-adjust:none}
+  .cp-biz-hero h1,.cp-sat-headline h1,.cp-cit-title h1,
+  .cp-interior-hero h1,.cp-af-hero h1,.cp-ac-hero h1{
+    font-size:clamp(2.2rem,11.6vw,3rem)!important;
+    max-width:11ch;
+  }
+  .cp-btn{font-size:.68rem;letter-spacing:.085em;padding:.85rem .9rem}
+  .cp-v2-service-list a strong,.cp-route-index-group>a{font-size:1rem}
+}
+
+/* Safe-area discipline for mobile browser chrome and the floating WhatsApp action. */
+@supports(padding:max(0px)){
+  .cp-wa{bottom:max(1.25rem,calc(env(safe-area-inset-bottom) + 1rem))}
+  .cp-footer-bottom,.cp-footer .cp-wrap:last-child{padding-bottom:max(4.5rem,calc(env(safe-area-inset-bottom) + 4.5rem))}
+}
