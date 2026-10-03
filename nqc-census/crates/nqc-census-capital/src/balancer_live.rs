@@ -9,6 +9,7 @@
 use crate::{
     permissionless_atomic::{admit_balancer_v2_dual_provider, BalancerV2AuthenticatedObservation},
     source_authority::D11SourceAuthority,
+    upstream::{execution_blockers, token_execution_blockers},
     Amount256, CapitalEvidenceRef, CapitalSource,
 };
 use nqc_census_chain::{
@@ -25,7 +26,7 @@ use nqc_census_chain::{
 use nqc_census_core::{Address, CallOutcome, ChainDomain, Hash32, StateAnchor};
 use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
-use std::{collections::BTreeSet, error::Error, fs, path::Path};
+use std::{collections::{BTreeMap, BTreeSet}, error::Error, fs, path::Path};
 
 const BALANCER_CAPTURE_NAMESPACE: u16 = 0x0b21;
 const BALANCER_V2_VAULT: &str = "0xba12222222228d8ba445958a75a0704d566bf2c8";
@@ -137,31 +138,14 @@ fn verify_d08_artifact(manifest: &Json, name: &str, bytes: &[u8]) -> Result<Stri
     Ok(actual)
 }
 
-fn actionable_assets(
+fn census_assets(
     market_state: &[u8],
     token_admission: &[u8],
-) -> Result<Vec<Address>, ChainError> {
-    let mut compatible = BTreeSet::new();
-    let token_text = std::str::from_utf8(token_admission)
-        .map_err(|_| ChainError::Evidence("D08 token admission is not UTF-8".into()))?;
-    for line in token_text.lines().filter(|line| !line.is_empty()) {
-        let row = Json::parse(line.as_bytes())?;
-        let admitted = row
-            .get("state_admission")
-            .and_then(|value| value.get("status"))
-            .and_then(Json::as_str)
-            == Some("ADMITTED");
-        let executable = row
-            .get("execution_compatibility")
-            .and_then(|value| value.get("status"))
-            .and_then(Json::as_str)
-            == Some("PROVEN_COMPATIBLE");
-        if admitted && executable {
-            compatible.insert(Address::parse_hex(row.str_field("token")?)?);
-        }
-    }
+) -> Result<BTreeMap<Address, Vec<String>>, ChainError> {
+    let token_blockers = token_execution_blockers(token_admission)
+        .map_err(|error| ChainError::Evidence(format!("D08 token admission invalid: {error}")))?;
 
-    let mut assets = BTreeSet::new();
+    let mut assets = BTreeMap::new();
     let state_text = std::str::from_utf8(market_state)
         .map_err(|_| ChainError::Evidence("D08 market state is not UTF-8".into()))?;
     for line in state_text.lines().filter(|line| !line.is_empty()) {
@@ -172,25 +156,43 @@ fn actionable_assets(
             continue;
         }
         let asset = Address::parse_hex(row.str_field("asset")?)?;
-        if compatible.contains(&asset) {
-            assets.insert(asset);
+        let blockers = execution_blockers(
+            &token_blockers,
+            asset,
+            "AAVE_RESERVE_UNDERLYING",
+        )
+        .map_err(|error| ChainError::Evidence(format!(
+            "D08 current Aave asset has no role-scoped token admission: {error}"
+        )))?
+        .to_vec();
+        if let Some(existing) = assets.insert(asset, blockers.clone()) {
+            if existing != blockers {
+                return Err(ChainError::Evidence(
+                    "D08 token blockers disagree across current Aave markets".into(),
+                ));
+            }
         }
     }
 
     if assets.is_empty() {
         return Err(ChainError::Evidence(
-            "D08 yields no execution-compatible current Aave assets".into(),
+            "D08 yields no current Aave assets for Balancer capital census".into(),
         ));
     }
-    Ok(assets.into_iter().collect())
+    Ok(assets)
 }
 
-fn asset_universe_commitment(assets: &[Address]) -> String {
+fn asset_universe_commitment(assets: &BTreeMap<Address, Vec<String>>) -> String {
     let mut hasher = Sha256::new();
-    hasher.update(b"NQC-RMC011-BALANCER-ASSET-UNIVERSE-V1");
+    hasher.update(b"NQC-RMC011-BALANCER-ASSET-UNIVERSE-V2");
     hasher.update([0]);
-    for asset in assets {
+    for (asset, blockers) in assets {
         hasher.update(asset.as_bytes());
+        hasher.update(u32::try_from(blockers.len()).unwrap_or(u32::MAX).to_be_bytes());
+        for blocker in blockers {
+            hasher.update(u32::try_from(blocker.len()).unwrap_or(u32::MAX).to_be_bytes());
+            hasher.update(blocker.as_bytes());
+        }
     }
     hex::plain(&hasher.finalize())
 }
@@ -200,7 +202,7 @@ fn provider_capture(
     acquisition: &Acquisition<'_>,
     provider: &ProviderSpec,
     expected_anchor: &StateAnchor,
-    assets: &[Address],
+    assets: &BTreeMap<Address, Vec<String>>,
     authority_lock_sha256: &str,
     d08_market_state_sha256: &str,
     d08_token_admission_sha256: &str,
@@ -319,7 +321,7 @@ fn provider_capture(
 
         let balance_selector = abi::selector("balanceOf(address)");
         let requests = assets
-            .iter()
+            .keys()
             .map(|asset| {
                 (
                     *asset,
@@ -335,7 +337,7 @@ fn provider_capture(
         }
 
         let mut asset_rows = Vec::with_capacity(assets.len());
-        for (asset, balance) in assets.iter().zip(&balances) {
+        for ((asset, blockers), balance) in assets.iter().zip(&balances) {
             let token_code = ctx.code(*asset, &anchor, semantics)?;
             if token_code.payload().is_absent() {
                 return Err(ChainError::Evidence(format!(
@@ -353,6 +355,10 @@ fn provider_capture(
                 (
                     "code_sha256",
                     Json::string(sha256_plain(token_code.payload().code())),
+                ),
+                (
+                    "execution_blockers",
+                    Json::array(blockers.iter().cloned().map(Json::string)),
                 ),
             ]));
         }
@@ -563,12 +569,25 @@ pub fn reconcile_balancer_captures(
             fee_percentage_1e18,
             paused,
         };
+        let blockers = row
+            .get("execution_blockers")
+            .and_then(Json::as_array)
+            .ok_or("Balancer asset row has no execution_blockers")?
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(ToOwned::to_owned)
+                    .ok_or("Balancer execution blocker is not text")
+            })
+            .collect::<Result<Vec<_>, _>>()?;
         let source = admit_balancer_v2_dual_provider(
             &observation,
             &observation,
             &first_digest,
             &second_digest,
-        )?;
+        )?
+        .with_execution_blockers(blockers)?;
         sources.push(source);
     }
 
@@ -815,7 +834,7 @@ pub fn run_balancer_capture(
     if authority_anchor != expected_anchor {
         return Err("D11 authority lock anchor differs from D08 evidence anchor".into());
     }
-    let assets = actionable_assets(&market_state, &token_admission)?;
+    let assets = census_assets(&market_state, &token_admission)?;
 
     let store = Store::create(store_path, StoreConfig::standard())?;
     let transport = CurlTransport::new(60, 10);
