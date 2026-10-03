@@ -11,12 +11,12 @@ export const metadata: Metadata = {
 export default function InitialHearingPage() {
   return <PageShell><StrategicLanding
     eyebrow="Audiencia inicial"
-    title="La audiencia inicial concentra decisiones que pueden cambiar todo el proceso."
-    lead="Legalidad de la detención, imputación, vinculación y medidas cautelares requieren una defensa preparada antes de entrar a sala."
+    title="La audiencia inicial concentra decisiones que pueden marcar el resto del proceso."
+    lead="Control de detención, imputación, vinculación y medidas cautelares exigen llegar a sala con el expediente, los riesgos y la estrategia previamente trabajados."
     marker="AUDIENCIA"
     context={[
-      "La estrategia depende de cómo llegó el asunto a audiencia, qué datos presenta el Ministerio Público y qué antecedentes puede aportar la defensa.",
-      "No existe una respuesta universal: el análisis debe ajustarse al expediente, al delito atribuido y a la situación personal de quien enfrenta el proceso."
+      "La estrategia depende de cómo llegó el asunto a audiencia, qué sostiene el Ministerio Público y qué antecedentes puede aportar la defensa para controvertir o contextualizar esa versión.",
+      "No existe una respuesta universal: cada decisión debe ajustarse al expediente, al delito atribuido, a la evidencia disponible y a la situación personal de quien enfrenta el proceso."
     ]}
     scenarios={[
       { title: "Control de detención", copy: "Revisión de legalidad, temporalidad y circunstancias en que ocurrió la detención." },
@@ -28,6 +28,6 @@ export default function InitialHearingPage() {
       { label: "Carpeta de investigación", href: "/carpeta-investigacion" },
       { label: "Orden de aprehensión", href: "/orden-aprehension" }
     ]}
-    ctaTitle="La preparación debe ocurrir antes de que empiece la audiencia."
+    ctaTitle="La audiencia no es el lugar para empezar a improvisar la defensa."
   /></PageShell>;
 }
