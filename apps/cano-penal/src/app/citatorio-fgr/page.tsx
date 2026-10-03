@@ -11,12 +11,12 @@ export const metadata: Metadata = {
 export default function FgrSummonsPage() {
   return <PageShell><StrategicLanding
     eyebrow="Citatorio FGR"
-    title="Un citatorio no debe contestarse sin entender por qué te están llamando."
-    lead="Antes de comparecer conviene identificar el carácter de la citación, la autoridad, la etapa y la información que ya puede existir en la investigación."
+    title="Un citatorio no debe atenderse sin entender por qué te están llamando."
+    lead="Antes de comparecer conviene identificar en qué carácter se solicita tu presencia, qué autoridad interviene, en qué etapa está el asunto y qué información puede existir ya en la investigación."
     marker="FGR"
     context={[
-      "El mismo documento puede tener consecuencias distintas dependiendo de si la persona comparece como testigo, víctima, imputado u otra calidad procesal.",
-      "La primera revisión debe centrarse en el documento, el plazo, la autoridad que lo emite y los antecedentes conocidos."
+      "El mismo documento puede exigir decisiones distintas según la calidad en la que se solicita la comparecencia y el momento procesal del asunto.",
+      "La primera revisión debe centrarse en el documento, el plazo, la autoridad que lo emite y los antecedentes que permitan entender el contexto antes de comparecer."
     ]}
     scenarios={[
       { title: "Calidad procesal", copy: "Determinar en qué carácter se solicita la comparecencia y qué derechos corresponden." },
@@ -28,6 +28,6 @@ export default function FgrSummonsPage() {
       { label: "Carpeta de investigación", href: "/carpeta-investigacion" },
       { label: "Defensa penal fiscal", href: "/defensa-penal-fiscal" }
     ]}
-    ctaTitle="Antes de comparecer conviene entender exactamente qué está pidiendo la autoridad."
+    ctaTitle="Antes de comparecer, conviene entender qué solicita la autoridad, en qué contexto y qué decisiones deben prepararse."
   /></PageShell>;
 }
