@@ -24,6 +24,13 @@ permissions:
   contents: read
   actions: read
 
+# One-shot recovery seed for the interrupted A1 acquisition. The seed is
+# transport evidence only: the gate proves the relevant acquisition code and
+# provider descriptors are byte-identical before any checkpoint is reused.
+env:
+  D07_RECOVERY_RUN: "37050685084"
+  D07_RECOVERY_HEAD: "3c695a99e4f14cc5e5355c1d3ebfb9eb0657afc9"
+
 # Every live Census acquisition that loads the shared public RPC endpoints
 # joins one repository-wide group: at most one runs at a time and none is
 # cancelled while running. GitHub keeps at most one pending run per group, so
@@ -93,6 +100,56 @@ jobs:
           echo "$RMC001_FREEZE_MANIFEST_SHA256  ci/nqc-census/rmc001-freeze-manifest.json" | sha256sum --check --strict
           python3 ci/nqc-census/verify_rmc001_freeze.py
           echo RMC007_UPSTREAM_IMMUTABLE_PASS
+
+      - name: Verify recovery seed identity and completeness
+        if: ${{ env.D07_RECOVERY_RUN != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          run_json="$(gh api "repos/$repo/actions/runs/$D07_RECOVERY_RUN")"
+          test "$(jq -r '.head_sha' <<<"$run_json")" = "$D07_RECOVERY_HEAD"
+          test "$(jq -r '.path' <<<"$run_json")" = ".github/workflows/nqc-census-v2-discovery.yml"
+
+          # Checkpoint semantics must be identical. Workflow scheduling may
+          # differ, but acquisition code and provider descriptors may not.
+          git diff --quiet "$D07_RECOVERY_HEAD" HEAD --             nqc-census/crates/nqc-census-core             nqc-census/crates/nqc-census-store             nqc-census/crates/nqc-census-chain             nqc-census/crates/nqc-census-v2-discovery             ci/nqc-census/rpc-providers.json             ci/nqc-census/v2-discovery-providers.json
+
+          gh api "repos/$repo/actions/runs/$D07_RECOVERY_RUN/attempts/1/jobs?per_page=100"             > /tmp/d07-recovery-jobs.json
+          python3 - <<'PY'
+          import json, os
+          jobs = json.load(open("/tmp/d07-recovery-jobs.json"))["jobs"]
+          def rows(prefix):
+              return [j for j in jobs if j["name"] == prefix or j["name"].startswith(prefix + " (")]
+          surface = rows("surface")
+          created = rows("pair-created")
+          pairs = rows("pairs")
+          assert len(surface) == 1 and surface[0]["conclusion"] == "success", surface
+          assert len(created) == 16, len(created)
+          assert len(pairs) == 32 and all(j["conclusion"] == "success" for j in pairs), [
+              (j["name"], j["conclusion"]) for j in pairs if j["conclusion"] != "success"
+          ]
+          failed = [(j["name"], j["conclusion"]) for j in created if j["conclusion"] != "success"]
+          assert failed == [("pair-created (3, blastapi-public)", "failure")], failed
+          print("RMC007_RECOVERY_SEED_JOBS_PASS surface=1 pair_created_success=15 pair_created_failed=1 pairs_success=32")
+          PY
+
+          gh api --paginate "repos/$repo/actions/runs/$D07_RECOVERY_RUN/artifacts?per_page=100"             --jq '.artifacts[] | select(.expired == false) | .name' > /tmp/d07-recovery-artifacts.txt
+          python3 - <<'PY'
+          import os
+          names = set(open("/tmp/d07-recovery-artifacts.txt").read().splitlines())
+          run = os.environ["D07_RECOVERY_RUN"]
+          head = os.environ["D07_RECOVERY_HEAD"]
+          expected = {f"d07-surface-{head}-{run}"}
+          expected |= {f"d07-stage-pair-created-{provider}-{part}-{head}-{run}-1"
+                       for provider in ("blastapi-public", "mevblocker-rpc") for part in range(8)}
+          expected |= {f"d07-stage-pairs-{provider}-{part}-{head}-{run}-1"
+                       for provider in ("blastapi-public", "mevblocker-rpc") for part in range(16)}
+          missing = sorted(expected - names)
+          assert not missing, missing
+          print(f"RMC007_RECOVERY_SEED_ARTIFACTS_PASS expected={len(expected)}")
+          PY
+          echo "RMC007_RECOVERY_SEED_IDENTITY_PASS run=$D07_RECOVERY_RUN head=$D07_RECOVERY_HEAD"
 
       - name: Verify no authority duplication or transaction path
         shell: bash
@@ -295,6 +352,49 @@ jobs:
           mkdir -p "$D07_EVIDENCE"
           cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-current --bin nqc-rmc007-v2-boundary
           cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+
+          if [ -n "$D07_RECOVERY_RUN" ]; then
+            repo="${{ github.repository }}"
+            name="d07-surface-$D07_RECOVERY_HEAD-$D07_RECOVERY_RUN"
+            meta="$(gh api --paginate "repos/$repo/actions/runs/$D07_RECOVERY_RUN/artifacts?per_page=100"               --jq ".artifacts[] | select(.name == \"$name\")")"
+            test -n "$meta"
+            test "$(jq -r '.expired' <<<"$meta")" = false
+            artifact_id="$(jq -r '.id' <<<"$meta")"
+            artifact_digest="$(jq -r '.digest' <<<"$meta")"
+            test "$(jq -r '.workflow_run.id' <<<"$meta")" = "$D07_RECOVERY_RUN"
+            gh run download "$D07_RECOVERY_RUN" --repo "$repo" --name "$name" --dir "$D07_EVIDENCE"
+            test -f "$D07_EVIDENCE/v2-current-surface.json"
+            test -f "$D07_EVIDENCE/v2-factory-boundary.json"
+            test -f "$D07_EVIDENCE/store/STORE"
+            mkdir -p "$D07_EVIDENCE/store/tmp" "$D07_EVIDENCE/store/objects/chunks" "$D07_EVIDENCE/store/objects/artifacts" "$D07_EVIDENCE/store/streams"
+            for stream in "$D07_EVIDENCE"/store/streams/*/; do
+              if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
+            done
+            target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/store-verify.log"
+            grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/store-verify.log"
+            python3 - "$D07_EVIDENCE/v2-current-surface.json" "$D07_EVIDENCE/v2-factory-boundary.json" <<'PY'
+import json, sys
+current, boundary = map(lambda p: json.load(open(p)), sys.argv[1:])
+anchors = []
+def walk(value):
+    if isinstance(value, dict):
+        if "block_number" in value and "block_hash" in value:
+            anchors.append((value["block_number"], value["block_hash"]))
+        for child in value.values():
+            walk(child)
+    elif isinstance(value, list):
+        for child in value:
+            walk(child)
+walk(current); walk(boundary)
+expected = (26095351, "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781")
+assert anchors, "recovered surface contains no anchor"
+assert all(tuple(a) == expected for a in anchors), sorted(set(map(tuple, anchors)))
+print(f"RMC007_RECOVERED_SURFACE_ANCHOR_PASS anchors={len(anchors)}")
+PY
+            echo "RMC007_SURFACE_RECOVERY_PASS run=$D07_RECOVERY_RUN artifact=$artifact_id digest=$artifact_digest"
+            exit 0
+          fi
+
           target/release/nqc-rmc007-v2-current \
             --providers ../ci/nqc-census/rpc-providers.json \
             --store "$D07_EVIDENCE/store" \
@@ -362,8 +462,8 @@ jobs:
           name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
 
-      - name: Restore latest prior-attempt checkpoint
-        if: ${{ github.run_attempt > 1 }}
+      - name: Restore verified checkpoint seed
+        if: ${{ github.run_attempt > 1 || env.D07_RECOVERY_RUN != '' }}
         working-directory: nqc-census
         shell: bash
         env:
@@ -374,11 +474,11 @@ jobs:
           prefix="d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-"
           current="${{ github.run_attempt }}"
           artifact_json="$(
-            gh api --paginate "repos/$repo/actions/runs/${{ github.run_id }}/artifacts?per_page=100"               --jq '.artifacts[] | select(.expired == false)' |
-            jq -s --arg prefix "$prefix" --argjson current "$current" '
+            gh api --paginate "repos/$repo/actions/runs/$source_run/artifacts?per_page=100"               --jq '.artifacts[] | select(.expired == false)' |
+            jq -s --arg prefix "$prefix" --argjson current "$current" --arg source_run "$source_run" --arg current_run "${{ github.run_id }}" '
               map(select(.name | startswith($prefix)))
               | map(. + {attempt: ((.name | capture("-(?<attempt>[0-9]+)$").attempt) | tonumber)})
-              | map(select(.attempt < $current))
+              | map(select(($source_run != $current_run) or (.attempt < $current)))
               | sort_by(.attempt)
               | last // empty
             '
@@ -395,9 +495,9 @@ jobs:
           test "$(jq -r '.expired' <<<"$meta")" = false
           test "$(jq -r '.name' <<<"$meta")" = "$artifact_name"
           test "$(jq -r '.digest' <<<"$meta")" = "$artifact_digest"
-          test "$(jq -r '.workflow_run.id' <<<"$meta")" = "${{ github.run_id }}"
+          test "$(jq -r '.workflow_run.id' <<<"$meta")" = "$source_run"
           mkdir -p "$D07_EVIDENCE"
-          gh run download "${{ github.run_id }}" --repo "$repo" --name "$artifact_name" --dir "$D07_EVIDENCE"
+          gh run download "$source_run" --repo "$repo" --name "$artifact_name" --dir "$D07_EVIDENCE"
           test -f "$D07_EVIDENCE/store/STORE"
           mkdir -p "$D07_EVIDENCE/store/tmp" "$D07_EVIDENCE/store/objects/chunks" "$D07_EVIDENCE/store/objects/artifacts" "$D07_EVIDENCE/store/streams"
           for stream in "$D07_EVIDENCE"/store/streams/*/; do
@@ -444,7 +544,7 @@ jobs:
           retention-days: 30
 
   pairs:
-    needs: [plan, surface]
+    needs: [plan, surface, pair-created]
     if: ${{ needs.plan.outputs.mode == 'acquire' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 350
@@ -484,8 +584,8 @@ jobs:
           name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
 
-      - name: Restore latest prior-attempt checkpoint
-        if: ${{ github.run_attempt > 1 }}
+      - name: Restore verified checkpoint seed
+        if: ${{ github.run_attempt > 1 || env.D07_RECOVERY_RUN != '' }}
         working-directory: nqc-census
         shell: bash
         env:
@@ -496,11 +596,11 @@ jobs:
           prefix="d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-"
           current="${{ github.run_attempt }}"
           artifact_json="$(
-            gh api --paginate "repos/$repo/actions/runs/${{ github.run_id }}/artifacts?per_page=100"               --jq '.artifacts[] | select(.expired == false)' |
-            jq -s --arg prefix "$prefix" --argjson current "$current" '
+            gh api --paginate "repos/$repo/actions/runs/$source_run/artifacts?per_page=100"               --jq '.artifacts[] | select(.expired == false)' |
+            jq -s --arg prefix "$prefix" --argjson current "$current" --arg source_run "$source_run" --arg current_run "${{ github.run_id }}" '
               map(select(.name | startswith($prefix)))
               | map(. + {attempt: ((.name | capture("-(?<attempt>[0-9]+)$").attempt) | tonumber)})
-              | map(select(.attempt < $current))
+              | map(select(($source_run != $current_run) or (.attempt < $current)))
               | sort_by(.attempt)
               | last // empty
             '
@@ -517,9 +617,9 @@ jobs:
           test "$(jq -r '.expired' <<<"$meta")" = false
           test "$(jq -r '.name' <<<"$meta")" = "$artifact_name"
           test "$(jq -r '.digest' <<<"$meta")" = "$artifact_digest"
-          test "$(jq -r '.workflow_run.id' <<<"$meta")" = "${{ github.run_id }}"
+          test "$(jq -r '.workflow_run.id' <<<"$meta")" = "$source_run"
           mkdir -p "$D07_EVIDENCE"
-          gh run download "${{ github.run_id }}" --repo "$repo" --name "$artifact_name" --dir "$D07_EVIDENCE"
+          gh run download "$source_run" --repo "$repo" --name "$artifact_name" --dir "$D07_EVIDENCE"
           test -f "$D07_EVIDENCE/store/STORE"
           mkdir -p "$D07_EVIDENCE/store/tmp" "$D07_EVIDENCE/store/objects/chunks" "$D07_EVIDENCE/store/objects/artifacts" "$D07_EVIDENCE/store/streams"
           for stream in "$D07_EVIDENCE"/store/streams/*/; do
