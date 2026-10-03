@@ -11,12 +11,12 @@ export const metadata: Metadata = {
 export default function FinancialCrimesPage() {
   return <PageShell><StrategicLanding
     eyebrow="Delitos financieros"
-    title="El dinero deja rastros. La estrategia empieza por reconstruirlos."
-    lead="Operaciones, autorizaciones, cuentas, contratos y decisiones deben leerse como una secuencia verificable, no como etiquetas genéricas."
+    title="El dinero deja rastros. La defensa empieza por entenderlos."
+    lead="Operaciones, autorizaciones, cuentas, contratos y decisiones deben reconstruirse como una secuencia verificable, no reducirse a etiquetas."
     marker="FINANCIERO"
     context={[
-      "Las investigaciones financieras suelen depender de documentación y relaciones entre múltiples personas y operaciones. El contexto importa tanto como cada movimiento aislado.",
-      "La defensa debe distinguir quién decidió, quién ejecutó, quién conocía y qué información tenía disponible cada participante."
+      "En una investigación financiera, una operación aislada rara vez cuenta toda la historia. Documentación, relaciones, facultades y secuencia temporal forman parte del contexto que debe reconstruirse.",
+      "La defensa debe distinguir quién decidió, quién ejecutó, qué conocía cada participante y qué información tenía realmente disponible en cada momento."
     ]}
     scenarios={[
       { title: "Operaciones cuestionadas", copy: "Revisión de origen, destino, autorización, soporte documental y explicación económica de las transacciones." },
@@ -28,6 +28,6 @@ export default function FinancialCrimesPage() {
       { label: "Fraude empresarial", href: "/fraude-empresarial" },
       { label: "Trayectoria de Eduardo Cano", href: "/acerca-de-mi" }
     ]}
-    ctaTitle="Antes de responder a una imputación financiera hay que reconstruir la operación completa."
+    ctaTitle="Antes de responder, hay que reconstruir la operación y la participación real de cada persona."
   /></PageShell>;
 }
