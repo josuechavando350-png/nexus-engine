@@ -42,12 +42,12 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: Verify RMC-015A ancestry
+      - name: Verify RMC-015B ancestry
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --no-tags origin nqc/rmc-015a-trigger-authority-20261007
-          RMC015_HEAD="$(git rev-parse FETCH_HEAD)"
+          git fetch --no-tags origin nqc/rmc-015b-temporal-episodes-20261007
+          RMC015B_HEAD="$(git rev-parse FETCH_HEAD)"
           git merge-base --is-ancestor "$RMC015_HEAD" HEAD
           echo "RMC016_RMC015_ANCESTRY_PASS base=$RMC015_HEAD head=$(git rev-parse HEAD)"
 
@@ -59,15 +59,15 @@ jobs:
           jq -e '
             .schema_version == 1 and
             .repository == env.GITHUB_REPOSITORY and
-            (.status == "BLOCKED_AWAITING_RMC015_TEMPORAL_AUTHORITY" or .status == "PINNED") and
+            (.status == "BLOCKED_AWAITING_RMC015B_TEMPORAL_OPPORTUNITY_AUTHORITY" or .status == "PINNED") and
             .conservative_realizable_capacity_only == true and
             .global_market_maximum_claimed == false and
             .capture_probability == "UNCALIBRATED" and
             .capture_adjusted_capacity_claimed == false and
             (if .status == "PINNED" then
-              (.blocking_reasons | length == 0) and (.rmc015 | type == "object")
+              (.blocking_reasons | length == 0) and (.rmc015b | type == "object")
             else
-              .rmc015 == null and (.blocking_reasons | length > 0)
+              .rmc015b == null and (.blocking_reasons | length > 0)
             end)
           ' "$INPUTS" >/dev/null
           echo "status=$(jq -r '.status' "$INPUTS")" >> "$GITHUB_OUTPUT"
