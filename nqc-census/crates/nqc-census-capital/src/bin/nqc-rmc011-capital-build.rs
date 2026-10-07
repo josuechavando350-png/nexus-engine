@@ -129,6 +129,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         &args.code_tree,
     )?;
     let bundle = export_capital_artifacts(&ledger, &context, &provenance)?;
+    // The canonical artifact bundle is now owned and self-contained.
+    // Release the large per-source/per-requirement graph before running the
+    // independent upstream replay, which creates its own verification state.
+    // This changes only the peak live allocation, never the serialized bytes.
+    drop(ledger);
 
     let d08_replay = D08ReplayInputs {
         state_manifest_jsonl: &d08_state,
