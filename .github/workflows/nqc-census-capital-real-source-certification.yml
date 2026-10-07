@@ -1016,16 +1016,16 @@ jobs:
 
           capture_provider mevblocker-rpc &
           PID_MEV=$!
-          capture_provider drpc-public &
-          PID_DRPC=$!
+          capture_provider tenderly-public &
+          PID_TENDERLY=$!
           wait "$PID_MEV"
-          wait "$PID_DRPC"
+          wait "$PID_TENDERLY"
 
           (
             cd nqc-census
             target/release/nqc-rmc011-uniswap-v3-reconcile \
               --first "$ROOT/capture-mevblocker-rpc.json" \
-              --second "$ROOT/capture-drpc-public.json" \
+              --second "$ROOT/capture-tenderly-public.json" \
               --out "$ROOT/reconciled-rust.json"
           ) | tee "$ROOT/reconcile-rust.log"
           grep -F "RMC011_UNISWAP_V3_RUST_RECONCILE_PASS" "$ROOT/reconcile-rust.log"
