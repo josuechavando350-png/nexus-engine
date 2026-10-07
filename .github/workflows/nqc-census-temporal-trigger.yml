@@ -1,0 +1,111 @@
+name: NQC RMC-015A Temporal Trigger Authority
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md"
+      - "ci/nqc-census/rmc015-trigger-inputs.json"
+      - "ci/nqc-census/rmc015_trigger_model.py"
+      - "ci/nqc-census/test_rmc015_trigger_model.py"
+      - ".github/workflows/nqc-census-temporal-trigger.yml"
+  push:
+    branches:
+      - "nqc/rmc-015a-trigger-authority-20261007"
+    paths:
+      - "ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md"
+      - "ci/nqc-census/rmc015-trigger-inputs.json"
+      - "ci/nqc-census/rmc015_trigger_model.py"
+      - "ci/nqc-census/test_rmc015_trigger_model.py"
+      - ".github/workflows/nqc-census-temporal-trigger.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc015a-temporal-trigger-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  INPUTS: ci/nqc-census/rmc015-trigger-inputs.json
+
+jobs:
+  foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      status: ${{ steps.inputs.outputs.status }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify RMC-014 ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin nqc/rmc-014-structural-only-20261007
+          RMC014_HEAD="$(git rev-parse FETCH_HEAD)"
+          git merge-base --is-ancestor "$RMC014_HEAD" HEAD
+          echo "RMC015A_RMC014_ANCESTRY_PASS base=$RMC014_HEAD head=$(git rev-parse HEAD)"
+
+      - name: Validate blocked-or-pinned production input contract
+        id: inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == 1 and
+            .repository == env.GITHUB_REPOSITORY and
+            (.status == "BLOCKED_AWAITING_RMC014_STRUCTURAL_AND_HISTORICAL_WINDOW" or .status == "PINNED") and
+            (.non_claims | index("NO_CAPTURE_PROBABILITY")) != null and
+            (.non_claims | index("NO_MONTHLY_CAPACITY")) != null and
+            (.non_claims | index("NO_REALIZED_PNL")) != null and
+            (.non_claims | index("NO_CENSUS_CLOSEOUT")) != null and
+            (if .status == "PINNED" then
+              (.blocking_reasons | length == 0) and
+              (.rmc014 | type == "object") and
+              (.historical_window | type == "object") and
+              (.provider_authorities | type == "array") and
+              (.provider_authorities | length >= 2)
+            else
+              .rmc014 == null and
+              .historical_window == null and
+              (.blocking_reasons | length > 0)
+            end)
+          ' "$INPUTS" >/dev/null
+          echo "status=$(jq -r '.status' "$INPUTS")" >> "$GITHUB_OUTPUT"
+
+      - name: Verify explicit temporal boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'Event-only discovery' ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md
+          grep -F 'INTEREST_ONLY_CROSSING_CANDIDATES' ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md
+          grep -F 'by one operator do not constitute independent authority.' ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md
+          grep -F 'RMC-015A remains BLOCKED' ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md
+          ! grep -R -n -F 'REAL_MARKET_CENSUS_CLOSED' ci/nqc-census/rmc015_trigger_model.py
+
+      - name: Deterministic and adversarial trigger regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc015_trigger_model.py
+          python3 -m py_compile             ci/nqc-census/rmc015_trigger_model.py             ci/nqc-census/test_rmc015_trigger_model.py
+          echo RMC015A_TRIGGER_FOUNDATION_PASS
+
+  terminal:
+    needs: foundation
+    if: ${{ needs.foundation.outputs.status == 'PINNED' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    steps:
+      - name: Fail closed until production acquisition workflow exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RMC015A_PINNED_WITHOUT_PRODUCTION_ACQUISITION_IMPLEMENTATION" >&2
+          exit 1

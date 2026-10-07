@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED_AWAITING_RMC014_STRUCTURAL_AND_HISTORICAL_WINDOW",
+  "repository": "josuechavando350-png/nexus-engine",
+  "rmc014": null,
+  "historical_window": null,
+  "provider_authorities": [],
+  "blocking_reasons": [
+    "RMC014_STRUCTURAL_ARTIFACT_NOT_PINNED",
+    "HISTORICAL_WINDOW_NOT_DECLARED",
+    "DUAL_OPERATOR_HISTORICAL_PROVIDER_AUTHORITY_NOT_PINNED",
+    "PRODUCTION_TRIGGER_ACQUISITION_NOT_EXECUTED"
+  ],
+  "non_claims": [
+    "NO_TEMPORAL_EPISODE_AUTHORITY",
+    "NO_CAPTURE_PROBABILITY",
+    "NO_MONTHLY_CAPACITY",
+    "NO_REALIZED_PNL",
+    "NO_CENSUS_CLOSEOUT"
+  ]
+}
