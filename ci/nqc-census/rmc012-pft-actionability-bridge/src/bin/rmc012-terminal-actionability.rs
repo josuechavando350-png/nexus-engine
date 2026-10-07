@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 //! Terminal RMC-012 actionability bridge.
 //!
 //! Consumes exact, content-addressed RMC-008 and RMC-009 closeouts, enumerates
@@ -42,8 +44,7 @@ const MARKET_SNAPSHOT_DOMAIN: &[u8] = b"NQC-RMC012-D08-MARKET-SNAPSHOT-V1";
 const ACCOUNT_SNAPSHOT_DOMAIN: &[u8] = b"NQC-RMC012-D09-ACCOUNT-SNAPSHOT-V1";
 const BORROWER_RESOURCE_DOMAIN: &[u8] = b"NQC-RMC012-BORROWER-PRESTATE-RESOURCE-V1";
 const DEBT_POSITION_RESOURCE_DOMAIN: &[u8] = b"NQC-RMC012-DEBT-POSITION-RESOURCE-V1";
-const COLLATERAL_POSITION_RESOURCE_DOMAIN: &[u8] =
-    b"NQC-RMC012-COLLATERAL-POSITION-RESOURCE-V1";
+const COLLATERAL_POSITION_RESOURCE_DOMAIN: &[u8] = b"NQC-RMC012-COLLATERAL-POSITION-RESOURCE-V1";
 const MIN_BASE_MAX_CLOSE_FACTOR_THRESHOLD_USD: u64 = 2_000;
 
 #[derive(Debug, Clone)]
@@ -317,7 +318,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                             borrower_resource_locator(borrower)?,
                             ResourceUnit::Count,
                             ResourceLimit::Exclusive,
-                            vec![CapitalEvidenceRef::Observation(*account_snapshot.as_bytes())],
+                            vec![CapitalEvidenceRef::Observation(
+                                *account_snapshot.as_bytes(),
+                            )],
                         )?;
                         let borrower_claim = ResourceClaim::new(
                             borrower_resource.key_id(),
