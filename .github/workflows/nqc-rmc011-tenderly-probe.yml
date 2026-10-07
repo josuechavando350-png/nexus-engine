@@ -1,0 +1,29 @@
+name: NQC RMC-011 Tenderly Probe
+on:
+  push:
+    branches: ["nqc/rmc011-rpc-window-probe-20261007"]
+    paths: [".github/workflows/nqc-rmc011-tenderly-probe.yml"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,urllib.request,urllib.error
+          url="https://mainnet.gateway.tenderly.co"
+          fact="0x1f98431c8ad98523631ae4a59f267346ea31f984"
+          topic="0x783cca1c0412dd0d695e784568c96da2e9c22ff989357a2e8b1d9b2b4e6b7118"
+          for span in (100000,500000,1000000):
+              q={"jsonrpc":"2.0","id":1,"method":"eth_getLogs","params":[{"fromBlock":hex(25000000),"toBlock":hex(25000000+span-1),"address":fact,"topics":[topic]}]}
+              req=urllib.request.Request(url,data=json.dumps(q,separators=(",",":")).encode(),headers={"content-type":"application/json","user-agent":"nqc-tenderly-probe/1"})
+              try:
+                  with urllib.request.urlopen(req,timeout=60) as r:
+                      obj=json.loads(r.read())
+                      print(span, "ERROR" if "error" in obj else "PASS", obj.get("error") or len(obj.get("result",[])))
+              except urllib.error.HTTPError as e:
+                  print(span,"HTTP",e.code,e.read()[:300].decode("utf-8","replace"))
+          PY
