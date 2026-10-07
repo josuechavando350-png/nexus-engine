@@ -129,6 +129,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         &args.code_tree,
     )?;
     let bundle = export_capital_artifacts(&ledger, &context, &provenance)?;
+    // The self-contained artifact bundle owns its canonical bytes. The ledger
+    // has no remaining authority after export, and keeping millions of source
+    // objects alive during exact upstream replay needlessly doubles peak RSS.
+    // Releasing it cannot weaken replay: verification re-imports D08/D09 from
+    // the original independently authenticated upstream bytes.
+    drop(ledger);
 
     let d08_replay = D08ReplayInputs {
         state_manifest_jsonl: &d08_state,

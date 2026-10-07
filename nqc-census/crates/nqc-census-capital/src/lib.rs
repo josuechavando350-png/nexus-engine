@@ -3412,13 +3412,32 @@ impl CapitalCensusLedger {
         //
         // Index once instead of building a complete residual network for
         // every independent borrower requirement.
+        // Only keys demanded by an actual funding leg can participate in
+        // residual flow or in rejection classification. A real V2 census has
+        // hundreds of thousands of unrelated asset keys; indexing them all
+        // retains a large unnecessary allocation for each evaluation batch.
+        let mut required_keys = BTreeSet::<(CapitalAsset, CapitalClass)>::new();
+        for requirement in self.requirements.values() {
+            for leg in requirement.legs() {
+                if matches!(
+                    leg.kind(),
+                    RequirementKind::Repayment | RequirementKind::FundingFee
+                ) {
+                    continue;
+                }
+                for class in leg.allowed_classes() {
+                    required_keys.insert((leg.asset(), *class));
+                }
+            }
+        }
+
         let mut source_index =
             BTreeMap::<(CapitalAsset, CapitalClass), Vec<CapitalSourceId>>::new();
         for source in self.sources.values() {
-            source_index
-                .entry((source.asset(), source.class()))
-                .or_default()
-                .push(source.id());
+            let key = (source.asset(), source.class());
+            if required_keys.contains(&key) {
+                source_index.entry(key).or_default().push(source.id());
+            }
         }
 
         for requirement in self.requirements.values() {
