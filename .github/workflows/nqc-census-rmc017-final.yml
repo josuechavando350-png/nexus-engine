@@ -51,12 +51,19 @@ jobs:
             .schema_version == 1 and
             .repository == env.GITHUB_REPOSITORY and
             .real_market_census_closed == false and
-            (.status == "BLOCKED_AWAITING_RMC014_RMC015_RMC016" or .status == "PINNED") and
+            (.status == "BLOCKED_AWAITING_RMC014_RMC015_RMC016" or
+             .status == "BLOCKED_AWAITING_RMC014" or
+             .status == "PINNED") and
             (if .status == "PINNED" then
               .blocking_reasons == [] and
               ([.rmc014,.rmc015,.rmc016] | all(type == "object"))
+            elif .status == "BLOCKED_AWAITING_RMC014" then
+              .blocking_reasons == ["RMC014_STRUCTURAL_AUTHORITY_NOT_PINNED"] and
+              .rmc014 == null and
+              ([.rmc015,.rmc016] | all(type == "object"))
             else
-              (.blocking_reasons | length == 3) and .rmc014 == null and .rmc015 == null and .rmc016 == null
+              (.blocking_reasons | length == 3) and
+              .rmc014 == null and .rmc015 == null and .rmc016 == null
             end)
           ' "$INPUTS" >/dev/null
           echo "status=$(jq -r '.status' "$INPUTS")" >> "$GITHUB_OUTPUT"
