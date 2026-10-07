@@ -1,0 +1,51 @@
+name: NQC RMC-011 RPC Window Probe
+
+on:
+  push:
+    branches:
+      - "nqc/rmc011-rpc-window-probe-20261007"
+    paths:
+      - ".github/workflows/nqc-rmc011-rpc-window-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Probe historical log window limits
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, urllib.request, urllib.error
+          FACT="0x1f98431c8ad98523631ae4a59f267346ea31f984"
+          TOP="0x783cca1c0412dd0d695e784568c96da2e9c22ff989357a2e8b1d9b2b4e6b7118"
+          START=25_880_316
+          tests=[
+            ("mev-100k","https://rpc.mevblocker.io",100_000),
+            ("mev-500k","https://rpc.mevblocker.io",500_000),
+            ("mev-1m","https://rpc.mevblocker.io",1_000_000),
+            ("drpc-9999","https://eth.drpc.org",9_999),
+            ("drpc-10000","https://eth.drpc.org",10_000),
+          ]
+          for name,url,span in tests:
+              q={"jsonrpc":"2.0","id":1,"method":"eth_getLogs","params":[{
+                  "fromBlock":hex(START),"toBlock":hex(START+span-1),
+                  "address":FACT,"topics":[TOP]}]}
+              req=urllib.request.Request(url,data=json.dumps(q,separators=(",",":")).encode(),
+                  headers={"content-type":"application/json","user-agent":"nqc-rmc011-window-probe/1"})
+              try:
+                  with urllib.request.urlopen(req,timeout=60) as r:
+                      obj=json.loads(r.read())
+                      if "error" in obj:
+                          print(name,"RPC_ERROR",obj["error"])
+                      else:
+                          print(name,"PASS","logs",len(obj.get("result",[])))
+              except urllib.error.HTTPError as e:
+                  print(name,"HTTP",e.code,e.read()[:400].decode("utf-8","replace"))
+              except Exception as e:
+                  print(name,"EXC",type(e).__name__,str(e))
+          PY
