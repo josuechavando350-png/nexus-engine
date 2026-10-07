@@ -70,8 +70,9 @@ impl ExternalDebtKind {
 }
 
 fn field<'a>(row: &'a Json, key: &'static str) -> Result<&'a Json, CapitalError> {
-    row.get(key)
-        .ok_or(CapitalError::InvalidCanonical("missing external debt field"))
+    row.get(key).ok_or(CapitalError::InvalidCanonical(
+        "missing external debt field",
+    ))
 }
 
 fn text_field<'a>(row: &'a Json, key: &'static str) -> Result<&'a str, CapitalError> {
@@ -159,7 +160,7 @@ fn amount_text(value: &str) -> Result<Amount256, CapitalError> {
         ));
     }
     let mut bytes = [0_u8; 32];
-    for (index, pair) in raw.as_bytes().chunks_exact(2).enumerate() {
+    for (index, pair) in raw.as_bytes().as_chunks::<2>().0.iter().enumerate() {
         bytes[index] = (hex_nibble(pair[0])? << 4) | hex_nibble(pair[1])?;
     }
     Ok(Amount256::from_be_bytes(bytes))
@@ -399,9 +400,9 @@ pub fn import_external_debt_observation(
 ) -> Result<CapitalSource, CapitalError> {
     let row = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("external debt JSON parse failed"))?;
-    let canonical = row.canonical().map_err(|_| {
-        CapitalError::InvalidCanonical("external debt canonicalization failed")
-    })?;
+    let canonical = row
+        .canonical()
+        .map_err(|_| CapitalError::InvalidCanonical("external debt canonicalization failed"))?;
     if canonical.as_slice() != bytes {
         return Err(CapitalError::InvalidCanonical(
             "external debt observation must be canonical JSON",

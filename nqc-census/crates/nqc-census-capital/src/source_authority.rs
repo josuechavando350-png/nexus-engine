@@ -10,9 +10,8 @@ use crate::{
     adapters::{BALANCER_V2_PROVIDER_NAMESPACE, UNISWAP_V3_PROVIDER_NAMESPACE},
     validate_settlement_requirements, CapitalCensusCommitment, CapitalCensusLedger,
     CapitalCensusSummary, CapitalCertificationContext, CapitalClass, CapitalError,
-    CapitalEvidenceRef, CapitalFeasibility, CapitalLedgerMode, CapitalProviderKind,
-    CapitalSource, CapitalSourceId, CapitalSourceKeyId, UpstreamCensusStage,
-    UpstreamConsumptionReceipt,
+    CapitalEvidenceRef, CapitalFeasibility, CapitalLedgerMode, CapitalProviderKind, CapitalSource,
+    CapitalSourceId, CapitalSourceKeyId, UpstreamCensusStage, UpstreamConsumptionReceipt,
 };
 use nqc_census_core::{Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
@@ -210,7 +209,10 @@ impl D11SourceAuthority {
             return Err(CapitalError::UnresolvedEvidenceRef);
         }
 
-        let source_ids = sources.iter().map(CapitalSource::id).collect::<BTreeSet<_>>();
+        let source_ids = sources
+            .iter()
+            .map(CapitalSource::id)
+            .collect::<BTreeSet<_>>();
         let source_key_ids = sources
             .iter()
             .map(CapitalSource::key_id)
@@ -344,7 +346,6 @@ impl D11SourceAuthority {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct D11SourceAuthoritySet {
     observation_anchor: StateAnchor,
@@ -402,11 +403,7 @@ impl D11SourceAuthoritySet {
             by_family.insert(authority.family(), authority);
         }
 
-        let commitment = authority_set_commitment(
-            &observation_anchor,
-            &by_family,
-            source_count,
-        )?;
+        let commitment = authority_set_commitment(&observation_anchor, &by_family, source_count)?;
         Ok(Self {
             observation_anchor,
             authorities: by_family,
@@ -453,11 +450,13 @@ impl D11SourceAuthoritySet {
         {
             return Err(CapitalError::AnchorMismatch);
         }
-        if sources.len() != usize::try_from(self.source_count).map_err(|_| {
-            CapitalError::InvalidUpstreamAuthority(
-                "D11 native authority source count exceeds usize",
-            )
-        })? {
+        if sources.len()
+            != usize::try_from(self.source_count).map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "D11 native authority source count exceeds usize",
+                )
+            })?
+        {
             return Err(CapitalError::InvalidUpstreamAuthority(
                 "D11 native source union count differs from authority set",
             ));
@@ -483,18 +482,21 @@ impl D11SourceAuthoritySet {
             by_family.entry(family).or_default().push(source);
         }
         if by_family.len() != self.authorities.len()
-            || by_family.keys().any(|family| !self.authorities.contains_key(family))
+            || by_family
+                .keys()
+                .any(|family| !self.authorities.contains_key(family))
         {
             return Err(CapitalError::InvalidUpstreamAuthority(
                 "D11 native source families differ from authority set",
             ));
         }
         for (family, authority) in &self.authorities {
-            let family_sources = by_family.get(family).ok_or(
-                CapitalError::InvalidUpstreamAuthority(
-                    "D11 native authority family has no source records",
-                ),
-            )?;
+            let family_sources =
+                by_family
+                    .get(family)
+                    .ok_or(CapitalError::InvalidUpstreamAuthority(
+                        "D11 native authority family has no source records",
+                    ))?;
             authority.verify_source_set(family_sources.iter().copied())?;
         }
         Ok(())
@@ -528,9 +530,7 @@ fn authority_set_commitment(
     hasher.update(source_count.to_be_bytes());
     let digest: [u8; 32] = hasher.finalize().into();
     Hash32::new(digest).map_err(|_| {
-        CapitalError::InvalidUpstreamAuthority(
-            "zero D11 native source authority set commitment",
-        )
+        CapitalError::InvalidUpstreamAuthority("zero D11 native source authority set commitment")
     })
 }
 
@@ -538,9 +538,7 @@ fn source_set_commitment(sources: &[CapitalSource]) -> Result<(u64, Hash32), Cap
     source_set_commitment_refs(&sources.iter().collect::<Vec<_>>())
 }
 
-fn source_set_commitment_refs(
-    sources: &[&CapitalSource],
-) -> Result<(u64, Hash32), CapitalError> {
+fn source_set_commitment_refs(sources: &[&CapitalSource]) -> Result<(u64, Hash32), CapitalError> {
     let mut ids = sources
         .iter()
         .map(|source| *source.id().as_bytes())
@@ -615,10 +613,7 @@ fn encode_anchor(anchor: &StateAnchor, hasher: &mut Sha256) {
     hasher.update(anchor.state_root().as_bytes());
 }
 
-fn encode_evidence(
-    reference: CapitalEvidenceRef,
-    hasher: &mut Sha256,
-) -> Result<(), CapitalError> {
+fn encode_evidence(reference: CapitalEvidenceRef, hasher: &mut Sha256) -> Result<(), CapitalError> {
     match reference {
         CapitalEvidenceRef::Observation(digest) => {
             if digest == [0; 32] {
@@ -639,10 +634,8 @@ fn encode_evidence(
 
 fn nonzero_sha256(bytes: &[u8]) -> Result<Hash32, CapitalError> {
     let digest: [u8; 32] = Sha256::digest(bytes).into();
-    Hash32::new(digest)
-        .map_err(|_| CapitalError::InvalidUpstreamAuthority("zero SHA-256 digest"))
+    Hash32::new(digest).map_err(|_| CapitalError::InvalidUpstreamAuthority("zero SHA-256 digest"))
 }
-
 
 pub fn certify_with_d11_sources(
     ledger: &CapitalCensusLedger,
@@ -750,12 +743,9 @@ pub fn certify_with_d11_source_authorities(
         .collect::<BTreeMap<_, _>>();
     for result in ledger.results() {
         if let CapitalFeasibility::Feasible { requirement_id, .. } = result {
-            let requirement = requirement_by_id
-                .get(requirement_id)
-                .copied()
-                .ok_or(CapitalError::InvalidCanonical(
-                    "feasible result references missing requirement",
-                ))?;
+            let requirement = requirement_by_id.get(requirement_id).copied().ok_or(
+                CapitalError::InvalidCanonical("feasible result references missing requirement"),
+            )?;
             validate_settlement_requirements(requirement, result, &all_sources)?;
         }
     }
@@ -814,13 +804,8 @@ mod tests {
             fee_percentage_1e18: 500_000_000_000_000,
             paused: false,
         };
-        admit_balancer_v2_dual_provider(
-            &observation,
-            &observation,
-            &hash(6),
-            &hash(7),
-        )
-        .unwrap_or_else(|_| unreachable!())
+        admit_balancer_v2_dual_provider(&observation, &observation, &hash(6), &hash(7))
+            .unwrap_or_else(|_| unreachable!())
     }
 
     #[test]
