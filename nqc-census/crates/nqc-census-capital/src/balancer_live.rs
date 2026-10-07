@@ -1,5 +1,3 @@
-[Reading 1175 lines from start (total: 1175 lines, 0 remaining)]
-
 //! Authenticated live acquisition for the Balancer V2 flash-capital family.
 //!
 //! This module is deliberately narrow: it consumes the exact D08 admitted
@@ -1175,5 +1173,3 @@ mod tests {
         assert_ne!(abi::selector("getFlashLoanFeePercentage()"), [0; 4]);
     }
 }
-
-[executed on device: codex-nqc-rmc-328dd6 (97869e36-ef95-481f-ac75-85ab90bce0e7)]
