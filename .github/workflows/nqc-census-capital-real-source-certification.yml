@@ -127,9 +127,9 @@ permissions:
 
 concurrency:
   group: rmc011-real-source-certification-${{ github.ref }}
-  # PR preflights are superseded by newer heads; authoritative push
-  # certification is never cancelled once it starts.
-  cancel-in-progress: true
+  # PR preflights are superseded by newer heads. Authoritative push runs are
+  # immutable evidence attempts and must never be cancelled by a later push.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   certification-contract-preflight:
