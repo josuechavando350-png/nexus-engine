@@ -23,6 +23,7 @@ on:
   push:
     branches:
       - "nqc/rmc-013-clean-restack-d12-20260930"
+      - "nqc/rmc-013-materialization-hardening-20261007"
     paths:
       - "ci/nqc-census/rmc013-execution-inputs.json"
       - "ci/nqc-census/plan_rmc013_v2_routes.py"
@@ -46,7 +47,7 @@ permissions:
 
 concurrency:
   group: rmc013-real-execution-evidence-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   INPUTS: ci/nqc-census/rmc013-execution-inputs.json
