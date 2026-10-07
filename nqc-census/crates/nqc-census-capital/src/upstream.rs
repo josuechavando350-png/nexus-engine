@@ -1,5 +1,3 @@
-[Reading 811 lines from start (total: 811 lines, 0 remaining)]
-
 //! Strict bridge from admitted RMC-008 state artifacts into RMC-011 capital sources.
 //!
 //! This module does not perform RPC calls and does not trust "latest" artifacts.
@@ -811,5 +809,3 @@ fn import_d08_capital_sources_unbound(
         authority_artifact_sha256: None,
     })
 }
-
-[executed on device: codex-nqc-rmc-328dd6 (97869e36-ef95-481f-ac75-85ab90bce0e7)]
