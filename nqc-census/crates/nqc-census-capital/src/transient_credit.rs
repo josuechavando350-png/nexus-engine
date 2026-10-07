@@ -29,8 +29,9 @@ pub enum TransientCreditRepaymentMode {
 }
 
 fn field<'a>(row: &'a Json, key: &'static str) -> Result<&'a Json, CapitalError> {
-    row.get(key)
-        .ok_or(CapitalError::InvalidCanonical("missing transient credit field"))
+    row.get(key).ok_or(CapitalError::InvalidCanonical(
+        "missing transient credit field",
+    ))
 }
 
 fn text_field<'a>(row: &'a Json, key: &'static str) -> Result<&'a str, CapitalError> {
@@ -118,7 +119,7 @@ fn amount_text(value: &str) -> Result<Amount256, CapitalError> {
         ));
     }
     let mut bytes = [0_u8; 32];
-    for (index, pair) in raw.as_bytes().chunks_exact(2).enumerate() {
+    for (index, pair) in raw.as_bytes().as_chunks::<2>().0.iter().enumerate() {
         bytes[index] = (hex_nibble(pair[0])? << 4) | hex_nibble(pair[1])?;
     }
     Ok(Amount256::from_be_bytes(bytes))
@@ -174,8 +175,9 @@ fn repayment_mode(row: &Json) -> Result<TransientCreditRepaymentMode, CapitalErr
             Ok(TransientCreditRepaymentMode::SameBlock)
         }
         "DEADLINE_BLOCKS" => {
-            let deadline = u32::try_from(deadline)
-                .map_err(|_| CapitalError::InvalidCanonical("transient credit deadline overflow"))?;
+            let deadline = u32::try_from(deadline).map_err(|_| {
+                CapitalError::InvalidCanonical("transient credit deadline overflow")
+            })?;
             if deadline == 0 {
                 return Err(CapitalError::ZeroValue("repayment_deadline_blocks"));
             }
@@ -357,9 +359,9 @@ pub fn import_transient_credit_observation(
 ) -> Result<CapitalSource, CapitalError> {
     let row = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("transient credit JSON parse failed"))?;
-    let canonical = row.canonical().map_err(|_| {
-        CapitalError::InvalidCanonical("transient credit canonicalization failed")
-    })?;
+    let canonical = row
+        .canonical()
+        .map_err(|_| CapitalError::InvalidCanonical("transient credit canonicalization failed"))?;
     if canonical.as_slice() != bytes {
         return Err(CapitalError::InvalidCanonical(
             "transient credit observation must be canonical JSON",
@@ -433,7 +435,9 @@ pub fn import_transient_credit_observation(
 
     let repayment = match repayment {
         TransientCreditRepaymentMode::SameBlock => RepaymentSemantics::SameBlock,
-        TransientCreditRepaymentMode::DeadlineBlocks(blocks) => RepaymentSemantics::DeadlineBlocks(blocks),
+        TransientCreditRepaymentMode::DeadlineBlocks(blocks) => {
+            RepaymentSemantics::DeadlineBlocks(blocks)
+        }
     };
     let source = CapitalSource::new(CapitalSourceSpec {
         class: CapitalClass::TransientCredit,

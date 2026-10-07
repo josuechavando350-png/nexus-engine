@@ -196,7 +196,9 @@ fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
     Ok(rows)
 }
 
-pub(crate) fn token_execution_blockers(bytes: &[u8]) -> Result<BTreeMap<Address, Vec<String>>, CapitalError> {
+pub(crate) fn token_execution_blockers(
+    bytes: &[u8],
+) -> Result<BTreeMap<Address, Vec<String>>, CapitalError> {
     let mut tokens = BTreeMap::new();
     for row in parse_jsonl(bytes)? {
         let token = Address::parse_hex(text(&row, "token")?)
@@ -382,7 +384,7 @@ pub fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError
     Ok((pool, value))
 }
 
-fn verify_d08_artifact_binding(
+pub(crate) fn verify_d08_artifact_binding(
     state_manifest_jsonl: &[u8],
     token_admission_jsonl: &[u8],
     pool_and_factory_facts_json: &[u8],

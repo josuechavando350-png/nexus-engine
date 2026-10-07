@@ -4,8 +4,8 @@
 //! evidence-bound acquisition modules; all economic authority still flows through exact integer
 //! capital sources, candidate requirements, deterministic identities, and fail-closed feasibility.
 
-pub mod adapters;
 pub mod aave_debt_discovery;
+pub mod adapters;
 pub mod artifacts;
 pub mod balancer_live;
 pub mod demands;
@@ -16,9 +16,9 @@ pub mod permissionless_atomic;
 pub mod replay;
 pub mod source_authority;
 pub mod transient_credit;
-pub mod upstream;
 pub mod uniswap_v3_acquire;
 pub mod uniswap_v3_live;
+pub mod upstream;
 
 use nqc_census_core::{
     Address, CensusUnitId, ChainDomain, EvidenceRef, Hash32, ObservationDigest, StateAnchor,
@@ -2731,8 +2731,7 @@ pub fn evaluate_capital_feasibility_checked(
                 rounding,
                 ..
             } => {
-                let amount =
-                    mul_div_u64_round(drawn_amount, numerator, denominator, rounding)?;
+                let amount = mul_div_u64_round(drawn_amount, numerator, denominator, rounding)?;
                 if amount.is_zero() {
                     return Err(CapitalError::InvalidCanonical(
                         "positive draw produced zero proportional collateral",

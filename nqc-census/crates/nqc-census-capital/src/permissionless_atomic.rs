@@ -212,7 +212,10 @@ mod tests {
         let source = admit_uniswap_v3_dual_provider(&first, &first, &hash(8), &hash(9))
             .unwrap_or_else(|_| unreachable!());
         assert_eq!(source.maximum_available(), Amount256::from_u128(2_000_000));
-        assert_eq!(source.executable_capacity().unwrap_or(Amount256::MAX), Amount256::ZERO);
+        assert_eq!(
+            source.executable_capacity().unwrap_or(Amount256::MAX),
+            Amount256::ZERO
+        );
         assert!(!source.execution_eligible());
         assert_eq!(
             source.execution_blockers(),
