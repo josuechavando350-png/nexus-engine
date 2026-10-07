@@ -289,7 +289,10 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
         "RMC014_STRUCTURAL_COMMITMENT=0x{}",
         certificate.commitment_hex()
     );
-    println!("RMC014_STRUCTURAL_CERTIFICATE_SHA256={}", sha256_hex(&bytes));
+    println!(
+        "RMC014_STRUCTURAL_CERTIFICATE_SHA256={}",
+        sha256_hex(&bytes)
+    );
     Ok(())
 }
 
