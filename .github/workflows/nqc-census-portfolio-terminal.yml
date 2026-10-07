@@ -13,6 +13,7 @@ on:
     branches:
       - "nqc/rmc-012-portfolio-capacity-conflict-20260929"
       - "nqc/rmc-012-clean-restack-d11-20260930"
+      - "nqc/rmc-012-terminal-authority-20261007"
     paths:
       - "ci/nqc-census/rmc012-terminal-inputs.json"
       - "ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md"
@@ -26,7 +27,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: rmc012-terminal-actionability-${{ github.ref }}
+  group: rmc012-terminal-actionability-${{ github.sha }}
   # Supersede stale PR heads, but never cancel authoritative push/dispatch runs.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
