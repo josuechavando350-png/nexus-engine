@@ -26,7 +26,7 @@ def row(k,i):
   r["sources"]=[{"provider_id":f"p{i}a","operator":f"op{i}a","evidence_sha256":H(10+i)},{"provider_id":f"p{i}b","operator":f"op{i}b","evidence_sha256":H(30+i)}]
  return r
 def valid():
- return {"schema_version":1,"window":WINDOW,"trigger_classes":[row(k,i) for i,k in enumerate(m.TRIGGER_CLASSES)]}
+ return {"schema_version":1,"window":dict(WINDOW),"trigger_classes":[row(k,i) for i,k in enumerate(m.TRIGGER_CLASSES)]}
 
 class TriggerAuthorityTests(unittest.TestCase):
  def test_valid_exact_surface_passes(self):
