@@ -15,5 +15,9 @@
     "artifact_id": 11504276505,
     "artifact_name": "rmc015b-temporal-opportunity-authority-cb413ee9747e83be2bf5e05b8270edabf4f6e221",
     "artifact_digest": "sha256:aff472236ff5177f123e4a6ccc95d4dae5fb37833f8645984116c407c179d790"
+  },
+  "production_evidence": {
+    "path": "ci/nqc-census/rmc016-production-evidence.json",
+    "source_authority_file_sha256": "9dc03b2d2c480d689e5ecf1e4585d2af55a4271db6a3e5ef0851f821085fac63"
   }
 }
