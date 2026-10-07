@@ -1,0 +1,100 @@
+name: NQC RMC-016 Conservative Capacity Foundation
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md"
+      - "ci/nqc-census/rmc016-capacity-inputs.json"
+      - "ci/nqc-census/rmc016_capacity_model.py"
+      - "ci/nqc-census/test_rmc016_capacity_model.py"
+      - ".github/workflows/nqc-census-capacity-foundation.yml"
+  push:
+    branches:
+      - "nqc/rmc-016-capacity-foundation-20261007"
+    paths:
+      - "ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md"
+      - "ci/nqc-census/rmc016-capacity-inputs.json"
+      - "ci/nqc-census/rmc016_capacity_model.py"
+      - "ci/nqc-census/test_rmc016_capacity_model.py"
+      - ".github/workflows/nqc-census-capacity-foundation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc016-capacity-foundation-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  INPUTS: ci/nqc-census/rmc016-capacity-inputs.json
+
+jobs:
+  foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      status: ${{ steps.input.outputs.status }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify RMC-015A ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin nqc/rmc-015a-trigger-authority-20261007
+          RMC015_HEAD="$(git rev-parse FETCH_HEAD)"
+          git merge-base --is-ancestor "$RMC015_HEAD" HEAD
+          echo "RMC016_RMC015_ANCESTRY_PASS base=$RMC015_HEAD head=$(git rev-parse HEAD)"
+
+      - name: Validate blocked production input contract
+        id: input
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == 1 and
+            .repository == env.GITHUB_REPOSITORY and
+            (.status == "BLOCKED_AWAITING_RMC015_TEMPORAL_AUTHORITY" or .status == "PINNED") and
+            .conservative_realizable_capacity_only == true and
+            .global_market_maximum_claimed == false and
+            .capture_probability == "UNCALIBRATED" and
+            .capture_adjusted_capacity_claimed == false and
+            (if .status == "PINNED" then
+              (.blocking_reasons | length == 0) and (.rmc015 | type == "object")
+            else
+              .rmc015 == null and (.blocking_reasons | length > 0)
+            end)
+          ' "$INPUTS" >/dev/null
+          echo "status=$(jq -r '.status' "$INPUTS")" >> "$GITHUB_OUTPUT"
+
+      - name: Verify conservative boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'Reusing the same flash source, DEX venue or gas source hours later is not itself' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
+          grep -F 'A 7-day sample multiplied by 30/7 is forbidden.' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
+          grep -F 'global_optimum_claimed = false' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
+          grep -F 'capture_probability = UNCALIBRATED' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
+
+      - name: Exact and adversarial capacity regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc016_capacity_model.py
+          python3 -m py_compile             ci/nqc-census/rmc016_capacity_model.py             ci/nqc-census/test_rmc016_capacity_model.py
+          echo RMC016_CAPACITY_FOUNDATION_PASS
+
+  terminal:
+    needs: foundation
+    if: ${{ needs.foundation.outputs.status == 'PINNED' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fail closed until authenticated RMC-015 opportunity authority exists
+        run: |
+          echo "RMC016_PINNED_WITHOUT_TEMPORAL_OPPORTUNITY_AUTHORITY" >&2
+          exit 1
