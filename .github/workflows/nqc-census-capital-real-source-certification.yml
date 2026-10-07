@@ -988,9 +988,10 @@ jobs:
           rm -rf "$ROOT"
           mkdir -p "$ROOT"
 
-          for provider in mevblocker-rpc drpc-public; do
-            store="$ROOT/store-$provider"
-            capture="$ROOT/capture-$provider.json"
+          capture_provider() {
+            local provider="$1"
+            local store="$ROOT/store-$provider"
+            local capture="$ROOT/capture-$provider.json"
             (
               cd nqc-census
               target/release/nqc-rmc011-uniswap-v3-capture \
@@ -1011,7 +1012,14 @@ jobs:
             )
             grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$ROOT/store-$provider-verify.log"
             test -s "$capture"
-          done
+          }
+
+          capture_provider mevblocker-rpc &
+          PID_MEV=$!
+          capture_provider drpc-public &
+          PID_DRPC=$!
+          wait "$PID_MEV"
+          wait "$PID_DRPC"
 
           (
             cd nqc-census
