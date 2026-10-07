@@ -1,0 +1,2161 @@
+name: NQC RMC-011 Real Source Certification
+# Exact-head validation marker: terminal D11 gate.
+# D11 queue-alignment marker: authoritative head only.
+# D11 authoritative A1 certification trigger: 2026-10-02
+# D11 dual-provider authoritative push trigger: 2026-10-07
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/nqc-census-capital-real-source-certification.yml"
+      - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
+      - "ci/nqc-census/capital-census-scope.json"
+      - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - "ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json"
+      - "ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-debt-family-resolution.py"
+      - "ci/nqc-census/test_verify_rmc011_debt_family_resolution.py"
+      - "ci/nqc-census/verify-rmc011-debt-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_debt_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-protocol-family-resolution.py"
+      - "ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py"
+      - "ci/nqc-census/verify-rmc011-protocol-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-terminal-family-partition.py"
+      - "ci/nqc-census/test_verify_rmc011_terminal_family_partition.py"
+      - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
+      - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
+      - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
+      - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
+      - "ci/nqc-census/rmc011-univ3-rpc-providers.json"
+      - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
+      - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
+      - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
+      - "ci/nqc-census/verify-rmc011-terminal-closeout.py"
+      - "ci/nqc-census/test_verify_rmc011_terminal_closeout.py"
+      - "ci/nqc-census/verify-rmc011-balancer-v2-capture.py"
+      - "ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py"
+      - "ci/nqc-census/rpc-providers.json"
+      - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
+      - "ci/nqc-census/rmc011-real-source-inputs.json"
+      - "ci/nqc-census/rmc011-authority-lock.json"
+      - "ci/nqc-census/verify-rmc011-upstream-coherence.py"
+      - "ci/nqc-census/test-rmc011-upstream-coherence.py"
+      - "ci/nqc-census/verify_rmc011_upstream_authority.py"
+      - "ci/nqc-census/test_verify_rmc011_upstream_authority.py"
+      - "nqc-census/crates/nqc-census-capital/**"
+  push:
+    branches:
+      - "nqc/rmc-011-capital-census-foundation-20260929"
+      - "nqc/rmc-011-derived-authority-lock-20260930"
+      - "nqc/rmc-011-terminal-authority-20261007"
+      - "nqc/rmc-011-terminal-multicall-fix-20261007"
+      - "nqc/rmc-011-terminal-closeout-checkpoint-20261007"
+    paths:
+      - ".github/workflows/nqc-census-capital-real-source-certification.yml"
+      - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
+      - "ci/nqc-census/capital-census-scope.json"
+      - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
+      - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py"
+      - "ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json"
+      - "ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
+      - "ci/nqc-census/rmc011-collateral-funding-path-catalog.json"
+      - "ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py"
+      - "ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-debt-family-resolution.py"
+      - "ci/nqc-census/test_verify_rmc011_debt_family_resolution.py"
+      - "ci/nqc-census/verify-rmc011-debt-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_debt_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-protocol-family-resolution.py"
+      - "ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py"
+      - "ci/nqc-census/verify-rmc011-protocol-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py"
+      - "ci/nqc-census/verify-rmc011-terminal-family-partition.py"
+      - "ci/nqc-census/test_verify_rmc011_terminal_family_partition.py"
+      - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
+      - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
+      - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
+      - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
+      - "ci/nqc-census/rmc011-univ3-rpc-providers.json"
+      - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py"
+      - "ci/nqc-census/verify-rmc011-family-discovery-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py"
+      - ".github/workflows/nqc-census-capital-family-discovery-evidence.yml"
+      - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
+      - "ci/nqc-census/verify-rmc011-terminal-closeout.py"
+      - "ci/nqc-census/test_verify_rmc011_terminal_closeout.py"
+      - "ci/nqc-census/verify-rmc011-balancer-v2-capture.py"
+      - "ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py"
+      - "ci/nqc-census/rpc-providers.json"
+      - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
+      - "ci/nqc-census/rmc011-real-source-inputs.json"
+      - "ci/nqc-census/rmc011-authority-lock.json"
+      - "ci/nqc-census/verify-rmc011-upstream-coherence.py"
+      - "ci/nqc-census/test-rmc011-upstream-coherence.py"
+      - "ci/nqc-census/verify_rmc011_upstream_authority.py"
+      - "ci/nqc-census/test_verify_rmc011_upstream_authority.py"
+      - "nqc-census/crates/nqc-census-capital/**"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc011-real-source-certification-terminal-${{ github.sha }}
+  # PR preflights are superseded by newer heads; authoritative push
+  # certification is never cancelled once it starts.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  certification-contract-preflight:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Verify certification runner contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n ci/nqc-census/run-rmc011-real-source-closeout.sh
+          python3 -m py_compile ci/nqc-census/verify-rmc011-upstream-coherence.py ci/nqc-census/test-rmc011-upstream-coherence.py
+          python3 ci/nqc-census/test-rmc011-upstream-coherence.py
+          python3 -m py_compile ci/nqc-census/verify_rmc011_upstream_authority.py ci/nqc-census/test_verify_rmc011_upstream_authority.py
+          python3 ci/nqc-census/test_verify_rmc011_upstream_authority.py -v
+          grep -F 'capital-real-source-closeout.json' ci/nqc-census/run-rmc011-real-source-closeout.sh
+          grep -F 'sha256sum -c capital-archive.sha256' ci/nqc-census/run-rmc011-real-source-closeout.sh
+          grep -F 'rmc011-certification-package' .github/workflows/nqc-census-capital-real-source-certification.yml
+          grep -F 'CERTIFICATION-PACKAGE-SHA256SUMS' .github/workflows/nqc-census-capital-real-source-certification.yml
+          test -f ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
+          python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-terminal-closeout.py ci/nqc-census/test_verify_rmc011_terminal_closeout.py
+          python3 ci/nqc-census/test_verify_rmc011_terminal_closeout.py -v
+          python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-readiness.py ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-readiness.py /tmp/rmc011-family-discovery-readiness.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-promotion.py ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
+          python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
+          python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-rejections.py ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-rejections.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-promotion.py ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-debt-family-resolution.py ci/nqc-census/test_verify_rmc011_debt_family_resolution.py
+          python3 ci/nqc-census/test_verify_rmc011_debt_family_resolution.py -v
+          python3 -m py_compile ci/nqc-census/verify-rmc011-debt-family-promotion.py ci/nqc-census/test_verify_rmc011_debt_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_debt_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-debt-family-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-protocol-family-resolution.py ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py
+          python3 ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py -v
+          python3 -m py_compile ci/nqc-census/verify-rmc011-protocol-family-promotion.py ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_protocol_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-protocol-family-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-terminal-family-partition.py ci/nqc-census/test_verify_rmc011_terminal_family_partition.py
+          python3 ci/nqc-census/test_verify_rmc011_terminal_family_partition.py -v
+          python3 ci/nqc-census/verify-rmc011-terminal-family-partition.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-balancer-v2-capture.py ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py
+          python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
+          jq -e '
+            .claim_scope == "SOURCE_UNIVERSE_READINESS_ONLY" and
+            .d11_terminal_closed == false and
+            .status != "D11_TERMINAL_CLOSED"
+          ' ci/nqc-census/rmc011-capital-source-universe.json >/dev/null
+
+          INPUTS=ci/nqc-census/rmc011-real-source-inputs.json
+          LOCK=ci/nqc-census/rmc011-authority-lock.json
+          if [[ -e "$LOCK" && ! -e "$INPUTS" ]]; then
+            echo "declared RMC-011 authority lock requires transport inputs" >&2
+            exit 1
+          fi
+          if [[ -e "$INPUTS" ]]; then
+            test -f "$INPUTS"
+            jq -e '
+              .schema_version == 3 and
+              (.repository | type == "string") and
+              ([.d06,.d07,.d08,.d09,.d10] | all(
+                . != null and
+                (.run_id | type == "number") and
+                (.head_sha | type == "string") and
+                (.workflow_name | type == "string") and
+                (.artifact_id | type == "number") and
+                (.artifact_name | type == "string") and
+                (.artifact_digest | type == "string") and
+                (.authority_file | type == "string")
+              )) and
+              (.d06.anchor_file | type == "string") and
+              (.d07.anchor_file | type == "string") and
+              (.d08.market_state_manifest | type == "string") and
+              (.d08.oracle_manifest | type == "string") and
+              (.d08.token_admission | type == "string") and
+              (.d08.pool_and_factory_facts | type == "string") and
+              (.d09.account_manifest | type == "string") and
+              (.d09.account_summary | type == "string")
+            ' "$INPUTS" >/dev/null
+          fi
+          if [[ -e "$LOCK" ]]; then
+            test -f "$LOCK"
+            jq -e '.schema_version == 1 and (.authority_lock_commitment | type == "string") and (.stages | length == 5)' "$LOCK" >/dev/null
+          fi
+          grep -F 'nqc-rmc011-authority-lock-build' .github/workflows/nqc-census-capital-real-source-certification.yml
+
+  authoritative-real-source-certification:
+    if: false
+    # This job performs live Balancer/Uniswap V3 acquisition after its offline
+    # gates. Join the repository-wide public-RPC lock so it cannot recreate the
+    # D07/D08 throttling failure by competing with another Census acquisition.
+    concurrency:
+      group: nqc-census-public-rpc-d11-terminal-${{ github.sha }}
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      INPUTS: ci/nqc-census/rmc011-real-source-inputs.json
+      DECLARED_AUTHORITY_LOCK: ci/nqc-census/rmc011-authority-lock.json
+      AUTHORITY_CANDIDATE: /tmp/rmc011-authority-lock-candidate.json
+      AUTHORITY_LOCK: /tmp/rmc011-authority-lock.json
+    steps:
+      - name: Checkout exact D11 head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact-head D11 Rust gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd nqc-census
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
+          cargo test --locked -p nqc-census-capital
+          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-balancer-v2-capture --bin nqc-rmc011-balancer-v2-reconcile --bin nqc-rmc011-uniswap-v3-capture --bin nqc-rmc011-uniswap-v3-reconcile --bin nqc-rmc011-aave-debt-discovery --bin nqc-rmc011-expanded-ledger-replay
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          cargo build --release --locked -p nqc-census-capital
+
+      - name: Verify exact source-universe boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/nqc-census/verify-rmc011-capital-source-universe.py ci/nqc-census/test_verify_rmc011_capital_source_universe.py
+          python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-terminal-closeout.py ci/nqc-census/test_verify_rmc011_terminal_closeout.py
+          python3 ci/nqc-census/test_verify_rmc011_terminal_closeout.py -v
+          python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-readiness.py ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-readiness.py /tmp/rmc011-family-discovery-readiness.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-promotion.py ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/rmc011-execution-plan-requirement-catalog.json /tmp/rmc011-execution-plan-requirement-catalog-report.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
+          python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
+          python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/rmc011-external-capital-provider-registry.json /tmp/rmc011-external-provider-registry-report.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json /tmp/rmc011-permissionless-debt-catalog-report.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py ci/nqc-census/rmc011-collateral-funding-path-catalog.json /tmp/rmc011-collateral-path-report.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-rejections.py ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-rejections.py /tmp/rmc011-bounded-family-rejections.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-promotion.py ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-promotion.py
+
+      - name: Authenticate bounded-family rejection evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SOURCE_UNIVERSE=ci/nqc-census/rmc011-capital-source-universe.json
+          OUT="$RUNNER_TEMP/rmc011-bounded-family-evidence"
+          META="$RUNNER_TEMP/rmc011-bounded-family-evidence.json"
+          rm -rf "$OUT"
+
+          python3 - "$SOURCE_UNIVERSE" "$META" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          source_path, out_path = sys.argv[1:]
+          doc = json.loads(Path(source_path).read_text(encoding="utf-8"))
+          bounded = {
+              "EXTERNAL_GAS_CREDIT",
+              "EXTERNAL_GAS_SPONSOR",
+              "TRANSIENT_EXTERNAL_CREDIT",
+              "INVENTORY_REQUIREMENT",
+              "BOND_OR_STAKE",
+              "SOLVER_OR_BUILDER_DEPOSIT",
+              "INTRA_BLOCK_TEMPORARY_LOCK",
+          }
+          rows = {row["id"]: row for row in doc["families"] if row["id"] in bounded}
+          if set(rows) != bounded:
+              raise SystemExit("bounded family set differs from required seven-family universe")
+
+          promoted = {
+              family: row
+              for family, row in rows.items()
+              if row["status"] == "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE"
+          }
+          if not promoted:
+              payload = {"promoted": False, "rows": []}
+          else:
+              if set(promoted) != bounded:
+                  raise SystemExit("bounded family promotion is partial")
+              out_rows = []
+              for family in sorted(bounded):
+                  evidence = promoted[family].get("resolution_evidence")
+                  if not isinstance(evidence, dict):
+                      raise SystemExit(f"{family}: missing resolution_evidence")
+                  out_rows.append({
+                      "family": family,
+                      "repository": evidence["repository"],
+                      "workflow_name": evidence["workflow_name"],
+                      "run_id": evidence["run_id"],
+                      "head_sha": evidence["head_sha"],
+                      "artifact_id": evidence["artifact_id"],
+                      "artifact_name": evidence["artifact_name"],
+                      "artifact_digest": evidence["artifact_digest"],
+                      "file": evidence["file"],
+                      "sha256": evidence["sha256"],
+                  })
+              shared = {
+                  (row["repository"], row["workflow_name"], row["run_id"], row["head_sha"],
+                   row["artifact_id"], row["artifact_name"], row["artifact_digest"])
+                  for row in out_rows
+              }
+              if len(shared) != 1:
+                  raise SystemExit("bounded family evidence mixes run/artifact identities")
+              payload = {"promoted": True, "rows": out_rows}
+          Path(out_path).write_text(
+              json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          if [[ "$(jq -r '.promoted' "$META")" != "true" ]]; then
+            echo "RMC011_BOUNDED_FAMILY_EVIDENCE=PENDING"
+            exit 0
+          fi
+
+          test "$(jq '.rows | length' "$META")" -eq 7
+          repository="$(jq -r '.rows[0].repository' "$META")"
+          workflow_name="$(jq -r '.rows[0].workflow_name' "$META")"
+          run_id="$(jq -r '.rows[0].run_id' "$META")"
+          head_sha="$(jq -r '.rows[0].head_sha' "$META")"
+          artifact_id="$(jq -r '.rows[0].artifact_id' "$META")"
+          artifact_name="$(jq -r '.rows[0].artifact_name' "$META")"
+          artifact_digest="$(jq -r '.rows[0].artifact_digest' "$META")"
+
+          test "$repository" = "$REPOSITORY"
+          test "$workflow_name" = "NQC RMC-011 Bounded Family Rejection Evidence"
+          [[ "$run_id" =~ ^[0-9]+$ ]]
+          [[ "$artifact_id" =~ ^[0-9]+$ ]]
+          [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$artifact_name" == rmc011-bounded-family-rejections-"$head_sha"-"$run_id"-* ]]
+
+          run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+          test "$(jq -r '.status' <<<"$run_json")" = "completed"
+          test "$(jq -r '.conclusion' <<<"$run_json")" = "success"
+          test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+          test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+          artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+          test "$(jq -r '.expired' <<<"$artifact_json")" = "false"
+          test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+          test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+          test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+          mkdir -p "$OUT"
+          gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$OUT"
+          test -f "$OUT/SHA256SUMS"
+          ( cd "$OUT" && sha256sum -c SHA256SUMS )
+
+          python3 - "$META" "$OUT" <<'PY'
+          import hashlib
+          import json
+          import sys
+          from pathlib import Path
+
+          meta_path, root_path = sys.argv[1:]
+          meta = json.loads(Path(meta_path).read_text(encoding="utf-8"))
+          root = Path(root_path)
+          if meta.get("promoted") is not True or len(meta.get("rows", [])) != 7:
+              raise SystemExit("bounded family metadata is not a complete promotion")
+
+          seen_files = set()
+          seen_hashes = set()
+          for row in meta["rows"]:
+              family = row["family"]
+              expected_file = f"families/{family}/evidence.json"
+              if row["file"] != expected_file:
+                  raise SystemExit(f"{family}: wrong evidence file")
+              if expected_file in seen_files:
+                  raise SystemExit(f"{family}: duplicate evidence file")
+              seen_files.add(expected_file)
+              path = root / expected_file
+              data = path.read_bytes()
+              digest = hashlib.sha256(data).hexdigest()
+              if digest != row["sha256"]:
+                  raise SystemExit(f"{family}: evidence sha256 mismatch")
+              if digest in seen_hashes:
+                  raise SystemExit(f"{family}: duplicate evidence sha256")
+              seen_hashes.add(digest)
+              evidence = json.loads(data)
+              required = {
+                  "schema_version": 1,
+                  "stage": "RMC-011",
+                  "kind": "EXHAUSTIVE_REJECTION",
+                  "family": family,
+                  "workflow_name": row["workflow_name"],
+                  "head_sha": row["head_sha"],
+                  "run_id": row["run_id"],
+                  "global_nonexistence_claimed": False,
+                  "source_availability_claimed": False,
+                  "d11_terminal_closed": False,
+              }
+              for key, value in required.items():
+                  if evidence.get(key) != value:
+                      raise SystemExit(f"{family}: evidence field {key} differs")
+          PY
+
+          echo "RMC011_BOUNDED_FAMILY_EVIDENCE=AUTHENTICATED run=$run_id artifact=$artifact_id head=$head_sha"
+      - name: Authenticate family discovery evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SOURCE_UNIVERSE=ci/nqc-census/rmc011-capital-source-universe.json
+          OUT="$RUNNER_TEMP/rmc011-family-discovery-evidence"
+          rm -rf "$OUT"
+
+          status="$(jq -r '.family_universe_discovery.status' "$SOURCE_UNIVERSE")"
+          if [[ "$status" == "NOT_CERTIFIED" ]]; then
+            test "$(jq -r '.family_universe_discovery.evidence' "$SOURCE_UNIVERSE")" = "null"
+            echo "RMC011_FAMILY_DISCOVERY_EVIDENCE=PENDING"
+            exit 0
+          fi
+          test "$status" = "AUTHENTICATED_COMPLETE"
+
+          evidence="$(jq -c '.family_universe_discovery.evidence' "$SOURCE_UNIVERSE")"
+          test "$(jq -r '.kind' <<<"$evidence")" = "AUTHENTICATED_DISCOVERY"
+          repository="$(jq -r '.repository' <<<"$evidence")"
+          workflow_name="$(jq -r '.workflow_name' <<<"$evidence")"
+          run_id="$(jq -r '.run_id' <<<"$evidence")"
+          head_sha="$(jq -r '.head_sha' <<<"$evidence")"
+          artifact_id="$(jq -r '.artifact_id' <<<"$evidence")"
+          artifact_name="$(jq -r '.artifact_name' <<<"$evidence")"
+          artifact_digest="$(jq -r '.artifact_digest' <<<"$evidence")"
+          evidence_file="$(jq -r '.file' <<<"$evidence")"
+          evidence_sha="$(jq -r '.sha256' <<<"$evidence")"
+
+          test "$repository" = "$REPOSITORY"
+          test "$workflow_name" = "NQC RMC-011 Family Discovery Evidence"
+          [[ "$run_id" =~ ^[0-9]+$ ]]
+          [[ "$artifact_id" =~ ^[0-9]+$ ]]
+          [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$evidence_sha" =~ ^[0-9a-f]{64}$ ]]
+          test "$evidence_file" = "discovery-evidence.json"
+          [[ "$artifact_name" == rmc011-family-discovery-"$head_sha"-"$run_id"-* ]]
+
+          run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+          test "$(jq -r '.status' <<<"$run_json")" = "completed"
+          test "$(jq -r '.conclusion' <<<"$run_json")" = "success"
+          test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+          test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+          artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+          test "$(jq -r '.expired' <<<"$artifact_json")" = "false"
+          test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+          test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+          test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+          mkdir -p "$OUT"
+          gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$OUT"
+          test -f "$OUT/SHA256SUMS"
+          ( cd "$OUT" && sha256sum -c SHA256SUMS )
+
+          test -f "$OUT/$evidence_file"
+          actual_sha="$(sha256sum "$OUT/$evidence_file" | awk '{print $1}')"
+          test "$actual_sha" = "$evidence_sha"
+
+          jq -e \
+            --arg workflow "$workflow_name" \
+            --arg head "$head_sha" \
+            --argjson run "$run_id" \
+            '
+              .schema_version == 1 and
+              .stage == "RMC-011" and
+              .kind == "AUTHENTICATED_DISCOVERY" and
+              .status == "RMC011_FAMILY_DISCOVERY_AUTHENTICATED_COMPLETE" and
+              .workflow_name == $workflow and
+              .head_sha == $head and
+              .run_id == $run and
+              .family_count == 13 and
+              .unresolved_family_count == 0 and
+              .global_source_nonexistence_claimed == false and
+              .d11_terminal_closed == false
+            ' "$OUT/$evidence_file" >/dev/null
+
+          python3 - "$OUT" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path(sys.argv[1])
+          evidence = json.loads((root / "discovery-evidence.json").read_text(encoding="utf-8"))
+          bindings = {
+              "rmc011-capital-family-discovery.json": "discovery_contract_sha256",
+              "rmc011-capital-source-universe.json": "source_universe_sha256",
+              "rmc011-family-discovery-readiness.json": "readiness_sha256",
+              "family-evidence-authentication.jsonl": "family_evidence_transport_sha256",
+          }
+          for filename, key in bindings.items():
+              path = root / filename
+              if not path.is_file():
+                  raise SystemExit(f"missing family discovery evidence file: {filename}")
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              if digest != evidence.get(key):
+                  raise SystemExit(f"{filename}: sha256 differs from discovery-evidence.json")
+
+          readiness = json.loads(
+              (root / "rmc011-family-discovery-readiness.json").read_text(encoding="utf-8")
+          )
+          if readiness.get("status") != "RMC011_FAMILY_DISCOVERY_TRANSPORT_READY":
+              raise SystemExit("family discovery artifact readiness status differs")
+          if readiness.get("resolved_count") != 13 or readiness.get("unresolved_count") != 0:
+              raise SystemExit("family discovery artifact family conservation differs")
+
+          lines = [
+              line for line in
+              (root / "family-evidence-authentication.jsonl").read_text(encoding="utf-8").splitlines()
+              if line
+          ]
+          if len(lines) != 13:
+              raise SystemExit("family discovery transport ledger must contain 13 rows")
+          families = {json.loads(line)["family"] for line in lines}
+          if len(families) != 13:
+              raise SystemExit("family discovery transport ledger family set is not unique")
+          PY
+
+          echo "RMC011_FAMILY_DISCOVERY_EVIDENCE=AUTHENTICATED run=$run_id artifact=$artifact_id head=$head_sha"
+      - name: Require authoritative upstream inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f "$INPUTS" ]]; then
+            echo "RMC011_BLOCKED_UPSTREAM_REAL_SOURCE: exact RMC-006..RMC-010 transport inputs are required" >&2
+            exit 1
+          fi
+          test "$(jq -r '.repository' "$INPUTS")" = "$REPOSITORY"
+          test "$(jq -r '.schema_version' "$INPUTS")" = "3"
+          if [[ -e "$DECLARED_AUTHORITY_LOCK" ]]; then
+            jq -e '.schema_version == 1 and (.stages | length == 5)' "$DECLARED_AUTHORITY_LOCK" >/dev/null
+          fi
+
+      - name: Verify and download exact RMC-006 through RMC-010 authority artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          verify_and_download() {
+            local key="$1"
+            local stage_code="$2"
+            local out="$3"
+            local run_id head_sha workflow_name artifact_id artifact_name artifact_digest authority_file
+            local run_json artifact_json tree_sha authority_path authority_sha
+
+            run_id="$(jq -r --arg key "$key" '.[$key].run_id' "$INPUTS")"
+            head_sha="$(jq -r --arg key "$key" '.[$key].head_sha' "$INPUTS")"
+            workflow_name="$(jq -r --arg key "$key" '.[$key].workflow_name' "$INPUTS")"
+            artifact_id="$(jq -r --arg key "$key" '.[$key].artifact_id' "$INPUTS")"
+            artifact_name="$(jq -r --arg key "$key" '.[$key].artifact_name' "$INPUTS")"
+            artifact_digest="$(jq -r --arg key "$key" '.[$key].artifact_digest' "$INPUTS")"
+            authority_file="$(jq -r --arg key "$key" '.[$key].authority_file' "$INPUTS")"
+
+            [[ "$run_id" =~ ^[0-9]+$ ]]
+            [[ "$artifact_id" =~ ^[0-9]+$ ]]
+            [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+            [[ -n "$workflow_name" && "$workflow_name" != "null" ]]
+            [[ -n "$artifact_name" && "$artifact_name" != "null" ]]
+            [[ -n "$authority_file" && "$authority_file" != "null" ]]
+            [[ "$authority_file" != /* ]]
+            [[ "$authority_file" != *".."* ]]
+
+            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+            test "$(jq -r '.status' <<<"$run_json")" = "completed"
+            test "$(jq -r '.conclusion' <<<"$run_json")" = "success"
+            test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+            test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+            artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+            test "$(jq -r '.expired' <<<"$artifact_json")" = "false"
+            test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+            test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+            test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+            tree_sha="$(gh api "repos/$REPOSITORY/git/commits/$head_sha" --jq '.tree.sha')"
+            [[ "$tree_sha" =~ ^[0-9a-f]{40}$ ]]
+
+            rm -rf "$out"
+            mkdir -p "$out"
+            gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$out"
+
+            authority_path="$out/$authority_file"
+            test -f "$authority_path"
+            authority_sha="$(sha256sum "$authority_path" | awk '{print $1}')"
+            [[ "$authority_sha" =~ ^[0-9a-f]{64}$ ]]
+            printf '%s %s %s %s %s %s\n' \
+              "$key" "$stage_code" "$head_sha" "$tree_sha" "$authority_file" "$authority_sha" \
+              >> "$RUNNER_TEMP/rmc011-authority-transport.txt"
+
+            echo "RMC011_UPSTREAM_TRANSPORT_PASS stage=$stage_code run=$run_id artifact=$artifact_id head=$head_sha tree=$tree_sha authority_sha256=$authority_sha"
+          }
+
+          : > "$RUNNER_TEMP/rmc011-authority-transport.txt"
+
+          verify_and_download d06 RMC-006 "$RUNNER_TEMP/d06-raw"
+          verify_and_download d07 RMC-007 "$RUNNER_TEMP/d07-raw"
+          verify_and_download d08 RMC-008 "$RUNNER_TEMP/d08-raw"
+          verify_and_download d09 RMC-009 "$RUNNER_TEMP/d09-raw"
+          verify_and_download d10 RMC-010 "$RUNNER_TEMP/d10-raw"
+
+      - name: Derive and semantically verify canonical upstream authority lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          runner = Path(os.environ["RUNNER_TEMP"])
+          inputs = json.loads(Path(os.environ["INPUTS"]).read_text())
+          authority_path = runner / "d08-raw" / inputs["d08"]["authority_file"]
+          manifest = json.loads(authority_path.read_text())
+          anchor = manifest.get("observation_anchor")
+          required = [
+              "chain_id", "genesis_hash", "fork_lineage", "block_number",
+              "block_hash", "parent_hash", "timestamp", "state_root",
+          ]
+          if not isinstance(anchor, dict) or any(key not in anchor for key in required):
+              raise SystemExit("D08 authority lacks the full observation anchor required by D11")
+
+          rows = []
+          expected = ["RMC-006", "RMC-007", "RMC-008", "RMC-009", "RMC-010"]
+          for line in (runner / "rmc011-authority-transport.txt").read_text().splitlines():
+              key, stage, commit, tree, authority_file, authority_sha = line.split()
+              rows.append({
+                  "stage": stage,
+                  "code_commit": commit,
+                  "code_tree": tree,
+                  "artifact_sha256": "0x" + authority_sha,
+              })
+          if [row["stage"] for row in rows] != expected:
+              raise SystemExit(f"authority transport stages differ from required order: {rows}")
+
+          candidate = {
+              "schema_version": 1,
+              "observation_anchor": {key: anchor[key] for key in required},
+              "stages": rows,
+          }
+          Path(os.environ["AUTHORITY_CANDIDATE"]).write_text(
+              json.dumps(candidate, sort_keys=True, separators=(",", ":")) + "\n"
+          )
+          PY
+
+          (
+            cd nqc-census
+            cargo run --release --locked -p nqc-census-capital \
+              --bin nqc-rmc011-authority-lock-build -- \
+              --input "$AUTHORITY_CANDIDATE" \
+              --output "$AUTHORITY_LOCK"
+          )
+          jq -e '.schema_version == 1 and (.stages | length == 5)' "$AUTHORITY_LOCK" >/dev/null
+
+          if [[ -e "$DECLARED_AUTHORITY_LOCK" ]]; then
+            cmp -- "$DECLARED_AUTHORITY_LOCK" "$AUTHORITY_LOCK"
+            echo RMC011_DECLARED_AUTHORITY_LOCK_MATCH=PASS
+          fi
+
+          while read -r key stage_code head_sha tree_sha authority_file authority_sha; do
+            python3 ci/nqc-census/verify_rmc011_upstream_authority.py \
+              --stage "$stage_code" \
+              --artifact-root "$RUNNER_TEMP/$key-raw" \
+              --authority-file "$authority_file" \
+              --lock "$AUTHORITY_LOCK" \
+              --expected-code-commit "$head_sha" \
+              --expected-code-tree "$tree_sha"
+          done < "$RUNNER_TEMP/rmc011-authority-transport.txt"
+
+          echo "RMC011_DERIVED_AUTHORITY_LOCK=PASS sha256=$(sha256sum "$AUTHORITY_LOCK" | awk '{print $1}')"
+
+      - name: Verify one coherent A1 authority snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/verify-rmc011-upstream-coherence.py \
+            "$INPUTS" \
+            "$AUTHORITY_LOCK" \
+            "$RUNNER_TEMP"
+
+      - name: Normalize exact D08/D09 bytes consumed by D11
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/d08" "$RUNNER_TEMP/d09"
+
+          copy_exact() {
+            local root="$1"
+            local relative="$2"
+            local dest="$3"
+            local source="$root/$relative"
+            test -f "$source"
+            cp -- "$source" "$dest/$(basename "$relative")"
+          }
+
+          D08_ROOT="$RUNNER_TEMP/d08-raw"
+          D09_ROOT="$RUNNER_TEMP/d09-raw"
+
+          copy_exact "$D08_ROOT" "$(jq -r '.d08.market_state_manifest' "$INPUTS")" "$RUNNER_TEMP/d08"
+          copy_exact "$D08_ROOT" "$(jq -r '.d08.oracle_manifest' "$INPUTS")" "$RUNNER_TEMP/d08"
+          copy_exact "$D08_ROOT" "$(jq -r '.d08.token_admission' "$INPUTS")" "$RUNNER_TEMP/d08"
+          copy_exact "$D08_ROOT" "$(jq -r '.d08.pool_and_factory_facts' "$INPUTS")" "$RUNNER_TEMP/d08"
+          copy_exact "$D08_ROOT" "$(jq -r '.d08.authority_file' "$INPUTS")" "$RUNNER_TEMP/d08"
+
+          copy_exact "$D09_ROOT" "$(jq -r '.d09.account_manifest' "$INPUTS")" "$RUNNER_TEMP/d09"
+          copy_exact "$D09_ROOT" "$(jq -r '.d09.account_summary' "$INPUTS")" "$RUNNER_TEMP/d09"
+          copy_exact "$D09_ROOT" "$(jq -r '.d09.authority_file' "$INPUTS")" "$RUNNER_TEMP/d09"
+
+          test -f "$RUNNER_TEMP/d08/market-state-manifest.jsonl"
+          test -f "$RUNNER_TEMP/d08/oracle-manifest.jsonl"
+          test -f "$RUNNER_TEMP/d08/token-admission.jsonl"
+          test -f "$RUNNER_TEMP/d08/pool-and-factory-facts.json"
+          test -f "$RUNNER_TEMP/d08/evidence-manifest.json"
+          test -f "$RUNNER_TEMP/d09/account-manifest.jsonl"
+          test -f "$RUNNER_TEMP/d09/account-summary.json"
+          test -f "$RUNNER_TEMP/d09/evidence-manifest.json"
+
+      - name: Derive exact Aave V3 debt-facility discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-aave-v3-debt"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-aave-debt-discovery \
+              --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
+              --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
+              --d08-pool-and-factory-facts "$RUNNER_TEMP/d08/pool-and-factory-facts.json" \
+              --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
+              --authority-lock "$AUTHORITY_LOCK" \
+              --out "$ROOT/aave-debt-discovery.json"
+          ) | tee "$ROOT/discovery.log"
+          grep -F "RMC011_AAVE_DEBT_DISCOVERY_PASS" "$ROOT/discovery.log"
+
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-aave-debt-discovery \
+              --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
+              --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
+              --d08-pool-and-factory-facts "$RUNNER_TEMP/d08/pool-and-factory-facts.json" \
+              --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
+              --authority-lock "$AUTHORITY_LOCK" \
+              --out "$ROOT/aave-debt-discovery-second.json"
+          ) >/dev/null
+          cmp "$ROOT/aave-debt-discovery.json" "$ROOT/aave-debt-discovery-second.json"
+
+          jq -e '
+            .schema_version == 1 and
+            .stage == "RMC-011" and
+            .status == "RMC011_AAVE_DEBT_DISCOVERY_PASS" and
+            .claim_scope == "PROTOCOL_SIDE_DEBT_FACILITY_DISCOVERY_ONLY" and
+            .candidate_count == (.facility_count + .rejected_count) and
+            .capital_source_count == 0 and
+            .nqc_borrowing_capacity_claimed == false and
+            .portfolio_collateral_resolution_complete == false and
+            .oracle_resolution_complete == false and
+            .emode_resolution_complete == false and
+            .zero_own_capital_collateral_path_claimed == false and
+            (.non_claims | index("AAVE_RESERVE_LIQUIDITY_IS_NOT_NQC_BORROWING_CAPACITY") != null) and
+            (.non_claims | index("TERMINAL_D11_NOT_CERTIFIED") != null)
+          ' "$ROOT/aave-debt-discovery.json" >/dev/null
+
+          echo "RMC011_AAVE_DEBT_DISCOVERY=PASS facilities=$(jq -r '.facility_count' "$ROOT/aave-debt-discovery.json")"
+
+      - name: Resolve zero-own-capital debt-family universe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            ci/nqc-census/verify-rmc011-debt-family-resolution.py \
+            ci/nqc-census/test_verify_rmc011_debt_family_resolution.py
+          python3 ci/nqc-census/test_verify_rmc011_debt_family_resolution.py -v
+          python3 \
+            ci/nqc-census/verify-rmc011-debt-family-resolution.py \
+            "$RUNNER_TEMP/rmc011-aave-v3-debt/aave-debt-discovery.json" \
+            "$RUNNER_TEMP/rmc011-debt-family-resolution.json"
+
+          jq -e '
+            .schema_version == 1 and
+            .stage == "RMC-011" and
+            .status == "RMC011_DEBT_FAMILY_EXHAUSTIVE_REJECTION_READY" and
+            .claim_scope == "NQC_ZERO_OWN_CAPITAL_EXECUTABLE_DEBT_UNIVERSE_AT_THIS_HEAD" and
+            .family_count == 2 and
+            (.families | length) == 2 and
+            .global_nonexistence_claimed == false and
+            .nqc_borrowing_capacity_claimed == false and
+            (.source_boundary_commitment | type == "string" and test("^[0-9a-f]{64}$")) and
+            (.source_boundary.external_provider_registry_sha256 | test("^[0-9a-f]{64}$")) and
+            (.source_boundary.permissionless_debt_catalog_sha256 | test("^[0-9a-f]{64}$")) and
+            (.source_boundary.collateral_funding_path_catalog_sha256 | test("^[0-9a-f]{64}$")) and
+            .terminal_d11_closed == false
+          ' "$RUNNER_TEMP/rmc011-debt-family-resolution.json" >/dev/null
+
+          EVIDENCE="$RUNNER_TEMP/rmc011-debt-family-evidence"
+          rm -rf "$EVIDENCE"
+          mkdir -p "$EVIDENCE/families"
+          python3 - \
+            "$RUNNER_TEMP/rmc011-debt-family-resolution.json" \
+            "$EVIDENCE" \
+            "$GITHUB_SHA" \
+            "$GITHUB_WORKFLOW" \
+            "$GITHUB_RUN_ID" \
+            "$GITHUB_RUN_ATTEMPT" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          report_path, evidence_root, head_sha, workflow, run_id, run_attempt = sys.argv[1:]
+          report = json.loads(pathlib.Path(report_path).read_text(encoding="utf-8"))
+          root = pathlib.Path(evidence_root)
+          assert report["status"] == "RMC011_DEBT_FAMILY_EXHAUSTIVE_REJECTION_READY"
+          assert report["family_count"] == 2
+          for row in report["families"]:
+              family = row["family"]
+              target = root / "families" / family
+              target.mkdir(parents=True, exist_ok=False)
+              evidence = {
+                  "schema_version": 1,
+                  "stage": "RMC-011",
+                  "kind": "EXHAUSTIVE_REJECTION",
+                  "family": family,
+                  "scope": row["scope"],
+                  "basis": row["basis"],
+                  "workflow_name": workflow,
+                  "head_sha": head_sha,
+                  "run_id": int(run_id),
+                  "run_attempt": int(run_attempt),
+                  "d08_authority_artifact_sha256": report["d08_authority_artifact_sha256"],
+                  "aave_coverage_commitment": report["aave_coverage_commitment"],
+                  "source_boundary": report["source_boundary"],
+                  "source_boundary_commitment": report["source_boundary_commitment"],
+                  "global_nonexistence_claimed": False,
+                  "nqc_borrowing_capacity_claimed": False,
+                  "terminal_d11_closed": False,
+              }
+              (target / "evidence.json").write_text(
+                  json.dumps(evidence, sort_keys=True, separators=(",", ":")) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+
+          test "$(find "$EVIDENCE/families" -name evidence.json -type f | wc -l)" -eq 2
+          echo "RMC011_DEBT_FAMILY_RESOLUTION=PASS"
+
+      - name: Acquire and reconcile exact Balancer V2 flash capital
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-balancer-v2"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+
+          for provider in blastapi-public mevblocker-rpc; do
+            store="$ROOT/store-$provider"
+            capture="$ROOT/capture-$provider.json"
+            (
+              cd nqc-census
+              target/release/nqc-rmc011-balancer-v2-capture \
+                --providers ../ci/nqc-census/rpc-providers.json \
+                --label "$provider" \
+                --store "$store" \
+                --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
+                --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
+                --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
+                --authority-lock "$AUTHORITY_LOCK" \
+                --out "$capture"
+            )
+            (
+              cd nqc-census
+              target/release/nqc-census-store-verify --store "$store" \
+                | tee "$ROOT/store-$provider-verify.log"
+            )
+            grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$ROOT/store-$provider-verify.log"
+            test -s "$capture"
+          done
+
+          python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
+          python3 ci/nqc-census/verify-rmc011-balancer-v2-capture.py \
+            "$ROOT/capture-blastapi-public.json" \
+            "$ROOT/capture-mevblocker-rpc.json" \
+            "$ROOT/reconciled-python.json" \
+            | tee "$ROOT/reconcile-python.log"
+          grep -F "RMC011_BALANCER_V2_CAPTURE_PASS" "$ROOT/reconcile-python.log"
+
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-balancer-v2-reconcile \
+              --first "$ROOT/capture-blastapi-public.json" \
+              --second "$ROOT/capture-mevblocker-rpc.json" \
+              --out "$ROOT/reconciled-rust.json"
+          ) | tee "$ROOT/reconcile-rust.log"
+          grep -F "RMC011_BALANCER_V2_RUST_RECONCILE_PASS" "$ROOT/reconcile-rust.log"
+
+          test "$(jq -r '.status' "$ROOT/reconciled-rust.json")" = "RMC011_BALANCER_V2_DUAL_PROVIDER_RECONCILED"
+          test "$(jq -r '.source_count' "$ROOT/reconciled-rust.json")" -gt 0
+          echo "RMC011_BALANCER_V2_LIVE_ACQUISITION=PASS sources=$(jq -r '.source_count' "$ROOT/reconciled-rust.json")"
+
+      - name: Acquire and reconcile exact Uniswap V3 flash capital
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-uniswap-v3"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+
+          capture_provider() {
+            local provider="$1"
+            local store="$ROOT/store-$provider"
+            local capture="$ROOT/capture-$provider.json"
+            (
+              cd nqc-census
+              target/release/nqc-rmc011-uniswap-v3-capture \
+                --providers ../ci/nqc-census/rmc011-univ3-rpc-providers.json \
+                --label "$provider" \
+                --store "$store" \
+                --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
+                --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
+                --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
+                --authority-lock "$AUTHORITY_LOCK" \
+                --deployment ../ci/nqc-census/rmc011-uniswap-v3-deployment.json \
+                --out "$capture"
+            )
+            (
+              cd nqc-census
+              target/release/nqc-census-store-verify --store "$store" \
+                | tee "$ROOT/store-$provider-verify.log"
+            )
+            grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$ROOT/store-$provider-verify.log"
+            test -s "$capture"
+          }
+
+          capture_provider mevblocker-rpc &
+          PID_MEV=$!
+          capture_provider tenderly-public &
+          PID_TENDERLY=$!
+          wait "$PID_MEV"
+          wait "$PID_TENDERLY"
+
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-uniswap-v3-reconcile \
+              --first "$ROOT/capture-mevblocker-rpc.json" \
+              --second "$ROOT/capture-tenderly-public.json" \
+              --out "$ROOT/reconciled-rust.json"
+          ) | tee "$ROOT/reconcile-rust.log"
+          grep -F "RMC011_UNISWAP_V3_RUST_RECONCILE_PASS" "$ROOT/reconcile-rust.log"
+
+          test "$(jq -r '.status' "$ROOT/reconciled-rust.json")" = "RMC011_UNISWAP_V3_DUAL_PROVIDER_RECONCILED"
+          test "$(jq -r '.provider_count' "$ROOT/reconciled-rust.json")" = "2"
+          test "$(jq -r '.source_count' "$ROOT/reconciled-rust.json")" -gt 0
+          test "$(jq -r '.first_capture_sha256' "$ROOT/reconciled-rust.json")" != "$(jq -r '.second_capture_sha256' "$ROOT/reconciled-rust.json")"
+
+          echo "RMC011_UNISWAP_V3_LIVE_ACQUISITION=PASS sources=$(jq -r '.source_count' "$ROOT/reconciled-rust.json")"
+
+
+      - name: Stage immutable live-acquisition checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHECKPOINT="$RUNNER_TEMP/rmc011-live-checkpoint"
+          rm -rf "$CHECKPOINT"
+          mkdir -p "$CHECKPOINT"
+          cp -a "$RUNNER_TEMP/rmc011-balancer-v2" "$CHECKPOINT/rmc011-balancer-v2"
+          cp -a "$RUNNER_TEMP/rmc011-uniswap-v3" "$CHECKPOINT/rmc011-uniswap-v3"
+          (
+            cd "$CHECKPOINT"
+            LC_ALL=C find . -type f ! -name LIVE-ACQUISITION-SHA256SUMS -print0 \
+              | LC_ALL=C sort -z \
+              | xargs -0 sha256sum > LIVE-ACQUISITION-SHA256SUMS
+            sha256sum -c LIVE-ACQUISITION-SHA256SUMS
+          )
+          echo "RMC011_LIVE_ACQUISITION_CHECKPOINT=PASS"
+
+      - name: Upload immutable live-acquisition checkpoint
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-live-acquisition-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc011-live-checkpoint/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  authoritative-real-source-closeout:
+    if: github.event_name == 'push'
+    concurrency:
+      group: nqc-census-d11-closeout-${{ github.sha }}
+      cancel-in-progress: false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      INPUTS: ci/nqc-census/rmc011-real-source-inputs.json
+      DECLARED_AUTHORITY_LOCK: ci/nqc-census/rmc011-authority-lock.json
+      AUTHORITY_CANDIDATE: /tmp/rmc011-authority-lock-candidate.json
+      AUTHORITY_LOCK: /tmp/rmc011-authority-lock.json
+    steps:
+      - name: Checkout exact D11 head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact-head D11 Rust gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd nqc-census
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
+          cargo test --locked -p nqc-census-capital
+          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-balancer-v2-capture --bin nqc-rmc011-balancer-v2-reconcile --bin nqc-rmc011-uniswap-v3-capture --bin nqc-rmc011-uniswap-v3-reconcile --bin nqc-rmc011-aave-debt-discovery --bin nqc-rmc011-expanded-ledger-replay
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          cargo build --release --locked -p nqc-census-capital
+
+      - name: Verify exact source-universe boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/nqc-census/verify-rmc011-capital-source-universe.py ci/nqc-census/test_verify_rmc011_capital_source_universe.py
+          python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-terminal-closeout.py ci/nqc-census/test_verify_rmc011_terminal_closeout.py
+          python3 ci/nqc-census/test_verify_rmc011_terminal_closeout.py -v
+          python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-readiness.py ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-readiness.py /tmp/rmc011-family-discovery-readiness.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-family-discovery-promotion.py ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-family-discovery-promotion.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_execution_plan_requirement_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py ci/nqc-census/rmc011-execution-plan-requirement-catalog.json /tmp/rmc011-execution-plan-requirement-catalog-report.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
+          python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
+          python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/rmc011-external-capital-provider-registry.json /tmp/rmc011-external-provider-registry-report.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-permissionless-debt-facility-catalog.py ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json /tmp/rmc011-permissionless-debt-catalog-report.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py
+          python3 ci/nqc-census/test_verify_rmc011_collateral_funding_path_catalog.py -v
+          python3 ci/nqc-census/verify-rmc011-collateral-funding-path-catalog.py ci/nqc-census/rmc011-collateral-funding-path-catalog.json /tmp/rmc011-collateral-path-report.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-rejections.py ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-rejections.py /tmp/rmc011-bounded-family-rejections.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-promotion.py ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-promotion.py
+
+      - name: Authenticate bounded-family rejection evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SOURCE_UNIVERSE=ci/nqc-census/rmc011-capital-source-universe.json
+          OUT="$RUNNER_TEMP/rmc011-bounded-family-evidence"
+          META="$RUNNER_TEMP/rmc011-bounded-family-evidence.json"
+          rm -rf "$OUT"
+
+          python3 - "$SOURCE_UNIVERSE" "$META" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          source_path, out_path = sys.argv[1:]
+          doc = json.loads(Path(source_path).read_text(encoding="utf-8"))
+          bounded = {
+              "EXTERNAL_GAS_CREDIT",
+              "EXTERNAL_GAS_SPONSOR",
+              "TRANSIENT_EXTERNAL_CREDIT",
+              "INVENTORY_REQUIREMENT",
+              "BOND_OR_STAKE",
+              "SOLVER_OR_BUILDER_DEPOSIT",
+              "INTRA_BLOCK_TEMPORARY_LOCK",
+          }
+          rows = {row["id"]: row for row in doc["families"] if row["id"] in bounded}
+          if set(rows) != bounded:
+              raise SystemExit("bounded family set differs from required seven-family universe")
+
+          promoted = {
+              family: row
+              for family, row in rows.items()
+              if row["status"] == "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE"
+          }
+          if not promoted:
+              payload = {"promoted": False, "rows": []}
+          else:
+              if set(promoted) != bounded:
+                  raise SystemExit("bounded family promotion is partial")
+              out_rows = []
+              for family in sorted(bounded):
+                  evidence = promoted[family].get("resolution_evidence")
+                  if not isinstance(evidence, dict):
+                      raise SystemExit(f"{family}: missing resolution_evidence")
+                  out_rows.append({
+                      "family": family,
+                      "repository": evidence["repository"],
+                      "workflow_name": evidence["workflow_name"],
+                      "run_id": evidence["run_id"],
+                      "head_sha": evidence["head_sha"],
+                      "artifact_id": evidence["artifact_id"],
+                      "artifact_name": evidence["artifact_name"],
+                      "artifact_digest": evidence["artifact_digest"],
+                      "file": evidence["file"],
+                      "sha256": evidence["sha256"],
+                  })
+              shared = {
+                  (row["repository"], row["workflow_name"], row["run_id"], row["head_sha"],
+                   row["artifact_id"], row["artifact_name"], row["artifact_digest"])
+                  for row in out_rows
+              }
+              if len(shared) != 1:
+                  raise SystemExit("bounded family evidence mixes run/artifact identities")
+              payload = {"promoted": True, "rows": out_rows}
+          Path(out_path).write_text(
+              json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n",
+              encoding="utf-8",
+          )
+          PY
+
+          if [[ "$(jq -r '.promoted' "$META")" != "true" ]]; then
+            echo "RMC011_BOUNDED_FAMILY_EVIDENCE=PENDING"
+            exit 0
+          fi
+
+          test "$(jq '.rows | length' "$META")" -eq 7
+          repository="$(jq -r '.rows[0].repository' "$META")"
+          workflow_name="$(jq -r '.rows[0].workflow_name' "$META")"
+          run_id="$(jq -r '.rows[0].run_id' "$META")"
+          head_sha="$(jq -r '.rows[0].head_sha' "$META")"
+          artifact_id="$(jq -r '.rows[0].artifact_id' "$META")"
+          artifact_name="$(jq -r '.rows[0].artifact_name' "$META")"
+          artifact_digest="$(jq -r '.rows[0].artifact_digest' "$META")"
+
+          test "$repository" = "$REPOSITORY"
+          test "$workflow_name" = "NQC RMC-011 Bounded Family Rejection Evidence"
+          [[ "$run_id" =~ ^[0-9]+$ ]]
+          [[ "$artifact_id" =~ ^[0-9]+$ ]]
+          [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$artifact_name" == rmc011-bounded-family-rejections-"$head_sha"-"$run_id"-* ]]
+
+          run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+          test "$(jq -r '.status' <<<"$run_json")" = "completed"
+          test "$(jq -r '.conclusion' <<<"$run_json")" = "success"
+          test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+          test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+          artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+          test "$(jq -r '.expired' <<<"$artifact_json")" = "false"
+          test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+          test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+          test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+          mkdir -p "$OUT"
+          gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$OUT"
+          test -f "$OUT/SHA256SUMS"
+          ( cd "$OUT" && sha256sum -c SHA256SUMS )
+
+          python3 - "$META" "$OUT" <<'PY'
+          import hashlib
+          import json
+          import sys
+          from pathlib import Path
+
+          meta_path, root_path = sys.argv[1:]
+          meta = json.loads(Path(meta_path).read_text(encoding="utf-8"))
+          root = Path(root_path)
+          if meta.get("promoted") is not True or len(meta.get("rows", [])) != 7:
+              raise SystemExit("bounded family metadata is not a complete promotion")
+
+          seen_files = set()
+          seen_hashes = set()
+          for row in meta["rows"]:
+              family = row["family"]
+              expected_file = f"families/{family}/evidence.json"
+              if row["file"] != expected_file:
+                  raise SystemExit(f"{family}: wrong evidence file")
+              if expected_file in seen_files:
+                  raise SystemExit(f"{family}: duplicate evidence file")
+              seen_files.add(expected_file)
+              path = root / expected_file
+              data = path.read_bytes()
+              digest = hashlib.sha256(data).hexdigest()
+              if digest != row["sha256"]:
+                  raise SystemExit(f"{family}: evidence sha256 mismatch")
+              if digest in seen_hashes:
+                  raise SystemExit(f"{family}: duplicate evidence sha256")
+              seen_hashes.add(digest)
+              evidence = json.loads(data)
+              required = {
+                  "schema_version": 1,
+                  "stage": "RMC-011",
+                  "kind": "EXHAUSTIVE_REJECTION",
+                  "family": family,
+                  "workflow_name": row["workflow_name"],
+                  "head_sha": row["head_sha"],
+                  "run_id": row["run_id"],
+                  "global_nonexistence_claimed": False,
+                  "source_availability_claimed": False,
+                  "d11_terminal_closed": False,
+              }
+              for key, value in required.items():
+                  if evidence.get(key) != value:
+                      raise SystemExit(f"{family}: evidence field {key} differs")
+          PY
+
+          echo "RMC011_BOUNDED_FAMILY_EVIDENCE=AUTHENTICATED run=$run_id artifact=$artifact_id head=$head_sha"
+      - name: Authenticate family discovery evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SOURCE_UNIVERSE=ci/nqc-census/rmc011-capital-source-universe.json
+          OUT="$RUNNER_TEMP/rmc011-family-discovery-evidence"
+          rm -rf "$OUT"
+
+          status="$(jq -r '.family_universe_discovery.status' "$SOURCE_UNIVERSE")"
+          if [[ "$status" == "NOT_CERTIFIED" ]]; then
+            test "$(jq -r '.family_universe_discovery.evidence' "$SOURCE_UNIVERSE")" = "null"
+            echo "RMC011_FAMILY_DISCOVERY_EVIDENCE=PENDING"
+            exit 0
+          fi
+          test "$status" = "AUTHENTICATED_COMPLETE"
+
+          evidence="$(jq -c '.family_universe_discovery.evidence' "$SOURCE_UNIVERSE")"
+          test "$(jq -r '.kind' <<<"$evidence")" = "AUTHENTICATED_DISCOVERY"
+          repository="$(jq -r '.repository' <<<"$evidence")"
+          workflow_name="$(jq -r '.workflow_name' <<<"$evidence")"
+          run_id="$(jq -r '.run_id' <<<"$evidence")"
+          head_sha="$(jq -r '.head_sha' <<<"$evidence")"
+          artifact_id="$(jq -r '.artifact_id' <<<"$evidence")"
+          artifact_name="$(jq -r '.artifact_name' <<<"$evidence")"
+          artifact_digest="$(jq -r '.artifact_digest' <<<"$evidence")"
+          evidence_file="$(jq -r '.file' <<<"$evidence")"
+          evidence_sha="$(jq -r '.sha256' <<<"$evidence")"
+
+          test "$repository" = "$REPOSITORY"
+          test "$workflow_name" = "NQC RMC-011 Family Discovery Evidence"
+          [[ "$run_id" =~ ^[0-9]+$ ]]
+          [[ "$artifact_id" =~ ^[0-9]+$ ]]
+          [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+          [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+          [[ "$evidence_sha" =~ ^[0-9a-f]{64}$ ]]
+          test "$evidence_file" = "discovery-evidence.json"
+          [[ "$artifact_name" == rmc011-family-discovery-"$head_sha"-"$run_id"-* ]]
+
+          run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+          test "$(jq -r '.status' <<<"$run_json")" = "completed"
+          test "$(jq -r '.conclusion' <<<"$run_json")" = "success"
+          test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+          test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+          artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+          test "$(jq -r '.expired' <<<"$artifact_json")" = "false"
+          test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+          test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+          test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+          mkdir -p "$OUT"
+          gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$OUT"
+          test -f "$OUT/SHA256SUMS"
+          ( cd "$OUT" && sha256sum -c SHA256SUMS )
+
+          test -f "$OUT/$evidence_file"
+          actual_sha="$(sha256sum "$OUT/$evidence_file" | awk '{print $1}')"
+          test "$actual_sha" = "$evidence_sha"
+
+          jq -e \
+            --arg workflow "$workflow_name" \
+            --arg head "$head_sha" \
+            --argjson run "$run_id" \
+            '
+              .schema_version == 1 and
+              .stage == "RMC-011" and
+              .kind == "AUTHENTICATED_DISCOVERY" and
+              .status == "RMC011_FAMILY_DISCOVERY_AUTHENTICATED_COMPLETE" and
+              .workflow_name == $workflow and
+              .head_sha == $head and
+              .run_id == $run and
+              .family_count == 13 and
+              .unresolved_family_count == 0 and
+              .global_source_nonexistence_claimed == false and
+              .d11_terminal_closed == false
+            ' "$OUT/$evidence_file" >/dev/null
+
+          python3 - "$OUT" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path(sys.argv[1])
+          evidence = json.loads((root / "discovery-evidence.json").read_text(encoding="utf-8"))
+          bindings = {
+              "rmc011-capital-family-discovery.json": "discovery_contract_sha256",
+              "rmc011-capital-source-universe.json": "source_universe_sha256",
+              "rmc011-family-discovery-readiness.json": "readiness_sha256",
+              "family-evidence-authentication.jsonl": "family_evidence_transport_sha256",
+          }
+          for filename, key in bindings.items():
+              path = root / filename
+              if not path.is_file():
+                  raise SystemExit(f"missing family discovery evidence file: {filename}")
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              if digest != evidence.get(key):
+                  raise SystemExit(f"{filename}: sha256 differs from discovery-evidence.json")
+
+          readiness = json.loads(
+              (root / "rmc011-family-discovery-readiness.json").read_text(encoding="utf-8")
+          )
+          if readiness.get("status") != "RMC011_FAMILY_DISCOVERY_TRANSPORT_READY":
+              raise SystemExit("family discovery artifact readiness status differs")
+          if readiness.get("resolved_count") != 13 or readiness.get("unresolved_count") != 0:
+              raise SystemExit("family discovery artifact family conservation differs")
+
+          lines = [
+              line for line in
+              (root / "family-evidence-authentication.jsonl").read_text(encoding="utf-8").splitlines()
+              if line
+          ]
+          if len(lines) != 13:
+              raise SystemExit("family discovery transport ledger must contain 13 rows")
+          families = {json.loads(line)["family"] for line in lines}
+          if len(families) != 13:
+              raise SystemExit("family discovery transport ledger family set is not unique")
+          PY
+
+          echo "RMC011_FAMILY_DISCOVERY_EVIDENCE=AUTHENTICATED run=$run_id artifact=$artifact_id head=$head_sha"
+      - name: Require authoritative upstream inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f "$INPUTS" ]]; then
+            echo "RMC011_BLOCKED_UPSTREAM_REAL_SOURCE: exact RMC-006..RMC-010 transport inputs are required" >&2
+            exit 1
+          fi
+          test "$(jq -r '.repository' "$INPUTS")" = "$REPOSITORY"
+          test "$(jq -r '.schema_version' "$INPUTS")" = "3"
+          if [[ -e "$DECLARED_AUTHORITY_LOCK" ]]; then
+            jq -e '.schema_version == 1 and (.stages | length == 5)' "$DECLARED_AUTHORITY_LOCK" >/dev/null
+          fi
+
+      - name: Verify and download exact RMC-006 through RMC-010 authority artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          verify_and_download() {
+            local key="$1"
+            local stage_code="$2"
+            local out="$3"
+            local run_id head_sha workflow_name artifact_id artifact_name artifact_digest authority_file
+            local run_json artifact_json tree_sha authority_path authority_sha
+
+            run_id="$(jq -r --arg key "$key" '.[$key].run_id' "$INPUTS")"
+            head_sha="$(jq -r --arg key "$key" '.[$key].head_sha' "$INPUTS")"
+            workflow_name="$(jq -r --arg key "$key" '.[$key].workflow_name' "$INPUTS")"
+            artifact_id="$(jq -r --arg key "$key" '.[$key].artifact_id' "$INPUTS")"
+            artifact_name="$(jq -r --arg key "$key" '.[$key].artifact_name' "$INPUTS")"
+            artifact_digest="$(jq -r --arg key "$key" '.[$key].artifact_digest' "$INPUTS")"
+            authority_file="$(jq -r --arg key "$key" '.[$key].authority_file' "$INPUTS")"
+
+            [[ "$run_id" =~ ^[0-9]+$ ]]
+            [[ "$artifact_id" =~ ^[0-9]+$ ]]
+            [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+            [[ -n "$workflow_name" && "$workflow_name" != "null" ]]
+            [[ -n "$artifact_name" && "$artifact_name" != "null" ]]
+            [[ -n "$authority_file" && "$authority_file" != "null" ]]
+            [[ "$authority_file" != /* ]]
+            [[ "$authority_file" != *".."* ]]
+
+            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+            test "$(jq -r '.status' <<<"$run_json")" = "completed"
+            test "$(jq -r '.conclusion' <<<"$run_json")" = "success"
+            test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+            test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+            artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+            test "$(jq -r '.expired' <<<"$artifact_json")" = "false"
+            test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+            test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+            test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+            tree_sha="$(gh api "repos/$REPOSITORY/git/commits/$head_sha" --jq '.tree.sha')"
+            [[ "$tree_sha" =~ ^[0-9a-f]{40}$ ]]
+
+            rm -rf "$out"
+            mkdir -p "$out"
+            gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$out"
+
+            authority_path="$out/$authority_file"
+            test -f "$authority_path"
+            authority_sha="$(sha256sum "$authority_path" | awk '{print $1}')"
+            [[ "$authority_sha" =~ ^[0-9a-f]{64}$ ]]
+            printf '%s %s %s %s %s %s\n' \
+              "$key" "$stage_code" "$head_sha" "$tree_sha" "$authority_file" "$authority_sha" \
+              >> "$RUNNER_TEMP/rmc011-authority-transport.txt"
+
+            echo "RMC011_UPSTREAM_TRANSPORT_PASS stage=$stage_code run=$run_id artifact=$artifact_id head=$head_sha tree=$tree_sha authority_sha256=$authority_sha"
+          }
+
+          : > "$RUNNER_TEMP/rmc011-authority-transport.txt"
+
+          verify_and_download d06 RMC-006 "$RUNNER_TEMP/d06-raw"
+          verify_and_download d07 RMC-007 "$RUNNER_TEMP/d07-raw"
+          verify_and_download d08 RMC-008 "$RUNNER_TEMP/d08-raw"
+          verify_and_download d09 RMC-009 "$RUNNER_TEMP/d09-raw"
+          verify_and_download d10 RMC-010 "$RUNNER_TEMP/d10-raw"
+
+      - name: Derive and semantically verify canonical upstream authority lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          runner = Path(os.environ["RUNNER_TEMP"])
+          inputs = json.loads(Path(os.environ["INPUTS"]).read_text())
+          authority_path = runner / "d08-raw" / inputs["d08"]["authority_file"]
+          manifest = json.loads(authority_path.read_text())
+          anchor = manifest.get("observation_anchor")
+          required = [
+              "chain_id", "genesis_hash", "fork_lineage", "block_number",
+              "block_hash", "parent_hash", "timestamp", "state_root",
+          ]
+          if not isinstance(anchor, dict) or any(key not in anchor for key in required):
+              raise SystemExit("D08 authority lacks the full observation anchor required by D11")
+
+          rows = []
+          expected = ["RMC-006", "RMC-007", "RMC-008", "RMC-009", "RMC-010"]
+          for line in (runner / "rmc011-authority-transport.txt").read_text().splitlines():
+              key, stage, commit, tree, authority_file, authority_sha = line.split()
+              rows.append({
+                  "stage": stage,
+                  "code_commit": commit,
+                  "code_tree": tree,
+                  "artifact_sha256": "0x" + authority_sha,
+              })
+          if [row["stage"] for row in rows] != expected:
+              raise SystemExit(f"authority transport stages differ from required order: {rows}")
+
+          candidate = {
+              "schema_version": 1,
+              "observation_anchor": {key: anchor[key] for key in required},
+              "stages": rows,
+          }
+          Path(os.environ["AUTHORITY_CANDIDATE"]).write_text(
+              json.dumps(candidate, sort_keys=True, separators=(",", ":")) + "\n"
+          )
+          PY
+
+          (
+            cd nqc-census
+            cargo run --release --locked -p nqc-census-capital \
+              --bin nqc-rmc011-authority-lock-build -- \
+              --input "$AUTHORITY_CANDIDATE" \
+              --output "$AUTHORITY_LOCK"
+          )
+          jq -e '.schema_version == 1 and (.stages | length == 5)' "$AUTHORITY_LOCK" >/dev/null
+
+          if [[ -e "$DECLARED_AUTHORITY_LOCK" ]]; then
+            cmp -- "$DECLARED_AUTHORITY_LOCK" "$AUTHORITY_LOCK"
+            echo RMC011_DECLARED_AUTHORITY_LOCK_MATCH=PASS
+          fi
+
+          while read -r key stage_code head_sha tree_sha authority_file authority_sha; do
+            python3 ci/nqc-census/verify_rmc011_upstream_authority.py \
+              --stage "$stage_code" \
+              --artifact-root "$RUNNER_TEMP/$key-raw" \
+              --authority-file "$authority_file" \
+              --lock "$AUTHORITY_LOCK" \
+              --expected-code-commit "$head_sha" \
+              --expected-code-tree "$tree_sha"
+          done < "$RUNNER_TEMP/rmc011-authority-transport.txt"
+
+          echo "RMC011_DERIVED_AUTHORITY_LOCK=PASS sha256=$(sha256sum "$AUTHORITY_LOCK" | awk '{print $1}')"
+
+      - name: Verify one coherent A1 authority snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/verify-rmc011-upstream-coherence.py \
+            "$INPUTS" \
+            "$AUTHORITY_LOCK" \
+            "$RUNNER_TEMP"
+
+      - name: Normalize exact D08/D09 bytes consumed by D11
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/d08" "$RUNNER_TEMP/d09"
+
+          copy_exact() {
+            local root="$1"
+            local relative="$2"
+            local dest="$3"
+            local source="$root/$relative"
+            test -f "$source"
+            cp -- "$source" "$dest/$(basename "$relative")"
+          }
+
+          D08_ROOT="$RUNNER_TEMP/d08-raw"
+          D09_ROOT="$RUNNER_TEMP/d09-raw"
+
+          copy_exact "$D08_ROOT" "$(jq -r '.d08.market_state_manifest' "$INPUTS")" "$RUNNER_TEMP/d08"
+          copy_exact "$D08_ROOT" "$(jq -r '.d08.oracle_manifest' "$INPUTS")" "$RUNNER_TEMP/d08"
+          copy_exact "$D08_ROOT" "$(jq -r '.d08.token_admission' "$INPUTS")" "$RUNNER_TEMP/d08"
+          copy_exact "$D08_ROOT" "$(jq -r '.d08.pool_and_factory_facts' "$INPUTS")" "$RUNNER_TEMP/d08"
+          copy_exact "$D08_ROOT" "$(jq -r '.d08.authority_file' "$INPUTS")" "$RUNNER_TEMP/d08"
+
+          copy_exact "$D09_ROOT" "$(jq -r '.d09.account_manifest' "$INPUTS")" "$RUNNER_TEMP/d09"
+          copy_exact "$D09_ROOT" "$(jq -r '.d09.account_summary' "$INPUTS")" "$RUNNER_TEMP/d09"
+          copy_exact "$D09_ROOT" "$(jq -r '.d09.authority_file' "$INPUTS")" "$RUNNER_TEMP/d09"
+
+          test -f "$RUNNER_TEMP/d08/market-state-manifest.jsonl"
+          test -f "$RUNNER_TEMP/d08/oracle-manifest.jsonl"
+          test -f "$RUNNER_TEMP/d08/token-admission.jsonl"
+          test -f "$RUNNER_TEMP/d08/pool-and-factory-facts.json"
+          test -f "$RUNNER_TEMP/d08/evidence-manifest.json"
+          test -f "$RUNNER_TEMP/d09/account-manifest.jsonl"
+          test -f "$RUNNER_TEMP/d09/account-summary.json"
+          test -f "$RUNNER_TEMP/d09/evidence-manifest.json"
+
+      - name: Derive exact Aave V3 debt-facility discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-aave-v3-debt"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-aave-debt-discovery \
+              --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
+              --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
+              --d08-pool-and-factory-facts "$RUNNER_TEMP/d08/pool-and-factory-facts.json" \
+              --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
+              --authority-lock "$AUTHORITY_LOCK" \
+              --out "$ROOT/aave-debt-discovery.json"
+          ) | tee "$ROOT/discovery.log"
+          grep -F "RMC011_AAVE_DEBT_DISCOVERY_PASS" "$ROOT/discovery.log"
+
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-aave-debt-discovery \
+              --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \
+              --d08-token-admission "$RUNNER_TEMP/d08/token-admission.jsonl" \
+              --d08-pool-and-factory-facts "$RUNNER_TEMP/d08/pool-and-factory-facts.json" \
+              --d08-evidence-manifest "$RUNNER_TEMP/d08/evidence-manifest.json" \
+              --authority-lock "$AUTHORITY_LOCK" \
+              --out "$ROOT/aave-debt-discovery-second.json"
+          ) >/dev/null
+          cmp "$ROOT/aave-debt-discovery.json" "$ROOT/aave-debt-discovery-second.json"
+
+          jq -e '
+            .schema_version == 1 and
+            .stage == "RMC-011" and
+            .status == "RMC011_AAVE_DEBT_DISCOVERY_PASS" and
+            .claim_scope == "PROTOCOL_SIDE_DEBT_FACILITY_DISCOVERY_ONLY" and
+            .candidate_count == (.facility_count + .rejected_count) and
+            .capital_source_count == 0 and
+            .nqc_borrowing_capacity_claimed == false and
+            .portfolio_collateral_resolution_complete == false and
+            .oracle_resolution_complete == false and
+            .emode_resolution_complete == false and
+            .zero_own_capital_collateral_path_claimed == false and
+            (.non_claims | index("AAVE_RESERVE_LIQUIDITY_IS_NOT_NQC_BORROWING_CAPACITY") != null) and
+            (.non_claims | index("TERMINAL_D11_NOT_CERTIFIED") != null)
+          ' "$ROOT/aave-debt-discovery.json" >/dev/null
+
+          echo "RMC011_AAVE_DEBT_DISCOVERY=PASS facilities=$(jq -r '.facility_count' "$ROOT/aave-debt-discovery.json")"
+
+      - name: Resolve zero-own-capital debt-family universe
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile \
+            ci/nqc-census/verify-rmc011-debt-family-resolution.py \
+            ci/nqc-census/test_verify_rmc011_debt_family_resolution.py
+          python3 ci/nqc-census/test_verify_rmc011_debt_family_resolution.py -v
+          python3 \
+            ci/nqc-census/verify-rmc011-debt-family-resolution.py \
+            "$RUNNER_TEMP/rmc011-aave-v3-debt/aave-debt-discovery.json" \
+            "$RUNNER_TEMP/rmc011-debt-family-resolution.json"
+
+          jq -e '
+            .schema_version == 1 and
+            .stage == "RMC-011" and
+            .status == "RMC011_DEBT_FAMILY_EXHAUSTIVE_REJECTION_READY" and
+            .claim_scope == "NQC_ZERO_OWN_CAPITAL_EXECUTABLE_DEBT_UNIVERSE_AT_THIS_HEAD" and
+            .family_count == 2 and
+            (.families | length) == 2 and
+            .global_nonexistence_claimed == false and
+            .nqc_borrowing_capacity_claimed == false and
+            (.source_boundary_commitment | type == "string" and test("^[0-9a-f]{64}$")) and
+            (.source_boundary.external_provider_registry_sha256 | test("^[0-9a-f]{64}$")) and
+            (.source_boundary.permissionless_debt_catalog_sha256 | test("^[0-9a-f]{64}$")) and
+            (.source_boundary.collateral_funding_path_catalog_sha256 | test("^[0-9a-f]{64}$")) and
+            .terminal_d11_closed == false
+          ' "$RUNNER_TEMP/rmc011-debt-family-resolution.json" >/dev/null
+
+          EVIDENCE="$RUNNER_TEMP/rmc011-debt-family-evidence"
+          rm -rf "$EVIDENCE"
+          mkdir -p "$EVIDENCE/families"
+          python3 - \
+            "$RUNNER_TEMP/rmc011-debt-family-resolution.json" \
+            "$EVIDENCE" \
+            "$GITHUB_SHA" \
+            "$GITHUB_WORKFLOW" \
+            "$GITHUB_RUN_ID" \
+            "$GITHUB_RUN_ATTEMPT" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          report_path, evidence_root, head_sha, workflow, run_id, run_attempt = sys.argv[1:]
+          report = json.loads(pathlib.Path(report_path).read_text(encoding="utf-8"))
+          root = pathlib.Path(evidence_root)
+          assert report["status"] == "RMC011_DEBT_FAMILY_EXHAUSTIVE_REJECTION_READY"
+          assert report["family_count"] == 2
+          for row in report["families"]:
+              family = row["family"]
+              target = root / "families" / family
+              target.mkdir(parents=True, exist_ok=False)
+              evidence = {
+                  "schema_version": 1,
+                  "stage": "RMC-011",
+                  "kind": "EXHAUSTIVE_REJECTION",
+                  "family": family,
+                  "scope": row["scope"],
+                  "basis": row["basis"],
+                  "workflow_name": workflow,
+                  "head_sha": head_sha,
+                  "run_id": int(run_id),
+                  "run_attempt": int(run_attempt),
+                  "d08_authority_artifact_sha256": report["d08_authority_artifact_sha256"],
+                  "aave_coverage_commitment": report["aave_coverage_commitment"],
+                  "source_boundary": report["source_boundary"],
+                  "source_boundary_commitment": report["source_boundary_commitment"],
+                  "global_nonexistence_claimed": False,
+                  "nqc_borrowing_capacity_claimed": False,
+                  "terminal_d11_closed": False,
+              }
+              (target / "evidence.json").write_text(
+                  json.dumps(evidence, sort_keys=True, separators=(",", ":")) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+
+          test "$(find "$EVIDENCE/families" -name evidence.json -type f | wc -l)" -eq 2
+          echo "RMC011_DEBT_FAMILY_RESOLUTION=PASS"
+
+
+      - name: Restore immutable live-acquisition checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHECKPOINT_RUN_ID=37689816997
+          CHECKPOINT_JOB_ID=113026823480
+          CHECKPOINT_ARTIFACT_ID=11514391050
+          CHECKPOINT_HEAD=ea488b9dc13b690921416dd11c4369cfb76912e5
+          CHECKPOINT_NAME="rmc011-live-acquisition-$CHECKPOINT_HEAD"
+          CHECKPOINT_DIGEST="sha256:a0ab50b41f5653e7749dc7360eb8006f3f088477372654ade9d966b3373f006f"
+
+          JOB_JSON="$(gh api "repos/$REPOSITORY/actions/jobs/$CHECKPOINT_JOB_ID")"
+          test "$(jq -r '.status' <<<"$JOB_JSON")" = "completed"
+          test "$(jq -r '.conclusion' <<<"$JOB_JSON")" = "success"
+          test "$(jq -r '.head_sha' <<<"$JOB_JSON")" = "$CHECKPOINT_HEAD"
+
+          ART_JSON="$(gh api "repos/$REPOSITORY/actions/artifacts/$CHECKPOINT_ARTIFACT_ID")"
+          test "$(jq -r '.expired' <<<"$ART_JSON")" = "false"
+          test "$(jq -r '.workflow_run.id' <<<"$ART_JSON")" = "$CHECKPOINT_RUN_ID"
+          test "$(jq -r '.name' <<<"$ART_JSON")" = "$CHECKPOINT_NAME"
+          test "$(jq -r '.digest' <<<"$ART_JSON")" = "$CHECKPOINT_DIGEST"
+
+          # The only code change from the checkpoint head is the constructor's
+          # duplicate-replay removal plus this closeout-only workflow. All live
+          # acquisition code/configuration is byte-identical.
+          mapfile -t CHANGED < <(git diff --name-only "$CHECKPOINT_HEAD"..HEAD | LC_ALL=C sort)
+          printf '%s\n' "${CHANGED[@]}" > "$RUNNER_TEMP/checkpoint-diff.txt"
+          python3 - "$RUNNER_TEMP/checkpoint-diff.txt" <<'PY'
+          import sys
+          changed={x.strip() for x in open(sys.argv[1]) if x.strip()}
+          allowed={
+            "nqc-census/crates/nqc-census-capital/src/bin/nqc-rmc011-capital-build.rs",
+            ".github/workflows/nqc-census-capital-real-source-closeout-checkpoint.yml",
+          }
+          if changed != allowed:
+              raise SystemExit(f"checkpoint compatibility diff differs: {sorted(changed)}")
+          print("RMC011_LIVE_CHECKPOINT_CODE_COMPATIBILITY=PASS")
+          PY
+
+          CHECKPOINT="$RUNNER_TEMP/rmc011-live-checkpoint"
+          rm -rf "$CHECKPOINT"
+          mkdir -p "$CHECKPOINT"
+          gh run download "$CHECKPOINT_RUN_ID" \
+            --repo "$REPOSITORY" \
+            --name "$CHECKPOINT_NAME" \
+            --dir "$CHECKPOINT"
+          (
+            cd "$CHECKPOINT"
+            sha256sum -c LIVE-ACQUISITION-SHA256SUMS
+          )
+          rm -rf "$RUNNER_TEMP/rmc011-balancer-v2" "$RUNNER_TEMP/rmc011-uniswap-v3"
+          cp -a "$CHECKPOINT/rmc011-balancer-v2" "$RUNNER_TEMP/rmc011-balancer-v2"
+          cp -a "$CHECKPOINT/rmc011-uniswap-v3" "$RUNNER_TEMP/rmc011-uniswap-v3"
+          test -s "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json"
+          test -s "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json"
+          test "$(jq -r '.status' "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json")" = "RMC011_BALANCER_V2_DUAL_PROVIDER_RECONCILED"
+          test "$(jq -r '.status' "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json")" = "RMC011_UNISWAP_V3_DUAL_PROVIDER_RECONCILED"
+          echo "RMC011_LIVE_ACQUISITION_CHECKPOINT_RESTORED=PASS"
+      - name: Run authoritative D11 real-source closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUTPUT="$RUNNER_TEMP/rmc011-real-source"
+          bash ci/nqc-census/run-rmc011-real-source-closeout.sh             "$RUNNER_TEMP/d08"             "$RUNNER_TEMP/d09"             "$AUTHORITY_LOCK"             "$OUTPUT"
+
+          jq -e '
+            .schema_version == 3 and
+            .real_source_certification == true and
+            .source_universe_basis == "RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY" and
+            .global_capital_source_completeness_claimed == false and
+            .repayment_cashflow_sufficiency_claimed == false and
+            .terminal_capital_census_complete == false and
+            .actionable_requirement_coverage_complete == false and
+            (.terminal_blockers | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
+            (.terminal_blockers | index("ACTIONABLE_REQUIREMENT_COVERAGE_DEFERRED_TO_RMC012") != null) and
+            (.terminal_blockers | index("REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED") != null) and
+            (.non_claims | index("TERMINAL_CAPITAL_CENSUS_NOT_CERTIFIED") != null) and
+            (.non_claims | index("ACTIONABLE_REQUIREMENT_COVERAGE_NOT_CERTIFIED") != null) and
+            (.zero_own_capital_proven == false or
+              (.feasible_count > 0 and
+               .feasible_external_gas_count == .feasible_count)) and
+            .profitability_claimed == false and
+            .shadow_eligibility_claimed == false and
+            .canary_claimed == false and
+            .real_pnl_claimed == false and
+            (.non_claims | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
+            (.non_claims | index("REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED") != null)
+          ' "$OUTPUT/capital-real-source-closeout.json" >/dev/null
+          (
+            cd "$OUTPUT"
+            sha256sum -c capital-archive.sha256
+          )
+
+          echo "RMC011_REAL_SOURCE_CERTIFICATION=PASS"
+          echo "RMC011_EXACT_HEAD=$(git rev-parse HEAD)"
+          echo "RMC011_EXACT_TREE=$(git rev-parse 'HEAD^{tree}')"
+
+      - name: Replay-bind D11-native Balancer sources into expanded ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-expanded-ledger"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+          CODE_TREE="$(git rev-parse 'HEAD^{tree}')"
+
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-expanded-ledger-replay \
+              --legacy-dir "$RUNNER_TEMP/rmc011-real-source" \
+              --balancer-reconcile "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
+              --uniswap-v3-reconcile "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json" \
+              --code-commit "$GITHUB_SHA" \
+              --code-tree "$CODE_TREE" \
+              --out "$ROOT/expanded-ledger-replay.json"
+          ) | tee "$ROOT/replay.log"
+          grep -F "RMC011_EXPANDED_LEDGER_REPLAY_PASS" "$ROOT/replay.log"
+
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-expanded-ledger-replay \
+              --legacy-dir "$RUNNER_TEMP/rmc011-real-source" \
+              --balancer-reconcile "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
+              --uniswap-v3-reconcile "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json" \
+              --code-commit "$GITHUB_SHA" \
+              --code-tree "$CODE_TREE" \
+              --out "$ROOT/expanded-ledger-replay-second.json"
+          ) >/dev/null
+          cmp "$ROOT/expanded-ledger-replay.json" "$ROOT/expanded-ledger-replay-second.json"
+
+          jq -e '
+            .schema_version == 1 and
+            .stage == "RMC-011" and
+            .status == "RMC011_EXPANDED_LEDGER_REPLAY_PASS" and
+            .claim_scope == "D11_NATIVE_SOURCE_REPLAY_BINDING_ONLY" and
+            .terminal_d11_closed == false and
+            .code_commit == env.GITHUB_SHA and
+            .d11_native_source_count > 0 and
+            (.uniswap_v3_reconciliation_sha256 | type == "string" and test("^[0-9a-f]{64}$")) and
+            .d08_source_count == .legacy_source_count and
+            .expanded_source_count == (.legacy_source_count + .d11_native_source_count) and
+            (.non_claims | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
+            (.non_claims | index("TERMINAL_D11_NOT_CERTIFIED") != null)
+          ' "$ROOT/expanded-ledger-replay.json" >/dev/null
+
+          echo "RMC011_EXPANDED_LEDGER_REPLAY_BINDING=PASS"
+          echo "RMC011_EXPANDED_LEDGER_RECEIPT_SHA256=$(sha256sum "$ROOT/expanded-ledger-replay.json" | awk '{print $1}')"
+
+      - name: Derive protocol-family terminal evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPORT="$RUNNER_TEMP/rmc011-protocol-family-resolution.json"
+          python3 -m py_compile \
+            ci/nqc-census/verify-rmc011-protocol-family-resolution.py \
+            ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py
+          python3 ci/nqc-census/test_verify_rmc011_protocol_family_resolution.py -v
+          python3 \
+            ci/nqc-census/verify-rmc011-protocol-family-resolution.py \
+            "$RUNNER_TEMP/rmc011-real-source/capital-census-summary.json" \
+            "$AUTHORITY_LOCK" \
+            "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
+            "$RUNNER_TEMP/rmc011-uniswap-v3/reconciled-rust.json" \
+            "$RUNNER_TEMP/rmc011-expanded-ledger/expanded-ledger-replay.json" \
+            "$REPORT"
+
+          jq -e '
+            .status == "RMC011_PROTOCOL_FAMILY_RESOLUTION_READY" and
+            .family_count == 4 and
+            (.families | length) == 4 and
+            .global_capital_source_completeness_claimed == false and
+            .terminal_d11_closed == false
+          ' "$REPORT" >/dev/null
+
+          EVIDENCE="$RUNNER_TEMP/rmc011-protocol-family-evidence"
+          rm -rf "$EVIDENCE"
+          mkdir -p "$EVIDENCE/families"
+          python3 - "$REPORT" "$EVIDENCE" "$GITHUB_SHA" "$GITHUB_WORKFLOW" "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" <<'PY'
+          import json
+          import pathlib
+          import sys
+
+          report_path, evidence_root, head_sha, workflow, run_id, run_attempt = sys.argv[1:]
+          report = json.loads(pathlib.Path(report_path).read_text(encoding="utf-8"))
+          root = pathlib.Path(evidence_root)
+          assert report["status"] == "RMC011_PROTOCOL_FAMILY_RESOLUTION_READY"
+          for row in report["families"]:
+              family = row["family"]
+              target = root / "families" / family
+              target.mkdir(parents=True, exist_ok=False)
+              evidence = {
+                  "schema_version": 1,
+                  "stage": "RMC-011",
+                  "kind": row["outcome"],
+                  "family": family,
+                  "source_count": row["source_count"],
+                  "scope": row["scope"],
+                  "basis": row["basis"],
+                  "workflow_name": workflow,
+                  "head_sha": head_sha,
+                  "run_id": int(run_id),
+                  "run_attempt": int(run_attempt),
+                  "d08_authority_artifact_sha256": report["d08_authority_artifact_sha256"],
+                  "expanded_capital_commitment": report["expanded_capital_commitment"],
+                  "global_capital_source_completeness_claimed": False,
+                  "terminal_d11_closed": False,
+              }
+              (target / "evidence.json").write_text(
+                  json.dumps(evidence, sort_keys=True, separators=(",", ":")) + "\n",
+                  encoding="utf-8",
+              )
+          PY
+          test "$(find "$EVIDENCE/families" -name evidence.json -type f | wc -l)" -eq 4
+          echo "RMC011_PROTOCOL_FAMILY_EVIDENCE=PASS"
+
+      - name: Re-authenticate terminal source-universe transports when complete
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          FILE=ci/nqc-census/rmc011-capital-source-universe.json
+          MARKER="$RUNNER_TEMP/rmc011-source-universe-authenticated"
+          rm -f "$MARKER"
+
+          if ! jq -e '
+            .status == "CAPITAL_SOURCE_UNIVERSE_COMPLETE" and
+            .terminal_claim_allowed == true and
+            .claim_scope == "SOURCE_UNIVERSE_READINESS_ONLY" and
+            .d11_terminal_closed == false and
+            .unknown_family_count == 0 and
+            (.families | length == 13) and
+            (.families | all(.terminally_resolved == true)) and
+            .family_universe_discovery.status == "AUTHENTICATED_COMPLETE"
+          ' "$FILE" >/dev/null; then
+            echo "RMC011_TERMINAL_TRANSPORT_AUTH=BLOCKED_SOURCE_UNIVERSE"
+            exit 0
+          fi
+
+          python3 - "$FILE" > "$RUNNER_TEMP/rmc011-terminal-evidence.tsv" <<'PY'
+          import json
+          import sys
+
+          doc = json.load(open(sys.argv[1]))
+          rows = [(family["id"], family["resolution_evidence"]) for family in doc["families"]]
+          rows.append(("FAMILY_UNIVERSE_DISCOVERY", doc["family_universe_discovery"]["evidence"]))
+          if len(rows) != 14:
+              raise SystemExit(f"terminal evidence row count differs: {len(rows)}")
+
+          for label, evidence in rows:
+              print("\t".join([
+                  label,
+                  evidence["repository"],
+                  evidence["workflow_name"],
+                  str(evidence["run_id"]),
+                  evidence["head_sha"],
+                  str(evidence["artifact_id"]),
+                  evidence["artifact_name"],
+                  evidence["artifact_digest"],
+                  evidence["file"],
+                  evidence["sha256"],
+              ]))
+          PY
+
+          : > "$RUNNER_TEMP/rmc011-terminal-evidence-authenticated.tsv"
+          while IFS=$'\t' read -r label repository workflow_name run_id head_sha artifact_id artifact_name artifact_digest evidence_file evidence_sha; do
+            test "$repository" = "$REPOSITORY"
+
+            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+            test "$(jq -r '.status' <<<"$run_json")" = completed
+            test "$(jq -r '.conclusion' <<<"$run_json")" = success
+            test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+            test "$(jq -r '.name' <<<"$run_json")" = "$workflow_name"
+
+            artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact_id")"
+            test "$(jq -r '.expired' <<<"$artifact_json")" = false
+            test "$(jq -r '.name' <<<"$artifact_json")" = "$artifact_name"
+            test "$(jq -r '.digest' <<<"$artifact_json")" = "$artifact_digest"
+            test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run_id"
+
+            out="$RUNNER_TEMP/rmc011-terminal-evidence/$label"
+            rm -rf "$out"
+            mkdir -p "$out"
+            gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$out"
+
+            test -f "$out/$evidence_file"
+            actual="$(sha256sum "$out/$evidence_file" | awk '{print $1}')"
+            test "$actual" = "$evidence_sha"
+            printf '%s\t%s\t%s\t%s\t%s\n' "$label" "$run_id" "$artifact_id" "$head_sha" "$actual" \
+              >> "$RUNNER_TEMP/rmc011-terminal-evidence-authenticated.tsv"
+            echo "RMC011_TERMINAL_EVIDENCE_AUTHENTICATED label=$label run=$run_id artifact=$artifact_id head=$head_sha sha256=$actual"
+          done < "$RUNNER_TEMP/rmc011-terminal-evidence.tsv"
+
+          test "$(wc -l < "$RUNNER_TEMP/rmc011-terminal-evidence-authenticated.tsv")" -eq 14
+          sha256sum "$RUNNER_TEMP/rmc011-terminal-evidence-authenticated.tsv" > "$MARKER"
+          echo "RMC011_TERMINAL_TRANSPORT_AUTH=PASS count=14 marker_sha256=$(awk '{print $1}' "$MARKER")"
+
+      - name: Build self-contained certification evidence package
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE="$RUNNER_TEMP/rmc011-certification-package"
+          rm -rf "$PACKAGE"
+          mkdir -p "$PACKAGE/d11" "$PACKAGE/d11-expanded" "$PACKAGE/upstream"
+
+          cp -a "$RUNNER_TEMP/rmc011-real-source/." "$PACKAGE/d11/"
+          cp -- "$RUNNER_TEMP/rmc011-expanded-ledger/expanded-ledger-replay.json" "$PACKAGE/d11-expanded/expanded-ledger-replay.json"
+          cp -- "$INPUTS" "$PACKAGE/rmc011-real-source-inputs.json"
+          cp -- "$AUTHORITY_LOCK" "$PACKAGE/rmc011-authority-lock.json"
+          cp -- ci/nqc-census/rmc011-capital-source-universe.json "$PACKAGE/rmc011-capital-source-universe.json"
+          test -f "$RUNNER_TEMP/rmc011-aave-v3-debt/aave-debt-discovery.json"
+          mkdir -p "$PACKAGE/permissionless/aave-v3-debt"
+          cp -- "$RUNNER_TEMP/rmc011-aave-v3-debt/aave-debt-discovery.json" "$PACKAGE/permissionless/aave-v3-debt/aave-debt-discovery.json"
+          test -d "$RUNNER_TEMP/rmc011-balancer-v2"
+          mkdir -p "$PACKAGE/permissionless/balancer-v2"
+          cp -a "$RUNNER_TEMP/rmc011-balancer-v2/." "$PACKAGE/permissionless/balancer-v2/"
+          test -d "$RUNNER_TEMP/rmc011-uniswap-v3"
+          mkdir -p "$PACKAGE/permissionless/uniswap-v3"
+          cp -a "$RUNNER_TEMP/rmc011-uniswap-v3/." "$PACKAGE/permissionless/uniswap-v3/"
+          cp -- ci/nqc-census/rmc011-uniswap-v3-deployment.json "$PACKAGE/rmc011-uniswap-v3-deployment.json"
+          cp -- ci/nqc-census/rmc011-external-capital-provider-registry.json "$PACKAGE/rmc011-external-capital-provider-registry.json"
+          cp -- /tmp/rmc011-external-provider-registry-report.json "$PACKAGE/external-provider-registry-report.json"
+          cp -- ci/nqc-census/rmc011-execution-plan-requirement-catalog.json "$PACKAGE/rmc011-execution-plan-requirement-catalog.json"
+          cp -- /tmp/rmc011-execution-plan-requirement-catalog-report.json "$PACKAGE/execution-plan-requirement-catalog-report.json"
+          cp -- ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json "$PACKAGE/rmc011-permissionless-debt-facility-catalog.json"
+          cp -- /tmp/rmc011-permissionless-debt-catalog-report.json "$PACKAGE/permissionless-debt-catalog-report.json"
+          cp -- ci/nqc-census/rmc011-collateral-funding-path-catalog.json "$PACKAGE/rmc011-collateral-funding-path-catalog.json"
+          cp -- /tmp/rmc011-collateral-path-report.json "$PACKAGE/collateral-funding-path-report.json"
+          cp -- "$RUNNER_TEMP/rmc011-debt-family-resolution.json" "$PACKAGE/debt-family-resolution.json"
+          cp -- "$RUNNER_TEMP/rmc011-protocol-family-resolution.json" "$PACKAGE/protocol-family-resolution.json"
+          test -d "$RUNNER_TEMP/rmc011-protocol-family-evidence"
+          mkdir -p "$PACKAGE/protocol-family-evidence"
+          cp -a "$RUNNER_TEMP/rmc011-protocol-family-evidence/." "$PACKAGE/protocol-family-evidence/"
+          test -d "$RUNNER_TEMP/rmc011-debt-family-evidence"
+          mkdir -p "$PACKAGE/debt-family-evidence"
+          cp -a "$RUNNER_TEMP/rmc011-debt-family-evidence/." "$PACKAGE/debt-family-evidence/"
+          cp -- /tmp/rmc011-bounded-family-rejections.json "$PACKAGE/bounded-family-rejections.json"
+          if [[ -d "$RUNNER_TEMP/rmc011-bounded-family-evidence" ]]; then
+            mkdir -p "$PACKAGE/bounded-family-evidence"
+            cp -a "$RUNNER_TEMP/rmc011-bounded-family-evidence/." "$PACKAGE/bounded-family-evidence/"
+          fi
+          cp -- ci/nqc-census/rmc011-capital-family-discovery.json "$PACKAGE/rmc011-capital-family-discovery.json"
+          cp -- /tmp/rmc011-family-discovery-readiness.json "$PACKAGE/rmc011-family-discovery-readiness.json"
+          if [[ -d "$RUNNER_TEMP/rmc011-family-discovery-evidence" ]]; then
+            mkdir -p "$PACKAGE/family-discovery-evidence"
+            cp -a "$RUNNER_TEMP/rmc011-family-discovery-evidence/." "$PACKAGE/family-discovery-evidence/"
+          fi
+          for stage in d06 d07 d08 d09 d10; do
+            test -d "$RUNNER_TEMP/$stage-raw"
+            cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
+          done
+
+          if [[ -f "$RUNNER_TEMP/rmc011-source-universe-authenticated" ]] && jq -e '
+            .status == "CAPITAL_SOURCE_UNIVERSE_COMPLETE" and
+            .terminal_claim_allowed == true and
+            .family_universe_discovery.status == "AUTHENTICATED_COMPLETE" and
+            (.families | length == 13) and
+            (.families | all(.terminally_resolved == true))
+          ' "$PACKAGE/rmc011-capital-source-universe.json" >/dev/null; then
+            cp -- "$RUNNER_TEMP/rmc011-source-universe-authenticated" "$PACKAGE/d11/source-universe-transport-auth.sha256"
+            cp -- "$RUNNER_TEMP/rmc011-terminal-evidence-authenticated.tsv" "$PACKAGE/d11/source-universe-transport-auth.tsv"
+            python3 ci/nqc-census/verify-rmc011-terminal-closeout.py \
+              "$PACKAGE/rmc011-capital-source-universe.json" \
+              "$PACKAGE/d11/capital-real-source-closeout.json" \
+              "$PACKAGE/d11/capital-upstream-authority-lock.json" \
+              "$PACKAGE/d11/source-universe-transport-auth.tsv" \
+              "$PACKAGE/d11/source-universe-transport-auth.sha256" \
+              "$PACKAGE/d11/d11-terminal-closeout.json"
+            jq -e '
+              .schema_version == 1 and
+              .stage == "RMC-011" and
+              .status == "D11_TERMINAL_CLOSED" and
+              .d11_terminal_closed == true and
+              .terminal_capital_census_complete == true and
+              .capital_source_universe_complete == true and
+              .family_universe_discovery_authenticated == true and
+              .source_universe_transport_auth_count == 14 and
+              (.source_universe_transport_auth_sha256 | test("^[0-9a-f]{64}$")) and
+              .resolved_family_count == 13 and
+              .unknown_family_count == 0 and
+              .actionable_requirement_coverage_complete == false and
+              .profitability_claimed == false and
+              .shadow_eligibility_claimed == false and
+              .canary_claimed == false and
+              .real_pnl_claimed == false
+            ' "$PACKAGE/d11/d11-terminal-closeout.json" >/dev/null
+            echo "D11_TERMINAL_CLOSEOUT_INCLUDED=PASS"
+          else
+            echo "D11_TERMINAL_CLOSED=BLOCKED_SOURCE_UNIVERSE"
+          fi
+
+          (
+            cd "$PACKAGE"
+            LC_ALL=C find . -type f ! -name CERTIFICATION-PACKAGE-SHA256SUMS -print0 \
+              | LC_ALL=C sort -z \
+              | xargs -0 sha256sum > CERTIFICATION-PACKAGE-SHA256SUMS
+            test -s CERTIFICATION-PACKAGE-SHA256SUMS
+            sha256sum -c CERTIFICATION-PACKAGE-SHA256SUMS
+            (
+              cd d11
+              sha256sum -c capital-archive.sha256
+            )
+          )
+
+          echo "RMC011_SELF_CONTAINED_EVIDENCE_PACKAGE=PASS"
+          echo "RMC011_EVIDENCE_PACKAGE_SHA256=$(sha256sum "$PACKAGE/CERTIFICATION-PACKAGE-SHA256SUMS" | awk '{print $1}')"
+
+      - name: Upload immutable D11 certification archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-real-source-certification-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc011-certification-package/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
