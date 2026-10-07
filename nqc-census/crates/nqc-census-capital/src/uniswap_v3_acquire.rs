@@ -8,13 +8,13 @@
 //! provider captures to agree byte-canonically on every semantic field.
 
 use crate::{
-    upstream::{execution_blockers, token_execution_blockers},
     uniswap_v3_live::{
         decode_uniswap_v3_pool_created, uniswap_v3_factory_interface,
         verify_uniswap_v3_factory_runtime, verify_uniswap_v3_pool_runtime, UniswapV3PoolIdentity,
         UNISWAP_V3_DEPLOYMENT_BLOB, UNISWAP_V3_DEPLOYMENT_COMMIT, UNISWAP_V3_DEPLOYMENT_PATH,
         UNISWAP_V3_DEPLOYMENT_REPOSITORY, UNISWAP_V3_FACTORY,
     },
+    upstream::{execution_blockers, token_execution_blockers},
     Amount256,
 };
 use nqc_census_chain::{
@@ -244,15 +244,13 @@ fn census_assets(
             continue;
         }
         let asset = Address::parse_hex(row.str_field("asset")?)?;
-        let blockers = execution_blockers(
-            &token_blockers,
-            asset,
-            "AAVE_RESERVE_UNDERLYING",
-        )
-        .map_err(|error| ChainError::Evidence(format!(
-            "D08 current Aave asset has no role-scoped token admission: {error}"
-        )))?
-        .to_vec();
+        let blockers = execution_blockers(&token_blockers, asset, "AAVE_RESERVE_UNDERLYING")
+            .map_err(|error| {
+                ChainError::Evidence(format!(
+                    "D08 current Aave asset has no role-scoped token admission: {error}"
+                ))
+            })?
+            .to_vec();
         if let Some(existing) = assets.insert(asset, blockers.clone()) {
             if existing != blockers {
                 return Err(ChainError::Evidence(
@@ -936,7 +934,10 @@ mod tests {
 
         let mut token_admission = Json::object([
             ("token", Json::string(asset)),
-            ("roles", Json::array([Json::string("AAVE_RESERVE_UNDERLYING")])),
+            (
+                "roles",
+                Json::array([Json::string("AAVE_RESERVE_UNDERLYING")]),
+            ),
             (
                 "execution_compatibility",
                 Json::object([

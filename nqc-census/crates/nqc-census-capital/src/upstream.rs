@@ -598,8 +598,7 @@ fn import_d08_capital_sources_unbound(
                     continue;
                 }
                 let token_blockers =
-                    execution_blockers(&tokens, asset_address, "AAVE_RESERVE_UNDERLYING")?
-                        .to_vec();
+                    execution_blockers(&tokens, asset_address, "AAVE_RESERVE_UNDERLYING")?.to_vec();
 
                 let facts = field(&row, "protocol_facts")?;
                 let active = bool_field(facts, "active")?;
