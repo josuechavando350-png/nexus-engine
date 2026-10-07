@@ -64,7 +64,7 @@ fn valid_lock() -> String {
                 run_id = 1000_u64 + u64::from(stage),
                 artifact_id = 2000_u64 + u64::from(stage),
                 workflow = workflow_name(stage),
-                artifact_name = format!("{}{}", artifact_prefix(stage), hex(stage, 20)),
+                artifact_name = format_args!("{}{}", artifact_prefix(stage), hex(stage, 20)),
                 artifact = hex(stage, 32),
                 commit = hex(stage, 20),
                 tree = hex(stage.saturating_add(16), 20),
