@@ -984,13 +984,13 @@ jobs:
           rm -rf "$ROOT"
           mkdir -p "$ROOT"
 
-          for provider in blastapi-public mevblocker-rpc; do
+          for provider in tenderly-public mevblocker-rpc; do
             store="$ROOT/store-$provider"
             capture="$ROOT/capture-$provider.json"
             (
               cd nqc-census
               target/release/nqc-rmc011-uniswap-v3-capture \
-                --providers ../ci/nqc-census/rpc-providers.json \
+                --providers ../ci/nqc-census/rmc011-univ3-rpc-providers.json \
                 --label "$provider" \
                 --store "$store" \
                 --d08-market-state "$RUNNER_TEMP/d08/market-state-manifest.jsonl" \

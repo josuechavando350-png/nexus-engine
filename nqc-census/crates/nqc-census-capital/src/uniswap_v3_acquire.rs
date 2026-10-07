@@ -45,7 +45,7 @@ const FACTORY_NAMESPACE: u16 = 0x0b31;
 const POOL_STATE_NAMESPACE: u16 = 0x0b32;
 const POOL_CREATED_FAMILY: &str = "rmc011-uniswap-v3-pool-created";
 const LOG_SPAN: u64 = 250_000;
-const POOL_JOB_SIZE: usize = 64;
+const POOL_JOB_SIZE: usize = 200;
 
 #[derive(Debug, Clone, Copy)]
 struct PoolSeed {
@@ -680,6 +680,16 @@ fn provider_capture(
                         "Uniswap V3 pool balance call count differs".into(),
                     ));
                 }
+                let pool_accounts = chunk
+                    .iter()
+                    .map(|seed| seed.identity.pool)
+                    .collect::<Vec<_>>();
+                let codes = ctx.codes(&pool_accounts, &anchor, semantics)?;
+                if codes.len() != chunk.len() {
+                    return Err(ChainError::Evidence(
+                        "Uniswap V3 pool runtime-code count differs".into(),
+                    ));
+                }
 
                 let mut per_pool_balances = vec![Vec::<Json>::new(); chunk.len()];
                 for ((index, asset), response) in balance_keys.iter().zip(&balances) {
@@ -701,10 +711,11 @@ fn provider_capture(
                 }
 
                 let mut rows = Vec::with_capacity(chunk.len());
-                for ((seed, responses), asset_balances) in chunk
+                for (((seed, responses), asset_balances), code) in chunk
                     .iter()
                     .zip(identities.as_chunks::<5>().0.iter())
                     .zip(per_pool_balances)
+                    .zip(codes.iter())
                 {
                     let token0 = returned_address(&responses[0], "token0")?;
                     let token1 = returned_address(&responses[1], "token1")?;
@@ -724,7 +735,6 @@ fn provider_capture(
                                 .into(),
                         ));
                     }
-                    let code = ctx.code(seed.identity.pool, &anchor, semantics)?;
                     if code.payload().is_absent() {
                         return Err(ChainError::Evidence(
                             "Uniswap V3 PoolCreated pool has no runtime code at anchor".into(),
