@@ -180,20 +180,17 @@ fn rfc3339(timestamp: u64) -> String {
     )
 }
 
-fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
+fn parse_jsonl(
+    bytes: &[u8],
+) -> Result<impl Iterator<Item = Result<Json, CapitalError>> + '_, CapitalError> {
     let text = std::str::from_utf8(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("D08 JSONL is not UTF-8"))?;
-    let mut rows = Vec::new();
-    for line in text.lines() {
-        if line.is_empty() {
-            continue;
-        }
-        rows.push(
-            Json::parse(line.as_bytes())
-                .map_err(|_| CapitalError::InvalidCanonical("D08 JSONL parse failed"))?,
-        );
-    }
-    Ok(rows)
+    // Decode one row at a time: never retain a second complete JSON AST for
+    // hundreds of thousands of canonical market/account records.
+    Ok(text.lines().filter(|line| !line.is_empty()).map(|line| {
+        Json::parse(line.as_bytes())
+            .map_err(|_| CapitalError::InvalidCanonical("D08 JSONL parse failed"))
+    }))
 }
 
 pub(crate) type TokenExecutionBlockers = BTreeMap<(Address, String), Vec<String>>;
@@ -203,6 +200,7 @@ pub(crate) fn token_execution_blockers(
 ) -> Result<TokenExecutionBlockers, CapitalError> {
     let mut tokens = BTreeMap::new();
     for row in parse_jsonl(bytes)? {
+        let row = row?;
         let token = Address::parse_hex(text(&row, "token")?)
             .map_err(|_| CapitalError::InvalidCanonical("invalid D08 token address"))?;
         let raw_roles = array(&row, "roles")?;
@@ -558,6 +556,7 @@ fn import_d08_capital_sources_unbound(
     let mut candidate_keys = BTreeSet::new();
 
     for row in parse_jsonl(state_manifest_jsonl)? {
+        let row = row?;
         if u64_field(&row, "schema_version")? != 1 {
             return Err(CapitalError::InvalidCanonical(
                 "unsupported D08 market-state schema",
@@ -808,4 +807,32 @@ fn import_d08_capital_sources_unbound(
         rejections,
         authority_artifact_sha256: None,
     })
+}
+
+#[cfg(test)]
+mod jsonl_streaming_regressions {
+    use super::{parse_jsonl, CapitalError};
+
+    #[test]
+    fn rows_are_parsed_lazily_and_invalid_tail_fails_closed() -> Result<(), CapitalError> {
+        let mut rows = parse_jsonl(b"{}\n{}\nnot-json\n")?;
+        assert!(matches!(rows.next(), Some(Ok(_))));
+        assert!(matches!(rows.next(), Some(Ok(_))));
+        assert!(matches!(rows.next(), Some(Err(_))));
+        assert!(rows.next().is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn many_lines_stream_without_eager_json_materialization() -> Result<(), CapitalError> {
+        let payload = "{}\n".repeat(10_000);
+        let mut count = 0;
+        for row in parse_jsonl(payload.as_bytes())? {
+            row?;
+            count += 1;
+        }
+        assert_eq!(count, 10_000);
+        assert!(parse_jsonl(&[0xff]).is_err());
+        Ok(())
+    }
 }
