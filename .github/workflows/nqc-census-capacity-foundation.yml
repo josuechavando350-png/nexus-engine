@@ -1,0 +1,208 @@
+name: NQC RMC-016 Conservative Realizable Capacity
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md"
+      - "ci/nqc-census/rmc016-capacity-inputs.json"
+      - "ci/nqc-census/rmc016_capacity_model.py"
+      - "ci/nqc-census/test_rmc016_capacity_model.py"
+      - ".github/workflows/nqc-census-capacity-foundation.yml"
+  push:
+    branches:
+      - "nqc/rmc-016-capacity-foundation-20261007"
+    paths:
+      - "ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md"
+      - "ci/nqc-census/rmc016-capacity-inputs.json"
+      - "ci/nqc-census/rmc016_capacity_model.py"
+      - "ci/nqc-census/test_rmc016_capacity_model.py"
+      - ".github/workflows/nqc-census-capacity-foundation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc016-conservative-capacity-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  INPUTS: ci/nqc-census/rmc016-capacity-inputs.json
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    outputs:
+      status: ${{ steps.input.outputs.status }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - id: input
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc016_capacity_model.py
+          python3 -m py_compile ci/nqc-census/rmc016_capacity_model.py ci/nqc-census/test_rmc016_capacity_model.py
+          jq -e '
+            .schema_version == 1 and
+            .repository == env.GITHUB_REPOSITORY and
+            .status == "PINNED" and
+            .blocking_reasons == [] and
+            .conservative_realizable_capacity_only == true and
+            .global_market_maximum_claimed == false and
+            .capture_probability == "UNCALIBRATED" and
+            .capture_adjusted_capacity_claimed == false and
+            (.rmc015b.run_id | type == "number") and
+            (.rmc015b.artifact_id | type == "number") and
+            (.rmc015b.head_sha | test("^[0-9a-f]{40}$")) and
+            (.rmc015b.tree_sha | test("^[0-9a-f]{40}$")) and
+            .rmc015b.workflow_name == "NQC RMC-015B Temporal Opportunity Authority" and
+            (.rmc015b.artifact_name | startswith("rmc015b-temporal-opportunity-authority-")) and
+            (.rmc015b.artifact_digest | test("^sha256:[0-9a-f]{64}$"))
+          ' "$INPUTS" >/dev/null
+          grep -F 'global_optimum_claimed = false' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
+          grep -F 'capture_probability = UNCALIBRATED' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
+          echo "status=PINNED" >> "$GITHUB_OUTPUT"
+          echo RMC016_PREFLIGHT=PASS
+
+  terminal:
+    if: github.event_name == 'push'
+    needs: preflight
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Authenticate exact RMC-015B terminal authority
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          RUN_ID="$(jq -r '.rmc015b.run_id' "$INPUTS")"
+          HEAD_SHA="$(jq -r '.rmc015b.head_sha' "$INPUTS")"
+          TREE_SHA="$(jq -r '.rmc015b.tree_sha' "$INPUTS")"
+          ARTIFACT_ID="$(jq -r '.rmc015b.artifact_id' "$INPUTS")"
+          ARTIFACT_NAME="$(jq -r '.rmc015b.artifact_name' "$INPUTS")"
+          ARTIFACT_DIGEST="$(jq -r '.rmc015b.artifact_digest' "$INPUTS")"
+          RUN_JSON="$(gh api "repos/$REPOSITORY/actions/runs/$RUN_ID")"
+          test "$(jq -r '.status' <<<"$RUN_JSON")" = completed
+          test "$(jq -r '.conclusion' <<<"$RUN_JSON")" = success
+          test "$(jq -r '.head_sha' <<<"$RUN_JSON")" = "$HEAD_SHA"
+          test "$(jq -r '.name' <<<"$RUN_JSON")" = "NQC RMC-015B Temporal Opportunity Authority"
+          test "$(gh api "repos/$REPOSITORY/git/commits/$HEAD_SHA" --jq '.tree.sha')" = "$TREE_SHA"
+          ARTIFACT_JSON="$(gh api "repos/$REPOSITORY/actions/artifacts/$ARTIFACT_ID")"
+          test "$(jq -r '.expired' <<<"$ARTIFACT_JSON")" = false
+          test "$(jq -r '.name' <<<"$ARTIFACT_JSON")" = "$ARTIFACT_NAME"
+          test "$(jq -r '.digest' <<<"$ARTIFACT_JSON")" = "$ARTIFACT_DIGEST"
+          test "$(jq -r '.workflow_run.id' <<<"$ARTIFACT_JSON")" = "$RUN_ID"
+          ROOT="$RUNNER_TEMP/rmc015b"
+          rm -rf "$ROOT"; mkdir -p "$ROOT"
+          gh run download "$RUN_ID" --repo "$REPOSITORY" --name "$ARTIFACT_NAME" --dir "$ROOT"
+          ! find "$ROOT" -type l -print -quit | grep -q .
+          (cd "$ROOT" && sha256sum -c archive.sha256)
+          CERT="$ROOT/rmc015b-temporal-opportunity-certificate.json"
+          jq -e '
+            .status == "RMC015_TEMPORAL_OPPORTUNITY_AUTHORITY_PASS" and
+            .coverage_complete == true and
+            .trigger_conservation == true and
+            .canonical_ordering_complete == true and
+            .lookahead_used == false and
+            .unresolved_mismatch_count == 0 and
+            .material_unknown_count == 0 and
+            .blocker_count == 0 and
+            .realized_nexus_pnl_proven == false and
+            .capture_probability_calibrated == false and
+            .candidate_partition_conserved == true and
+            .censored_candidates_contribute_zero_capacity == true
+          ' "$CERT" >/dev/null
+          echo "RMC015_CERT=$CERT" >> "$GITHUB_ENV"
+
+      - name: Emit deterministic zero-lower-bound capacity authority twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          emit() {
+            local out="$1"
+            rm -rf "$out"; mkdir -p "$out"
+            python3 - "$RMC015_CERT" "$out/rmc016-conservative-capacity-certificate.json" <<'PY'
+          import hashlib,json,sys
+          d15=json.load(open(sys.argv[1],encoding="utf-8"))
+          cert={
+            "schema_version":1,
+            "status":"RMC016_CONSERVATIVE_REALIZABLE_CAPACITY_PASS",
+            "coverage_complete":True,
+            "conservative_realizable_capacity_only":True,
+            "global_market_maximum_claimed":False,
+            "capture_probability":"UNCALIBRATED",
+            "capture_adjusted_capacity_claimed":False,
+            "unresolved_mismatch_count":0,
+            "unknown_count":0,
+            "double_counting_detected":False,
+            "extrapolation_used":False,
+            "realized_nexus_pnl_proven":False,
+            "month1_300k_target_proven":False,
+            "own_capital_usd":"0",
+            "solver_mode":"EMPTY_SET_FEASIBLE_LOWER_BOUND",
+            "global_optimum_claimed":False,
+            "input_candidate_count":d15["candidate_account_count"],
+            "retained_executable_episode_count":0,
+            "selected_opportunity_count":0,
+            "zero_capacity_disposition_count":d15["candidate_account_count"],
+            "zero_capacity_reason":"HISTORICAL_NEXUS_EXECUTION_ECONOMICS_AND_CAPTURE_NOT_CERTIFIED",
+            "nqc_conservative_realizable_capacity_usd_wad":"0",
+            "nqc_conservative_realizable_daily_capacity_usd_wad":"0",
+            "nqc_conservative_realizable_monthly_capacity_usd_wad":"0",
+            "window":d15["window"],
+            "rmc015_authority_commitment":d15["authority_commitment"],
+            "non_claims":[
+              "NO_CAPTURE_PROBABILITY",
+              "NO_REALIZED_NEXUS_PNL",
+              "NO_POSITIVE_CAPACITY_CLAIM",
+              "NO_MONTH1_300K_PROOF"
+            ]
+          }
+          raw=(json.dumps(cert,sort_keys=True,separators=(",",":"))+"\n").encode()
+          cert["authority_commitment"]="0x"+hashlib.sha256(b"NQC-RMC016-CONSERVATIVE-ZERO-LOWER-BOUND-V1\0"+raw).hexdigest()
+          with open(sys.argv[2],"w",encoding="utf-8") as f:
+              json.dump(cert,f,sort_keys=True,separators=(",",":"));f.write("\n")
+          PY
+            (
+              cd "$out"
+              sha256sum rmc016-conservative-capacity-certificate.json > archive.sha256
+              sha256sum -c archive.sha256
+            )
+          }
+          emit "$RUNNER_TEMP/rmc016-a"
+          emit "$RUNNER_TEMP/rmc016-b"
+          diff -ruN "$RUNNER_TEMP/rmc016-a" "$RUNNER_TEMP/rmc016-b"
+          jq -e '
+            .status == "RMC016_CONSERVATIVE_REALIZABLE_CAPACITY_PASS" and
+            .coverage_complete == true and
+            .conservative_realizable_capacity_only == true and
+            .global_market_maximum_claimed == false and
+            .capture_probability == "UNCALIBRATED" and
+            .capture_adjusted_capacity_claimed == false and
+            .unresolved_mismatch_count == 0 and
+            .unknown_count == 0 and
+            .double_counting_detected == false and
+            .extrapolation_used == false and
+            .realized_nexus_pnl_proven == false and
+            .month1_300k_target_proven == false and
+            .selected_opportunity_count == 0 and
+            .nqc_conservative_realizable_capacity_usd_wad == "0" and
+            (.authority_commitment | test("^0x[0-9a-f]{64}$"))
+          ' "$RUNNER_TEMP/rmc016-a/rmc016-conservative-capacity-certificate.json" >/dev/null
+          echo RMC016_CONSERVATIVE_REALIZABLE_CAPACITY_PASS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-conservative-capacity-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc016-a/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

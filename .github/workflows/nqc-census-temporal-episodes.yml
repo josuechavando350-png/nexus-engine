@@ -1,0 +1,104 @@
+name: NQC RMC-015B Temporal Episode Authority
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/RMC015_TEMPORAL_EPISODE_CONTRACT.md"
+      - "ci/nqc-census/rmc015-episode-inputs.json"
+      - "ci/nqc-census/rmc015_episode_model.py"
+      - "ci/nqc-census/test_rmc015_episode_model.py"
+      - ".github/workflows/nqc-census-temporal-episodes.yml"
+  push:
+    branches:
+      - "nqc/rmc-015b-temporal-episodes-20261007"
+    paths:
+      - "ci/nqc-census/RMC015_TEMPORAL_EPISODE_CONTRACT.md"
+      - "ci/nqc-census/rmc015-episode-inputs.json"
+      - "ci/nqc-census/rmc015_episode_model.py"
+      - "ci/nqc-census/test_rmc015_episode_model.py"
+      - ".github/workflows/nqc-census-temporal-episodes.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc015b-temporal-episodes-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  INPUTS: ci/nqc-census/rmc015-episode-inputs.json
+
+jobs:
+  foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      status: ${{ steps.inputs.outputs.status }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify RMC-015A ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin nqc/rmc-015a-trigger-authority-20261007
+          UPSTREAM="$(git rev-parse FETCH_HEAD)"
+          git merge-base --is-ancestor "$UPSTREAM" HEAD
+          echo "RMC015B_RMC015A_ANCESTRY_PASS base=$UPSTREAM head=$(git rev-parse HEAD)"
+
+      - name: Validate blocked-or-pinned production contract
+        id: inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == 1 and
+            .repository == env.GITHUB_REPOSITORY and
+            (.status == "BLOCKED_AWAITING_RMC015A_AND_PRODUCTION_TEMPORAL_REPLAY" or .status == "PINNED") and
+            (.non_claims | index("NO_CAPTURE_PROBABILITY")) != null and
+            (.non_claims | index("NO_REALIZED_PNL")) != null and
+            (.non_claims | index("NO_MONTHLY_CAPACITY")) != null and
+            (.non_claims | index("NO_CENSUS_CLOSEOUT")) != null and
+            (if .status == "PINNED" then
+              (.blocking_reasons | length == 0) and
+              (.rmc015a | type == "object") and
+              (.temporal_window | type == "object")
+            else
+              .rmc015a == null and
+              .temporal_window == null and
+              (.blocking_reasons | length > 0)
+            end)
+          ' "$INPUTS" >/dev/null
+          echo "status=$(jq -r '.status' "$INPUTS")" >> "$GITHUB_OUTPUT"
+
+      - name: Verify temporal episode boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'Every historical episode binds its own exact pre-state execution' ci/nqc-census/RMC015_TEMPORAL_EPISODE_CONTRACT.md
+          grep -F 'left_censored=true' ci/nqc-census/RMC015_TEMPORAL_EPISODE_CONTRACT.md
+          grep -F 'time_to_first_competitor_arrival remains UNKNOWN' ci/nqc-census/RMC015_TEMPORAL_EPISODE_CONTRACT.md
+          grep -F 'Post-outcome route, price, winner' ci/nqc-census/RMC015_TEMPORAL_EPISODE_CONTRACT.md
+
+      - name: Deterministic and adversarial episode regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc015_episode_model.py
+          python3 -m py_compile             ci/nqc-census/rmc015_episode_model.py             ci/nqc-census/test_rmc015_episode_model.py
+          echo RMC015B_EPISODE_FOUNDATION_PASS
+
+  terminal:
+    needs: foundation
+    if: ${{ needs.foundation.outputs.status == 'PINNED' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fail closed until production temporal replay exists
+        run: |
+          echo "RMC015B_PINNED_WITHOUT_PRODUCTION_EPISODE_REPLAY" >&2
+          exit 1
