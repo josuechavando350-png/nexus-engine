@@ -1,3 +1,5 @@
+[Reading 1175 lines from start (total: 1175 lines, 0 remaining)]
+
 //! Authenticated live acquisition for the Balancer V2 flash-capital family.
 //!
 //! This module is deliberately narrow: it consumes the exact D08 admitted
@@ -26,7 +28,12 @@ use nqc_census_chain::{
 use nqc_census_core::{Address, CallOutcome, ChainDomain, Hash32, StateAnchor};
 use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
-use std::{collections::{BTreeMap, BTreeSet}, error::Error, fs, path::Path};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    error::Error,
+    fs,
+    path::Path,
+};
 
 const BALANCER_CAPTURE_NAMESPACE: u16 = 0x0b21;
 const BALANCER_V2_VAULT: &str = "0xba12222222228d8ba445958a75a0704d566bf2c8";
@@ -156,15 +163,13 @@ fn census_assets(
             continue;
         }
         let asset = Address::parse_hex(row.str_field("asset")?)?;
-        let blockers = execution_blockers(
-            &token_blockers,
-            asset,
-            "AAVE_RESERVE_UNDERLYING",
-        )
-        .map_err(|error| ChainError::Evidence(format!(
-            "D08 current Aave asset has no role-scoped token admission: {error}"
-        )))?
-        .to_vec();
+        let blockers = execution_blockers(&token_blockers, asset, "AAVE_RESERVE_UNDERLYING")
+            .map_err(|error| {
+                ChainError::Evidence(format!(
+                    "D08 current Aave asset has no role-scoped token admission: {error}"
+                ))
+            })?
+            .to_vec();
         if let Some(existing) = assets.insert(asset, blockers.clone()) {
             if existing != blockers {
                 return Err(ChainError::Evidence(
@@ -188,9 +193,17 @@ fn asset_universe_commitment(assets: &BTreeMap<Address, Vec<String>>) -> String 
     hasher.update([0]);
     for (asset, blockers) in assets {
         hasher.update(asset.as_bytes());
-        hasher.update(u32::try_from(blockers.len()).unwrap_or(u32::MAX).to_be_bytes());
+        hasher.update(
+            u32::try_from(blockers.len())
+                .unwrap_or(u32::MAX)
+                .to_be_bytes(),
+        );
         for blocker in blockers {
-            hasher.update(u32::try_from(blocker.len()).unwrap_or(u32::MAX).to_be_bytes());
+            hasher.update(
+                u32::try_from(blocker.len())
+                    .unwrap_or(u32::MAX)
+                    .to_be_bytes(),
+            );
             hasher.update(blocker.as_bytes());
         }
     }
@@ -951,7 +964,10 @@ mod tests {
 
         let aave = Json::object([
             ("token", Json::string(asset)),
-            ("roles", Json::array([Json::string("AAVE_RESERVE_UNDERLYING")])),
+            (
+                "roles",
+                Json::array([Json::string("AAVE_RESERVE_UNDERLYING")]),
+            ),
             (
                 "execution_compatibility",
                 Json::object([
@@ -1159,3 +1175,5 @@ mod tests {
         assert_ne!(abi::selector("getFlashLoanFeePercentage()"), [0; 4]);
     }
 }
+
+[executed on device: codex-nqc-rmc-328dd6 (97869e36-ef95-481f-ac75-85ab90bce0e7)]
