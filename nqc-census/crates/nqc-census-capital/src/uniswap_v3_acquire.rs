@@ -910,7 +910,12 @@ fn claimed_pool_created_row(claimed: &ClaimedLog) -> Json {
         ("emitter", Json::string(payload.emitter().to_hex())),
         (
             "topics",
-            Json::array(payload.topics().iter().map(|topic| Json::string(topic.to_hex()))),
+            Json::array(
+                payload
+                    .topics()
+                    .iter()
+                    .map(|topic| Json::string(topic.to_hex())),
+            ),
         ),
         ("data", Json::string(hex::encode(payload.data()))),
     ])
@@ -942,7 +947,10 @@ fn acquire_pool_created_history(
     )?;
     let output = acquisition.point(provider, chain, None, &spec, anchor, |ctx| {
         let logs = ctx.logs(filter, 1, anchor.block_number())?;
-        let rows = logs.iter().map(claimed_pool_created_row).collect::<Vec<_>>();
+        let rows = logs
+            .iter()
+            .map(claimed_pool_created_row)
+            .collect::<Vec<_>>();
         Ok(Json::object([
             ("first", Json::uint(1)),
             ("last", Json::uint(anchor.block_number())),
