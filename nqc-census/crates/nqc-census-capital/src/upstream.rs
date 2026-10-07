@@ -811,25 +811,28 @@ fn import_d08_capital_sources_unbound(
 
 #[cfg(test)]
 mod jsonl_streaming_regressions {
-    use super::parse_jsonl;
+    use super::{parse_jsonl, CapitalError};
 
     #[test]
-    fn rows_are_parsed_lazily_and_invalid_tail_fails_closed() {
-        let mut rows = parse_jsonl(b"{}\n{}\nnot-json\n").expect("valid UTF-8");
-        assert!(rows.next().expect("first row").is_ok());
-        assert!(rows.next().expect("second row").is_ok());
-        assert!(rows.next().expect("malformed tail").is_err());
+    fn rows_are_parsed_lazily_and_invalid_tail_fails_closed() -> Result<(), CapitalError> {
+        let mut rows = parse_jsonl(b"{}\n{}\nnot-json\n")?;
+        assert!(matches!(rows.next(), Some(Ok(_))));
+        assert!(matches!(rows.next(), Some(Ok(_))));
+        assert!(matches!(rows.next(), Some(Err(_))));
         assert!(rows.next().is_none());
+        Ok(())
     }
 
     #[test]
-    fn many_lines_stream_without_eager_json_materialization() {
+    fn many_lines_stream_without_eager_json_materialization() -> Result<(), CapitalError> {
         let payload = "{}\n".repeat(10_000);
-        let count = parse_jsonl(payload.as_bytes())
-            .expect("valid UTF-8")
-            .map(|row| row.expect("valid JSON object"))
-            .count();
+        let mut count = 0;
+        for row in parse_jsonl(payload.as_bytes())? {
+            row?;
+            count += 1;
+        }
         assert_eq!(count, 10_000);
         assert!(parse_jsonl(&[0xff]).is_err());
+        Ok(())
     }
 }
