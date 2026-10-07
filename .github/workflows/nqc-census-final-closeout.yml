@@ -1,4 +1,4 @@
-name: NQC RMC-014 Final Census Closeout
+name: NQC RMC-014 Structural Census Chain
 
 on:
   pull_request:
@@ -30,7 +30,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: rmc014-final-closeout-${{ github.ref }}
+  group: rmc014-structural-chain-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -66,10 +66,14 @@ jobs:
           PFT_TREE=ef3498da528f85cdb9fdd82222d64773a557f853
           test "$(git show -s --format=%T "$PFT_COMMIT")" = "$PFT_TREE"
           git merge-base --is-ancestor "$PFT_COMMIT" HEAD
-          grep -F 'RMC-014 — Real Market Census Terminal Closeout Contract' \
+          grep -F 'RMC-014 — Structural Census Chain Contract' \
             ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md
           grep -F 'REAL_MARKET_CENSUS_CLOSED = false' \
             ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md
+          grep -F 'Final Census authority is reserved for RMC-017' \
+            ci/nqc-census/REAL_MARKET_CENSUS_CLOSEOUT_CONTRACT.md
+          ! grep -R -n -F 'println!("REAL_MARKET_CENSUS_CLOSED")' \
+            nqc-census/crates/nqc-census-closeout
 
       - name: Verify no execution or network authority
         shell: bash
@@ -113,7 +117,10 @@ jobs:
           doc = json.loads(path.read_text(encoding="utf-8"))
           require(isinstance(doc, dict), "terminal authority lock is not an object")
           require(doc.get("schema_version") == 3, "terminal authority lock schema_version must be 3")
-          require(doc.get("real_market_census_closed") is False, "source lock cannot self-certify closure")
+          require(doc.get("real_market_census_closed") is False, "source lock cannot self-certify final closure")
+          require(doc.get("rmc014_structural_chain_certified") is False, "source lock cannot self-certify RMC-014")
+          require(doc.get("final_census_authority_stage") == "RMC-017", "final Census authority must be RMC-017")
+          require(doc.get("downstream_authorities_required") == ["RMC-015","RMC-016","RMC-017"], "downstream authority chain differs")
           required = [f"RMC-{n:03d}" for n in range(6, 14)]
           require(doc.get("required_terminal_stages") == required, "required stage set/order differs")
           status = doc.get("status")
@@ -140,7 +147,7 @@ jobs:
               require(isinstance(terminal_evidence, list) and terminal_evidence, "PINNED lock lacks terminal evidence")
           PY
 
-  terminal:
+  structural:
     needs: foundation
     if: ${{ needs.foundation.outputs.authority_status == 'PINNED' }}
     runs-on: ubuntu-24.04
@@ -266,7 +273,7 @@ jobs:
             echo "RMC014_STAGE_PIN_PASS stage=$stage workflow=$workflow_name run=$run artifact=$artifact_id head=$commit tree=$tree digest=$digest"
           done < /tmp/rmc014-pins.tsv
 
-      - name: Terminal marker precondition
+      - name: Structural marker precondition
         shell: bash
         run: |
           set -euo pipefail
@@ -284,7 +291,7 @@ jobs:
               doc.get("real_market_census_closed") is False,
               "source authority lock must never self-certify closure",
           )
-          print("RMC014_TERMINAL_AUTHORITY_VERIFIED")
+          print("RMC014_STRUCTURAL_AUTHORITY_VERIFIED")
           PY
 
       - name: Install pinned Rust toolchain
@@ -294,7 +301,7 @@ jobs:
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
           rustc +"$RUST_TOOLCHAIN" -V | grep -F "rustc $RUST_TOOLCHAIN "
 
-      - name: Emit deterministic terminal certificate twice
+      - name: Emit deterministic structural certificate twice
         shell: bash
         run: |
           set -euo pipefail
@@ -315,16 +322,19 @@ jobs:
           diff -ruN "$OUT_A" "$OUT_B"
           (
             cd "$OUT_A"
-            sha256sum -c real-market-census-certificate.sha256
+            sha256sum -c rmc014-structural-certificate.sha256
           )
 
-          CERT="$OUT_A/real-market-census-certificate.json"
+          CERT="$OUT_A/rmc014-structural-certificate.json"
           jq -e '
             .schema_version == 1 and
-            .status == "REAL_MARKET_CENSUS_CLOSED" and
-            .real_market_census_closed == true and
+            .status == "RMC_014_STRUCTURAL_CHAIN_CERTIFIED" and
+            .structural_chain_certified == true and
+            .real_market_census_closed == false and
+            .final_census_authority_stage == "RMC-017" and
+            .downstream_authorities_required == ["RMC-015","RMC-016","RMC-017"] and
             (.authority_lock_sha256 | test("^sha256:[0-9a-f]{64}$")) and
-            (.terminal_commitment | test("^0x[0-9a-f]{64}$")) and
+            (.structural_commitment | test("^0x[0-9a-f]{64}$")) and
             .realized_profitability_proven == false and
             .monthly_target_probability_proven == false and
             .conservative_realizable_capacity_only == true and
@@ -338,12 +348,12 @@ jobs:
           ' "$CERT" >/dev/null
 
           echo "RMC014_CERTIFICATE=$CERT" >> "$GITHUB_ENV"
-          echo "RMC014_TERMINAL_CLOSEOUT=PASS"
+          echo "RMC014_STRUCTURAL_CLOSEOUT=PASS"
 
-      - name: Upload immutable RMC-014 terminal certificate
+      - name: Upload immutable RMC-014 structural certificate
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: rmc014-terminal-census-${{ github.sha }}
+          name: rmc014-structural-chain-${{ github.sha }}
           path: ${{ runner.temp }}/rmc014-a/
           if-no-files-found: error
           retention-days: 90
