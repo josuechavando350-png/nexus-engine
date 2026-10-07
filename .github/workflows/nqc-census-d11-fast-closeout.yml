@@ -7,6 +7,8 @@ on:
     paths:
       - "nqc-census/crates/nqc-census-capital/src/bin/nqc-rmc011-capital-build.rs"
       - "nqc-census/crates/nqc-census-capital/src/lib.rs"
+      - "nqc-census/crates/nqc-census-capital/src/upstream.rs"
+      - "nqc-census/crates/nqc-census-capital/src/demands.rs"
       - "nqc-census/crates/nqc-census-capital/tests/capital.rs"
       - ".github/workflows/nqc-census-d11-fast-closeout.yml"
       - "ci/nqc-census/rmc011-real-source-inputs.json"
