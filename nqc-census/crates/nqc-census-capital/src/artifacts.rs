@@ -665,37 +665,38 @@ pub fn export_capital_artifacts(
     provenance.validate_anchor(authority.observation_anchor())?;
     let certificate = ledger.certify(authority)?;
 
-    let source_records = ledger
-        .sources()
-        .map(|source| source_record(source, provenance))
-        .collect::<Vec<_>>();
-    let requirement_records = ledger
-        .requirements()
-        .map(|requirement| requirement_record(requirement, provenance))
-        .collect::<Vec<_>>();
-    let feasibility_records = ledger
-        .results()
-        .map(|result| feasibility_record(result, provenance, authority.observation_anchor()))
-        .collect::<Vec<_>>();
-    let rejection_records = ledger
-        .results()
-        .filter_map(|result| match result {
+    // Stream canonical records directly into the owned JSONL bytes.
+    // Materializing ~1M readable source records as Vec<Json> duplicates the
+    // entire census in memory before even constructing the artifact bytes.
+    // This preserves the exact original iteration order, per-row serializer,
+    // newlines, byte digests, and independent offline verification.
+    let sources = CapitalArtifactFile::new(
+        CAPITAL_SOURCES_FILE,
+        jsonl(ledger.sources().map(|source| source_record(source, provenance)))?,
+    );
+    let requirements = CapitalArtifactFile::new(
+        CAPITAL_REQUIREMENTS_FILE,
+        jsonl(ledger.requirements().map(|requirement| {
+            requirement_record(requirement, provenance)
+        }))?,
+    );
+    let feasibility = CapitalArtifactFile::new(
+        CAPITAL_FEASIBILITY_FILE,
+        jsonl(ledger.results().map(|result| {
+            feasibility_record(result, provenance, authority.observation_anchor())
+        }))?,
+    );
+    let rejections = CapitalArtifactFile::new(
+        CAPITAL_REJECTION_LEDGER_FILE,
+        jsonl(ledger.results().filter_map(|result| match result {
             CapitalFeasibility::Rejected { .. } => Some(rejection_record(
                 result,
                 provenance,
                 authority.observation_anchor(),
             )),
             CapitalFeasibility::Feasible { .. } => None,
-        })
-        .collect::<Vec<_>>();
-
-    let sources = CapitalArtifactFile::new(CAPITAL_SOURCES_FILE, jsonl(&source_records)?);
-    let requirements =
-        CapitalArtifactFile::new(CAPITAL_REQUIREMENTS_FILE, jsonl(&requirement_records)?);
-    let feasibility =
-        CapitalArtifactFile::new(CAPITAL_FEASIBILITY_FILE, jsonl(&feasibility_records)?);
-    let rejections =
-        CapitalArtifactFile::new(CAPITAL_REJECTION_LEDGER_FILE, jsonl(&rejection_records)?);
+        }))?,
+    );
     let upstream_authority = CapitalArtifactFile::new(
         CAPITAL_UPSTREAM_AUTHORITY_FILE,
         canonical(&upstream_authority_json(authority, provenance))?,
@@ -1614,10 +1615,10 @@ fn anchor_json(anchor: &StateAnchor) -> Json {
     ])
 }
 
-fn jsonl(records: &[Json]) -> Result<Vec<u8>, CapitalError> {
+fn jsonl(records: impl IntoIterator<Item = Json>) -> Result<Vec<u8>, CapitalError> {
     let mut out = Vec::new();
     for record in records {
-        out.extend_from_slice(&canonical(record)?);
+        out.extend_from_slice(&canonical(&record)?);
         out.push(b'\n');
     }
     Ok(out)
