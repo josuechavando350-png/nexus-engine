@@ -994,6 +994,24 @@ mod tests {
     }
 
     #[test]
+    fn stage_bound_authority_lock_yields_shared_anchor() -> Result<(), Box<dyn Error>> {
+        let stages = ["RMC-006", "RMC-007", "RMC-008", "RMC-009", "RMC-010"]
+            .into_iter()
+            .map(|stage| {
+                Json::object([
+                    ("stage", Json::string(stage)),
+                    ("observation_anchor", test_anchor_json()),
+                ])
+            });
+        let lock = Json::object([("stages", Json::array(stages))]);
+        assert_eq!(
+            authority_lock_anchor(&lock)?,
+            parse_full_anchor(&test_anchor_json())?
+        );
+        Ok(())
+    }
+
+    #[test]
     fn aave_asset_census_preserves_role_scoped_execution_blockers() -> Result<(), Box<dyn Error>> {
         let asset = "0x7777777777777777777777777777777777777777";
         let market = Json::object([
