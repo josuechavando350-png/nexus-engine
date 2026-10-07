@@ -1,12 +1,12 @@
 use nqc_census_capital::{
-    evaluate_capital_feasibility, Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger,
-    CapitalCertificationContext, CapitalClass, CapitalError, CapitalEvidenceRef,
-    CapitalFailureMode, CapitalFeasibility, CapitalOwnership, CapitalProviderKind,
-    CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
-    CollateralRequirement, FeeModel, GitObjectId, PersistentDebtTerms, RepaymentSemantics,
-    RequiredAtomicity, RequirementKind, RoundingMode, TemporaryLock, UpstreamCensusStage,
-    UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
-    UtilizationConstraints,
+    evaluate_capital_feasibility, evaluate_capital_feasibility_checked, Amount256, CapitalAsset,
+    CapitalCaps, CapitalCensusLedger, CapitalCertificationContext, CapitalClass, CapitalError,
+    CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility, CapitalOwnership,
+    CapitalProviderKind, CapitalRequirement, CapitalRequirementLeg, CapitalSource,
+    CapitalSourceSpec, CapitalTargetId, CollateralRequirement, FeeModel, GitObjectId,
+    PersistentDebtTerms, RepaymentSemantics, RequiredAtomicity, RequirementKind, RoundingMode,
+    TemporaryLock, UpstreamCensusStage, UpstreamConsumptionReceipt, UpstreamStageAuthority,
+    UpstreamStageAuthoritySpec, UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -3563,5 +3563,89 @@ fn proportional_collateral_must_round_up_and_have_a_positive_ratio() -> TestResu
         CapitalSource::new(zero_ratio),
         Err(CapitalError::InvalidRatio)
     ));
+    Ok(())
+}
+
+#[test]
+fn indexed_ledger_preserves_full_checked_evaluator_with_irrelevant_sources() -> TestResult {
+    // Differential oracle: this invokes the original public checked evaluator
+    // on the entire source universe, then checks the indexed ledger result.
+    // It exercises both the fully-funded and missing-external-gas paths.
+    let token = CapitalAsset::Token(address(20));
+    let req = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(500),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Gas,
+                CapitalAsset::NativeGas,
+                Amount256::from_u128(5),
+                vec![CapitalClass::GasFunding],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(500),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                CapitalAsset::NativeGas,
+                Amount256::from_u128(5),
+                vec![CapitalClass::GasFunding],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        true,
+    )?;
+
+    let mut universe = vec![
+        source(
+            CapitalClass::ProtocolNativeFlashLoan,
+            token,
+            1_000,
+            token,
+            RepaymentSemantics::AtomicSameTransaction,
+        )?,
+        source(
+            CapitalClass::GasFunding,
+            CapitalAsset::NativeGas,
+            100,
+            CapitalAsset::NativeGas,
+            RepaymentSemantics::AtomicSameTransaction,
+        )?,
+    ];
+    for byte in 50_u8..110_u8 {
+        let unrelated = CapitalAsset::Token(address(byte));
+        universe.push(source(
+            CapitalClass::FlashSwap,
+            unrelated,
+            100_000,
+            unrelated,
+            RepaymentSemantics::AtomicSameTransaction,
+        )?);
+    }
+
+    for missing_gas in [false, true] {
+        let sources = universe
+            .iter()
+            .filter(|source| !missing_gas || source.class() != CapitalClass::GasFunding)
+            .cloned()
+            .collect::<Vec<_>>();
+        let expected = evaluate_capital_feasibility_checked(&req, &sources)?;
+
+        let mut ledger = CapitalCensusLedger::evidentiary();
+        for source in sources {
+            ledger.register_source(source)?;
+        }
+        let requirement_id = req.id();
+        ledger.register_requirement(req.clone())?;
+        ledger.evaluate_all()?;
+        assert_eq!(ledger.result(requirement_id), Some(&expected));
+    }
     Ok(())
 }
