@@ -1028,7 +1028,7 @@ mod tests {
                 .filter(|(key, _)| key.as_str() != "assets")
                 .map(|(key, value)| (key.clone(), value.clone()))
                 .collect::<Vec<_>>();
-            members.push(("assets", Json::array(assets)));
+            members.push(("assets".to_owned(), Json::array(assets)));
             *capture = Json::object(members);
         }
 
