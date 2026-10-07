@@ -66,6 +66,7 @@ on:
     branches:
       - "nqc/rmc-011-capital-census-foundation-20260929"
       - "nqc/rmc-011-derived-authority-lock-20260930"
+      - "nqc/rmc-011-terminal-authority-20261007"
       - "nqc/rmc-011-terminal-multicall-fix-20261007"
     paths:
       - ".github/workflows/nqc-census-capital-real-source-certification.yml"
@@ -129,7 +130,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: rmc011-real-source-certification-${{ github.ref }}-${{ github.sha }}
+  group: rmc011-real-source-certification-terminal-${{ github.sha }}
   # PR preflights are superseded by newer heads; authoritative push
   # certification is never cancelled once it starts.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
