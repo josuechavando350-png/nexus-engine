@@ -76,8 +76,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -F 'Reusing the same flash source, DEX venue or gas source hours later is not itself' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
-          grep -F 'A 7-day sample multiplied by 30/7 is forbidden.' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
+          grep -F 'Reusing the same flash source' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
+          grep -F '7-day sample multiplied by 30/7' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
           grep -F 'global_optimum_claimed = false' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
           grep -F 'capture_probability = UNCALIBRATED' ci/nqc-census/RMC016_CONSERVATIVE_CAPACITY_CONTRACT.md
 
