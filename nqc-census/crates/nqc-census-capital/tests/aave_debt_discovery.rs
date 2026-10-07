@@ -1,5 +1,3 @@
-[Reading 632 lines from start (total: 632 lines, 0 remaining)]
-
 use nqc_census_capital::{
     aave_debt_discovery::{
         build_aave_debt_discovery_artifact, discover_d08_aave_debt_facilities,
@@ -632,5 +630,3 @@ fn discovery_artifact_preserves_token_execution_blocker() -> TestResult {
     assert_eq!(blockers[0].as_str(), Some("UNSUPPORTED_TOKEN_BEHAVIOR"));
     Ok(())
 }
-
-[executed on device: codex-nqc-rmc-328dd6 (97869e36-ef95-481f-ac75-85ab90bce0e7)]
