@@ -1,14 +1,19 @@
 {
   "schema_version": 1,
-  "status": "BLOCKED_AWAITING_RMC015B_TEMPORAL_OPPORTUNITY_AUTHORITY",
+  "status": "PINNED",
   "repository": "josuechavando350-png/nexus-engine",
-  "blocking_reasons": [
-    "RMC015B_TEMPORAL_OPPORTUNITY_AUTHORITY_NOT_PINNED",
-    "TEMPORAL_OPPORTUNITY_SET_NOT_AVAILABLE"
-  ],
+  "blocking_reasons": [],
   "conservative_realizable_capacity_only": true,
   "global_market_maximum_claimed": false,
   "capture_probability": "UNCALIBRATED",
   "capture_adjusted_capacity_claimed": false,
-  "rmc015b": null
+  "rmc015b": {
+    "run_id": 37669899465,
+    "head_sha": "cb413ee9747e83be2bf5e05b8270edabf4f6e221",
+    "tree_sha": "5a73aed2e8a2b8b1d375e2d0b65dc41258788172",
+    "workflow_name": "NQC RMC-015B Temporal Opportunity Authority",
+    "artifact_id": 11504276505,
+    "artifact_name": "rmc015b-temporal-opportunity-authority-cb413ee9747e83be2bf5e05b8270edabf4f6e221",
+    "artifact_digest": "sha256:aff472236ff5177f123e4a6ccc95d4dae5fb37833f8645984116c407c179d790"
+  }
 }
