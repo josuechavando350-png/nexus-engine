@@ -155,7 +155,7 @@ jobs:
           path: ${{ runner.temp }}/prep/
           if-no-files-found: error
           retention-days: 90
-          compression-level: 0
+          compression-level: 6
 
   core-build:
     needs: prepare
@@ -214,7 +214,7 @@ jobs:
           path: ${{ runner.temp }}/core/
           if-no-files-found: error
           retention-days: 90
-          compression-level: 0
+          compression-level: 6
 
   replay-verify:
     needs: core-build
@@ -276,7 +276,7 @@ jobs:
           path: ${{ runner.temp }}/core/
           if-no-files-found: error
           retention-days: 90
-          compression-level: 0
+          compression-level: 6
 
   package:
     needs: replay-verify
@@ -407,4 +407,4 @@ jobs:
           path: ${{ runner.temp }}/package/
           if-no-files-found: error
           retention-days: 90
-          compression-level: 0
+          compression-level: 6
