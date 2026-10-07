@@ -89,26 +89,26 @@ fn load_legacy_bundle(dir: &Path) -> Result<CapitalArtifactBundle, Box<dyn Error
     })
 }
 
-fn decode_sources(bytes: &[u8]) -> Result<Vec<CapitalSource>, Box<dyn Error>> {
+fn decode_sources(
+    bytes: &[u8],
+) -> Result<impl Iterator<Item = Result<CapitalSource, Box<dyn Error>>> + '_, Box<dyn Error>> {
     let text = std::str::from_utf8(bytes)?;
-    let mut out = Vec::new();
-    for line in text.lines().filter(|line| !line.is_empty()) {
+    Ok(text.lines().filter(|line| !line.is_empty()).map(|line| {
         let row = Json::parse(line.as_bytes())?;
         let encoded = hex::decode_data(&format!("0x{}", row.str_field("canonical_record")?))?;
-        out.push(CapitalSource::decode_canonical(&encoded)?);
-    }
-    Ok(out)
+        Ok(CapitalSource::decode_canonical(&encoded)?)
+    }))
 }
 
-fn decode_requirements(bytes: &[u8]) -> Result<Vec<CapitalRequirement>, Box<dyn Error>> {
+fn decode_requirements(
+    bytes: &[u8],
+) -> Result<impl Iterator<Item = Result<CapitalRequirement, Box<dyn Error>>> + '_, Box<dyn Error>> {
     let text = std::str::from_utf8(bytes)?;
-    let mut out = Vec::new();
-    for line in text.lines().filter(|line| !line.is_empty()) {
+    Ok(text.lines().filter(|line| !line.is_empty()).map(|line| {
         let row = Json::parse(line.as_bytes())?;
         let encoded = hex::decode_data(&format!("0x{}", row.str_field("canonical_record")?))?;
-        out.push(CapitalRequirement::decode_canonical(&encoded)?);
-    }
-    Ok(out)
+        Ok(CapitalRequirement::decode_canonical(&encoded)?)
+    }))
 }
 
 fn sha256_plain(bytes: &[u8]) -> String {
@@ -153,10 +153,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let mut ledger = CapitalCensusLedger::evidentiary();
     for source in decode_sources(&source_file.bytes)? {
-        ledger.register_source(source)?;
+        ledger.register_source(source?)?;
     }
     for requirement in decode_requirements(&requirement_file.bytes)? {
-        ledger.register_requirement(requirement)?;
+        ledger.register_requirement(requirement?)?;
     }
 
     let balancer_bytes = fs::read(&args.balancer_reconcile)?;
