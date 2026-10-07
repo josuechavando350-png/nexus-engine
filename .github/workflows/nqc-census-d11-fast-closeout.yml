@@ -195,6 +195,25 @@ jobs:
           rm -rf "$OUT"; mkdir -p "$OUT"
           HEAD="$(git rev-parse HEAD)"
           TREE="$(git rev-parse 'HEAD^{tree}')"
+          echo "RMC011_RESOURCE_BASELINE_BEGIN"
+          free -m
+          df -h "$RUNNER_TEMP"
+          if test -f /sys/fs/cgroup/memory.max; then
+            cat /sys/fs/cgroup/memory.max
+          fi
+          echo "RMC011_RESOURCE_BASELINE_END"
+          (
+            while :; do
+              echo "RMC011_RESOURCE_SAMPLE $(date -u +%FT%TZ)"
+              ps -eo pid,ppid,rss,%cpu,comm --sort=-rss | sed -n '1,9p'
+              if test -r /sys/fs/cgroup/memory.events; then
+                cat /sys/fs/cgroup/memory.events
+              fi
+              sleep 15
+            done
+          ) >&2 &
+          MON_PID=$!
+          trap 'kill "$MON_PID" 2>/dev/null || true' EXIT
           nqc-census/target/release/nqc-rmc011-capital-build             --d08-dir "$RUNNER_TEMP/prep/d08"             --d09-dir "$RUNNER_TEMP/prep/d09"             --authority-lock "$RUNNER_TEMP/prep/rmc011-authority-lock.json"             --output-dir "$OUT"             --code-commit "$HEAD"             --code-tree "$TREE"
           jq -e --arg h "$HEAD" --arg t "$TREE" '
             .schema_version==3 and
