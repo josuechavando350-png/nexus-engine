@@ -254,7 +254,7 @@ jobs:
     # gates. Join the repository-wide public-RPC lock so it cannot recreate the
     # D07/D08 throttling failure by competing with another Census acquisition.
     concurrency:
-      group: nqc-census-public-rpc
+      group: nqc-census-public-rpc-d11-terminal-${{ github.sha }}
       cancel-in-progress: false
     runs-on: ubuntu-24.04
     timeout-minutes: 90
