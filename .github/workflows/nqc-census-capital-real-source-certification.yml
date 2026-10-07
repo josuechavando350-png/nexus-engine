@@ -64,6 +64,7 @@ on:
     branches:
       - "nqc/rmc-011-capital-census-foundation-20260929"
       - "nqc/rmc-011-derived-authority-lock-20260930"
+      - "nqc/rmc-011-univ3-dual-provider-20261007"
     paths:
       - ".github/workflows/nqc-census-capital-real-source-certification.yml"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
