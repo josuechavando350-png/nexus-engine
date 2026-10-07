@@ -932,6 +932,83 @@ mod tests {
         ])
     }
 
+    fn test_authority_lock() -> Json {
+        Json::object([(
+            "stages",
+            Json::array(
+                ["RMC-006", "RMC-007", "RMC-008", "RMC-009", "RMC-010"]
+                    .into_iter()
+                    .map(|stage| {
+                        Json::object([
+                            ("stage", Json::string(stage)),
+                            ("observation_anchor", test_anchor_json()),
+                        ])
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+        )])
+    }
+
+    #[test]
+    fn authority_lock_anchor_accepts_exact_stage_scoped_lock() -> Result<(), Box<dyn Error>> {
+        let authority = test_authority_lock();
+        let expected = parse_full_anchor(&test_anchor_json())?;
+        assert_eq!(authority_lock_anchor(&authority)?, expected);
+        Ok(())
+    }
+
+    #[test]
+    fn authority_lock_anchor_rejects_cross_stage_anchor_drift() -> Result<(), Box<dyn Error>> {
+        let mut authority = test_authority_lock();
+        let stages = authority
+            .get_mut("stages")
+            .and_then(Json::as_array_mut)
+            .ok_or("missing stages")?;
+        let drifted = Json::object([
+            ("chain_id", Json::uint(1)),
+            (
+                "genesis_hash",
+                Json::string(format!("0x{}", "11".repeat(32))),
+            ),
+            (
+                "fork_lineage",
+                Json::string(format!("0x{}", "22".repeat(32))),
+            ),
+            ("block_number", Json::uint(25_437_475)),
+            ("block_hash", Json::string(format!("0x{}", "66".repeat(32)))),
+            (
+                "parent_hash",
+                Json::string(format!("0x{}", "33".repeat(32))),
+            ),
+            ("timestamp", Json::uint(1_700_000_012)),
+            ("state_root", Json::string(format!("0x{}", "77".repeat(32)))),
+        ]);
+        let row = stages.get_mut(4).ok_or("missing fifth stage")?;
+        let members = row.as_object_mut().ok_or("stage row is not object")?;
+        members.insert("observation_anchor".to_owned(), drifted);
+        assert!(authority_lock_anchor(&authority).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn authority_lock_anchor_rejects_incomplete_stage_set() {
+        let authority = Json::object([(
+            "stages",
+            Json::array(
+                ["RMC-006", "RMC-007", "RMC-008", "RMC-009"]
+                    .into_iter()
+                    .map(|stage| {
+                        Json::object([
+                            ("stage", Json::string(stage)),
+                            ("observation_anchor", test_anchor_json()),
+                        ])
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+        )]);
+        assert!(authority_lock_anchor(&authority).is_err());
+    }
+
     fn test_capture(
         provider_id: &str,
         provider_operator: &str,
