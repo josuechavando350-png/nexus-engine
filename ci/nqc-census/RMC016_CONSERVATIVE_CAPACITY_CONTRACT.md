@@ -2,7 +2,7 @@
 
 ## Mission
 
-RMC-016 converts authenticated RMC-015 temporal opportunities into a conservative,
+RMC-016 converts authenticated RMC-015B temporal opportunities into a conservative,
 non-double-counted physical/economic capacity lower bound suitable for Shadow.
 
 It MUST NOT invent capture probability, claim unobserved private-flow advantage,
@@ -71,7 +71,7 @@ Shadow-eligible set. It must not turn that into expected realized capture P&L.
 
 RMC016_CONSERVATIVE_REALIZABLE_CAPACITY_PASS requires:
 
-- exact authenticated RMC-015 authority;
+- exact authenticated RMC-015B temporal opportunity authority;
 - every Shadow-eligible temporal opportunity covered;
 - zero UNKNOWN terminal exclusions;
 - no resource/time double counting;
