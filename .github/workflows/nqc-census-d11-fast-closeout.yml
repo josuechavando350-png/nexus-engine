@@ -6,6 +6,8 @@ on:
       - "nqc/rmc-011-fast-closeout-20261007"
     paths:
       - "nqc-census/crates/nqc-census-capital/src/bin/nqc-rmc011-capital-build.rs"
+      - "nqc-census/crates/nqc-census-capital/src/lib.rs"
+      - "nqc-census/crates/nqc-census-capital/tests/capital.rs"
       - ".github/workflows/nqc-census-d11-fast-closeout.yml"
       - "ci/nqc-census/rmc011-real-source-inputs.json"
   workflow_dispatch:
