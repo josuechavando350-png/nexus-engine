@@ -1870,10 +1870,10 @@ mod streaming_artifact_jsonl_tests {
             Json::object([("row", Json::uint(row))])
         }))?;
         assert_eq!(encoded, expected);
-        let mut parsed = 0_u64;
+        let mut parsed = 0_i64;
         for row in parse_jsonl(&encoded)? {
             let value = row?;
-            assert_eq!(value.get("row").and_then(Json::as_i64), Some(parsed as i64));
+            assert_eq!(value.get("row").and_then(Json::as_i64), Some(parsed));
             parsed += 1;
         }
         assert_eq!(parsed, 3);
