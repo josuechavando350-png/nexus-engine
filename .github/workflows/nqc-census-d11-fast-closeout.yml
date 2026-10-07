@@ -1,0 +1,408 @@
+name: NQC RMC-011 Real Source Certification
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-011-fast-closeout-20261007"
+    paths:
+      - "nqc-census/crates/nqc-census-capital/src/bin/nqc-rmc011-capital-build.rs"
+      - ".github/workflows/nqc-census-d11-fast-closeout.yml"
+      - "ci/nqc-census/rmc011-real-source-inputs.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc011-fast-closeout-${{ github.sha }}
+  cancel-in-progress: false
+
+env:
+  REPOSITORY: ${{ github.repository }}
+  GH_TOKEN: ${{ github.token }}
+  INPUTS: ci/nqc-census/rmc011-real-source-inputs.json
+  ACQ_RUN_ID: "37689816997"
+  ACQ_HEAD_SHA: "ea488b9dc13b690921416dd11c4369cfb76912e5"
+  ACQ_ARTIFACT_ID: "11514391050"
+  ACQ_ARTIFACT_NAME: "rmc011-live-acquisition-ea488b9dc13b690921416dd11c4369cfb76912e5"
+  ACQ_ARTIFACT_DIGEST: "sha256:a0ab50b41f5653e7749dc7360eb8006f3f088477372654ade9d966b3373f006f"
+
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact optimized head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Authenticate and download exact RMC-006 through RMC-010
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/prep"
+          rm -rf "$ROOT"; mkdir -p "$ROOT"
+          : > "$ROOT/rmc011-authority-transport.txt"
+
+          verify_and_download() {
+            local key="$1" stage="$2" out="$3"
+            local run head workflow artifact name digest authority tree authority_sha
+            run="$(jq -r --arg k "$key" '.[$k].run_id' "$INPUTS")"
+            head="$(jq -r --arg k "$key" '.[$k].head_sha' "$INPUTS")"
+            workflow="$(jq -r --arg k "$key" '.[$k].workflow_name' "$INPUTS")"
+            artifact="$(jq -r --arg k "$key" '.[$k].artifact_id' "$INPUTS")"
+            name="$(jq -r --arg k "$key" '.[$k].artifact_name' "$INPUTS")"
+            digest="$(jq -r --arg k "$key" '.[$k].artifact_digest' "$INPUTS")"
+            authority="$(jq -r --arg k "$key" '.[$k].authority_file' "$INPUTS")"
+
+            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run")"
+            test "$(jq -r '.status' <<<"$run_json")" = completed
+            test "$(jq -r '.conclusion' <<<"$run_json")" = success
+            test "$(jq -r '.head_sha' <<<"$run_json")" = "$head"
+            test "$(jq -r '.name' <<<"$run_json")" = "$workflow"
+
+            artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact")"
+            test "$(jq -r '.expired' <<<"$artifact_json")" = false
+            test "$(jq -r '.name' <<<"$artifact_json")" = "$name"
+            test "$(jq -r '.digest' <<<"$artifact_json")" = "$digest"
+            test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run"
+
+            tree="$(gh api "repos/$REPOSITORY/git/commits/$head" --jq '.tree.sha')"
+            rm -rf "$out"; mkdir -p "$out"
+            gh run download "$run" --repo "$REPOSITORY" --name "$name" --dir "$out"
+            test -f "$out/$authority"
+            authority_sha="$(sha256sum "$out/$authority" | awk '{print $1}')"
+            printf '%s %s %s %s %s %s\n' "$key" "$stage" "$head" "$tree" "$authority" "$authority_sha" >> "$ROOT/rmc011-authority-transport.txt"
+            echo "RMC011_FAST_UPSTREAM_PASS stage=$stage run=$run artifact=$artifact"
+          }
+
+          verify_and_download d06 RMC-006 "$ROOT/d06-raw"
+          verify_and_download d07 RMC-007 "$ROOT/d07-raw"
+          verify_and_download d08 RMC-008 "$ROOT/d08-raw"
+          verify_and_download d09 RMC-009 "$ROOT/d09-raw"
+          verify_and_download d10 RMC-010 "$ROOT/d10-raw"
+
+      - name: Derive canonical authority lock and normalize D08/D09
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/prep"
+          export AUTHORITY_CANDIDATE="$ROOT/authority-candidate.json"
+          export AUTHORITY_LOCK="$ROOT/rmc011-authority-lock.json"
+
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path(os.environ["RUNNER_TEMP"])/"prep"
+          inputs=json.loads(Path(os.environ["INPUTS"]).read_text())
+          manifest=json.loads((root/"d08-raw"/inputs["d08"]["authority_file"]).read_text())
+          anchor=manifest["observation_anchor"]
+          required=["chain_id","genesis_hash","fork_lineage","block_number","block_hash","parent_hash","timestamp","state_root"]
+          if any(k not in anchor for k in required):
+              raise SystemExit("D08 authority anchor incomplete")
+          rows=[]
+          for line in (root/"rmc011-authority-transport.txt").read_text().splitlines():
+              key,stage,commit,tree,authority_file,authority_sha=line.split()
+              rows.append({"stage":stage,"code_commit":commit,"code_tree":tree,"artifact_sha256":"0x"+authority_sha})
+          if [x["stage"] for x in rows] != ["RMC-006","RMC-007","RMC-008","RMC-009","RMC-010"]:
+              raise SystemExit("stage order mismatch")
+          candidate={"schema_version":1,"observation_anchor":{k:anchor[k] for k in required},"stages":rows}
+          Path(os.environ["AUTHORITY_CANDIDATE"]).write_text(json.dumps(candidate,sort_keys=True,separators=(",",":"))+"\n")
+          PY
+
+          (
+            cd nqc-census
+            cargo run --release --locked -p nqc-census-capital --bin nqc-rmc011-authority-lock-build --               --input "$AUTHORITY_CANDIDATE" --output "$AUTHORITY_LOCK"
+          )
+          jq -e '.schema_version==1 and (.stages|length)==5' "$AUTHORITY_LOCK" >/dev/null
+
+          while read -r key stage head tree authority_file authority_sha; do
+            python3 ci/nqc-census/verify_rmc011_upstream_authority.py               --stage "$stage"               --artifact-root "$ROOT/$key-raw"               --authority-file "$authority_file"               --lock "$AUTHORITY_LOCK"               --expected-code-commit "$head"               --expected-code-tree "$tree"
+          done < "$ROOT/rmc011-authority-transport.txt"
+
+          mkdir -p "$ROOT/d08" "$ROOT/d09"
+          copy_exact() {
+            local srcroot="$1" rel="$2" dest="$3"
+            test -f "$srcroot/$rel"
+            cp -- "$srcroot/$rel" "$dest/$(basename "$rel")"
+          }
+          copy_exact "$ROOT/d08-raw" "$(jq -r '.d08.market_state_manifest' "$INPUTS")" "$ROOT/d08"
+          copy_exact "$ROOT/d08-raw" "$(jq -r '.d08.oracle_manifest' "$INPUTS")" "$ROOT/d08"
+          copy_exact "$ROOT/d08-raw" "$(jq -r '.d08.token_admission' "$INPUTS")" "$ROOT/d08"
+          copy_exact "$ROOT/d08-raw" "$(jq -r '.d08.pool_and_factory_facts' "$INPUTS")" "$ROOT/d08"
+          copy_exact "$ROOT/d08-raw" "$(jq -r '.d08.authority_file' "$INPUTS")" "$ROOT/d08"
+          copy_exact "$ROOT/d09-raw" "$(jq -r '.d09.account_manifest' "$INPUTS")" "$ROOT/d09"
+          copy_exact "$ROOT/d09-raw" "$(jq -r '.d09.account_summary' "$INPUTS")" "$ROOT/d09"
+          copy_exact "$ROOT/d09-raw" "$(jq -r '.d09.authority_file' "$INPUTS")" "$ROOT/d09"
+          cp "$INPUTS" "$ROOT/rmc011-real-source-inputs.json"
+
+          (
+            cd "$ROOT"
+            LC_ALL=C find . -type f ! -name PREP-SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > PREP-SHA256SUMS
+            sha256sum -c PREP-SHA256SUMS
+          )
+          echo RMC011_FAST_PREP=PASS
+
+      - name: Upload prepared immutable inputs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-closeout-inputs-${{ github.sha }}
+          path: ${{ runner.temp }}/prep/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  core-build:
+    needs: prepare
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact optimized head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Validate optimized capital-build code
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd nqc-census
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-capital --bin nqc-rmc011-capital-build -- -D warnings
+          cargo test --locked -p nqc-census-capital real_source -- --nocapture
+          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-capital-build
+
+      - name: Restore prepared inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          PREP="$RUNNER_TEMP/prep"
+          rm -rf "$PREP"; mkdir -p "$PREP"
+          gh run download "$GITHUB_RUN_ID" --repo "$REPOSITORY" --name "rmc011-closeout-inputs-$GITHUB_SHA" --dir "$PREP"
+          (cd "$PREP" && sha256sum -c PREP-SHA256SUMS)
+
+      - name: Build real-source capital bundle with one independent replay
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/core"
+          rm -rf "$OUT"; mkdir -p "$OUT"
+          HEAD="$(git rev-parse HEAD)"
+          TREE="$(git rev-parse 'HEAD^{tree}')"
+          nqc-census/target/release/nqc-rmc011-capital-build             --d08-dir "$RUNNER_TEMP/prep/d08"             --d09-dir "$RUNNER_TEMP/prep/d09"             --authority-lock "$RUNNER_TEMP/prep/rmc011-authority-lock.json"             --output-dir "$OUT"             --code-commit "$HEAD"             --code-tree "$TREE"
+          jq -e --arg h "$HEAD" --arg t "$TREE" '
+            .schema_version==3 and
+            .status=="RMC_011_REAL_SOURCE_CLOSEOUT_PASS" and
+            .real_source_certification==true and
+            .code_commit==$h and .code_tree==$t and
+            .source_count>0 and
+            .profitability_claimed==false and
+            .real_pnl_claimed==false
+          ' "$OUT/capital-real-source-closeout.json" >/dev/null
+          echo RMC011_FAST_CORE_BUILD=PASS
+
+      - name: Upload core capital bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-core-bundle-${{ github.sha }}
+          path: ${{ runner.temp }}/core/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  replay-verify:
+    needs: core-build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact optimized head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Build independent replay verifier
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd nqc-census
+          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-upstream-replay-verify
+
+      - name: Restore prepared inputs and core bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/prep" "$RUNNER_TEMP/core"
+          gh run download "$GITHUB_RUN_ID" --repo "$REPOSITORY" --name "rmc011-closeout-inputs-$GITHUB_SHA" --dir "$RUNNER_TEMP/prep"
+          gh run download "$GITHUB_RUN_ID" --repo "$REPOSITORY" --name "rmc011-core-bundle-$GITHUB_SHA" --dir "$RUNNER_TEMP/core"
+          (cd "$RUNNER_TEMP/prep" && sha256sum -c PREP-SHA256SUMS)
+
+      - name: Independently replay exact upstream consumption
+        shell: bash
+        run: |
+          set -euo pipefail
+          HEAD="$(git rev-parse HEAD)"
+          TREE="$(git rev-parse 'HEAD^{tree}')"
+          nqc-census/target/release/nqc-rmc011-upstream-replay-verify             --capital-dir "$RUNNER_TEMP/core"             --d08-dir "$RUNNER_TEMP/prep/d08"             --d09-dir "$RUNNER_TEMP/prep/d09"             --authority-lock "$RUNNER_TEMP/core/capital-upstream-authority-lock.json"             --closeout "$RUNNER_TEMP/core/capital-real-source-closeout.json"             --expected-code-commit "$HEAD"             --expected-code-tree "$TREE"
+
+          EXPECTED_FILES=(
+            capital-sources.jsonl
+            capital-requirements.jsonl
+            capital-feasibility.jsonl
+            capital-rejection-ledger.jsonl
+            capital-census-summary.json
+            capital-upstream-authority.json
+            capital-evidence-manifest.json
+            capital-upstream-authority-lock.json
+            capital-real-source-closeout.json
+          )
+          (
+            cd "$RUNNER_TEMP/core"
+            sha256sum "${EXPECTED_FILES[@]}" > capital-archive.sha256
+            sha256sum -c capital-archive.sha256
+          )
+          echo RMC011_FAST_INDEPENDENT_REPLAY=PASS
+
+      - name: Upload independently verified bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-verified-core-${{ github.sha }}
+          path: ${{ runner.temp }}/core/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
+
+  package:
+    needs: replay-verify
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact optimized head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Build expanded-ledger replay tool
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd nqc-census
+          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-expanded-ledger-replay
+
+      - name: Restore exact verified inputs and core
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/prep" "$RUNNER_TEMP/core" "$RUNNER_TEMP/acq"
+          gh run download "$GITHUB_RUN_ID" --repo "$REPOSITORY" --name "rmc011-closeout-inputs-$GITHUB_SHA" --dir "$RUNNER_TEMP/prep"
+          gh run download "$GITHUB_RUN_ID" --repo "$REPOSITORY" --name "rmc011-verified-core-$GITHUB_SHA" --dir "$RUNNER_TEMP/core"
+          (cd "$RUNNER_TEMP/prep" && sha256sum -c PREP-SHA256SUMS)
+          (cd "$RUNNER_TEMP/core" && sha256sum -c capital-archive.sha256)
+
+      - name: Authenticate and restore immutable live-acquisition checkpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUN_JSON="$(gh api "repos/$REPOSITORY/actions/runs/$ACQ_RUN_ID")"
+          test "$(jq -r '.head_sha' <<<"$RUN_JSON")" = "$ACQ_HEAD_SHA"
+          test "$(jq -r '.name' <<<"$RUN_JSON")" = "NQC RMC-011 Real Source Certification"
+
+          JOBS="$(gh api "repos/$REPOSITORY/actions/runs/$ACQ_RUN_ID/jobs?per_page=100")"
+          test "$(jq -r '[.jobs[] | select(.name=="authoritative-real-source-certification")][0].conclusion' <<<"$JOBS")" = success
+
+          ART="$(gh api "repos/$REPOSITORY/actions/artifacts/$ACQ_ARTIFACT_ID")"
+          test "$(jq -r '.expired' <<<"$ART")" = false
+          test "$(jq -r '.name' <<<"$ART")" = "$ACQ_ARTIFACT_NAME"
+          test "$(jq -r '.digest' <<<"$ART")" = "$ACQ_ARTIFACT_DIGEST"
+          test "$(jq -r '.workflow_run.id' <<<"$ART")" = "$ACQ_RUN_ID"
+
+          gh run download "$ACQ_RUN_ID" --repo "$REPOSITORY" --name "$ACQ_ARTIFACT_NAME" --dir "$RUNNER_TEMP/acq"
+          (cd "$RUNNER_TEMP/acq" && sha256sum -c LIVE-ACQUISITION-SHA256SUMS)
+          jq -e '.status=="RMC011_BALANCER_V2_DUAL_PROVIDER_RECONCILED" and .source_count>0'             "$RUNNER_TEMP/acq/rmc011-balancer-v2/reconciled-rust.json" >/dev/null
+          jq -e '.status=="RMC011_UNISWAP_V3_DUAL_PROVIDER_RECONCILED" and .provider_count==2 and .source_count>0'             "$RUNNER_TEMP/acq/rmc011-uniswap-v3/reconciled-rust.json" >/dev/null
+          echo RMC011_FAST_ACQUISITION_CHECKPOINT_AUTH=PASS
+
+      - name: Replay-bind native capital sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/expanded"
+          rm -rf "$OUT"; mkdir -p "$OUT"
+          HEAD="$(git rev-parse HEAD)"
+          TREE="$(git rev-parse 'HEAD^{tree}')"
+          nqc-census/target/release/nqc-rmc011-expanded-ledger-replay             --legacy-dir "$RUNNER_TEMP/core"             --balancer-reconcile "$RUNNER_TEMP/acq/rmc011-balancer-v2/reconciled-rust.json"             --uniswap-v3-reconcile "$RUNNER_TEMP/acq/rmc011-uniswap-v3/reconciled-rust.json"             --code-commit "$HEAD"             --code-tree "$TREE"             --out "$OUT/expanded-ledger-replay.json"
+          nqc-census/target/release/nqc-rmc011-expanded-ledger-replay             --legacy-dir "$RUNNER_TEMP/core"             --balancer-reconcile "$RUNNER_TEMP/acq/rmc011-balancer-v2/reconciled-rust.json"             --uniswap-v3-reconcile "$RUNNER_TEMP/acq/rmc011-uniswap-v3/reconciled-rust.json"             --code-commit "$HEAD"             --code-tree "$TREE"             --out "$OUT/expanded-ledger-replay-second.json" >/dev/null
+          cmp "$OUT/expanded-ledger-replay.json" "$OUT/expanded-ledger-replay-second.json"
+          jq -e --arg h "$HEAD" '
+            .status=="RMC011_EXPANDED_LEDGER_REPLAY_PASS" and
+            .code_commit==$h and
+            .expanded_source_count==(.legacy_source_count+.d11_native_source_count) and
+            .d11_native_source_count>0
+          ' "$OUT/expanded-ledger-replay.json" >/dev/null
+
+      - name: Assemble self-contained D11 certification package
+        shell: bash
+        run: |
+          set -euo pipefail
+          P="$RUNNER_TEMP/package"
+          rm -rf "$P"
+          mkdir -p "$P/d11" "$P/d11-expanded" "$P/upstream" "$P/permissionless/balancer-v2" "$P/permissionless/uniswap-v3"
+          cp -a "$RUNNER_TEMP/core/." "$P/d11/"
+          cp "$RUNNER_TEMP/expanded/expanded-ledger-replay.json" "$P/d11-expanded/"
+          cp "$INPUTS" "$P/rmc011-real-source-inputs.json"
+          cp "$RUNNER_TEMP/prep/rmc011-authority-lock.json" "$P/rmc011-authority-lock.json"
+
+          for s in d06 d07 d08 d09 d10; do
+            cp -a "$RUNNER_TEMP/prep/$s-raw" "$P/upstream/$s-raw"
+          done
+          # Compatibility aliases for older consumers.
+          cp -a "$RUNNER_TEMP/prep/d08-raw" "$P/upstream/d08"
+          cp -a "$RUNNER_TEMP/prep/d09-raw" "$P/upstream/d09"
+
+          cp -a "$RUNNER_TEMP/acq/rmc011-balancer-v2/." "$P/permissionless/balancer-v2/"
+          cp -a "$RUNNER_TEMP/acq/rmc011-uniswap-v3/." "$P/permissionless/uniswap-v3/"
+          cp "$RUNNER_TEMP/acq/LIVE-ACQUISITION-SHA256SUMS" "$P/permissionless/"
+
+          python3 - <<'PY'
+          import json, os, pathlib
+          p=pathlib.Path(os.environ["RUNNER_TEMP"])/"package"/"live-acquisition-pin.json"
+          d={
+            "schema_version":1,
+            "workflow_name":"NQC RMC-011 Real Source Certification",
+            "run_id":int(os.environ["ACQ_RUN_ID"]),
+            "head_sha":os.environ["ACQ_HEAD_SHA"],
+            "artifact_id":int(os.environ["ACQ_ARTIFACT_ID"]),
+            "artifact_name":os.environ["ACQ_ARTIFACT_NAME"],
+            "artifact_digest":os.environ["ACQ_ARTIFACT_DIGEST"],
+            "job_name":"authoritative-real-source-certification",
+            "job_conclusion":"success"
+          }
+          p.write_text(json.dumps(d,sort_keys=True,separators=(",",":"))+"\n")
+          PY
+
+          (
+            cd "$P"
+            LC_ALL=C find . -type f ! -name CERTIFICATION-PACKAGE-SHA256SUMS -print0 | LC_ALL=C sort -z | xargs -0 sha256sum > CERTIFICATION-PACKAGE-SHA256SUMS
+            sha256sum -c CERTIFICATION-PACKAGE-SHA256SUMS
+            cd d11
+            sha256sum -c capital-archive.sha256
+          )
+          test -f "$P/d11/capital-real-source-closeout.json"
+          test -f "$P/d11/capital-sources.jsonl"
+          test -f "$P/upstream/d08-raw/closeout/evidence-manifest.json"
+          test -f "$P/upstream/d09-raw/closeout/evidence-manifest.json"
+          echo RMC011_FAST_SELF_CONTAINED_PACKAGE=PASS
+
+      - name: Upload immutable D11 certification archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-real-source-certification-${{ github.sha }}
+          path: ${{ runner.temp }}/package/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
