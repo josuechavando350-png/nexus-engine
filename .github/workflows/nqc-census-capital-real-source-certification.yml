@@ -129,7 +129,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: rmc011-real-source-certification-${{ github.ref }}
+  group: rmc011-real-source-certification-${{ github.ref }}-${{ github.sha }}
   # PR preflights are superseded by newer heads; authoritative push
   # certification is never cancelled once it starts.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
