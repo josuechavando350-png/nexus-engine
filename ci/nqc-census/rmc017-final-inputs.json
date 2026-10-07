@@ -1,17 +1,31 @@
 {
   "schema_version": 1,
-  "status": "BLOCKED_AWAITING_RMC014_RMC015_RMC016",
+  "status": "BLOCKED_AWAITING_RMC014",
   "repository": "josuechavando350-png/nexus-engine",
   "pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
   "pft_certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853",
   "real_market_census_closed": false,
   "rmc014": null,
-  "rmc015": null,
-  "rmc016": null,
+  "rmc015": {
+    "run_id": 37669899465,
+    "head_sha": "cb413ee9747e83be2bf5e05b8270edabf4f6e221",
+    "tree_sha": "5a73aed2e8a2b8b1d375e2d0b65dc41258788172",
+    "workflow_name": "NQC RMC-015B Temporal Opportunity Authority",
+    "artifact_id": 11504276505,
+    "artifact_name": "rmc015b-temporal-opportunity-authority-cb413ee9747e83be2bf5e05b8270edabf4f6e221",
+    "artifact_digest": "sha256:aff472236ff5177f123e4a6ccc95d4dae5fb37833f8645984116c407c179d790"
+  },
+  "rmc016": {
+    "run_id": 37673492104,
+    "head_sha": "09964092f1b8b2e9702edbeabc19112dfc978fb4",
+    "tree_sha": "3c819cec6aa0a3348ff2a5eca536c6b994a96fe9",
+    "workflow_name": "NQC RMC-016 Conservative Realizable Capacity",
+    "artifact_id": 11506195432,
+    "artifact_name": "rmc016-conservative-capacity-09964092f1b8b2e9702edbeabc19112dfc978fb4",
+    "artifact_digest": "sha256:3e1072017179f4273bdd2d74ae197a38681cb74041a498e73d6060e52c3778e4"
+  },
   "blocking_reasons": [
-    "RMC014_STRUCTURAL_AUTHORITY_NOT_PINNED",
-    "RMC015_TEMPORAL_OPPORTUNITY_AUTHORITY_NOT_PINNED",
-    "RMC016_CONSERVATIVE_CAPACITY_AUTHORITY_NOT_PINNED"
+    "RMC014_STRUCTURAL_AUTHORITY_NOT_PINNED"
   ],
   "non_claims": [
     "NO_REALIZED_NEXUS_PNL",
