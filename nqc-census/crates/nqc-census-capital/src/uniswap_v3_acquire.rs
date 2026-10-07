@@ -1,5 +1,3 @@
-[Reading 1027 lines from start (total: 1027 lines, 0 remaining)]
-
 //! Live dual-provider acquisition for the RMC-011 Uniswap V3 flash family.
 //!
 //! The provider capture proves the complete factory PoolCreated history through
@@ -1027,5 +1025,3 @@ mod tests {
         Ok(())
     }
 }
-
-[executed on device: codex-nqc-rmc-328dd6 (97869e36-ef95-481f-ac75-85ab90bce0e7)]
