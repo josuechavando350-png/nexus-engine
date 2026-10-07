@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "purpose": "RMC011_UNISWAP_V3_DEDICATED_DUAL_PROVIDER_TRANSPORT",
+  "independence": {
+    "claim": "DISTINCT_DECLARED_OPERATORS_ONLY",
+    "infrastructure_independence": "NOT_PROVEN"
+  },
+  "providers": [
+    {
+      "namespace": 260,
+      "label": "tenderly-public",
+      "url": "https://mainnet.gateway.tenderly.co",
+      "operator": "Tenderly public mainnet gateway",
+      "min_interval_ms": 350,
+      "max_batch": 100,
+      "log_window": 1000000,
+      "pinning": "EIP1898_BLOCK_HASH"
+    },
+    {
+      "namespace": 258,
+      "label": "mevblocker-rpc",
+      "url": "https://rpc.mevblocker.io",
+      "operator": "MEV Blocker public RPC",
+      "min_interval_ms": 100,
+      "max_batch": 200,
+      "log_window": 1000000,
+      "pinning": "EIP1898_BLOCK_HASH"
+    }
+  ]
+}
