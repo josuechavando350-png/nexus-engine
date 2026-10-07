@@ -18,10 +18,10 @@ use crate::{
 };
 use nqc_census_chain::{
     abi,
-    acquire::{raw_log_semantics, Acquisition},
+    acquire::Acquisition,
     ethereum::ChainProfile,
     hex,
-    job::{chain_read_semantics, JobContext, JobSpec, LogFilter},
+    job::{chain_read_semantics, ClaimedLog, JobContext, JobSpec, LogFilter},
     json::Json,
     provider::{ProviderSet, ProviderSpec},
     rpc::RpcCall,
@@ -45,7 +45,6 @@ use std::{
 const FACTORY_NAMESPACE: u16 = 0x0b31;
 const POOL_STATE_NAMESPACE: u16 = 0x0b32;
 const POOL_CREATED_FAMILY: &str = "rmc011-uniswap-v3-pool-created";
-const LOG_SPAN: u64 = 250_000;
 const POOL_JOB_SIZE: usize = 512;
 const HELPER_MAX_POOLS: usize = 64;
 const HELPER_WORDS_PER_POOL: usize = 12;
@@ -894,6 +893,82 @@ fn pool_universe_rows(pools: &[PoolSeed]) -> Vec<Json> {
         .collect()
 }
 
+fn claimed_pool_created_row(claimed: &ClaimedLog) -> Json {
+    let payload = &claimed.log;
+    Json::object([
+        ("block", Json::uint(claimed.block_number)),
+        ("block_hash", Json::string(claimed.block_hash.to_hex())),
+        (
+            "transaction_hash",
+            Json::string(payload.transaction_hash().to_hex()),
+        ),
+        (
+            "transaction_index",
+            Json::uint(u64::from(payload.transaction_index())),
+        ),
+        ("log_index", Json::uint(u64::from(payload.log_index()))),
+        ("emitter", Json::string(payload.emitter().to_hex())),
+        (
+            "topics",
+            Json::array(payload.topics().iter().map(|topic| Json::string(topic.to_hex()))),
+        ),
+        ("data", Json::string(hex::encode(payload.data()))),
+    ])
+}
+
+fn acquire_pool_created_history(
+    acquisition: &Acquisition<'_>,
+    provider: &ProviderSpec,
+    chain: &ChainDomain,
+    anchor: &StateAnchor,
+    filter: &LogFilter,
+) -> Result<(Vec<Json>, String), ChainError> {
+    let spec = JobSpec::new(
+        POOL_CREATED_FAMILY,
+        2,
+        FACTORY_NAMESPACE,
+        Json::object([
+            ("first", Json::uint(1)),
+            ("last", Json::uint(anchor.block_number())),
+            ("filter", filter.descriptor()),
+            (
+                "authority_model",
+                Json::string(
+                    "DUAL_PROVIDER_RANGE_LOG_TRANSCRIPTS_PLUS_EXACT_ANCHOR_FACTORY_ROUNDTRIP",
+                ),
+            ),
+            ("anchor", full_anchor_json(anchor)),
+        ]),
+    )?;
+    let output = acquisition.point(provider, chain, None, &spec, anchor, |ctx| {
+        let logs = ctx.logs(filter, 1, anchor.block_number())?;
+        let rows = logs.iter().map(claimed_pool_created_row).collect::<Vec<_>>();
+        Ok(Json::object([
+            ("first", Json::uint(1)),
+            ("last", Json::uint(anchor.block_number())),
+            (
+                "authority_model",
+                Json::string(
+                    "DUAL_PROVIDER_RANGE_LOG_TRANSCRIPTS_PLUS_EXACT_ANCHOR_FACTORY_ROUNDTRIP",
+                ),
+            ),
+            ("logs", Json::Array(rows)),
+        ]))
+    })?;
+    let document = output.result_json()?;
+    if number(&document, "first")? != 1 || number(&document, "last")? != anchor.block_number() {
+        return Err(ChainError::Evidence(
+            "Uniswap V3 PoolCreated history does not cover block 1 through anchor".into(),
+        ));
+    }
+    let rows = document
+        .get("logs")
+        .and_then(Json::as_array)
+        .ok_or_else(|| ChainError::Evidence("Uniswap V3 PoolCreated history has no logs".into()))?
+        .to_vec();
+    Ok((rows, output.manifest_id().to_hex()))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn provider_capture(
     acquisition: &Acquisition<'_>,
@@ -957,31 +1032,12 @@ fn provider_capture(
         .str_field("runtime_sha256")?
         .to_owned();
 
-    let (origin, origin_output) = acquisition.resolve_anchor(provider, &chain_facts.chain, 1)?;
     let filter = LogFilter::new(
         vec![factory],
         vec![uniswap_v3_factory_interface().pool_created_topic],
     )?;
-    let scan = acquisition.scan(
-        provider,
-        &chain_facts.chain,
-        None,
-        POOL_CREATED_FAMILY,
-        1,
-        FACTORY_NAMESPACE,
-        &filter,
-        &origin,
-        anchor.block_number(),
-        LOG_SPAN,
-        |claimed| raw_log_semantics(&claimed.log.emitter(), POOL_CREATED_FAMILY),
-    )?;
-    if scan.certified_first != 1 || scan.certified_last != anchor.block_number() {
-        return Err(ChainError::Evidence(
-            "Uniswap V3 PoolCreated scan does not cover block 1 through anchor".into(),
-        ));
-    }
-
-    let logs = scan.logs()?;
+    let (logs, history_manifest) =
+        acquire_pool_created_history(acquisition, provider, &chain_facts.chain, &anchor, &filter)?;
     let actionable = assets.keys().copied().collect::<BTreeSet<_>>();
     let (event_rows, relevant_pools) = event_rows_and_relevant_pools(factory, &logs, &actionable)?;
     let event_history_sha256 =
@@ -1344,15 +1400,10 @@ fn provider_capture(
     let mut evidence_manifests = vec![
         bootstrap.manifest_id().to_hex(),
         anchor_output.manifest_id().to_hex(),
-        origin_output.manifest_id().to_hex(),
         factory_output.manifest_id().to_hex(),
+        history_manifest,
         calibration_output.manifest_id().to_hex(),
     ];
-    evidence_manifests.extend(
-        scan.windows
-            .iter()
-            .map(|window| window.manifest_id().to_hex()),
-    );
     evidence_manifests.extend(state_manifests);
 
     Ok(Json::object([
