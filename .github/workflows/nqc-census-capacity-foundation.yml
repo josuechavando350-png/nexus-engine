@@ -48,7 +48,7 @@ jobs:
           set -euo pipefail
           git fetch --no-tags origin nqc/rmc-015b-temporal-episodes-20261007
           RMC015B_HEAD="$(git rev-parse FETCH_HEAD)"
-          git merge-base --is-ancestor "$RMC015_HEAD" HEAD
+          git merge-base --is-ancestor "$RMC015B_HEAD" HEAD
           echo "RMC016_RMC015B_ANCESTRY_PASS base=$RMC015B_HEAD head=$(git rev-parse HEAD)"
 
       - name: Validate blocked production input contract
