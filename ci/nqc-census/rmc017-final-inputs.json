@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED_AWAITING_RMC014_RMC015_RMC016",
+  "repository": "josuechavando350-png/nexus-engine",
+  "pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
+  "pft_certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853",
+  "real_market_census_closed": false,
+  "rmc014": null,
+  "rmc015": null,
+  "rmc016": null,
+  "blocking_reasons": [
+    "RMC014_STRUCTURAL_AUTHORITY_NOT_PINNED",
+    "RMC015_TEMPORAL_OPPORTUNITY_AUTHORITY_NOT_PINNED",
+    "RMC016_CONSERVATIVE_CAPACITY_AUTHORITY_NOT_PINNED"
+  ],
+  "non_claims": [
+    "NO_REALIZED_NEXUS_PNL",
+    "NO_MONTH1_300K_PROOF",
+    "NO_CAPTURE_PROBABILITY_CALIBRATION",
+    "NO_REVENUE_RELIABILITY_CERTIFICATION"
+  ]
+}
