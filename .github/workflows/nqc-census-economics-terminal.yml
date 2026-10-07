@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - "nqc/rmc-013-clean-restack-d12-20260930"
+      - "nqc/rmc-013-materialization-hardening-20261007"
     paths:
       - "ci/nqc-census/rmc013-terminal-inputs.json"
       - "ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md"
@@ -20,7 +21,7 @@ permissions:
 
 concurrency:
   group: rmc013-terminal-economics-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   INPUTS: ci/nqc-census/rmc013-terminal-inputs.json
@@ -147,7 +148,7 @@ jobs:
           CERT="$D12/terminal-actionability-certification.json"
           test -f "$CERT"
           jq -e '
-            .schema_version == 1 and
+            .schema_version == 2 and
             .status == "RMC_012_TERMINAL_ACTIONABILITY_CERTIFIED" and
             .principal_capital_promotion_certified == true and
             .principal_capital_promoted == (.principal_capital_feasible + .principal_capital_rejected) and
