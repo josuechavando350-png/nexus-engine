@@ -1,0 +1,162 @@
+name: NQC RMC-017 Final Census Authority
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc017-final-inputs.json"
+      - "ci/nqc-census/RMC017_FINAL_CENSUS_CONTRACT.md"
+      - "ci/nqc-census/verify_rmc017_final.py"
+      - "ci/nqc-census/test_verify_rmc017_final.py"
+      - ".github/workflows/nqc-census-rmc017-final.yml"
+  push:
+    branches:
+      - "nqc/rmc-017-final-census-20261007"
+    paths:
+      - "ci/nqc-census/rmc017-final-inputs.json"
+      - "ci/nqc-census/RMC017_FINAL_CENSUS_CONTRACT.md"
+      - "ci/nqc-census/verify_rmc017_final.py"
+      - "ci/nqc-census/test_verify_rmc017_final.py"
+      - ".github/workflows/nqc-census-rmc017-final.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc017-final-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  INPUTS: ci/nqc-census/rmc017-final-inputs.json
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    outputs:
+      status: ${{ steps.input.outputs.status }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - id: input
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_verify_rmc017_final.py
+          python3 -m py_compile ci/nqc-census/verify_rmc017_final.py ci/nqc-census/test_verify_rmc017_final.py
+          grep -F 'RMC-017 is the only stage allowed to emit' ci/nqc-census/RMC017_FINAL_CENSUS_CONTRACT.md
+          jq -e '
+            .schema_version == 1 and
+            .repository == env.GITHUB_REPOSITORY and
+            .real_market_census_closed == false and
+            (.status == "BLOCKED_AWAITING_RMC014_RMC015_RMC016" or .status == "PINNED") and
+            (if .status == "PINNED" then
+              .blocking_reasons == [] and
+              ([.rmc014,.rmc015,.rmc016] | all(type == "object"))
+            else
+              (.blocking_reasons | length == 3) and .rmc014 == null and .rmc015 == null and .rmc016 == null
+            end)
+          ' "$INPUTS" >/dev/null
+          echo "status=$(jq -r '.status' "$INPUTS")" >> "$GITHUB_OUTPUT"
+          echo RMC017_PREFLIGHT=PASS
+
+  final:
+    needs: preflight
+    if: ${{ needs.preflight.outputs.status == 'PINNED' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Authenticate and download RMC-014/015/016 authorities
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          authenticate() {
+            local key="$1" expected_workflow="$2" prefix="$3" out="$4"
+            local run head tree artifact name digest
+            run="$(jq -r --arg k "$key" '.[$k].run_id' "$INPUTS")"
+            head="$(jq -r --arg k "$key" '.[$k].head_sha' "$INPUTS")"
+            tree="$(jq -r --arg k "$key" '.[$k].tree_sha' "$INPUTS")"
+            artifact="$(jq -r --arg k "$key" '.[$k].artifact_id' "$INPUTS")"
+            name="$(jq -r --arg k "$key" '.[$k].artifact_name' "$INPUTS")"
+            digest="$(jq -r --arg k "$key" '.[$k].artifact_digest' "$INPUTS")"
+            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run")"
+            test "$(jq -r '.status' <<<"$run_json")" = completed
+            test "$(jq -r '.conclusion' <<<"$run_json")" = success
+            test "$(jq -r '.head_sha' <<<"$run_json")" = "$head"
+            test "$(jq -r '.name' <<<"$run_json")" = "$expected_workflow"
+            test "$(gh api "repos/$REPOSITORY/git/commits/$head" --jq '.tree.sha')" = "$tree"
+            artifact_json="$(gh api "repos/$REPOSITORY/actions/artifacts/$artifact")"
+            test "$(jq -r '.expired' <<<"$artifact_json")" = false
+            test "$(jq -r '.name' <<<"$artifact_json")" = "$name"
+            [[ "$name" == "$prefix"* ]]
+            test "$(jq -r '.digest' <<<"$artifact_json")" = "$digest"
+            test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$run"
+            rm -rf "$out"; mkdir -p "$out"
+            gh run download "$run" --repo "$REPOSITORY" --name "$name" --dir "$out"
+            ! find "$out" -type l -print -quit | grep -q .
+          }
+          authenticate rmc014 "NQC RMC-014 Structural Census Chain" "rmc014-structural-chain-" "$RUNNER_TEMP/rmc014"
+          authenticate rmc015 "NQC RMC-015B Temporal Opportunity Authority" "rmc015b-temporal-opportunity-authority-" "$RUNNER_TEMP/rmc015"
+          authenticate rmc016 "NQC RMC-016 Conservative Realizable Capacity" "rmc016-conservative-capacity-" "$RUNNER_TEMP/rmc016"
+
+      - name: Verify package checksums and locate certificates
+        shell: bash
+        run: |
+          set -euo pipefail
+          D14="$RUNNER_TEMP/rmc014/rmc014-structural-certificate.json"
+          D15="$RUNNER_TEMP/rmc015/rmc015b-temporal-opportunity-certificate.json"
+          D16="$RUNNER_TEMP/rmc016/rmc016-conservative-capacity-certificate.json"
+          test -f "$D14"; test -f "$D15"; test -f "$D16"
+          if test -f "$RUNNER_TEMP/rmc014/rmc014-structural-certificate.sha256"; then (cd "$RUNNER_TEMP/rmc014" && sha256sum -c rmc014-structural-certificate.sha256); fi
+          if test -f "$RUNNER_TEMP/rmc015/archive.sha256"; then (cd "$RUNNER_TEMP/rmc015" && sha256sum -c archive.sha256); fi
+          if test -f "$RUNNER_TEMP/rmc016/archive.sha256"; then (cd "$RUNNER_TEMP/rmc016" && sha256sum -c archive.sha256); fi
+          echo "D14=$D14" >> "$GITHUB_ENV"
+          echo "D15=$D15" >> "$GITHUB_ENV"
+          echo "D16=$D16" >> "$GITHUB_ENV"
+
+      - name: Emit final Census certificate twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          A="$RUNNER_TEMP/rmc017-a"; B="$RUNNER_TEMP/rmc017-b"
+          rm -rf "$A" "$B"
+          python3 ci/nqc-census/verify_rmc017_final.py "$INPUTS" "$D14" "$D15" "$D16" "$A"
+          python3 ci/nqc-census/verify_rmc017_final.py "$INPUTS" "$D14" "$D15" "$D16" "$B"
+          diff -ruN "$A" "$B"
+          (cd "$A" && sha256sum -c rmc017-final-census-certificate.sha256)
+          jq -e '
+            .status == "REAL_MARKET_CENSUS_CLOSED" and
+            .real_market_census_closed == true and
+            .authority_stage == "RMC-017" and
+            .structural_chain_certified == true and
+            .temporal_opportunity_authority_certified == true and
+            .conservative_capacity_authority_certified == true and
+            .unresolved_mismatch_count == 0 and
+            .material_unknown_count == 0 and
+            .blocker_count == 0 and
+            .own_capital_usd == "0" and
+            .capture_probability_calibrated == false and
+            .realized_nexus_pnl_proven == false and
+            .month1_300k_target_proven == false and
+            .revenue_reliability_certified == false and
+            (.final_census_commitment | test("^0x[0-9a-f]{64}$"))
+          ' "$A/rmc017-final-census-certificate.json" >/dev/null
+          echo REAL_MARKET_CENSUS_CLOSED
+
+      - name: Upload immutable RMC-017 final certificate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc017-final-census-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc017-a/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
