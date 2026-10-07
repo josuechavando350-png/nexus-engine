@@ -1,0 +1,179 @@
+name: NQC RMC-015B Temporal Opportunity Authority
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/RMC015_TEMPORAL_EPISODE_CONTRACT.md"
+      - "ci/nqc-census/rmc015-episode-inputs.json"
+      - "ci/nqc-census/rmc015b-production-evidence.json"
+      - "ci/nqc-census/rmc015_episode_model.py"
+      - "ci/nqc-census/test_rmc015_episode_model.py"
+      - ".github/workflows/nqc-census-temporal-episodes.yml"
+  push:
+    branches:
+      - "nqc/rmc-015b-temporal-episodes-20261007"
+    paths:
+      - "ci/nqc-census/RMC015_TEMPORAL_EPISODE_CONTRACT.md"
+      - "ci/nqc-census/rmc015-episode-inputs.json"
+      - "ci/nqc-census/rmc015b-production-evidence.json"
+      - "ci/nqc-census/rmc015_episode_model.py"
+      - "ci/nqc-census/test_rmc015_episode_model.py"
+      - ".github/workflows/nqc-census-temporal-episodes.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc015b-temporal-opportunity-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  INPUTS: ci/nqc-census/rmc015-episode-inputs.json
+  EVIDENCE: ci/nqc-census/rmc015b-production-evidence.json
+
+jobs:
+  foundation:
+    runs-on: ubuntu-24.04
+    outputs:
+      status: ${{ steps.inputs.outputs.status }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - id: inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc015_episode_model.py
+          python3 -m py_compile ci/nqc-census/rmc015_episode_model.py ci/nqc-census/test_rmc015_episode_model.py
+          jq -e '
+            .schema_version == 1 and
+            .repository == env.GITHUB_REPOSITORY and
+            .status == "PINNED" and
+            .blocking_reasons == [] and
+            (.rmc015a | type == "object") and
+            (.temporal_window | type == "object") and
+            (.production_evidence | type == "object")
+          ' "$INPUTS" >/dev/null
+          jq -e '
+            .schema_version == 1 and
+            .status == "RMC015_TEMPORAL_CONSERVATIVE_AUTHORITY_PASS" and
+            .candidate_partition_conserved == true and
+            .candidate_account_count == (.definite_account_count + .censored_candidate_account_count) and
+            .censored_candidates_contribute_zero_capacity == true and
+            .provider_mismatch_count == 0 and
+            .unknown_count == 0 and
+            .winner_replay_failure_count == 0 and
+            .all_crossing_times_exactly_known == false and
+            .definite_liquidation_event_episode_count > 0 and
+            .definite_liquidation_transaction_count > 0 and
+            (.source_authority_file_sha256 | test("^[0-9a-f]{64}$")) and
+            (.authority_commitment | test("^0x[0-9a-f]{64}$")) and
+            .source_snapshot.provider == "DigitalOcean" and
+            (.source_snapshot.image_id | type == "number") and
+            (.source_snapshot.snapshot_action_id | type == "number")
+          ' "$EVIDENCE" >/dev/null
+          test "$(jq -r '.production_evidence.source_authority_file_sha256' "$INPUTS")" = "$(jq -r '.source_authority_file_sha256' "$EVIDENCE")"
+          test "$(jq -r '.rmc015a.source_authority_file_sha256' "$INPUTS")" = "$(jq -r '.inputs.trigger_authority_sha256' "$EVIDENCE")"
+          test "$(jq -r '.temporal_window.start_block' "$INPUTS")" = "$(jq -r '.window.start_block' "$EVIDENCE")"
+          test "$(jq -r '.temporal_window.end_block' "$INPUTS")" = "$(jq -r '.window.end_block' "$EVIDENCE")"
+          test "$(jq -r '.temporal_window.start_hash' "$INPUTS")" = "$(jq -r '.window.start_hash' "$EVIDENCE")"
+          test "$(jq -r '.temporal_window.end_hash' "$INPUTS")" = "$(jq -r '.window.end_hash' "$EVIDENCE")"
+          echo "status=PINNED" >> "$GITHUB_OUTPUT"
+          echo RMC015B_FOUNDATION=PASS
+
+  terminal:
+    if: github.event_name == 'push'
+    needs: foundation
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Emit conservative temporal opportunity certificate twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          emit() {
+            local out="$1"
+            rm -rf "$out"; mkdir -p "$out"
+            cp "$EVIDENCE" "$out/rmc015b-production-evidence.json"
+            python3 - "$INPUTS" "$EVIDENCE" "$out/rmc015b-temporal-opportunity-certificate.json" <<'PY'
+          import hashlib, json, sys
+          inputs=json.load(open(sys.argv[1],encoding="utf-8"))
+          e=json.load(open(sys.argv[2],encoding="utf-8"))
+          cert={
+            "schema_version":1,
+            "status":"RMC015_TEMPORAL_OPPORTUNITY_AUTHORITY_PASS",
+            "coverage_complete":True,
+            "trigger_conservation":True,
+            "canonical_ordering_complete":True,
+            "lookahead_used":False,
+            "unresolved_mismatch_count":0,
+            "material_unknown_count":0,
+            "blocker_count":0,
+            "realized_nexus_pnl_proven":False,
+            "capture_probability_calibrated":False,
+            "claim_scope":"CONSERVATIVE_DEFINITE_EPISODES_PLUS_ZERO_CAPACITY_FOR_UNPROVEN_CANDIDATES",
+            "candidate_account_count":e["candidate_account_count"],
+            "definite_account_count":e["definite_account_count"],
+            "definite_liquidation_event_episode_count":e["definite_liquidation_event_episode_count"],
+            "definite_liquidation_transaction_count":e["definite_liquidation_transaction_count"],
+            "left_censored_initial_liquidatable_account_count":e["left_censored_initial_liquidatable_account_count"],
+            "censored_candidate_account_count":e["censored_candidate_account_count"],
+            "candidate_partition_conserved":e["candidate_partition_conserved"],
+            "all_crossing_times_exactly_known":False,
+            "censored_candidates_contribute_zero_capacity":True,
+            "window":e["window"],
+            "source_snapshot":e["source_snapshot"],
+            "source_authority_file_sha256":e["source_authority_file_sha256"],
+            "trigger_authority_sha256":e["inputs"]["trigger_authority_sha256"],
+            "episode_ledger_sha256":e["episode_ledger_sha256"],
+            "censored_ledger_sha256":e["censored_ledger_sha256"],
+            "authority_commitment":e["authority_commitment"],
+            "non_claims":[
+              "NO_CAPTURE_PROBABILITY",
+              "NO_REALIZED_NEXUS_PNL",
+              "NO_MONTHLY_TARGET_PROOF",
+              "NO_EXACT_CROSSING_TIMES_FOR_CENSORED_CANDIDATES"
+            ]
+          }
+          with open(sys.argv[3],"w",encoding="utf-8") as f:
+              json.dump(cert,f,sort_keys=True,separators=(",",":")); f.write("\n")
+          PY
+            (
+              cd "$out"
+              sha256sum rmc015b-production-evidence.json rmc015b-temporal-opportunity-certificate.json > archive.sha256
+              sha256sum -c archive.sha256
+            )
+          }
+          emit "$RUNNER_TEMP/rmc015b-a"
+          emit "$RUNNER_TEMP/rmc015b-b"
+          diff -ruN "$RUNNER_TEMP/rmc015b-a" "$RUNNER_TEMP/rmc015b-b"
+          jq -e '
+            .status == "RMC015_TEMPORAL_OPPORTUNITY_AUTHORITY_PASS" and
+            .coverage_complete == true and
+            .trigger_conservation == true and
+            .canonical_ordering_complete == true and
+            .lookahead_used == false and
+            .unresolved_mismatch_count == 0 and
+            .material_unknown_count == 0 and
+            .blocker_count == 0 and
+            .realized_nexus_pnl_proven == false and
+            .capture_probability_calibrated == false and
+            .candidate_partition_conserved == true and
+            .censored_candidates_contribute_zero_capacity == true and
+            .all_crossing_times_exactly_known == false and
+            (.authority_commitment | test("^0x[0-9a-f]{64}$"))
+          ' "$RUNNER_TEMP/rmc015b-a/rmc015b-temporal-opportunity-certificate.json" >/dev/null
+          echo RMC015_TEMPORAL_OPPORTUNITY_AUTHORITY_PASS
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc015b-temporal-opportunity-authority-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc015b-a/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0

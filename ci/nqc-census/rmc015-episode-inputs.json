@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "status": "PINNED",
+  "repository": "josuechavando350-png/nexus-engine",
+  "rmc015a": {
+    "status": "RMC015A_TEMPORAL_TRIGGER_AUTHORITY_PASS",
+    "source_authority_file_sha256": "c6d3b7cf003b1b65b07e0eafd1c116df43bdffcf0a7cd65a2ca067bfb3bbbc95",
+    "authority_commitment": "0x0af3c82482ebe044559b606c65899a14544e89cfa220a0b37de65455135d6d1b",
+    "source_snapshot": {
+      "provider": "DigitalOcean",
+      "image_id": 248761092,
+      "snapshot_action_id": 3455949449,
+      "source_droplet_id": 606773701,
+      "created_at": "2026-10-07T18:15:39Z"
+    }
+  },
+  "temporal_window": {
+    "chain_id": 1,
+    "start_block": 25880316,
+    "start_hash": "0x0b29e0c8c1997f059f82e7fed67e047269f68422ab194d56546c1c9833469d96",
+    "end_block": 26095351,
+    "end_hash": "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781"
+  },
+  "production_evidence": {
+    "path": "ci/nqc-census/rmc015b-production-evidence.json",
+    "source_authority_file_sha256": "1acc37d37d82573dd3c27b02fe5de5bf40abd7081f42d22178cc27873f56efb4"
+  },
+  "blocking_reasons": [],
+  "non_claims": [
+    "NO_CAPTURE_PROBABILITY",
+    "NO_REALIZED_PNL",
+    "NO_MONTHLY_CAPACITY",
+    "NO_CENSUS_CLOSEOUT"
+  ]
+}
