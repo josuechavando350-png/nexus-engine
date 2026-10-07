@@ -36,9 +36,13 @@ impl AaveV3FlashObservation {
             source_contract: Some(self.pool),
             asset: CapitalAsset::Token(self.asset),
             maximum_available: self.available_underlying,
+            // PFT-COMPAT-009 measured the deployed Aave V3 flashLoanSimple
+            // callback and proved positive fractional premiums round upward.
+            // Half-up underquoted real repayment by one unit in the certified
+            // historical witness.
             fee_model: FeeModel::basis_points_with_rounding(
                 self.premium_total_bps,
-                RoundingMode::HalfUp,
+                RoundingMode::Ceil,
             )?,
             repayment_asset: CapitalAsset::Token(self.asset),
             repayment: RepaymentSemantics::AtomicSameTransaction,
@@ -71,13 +75,15 @@ pub struct BalancerV2FlashObservation {
     pub asset: Address,
     pub available_vault_balance: Amount256,
     pub fee_percentage_1e18: u64,
+    pub paused: bool,
     pub provider_locator_hash: Hash32,
     pub evidence: Vec<CapitalEvidenceRef>,
 }
 
 impl BalancerV2FlashObservation {
     pub fn into_capital_source(self) -> Result<CapitalSource, CapitalError> {
-        CapitalSource::new(CapitalSourceSpec {
+        let paused = self.paused;
+        let source = CapitalSource::new(CapitalSourceSpec {
             class: CapitalClass::AtomicFlashLiquidity,
             anchor: self.anchor,
             provider_namespace: BALANCER_V2_PROVIDER_NAMESPACE,
@@ -106,7 +112,12 @@ impl BalancerV2FlashObservation {
                 CapitalFailureMode::CallbackOrHookRevert,
             ],
             evidence: self.evidence,
-        })
+        })?;
+        if paused {
+            source.with_execution_blockers(vec!["BALANCER_VAULT_PAUSED".to_owned()])
+        } else {
+            Ok(source)
+        }
     }
 }
 
@@ -170,6 +181,7 @@ pub struct UniswapV3FlashObservation {
     pub pool: Address,
     pub asset: Address,
     pub available_pool_balance: Amount256,
+    pub active_liquidity: Amount256,
     pub fee_pips: u32,
     pub provider_locator_hash: Hash32,
     pub evidence: Vec<CapitalEvidenceRef>,
@@ -180,7 +192,8 @@ impl UniswapV3FlashObservation {
         if self.fee_pips > 1_000_000 {
             return Err(CapitalError::InvalidRatio);
         }
-        CapitalSource::new(CapitalSourceSpec {
+        let has_active_liquidity = !self.active_liquidity.is_zero();
+        let source = CapitalSource::new(CapitalSourceSpec {
             class: CapitalClass::AtomicFlashLiquidity,
             anchor: self.anchor,
             provider_namespace: UNISWAP_V3_PROVIDER_NAMESPACE,
@@ -209,7 +222,82 @@ impl UniswapV3FlashObservation {
                 CapitalFailureMode::CallbackOrHookRevert,
             ],
             evidence: self.evidence,
-        })
+        })?;
+        if has_active_liquidity {
+            Ok(source)
+        } else {
+            source.with_execution_blockers(vec!["UNISWAP_V3_ZERO_ACTIVE_LIQUIDITY".to_owned()])
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ExternalGasCreditObservation {
+    pub anchor: StateAnchor,
+    pub provider_namespace: u16,
+    pub provider_locator_hash: Hash32,
+    pub facility_contract: Address,
+    pub maximum_native_gas: Amount256,
+    pub fee_model: FeeModel,
+    pub repayment_deadline_blocks: u32,
+    pub max_utilization_bps: u16,
+    pub min_remaining_native_gas: Amount256,
+    pub protocol_cap: Option<Amount256>,
+    pub market_cap: Option<Amount256>,
+    pub active: bool,
+    pub evidence: Vec<CapitalEvidenceRef>,
+}
+
+impl ExternalGasCreditObservation {
+    pub fn into_capital_source(self) -> Result<CapitalSource, CapitalError> {
+        if let FeeModel::Fixed { asset, .. } = self.fee_model {
+            if asset != CapitalAsset::NativeGas {
+                return Err(CapitalError::InvalidCanonical(
+                    "gas credit fixed fee must use native gas",
+                ));
+            }
+        }
+
+        let active = self.active;
+        let source = CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::GasFunding,
+            anchor: self.anchor,
+            provider_namespace: self.provider_namespace,
+            provider_locator_hash: self.provider_locator_hash,
+            provider_kind: CapitalProviderKind::ExternalCreditFacility,
+            ownership: CapitalOwnership::External,
+            source_contract: Some(self.facility_contract),
+            asset: CapitalAsset::NativeGas,
+            maximum_available: self.maximum_native_gas,
+            fee_model: self.fee_model,
+            repayment_asset: CapitalAsset::NativeGas,
+            repayment: RepaymentSemantics::DeadlineBlocks(self.repayment_deadline_blocks),
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(
+                self.max_utilization_bps,
+                self.min_remaining_native_gas,
+            )?,
+            caps: CapitalCaps {
+                protocol_cap: self.protocol_cap,
+                market_cap: self.market_cap,
+            },
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![
+                CapitalFailureMode::SourceUnavailable,
+                CapitalFailureMode::CapacityChanged,
+                CapitalFailureMode::FeeChanged,
+                CapitalFailureMode::ProtocolCapReached,
+                CapitalFailureMode::MarketCapReached,
+                CapitalFailureMode::RepaymentFailure,
+                CapitalFailureMode::FacilityDisappearance,
+            ],
+            evidence: self.evidence,
+        })?;
+        if active {
+            Ok(source)
+        } else {
+            source.with_execution_blockers(vec!["GAS_CREDIT_FACILITY_INACTIVE".to_owned()])
+        }
     }
 }
 
@@ -227,6 +315,14 @@ pub struct ExternalGasSponsorObservation {
 
 impl ExternalGasSponsorObservation {
     pub fn into_capital_source(self) -> Result<CapitalSource, CapitalError> {
+        if let FeeModel::Fixed { asset, .. } = self.fee_model {
+            if asset != self.fee_asset {
+                return Err(CapitalError::InvalidCanonical(
+                    "gas sponsor fixed fee asset differs from declared fee asset",
+                ));
+            }
+        }
+
         CapitalSource::new(CapitalSourceSpec {
             class: CapitalClass::GasFunding,
             anchor: self.anchor,

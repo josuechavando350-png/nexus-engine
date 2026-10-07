@@ -1,13 +1,23 @@
 //! Protocol-agnostic, evidence-bound capital semantics for RMC-011.
 //!
-//! This crate deliberately does not discover live liquidity or make profitability claims.
-//! It defines exact integer capital sources, candidate requirements, deterministic identities,
-//! and fail-closed feasibility semantics consumed by later protocol adapters.
+//! The core model makes no profitability claims. Live discovery is isolated in explicit
+//! evidence-bound acquisition modules; all economic authority still flows through exact integer
+//! capital sources, candidate requirements, deterministic identities, and fail-closed feasibility.
 
+pub mod aave_debt_discovery;
 pub mod adapters;
 pub mod artifacts;
+pub mod balancer_live;
 pub mod demands;
+pub mod external_debt;
+pub mod gas_credit;
+pub mod gas_sponsor;
+pub mod permissionless_atomic;
 pub mod replay;
+pub mod source_authority;
+pub mod transient_credit;
+pub mod uniswap_v3_acquire;
+pub mod uniswap_v3_live;
 pub mod upstream;
 
 use nqc_census_core::{
@@ -735,6 +745,13 @@ pub enum CollateralRequirement {
         amount: Amount256,
         liquidation_conditions_hash: Hash32,
     },
+    Proportional {
+        asset: CapitalAsset,
+        numerator: u64,
+        denominator: u64,
+        rounding: RoundingMode,
+        liquidation_conditions_hash: Hash32,
+    },
 }
 
 impl CollateralRequirement {
@@ -749,6 +766,20 @@ impl CollateralRequirement {
                 writer.u8(2);
                 asset.encode(writer);
                 writer.bytes(amount.as_be_bytes());
+                writer.bytes(liquidation_conditions_hash.as_bytes());
+            }
+            Self::Proportional {
+                asset,
+                numerator,
+                denominator,
+                rounding,
+                liquidation_conditions_hash,
+            } => {
+                writer.u8(3);
+                asset.encode(writer);
+                writer.u64(numerator);
+                writer.u64(denominator);
+                writer.u8(rounding.tag());
                 writer.bytes(liquidation_conditions_hash.as_bytes());
             }
         }
@@ -766,6 +797,27 @@ impl CollateralRequirement {
                 Ok(Self::Required {
                     asset,
                     amount,
+                    liquidation_conditions_hash: nonzero_hash(reader.array::<32>()?)?,
+                })
+            }
+            3 => {
+                let asset = CapitalAsset::decode(reader)?;
+                let numerator = reader.u64()?;
+                let denominator = reader.u64()?;
+                let rounding = RoundingMode::from_tag(reader.u8()?)?;
+                if numerator == 0 || denominator == 0 {
+                    return Err(CapitalError::InvalidRatio);
+                }
+                if rounding != RoundingMode::Ceil {
+                    return Err(CapitalError::InvalidCanonical(
+                        "proportional collateral must round up",
+                    ));
+                }
+                Ok(Self::Proportional {
+                    asset,
+                    numerator,
+                    denominator,
+                    rounding,
                     liquidation_conditions_hash: nonzero_hash(reader.array::<32>()?)?,
                 })
             }
@@ -1122,10 +1174,28 @@ impl CapitalSource {
         if matches!(spec.repayment, RepaymentSemantics::DeadlineBlocks(0)) {
             return Err(CapitalError::ZeroValue("repayment_deadline_blocks"));
         }
-        if let CollateralRequirement::Required { amount, .. } = spec.collateral {
-            if amount.is_zero() {
-                return Err(CapitalError::ZeroValue("collateral_amount"));
+        match spec.collateral {
+            CollateralRequirement::Required { amount, .. } => {
+                if amount.is_zero() {
+                    return Err(CapitalError::ZeroValue("collateral_amount"));
+                }
             }
+            CollateralRequirement::Proportional {
+                numerator,
+                denominator,
+                rounding,
+                ..
+            } => {
+                if numerator == 0 || denominator == 0 {
+                    return Err(CapitalError::InvalidRatio);
+                }
+                if rounding != RoundingMode::Ceil {
+                    return Err(CapitalError::InvalidCanonical(
+                        "proportional collateral must round up",
+                    ));
+                }
+            }
+            CollateralRequirement::None => {}
         }
         if spec.utilization.max_utilization_bps > 10_000 {
             return Err(CapitalError::InvalidBasisPoints(
@@ -1154,6 +1224,11 @@ impl CapitalSource {
         }
         spec.evidence.sort_unstable();
         spec.evidence.dedup();
+        if spec.evidence.len() > usize::from(u16::MAX) {
+            return Err(CapitalError::InvalidCanonical(
+                "too many capital source evidence references",
+            ));
+        }
         if spec.evidence.is_empty() {
             return Err(CapitalError::MissingEvidence);
         }
@@ -1559,10 +1634,11 @@ pub enum RequirementKind {
     PersistentDebtPrincipal,
     Repayment,
     TemporaryLock,
+    BondOrStake,
 }
 
 impl RequirementKind {
-    const ALL: [Self; 10] = [
+    const ALL: [Self; 11] = [
         Self::ActionPrincipal,
         Self::Gas,
         Self::ProtocolFee,
@@ -1573,6 +1649,7 @@ impl RequirementKind {
         Self::PersistentDebtPrincipal,
         Self::Repayment,
         Self::TemporaryLock,
+        Self::BondOrStake,
     ];
 
     pub const fn code(self) -> &'static str {
@@ -1587,6 +1664,7 @@ impl RequirementKind {
             Self::PersistentDebtPrincipal => "PERSISTENT_DEBT_PRINCIPAL",
             Self::Repayment => "REPAYMENT",
             Self::TemporaryLock => "TEMPORARY_LOCK",
+            Self::BondOrStake => "BOND_OR_STAKE",
         }
     }
 
@@ -1602,6 +1680,7 @@ impl RequirementKind {
             Self::PersistentDebtPrincipal => 8,
             Self::Repayment => 9,
             Self::TemporaryLock => 10,
+            Self::BondOrStake => 11,
         }
     }
 
@@ -1788,8 +1867,18 @@ impl CapitalRequirement {
         if legs.windows(2).any(|pair| pair[0] == pair[1]) {
             return Err(CapitalError::DuplicateLeg);
         }
+        if legs.len() > usize::from(u16::MAX) {
+            return Err(CapitalError::InvalidCanonical(
+                "too many capital requirement legs",
+            ));
+        }
         evidence.sort_unstable();
         evidence.dedup();
+        if evidence.len() > usize::from(u16::MAX) {
+            return Err(CapitalError::InvalidCanonical(
+                "too many capital requirement evidence references",
+            ));
+        }
         if evidence.is_empty() {
             return Err(CapitalError::MissingEvidence);
         }
@@ -2269,6 +2358,22 @@ fn add_residual_edge(
     forward
 }
 
+fn source_satisfies_leg_atomicity(
+    requirement: &CapitalRequirement,
+    source: &CapitalSource,
+    leg: &CapitalRequirementLeg,
+) -> bool {
+    // Native gas must be available before EVM execution. Its external financing
+    // can legitimately settle after the action transaction (for example a
+    // deadline-bound gas credit facility). The requirement's action atomicity
+    // therefore does not constrain GAS_FUNDING repayment horizon. Settlement
+    // obligations are still derived exactly and must be declared.
+    if leg.kind() == RequirementKind::Gas {
+        return source.class() == CapitalClass::GasFunding;
+    }
+    requirement.atomicity().accepts(source.repayment())
+}
+
 fn source_can_fund_leg(
     requirement: &CapitalRequirement,
     source: &CapitalSource,
@@ -2283,7 +2388,7 @@ fn source_can_fund_leg(
     if require_anchor && source.anchor() != requirement.anchor() {
         return false;
     }
-    if require_atomicity && !requirement.atomicity().accepts(source.repayment()) {
+    if require_atomicity && !source_satisfies_leg_atomicity(requirement, source, leg) {
         return false;
     }
     if !allow_operator_owned && source.ownership().is_operator_owned() {
@@ -2521,18 +2626,15 @@ fn classify_unmet_leg(
             continue;
         }
         same_anchor_class = true;
-        if !requirement.atomicity().accepts(source.repayment()) {
+        if !source_satisfies_leg_atomicity(requirement, source, leg) {
             continue;
         }
         same_anchor_atomic = true;
         if source.ownership().is_operator_owned() {
-            operator_capacity = operator_capacity
-                .checked_add(source.effective_capacity()?)
-                .unwrap_or(Amount256::MAX);
+            operator_capacity = operator_capacity.checked_add(source.effective_capacity()?)?;
         } else if !source.execution_eligible() {
-            execution_blocked_capacity = execution_blocked_capacity
-                .checked_add(source.effective_capacity()?)
-                .unwrap_or(Amount256::MAX);
+            execution_blocked_capacity =
+                execution_blocked_capacity.checked_add(source.effective_capacity()?)?;
         }
     }
 
@@ -2574,13 +2676,16 @@ pub fn evaluate_capital_feasibility_checked(
     }
 
     let allocations = solution.allocations;
-    let used_source_ids = allocations
-        .iter()
-        .map(|allocation| allocation.source_id)
-        .collect::<BTreeSet<_>>();
+    let mut used_source_amounts = BTreeMap::<CapitalSourceId, Amount256>::new();
+    for allocation in &allocations {
+        let total = used_source_amounts
+            .entry(allocation.source_id)
+            .or_insert(Amount256::ZERO);
+        *total = total.checked_add(allocation.amount)?;
+    }
 
     let mut source_dependencies = BTreeMap::<(RequirementKind, CapitalAsset), Amount256>::new();
-    for source_id in used_source_ids {
+    for (source_id, drawn_amount) in used_source_amounts {
         let source = sources
             .iter()
             .find(|source| source.id() == source_id)
@@ -2599,13 +2704,36 @@ pub fn evaluate_capital_feasibility_checked(
                 Some(RequirementKind::Repayment),
             ));
         }
-        if let CollateralRequirement::Required { asset, amount, .. } = source.collateral() {
-            add_obligation(
-                &mut source_dependencies,
-                RequirementKind::Collateral,
+        match source.collateral() {
+            CollateralRequirement::None => {}
+            CollateralRequirement::Required { asset, amount, .. } => {
+                add_obligation(
+                    &mut source_dependencies,
+                    RequirementKind::Collateral,
+                    asset,
+                    amount,
+                )?;
+            }
+            CollateralRequirement::Proportional {
                 asset,
-                amount,
-            )?;
+                numerator,
+                denominator,
+                rounding,
+                ..
+            } => {
+                let amount = mul_div_u64_round(drawn_amount, numerator, denominator, rounding)?;
+                if amount.is_zero() {
+                    return Err(CapitalError::InvalidCanonical(
+                        "positive draw produced zero proportional collateral",
+                    ));
+                }
+                add_obligation(
+                    &mut source_dependencies,
+                    RequirementKind::Collateral,
+                    asset,
+                    amount,
+                )?;
+            }
         }
         if let TemporaryLock::Required { asset, amount, .. } = source.temporary_lock() {
             add_obligation(
@@ -3005,7 +3133,9 @@ fn upstream_authority_commitment(
     }
     hasher.update(
         u64::try_from(admitted_evidence.len())
-            .unwrap_or(u64::MAX)
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority("admitted evidence count overflow")
+            })?
             .to_be_bytes(),
     );
     for evidence in admitted_evidence {
@@ -3013,14 +3143,18 @@ fn upstream_authority_commitment(
         evidence.encode(&mut writer);
         hasher.update(
             u64::try_from(writer.0.len())
-                .unwrap_or(u64::MAX)
+                .map_err(|_| {
+                    CapitalError::InvalidUpstreamAuthority("evidence encoding length overflow")
+                })?
                 .to_be_bytes(),
         );
         hasher.update(&writer.0);
     }
     hasher.update(
         u64::try_from(consumption_receipts.len())
-            .unwrap_or(u64::MAX)
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority("consumption receipt count overflow")
+            })?
             .to_be_bytes(),
     );
     for receipt in consumption_receipts.values() {
@@ -3307,7 +3441,7 @@ impl CapitalCensusLedger {
             hasher.update(source.id().as_bytes());
             hasher.update(
                 u64::try_from(encoded.len())
-                    .unwrap_or(u64::MAX)
+                    .map_err(|_| CapitalError::InvalidCanonical("capital record length overflow"))?
                     .to_be_bytes(),
             );
             hasher.update(domain_hash(b"NQC-RMC011-SOURCE-RECORD-V1", &encoded));
@@ -3317,16 +3451,16 @@ impl CapitalCensusLedger {
             hasher.update(requirement.id().as_bytes());
             hasher.update(
                 u64::try_from(encoded.len())
-                    .unwrap_or(u64::MAX)
+                    .map_err(|_| CapitalError::InvalidCanonical("capital record length overflow"))?
                     .to_be_bytes(),
             );
             hasher.update(domain_hash(b"NQC-RMC011-REQUIREMENT-RECORD-V1", &encoded));
         }
         for result in self.results.values() {
-            let encoded = encode_feasibility(result);
+            let encoded = encode_feasibility(result)?;
             hasher.update(
                 u64::try_from(encoded.len())
-                    .unwrap_or(u64::MAX)
+                    .map_err(|_| CapitalError::InvalidCanonical("capital record length overflow"))?
                     .to_be_bytes(),
             );
             hasher.update(encoded);
@@ -3541,7 +3675,7 @@ impl CapitalCensusLedger {
     }
 }
 
-fn encode_feasibility(result: &CapitalFeasibility) -> Vec<u8> {
+fn encode_feasibility(result: &CapitalFeasibility) -> Result<Vec<u8>, CapitalError> {
     let mut writer = Writer::default();
     match result {
         CapitalFeasibility::Feasible {
@@ -3550,7 +3684,9 @@ fn encode_feasibility(result: &CapitalFeasibility) -> Vec<u8> {
         } => {
             writer.u8(1);
             writer.bytes(requirement_id.as_bytes());
-            writer.u32(u32::try_from(allocations.len()).unwrap_or(u32::MAX));
+            writer.u32(u32::try_from(allocations.len()).map_err(|_| {
+                CapitalError::InvalidCanonical("capital allocation count overflow")
+            })?);
             for allocation in allocations {
                 writer.bytes(allocation.source_id.as_bytes());
                 writer.u8(allocation.leg_kind.tag());
@@ -3574,7 +3710,7 @@ fn encode_feasibility(result: &CapitalFeasibility) -> Vec<u8> {
             }
         }
     }
-    writer.0
+    Ok(writer.0)
 }
 
 fn has_leg(requirement: &CapitalRequirement, kind: RequirementKind, asset: CapitalAsset) -> bool {

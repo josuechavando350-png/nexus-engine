@@ -1,0 +1,17 @@
+[package]
+name = "nqc-census-refresh"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+nqc-census-core = { path = "../nqc-census-core" }
+nqc-census-chain = { path = "../nqc-census-chain" }
+nqc-census-store = { path = "../nqc-census-store" }
+nqc-census-state = { path = "../nqc-census-state" }
+nqc-census-accounts = { path = "../nqc-census-accounts" }
+sha2.workspace = true
+
+[lints]
+workspace = true

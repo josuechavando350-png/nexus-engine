@@ -1,0 +1,118 @@
+name: NQC D08 Zombie Recovery One-Shot
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-011-derived-authority-lock-20260930"
+    paths:
+      - ".github/workflows/nqc-d08-zombie-recovery-once.yml"
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: nqc-d08-zombie-recovery-once
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      REPOSITORY: "josuechavando350-png/nexus-engine"
+      STUCK_RUN: "36711607381"
+      D08_WORKFLOW: "nqc-census-state.yml"
+      D08_REF: "nqc/rmc-008-state-oracle-token-admission-20260929"
+      D08_EXPECTED_HEAD: "e9a6ce8c5003e43a4c955e8379f9d26f74182dc9"
+    steps:
+      - name: Verify zombie signature
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          run_json="$(gh api "repos/$REPOSITORY/actions/runs/$STUCK_RUN")"
+          test "$(jq -r '.head_sha' <<<"$run_json")" = "$D08_EXPECTED_HEAD"
+          test "$(jq -r '.name' <<<"$run_json")" = "NQC RMC-008 State Oracle Token Admission"
+          test "$(jq -r '.event' <<<"$run_json")" = "workflow_dispatch"
+          status="$(jq -r '.status' <<<"$run_json")"
+          case "$status" in
+            queued|in_progress|pending|waiting|requested) ;;
+            *)
+              echo "D08_RECOVERY_REFUSE unexpected_status=$status" >&2
+              exit 1
+              ;;
+          esac
+
+          jobs="$(gh api "repos/$REPOSITORY/actions/runs/$STUCK_RUN/jobs?filter=all&per_page=100")"
+          cancelled_replays="$(jq '[.jobs[] | select(.name|startswith("replay (")) | select(any(.steps[]?; .name=="Offline replay of the stage from its own store (no network)" and .status=="completed" and .conclusion=="cancelled"))] | length' <<<"$jobs")"
+          test "$cancelled_replays" -ge 1 || {
+            echo "D08_RECOVERY_REFUSE no_cancelled_replay_signature" >&2
+            exit 1
+          }
+          echo "D08_ZOMBIE_SIGNATURE_CONFIRMED cancelled_replays=$cancelled_replays status=$status"
+
+      - name: Cancel stale canonical run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh api --method POST "repos/$REPOSITORY/actions/runs/$STUCK_RUN/cancel" >/dev/null || true
+          for attempt in $(seq 1 30); do
+            status="$(gh api "repos/$REPOSITORY/actions/runs/$STUCK_RUN" --jq .status)"
+            conclusion="$(gh api "repos/$REPOSITORY/actions/runs/$STUCK_RUN" --jq '.conclusion // ""')"
+            echo "D08_CANCEL_WAIT attempt=$attempt status=$status conclusion=$conclusion"
+            if [ "$status" = "completed" ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+
+          gh api --method POST "repos/$REPOSITORY/actions/runs/$STUCK_RUN/force-cancel" >/dev/null
+          for attempt in $(seq 1 30); do
+            status="$(gh api "repos/$REPOSITORY/actions/runs/$STUCK_RUN" --jq .status)"
+            conclusion="$(gh api "repos/$REPOSITORY/actions/runs/$STUCK_RUN" --jq '.conclusion // ""')"
+            echo "D08_FORCE_CANCEL_WAIT attempt=$attempt status=$status conclusion=$conclusion"
+            if [ "$status" = "completed" ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "D08_RECOVERY_REFUSE stale run did not terminate" >&2
+          exit 1
+
+      - name: Dispatch same exact D08 head
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          branch_head="$(gh api "repos/$REPOSITORY/git/ref/heads/$D08_REF" --jq .object.sha)"
+          test "$branch_head" = "$D08_EXPECTED_HEAD" || {
+            echo "D08_RECOVERY_REFUSE branch_head=$branch_head expected=$D08_EXPECTED_HEAD" >&2
+            exit 1
+          }
+
+          before="$(gh api "repos/$REPOSITORY/actions/runs?event=workflow_dispatch&branch=$D08_REF&per_page=100" --jq '.workflow_runs[] | select(.name=="NQC RMC-008 State Oracle Token Admission") | .id' | sort -n)"
+          gh api --method POST "repos/$REPOSITORY/actions/workflows/$D08_WORKFLOW/dispatches" -f ref="$D08_REF"
+
+          new_run=""
+          for attempt in $(seq 1 30); do
+            after="$(gh api "repos/$REPOSITORY/actions/runs?event=workflow_dispatch&branch=$D08_REF&per_page=100" --jq '.workflow_runs[] | select(.name=="NQC RMC-008 State Oracle Token Admission") | .id' | sort -n)"
+            new_run="$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | tail -n 1)"
+            [ -n "$new_run" ] && break
+            sleep 2
+          done
+          test -n "$new_run" || {
+            echo "D08_RECOVERY_REFUSE dispatch created no discoverable run" >&2
+            exit 1
+          }
+
+          new_head="$(gh api "repos/$REPOSITORY/actions/runs/$new_run" --jq .head_sha)"
+          test "$new_head" = "$D08_EXPECTED_HEAD" || {
+            echo "D08_RECOVERY_REFUSE new_run=$new_run head=$new_head" >&2
+            exit 1
+          }
+          echo "D08_RECOVERY_DISPATCHED old_run=$STUCK_RUN new_run=$new_run head=$new_head"

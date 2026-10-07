@@ -41,6 +41,8 @@ The model MUST represent, without collapsing distinct semantics:
 
 Persistent debt MUST remain distinct from atomic liquidity and MUST carry interest, collateral, liquidation, health-factor / solvency, oracle, liquidity-withdrawal, and facility-disappearance risk where applicable.
 
+Aave reserve liquidity alone is not NQC borrowing capacity. Under `OWN_CAPITAL=0`, collateralized or persistent borrowing is executable only when D11 binds an explicit non-operator collateral funding path whose collateral persists for the debt lifetime (or to an explicit positive block deadline), whose terms/availability are authenticated, and which does not depend on future strategy output. Operator-owned collateral, same-transaction temporary collateral, and hypothetical post-execution profits cannot satisfy this source-side funding boundary. The canonical catalog is `ci/nqc-census/rmc011-collateral-funding-path-catalog.json`; an empty catalog is a bounded NQC authorization fact, not a claim that external collateral markets do not exist.
+
 ## Source-universe truth
 
 RMC-011 distinguishes **semantic capability** from **live censused coverage**.
@@ -51,11 +53,49 @@ The current authoritative real-source build imports capital observations only th
 
 - `source_universe_basis = RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY`;
 - `global_capital_source_completeness_claimed = false`;
-- `GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED` in its non-claims.
+- `GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED` in its non-claims;
+- `terminal_capital_census_complete = false`;
+- `actionable_requirement_coverage_complete = false`;
+- terminal blockers for global source-universe completeness, actionable requirement coverage deferred to RMC-012, and repayment cash-flow sufficiency.
 
-This means a successful RMC-011 closeout proves the identity, terms, capacity and provenance of the sources it actually imported; it does **not** prove that every possible flash-liquidity venue, gas sponsor, credit facility, collateral facility, builder deposit facility, or persistent-debt provider on the chain has been enumerated.
+This means a successful RMC-011 real-source closeout proves the identity, terms, capacity and provenance of the sources it actually imported; it does **not** constitute terminal Capital Census completeness and does **not** prove that every possible flash-liquidity venue, gas sponsor, credit facility, collateral facility, builder deposit facility, or persistent-debt provider on the chain has been enumerated. A downstream terminal closeout MUST NOT reinterpret this scoped PASS as exhaustive capital-universe authority.
 
 Any later phase that needs a source family outside this live-import basis MUST either add an evidence-backed discovery/admission path and recertify D11, or fail closed. Absence from the current source ledger MUST NOT be interpreted as authoritative proof that no such source exists.
+
+The exhaustive family-discovery specification is `ci/nqc-census/rmc011-capital-family-discovery.json`. It defines, for each required family, the authoritative discovery surface, anchor semantics, completeness condition, negative-proof requirement, and implementation path. The discovery plan itself is not evidence. Terminal source-universe readiness requires an authenticated discovery result proving that every declared surface was actually executed to its completeness condition. `NQC RMC-011 Family Discovery Evidence` is the only D11 workflow authorized to produce that `AUTHENTICATED_DISCOVERY` result. It MUST remain blocked while even one of the thirteen required families lacks terminal evidence, authenticate the exact GitHub run/artifact transport and content-addressed evidence file for every family, preserve the downloaded evidence bytes, and emit a self-contained `discovery-evidence.json` artifact only at 13/13 resolved families.
+
+A family may be labeled `EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE` only when its declared discovery surface was completed and the rejection evidence is content-addressed. “No result was found,” absence from an index, a historical test, or a model-only adapter is never an exhaustive rejection. Permissioned/off-chain capital families are exhaustive only relative to the authenticated NQC external-provider registry and the supported execution-plan requirement catalog; uncontracted third-party credit is not treated as capital available to NQC. A declared-empty registry/catalog is a bounded negative fact, not terminal evidence by itself. Terminal rejection of the seven bounded external/requirement families MUST be derived by the bounded-family rejection workflow, and promotion into the source-universe contract MUST be atomic across all seven families from one exact successful run/artifact with one distinct content-addressed per-family evidence file. Permissionless collateralized/persistent debt is not covered by that bounded rejection and requires canonical on-chain facility discovery.
+
+Balancer V2 and Uniswap V3 are permissionless on-chain discovery surfaces and therefore require fresh block-pinned D11 acquisition at the certified anchor. Historical T36 Balancer callback parity may justify implementation semantics but MUST NOT serve as current D11 availability/capacity evidence.
+
+Balancer V2 now has a dedicated D11 live acquisition boundary in `nqc-census-capital::balancer_live`. It derives its actionable asset universe from the exact D08 admitted current Aave assets intersected with D08 `PROVEN_COMPATIBLE` token admission, verifies those consumed bytes against the D08 evidence manifest, requires the D11 authority-lock anchor to equal the D08 full observation anchor, and captures the canonical Balancer V2 Vault from two declared independent providers. The certification workflow preserves each provider's RMC-004 evidence store, independently verifies both stores offline, requires exact semantic agreement across the captures, and runs both the Python adversarial reconciler and the Rust CapitalSource admission path. Until a successful exact-head certification artifact binds those bytes and the reconciled source set is replay-bound into the canonical D11 ledger, the family remains `terminally_resolved=false`; implementation or a queued workflow is not availability evidence.
+
+Aave V3 collateralized/persistent debt discovery consumes the exact authenticated RMC-008 reserve state and token-admission bytes through `nqc-census-capital::aave_debt_discovery`. It MUST preserve three distinct quantities rather than collapsing them: observed borrowable upper bound, protocol-side borrowable upper bound after reserve/cap blockers, and token-compatible borrowable upper bound after D08 execution-compatibility blockers. A D08 token blocker may reduce only the token-compatible bound to zero; it MUST NOT rewrite observed liquidity or protocol-side truth. None of these reserve-side bounds prove account/portfolio collateral sufficiency, oracle feasibility, eMode/isolation compatibility, or end-to-end borrow execution; those dimensions remain explicitly unresolved until independently evidenced.
+
+
+### Bounded external/requirement-family evidence
+
+The following seven families form one bounded authorization/requirement universe for the current NQC head:
+
+- `EXTERNAL_GAS_CREDIT`
+- `EXTERNAL_GAS_SPONSOR`
+- `TRANSIENT_EXTERNAL_CREDIT`
+- `INVENTORY_REQUIREMENT`
+- `BOND_OR_STAKE`
+- `SOLVER_OR_BUILDER_DEPOSIT`
+- `INTRA_BLOCK_TEMPORARY_LOCK`
+
+Their negative-proof surfaces are machine-readable: `rmc011-external-capital-provider-registry.json` and `rmc011-execution-plan-requirement-catalog.json`. Empty declared state means only that no external provider or supported execution plan is authorized by this exact NQC head. It MUST NOT be restated as global market nonexistence. `rmc011-permissionless-debt-facility-catalog.json` is a declaration/admission boundary only; emptiness of that catalog cannot terminally reject permissionless collateralized-borrowing or persistent-debt markets.
+
+`NQC RMC-011 Bounded Family Rejection Evidence` may emit per-family `EXHAUSTIVE_REJECTION` evidence only for the seven external/requirement-driven families when the authenticated external-provider registry and execution-plan requirement catalog validate and remain empty. The resulting seven promotions are all-or-none, MUST share the same repository/workflow/run/head/artifact identity, and MUST bind distinct `families/<FAMILY>/evidence.json` files by SHA-256. Any external provider or supported execution plan entering scope invalidates the corresponding empty-universe rejection path and forces recensus.
+
+`COLLATERALIZED_BORROWING` and `PERSISTENT_DEBT` are explicitly excluded from this bounded-rejection mechanism. An empty declared permissionless-debt catalog is only an authorization/declaration fact; it is not exhaustive on-chain discovery. Those two families remain unresolved until canonical permissionless facility discovery is executed and authenticated, or live facilities are admitted with exact block-pinned evidence.
+
+### Family-universe discovery promotion
+
+`family_universe_discovery.status` MUST remain `NOT_CERTIFIED` until all thirteen required source families are terminally resolved by authenticated real-source evidence or valid exhaustive rejection evidence. The local readiness verifier may report `RMC011_FAMILY_DISCOVERY_TRANSPORT_READY`, but that state is not authority and MUST NOT be written back as `AUTHENTICATED_COMPLETE` by itself.
+
+Promotion to `AUTHENTICATED_COMPLETE` requires one exact successful `NQC RMC-011 Family Discovery Evidence` artifact. Its source-universe reference MUST bind repository, workflow name, run id, exact head SHA, artifact id/name/digest, `discovery-evidence.json`, and that file's SHA-256. Promotion is invalid if any family is unresolved, if the artifact was produced by another workflow/head, or if the artifact cannot reproduce thirteen unique authenticated family evidence transports.
 
 ## Required source fields
 
@@ -71,7 +111,10 @@ Every admitted capital source record MUST bind:
 - zero-capacity sources remain explicit census records rather than disappearing; zero means observed-but-unavailable at that anchor
 - observed/effective capacity and executable capacity are distinct: upstream execution blockers MUST NOT erase observed liquidity, but executable capacity MUST be zero while any blocker remains
 - execution blocker codes are preserved exactly; blocker-state changes alter the observation-specific source ID but MUST NOT alter the stable source key
+- provider locators used by stable source keys MUST contain facility identity only; mutable runtime/configuration, commercial terms, capacity, activity flags, and blocker state belong to observation identity/evidence and MUST NOT rotate the stable source key
 - fee model
+- for external gas sponsors, any fixed fee asset MUST equal the sponsor's explicitly declared fee asset; contradictory fee metadata is non-canonical
+- external gas credit MUST bind an authenticated delivery route proving native gas reaches the borrower before the execution transaction without operator prefunding; a facility that requires the borrower to spend gas to draw the gas credit is circular and is not admissible as `GAS_FUNDING`
 - repayment semantics
 - collateral_required
 - liquidation_conditions
@@ -82,6 +125,7 @@ Every admitted capital source record MUST bind:
 - same_block_atomicity
 - temporary_lock semantics
 - failure modes
+- protocol execution-state blockers are part of observed truth; in particular a Balancer V2 Vault pause preserves observed balances but makes flash capital non-executable (`BALANCER_VAULT_PAUSED`)
 - evidence references
 - code/configuration identity where material
 
@@ -121,10 +165,13 @@ A source may be used only when:
 - executable capacity, not merely observed capacity, is sufficient at the requested size
 - no execution blocker remains on any allocated source
 - fee/cap semantics are explicit
+- Aave V3 `flashLoanSimple` premium uses the deployed ceiling semantics certified by PFT-COMPAT-009; half-up percentage rounding is forbidden because it can understate repayment by one atomic unit
 - repayment semantics, asset, deadline and exact source-derived settlement obligations are structurally compatible with the candidate declaration; RMC-011 does **not** prove that execution output cash-flow will contain enough of the repayment asset to satisfy those obligations
 - exact repayment and funding-fee settlement obligations derived from the actual source allocations equal the declared settlement legs before the candidate may be labeled `FEASIBLE`
 - settlement legs must authorize the actual capital-source classes that generated those obligations, and the declared settlement amounts must be exactly assignable across those authorized classes; matching only aggregate kind, asset, and amount is insufficient
 - atomicity/collateral requirements are compatible
+- action atomicity constrains action/principal funding, but a `GAS` leg may use authenticated external `GAS_FUNDING` with later explicit repayment because native gas must be acquired before EVM execution; that exception MUST NOT allow the same delayed source to fund an atomic action-principal leg
+- external gas-credit evidence MUST bind `delivery_semantics = PRE_EXECUTION_NATIVE_GAS_TO_BORROWER_NO_OPERATOR_PREFUND_V1`, a non-zero content-addressed delivery-route commitment, and `operator_prefund_required = false`; credit capacity without this pre-submit delivery proof is not executable gas capacity
 - no unresolved source mismatch remains
 
 Feasibility MUST fail closed on:
@@ -172,12 +219,12 @@ Target deterministic artifacts:
 - `capital-census-summary.json`
 - `capital-upstream-authority.json`
 - `capital-evidence-manifest.json`
-- `capital-upstream-authority-lock.json` (archived canonical copy of the external lock used by the build)
+- `capital-upstream-authority-lock.json` (archived canonical copy of the certification authority lock used by the build)
 - `capital-real-source-closeout.json` (only after external authority locking plus exact upstream replay passes)
 - `capital-archive.sha256` (deterministic SHA-256 inventory over the seven D11 artifacts, archived external lock, and real-source closeout)
 - final CI evidence package containing the exact downloaded RMC-006..RMC-010 artifact bytes used for semantic admission, the exact `rmc011-real-source-inputs.json` transport declaration, the complete D11 real-source archive, and `CERTIFICATION-PACKAGE-SHA256SUMS` over every packaged file
 
-The real-source build path MUST start from the external authority lock, reconstruct its certification context, replay RMC-008/RMC-009, build the D11 ledger, export the seven canonical D11 artifacts, regenerate the closeout from those exact bytes, and verify the closeout again before writing the archive. The certification runner MUST derive the D11 code commit and tree from the checked-out exact `HEAD`, require a clean tracked working tree, refuse a non-empty output directory, and finish by verifying the archive SHA-256 inventory. A manually assembled D11 bundle is not the certification path.
+The real-source build path MUST start from a canonical certification authority lock constructed from the exact authenticated RMC-006..RMC-010 transport identities and authority-file SHA-256 values, reconstruct its certification context, replay RMC-008/RMC-009, build the D11 ledger, export the seven canonical D11 artifacts, regenerate the closeout from those exact bytes, and verify the closeout again before writing the archive. The certification runner MUST derive the D11 code commit and tree from the checked-out exact `HEAD`, require a clean tracked working tree, refuse a non-empty output directory, and finish by verifying the archive SHA-256 inventory. A manually assembled D11 bundle is not the certification path.
 
 Every artifact MUST include schema version, exact code commit/tree, observation anchor or block range, source provenance, and SHA-256/content-addressed evidence. `generated_at` is evidence time, not wall-clock time: it MUST equal the exact observation-anchor block timestamp and MUST carry `generated_at_basis=OBSERVATION_ANCHOR_BLOCK_TIMESTAMP`, so identical evidence and code regenerate byte-identical artifacts. The ordinary D11 bundle remains explicitly `real_source_certification=false`; only the separate closeout produced by the external-lock + exact-replay verifier may assert `real_source_certification=true`.
 
@@ -186,13 +233,17 @@ Every artifact MUST include schema version, exact code commit/tree, observation 
 At minimum:
 
 - source identity is deterministic and collision-resistant across chain/provider/asset/class
+- changing gas-credit active/blocker state, runtime/configuration, or commercial terms changes observation identity as applicable but cannot rotate the stable facility source key
 - same bytes under different capital classes do not alias
 - zero and overflow amount/cap edge cases fail correctly; public enum/struct construction cannot bypass the same fee, ratio, repayment-deadline, collateral, utilization, temporary-lock, or nonzero-evidence validations enforced by canonical decode
 - atomic source cannot silently become persistent debt
 - persistent debt cannot pass without collateral/solvency semantics
 - collateral and temporary-lock dependencies are aggregated across all distinct sources used by one candidate; one declared leg cannot be reused to satisfy multiple source dependencies
 - gas funding is independently required when execution needs native gas, and the `requires_native_gas` flag must equal the presence of a native-gas requirement leg in both directions
+- a same-transaction action with exact flash principal plus deadline-bound external gas credit must remain feasible when repayment is explicitly declared, while the same deadline-bound source must fail atomicity if used as action principal
+- external gas credit must fail closed when delivery requires operator prefunding, when the draw itself requires borrower gas, or when the authenticated delivery-route commitment is changed without a matching terms commitment
 - insufficient source capacity fails closed
+- Aave V3 flash-premium regression MUST include the exact PFT-COMPAT-009 callback witnesses (`83727306811 @ 5 bps -> 41863654` and `186298226 @ 5 bps -> 93150`)
 - incompatible repayment asset/semantics fails closed
 - exact repayment/funding-fee settlement mismatch, including source-class provenance or per-class amount-assignment mismatch, is classified as a feasibility rejection rather than surviving as a provisional `FEASIBLE` result until certification
 - protocol and market caps bind maximum executable size
@@ -204,17 +255,17 @@ At minimum:
 
 ## Certification gate
 
-The ordinary `NQC RMC-011 Capital Census` foundation workflow is a code/fixture/invariant gate only and MUST NOT be interpreted as final RMC-011 certification. Final certification requires the separate `NQC RMC-011 Real Source Certification` workflow to bind **every** RMC-006..RMC-010 authority to an exact successful GitHub Actions workflow run and immutable transport tuple: workflow name, run id, exact head SHA, exact Git tree SHA, artifact id, artifact name, GitHub artifact SHA-256 digest, authority-file path, and SHA-256 of that authority file. The authority-file SHA-256 MUST equal the corresponding `artifact_sha256` in the external RMC-006..RMC-010 lock, and its embedded code commit/tree MUST equal the observed run head/tree. D08/D09 consumed bytes are then taken from those same verified artifacts, `run-rmc011-real-source-closeout.sh` is executed, `capital-archive.sha256` is re-verified, and the resulting closeout is archived. A lock written by hand without this transport/content proof is not certification authority. If any authoritative input is absent or inconsistent, the final certification workflow MUST fail closed with `RMC011_BLOCKED_UPSTREAM_REAL_SOURCE`.
+The ordinary `NQC RMC-011 Capital Census` foundation workflow is a code/fixture/invariant gate only and MUST NOT be interpreted as real-source authority. The separate `NQC RMC-011 Real Source Certification` workflow certifies the exact observed source subset and upstream provenance, but while `terminal_capital_census_complete=false` it MUST NOT be interpreted as exhaustive terminal Capital Census authority. Real-source certification requires to bind **every** RMC-006..RMC-010 authority to an exact successful GitHub Actions workflow run and immutable transport tuple: workflow name, run id, exact head SHA, exact Git tree SHA, artifact id, artifact name, GitHub artifact SHA-256 digest, authority-file path, and SHA-256 of that authority file. From those already-authenticated transport facts, the runner MUST deterministically build the canonical RMC-006..RMC-010 authority lock before semantic admission. The generated lock is then checked against the downloaded content-addressed bytes; its `artifact_sha256` values MUST equal the exact authority-file SHA-256 values and its code commit/tree MUST equal the observed run head/tree. If a repository-declared `rmc011-authority-lock.json` is present, it MUST be byte-identical to the independently derived canonical lock; a handwritten or stale declaration can never override the derived transport/content truth. D08/D09 consumed bytes are then taken from those same verified artifacts, `run-rmc011-real-source-closeout.sh` is executed, `capital-archive.sha256` is re-verified, and the resulting closeout is archived. If any authoritative input is absent or inconsistent, the final certification workflow MUST fail closed with `RMC011_BLOCKED_UPSTREAM_REAL_SOURCE`.
 
-The final RMC-011 certification artifact MUST be self-contained with respect to the upstream bytes actually used by this gate: it MUST preserve the exact downloaded RMC-006..RMC-010 artifact trees alongside the D11 closeout and transport declaration, and MUST generate and re-check a deterministic package-wide SHA-256 inventory before upload. GitHub Actions retention is transport retention, not permanent evidence storage; expiry of the hosted copy MUST NOT be treated as evidence invalidation, and durable retention outside the ephemeral Actions store remains an operational requirement rather than a capital-truth claim.
+The final RMC-011 certification artifact MUST be self-contained with respect to the upstream bytes and bounded-universe contracts actually used by this gate: it MUST preserve the exact downloaded RMC-006..RMC-010 artifact trees alongside the D11 closeout and transport declaration, plus the capital-family discovery contract, external-provider registry and verifier report, execution-plan requirement catalog and verifier report, permissionless debt-facility catalog and verifier report, bounded-family rejection report, and family-discovery readiness report. If bounded-family rejections have been promoted into the source-universe contract, certification MUST additionally authenticate the exact successful bounded-rejection workflow run and GitHub artifact identity/digest, download that artifact, verify its package inventory plus every per-family evidence SHA-256, and archive those exact evidence bytes inside the final D11 package. If `family_universe_discovery.status == AUTHENTICATED_COMPLETE`, certification MUST likewise authenticate the exact `NQC RMC-011 Family Discovery Evidence` run/artifact transport, verify `discovery-evidence.json` and every hash-bound discovery/readiness/transport input carried by that artifact, and archive those exact artifact bytes. It MUST generate and re-check a deterministic package-wide SHA-256 inventory before upload. GitHub Actions retention is transport retention, not permanent evidence storage; expiry of the hosted copy MUST NOT be treated as evidence invalidation, and durable retention outside the ephemeral Actions store remains an operational requirement rather than a capital-truth claim.
 
-The external authority lock is a **normalized commitment, not semantic source truth**. For every RMC-006..RMC-010 row, final certification MUST derive admission from the downloaded content-addressed artifact itself and cross-check the lock against those bytes. This derivation MUST verify the stage-specific PASS state, zero unexplained mismatch/delta state, zero UNKNOWN state where that stage defines UNKNOWN, conservation/coverage predicates, exact observation anchor to the maximum precision emitted by that stage, and the SHA-256/byte entries of every summary or ledger used for those conclusions against the authority evidence manifest. RMC-010 additionally MUST prove that its full-census evidence-manifest SHA-256 is the exact locked RMC-009 authority and that its incremental evidence manifest and parity record match the hashes in the RMC-010 certification record. A lock row with `coverage_complete=true` or `admitted=true` that is not derivable from authenticated upstream bytes MUST be rejected.
+The certification authority lock is a **normalized commitment, not semantic source truth**. Its canonical bytes may be deterministically derived by the certification runner from exact authenticated transport metadata plus the full D08 observation anchor; semantic admission still comes only from the independently verified upstream artifact bytes. A repository-declared lock is optional redundancy and, when present, must byte-match the derived lock. For every RMC-006..RMC-010 row, final certification MUST derive admission from the downloaded content-addressed artifact itself and cross-check the lock against those bytes. This derivation MUST verify the stage-specific PASS state, zero unexplained mismatch/delta state, zero UNKNOWN state where that stage defines UNKNOWN, conservation/coverage predicates, exact observation anchor to the maximum precision emitted by that stage, and the SHA-256/byte entries of every summary or ledger used for those conclusions against the authority evidence manifest. RMC-010 additionally MUST prove that its full-census evidence-manifest SHA-256 is the exact locked RMC-009 authority and that its incremental evidence manifest and parity record match the hashes in the RMC-010 certification record. A lock row with `coverage_complete=true` or `admitted=true` that is not derivable from authenticated upstream bytes MUST be rejected.
 
 Canonical `Hash32` values in the authority lock are serialized with a `0x` prefix, whereas `sha256sum` emits plain hex. Comparison code MUST normalize representation only (strip an optional `0x` prefix) and compare all 32 digest bytes exactly; the canonical lock bytes themselves MUST remain unchanged.
 
 ### Temporal coherence of final upstream authority
 
-RMC-011 final certification is a **single-snapshot claim**, not a union of independently valid stages observed at different blocks. The external RMC-006..RMC-010 authority lock therefore MUST carry one exact `StateAnchor` shared by all five stages.
+RMC-011 final certification is a **single-snapshot claim**, not a union of independently valid stages observed at different blocks. The canonical RMC-006..RMC-010 authority lock therefore MUST carry one exact `StateAnchor` shared by all five stages.
 
 RMC-010 is a transition/parity proof from A0 to a strictly later A1. For RMC-011, its `target_anchor` is the required final snapshot. The final certification gate MUST prove all of the following from the exact downloaded authority artifacts:
 
@@ -230,7 +281,7 @@ A valid RMC-006 artifact from A0, a valid RMC-007 artifact from A0, a valid RMC-
 
 Foundation artifacts MUST encode `real_source_certification=false` until every real source class used by feasibility has a semantic admission path that proves the source terms from content-addressed evidence. An admitted artifact hash alone is not proof that arbitrary source semantics (especially external gas funding, credit, collateral facilities, builder deposits, or persistent debt risk terms) were present in that artifact.
 
-Model support is not source-universe coverage. The current real D08 importer has semantic admission for Aave V3 flash liquidity and Uniswap V2 flash-swap liquidity. Balancer V2, Uniswap V3, external gas sponsorship, credit/collateral facilities, builder deposits, persistent debt, and any other modeled capital class remain **model-only** until an authenticated acquisition/admission path produces their exact terms at the observation anchor. A real-source closeout may certify the exact observed source set it consumed, but MUST NOT claim exhaustive capital-source-universe coverage or system-wide maximum zero-own-capital capacity until every missing source family is either admitted or exhaustively rejected with reproducible evidence.
+Model support is not source-universe coverage. The current real D08 importer has semantic admission for Aave V3 flash liquidity and Uniswap V2 flash-swap liquidity. D11 now also contains semantic admission/acquisition implementations for Balancer V2, Uniswap V3, external gas sponsorship, transient external credit, collateralized borrowing, and persistent debt. Those implementations are still **not availability evidence**: each family remains unresolved until an exact successful authenticated acquisition artifact proves live terms/capacity at the certified anchor, or an applicable bounded discovery surface produces an authenticated exhaustive rejection. Inventory, bond/stake, solver/builder deposit, and intra-block temporary-lock families are requirement-driven and remain unresolved until the authenticated execution-plan/provider surfaces justify either a real external funding path or bounded exhaustive rejection. A real-source closeout may certify the exact observed source set it consumed, but MUST NOT claim exhaustive capital-source-universe coverage or system-wide maximum zero-own-capital capacity until every missing source family is either admitted or exhaustively rejected with reproducible evidence.
 
 RMC-011 may be certified only when:
 
@@ -255,3 +306,29 @@ Capital feasibility proves funding availability and constraints for each require
 Portfolio-wide simultaneous capacity, source collision, and cross-candidate capital contention remain downstream non-claims until an explicit conflict-set / portfolio-capacity layer certifies them.
 
 Capital feasibility does NOT prove positive net EV, capture probability, or realized P&L.
+
+
+## Terminal D11 closure is stricter than real-source package certification
+
+`RMC011_REAL_SOURCE_CERTIFICATION=PASS` proves only the authenticated, replayed source set actually consumed by D11. It is **not** the terminal Capital Census state.
+
+The machine-readable source-universe authority is `ci/nqc-census/rmc011-capital-source-universe.json`. That file has **readiness authority only** and is forbidden from emitting `D11_TERMINAL_CLOSED`. Its strongest possible state is `CAPITAL_SOURCE_UNIVERSE_COMPLETE`, which requires every required capital-source family to be terminally resolved by authenticated real-source admission or exhaustive rejection **and** the family-universe discovery itself to be `AUTHENTICATED_COMPLETE`.
+
+Every terminally resolved family MUST carry content-addressed resolution evidence. `AUTHENTICATED_REAL_SOURCE` requires a real-source path plus an authenticated evidence locator and SHA-256; `EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE` requires an exhaustive-rejection evidence locator and SHA-256. Changing a status string without those bindings never resolves a family.
+
+Model support, an adapter implementation, or a semantic parser without authenticated acquisition evidence does not resolve a source family. In particular, `gas_credit.rs` being able to validate two-provider external gas-credit observations does not certify that such a facility exists or is available at the anchor.
+
+`CAPITAL_SOURCE_UNIVERSE_COMPLETE` is necessary but not sufficient for D11 closure. Final D11 authority must combine that readiness proof with the authenticated D11 source/certification evidence in a separate terminal gate. Until source-universe readiness is complete, the source-universe state remains `BLOCKED_INCOMPLETE_SOURCE_UNIVERSE`, even if the narrower real-source package passes.
+
+The authorized terminal transition is `d11/d11-terminal-closeout.json` inside the immutable `NQC RMC-011 Real Source Certification` package. It is a separate, deterministic closeout layer and MUST NOT mutate or reinterpret `capital-real-source-closeout.json`. The terminal closeout may be emitted only when all of the following are simultaneously true:
+
+- the source-universe contract is `CAPITAL_SOURCE_UNIVERSE_COMPLETE` with `terminal_claim_allowed=true`;
+- all thirteen required families are terminally resolved by content-addressed evidence;
+- `family_universe_discovery.status == AUTHENTICATED_COMPLETE`;
+- the narrow real-source closeout is an exact-head `RMC_011_REAL_SOURCE_CLOSEOUT_PASS`;
+- the real-source closeout remains nonterminal and retains all downstream economic/actionability non-claims;
+- the exact upstream authority-lock bytes and commitment match the real-source closeout;
+- the observation anchor is exactly Ethereum A1 block `26095351`, hash `0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781`;
+- the terminal closeout binds SHA-256 of the source-universe bytes, real-source closeout bytes, authority-lock bytes, and authenticated family-discovery evidence.
+
+Only that file may carry `status=D11_TERMINAL_CLOSED`, `d11_terminal_closed=true`, and `terminal_capital_census_complete=true`. It still MUST keep RMC-012 actionability, repayment-cashflow sufficiency, portfolio concurrency, profitability, Shadow, Canary, and realized-P&L as explicit non-claims.

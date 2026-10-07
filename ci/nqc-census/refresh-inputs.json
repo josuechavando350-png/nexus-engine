@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "status": "PINNED",
+  "base_anchor": {
+    "block_number": 25437474,
+    "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8"
+  },
+  "target_anchor": {
+    "block_number": 26095351,
+    "block_hash": "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781"
+  },
+  "sources": [
+    {
+      "role": "base_d09",
+      "workflow_run_id": 36727756744,
+      "artifact_id": 11142074845,
+      "artifact": "nqc-rmc009-closeout-6db82ca89d4ef3a66a1b236de95670a6967eb3ea-36727756744-2",
+      "code_commit": "6db82ca89d4ef3a66a1b236de95670a6967eb3ea",
+      "code_tree": "4fca26769b9074cc42a7eef5cb18b1bce3e6fc0c",
+      "artifact_digest": "sha256:1b5f6c2c42a2ab81125e1c1c611194680da9a85d6a9897e15debe017ee4767d0",
+      "evidence_manifest_sha256": "a4b1e924c0088719573bfc73909c3c3d0423df98d93f89ec2a21123b03dc1f84"
+    },
+    {
+      "role": "target_d06",
+      "workflow_run_id": 36820687233,
+      "artifact_id": 11143129177,
+      "artifact": "nqc-rmc006-evidence-26095351-a33a012591cd6625ddb921d995bb1bd95b4a5406-36820687233-1",
+      "code_commit": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
+      "code_tree": "eda36fdc07e82ccdcc9666799fa8fe21aacc7f1d",
+      "artifact_digest": "sha256:1cdb46fca52ebf1e0e2094b1c14b19384ecb7beceb50229b967592ab7a0308b4",
+      "evidence_manifest_sha256": "005715e6f4479a6e9c12c62eed40b3d027107a1c9f4d31c6461845181dc733c4"
+    },
+    {
+      "role": "full_d09",
+      "workflow_run_id": 36823489219,
+      "artifact_id": 11159396055,
+      "artifact": "nqc-rmc009-closeout-6db82ca89d4ef3a66a1b236de95670a6967eb3ea-36823489219-1",
+      "code_commit": "6db82ca89d4ef3a66a1b236de95670a6967eb3ea",
+      "code_tree": "4fca26769b9074cc42a7eef5cb18b1bce3e6fc0c",
+      "artifact_digest": "sha256:9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6",
+      "evidence_manifest_sha256": "da54f1e1398bcf3b1026540646d6c306d8d6d20df15b9eda7c6826526c68439c"
+    }
+  ],
+  "target_d06_files": [
+    {"role":"d06_current_surface","source_path":"aave-current-surface.json","sha256":"e877128e1df0882fb76e1ad8839fcc70e30e16f24462dc659620ebc6baba7bb4"},
+    {"role":"d06_deployment_manifest","source_path":"closeout/aave-deployment-manifest.jsonl","sha256":"38174ad020f22a8d644be10fca7099f9c1ebd33a60b6af044a0a9c6457cf47fb"},
+    {"role":"d06_reserve_manifest","source_path":"closeout/aave-reserve-manifest.jsonl","sha256":"bd4c28928eb74ce100cbd1d239936cc6e0a55def6bcc352545d111fb336feb72"},
+    {"role":"d06_history","source_path":"aave-history.json","sha256":"e95e3bb6fc601c2eb6662a14025ab38676b59ef2eb00a475f405a531a86e3cd4"},
+    {"role":"d06_evidence_manifest","source_path":"closeout/evidence-manifest.json","sha256":"005715e6f4479a6e9c12c62eed40b3d027107a1c9f4d31c6461845181dc733c4"}
+  ]
+}

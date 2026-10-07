@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "purpose": "RMC011_UNISWAP_V3_DEDICATED_DUAL_PROVIDER_TRANSPORT",
+  "independence": {
+    "claim": "DISTINCT_DECLARED_OPERATORS_ONLY",
+    "infrastructure_independence": "NOT_PROVEN"
+  },
+  "providers": [
+    {
+      "namespace": 260,
+      "label": "tenderly-public",
+      "url": "https://mainnet.gateway.tenderly.co",
+      "operator": "Tenderly public mainnet gateway",
+      "min_interval_ms": 500,
+      "max_batch": 10,
+      "log_window": 1000000,
+      "pinning": "EIP1898_BLOCK_HASH"
+    },
+    {
+      "namespace": 261,
+      "label": "drpc-public",
+      "url": "https://eth.drpc.org",
+      "operator": "dRPC public Ethereum endpoint",
+      "min_interval_ms": 100,
+      "max_batch": 1,
+      "log_window": 10000,
+      "pinning": "EIP1898_BLOCK_HASH"
+    }
+  ]
+}

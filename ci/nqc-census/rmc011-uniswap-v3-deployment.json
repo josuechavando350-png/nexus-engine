@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "family": "UNISWAP_V3_FLASH",
+  "chain_id": 1,
+  "deployment_root": {
+    "contract": "UniswapV3Factory",
+    "address": "0x1f98431c8ad98523631ae4a59f267346ea31f984",
+    "provenance": {
+      "kind": "OFFICIAL_UPSTREAM_GIT_BLOB",
+      "repository": "Uniswap/v3-periphery",
+      "path": "deploys.md",
+      "commit": "0682387198a24c7cd63566a2c58398533860a5d1",
+      "blob_sha": "c0af53cb35bdef902965262c23b34f5d39baf343"
+    }
+  },
+  "runtime_requirements": {
+    "exact_anchor_code_required": true,
+    "dual_provider_required": true,
+    "pool_universe_source": "FACTORY_POOLCREATED_LOGS",
+    "full_log_history_through_anchor_required": true,
+    "factory_runtime_code_agreement_required": true,
+    "pool_runtime_code_required": true,
+    "d08_token_admission_intersection_required": true,
+    "terminal_resolution_claimed": false
+  },
+  "non_claims": [
+    "FACTORY_DOCUMENTATION_IS_NOT_RUNTIME_AUTHORITY",
+    "POOL_UNIVERSE_NOT_YET_ACQUIRED",
+    "UNISWAP_V3_FLASH_CAPACITY_NOT_YET_CERTIFIED",
+    "TERMINAL_D11_NOT_CERTIFIED"
+  ]
+}

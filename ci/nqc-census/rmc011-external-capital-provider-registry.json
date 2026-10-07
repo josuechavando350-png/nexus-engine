@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "stage": "RMC-011",
+  "contract": "NQC_RMC011_EXTERNAL_CAPITAL_PROVIDER_REGISTRY_V1",
+  "registry_scope": "NQC_EXECUTION_AUTHORIZED_EXTERNAL_CAPITAL_PROVIDERS",
+  "completeness_basis": "NQC_EXECUTION_MAY_USE_ONLY_EXPLICITLY_REGISTERED_AND_AUTHORIZED_EXTERNAL_PROVIDERS",
+  "status": "DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE",
+  "provider_backed_families": [
+    "EXTERNAL_GAS_CREDIT",
+    "EXTERNAL_GAS_SPONSOR",
+    "TRANSIENT_EXTERNAL_CREDIT",
+    "COLLATERALIZED_BORROWING",
+    "PERSISTENT_DEBT",
+    "INVENTORY_REQUIREMENT",
+    "BOND_OR_STAKE",
+    "SOLVER_OR_BUILDER_DEPOSIT",
+    "INTRA_BLOCK_TEMPORARY_LOCK"
+  ],
+  "provider_count": 0,
+  "providers": [],
+  "terminal_semantics": {
+    "empty_registry_means": "NO_EXTERNAL_PROVIDER_IS_AUTHORIZED_OR_CONFIGURED_FOR_NQC_EXECUTION_IN_THIS_HEAD",
+    "does_not_mean": "NO_SUCH_PROVIDER_EXISTS_OUTSIDE_NQC",
+    "terminal_rejection_requires_authenticated_workflow_artifact": true,
+    "terminal_availability_requires_authenticated_provider_evidence": true
+  },
+  "non_claims": [
+    "EMPTY_REGISTRY_IS_NOT_GLOBAL_PROVIDER_NONEXISTENCE",
+    "EMPTY_REGISTRY_IS_NOT_TERMINAL_REJECTION_BY_ITSELF",
+    "MODEL_SUPPORT_IS_NOT_PROVIDER_AVAILABILITY",
+    "NO_EXTERNAL_GAS_SOURCE_IS_CLAIMED_AVAILABLE",
+    "D11_TERMINAL_NOT_CLOSED"
+  ]
+}

@@ -196,11 +196,39 @@ fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
     Ok(rows)
 }
 
-fn token_execution_blockers(bytes: &[u8]) -> Result<BTreeMap<Address, Vec<String>>, CapitalError> {
+pub(crate) type TokenExecutionBlockers = BTreeMap<(Address, String), Vec<String>>;
+
+pub(crate) fn token_execution_blockers(
+    bytes: &[u8],
+) -> Result<TokenExecutionBlockers, CapitalError> {
     let mut tokens = BTreeMap::new();
     for row in parse_jsonl(bytes)? {
         let token = Address::parse_hex(text(&row, "token")?)
             .map_err(|_| CapitalError::InvalidCanonical("invalid D08 token address"))?;
+        let raw_roles = array(&row, "roles")?;
+        if raw_roles.is_empty() {
+            return Err(CapitalError::InvalidCanonical(
+                "D08 token admission has no role",
+            ));
+        }
+        let mut roles = raw_roles
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(ToOwned::to_owned)
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "D08 token admission role is not text",
+                    ))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        roles.sort();
+        if roles.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate D08 token admission role",
+            ));
+        }
+
         let execution = field(&row, "execution_compatibility")?;
         let raw_blockers = array(execution, "blockers")?;
         let mut blockers = raw_blockers
@@ -234,24 +262,28 @@ fn token_execution_blockers(bytes: &[u8]) -> Result<BTreeMap<Address, Vec<String
                 ))
             }
         }
-        if tokens.insert(token, blockers).is_some() {
-            return Err(CapitalError::InvalidCanonical(
-                "duplicate D08 token admission",
-            ));
+
+        for role in roles {
+            if tokens.insert((token, role), blockers.clone()).is_some() {
+                return Err(CapitalError::InvalidCanonical(
+                    "duplicate D08 token admission for role",
+                ));
+            }
         }
     }
     Ok(tokens)
 }
 
-fn execution_blockers(
-    tokens: &BTreeMap<Address, Vec<String>>,
+pub(crate) fn execution_blockers<'a>(
+    tokens: &'a TokenExecutionBlockers,
     token: Address,
-) -> Result<&[String], CapitalError> {
+    role: &str,
+) -> Result<&'a [String], CapitalError> {
     tokens
-        .get(&token)
+        .get(&(token, role.to_owned()))
         .map(Vec::as_slice)
         .ok_or(CapitalError::InvalidCanonical(
-            "D08 state row references token without admission record",
+            "D08 state row references token without role-scoped admission record",
         ))
 }
 
@@ -298,9 +330,12 @@ fn push_source(
     sources.push(source);
 }
 
-fn write_len_prefixed(hasher: &mut Sha256, value: &[u8]) {
-    hasher.update(u64::try_from(value.len()).unwrap_or(u64::MAX).to_be_bytes());
+fn write_len_prefixed(hasher: &mut Sha256, value: &[u8]) -> Result<(), CapitalError> {
+    let len = u64::try_from(value.len())
+        .map_err(|_| CapitalError::InvalidCanonical("capital import coverage length overflow"))?;
+    hasher.update(len.to_be_bytes());
     hasher.update(value);
+    Ok(())
 }
 
 fn protocol_contract_locator_hash(
@@ -324,12 +359,12 @@ fn coverage_commitment(outcomes: &mut [ImportOutcome]) -> Result<Hash32, Capital
     hasher.update([0]);
     hasher.update(
         u64::try_from(outcomes.len())
-            .unwrap_or(u64::MAX)
+            .map_err(|_| CapitalError::InvalidCanonical("capital import outcome count overflow"))?
             .to_be_bytes(),
     );
     for outcome in outcomes {
-        write_len_prefixed(&mut hasher, outcome.protocol.as_bytes());
-        write_len_prefixed(&mut hasher, outcome.market_id.as_bytes());
+        write_len_prefixed(&mut hasher, outcome.protocol.as_bytes())?;
+        write_len_prefixed(&mut hasher, outcome.market_id.as_bytes())?;
         match outcome.asset {
             CapitalAsset::NativeGas => hasher.update([0]),
             CapitalAsset::Token(address) => {
@@ -344,7 +379,7 @@ fn coverage_commitment(outcomes: &mut [ImportOutcome]) -> Result<Hash32, Capital
             }
             ImportOutcomeResult::Rejected(reason) => {
                 hasher.update([2]);
-                write_len_prefixed(&mut hasher, reason.code().as_bytes());
+                write_len_prefixed(&mut hasher, reason.code().as_bytes())?;
             }
         }
     }
@@ -354,7 +389,7 @@ fn coverage_commitment(outcomes: &mut [ImportOutcome]) -> Result<Hash32, Capital
     Hash32::new(bytes).map_err(|_| CapitalError::InvalidCanonical("zero D08 coverage commitment"))
 }
 
-fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError> {
+pub(crate) fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError> {
     let root = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("D08 pool facts JSON parse failed"))?;
     let aave = field(&root, "aave_pool")?;
@@ -381,7 +416,7 @@ fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError> {
     Ok((pool, value))
 }
 
-fn verify_d08_artifact_binding(
+pub(crate) fn verify_d08_artifact_binding(
     state_manifest_jsonl: &[u8],
     token_admission_jsonl: &[u8],
     pool_and_factory_facts_json: &[u8],
@@ -562,7 +597,8 @@ fn import_d08_capital_sources_unbound(
                     );
                     continue;
                 }
-                let token_blockers = execution_blockers(&tokens, asset_address)?.to_vec();
+                let token_blockers =
+                    execution_blockers(&tokens, asset_address, "AAVE_RESERVE_UNDERLYING")?.to_vec();
 
                 let facts = field(&row, "protocol_facts")?;
                 let active = bool_field(facts, "active")?;
@@ -690,14 +726,17 @@ fn import_d08_capital_sources_unbound(
                     ));
                 }
 
-                for (token, reserve_amount) in [(token0, reserve0), (token1, reserve1)] {
+                for (token, reserve_amount, role) in [
+                    (token0, reserve0, "V2_TOKEN0"),
+                    (token1, reserve1, "V2_TOKEN1"),
+                ] {
                     let asset = CapitalAsset::Token(token);
                     if !candidate_keys.insert((protocol.to_owned(), market_id.clone(), asset)) {
                         return Err(CapitalError::InvalidCanonical(
                             "duplicate D08 capital source candidate",
                         ));
                     }
-                    let mut source_blockers = execution_blockers(&tokens, token)?.to_vec();
+                    let mut source_blockers = execution_blockers(&tokens, token, role)?.to_vec();
                     if liquidity_state == "ZERO_LIQUIDITY_NOT_ROUTABLE" {
                         source_blockers.push(
                             CapitalImportRejectionReason::V2LiquidityUnavailable
