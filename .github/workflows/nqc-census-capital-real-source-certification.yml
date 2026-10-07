@@ -39,6 +39,7 @@ on:
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
+      - "ci/nqc-census/rmc011-univ3-rpc-providers.json"
       - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
       - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
@@ -65,6 +66,7 @@ on:
     branches:
       - "nqc/rmc-011-capital-census-foundation-20260929"
       - "nqc/rmc-011-derived-authority-lock-20260930"
+      - "nqc/rmc-011-terminal-multicall-fix-20261007"
     paths:
       - ".github/workflows/nqc-census-capital-real-source-certification.yml"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
@@ -98,6 +100,7 @@ on:
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
+      - "ci/nqc-census/rmc011-univ3-rpc-providers.json"
       - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
       - "ci/nqc-census/verify-rmc011-family-discovery-readiness.py"
@@ -984,7 +987,7 @@ jobs:
           rm -rf "$ROOT"
           mkdir -p "$ROOT"
 
-          for provider in tenderly-public mevblocker-rpc; do
+          for provider in tenderly-public drpc-public; do
             store="$ROOT/store-$provider"
             capture="$ROOT/capture-$provider.json"
             (
@@ -1012,8 +1015,8 @@ jobs:
           (
             cd nqc-census
             target/release/nqc-rmc011-uniswap-v3-reconcile \
-              --first "$ROOT/capture-blastapi-public.json" \
-              --second "$ROOT/capture-mevblocker-rpc.json" \
+              --first "$ROOT/capture-tenderly-public.json" \
+              --second "$ROOT/capture-drpc-public.json" \
               --out "$ROOT/reconciled-rust.json"
           ) | tee "$ROOT/reconcile-rust.log"
           grep -F "RMC011_UNISWAP_V3_RUST_RECONCILE_PASS" "$ROOT/reconcile-rust.log"

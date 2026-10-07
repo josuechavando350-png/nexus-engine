@@ -11,19 +11,19 @@
       "label": "tenderly-public",
       "url": "https://mainnet.gateway.tenderly.co",
       "operator": "Tenderly public mainnet gateway",
-      "min_interval_ms": 350,
-      "max_batch": 100,
+      "min_interval_ms": 500,
+      "max_batch": 10,
       "log_window": 1000000,
       "pinning": "EIP1898_BLOCK_HASH"
     },
     {
-      "namespace": 258,
-      "label": "mevblocker-rpc",
-      "url": "https://rpc.mevblocker.io",
-      "operator": "MEV Blocker public RPC",
+      "namespace": 261,
+      "label": "drpc-public",
+      "url": "https://eth.drpc.org",
+      "operator": "dRPC public Ethereum endpoint",
       "min_interval_ms": 100,
-      "max_batch": 200,
-      "log_window": 1000000,
+      "max_batch": 1,
+      "log_window": 10000,
       "pinning": "EIP1898_BLOCK_HASH"
     }
   ]
