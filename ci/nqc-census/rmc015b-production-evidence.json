@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "status": "RMC015_TEMPORAL_CONSERVATIVE_AUTHORITY_PASS",
+  "claim_scope": "COMPLETE_CANDIDATE_PARTITION_WITH_DEFINITE_OBSERVED_EPISODES_AND_FAIL_CLOSED_CENSORING",
+  "window": {
+    "start_block": 25880316,
+    "start_hash": "0x0b29e0c8c1997f059f82e7fed67e047269f68422ab194d56546c1c9833469d96",
+    "end_block": 26095351,
+    "end_hash": "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781"
+  },
+  "candidate_account_count": 29998,
+  "definite_account_count": 556,
+  "left_censored_initial_liquidatable_account_count": 432,
+  "definite_liquidation_event_episode_count": 139,
+  "definite_liquidation_transaction_count": 127,
+  "censored_candidate_account_count": 29442,
+  "candidate_partition_conserved": true,
+  "all_crossing_times_exactly_known": false,
+  "censored_candidates_contribute_zero_capacity": true,
+  "unknown_count": 0,
+  "provider_mismatch_count": 0,
+  "winner_replay_failure_count": 0,
+  "full_block_oracle_observation": {
+    "provider": "drpc",
+    "operator": "dRPC",
+    "block_count": 215036,
+    "transition_ledger_sha256": "bbad1eb1a6fba097bd642b1abb5aa417fc86686dfe271da7c66017609bd3c519",
+    "authority_role": "AUXILIARY_COMPLETE_DISCOVERY_NOT_SOLE_PROMOTION_AUTHORITY"
+  },
+  "promotion_rule": "ONLY_DUAL_PROVIDER_CANONICAL_LIQUIDATION_CALL_WITH_EXACT_WINNER_REPLAY",
+  "non_claims": [
+    "NO_NQC_CAPTURE_PROBABILITY",
+    "NO_UNOBSERVED_INTEREST_ONLY_EPISODE_PROMOTION",
+    "NO_REALIZED_NEXUS_PNL",
+    "NO_MONTHLY_TARGET_PROOF"
+  ],
+  "inputs": {
+    "trigger_authority_sha256": "c6d3b7cf003b1b65b07e0eafd1c116df43bdffcf0a7cd65a2ca067bfb3bbbc95",
+    "start_risk_authority_sha256": "59c2ba1f109b7cbf1a8818a1ec031f39086a9a27a986f82c31fe8d81ae41f4d3",
+    "candidate_state_replay_sha256": "045d8725bb513a99bbe6221af4196858afc3de9636578bfe040f4f0bfadbddce",
+    "candidate_envelope_sha256": "642b7ad1197e428c87331910c32c60395005001424fba6b9bf17ac344a889027",
+    "winner_replay_sha256": "29133f3b7ab34b74f92f5e8a3101e04a3cb2b1b389d4b8728813fbbae7f461be",
+    "pool_trigger_sha256": "7b370f2f86c5ca1ff39e7c1a264f1da3922450528f5b0b5a694a778669ad7b4f",
+    "full_block_oracle_summary_sha256": "08b5cf2efe68cf8c10b8b0663c60c6a1a91959afdafe1cbfed9a99c273f1c4fc"
+  },
+  "episode_ledger_sha256": "a7fe40d752ee43ea507e9723d056248ca28dd6fb5884f49f33bed60950e3782a",
+  "censored_ledger_sha256": "c64b6050ff7a3cd5ee7119c9b2f041dad6341fb0cd7b53884e8f1bba1efb9252",
+  "authority_commitment": "0x24df3d1c77d9e04d080a746feb6efb78c830c586b840969630d5a905ae22b6df",
+  "source_authority_file_sha256": "1acc37d37d82573dd3c27b02fe5de5bf40abd7081f42d22178cc27873f56efb4",
+  "source_snapshot": {
+    "provider": "DigitalOcean",
+    "image_id": 248761092,
+    "snapshot_action_id": 3455949449,
+    "source_droplet_id": 606773701,
+    "created_at": "2026-10-07T18:15:39Z"
+  }
+}
