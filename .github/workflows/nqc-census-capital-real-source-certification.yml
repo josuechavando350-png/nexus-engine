@@ -988,7 +988,7 @@ jobs:
           rm -rf "$ROOT"
           mkdir -p "$ROOT"
 
-          for provider in tenderly-public drpc-public; do
+          for provider in mevblocker-rpc drpc-public; do
             store="$ROOT/store-$provider"
             capture="$ROOT/capture-$provider.json"
             (
@@ -1016,7 +1016,7 @@ jobs:
           (
             cd nqc-census
             target/release/nqc-rmc011-uniswap-v3-reconcile \
-              --first "$ROOT/capture-tenderly-public.json" \
+              --first "$ROOT/capture-mevblocker-rpc.json" \
               --second "$ROOT/capture-drpc-public.json" \
               --out "$ROOT/reconciled-rust.json"
           ) | tee "$ROOT/reconcile-rust.log"
