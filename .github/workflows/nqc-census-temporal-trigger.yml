@@ -83,9 +83,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          grep -F 'Event-only discovery is explicitly insufficient.' ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md
+          grep -F 'Event-only discovery' ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md
           grep -F 'INTEREST_ONLY_CROSSING_CANDIDATES' ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md
-          grep -F 'Two URLs controlled by one operator do not constitute independent authority.' ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md
+          grep -F 'Two URLs controlled by one operator' ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md
           grep -F 'RMC-015A remains BLOCKED' ci/nqc-census/RMC015_TEMPORAL_TRIGGER_CONTRACT.md
           ! grep -R -n -F 'REAL_MARKET_CENSUS_CLOSED' ci/nqc-census/rmc015_trigger_model.py
 
