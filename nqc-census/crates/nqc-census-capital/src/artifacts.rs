@@ -321,7 +321,11 @@ pub fn verify_capital_artifact_bundle(
     let mut reconstructed = CapitalCensusLedger::evidentiary();
     let mut source_ids = BTreeSet::new();
     let mut source_key_ids = BTreeSet::new();
-    for record in &sources {
+    let mut source_row_count = 0_usize;
+    for record in sources {
+        let record = record?;
+        let record = &record;
+        source_row_count = source_row_count.checked_add(1).ok_or(CapitalError::InvalidCanonical("source count overflow"))?;
         let encoded = decode_plain_hex(
             record
                 .str_field("canonical_record")
@@ -362,7 +366,11 @@ pub fn verify_capital_artifact_bundle(
     }
 
     let mut requirement_ids = BTreeSet::new();
-    for record in &requirements {
+    let mut requirement_row_count = 0_usize;
+    for record in requirements {
+        let record = record?;
+        let record = &record;
+        requirement_row_count = requirement_row_count.checked_add(1).ok_or(CapitalError::InvalidCanonical("requirement count overflow"))?;
         let encoded = decode_plain_hex(record.str_field("canonical_record").map_err(|_| {
             CapitalError::InvalidCanonical("requirement canonical record missing")
         })?)?;
@@ -393,7 +401,11 @@ pub fn verify_capital_artifact_bundle(
 
     let mut feasibility_ids = BTreeSet::new();
     let mut rejected = BTreeSet::new();
-    for record in &feasibility {
+    let mut feasibility_row_count = 0_usize;
+    for record in feasibility {
+        let record = record?;
+        let record = &record;
+        feasibility_row_count = feasibility_row_count.checked_add(1).ok_or(CapitalError::InvalidCanonical("feasibility count overflow"))?;
         let provenance = record_provenance(record)?;
         provenance.validate_anchor(authority.observation_anchor())?;
         require_observation_anchor(record, authority.observation_anchor())?;
@@ -444,7 +456,11 @@ pub fn verify_capital_artifact_bundle(
     }
 
     let mut rejection_rows = BTreeSet::new();
-    for record in &rejections {
+    let mut rejection_row_count = 0_usize;
+    for record in rejections {
+        let record = record?;
+        let record = &record;
+        rejection_row_count = rejection_row_count.checked_add(1).ok_or(CapitalError::InvalidCanonical("rejection count overflow"))?;
         let provenance = record_provenance(record)?;
         provenance.validate_anchor(authority.observation_anchor())?;
         require_observation_anchor(record, authority.observation_anchor())?;
@@ -500,10 +516,10 @@ pub fn verify_capital_artifact_bundle(
         ));
     }
     let rejected_count = usize_json(&summary, "rejected_count")?;
-    if source_count != sources.len()
-        || requirement_count != requirements.len()
-        || feasibility.len() != requirement_count
-        || rejected_count != rejections.len()
+    if source_count != source_row_count
+        || requirement_count != requirement_row_count
+        || feasibility_row_count != requirement_count
+        || rejected_count != rejection_row_count
         || feasible_count
             .checked_add(rejected_count)
             .ok_or(CapitalError::InvalidCanonical("summary count overflow"))?
@@ -624,7 +640,7 @@ pub fn verify_capital_artifact_bundle(
     Ok(CapitalArtifactVerification {
         source_count,
         requirement_count,
-        feasibility_count: feasibility.len(),
+        feasibility_count: feasibility_row_count,
         feasible_count,
         feasible_external_gas_count,
         external_gas_funding_source_count,
@@ -1721,23 +1737,25 @@ fn summary_provenance(summary: &Json) -> Result<ArtifactProvenance, CapitalError
     provenance_fields(summary, "summary provenance missing")
 }
 
-fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
+fn parse_jsonl(
+    bytes: &[u8],
+) -> Result<impl Iterator<Item = Result<Json, CapitalError>> + '_, CapitalError> {
     if !bytes.is_empty() && !bytes.ends_with(b"\n") {
         return Err(CapitalError::InvalidCanonical(
             "capital JSONL must end with newline",
         ));
     }
-    let mut records = Vec::new();
-    for line in bytes.split(|byte| *byte == b'\n') {
-        if line.is_empty() {
-            continue;
-        }
-        let parsed = Json::parse(line)
-            .map_err(|_| CapitalError::InvalidCanonical("invalid capital JSONL record"))?;
-        require_canonical_json(line, &parsed)?;
-        records.push(parsed);
-    }
-    Ok(records)
+    // Reject noncanonical/invalid data as each record is consumed, rather
+    // than materializing the entire source universe into Vec<Json> up front.
+    Ok(bytes
+        .split(|byte| *byte == b'\n')
+        .filter(|line| !line.is_empty())
+        .map(|line| {
+            let parsed = Json::parse(line)
+                .map_err(|_| CapitalError::InvalidCanonical("invalid capital JSONL record"))?;
+            require_canonical_json(line, &parsed)?;
+            Ok(parsed)
+        }))
 }
 
 fn require_canonical_json(bytes: &[u8], value: &Json) -> Result<(), CapitalError> {
