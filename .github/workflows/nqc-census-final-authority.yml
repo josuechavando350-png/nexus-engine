@@ -1,0 +1,69 @@
+name: NQC RMC-017 Final Census Closeout Foundation
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/RMC017_FINAL_CLOSEOUT_CONTRACT.md"
+      - "ci/nqc-census/rmc017_closeout_model.py"
+      - "ci/nqc-census/test_rmc017_closeout_model.py"
+      - "ci/nqc-census/rmc017-final-inputs.json"
+      - ".github/workflows/nqc-census-final-authority.yml"
+  push:
+    branches:
+      - "nqc/rmc-017-final-closeout-foundation-20261007"
+    paths:
+      - "ci/nqc-census/RMC017_FINAL_CLOSEOUT_CONTRACT.md"
+      - "ci/nqc-census/rmc017_closeout_model.py"
+      - "ci/nqc-census/test_rmc017_closeout_model.py"
+      - "ci/nqc-census/rmc017-final-inputs.json"
+      - ".github/workflows/nqc-census-final-authority.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc017-final-authority-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify RMC-016 ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin nqc/rmc-016-capacity-foundation-20261007
+          UPSTREAM="$(git rev-parse FETCH_HEAD)"
+          git merge-base --is-ancestor "$UPSTREAM" HEAD
+          echo "RMC017_RMC016_ANCESTRY_PASS base=$UPSTREAM head=$(git rev-parse HEAD)"
+
+      - name: Verify source lock remains blocked
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == 1 and
+            .status == "BLOCKED_AWAITING_RMC014_RMC015_RMC016" and
+            .real_market_census_closed == false and
+            .rmc014 == null and .rmc015 == null and .rmc016 == null and
+            (.blocking_reasons | length == 3)
+          ' ci/nqc-census/rmc017-final-inputs.json >/dev/null
+
+      - name: Final authority invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'RMC-017 is the sole authority allowed to emit' ci/nqc-census/RMC017_FINAL_CLOSEOUT_CONTRACT.md
+          grep -F 'The source lock can never self-certify closure.' ci/nqc-census/RMC017_FINAL_CLOSEOUT_CONTRACT.md
+          python3 ci/nqc-census/test_rmc017_closeout_model.py
+          python3 -m py_compile ci/nqc-census/rmc017_closeout_model.py ci/nqc-census/test_rmc017_closeout_model.py
+          echo RMC017_FINAL_CLOSEOUT_FOUNDATION_PASS

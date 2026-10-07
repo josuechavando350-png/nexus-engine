@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED_AWAITING_RMC014_RMC015_RMC016",
+  "repository": "josuechavando350-png/nexus-engine",
+  "real_market_census_closed": false,
+  "rmc014": null,
+  "rmc015": null,
+  "rmc016": null,
+  "blocking_reasons": [
+    "RMC014_STRUCTURAL_AUTHORITY_NOT_PINNED",
+    "RMC015_TEMPORAL_AUTHORITY_NOT_PINNED",
+    "RMC016_CAPACITY_AUTHORITY_NOT_PINNED"
+  ]
+}
