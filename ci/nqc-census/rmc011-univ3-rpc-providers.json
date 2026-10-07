@@ -7,12 +7,12 @@
   },
   "providers": [
     {
-      "namespace": 260,
-      "label": "tenderly-public",
-      "url": "https://mainnet.gateway.tenderly.co",
-      "operator": "Tenderly public mainnet gateway",
-      "min_interval_ms": 500,
-      "max_batch": 10,
+      "namespace": 258,
+      "label": "mevblocker-rpc",
+      "url": "https://rpc.mevblocker.io",
+      "operator": "MEV Blocker public RPC",
+      "min_interval_ms": 250,
+      "max_batch": 1,
       "log_window": 1000000,
       "pinning": "EIP1898_BLOCK_HASH"
     },
