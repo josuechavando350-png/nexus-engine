@@ -13,7 +13,7 @@
       "operator": "MEV Blocker public RPC",
       "min_interval_ms": 250,
       "max_batch": 1,
-      "log_window": 500000,
+      "log_window": 5000,
       "pinning": "EIP1898_BLOCK_HASH"
     },
     {
@@ -23,7 +23,7 @@
       "operator": "Tenderly public mainnet gateway",
       "min_interval_ms": 500,
       "max_batch": 1,
-      "log_window": 1000000,
+      "log_window": 250000,
       "pinning": "EIP1898_BLOCK_HASH"
     }
   ]
