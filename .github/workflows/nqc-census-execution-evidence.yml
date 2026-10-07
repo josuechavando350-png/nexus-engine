@@ -276,20 +276,28 @@ jobs:
           HISTORY_BLOCKS="$(jq -r '.gas_policy.history_blocks' "$INPUTS")"
           PERCENTILES="$(jq -r '.gas_policy.reward_percentiles | map(tostring) | join(",")' "$INPUTS")"
           ADMISSION_PERCENTILE="$(jq -r '.gas_policy.admission_priority_percentile' "$INPUTS")"
-          jq -c '.providers[]' "$INPUTS" | while read -r provider; do
-            PROVIDER_ID="$(jq -r '.provider_id' <<<"$provider")"
-            RPC_URL="$(jq -r '.rpc_url' <<<"$provider")"
+          collect_gas() {
+            local provider_id="$1"
+            local rpc_url="$2"
             python3 ci/nqc-census/collect_rmc013_gas_evidence.py \
-              --rpc-url "$RPC_URL" \
-              --provider-id "$PROVIDER_ID" \
+              --rpc-url "$rpc_url" \
+              --provider-id "$provider_id" \
               --anchor-summary "$WORK/actionability-summary.json" \
               --oracle-manifest "$WORK/d08-oracle-manifest.jsonl" \
               --wrapped-native "$WRAPPED_NATIVE" \
               --history-blocks "$HISTORY_BLOCKS" \
               --reward-percentiles "$PERCENTILES" \
               --admission-priority-percentile "$ADMISSION_PERCENTILE" \
-              --out "$WORK/gas/providers/$PROVIDER_ID.json"
-          done
+              --out "$WORK/gas/providers/$provider_id.json"
+          }
+          BLAST_GAS="$(jq -r '.providers[] | select(.provider_id=="blastapi-public") | .rpc_url' "$INPUTS")"
+          MEV_GAS="$(jq -r '.providers[] | select(.provider_id=="mevblocker-rpc") | .rpc_url' "$INPUTS")"
+          collect_gas blastapi-public "$BLAST_GAS" &
+          PID_BLAST_GAS=$!
+          collect_gas mevblocker-rpc "$MEV_GAS" &
+          PID_MEV_GAS=$!
+          wait "$PID_BLAST_GAS"
+          wait "$PID_MEV_GAS"
 
           python3 ci/nqc-census/reconcile_rmc013_gas_evidence.py \
             --provider-evidence "$WORK/gas/providers/blastapi-public.json" \
@@ -384,25 +392,26 @@ jobs:
           test -n "$BLAST"
           test -n "$MEV"
 
-          python3 ci/nqc-census/run_rmc013_anvil_batch.py \
-            --routes "$WORK/routes/v2-route-plans.jsonl" \
-            --rpc-url "$BLAST" \
-            --provider-id blastapi-public \
-            --creation-bytecode "$WORK/pft/aave-creation-bytecode.hex" \
-            --output "$WORK/evidence/blastapi-public.jsonl" \
-            --summary "$WORK/evidence/blastapi-public-summary.json" \
-            --anvil-log "$WORK/evidence/blastapi-public-anvil.log" \
-            --port 18545
-
-          python3 ci/nqc-census/run_rmc013_anvil_batch.py \
-            --routes "$WORK/routes/v2-route-plans.jsonl" \
-            --rpc-url "$MEV" \
-            --provider-id mevblocker-rpc \
-            --creation-bytecode "$WORK/pft/aave-creation-bytecode.hex" \
-            --output "$WORK/evidence/mevblocker-rpc.jsonl" \
-            --summary "$WORK/evidence/mevblocker-rpc-summary.json" \
-            --anvil-log "$WORK/evidence/mevblocker-rpc-anvil.log" \
-            --port 18546
+          run_fork_batch() {
+            local rpc_url="$1"
+            local provider_id="$2"
+            local port="$3"
+            python3 ci/nqc-census/run_rmc013_anvil_batch.py \
+              --routes "$WORK/routes/v2-route-plans.jsonl" \
+              --rpc-url "$rpc_url" \
+              --provider-id "$provider_id" \
+              --creation-bytecode "$WORK/pft/aave-creation-bytecode.hex" \
+              --output "$WORK/evidence/$provider_id.jsonl" \
+              --summary "$WORK/evidence/$provider_id-summary.json" \
+              --anvil-log "$WORK/evidence/$provider_id-anvil.log" \
+              --port "$port"
+          }
+          run_fork_batch "$BLAST" blastapi-public 18545 &
+          PID_BLAST_EXEC=$!
+          run_fork_batch "$MEV" mevblocker-rpc 18546 &
+          PID_MEV_EXEC=$!
+          wait "$PID_BLAST_EXEC"
+          wait "$PID_MEV_EXEC"
 
           jq -e '.status=="RMC_013_ANVIL_BATCH_PASS" and .route_conserved==true and .live_transaction_sent==false and .own_capital_used==false' \
             "$WORK/evidence/blastapi-public-summary.json" >/dev/null
