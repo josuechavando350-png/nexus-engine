@@ -23,7 +23,7 @@
       "operator": "dRPC public Ethereum endpoint",
       "min_interval_ms": 100,
       "max_batch": 1,
-      "log_window": 10000,
+      "log_window": 5000,
       "pinning": "EIP1898_BLOCK_HASH"
     }
   ]
