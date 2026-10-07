@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED_AWAITING_RMC015A_AND_PRODUCTION_TEMPORAL_REPLAY",
+  "repository": "josuechavando350-png/nexus-engine",
+  "rmc015a": null,
+  "temporal_window": null,
+  "blocking_reasons": [
+    "RMC015A_TRIGGER_AUTHORITY_NOT_PINNED",
+    "TEMPORAL_WINDOW_NOT_DECLARED",
+    "HISTORICAL_EPISODE_REPLAY_NOT_EXECUTED",
+    "HISTORICAL_EXECUTION_ECONOMICS_NOT_MATERIALIZED"
+  ],
+  "non_claims": [
+    "NO_CAPTURE_PROBABILITY",
+    "NO_REALIZED_PNL",
+    "NO_MONTHLY_CAPACITY",
+    "NO_CENSUS_CLOSEOUT"
+  ]
+}
