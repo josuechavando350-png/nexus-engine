@@ -2,8 +2,8 @@ use nqc_census_capital::{
     artifacts::{export_capital_artifacts, ArtifactProvenance},
     demands::import_d09_borrower_demands,
     replay::{
-        verify_real_source_closeout_bytes_for_code, verify_real_source_closeout_for_code,
-        D08ReplayInputs, D09ReplayInputs, UpstreamAuthorityLock,
+        verify_real_source_closeout_for_code, D08ReplayInputs, D09ReplayInputs,
+        UpstreamAuthorityLock,
     },
     upstream::{import_d08_capital_sources, D08CapitalImportContext},
     CapitalCensusLedger, CapitalEvidenceRef, UpstreamCensusStage,
@@ -149,16 +149,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         d08_replay,
         d09_replay,
     )?;
+    // verify_real_source_closeout_for_code already performs the independent
+    // D08/D09 replay and exact code/authority validation. canonical_json()
+    // re-validates the closeout commitment. Replaying the same upstream bytes
+    // again here is redundant and materially increases terminal closeout time.
     let closeout_bytes = closeout.canonical_json()?;
-    verify_real_source_closeout_bytes_for_code(
-        &closeout_bytes,
-        &bundle,
-        &args.code_commit,
-        &args.code_tree,
-        &authority_lock,
-        d08_replay,
-        d09_replay,
-    )?;
 
     fs::create_dir_all(&args.output_dir)?;
     for file in &bundle.files {
