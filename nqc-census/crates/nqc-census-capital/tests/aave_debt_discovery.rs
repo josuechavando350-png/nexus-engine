@@ -163,10 +163,7 @@ fn build_bundle_with_token_blockers(
     build_bundle_with_token_bytes(state, token_admission(token_blockers))
 }
 
-fn build_bundle_with_token_bytes(
-    state: Vec<u8>,
-    token: Vec<u8>,
-) -> Result<Bundle, CapitalError> {
+fn build_bundle_with_token_bytes(state: Vec<u8>, token: Vec<u8>) -> Result<Bundle, CapitalError> {
     let observation_anchor = anchor();
     let pool = canonical(Json::object([(
         "aave_pool",
