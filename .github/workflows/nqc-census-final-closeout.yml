@@ -14,6 +14,7 @@ on:
   push:
     branches:
       - "nqc/rmc-014-clean-restack-d13-20260930"
+      - "nqc/rmc-014-structural-only-20261007"
     paths:
       - "nqc-census/crates/nqc-census-closeout/**"
       - "nqc-census/crates/nqc-census-economics/**"
@@ -31,7 +32,7 @@ permissions:
 
 concurrency:
   group: rmc014-structural-chain-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   RUST_TOOLCHAIN: "1.98.1"
