@@ -85,11 +85,12 @@ fn economics() -> EconomicBoundary {
 }
 
 #[test]
-fn all_terminal_proofs_close_rmc_without_claiming_profitability() -> TestResult {
+fn all_structural_proofs_certify_chain_without_closing_rmc() -> TestResult {
     let certificate =
         CloseoutCertificate::certify(proofs()?, counts(), economics(), vec![hash(200), hash(201)])?;
-    assert!(certificate.real_market_census_closed());
-    assert_eq!(certificate.status(), "REAL_MARKET_CENSUS_CLOSED");
+    assert!(!certificate.real_market_census_closed());
+    assert!(certificate.structural_chain_certified());
+    assert_eq!(certificate.status(), "RMC_014_STRUCTURAL_CHAIN_CERTIFIED");
     assert_eq!(certificate.stages().len(), 8);
     assert_eq!(certificate.economics().capture_calibrated_count, 0);
     Ok(())
@@ -178,7 +179,8 @@ fn opportunity_count_may_exceed_borrowable_market_count_without_aliasing_domains
     };
     let certificate =
         CloseoutCertificate::certify(proofs()?, independent, boundary, vec![hash(200)])?;
-    assert!(certificate.real_market_census_closed());
+    assert!(!certificate.real_market_census_closed());
+    assert!(certificate.structural_chain_certified());
     Ok(())
 }
 

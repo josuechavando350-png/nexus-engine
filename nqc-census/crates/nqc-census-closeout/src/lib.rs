@@ -1,9 +1,11 @@
-//! RMC-014 terminal Real Market Census certification.
+//! RMC-014 structural Census-chain certification.
 //!
-//! This crate owns one thing: deciding whether the Census may legitimately
-//! emit REAL_MARKET_CENSUS_CLOSED. It has no network, transaction, discovery,
-//! routing, capture or P&L authority. Every upstream proof must already exist,
-//! be content-addressed and be explicitly admitted.
+//! RMC-014 authenticates and binds the exact RMC-006..RMC-013 structural chain.
+//! It MUST NOT emit REAL_MARKET_CENSUS_CLOSED. Final Census authority belongs
+//! to RMC-017 after temporal-opportunity and conservative-capacity authorities
+//! are independently certified. This crate has no network, transaction,
+//! discovery, routing, capture or P&L authority. Every upstream proof must
+//! already exist, be content-addressed and be explicitly admitted.
 
 use nqc_census_core::Hash32;
 use sha2::{Digest, Sha256};
@@ -12,7 +14,7 @@ use std::{
     fmt::{Display, Formatter},
 };
 
-const CLOSEOUT_DOMAIN: &[u8] = b"NQC-RMC014-REAL-MARKET-CENSUS-CLOSEOUT-V1";
+const CLOSEOUT_DOMAIN: &[u8] = b"NQC-RMC014-STRUCTURAL-CENSUS-CHAIN-V2";
 const REQUIRED_STAGE_COUNT: usize = 8;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -161,10 +163,10 @@ impl Display for CloseoutError {
                 f.write_str("capital-feasible opportunities exist without zero-own-capital proof")
             }
             Self::ProfitabilityClaimForbidden => {
-                f.write_str("RMC closeout cannot claim realized or target profitability")
+                f.write_str("RMC-014 structural certification cannot claim realized or target profitability")
             }
             Self::ScopeClaimForbidden => f.write_str(
-                "RMC closeout must remain conservative and cannot claim global capital or route completeness",
+                "RMC-014 structural certification must remain conservative and cannot claim global capital or route completeness",
             ),
             Self::EmptyTerminalEvidence => f.write_str("terminal closeout requires evidence"),
             Self::DuplicateTerminalEvidence => f.write_str("terminal closeout repeats evidence"),
@@ -500,12 +502,17 @@ impl CloseoutCertificate {
         })
     }
 
+    /// RMC-014 is deliberately not final Census authority.
     pub const fn real_market_census_closed(&self) -> bool {
+        false
+    }
+
+    pub const fn structural_chain_certified(&self) -> bool {
         true
     }
 
     pub const fn status(&self) -> &'static str {
-        "REAL_MARKET_CENSUS_CLOSED"
+        "RMC_014_STRUCTURAL_CHAIN_CERTIFIED"
     }
 
     pub fn stages(&self) -> &[StageProof] {

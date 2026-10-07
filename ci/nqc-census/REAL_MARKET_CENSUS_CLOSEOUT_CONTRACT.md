@@ -1,69 +1,60 @@
-# RMC-014 — Real Market Census Terminal Closeout Contract
+# RMC-014 — Structural Census Chain Contract
 
-## Authority
+## Authority boundary
 
-RMC-014 is the only Census layer allowed to emit the formal terminal marker
-`REAL_MARKET_CENSUS_CLOSED`.
+RMC-014 authenticates the exact structural chain from RMC-006 through RMC-013.
 
-It is downstream of the immutable RMC-001..RMC-005 truth stack and requires
-content-addressed terminal proofs for RMC-006 through RMC-013. A passing unit
-test, synthetic fixture, prior head, mutable "latest" artifact, or inferred
-success is not terminal authority.
+RMC-014 MUST NOT emit the formal marker `REAL_MARKET_CENSUS_CLOSED`, set
+`real_market_census_closed=true`, or otherwise represent the Real Market Census
+as terminally closed.
 
-Protocol/Fork Truth remains closed and immutable at:
+Final Census authority is reserved for RMC-017 and is reachable only after:
 
-- commit: `5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf`
-- tree: `ef3498da528f85cdb9fdd82222d64773a557f853`
+1. RMC-014 has certified the structural RMC-006..RMC-013 chain;
+2. RMC-015 has certified temporal opportunity authority from complete,
+   censored, no-look-ahead historical episodes; and
+3. RMC-016 has certified conservative non-double-counted physical/economic
+   capacity over those episodes.
+
+Until RMC-017 independently authenticates all three authority families:
+
+`REAL_MARKET_CENSUS_CLOSED = false`
+
+Protocol/Fork Truth remains immutable at commit
+`5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf` and tree
+`ef3498da528f85cdb9fdd82222d64773a557f853`.
 
 ## Mission
 
-Close Real Market Census only when the repository can prove, from exact
-content-addressed evidence, the complete chain:
+RMC-014 proves that the structural Census evidence chain is internally
+consistent, content-addressed, reproducible and fail-closed:
 
 ```
 discovery
 → canonicalization
 → state reconstruction
-→ economically active / borrowable state
-→ exact actionable opportunity derivation
-→ zero-own-capital feasibility
-→ portfolio conflict/capacity truth
-→ execution economics
+→ account/position truth
+→ capital-source truth
+→ actionability and conflict truth
+→ exact execution economics
 → deterministic Shadow handoff
 ```
 
-RMC-014 is a certification layer. It does not discover markets, size
-liquidations, invent capture probability, execute transactions, or claim
-realized P&L.
+This is necessary but not sufficient for final Census closure. A structural
+snapshot does not prove temporal arrival rate, opportunity lifetime,
+time-to-first-competitor, recurrence, censoring, regime dependence, or
+conservative daily/monthly capacity.
 
-## Required terminal stages
+## Required structural stages
 
-Exactly one admitted proof is required for each:
+Exactly one admitted proof is required for each of RMC-006 through RMC-013.
 
-- RMC-006
-- RMC-007
-- RMC-008
-- RMC-009
-- RMC-010
-- RMC-011
-- RMC-012
-- RMC-013
+Every stage proof binds the exact code commit/tree, canonical workflow name,
+workflow run id, artifact id/name/digest, authority commitment, coverage
+commitment, admission state, mismatch/UNKNOWN/blocker counts and a non-empty
+content-addressed evidence set.
 
-Every stage proof binds:
-
-- exact code commit;
-- exact code tree;
-- exact artifact SHA-256;
-- authority commitment;
-- coverage commitment;
-- admitted status;
-- coverage-complete status;
-- unresolved mismatch count;
-- UNKNOWN failure count;
-- blocker count;
-- content-addressed evidence references.
-
-Terminal admission requires:
+Structural admission requires, for every stage:
 
 ```
 admitted = true
@@ -73,59 +64,14 @@ unknown_failure_count = 0
 blocker_count = 0
 ```
 
-## Critical RMC-012 actionability requirement
+Mutable "latest successful", synthetic substitutions, hand-authored authority
+claims and artifacts from non-canonical workflows are forbidden.
 
-RMC-011 intentionally preserves the RMC-009 boundary
-`LIQUIDATABILITY_NOT_CLAIMED`. Therefore RMC-012 is not terminal authority
-merely because its conflict-graph primitives pass synthetic tests.
+## Structural pipeline conservation
 
-Before RMC-012 may be pinned as admitted terminal evidence, an exact
-liquidation/actionability bridge MUST:
+RMC-014 keeps market and opportunity populations separate.
 
-1. consume the admitted D08 state/oracle/configuration bytes;
-2. consume the admitted D09 borrower/position bytes;
-3. bind the certified PFT liquidation semantics;
-4. derive every actionable candidate deterministically;
-5. preserve explicit blockers for every rejected borrower/debt/collateral
-   combination;
-6. emit a coverage commitment proving no below-one borrower or supported
-   position disappeared;
-7. construct exact capital requirements only after actionability and sizing are
-   certified;
-8. produce zero unexplained mismatches and zero UNKNOWN reasons.
-
-A D12 proof built only from hand-authored or synthetic `CapitalRequirement`
-fixtures is FOUNDATION evidence and MUST NOT satisfy RMC-014.
-
-## Critical RMC-013 economics requirement
-
-RMC-013 terminal evidence must consume the real RMC-012 candidate set and cover
-every execution-simulatable candidate with exact economics.
-
-Required economic truth includes:
-
-- complete cost taxonomy;
-- cost incidence split into unconditional / on-capture / on-failure;
-- exact gas valuation;
-- exact route/price-impact/fee evidence where applicable;
-- nonlinear measured/simulated size curves;
-- explicit tail reserve/evidence;
-- deterministic pre-capture prediction commitment;
-- no interpolation or extrapolation beyond measured curve points;
-- no invented capture probability.
-
-Capture calibration may legitimately remain absent at RMC close. In that case
-RMC-013 must hand the exact ex-ante prediction to Shadow and MUST NOT label
-capture-adjusted profitability as empirically proven.
-
-## Pipeline conservation
-
-RMC-014 keeps two population domains separate. A market is not an opportunity:
-one borrowable market may contain many borrowers and one borrower may expose
-multiple debt/collateral execution candidates. Treating the whole Census as one
-monotonic counter would therefore undercount or fabricate conservation.
-
-The **market funnel** is non-increasing:
+Market funnel:
 
 ```
 markets_discovered
@@ -135,7 +81,7 @@ markets_discovered
 >= markets_borrowable
 ```
 
-The **opportunity/candidate funnel** is independently non-increasing:
+Opportunity funnel:
 
 ```
 actionable_candidates
@@ -147,136 +93,91 @@ actionable_candidates
 >= shadow_eligible_candidates
 ```
 
-No artificial inequality is imposed between `markets_borrowable` and
-`actionable_candidates`. Their relationship is instead proved by the
-RMC-012 actionability coverage commitment over the exact borrower/position
-universe.
+No artificial inequality is imposed between borrowable markets and actionable
+candidates. Their identity relationship is carried by the RMC-012 coverage
+commitment.
 
-The RMC-012 real actionability candidate count must equal
-`actionable_candidates`.
-
-The RMC-013 exact economics quote count must equal
-`execution_simulatable_candidates`.
-
-The deterministic Shadow prediction count must equal
-`shadow_eligible_candidates`.
-
-Capture-adjusted and tail-adjusted expected-value counts are deliberately NOT
-part of the RMC monotonic funnel. RMC-013 may close with capture calibration
-absent; Shadow Execution is the empirical authority that observes competitor
-arrival, inclusion and miss outcomes and calibrates capture probability.
-Therefore requiring positive capture-adjusted or tail-adjusted EV before Shadow
-would either fabricate a probability or circularly require Shadow evidence to
-close Census. RMC closes on exact success-path economics plus deterministic
-Shadow handoff; capture-adjusted/tail-adjusted gates belong to Shadow.
+RMC-013 economics coverage must exactly match the execution-simulatable
+candidate set. Shadow-handoff counts must be internally conserved.
 
 ## OWN_CAPITAL = 0
 
-If `capital_feasible_candidates > 0`, the terminal evidence must prove that no
-operator-owned capital was used to make any such opportunity feasible.
+If capital-feasible candidates exist, structural certification requires the
+upstream evidence to prove that operator-owned capital was not used to make
+those candidates feasible.
 
-A zero-opportunity census may close without fabricating
-`zero_own_capital_proven=true`; it simply makes no opportunity-level
-zero-own-capital feasibility claim.
+This is a source/feasibility fact, not a profitability claim.
 
-## Profitability boundary
+## Economic scope boundary
 
-RMC-014 MUST NOT claim either:
+RMC-014 may bind exact pre-capture execution economics produced by RMC-013.
+It does not certify realized capture probability or realized income.
 
-- realized profitability; or
-- `P(monthly_net_pnl >= 45,000 USD) >= 0.90`.
-
-Those claims require empirical Shadow/Canary/real-P&L evidence.
-
-The $1,500–$3,000/day and $45,000+/month figures remain falsifiable economic
-targets, never closeout assumptions.
-
-RMC may close while those targets remain unproven, lower than desired, or even
-falsified. Truth has priority over the target.
-
-## Determinism
-
-The terminal commitment is input-order independent and binds:
-
-- all eight exact terminal stage proofs;
-- all pipeline counts;
-- the economic boundary;
-- terminal evidence refs.
-
-Changing any admitted artifact, code identity, coverage commitment, count or
-economic boundary must change the terminal commitment.
-
-## Certification scope boundary
-
-RMC-014 certifies **Conservative Realizable Capacity over the exact
-evidence-admitted universe**. It MUST NOT silently upgrade that lower bound into
-a claim that every economically relevant capital source or routing venue on the
-chain has been exhaustively enumerated.
-
-The terminal economic boundary therefore MUST bind:
+The structural certificate MUST preserve:
 
 ```
+realized_profitability_proven = false
+monthly_target_probability_proven = false
 conservative_realizable_capacity_only = true
 global_capital_source_completeness_claimed = false
 global_route_venue_completeness_claimed = false
 ```
 
-These flags are part of the terminal commitment. RMC-011 currently states
-`GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED`, and the current physical
-execution producer admits Uniswap V2 routes rather than every possible venue
-family. Until separate authenticated discovery/admission paths close those
-gaps, any global-completeness claim MUST fail closed.
+The current Month-1 USD 300,000 floor is a falsifiable target. It is not an
+input to structural certification and cannot be inferred from RMC-014.
 
-This does not weaken the certified capacity: admitted opportunities must still
-be fully executable under the exact certified capital, route, gas, conflict and
-cost evidence. It prevents an admitted conservative lower bound from being
-misrepresented as a global maximum.
+## Explicit non-authorities
 
-## Formal marker
+RMC-014 does not certify:
 
-The literal marker:
+- temporal opportunity arrival rates;
+- opportunity lifetime or censoring;
+- competitor-arrival latency;
+- recurrence or regime dependence;
+- temporal conflict scheduling;
+- daily/monthly conservative capacity;
+- empirical capture probability;
+- Shadow capture performance;
+- Canary performance;
+- realized P&L;
+- Month-1 target reliability.
 
-`REAL_MARKET_CENSUS_CLOSED`
+Those facts are downstream.
 
-may appear as a certified state only after every requirement above passes.
+## Determinism
 
-Until then:
+The RMC-014 structural commitment is input-order independent and binds all
+eight stage proofs, structural pipeline counts, the economic scope boundary and
+the structural evidence references.
 
-`REAL_MARKET_CENSUS_CLOSED = false`
+Changing any admitted artifact, code identity, stage coverage commitment,
+count or bound scope must change the structural commitment.
 
-No workflow, PR body, comment or summary may infer closure from partial green
-checks.
+## Structural marker
 
-## Terminal certificate materialization
+A successful RMC-014 materialization emits only:
 
-The source authority lock is schema version 3 and never self-certifies closure.
-When `status=PINNED`, it MUST additionally bind:
-- the canonical GitHub workflow name for every RMC-006..RMC-013 stage;
-- the exact artifact name for every stage, with the stage-specific prefix and exact code commit embedded in the name;
-- non-zero workflow run and artifact IDs for every stage;
+`RMC_014_STRUCTURAL_CHAIN_CERTIFIED`
 
-- a non-empty evidence array for every RMC-006..RMC-013 stage proof;
-- the complete market and opportunity pipeline counts;
-- the economic boundary consumed by the closeout verifier; and
-- non-empty terminal evidence commitments.
+The generated archive contains:
 
-The terminal workflow authenticates the exact GitHub run/artifact identities
-before materialization. It also verifies that every run came from the canonical
-workflow for that stage, that every artifact uses the canonical stage prefix,
-and that the exact code commit is embedded in the artifact name. An unrelated
-successful workflow artifact from the same commit is not terminal authority. It then executes the Rust closeout verifier twice from
-the same pinned lock and requires byte-identical output. The verifier calls the
-same `CloseoutCertificate::certify` invariants tested by the crate; a Python or
-shell summary cannot manufacture the terminal marker independently.
+- `rmc014-structural-certificate.json`;
+- `rmc014-structural-certificate.sha256`.
 
-The generated immutable archive contains:
+The certificate MUST contain:
 
-- `real-market-census-certificate.json`;
-- `real-market-census-certificate.sha256`.
+```
+status = RMC_014_STRUCTURAL_CHAIN_CERTIFIED
+structural_chain_certified = true
+real_market_census_closed = false
+final_census_authority_stage = RMC-017
+downstream_authorities_required = [RMC-015, RMC-016, RMC-017]
+```
 
-Only the generated certificate may set
-`real_market_census_closed=true` and emit `REAL_MARKET_CENSUS_CLOSED`.
-Its terminal commitment binds all eight stage proofs, pipeline counts, economic
-boundary and terminal evidence. The generated certificate must keep realized
-profitability and the monthly-target probability explicitly false; those remain
-downstream Shadow/Canary/P&L claims.
+The source authority lock remains unable to self-certify either structural or
+final closure. When `status=PINNED`, the workflow independently
+re-authenticates every exact GitHub run/artifact/head/tree/digest before the
+Rust structural verifier is executed twice from identical bytes.
+
+Any code path, workflow assertion, test, artifact or summary that allows
+RMC-014 to emit `REAL_MARKET_CENSUS_CLOSED` is a certification failure.

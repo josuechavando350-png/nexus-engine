@@ -212,11 +212,24 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
             Json::Bool(certificate.real_market_census_closed()),
         ),
         (
+            "structural_chain_certified",
+            Json::Bool(certificate.structural_chain_certified()),
+        ),
+        ("final_census_authority_stage", Json::string("RMC-017")),
+        (
+            "downstream_authorities_required",
+            Json::array([
+                Json::string("RMC-015"),
+                Json::string("RMC-016"),
+                Json::string("RMC-017"),
+            ]),
+        ),
+        (
             "authority_lock_sha256",
             Json::string(format!("sha256:{lock_sha256}")),
         ),
         (
-            "terminal_commitment",
+            "structural_commitment",
             Json::string(format!("0x{}", certificate.commitment_hex())),
         ),
         ("stages", Json::array(stage_json)),
@@ -261,22 +274,25 @@ fn certify(lock_path: &Path, out_dir: &Path) -> Result<()> {
         ),
     ]);
     let bytes = certificate_json.canonical()?;
-    let certificate_path = out_dir.join("real-market-census-certificate.json");
+    let certificate_path = out_dir.join("rmc014-structural-certificate.json");
     fs::write(&certificate_path, &bytes)?;
     fs::write(
-        out_dir.join("real-market-census-certificate.sha256"),
+        out_dir.join("rmc014-structural-certificate.sha256"),
         format!(
-            "{}  real-market-census-certificate.json\n",
+            "{}  rmc014-structural-certificate.json\n",
             sha256_hex(&bytes)
         ),
     )?;
 
-    println!("REAL_MARKET_CENSUS_CLOSED");
+    println!("RMC_014_STRUCTURAL_CHAIN_CERTIFIED");
     println!(
-        "RMC014_TERMINAL_COMMITMENT=0x{}",
+        "RMC014_STRUCTURAL_COMMITMENT=0x{}",
         certificate.commitment_hex()
     );
-    println!("RMC014_CERTIFICATE_SHA256={}", sha256_hex(&bytes));
+    println!(
+        "RMC014_STRUCTURAL_CERTIFICATE_SHA256={}",
+        sha256_hex(&bytes)
+    );
     Ok(())
 }
 

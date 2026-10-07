@@ -64,7 +64,7 @@ fn valid_lock() -> String {
                 run_id = 1000_u64 + u64::from(stage),
                 artifact_id = 2000_u64 + u64::from(stage),
                 workflow = workflow_name(stage),
-                artifact_name = format!("{}{}", artifact_prefix(stage), hex(stage, 20)),
+                artifact_name = format_args!("{}{}", artifact_prefix(stage), hex(stage, 20)),
                 artifact = hex(stage, 32),
                 commit = hex(stage, 20),
                 tree = hex(stage.saturating_add(16), 20),
@@ -128,7 +128,7 @@ fn run(lock: &Path, out: &Path) -> Result<std::process::Output> {
 }
 
 #[test]
-fn valid_lock_emits_byte_stable_terminal_certificate() -> Result<()> {
+fn valid_lock_emits_byte_stable_structural_certificate() -> Result<()> {
     let root = workdir("valid");
     let _ = fs::remove_dir_all(&root);
     fs::create_dir_all(&root)?;
@@ -150,14 +150,16 @@ fn valid_lock_emits_byte_stable_terminal_certificate() -> Result<()> {
         String::from_utf8_lossy(&second.stderr)
     );
     assert_eq!(
-        fs::read(out_a.join("real-market-census-certificate.json"))?,
-        fs::read(out_b.join("real-market-census-certificate.json"))?
+        fs::read(out_a.join("rmc014-structural-certificate.json"))?,
+        fs::read(out_b.join("rmc014-structural-certificate.json"))?
     );
     assert_eq!(
-        fs::read(out_a.join("real-market-census-certificate.sha256"))?,
-        fs::read(out_b.join("real-market-census-certificate.sha256"))?
+        fs::read(out_a.join("rmc014-structural-certificate.sha256"))?,
+        fs::read(out_b.join("rmc014-structural-certificate.sha256"))?
     );
-    assert!(String::from_utf8_lossy(&first.stdout).contains("REAL_MARKET_CENSUS_CLOSED"));
+    let stdout = String::from_utf8_lossy(&first.stdout);
+    assert!(stdout.contains("RMC_014_STRUCTURAL_CHAIN_CERTIFIED"));
+    assert!(!stdout.contains("REAL_MARKET_CENSUS_CLOSED"));
     fs::remove_dir_all(root)?;
     Ok(())
 }

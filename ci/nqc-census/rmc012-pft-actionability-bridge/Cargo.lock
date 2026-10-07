@@ -1761,6 +1761,7 @@ version = "0.1.0"
 dependencies = [
  "nqc-census-chain",
  "nqc-census-core",
+ "nqc-census-store",
  "sha2",
 ]
 

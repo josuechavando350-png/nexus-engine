@@ -117,6 +117,9 @@ non-zero bindings. Changing any one of them changes the quote commitment.
 ## Capacity curve
 
 Multiple trade sizes for the same execution variant form a capacity curve.
+Multiple execution variants for one candidate remain distinct and MUST NOT be
+collapsed into a fictitious single curve point. A materialized candidate record
+therefore separates `variants` from each variant's measured size curve.
 
 The curve MUST:
 
@@ -285,6 +288,22 @@ and:
 ```
 execution-simulatable candidates
   = exact economics candidate coverage
+
+Economics candidate coverage and quote/variant coverage are distinct
+cardinalities. A candidate may expose multiple independently simulated
+execution variants at the same or different measured sizes. Therefore:
+
+```
+economics_candidate_count = unique candidate ids with >=1 exact quote
+economics_quote_count = exact execution quote rows
+execution_variant_count = exact distinct execution-plan/route variants
+economics_quote_count >= economics_candidate_count
+```
+
+No terminal verifier may force one candidate = one quote. Every emitted quote
+must bind one concrete execution variant; every capacity-curve row must group
+only variants/points for one exact candidate without collapsing distinct route
+evidence.
 ```
 
 with zero UNKNOWN rejections, zero unexplained mismatches and zero uncovered
@@ -331,12 +350,21 @@ The terminal verifier independently re-downloads the exact D11 package carried
 by the authenticated D12 certificate and refuses any gas allocation unless the
 referenced D11 source is `GAS_FUNDING`, denominated in `NATIVE_GAS`,
 non-operator-owned, execution-eligible, blocker-free and anchored to the exact
-D12 state anchor. Per candidate, allocated gas MUST equal the exact declared gas
-requirement. Across all candidates, aggregate allocation against each source
-MUST NOT exceed that source's exact D11 `executable_capacity`.
+D12 state anchor. Per candidate, allocated gas MUST equal the exact declared gas requirement and
+each allocation MUST be individually bounded by the referenced source's exact
+D11 `executable_capacity`.
 
-The candidate set in `gas-funding-bindings.jsonl` MUST equal the candidate set
-in `execution-economics.jsonl` exactly. This prevents an economically positive
-quote from becoming Shadow-eligible while silently relying on unfunded
-transaction gas or reusing the same external gas capacity beyond its admitted
-limit.
+RMC-013 MUST NOT sum gas allocations across mutually exclusive future
+opportunities as if all candidates execute simultaneously. Doing so converts a
+shared-source contention problem into a false capital shortage and can
+materially understate executable capacity. Instead, RMC-013 emits deterministic
+shared gas-source claims for every candidate/source pair. Reuse of one source
+by multiple candidates becomes an explicit conflict resource for portfolio and
+temporal scheduling in RMC-012/RMC-016.
+
+The candidate set in `gas-funding-bindings.jsonl` MUST equal the unique
+candidate set in `execution-economics.jsonl`. Quote rows may exceed candidate
+rows because one candidate may retain multiple exact execution variants.
+This prevents an economically positive quote from becoming Shadow-eligible
+while silently relying on unfunded transaction gas, without pretending
+mutually exclusive opportunities consume shared gas capacity concurrently.
