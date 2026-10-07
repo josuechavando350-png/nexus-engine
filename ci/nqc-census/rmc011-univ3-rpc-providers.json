@@ -12,8 +12,8 @@
       "url": "https://rpc.mevblocker.io",
       "operator": "MEV Blocker public RPC",
       "min_interval_ms": 250,
-      "max_batch": 1,
-      "log_window": 1000000,
+      "max_batch": 10,
+      "log_window": 10000,
       "pinning": "EIP1898_BLOCK_HASH"
     },
     {
