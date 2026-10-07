@@ -1858,3 +1858,50 @@ fn validate_digest_hex(text: &str) -> Result<(), CapitalError> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod streaming_artifact_jsonl_tests {
+    use super::{jsonl, parse_jsonl, CapitalError, Json};
+
+    #[test]
+    fn canonical_rows_match_exact_bytes_with_lazy_roundtrip() -> Result<(), CapitalError> {
+        let expected = b"{\"row\":0}\n{\"row\":1}\n{\"row\":2}\n";
+        let encoded = jsonl((0_u64..3_u64).map(|row| {
+            Json::object([("row", Json::uint(row))])
+        }))?;
+        assert_eq!(encoded, expected);
+        let mut parsed = 0_u64;
+        for row in parse_jsonl(&encoded)? {
+            let value = row?;
+            assert_eq!(value.get("row").and_then(Json::as_i64), Some(parsed as i64));
+            parsed += 1;
+        }
+        assert_eq!(parsed, 3);
+        Ok(())
+    }
+
+    #[test]
+    fn streaming_malformed_tail_and_missing_newline_fail_closed() -> Result<(), CapitalError> {
+        let mut stream = parse_jsonl(b"{\"ok\":true}\ninvalid-json\n")?;
+        assert!(matches!(stream.next(), Some(Ok(_))));
+        assert!(matches!(stream.next(), Some(Err(_))));
+        assert!(stream.next().is_none());
+        assert!(parse_jsonl(b"{\"ok\":true}").is_err());
+        assert!(parse_jsonl(b"{\"ok\":true}\n{\"ok\":false}").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn hundred_thousand_records_do_not_require_json_ast_collection() -> Result<(), CapitalError> {
+        let payload = jsonl((0_u64..100_000_u64).map(|row| {
+            Json::object([("row", Json::uint(row))])
+        }))?;
+        let mut count = 0_usize;
+        for row in parse_jsonl(&payload)? {
+            row?;
+            count += 1;
+        }
+        assert_eq!(count, 100_000);
+        Ok(())
+    }
+}
