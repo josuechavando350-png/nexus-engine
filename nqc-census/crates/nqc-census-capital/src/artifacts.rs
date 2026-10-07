@@ -325,7 +325,9 @@ pub fn verify_capital_artifact_bundle(
     for record in sources {
         let record = record?;
         let record = &record;
-        source_row_count = source_row_count.checked_add(1).ok_or(CapitalError::InvalidCanonical("source count overflow"))?;
+        source_row_count = source_row_count
+            .checked_add(1)
+            .ok_or(CapitalError::InvalidCanonical("source count overflow"))?;
         let encoded = decode_plain_hex(
             record
                 .str_field("canonical_record")
@@ -370,7 +372,9 @@ pub fn verify_capital_artifact_bundle(
     for record in requirements {
         let record = record?;
         let record = &record;
-        requirement_row_count = requirement_row_count.checked_add(1).ok_or(CapitalError::InvalidCanonical("requirement count overflow"))?;
+        requirement_row_count = requirement_row_count
+            .checked_add(1)
+            .ok_or(CapitalError::InvalidCanonical("requirement count overflow"))?;
         let encoded = decode_plain_hex(record.str_field("canonical_record").map_err(|_| {
             CapitalError::InvalidCanonical("requirement canonical record missing")
         })?)?;
@@ -405,7 +409,9 @@ pub fn verify_capital_artifact_bundle(
     for record in feasibility {
         let record = record?;
         let record = &record;
-        feasibility_row_count = feasibility_row_count.checked_add(1).ok_or(CapitalError::InvalidCanonical("feasibility count overflow"))?;
+        feasibility_row_count = feasibility_row_count
+            .checked_add(1)
+            .ok_or(CapitalError::InvalidCanonical("feasibility count overflow"))?;
         let provenance = record_provenance(record)?;
         provenance.validate_anchor(authority.observation_anchor())?;
         require_observation_anchor(record, authority.observation_anchor())?;
@@ -460,7 +466,9 @@ pub fn verify_capital_artifact_bundle(
     for record in rejections {
         let record = record?;
         let record = &record;
-        rejection_row_count = rejection_row_count.checked_add(1).ok_or(CapitalError::InvalidCanonical("rejection count overflow"))?;
+        rejection_row_count = rejection_row_count
+            .checked_add(1)
+            .ok_or(CapitalError::InvalidCanonical("rejection count overflow"))?;
         let provenance = record_provenance(record)?;
         provenance.validate_anchor(authority.observation_anchor())?;
         require_observation_anchor(record, authority.observation_anchor())?;
@@ -688,20 +696,27 @@ pub fn export_capital_artifacts(
     // newlines, byte digests, and independent offline verification.
     let sources = CapitalArtifactFile::new(
         CAPITAL_SOURCES_FILE,
-        jsonl(ledger.sources().map(|source| source_record(source, provenance)))?,
+        jsonl(
+            ledger
+                .sources()
+                .map(|source| source_record(source, provenance)),
+        )?,
     );
     let requirements = CapitalArtifactFile::new(
         CAPITAL_REQUIREMENTS_FILE,
-        jsonl(ledger.requirements().map(|requirement| {
-            requirement_record(requirement, provenance)
-        }))?,
+        jsonl(
+            ledger
+                .requirements()
+                .map(|requirement| requirement_record(requirement, provenance)),
+        )?,
     );
-    let feasibility = CapitalArtifactFile::new(
-        CAPITAL_FEASIBILITY_FILE,
-        jsonl(ledger.results().map(|result| {
-            feasibility_record(result, provenance, authority.observation_anchor())
-        }))?,
-    );
+    let feasibility =
+        CapitalArtifactFile::new(
+            CAPITAL_FEASIBILITY_FILE,
+            jsonl(ledger.results().map(|result| {
+                feasibility_record(result, provenance, authority.observation_anchor())
+            }))?,
+        );
     let rejections = CapitalArtifactFile::new(
         CAPITAL_REJECTION_LEDGER_FILE,
         jsonl(ledger.results().filter_map(|result| match result {
@@ -1866,9 +1881,7 @@ mod streaming_artifact_jsonl_tests {
     #[test]
     fn canonical_rows_match_exact_bytes_with_lazy_roundtrip() -> Result<(), CapitalError> {
         let expected = b"{\"row\":0}\n{\"row\":1}\n{\"row\":2}\n";
-        let encoded = jsonl((0_u64..3_u64).map(|row| {
-            Json::object([("row", Json::uint(row))])
-        }))?;
+        let encoded = jsonl((0_u64..3_u64).map(|row| Json::object([("row", Json::uint(row))])))?;
         assert_eq!(encoded, expected);
         let mut parsed = 0_i64;
         for row in parse_jsonl(&encoded)? {
@@ -1893,9 +1906,8 @@ mod streaming_artifact_jsonl_tests {
 
     #[test]
     fn hundred_thousand_records_do_not_require_json_ast_collection() -> Result<(), CapitalError> {
-        let payload = jsonl((0_u64..100_000_u64).map(|row| {
-            Json::object([("row", Json::uint(row))])
-        }))?;
+        let payload =
+            jsonl((0_u64..100_000_u64).map(|row| Json::object([("row", Json::uint(row))])))?;
         let mut count = 0_usize;
         for row in parse_jsonl(&payload)? {
             row?;
