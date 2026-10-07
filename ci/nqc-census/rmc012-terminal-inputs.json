@@ -1,7 +1,14 @@
 {
   "schema_version": 2,
-  "status": "BLOCKED_AWAITING_CERTIFIED_RMC011",
-  "blocked_reason": "Terminal RMC-012 consumes only an exact successful self-contained RMC-011 real-source certification package. That package must authenticate RMC-006..RMC-010 and the exact D08/D09 bytes before actionability can become terminal authority.",
+  "status": "PINNED",
   "repository": "josuechavando350-png/nexus-engine",
-  "d11": null
+  "d11": {
+    "run_id": 37701875199,
+    "head_sha": "83395dc182cb7fd31293887f4de86fcd022b4b6d",
+    "tree_sha": "1ab7d599776babd5aeb3478d44c3c692fb9ad5d8",
+    "workflow_name": "NQC RMC-011 Real Source Certification",
+    "artifact_id": 11519115757,
+    "artifact_name": "rmc011-real-source-certification-83395dc182cb7fd31293887f4de86fcd022b4b6d",
+    "artifact_digest": "sha256:21cc0bb572ea8ccc3995d0204b2f292961de27be5881edc8d291ce264def2253"
+  }
 }
