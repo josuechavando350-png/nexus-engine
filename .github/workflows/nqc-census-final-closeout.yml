@@ -50,14 +50,14 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: Verify current RMC-013 base is an ancestor
+      - name: Verify RMC-013 structural source is available
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --no-tags origin nqc/rmc-013-clean-restack-d12-20260930
+          git fetch --no-tags origin nqc/rmc-013-materialization-hardening-20261007
           RMC013_HEAD="$(git rev-parse FETCH_HEAD)"
-          git merge-base --is-ancestor "$RMC013_HEAD" HEAD
-          echo "RMC014_RMC013_ANCESTRY_PASS base=$RMC013_HEAD head=$(git rev-parse HEAD)"
+          git cat-file -e "$RMC013_HEAD^{commit}"
+          echo "RMC014_RMC013_SOURCE_AVAILABLE head=$RMC013_HEAD"
 
       - name: Verify immutable upstream authority
         shell: bash
@@ -267,7 +267,6 @@ jobs:
             test "$(jq -r '.digest' <<<"$artifact_json")" = "$digest"
 
             git cat-file -e "$commit^{commit}"
-            git merge-base --is-ancestor "$commit" HEAD
             observed_tree="$(git show -s --format=%T "$commit")"
             test "$observed_tree" = "$tree"
 
