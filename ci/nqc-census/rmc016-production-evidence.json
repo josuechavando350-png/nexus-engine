@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "status": "RMC016_CONSERVATIVE_REALIZABLE_CAPACITY_PASS",
+  "source_authority_file_sha256": "9dc03b2d2c480d689e5ecf1e4585d2af55a4271db6a3e5ef0851f821085fac63",
+  "source_snapshot": {
+    "provider": "DigitalOcean",
+    "image_id": 248761092,
+    "snapshot_action_id": 3455949449,
+    "source_droplet_id": 606773701,
+    "created_at": "2026-10-07T18:15:39Z"
+  },
+  "authority": {
+    "authority_commitment": "0xa952f2a3af9c1cef8103a9ad9586f62bc3548d0bdee2c7c1c7ae60018490396c",
+    "capacity_reason": "CAPTURE_PROBABILITY_AND_HISTORICAL_NQC_NET_EXECUTION_ECONOMICS_NOT_CERTIFIED_BEFORE_SHADOW",
+    "claim_scope": "PRE_SHADOW_FAIL_CLOSED_CAPACITY_WITH_OBSERVED_MARKET_BASELINE",
+    "daily_baseline_sha256": "1d06b56a28400bbf1102d614cd615543e855b3b1a01b78ed513300cff32d660f",
+    "definite_episode_count": 139,
+    "definite_transaction_count": 127,
+    "double_counting_policy": "TRANSACTION_HASH_IS_EXECUTION_CONFLICT_SET; MULTI_EVENT_WINNER_TX_GAS_COUNTED_ONCE; CENSORED_EPISODES_COUNT_ZERO",
+    "event_economics_sha256": "ea1f62091175c8c67b8763411f72a6071bfe528c1f969d19c9cff5679677c98b",
+    "inputs": {
+      "liquidation_price_authority_sha256": "7c08ec2708e5d1d4d5ee4687ef960e440328683f1f6e7771805bc03c5b34f61a",
+      "rmc015_temporal_authority_sha256": "1acc37d37d82573dd3c27b02fe5de5bf40abd7081f42d22178cc27873f56efb4",
+      "winner_replay_sha256": "29133f3b7ab34b74f92f5e8a3101e04a3cb2b1b389d4b8728813fbbae7f461be"
+    },
+    "month1_300k_target_proven": false,
+    "non_claims": [
+      "NO_NQC_REALIZED_PNL",
+      "NO_POSITIVE_CAPTURE_PROBABILITY",
+      "NO_PROTOCOL_FEE_COMPLETE_HISTORICAL_NET",
+      "NO_ROUTE_COMPLETE_HISTORICAL_NET",
+      "NO_MONTH1_TARGET_PROOF"
+    ],
+    "nqc_capture_probability_lower_bound_wad": "0",
+    "nqc_conservative_realizable_capacity_usd_wad": "0",
+    "nqc_conservative_realizable_daily_capacity_usd_wad": "0",
+    "nqc_conservative_realizable_monthly_capacity_usd_wad": "0",
+    "observed_market_debt_principal_usd_wad": "2929719106126210000000000",
+    "observed_market_gross_oracle_edge_usd_wad": "138045174690310000000000",
+    "observed_winner_gas_cost_usd_wad": "1144134260592713842029",
+    "provider_mismatch_count": 0,
+    "schema_version": 1,
+    "status": "RMC016_CONSERVATIVE_REALIZABLE_CAPACITY_PASS",
+    "transaction_economics_sha256": "55d5d6be9e09f2e499e1ca8949c4305d05824dffa61e363f4371c615537dcb1c",
+    "unknown_count": 0,
+    "window": {
+      "end_block": 26095351,
+      "end_hash": "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781",
+      "start_block": 25880316,
+      "start_hash": "0x0b29e0c8c1997f059f82e7fed67e047269f68422ab194d56546c1c9833469d96"
+    },
+    "zero_own_capital_not_overridden": true
+  }
+}
