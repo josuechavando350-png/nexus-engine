@@ -154,7 +154,16 @@ contract NqcRmc016RankOneSelfFinancingForkTest {
         bytes memory payload = hex"163701";
         uint256 flashFee = _fee(REPAY_PRINCIPAL);
         uint256 operatorWethBefore = IERC20FlashMinimal(WETH).balanceOf(address(this));
-        uint256 output = flashExecutor.execute(_plan(payload, flashFee, 1), payload);
+        // Build the plan before measuring so the counted portion is only the
+        // actual cross-contract coordinator call, including Aave flash borrow,
+        // liquidation, repayment, callbacks and profit sweep.
+        NqcFlashFundingExecutor.FlashExecutionPlan memory actualPlan =
+            _plan(payload, flashFee, 1);
+        uint256 gasBefore = gasleft();
+        uint256 output = flashExecutor.execute(actualPlan, payload);
+        uint256 measuredExecutionGas = gasBefore - gasleft();
+        require(measuredExecutionGas > 100_000 && measuredExecutionGas < 3_000_000,
+                "FORK_GAS_CALL_MEASUREMENT_IMPLAUSIBLE");
 
         require(output > 0, "NO_WETH_SURPLUS_AFTER_FLASH_FEE");
         require(IERC20FlashMinimal(WETH).balanceOf(address(this)) ==
@@ -163,6 +172,9 @@ contract NqcRmc016RankOneSelfFinancingForkTest {
                 "EXECUTOR_POST_REPAYMENT_WETH_DRIFT");
         require(IERC20FlashMinimal(WETH).balanceOf(address(strategy)) == 0,
                 "STRATEGY_POST_REPAYMENT_WETH_DRIFT");
+        emit log_named_uint("NQC_RANK1_FORK_EXECUTE_CALL_GAS_UNITS", measuredExecutionGas);
+        // The call gas excludes transaction intrinsic/calldata, trigger
+        // detection, revert attempts, builder and sponsor overhead.
         emit log_named_uint("NQC_RANK1_FORK_WETH_SURPLUS_WEI", output);
         emit log_named_uint("NQC_RANK1_FORK_FLASH_FEE_WEI", flashFee);
         emit log_named_uint("NQC_RANK1_FORK_PRODUCTION_GAS_SPONSORED", 0);
