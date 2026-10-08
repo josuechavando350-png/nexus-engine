@@ -41,6 +41,24 @@ class NetTargetGuardrails(unittest.TestCase):
         self.assertEqual(x["observed_gross_less_only_winner_gas_usd_wad"],
                          "136901040429717286157971")
         self.assertFalse(x["observed_gross_less_only_winner_gas_is_net_profit"])
+    def test_capture_fraction_scenarios_are_not_forecasts(self):
+        scenarios=self.report["capture_sensitivity_at_zero_other_cost"]
+        self.assertEqual([x["hypothetical_full_cost_free_capture_percent"] for x in scenarios],
+                         [10,25,50,100])
+        self.assertEqual([int(x["minimum_required_total_gross_usd_wad_at_zero_additional_cost"])
+                          for x in scenarios],
+                         [3000000*G.WAD,1200000*G.WAD,600000*G.WAD,300000*G.WAD])
+        self.assertTrue(all(x["hypothetical_not_calibrated"] and x["not_a_nexus_forecast"]
+                            for x in scenarios))
+        self.assertFalse(self.report["monthly_300k_certified"])
+
+    def test_capture_scenarios_do_not_promote_observed_market_gross(self):
+        actual=int(self.report["observed_market_oracle_gross_usd_wad"])
+        gross=list(self.report["capture_sensitivity_at_zero_other_cost"])
+        self.assertTrue(all(actual<int(x["minimum_required_total_gross_usd_wad_at_zero_additional_cost"])
+                            for x in gross))
+        self.assertIsNone(self.report["nexus_net_monthly_forecast_usd_wad"])
+
     def test_idealized_gap_is_not_global_market_bound(self):
         x=self.report
         self.assertEqual(int(x["idealized_full_capture_zero_cost_gross_shortfall_usd_wad"]),
