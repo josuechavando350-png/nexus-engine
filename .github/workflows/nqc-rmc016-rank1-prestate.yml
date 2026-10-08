@@ -36,6 +36,8 @@ jobs:
           set -euo pipefail
           git merge-base --is-ancestor 43551884875776fd518d186a29b2a30371324f22 HEAD
           test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = '5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa'
+          # Exact code identity from PR #619; no alternate ABI interpretation.
+          test "$(git hash-object ci/nqc-census/rmc016_aave_event_legs.py)" = '0474d97814deb60490a795b2059f3065c72d8103'
           python3 ci/nqc-census/test_rmc016_rank1_prestate_probe.py
           python3 -m py_compile ci/nqc-census/rmc016_rank1_prestate_probe.py
           mkdir -p "$RUNNER_TEMP/nqc016-rank1-source" "$RUNNER_TEMP/nqc016-rank1-proof"
