@@ -80,7 +80,7 @@ class HistoricalReuseTests(unittest.TestCase):
         source=fake_source()
         def call(u,m,p):
             r=copy.deepcopy(source[2][p[0]])
-            if p[0]==source[1][2]:
+            if p[0]==M.choose_ids(source[1],12)[2]:
                 r["gas_used"]="99999"
             return {"fixture_normalized":r}
         with patch.object(M,"admitted_drpc",return_value=source),\
