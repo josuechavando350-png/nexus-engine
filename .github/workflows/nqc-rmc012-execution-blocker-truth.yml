@@ -81,6 +81,10 @@ jobs:
                  .d12_actionability_admitted == 432 and
                  .d12_principal_rejection_count == 432 and
                  .d12_principal_capital_feasible == 0 and
+                 .historical_aave_reserve_nominal_principal_diagnostic.single_candidate_nominal_liquidity_checked_assets == 27 and
+                 .historical_aave_reserve_nominal_principal_diagnostic.all_required_reserves_have_adequate_nominal_single_trade_liquidity == true and
+                 .historical_aave_reserve_nominal_principal_diagnostic.required_reserves_active_flash_enabled_unpaused_count == 27 and
+                 .historical_aave_reserve_nominal_principal_diagnostic.principal_source_eligible_for_execution_claimed == false and
                  .d12_rejection_reason == "EXECUTION_BLOCKED" and
                  .required_asset_blocker_frequency.FEE_ON_TRANSFER_UNPROVEN == 43 and
                  .required_asset_blocker_frequency.TRANSFER_HOOKS_UNPROVEN == 43 and
