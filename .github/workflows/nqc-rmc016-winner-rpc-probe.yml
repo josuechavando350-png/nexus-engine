@@ -1,0 +1,85 @@
+name: NQC RMC-016 Historical Winner RPC Probe
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc016_probe_historical_rpc.py'
+      - 'ci/nqc-census/test_rmc016_probe_historical_rpc.py'
+      - 'ci/nqc-census/RMC016_WINNER_RPC_RECOVERY_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-winner-rpc-probe.yml'
+  push:
+    branches:
+      - 'nqc/rmc016-winner-rpc-recovery-20261008'
+    paths:
+      - 'ci/nqc-census/rmc016_probe_historical_rpc.py'
+      - 'ci/nqc-census/test_rmc016_probe_historical_rpc.py'
+      - 'ci/nqc-census/RMC016_WINNER_RPC_RECOVERY_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-winner-rpc-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc016-winner-rpc-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  historical-rpc-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Preserve exact historical authority and run regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          PARENT="96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a"
+          git merge-base --is-ancestor "$PARENT" HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = \
+            "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
+          python3 ci/nqc-census/test_rmc016_probe_historical_rpc.py
+          python3 -m py_compile \
+            ci/nqc-census/rmc016_probe_historical_rpc.py \
+            ci/nqc-census/test_rmc016_probe_historical_rpc.py
+          jq -e '
+            .authority.window.start_block == 25880316 and
+            .authority.window.end_block == 26095351 and
+            .authority.definite_transaction_count == 127 and
+            .authority.definite_episode_count == 139 and
+            .authority.nqc_conservative_realizable_capacity_usd_wad == "0" and
+            .authority.month1_300k_target_proven == false
+          ' ci/nqc-census/rmc016-production-evidence.json >/dev/null
+      - name: Check real historical state and liquidation receipt across independent RPCs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rmc016-rpc-probe"
+          python3 ci/nqc-census/rmc016_probe_historical_rpc.py \
+            --out "$RUNNER_TEMP/rmc016-rpc-probe/provider-preflight.json"
+          jq -e '
+            .status == "RMC016_HISTORICAL_RPC_PREFLIGHT_PASS" and
+            .independent_provider_quorum == true and
+            .terminal_economic_authority == false and
+            .historical_winner_reconstruction_complete == false and
+            .nexus_pnl_proven == false and
+            .source_window.chain_id == 1
+          ' "$RUNNER_TEMP/rmc016-rpc-probe/provider-preflight.json" >/dev/null
+          (
+            cd "$RUNNER_TEMP/rmc016-rpc-probe"
+            sha256sum provider-preflight.json > archive.sha256
+            sha256sum -c archive.sha256
+          )
+          echo RMC016_READ_ONLY_HISTORICAL_RPC_PREFLIGHT_PASS
+      - name: Preserve preflight diagnostics even when providers reject access
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-winner-rpc-preflight-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc016-rpc-probe/
+          if-no-files-found: warn
+          retention-days: 30
+          compression-level: 0
