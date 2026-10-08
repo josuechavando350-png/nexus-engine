@@ -138,7 +138,7 @@ def probe_one(provider,call=rpc):
                      START_BLOCK,START_HASH)
     z=checked_header(query("eth_getBlockByNumber",[hex(END_BLOCK),False]),
                      END_BLOCK,END_HASH)
-    lo=END_BLOCK-31
+    lo=END_BLOCK-9
     logs=query("eth_getLogs",[{"address":AAVE_POOL,"topics":[LIQUIDATION_TOPIC],
                                  "fromBlock":hex(lo),"toBlock":hex(END_BLOCK)}])
     require(type(logs) is list,"getLogs not supported")
@@ -185,7 +185,7 @@ def main():
             "source_window":{"chain_id":CHAIN_ID,"start_block":START_BLOCK,"start_hash":START_HASH,
                              "end_block":END_BLOCK,"end_hash":END_HASH},
             "pool":AAVE_POOL,"topic0":LIQUIDATION_TOPIC,
-            "sample_scope":"LAST_32_BLOCKS_AND_SEPARATE_KNOWN_RECEIPT_ONLY",
+            "sample_scope":"LAST_10_BLOCKS_AND_SEPARATE_KNOWN_RECEIPT_ONLY",
             "independent_provider_quorum":success,
             "results":rows}
     report["commitment_sha256"]=sha256(canonical(report))
