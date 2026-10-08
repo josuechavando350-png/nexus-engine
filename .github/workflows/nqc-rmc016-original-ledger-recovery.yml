@@ -44,9 +44,22 @@ jobs:
         run: |
           set -euo pipefail
           REPOSITORY="$GITHUB_REPOSITORY"
-          gh api --paginate "repos/$REPOSITORY/actions/artifacts?per_page=100" \
-            | jq -c '.artifacts[] | {id:.id,name:.name,size_in_bytes:.size_in_bytes,expired:.expired,digest:.digest,run_id:.workflow_run.id,head_sha:.workflow_run.head_sha}' \
-            > "$RUNNER_TEMP/nqc016-ledger-recovery/private-zips/original-index.jsonl"
+          INDEX="$RUNNER_TEMP/nqc016-ledger-recovery/private-zips/original-index.jsonl"
+          : > "$INDEX"
+          # Bounded, explicit pages: no hidden --paginate partial-data promotion.
+          # Some public artifact-list pagination has returned incomplete JSON;
+          # a bad page fails closed rather than reporting no matching source.
+          for page in $(seq 1 30); do
+            page_file="$RUNNER_TEMP/nqc016-ledger-recovery/private-zips/page-$page.json"
+            gh api --method GET "repos/$REPOSITORY/actions/artifacts?per_page=50&page=$page" > "$page_file"
+            jq -e '(.artifacts | type)=="array"' "$page_file" >/dev/null
+            jq -c '.artifacts[] | {id:.id,name:.name,size_in_bytes:.size_in_bytes,expired:.expired,digest:.digest,run_id:.workflow_run.id,head_sha:.workflow_run.head_sha}' "$page_file" >> "$INDEX"
+            rows="$(jq -r '.artifacts | length' "$page_file")"
+            echo "RMC016_METADATA_PAGE=$page ITEMS=$rows"
+            if [ "$rows" -lt 50 ]; then
+              break
+            fi
+          done
           test -s "$RUNNER_TEMP/nqc016-ledger-recovery/private-zips/original-index.jsonl"
           python3 ci/nqc-census/rmc016_source_artifact_recovery.py \
             --economic-source ci/nqc-census/rmc016-production-evidence.json \
