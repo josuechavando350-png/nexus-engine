@@ -136,13 +136,15 @@ def load_prior(path, expected_sha, drpc, events, txids):
     return rows
 
 def collect_batch(source_zip, drpc_zip, prior_zip, out,
-                  *, prior_sha=PREVIOUS_SHA256, max_new=6,
+                  *, prior_sha=None, max_new=6,
                   min_interval=7.0, retry_delays=(45,90),
                   rpc_call=rpc, sleep=time.sleep):
     need(type(max_new) is int and 1<=max_new<=8, "batch limit must be 1..8")
     need(type(min_interval) in (int,float) and 2<=min_interval<=30,
          "inter-query spacing must be 2..30 seconds")
     need(not out.exists(), "output directory must be append-only")
+    if prior_sha is None:
+        prior_sha=PREVIOUS_SHA256
     drpc,events,txids=authenticated_drpc_checkpoint(drpc_zip,source_zip)
     prior=load_prior(prior_zip,prior_sha,drpc,events,txids)
     provider=next(p for p in PROVIDERS if p[0]=="blockscout")
