@@ -196,11 +196,29 @@ fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
     Ok(rows)
 }
 
+/// Reconcile repeated original D08 token rows conservatively.
+///
+/// The real RMC-008 manifest can contain a token more than once. Treating
+/// every repetition as fatal makes an independently certified 514k-row
+/// historical source impossible to consume. Silently taking first/last is
+/// worse: contradictory observations could create a false executable token.
+///
+/// Identical canonical rows are idempotent. Distinct canonical observations
+/// for the same token append an explicit conflict blocker AND preserve the
+/// union of every independently observed execution blocker. An optimistic
+/// row can therefore never erase a conservative D08 rejection.
 pub(crate) fn token_execution_blockers(
     bytes: &[u8],
 ) -> Result<BTreeMap<Address, Vec<String>>, CapitalError> {
-    let mut tokens = BTreeMap::new();
-    for row in parse_jsonl(bytes)? {
+    let raw = std::str::from_utf8(bytes)
+        .map_err(|_| CapitalError::InvalidCanonical("D08 token JSONL is not UTF-8"))?;
+    let mut tokens: BTreeMap<Address, Vec<String>> = BTreeMap::new();
+    let mut original_row_sha256: BTreeMap<Address, [u8; 32]> = BTreeMap::new();
+    for line in raw.lines().filter(|line| !line.trim().is_empty()) {
+        // Stream the certified token manifest row-by-row; do not materialize
+        // hundreds of thousands of D08 Json objects just to find 44 repeats.
+        let row = Json::parse(line.as_bytes())
+            .map_err(|_| CapitalError::InvalidCanonical("D08 token JSONL parse failed"))?;
         let token = Address::parse_hex(text(&row, "token")?)
             .map_err(|_| CapitalError::InvalidCanonical("invalid D08 token address"))?;
         let execution = field(&row, "execution_compatibility")?;
@@ -236,10 +254,21 @@ pub(crate) fn token_execution_blockers(
                 ))
             }
         }
-        if tokens.insert(token, blockers).is_some() {
-            return Err(CapitalError::InvalidCanonical(
-                "duplicate D08 token admission",
-            ));
+        let original_sha: [u8; 32] = Sha256::digest(
+            row.canonical()
+                .map_err(|_| CapitalError::InvalidCanonical("D08 token canonical JSON failed"))?,
+        )
+        .into();
+        if let Some(previous) = tokens.get_mut(&token) {
+            if original_row_sha256.get(&token).copied() != Some(original_sha) {
+                previous.extend(blockers);
+                previous.push("D08_INCONSISTENT_DUPLICATE_TOKEN_ADMISSION".to_owned());
+                previous.sort();
+                previous.dedup();
+            }
+        } else {
+            tokens.insert(token, blockers);
+            original_row_sha256.insert(token, original_sha);
         }
     }
     Ok(tokens)
@@ -772,4 +801,137 @@ fn import_d08_capital_sources_unbound(
         rejections,
         authority_artifact_sha256: None,
     })
+}
+
+#[cfg(test)]
+mod original_d08_duplicate_token_tests {
+    use super::*;
+
+    fn token() -> Result<Address, CapitalError> {
+        Address::new([0x42; 20])
+            .map_err(|_| CapitalError::InvalidCanonical("test token cannot be zero"))
+    }
+
+    fn admission(token: Address, status: &str, blockers: &str, witness: &str) -> String {
+        format!(
+            r#"{{"token":"{}","execution_compatibility":{{"status":"{}","blockers":{}}},"original_witness":"{}"}}"#,
+            token.to_hex(),
+            status,
+            blockers,
+            witness
+        )
+    }
+
+    #[test]
+    fn identical_canonical_repeated_token_rows_are_idempotent() -> Result<(), CapitalError> {
+        let token = token()?;
+        let line = admission(token, "PROVEN_COMPATIBLE", "[]", "same");
+        let rows = format!("{line}\n{line}\n");
+        let verdict = token_execution_blockers(rows.as_bytes())?;
+        assert_eq!(verdict.len(), 1);
+        assert!(execution_blockers(&verdict, token)?.is_empty());
+        Ok(())
+    }
+
+    #[test]
+    fn different_blocked_observations_union_and_explicitly_flag_conflict(
+    ) -> Result<(), CapitalError> {
+        let token = token()?;
+        let first = admission(token, "BLOCKED", r#"["FEE_ON_TRANSFER_UNPROVEN"]"#, "A");
+        let second = admission(
+            token,
+            "BLOCKED",
+            r#"["RUNTIME_CODE_IDENTITY_NOT_ACQUIRED"]"#,
+            "B",
+        );
+        let verdict = token_execution_blockers(format!("{first}\n{second}\n").as_bytes())?;
+        assert_eq!(
+            execution_blockers(&verdict, token)?,
+            &[
+                "D08_INCONSISTENT_DUPLICATE_TOKEN_ADMISSION".to_owned(),
+                "FEE_ON_TRANSFER_UNPROVEN".to_owned(),
+                "RUNTIME_CODE_IDENTITY_NOT_ACQUIRED".to_owned(),
+            ]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn optimistic_duplicate_cannot_erase_true_blocker() -> Result<(), CapitalError> {
+        let token = token()?;
+        let first = admission(token, "BLOCKED", r#"["UPGRADEABLE_UNPROVEN"]"#, "A");
+        let second = admission(token, "PROVEN_COMPATIBLE", "[]", "B");
+        for order in [
+            format!("{first}\n{second}\n"),
+            format!("{second}\n{first}\n"),
+        ] {
+            let verdict = token_execution_blockers(order.as_bytes())?;
+            let blockers = execution_blockers(&verdict, token)?;
+            assert!(blockers.contains(&"UPGRADEABLE_UNPROVEN".to_owned()));
+            assert!(blockers.contains(&"D08_INCONSISTENT_DUPLICATE_TOKEN_ADMISSION".to_owned()));
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn contradictory_non_execution_fields_also_force_non_execution() -> Result<(), CapitalError> {
+        let token = token()?;
+        let first = admission(token, "PROVEN_COMPATIBLE", "[]", "RUNTIME_A");
+        let second = admission(token, "PROVEN_COMPATIBLE", "[]", "RUNTIME_B");
+        let verdict = token_execution_blockers(format!("{first}\n{second}").as_bytes())?;
+        assert_eq!(
+            execution_blockers(&verdict, token)?,
+            &["D08_INCONSISTENT_DUPLICATE_TOKEN_ADMISSION".to_owned()]
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn conflicting_status_and_blocker_in_same_row_still_fails_closed() -> Result<(), CapitalError> {
+        let token = token()?;
+        let valid = admission(token, "PROVEN_COMPATIBLE", "[]", "A");
+        let forged = admission(token, "BLOCKED", "[]", "B");
+        assert!(matches!(
+            token_execution_blockers(format!("{valid}\n{forged}").as_bytes()),
+            Err(CapitalError::InvalidCanonical(
+                "D08 token compatibility status contradicts blockers"
+            ))
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn repeated_raw_blocker_in_any_single_row_is_rejected() -> Result<(), CapitalError> {
+        let token = token()?;
+        let forged = admission(
+            token,
+            "BLOCKED",
+            r#"["FEE_ON_TRANSFER_UNPROVEN","FEE_ON_TRANSFER_UNPROVEN"]"#,
+            "same",
+        );
+        assert!(matches!(
+            token_execution_blockers(forged.as_bytes()),
+            Err(CapitalError::InvalidCanonical(
+                "duplicate D08 execution blocker"
+            ))
+        ));
+        Ok(())
+    }
+
+    #[test]
+    fn unrelated_tokens_remain_independently_classified() -> Result<(), CapitalError> {
+        let first_token = token()?;
+        let second_token = Address::new([0x43; 20])
+            .map_err(|_| CapitalError::InvalidCanonical("test token invalid"))?;
+        let first = admission(first_token, "PROVEN_COMPATIBLE", "[]", "A");
+        let second = admission(second_token, "BLOCKED", r#"["REBASING_UNPROVEN"]"#, "B");
+        let verdict = token_execution_blockers(format!("{first}\n{second}").as_bytes())?;
+        assert_eq!(verdict.len(), 2);
+        assert!(execution_blockers(&verdict, first_token)?.is_empty());
+        assert_eq!(
+            execution_blockers(&verdict, second_token)?,
+            &["REBASING_UNPROVEN".to_owned()]
+        );
+        Ok(())
+    }
 }
