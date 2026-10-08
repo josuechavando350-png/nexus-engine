@@ -99,7 +99,7 @@ class HistoricalWethAuditTest(unittest.TestCase):
     def test_missing_or_extra_weth_candidate_rejected(self):
         rows, receipts, prices = corpus()
         rows[6]["debt_asset"] = "0x" + "e" * 40
-        with self.assertRaisesRegex(ValueError, "exactly nine")
+        with self.assertRaisesRegex(ValueError, "exactly nine"):
             m.calculate(rows, receipts, prices)
 
     def test_missing_receipt_rejected(self):
