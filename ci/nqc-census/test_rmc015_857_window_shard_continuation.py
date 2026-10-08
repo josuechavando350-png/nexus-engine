@@ -166,7 +166,7 @@ class TestNew14HistoricalShards(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"commitment"):
             m.verified_original_first(p,s)
 
-    def test_both_real_archive_operators_are_partioned_at_most_ten_blocks(self):
+    def test_exact_archival_provider_spans_blast_ten_blockscout_four_hundred_eighty(self):
         self.assertEqual(m.MAX_REAL_ARCHIVE_LOG_RANGE,{"blast":10,"blockscout":480})
         s,w,p=self.inputs()
         members={json.loads(line)["account"] for line in w.splitlines()}
@@ -183,11 +183,12 @@ class TestNew14HistoricalShards(unittest.TestCase):
             chunk=args[0]
             lo=int(chunk["fromBlock"],16)
             hi=int(chunk["toBlock"],16)
-            self.assertTrue(1<=hi-lo+1<=10)
+            bound=(10 if "blast.invalid" in url else 480)
+            self.assertTrue(1<=hi-lo+1<=bound)
             chunks.setdefault(url,[]).append((lo,hi))
         self.assertEqual(len(chunks),2)
-        for slices in chunks.values():
-            self.assertEqual(len(slices),48)
+        for url,slices in chunks.items():
+            self.assertEqual(len(slices),48 if "blast.invalid" in url else 1)
             self.assertEqual(slices[0][0],m.FIRST_DONE_END+1)
             self.assertEqual(slices[-1][1],m.FIRST_DONE_END+480)
             self.assertTrue(all(slices[i][1]+1==slices[i+1][0]
