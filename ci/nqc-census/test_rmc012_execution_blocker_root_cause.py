@@ -24,7 +24,8 @@ def fixtures():
         promotions.append({"actionable_candidate_id":tid,"capital_status":"REJECTED",
                            "rejection_reason":"EXECUTION_BLOCKED",
                            "funding_scope":"PRINCIPAL_AND_FLASH_SETTLEMENT_ONLY_GAS_UNCERTIFIED",
-                           "gas_funding_certified":False,"allocations":[]})
+                           "gas_funding_certified":False,"allocations":[],
+                           "principal":f"{i+1:064x}","debt_asset":debt})
     for i in range(m.EXPECTED_REJECTED_ACTIONABILITY):
         actions.append({"status":"REJECTED","candidate_id":f"{i+1000:064x}"})
     found={k:{"AAVE_RESERVE_UNDERLYING":{"status":"BLOCKED","blockers":[
@@ -175,6 +176,52 @@ class Rmc012BlockerTests(unittest.TestCase):
         del t[a[0]["debt_asset"]]["AAVE_RESERVE_UNDERLYING"]
         with self.assertRaisesRegex(ValueError,"Aave reserve"):
             m.summarize(req,debt,collateral,gross,t,Counter({"BLOCKED":514279}))
+
+    def test_nominal_aave_cash_exceeds_single_candidate_demand_without_promotion(self):
+        a,p,t=fixtures()
+        req=m.capital_principal_requirements(a,p)
+        self.assertEqual(len(req),27)
+        reserves={asset:{"available_liquidity_raw_underlying":str(amount+1000),
+                         "active":True,"paused":False,"flash_loan_enabled":True}
+                  for asset,amount in req.items()}
+        out=m.nominal_liquidity_comparison(reserves,req)
+        self.assertTrue(out["all_required_reserves_have_adequate_nominal_single_trade_liquidity"])
+        self.assertEqual(out["required_reserves_active_flash_enabled_unpaused_count"],27)
+        self.assertFalse(out["principal_source_eligible_for_execution_claimed"])
+        self.assertFalse(out["same_block_available_liquidity_guaranteed"])
+        self.assertFalse(out["simultaneous_liquidity_capacity_certified"])
+
+    def test_negative_single_trade_liquidity_is_never_promoted(self):
+        a,p,t=fixtures()
+        req=m.capital_principal_requirements(a,p)
+        reserves={asset:{"available_liquidity_raw_underlying":str(amount+100),
+                         "active":True,"paused":False,"flash_loan_enabled":True}
+                  for asset,amount in req.items()}
+        token=sorted(req)[0]
+        reserves[token]["available_liquidity_raw_underlying"]="0"
+        out=m.nominal_liquidity_comparison(reserves,req)
+        self.assertFalse(out["all_required_reserves_have_adequate_nominal_single_trade_liquidity"])
+        self.assertFalse(out["principal_source_eligible_for_execution_claimed"])
+
+    def test_wrong_principal_asset_or_hex_rejected(self):
+        a,p,t=fixtures()
+        p[0]["debt_asset"]="0x"+"a"*40
+        with self.assertRaisesRegex(ValueError,"does not match"):
+            m.capital_principal_requirements(a,p)
+        a,p,t=fixtures()
+        p[0]["principal"]="0x1"
+        with self.assertRaisesRegex(ValueError,"32-byte hexadecimal"):
+            m.capital_principal_requirements(a,p)
+
+    def test_missing_required_aave_reserve_denied(self):
+        a,p,t=fixtures()
+        req=m.capital_principal_requirements(a,p)
+        reserves={asset:{"available_liquidity_raw_underlying":str(amount+100),
+                         "active":True,"paused":False,"flash_loan_enabled":True}
+                  for asset,amount in req.items()}
+        del reserves[sorted(req)[0]]
+        with self.assertRaisesRegex(ValueError,"incomplete"):
+            m.nominal_liquidity_comparison(reserves,req)
 
 
 if __name__=="__main__":
