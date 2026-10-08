@@ -37,6 +37,12 @@ SOURCE_ARTIFACT=11562554317
 SOURCE_ZIP_SHA256="f431bc64770be49ebeee5d48a40f8013592c3a4f1c25fd3abbd4c43f6c66c9f3"
 SOURCE_GENESIS_REPORT="all-857-future-liquidation-events.json"
 PROVIDER_IDS=("drpc","blast")
+# dRPC free-tier historical log archives unexpectedly reject some 480-block
+# requests with code 35 ("ranges over 10000 blocks") even though 480 < 10000.
+# Work around the *provider capability*, never an absent-result assumption.
+# BlastAPI requires <=10 blocks (observed from HTTP 400 free-tier response).
+# Restrict BOTH operators to deterministic non-overlapping 10-block partitions.
+MAX_REAL_ARCHIVE_LOG_RANGE={"drpc":10,"blast":10}
 SOURCE_ISSUE="RMC015_857_DUAL_RPC_FULL_OBSERVED_EVENT_WINDOW_NOT_CAPTURE"
 SHARD_STATUS="RMC015_SOURCE_LOCKED_INDEPENDENT_480_BLOCK_SHARD_NOT_CAPTURE"
 
@@ -154,10 +160,9 @@ def scan_one(provider, shard_index, members, expected_previous_hash,
     need(start["parent_hash"]==previous["hash"] and
          anchor["timestamp"]<previous["timestamp"]<start["timestamp"]<=end["timestamp"],
          "shard boundary not canonical consecutive Ethereum blocks")
-    interval=prior.PROVIDER_SPANS.get(pid,SHARD_SIZE)
-    need(1<=interval<=SHARD_SIZE and
-         (pid!="blast" or interval<=10),
-         "historical free RPC segment exceeds independently tested limit")
+    interval=MAX_REAL_ARCHIVE_LOG_RANGE[pid]
+    need(1<=interval<=10 and SHARD_SIZE%interval==0,
+         "historical archive segmentation must be complete and <= 10 blocks")
     records=[]
     seen=set()
     spans=[]
