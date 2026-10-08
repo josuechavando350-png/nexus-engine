@@ -29,6 +29,7 @@ PROVIDERS = (
     ("llama", "LlamaNodes", "https://eth.llamarpc.com"),
     ("blockpi", "BlockPI", "https://ethereum.public.blockpi.network/v1/rpc/public"),
     ("blast", "BlastAPI", "https://eth-mainnet.public.blastapi.io"),
+    ("blockscout", "Blockscout", "https://eth.blockscout.com/api/eth-rpc"),
 )
 HEX32 = re.compile(r"^0x[0-9a-f]{64}$")
 MAX_RESPONSE = 8_000_000
@@ -116,25 +117,34 @@ def rpc(url,method,params):
                 return doc["result"]
         except (HTTPError,URLError,TimeoutError,ValueError) as e:
             if attempt or isinstance(e,HTTPError) and e.code in (400,401,403,404):
-                raise ValueError(type(e).__name__+": "+str(e)[:240]) from e
+                body = ""
+                if isinstance(e,HTTPError):
+                    try: body = e.read(512).decode("utf-8","replace")
+                    except Exception: pass
+                raise ValueError(type(e).__name__+": "+str(e)[:160]+(" BODY "+body[:256] if body else "")) from e
             time.sleep(1)
     raise ValueError("unreachable RPC retry")
 
 def probe_one(provider,call=rpc):
     name,operator,url=provider
-    chain=as_hex_quantity(call(url,"eth_chainId",[]),"chain id")
+    def query(method, params):
+        try:
+            return call(url,method,params)
+        except Exception as error:
+            raise ValueError(f"{method}: {type(error).__name__}: {str(error)[:180]}") from error
+    chain=as_hex_quantity(query("eth_chainId",[]),"chain id")
     require(chain==CHAIN_ID,"wrong RPC chain")
-    a=checked_header(call(url,"eth_getBlockByNumber",[hex(START_BLOCK),False]),
+    a=checked_header(query("eth_getBlockByNumber",[hex(START_BLOCK),False]),
                      START_BLOCK,START_HASH)
-    z=checked_header(call(url,"eth_getBlockByNumber",[hex(END_BLOCK),False]),
+    z=checked_header(query("eth_getBlockByNumber",[hex(END_BLOCK),False]),
                      END_BLOCK,END_HASH)
     lo=END_BLOCK-31
-    logs=call(url,"eth_getLogs",[{"address":AAVE_POOL,"topics":[LIQUIDATION_TOPIC],
+    logs=query("eth_getLogs",[{"address":AAVE_POOL,"topics":[LIQUIDATION_TOPIC],
                                  "fromBlock":hex(lo),"toBlock":hex(END_BLOCK)}])
     require(type(logs) is list,"getLogs not supported")
     checked=[checked_log(log,lo,END_BLOCK) for log in logs]
     ref=checked_receipt(KNOWN_LIQUIDATION_TX,
-        call(url,"eth_getTransactionReceipt",[KNOWN_LIQUIDATION_TX]))
+        query("eth_getTransactionReceipt",[KNOWN_LIQUIDATION_TX]))
     return {"provider_id":name,"operator":operator,"chain_id":chain,
             "start":a,"end":z,"sampled_log_count":len(checked),
             "sampled_logs_commitment":sha256(canonical(sorted(checked))),
