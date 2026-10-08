@@ -505,8 +505,8 @@ jobs:
             --argjson operator_gas "$(jq '.operator_owned_gas_funding_count' "$SUMMARY")" \
             --argjson zero_own "$(jq '.zero_own_capital_proven' "$SUMMARY")" \
             --arg scope "$(jq -r '.status' "$SUMMARY")" \
-            --argjson physical "$(jq '.physical_execution_claimed // true' "$SUMMARY")" \
-            --argjson gas_measured "$(jq '.gas_price_evidence_collected // true' "$SUMMARY")" '
+            --argjson physical "$(jq 'if has("physical_execution_claimed") then .physical_execution_claimed elif .status == "RMC_013_REAL_EXECUTION_ECONOMICS_PASS" then true else error("missing physical evidence flag") end' "$SUMMARY")" \
+            --argjson gas_measured "$(jq 'if has("gas_price_evidence_collected") then .gas_price_evidence_collected elif .status == "RMC_013_REAL_EXECUTION_ECONOMICS_PASS" then true else error("missing gas evidence flag") end' "$SUMMARY")" '
             {
               schema_version:1,
               status:"RMC_013_TERMINAL_ECONOMICS_CERTIFIED",
@@ -542,6 +542,27 @@ jobs:
               realized_profitability_proven:false,
               monthly_target_probability_proven:false
             }' > "$OUT/terminal-economics-certification.json"
+
+          # In a certified empty universe no fork transaction or historical gas
+          # measurement occurred. Never let jq's boolean-coalescing `// true`
+          # promote explicit false to true in the immutable certificate.
+          jq -e --slurpfile evidence "$SUMMARY" '
+            (.physical_execution_performed | type) == "boolean" and
+            (.historical_gas_price_evidence_collected | type) == "boolean" and
+            .physical_execution_performed ==
+              (if ($evidence[0] | has("physical_execution_claimed"))
+               then $evidence[0].physical_execution_claimed
+               else true end) and
+            .historical_gas_price_evidence_collected ==
+              (if ($evidence[0] | has("gas_price_evidence_collected"))
+               then $evidence[0].gas_price_evidence_collected
+               else true end) and
+            (if .no_capital_feasible_candidates_proven then
+               .input_candidate_count == 0 and
+               .physical_execution_performed == false and
+               .historical_gas_price_evidence_collected == false
+             else true end)
+          ' "$OUT/terminal-economics-certification.json" >/dev/null
 
           (
             cd "$OUT"
