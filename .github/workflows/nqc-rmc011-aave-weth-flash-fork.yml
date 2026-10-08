@@ -1,0 +1,228 @@
+name: NQC RMC-011 A1 Aave WETH Flash Physical Execution
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/weth-physical/**'
+      - '.github/workflows/nqc-rmc011-aave-weth-flash-fork.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-rmc011-aave-weth-flash-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  source-locked-physical-flash:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Pin exact T36 source and run 25 adversarial RPC/code/fee tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor cc30f574dfab736723530df18c52f0afeb4f10cf HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          test "$(sha256sum ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol | cut -d' ' -f1)" = bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320
+          python3 ci/nqc-census/weth-physical/test_verify_weth_rpc.py
+          python3 ci/nqc-census/weth-physical/test_verify_aave_a1_flash.py
+          python3 -m py_compile ci/nqc-census/weth-physical/verify_aave_a1_flash.py
+          mkdir -p "$RUNNER_TEMP/nqc-rmc011-aave-evidence"
+          sha256sum ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol \
+                    ci/nqc-census/weth-physical/foundry.toml \
+                    ci/nqc-census/weth-physical/test/NqcRmc011AaveFlashPhysicalFork.t.sol \
+                    ci/nqc-census/weth-physical/verify_weth_rpc.py \
+                    ci/nqc-census/weth-physical/verify_aave_a1_flash.py \
+                    > "$RUNNER_TEMP/nqc-rmc011-aave-evidence/original-sources.sha256"
+          echo RMC011_T36_PINNED_EXECUTOR_AND_25_OFFLINE_NEGATIVES_PASS
+
+      - name: Reauthenticate exact predecessor WETH physical behavior certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id=37737680174
+          head=cc30f574dfab736723530df18c52f0afeb4f10cf
+          artifact_id=11532297952
+          digest=4cda36624fa1f5fa608e4219e798964cf2c08954c4a47a7393a011b89b777388
+          meta="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id")"
+          art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id")"
+          test "$(jq -r .status <<<"$meta")" = completed
+          test "$(jq -r .conclusion <<<"$meta")" = success
+          test "$(jq -r .name <<<"$meta")" = 'NQC RMC-011 WETH Historical Physical Compatibility'
+          test "$(jq -r .head_sha <<<"$meta")" = "$head"
+          test "$(jq -r .expired <<<"$art")" = false
+          test "$(jq -r .digest <<<"$art")" = "sha256:$digest"
+          test "$(jq -r .name <<<"$art")" = "rmc011-weth-physical-fork-$head"
+          test "$(jq -r .workflow_run.id <<<"$art")" = "$run_id"
+          curl --fail --silent --show-error --location --retry 2 \
+            -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+            -o "$RUNNER_TEMP/nqc-rmc011-aave-evidence/predecessor.zip"
+          printf '%s  %s\n' "$digest" "$RUNNER_TEMP/nqc-rmc011-aave-evidence/predecessor.zip" | sha256sum --check --strict
+          python3 - "$RUNNER_TEMP/nqc-rmc011-aave-evidence/predecessor.zip" <<'PY'
+          import hashlib,json,sys,zipfile
+          p=sys.argv[1]
+          with zipfile.ZipFile(p) as z:
+              names=z.namelist()
+              assert len(names)==len(set(names))
+              assert {"archive.sha256","fork-weth-compatibility-report.json"}.issubset(set(names))
+              report=json.loads(z.read("fork-weth-compatibility-report.json"))
+              payload=dict(report)
+              digest=payload.pop("report_sha256")
+              raw=(json.dumps(payload,sort_keys=True,separators=(",",":"))+"\n").encode()
+              assert hashlib.sha256(raw).hexdigest()==digest
+              assert report["status"]=="RMC011_WETH_A1_SINGLE_FORK_PHYSICAL_BEHAVIOR_9_PASS_NOT_CERTIFIED"
+              assert report["foundry_physical_fork_test_count"]==9
+              assert report["runtime_code_sha256"]=="5566bf50796faf93c9b6f6adacd3b32c70bfe16b48ffc59db6cd144cbdc89739"
+              assert report["d08_token_execution_admission_changed"] is False
+              assert report["own_capital_zero_funding_proven"] is False
+              assert report["actual_nexus_net_pnl_proven"] is False
+              assert report["real_market_census_closed"] is False
+          print("RMC011_PREDECESSOR_REAL_FORK_VERIFIED_NOT_TOKEN_ADMISSION")
+          PY
+
+      - name: Independently remeasure canonical WETH code and Aave Pool historical premium
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/nqc-rmc011-aave-evidence"
+          python3 ci/nqc-census/weth-physical/verify_weth_rpc.py --out "$root/weth-dual-rpc.json"
+          python3 ci/nqc-census/weth-physical/verify_aave_a1_flash.py --out "$root/aave-dual-rpc-fee.json"
+          jq -e '.status=="RMC011_WETH_ANCHORED_DUAL_OPERATOR_RUNTIME_WITNESS_PASS" and
+                 .weth_runtime_sha256=="5566bf50796faf93c9b6f6adacd3b32c70bfe16b48ffc59db6cd144cbdc89739" and
+                 .nqc_token_execution_admission_certified==false and
+                 .real_market_census_closed==false' "$root/weth-dual-rpc.json" >/dev/null
+          jq -e '.status=="RMC011_AAVE_POOL_A1_FLASH_PREMIUM_DUAL_OPERATOR_PASS" and
+                 .premium_bps > 0 and .premium_bps <= 10000 and
+                 .flash_principal_borrow_replayed==false and
+                 .gas_sponsorship_proven==false and
+                 .real_market_census_closed==false' "$root/aave-dual-rpc-fee.json" >/dev/null
+          echo RMC011_A1_WETH_CODE_AND_AAVE_PREMIUM_REAL_HISTORICAL_CONSENSUS
+
+      - name: Install pinned Foundry release
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc-rmc011-foundry"
+          curl --fail --silent --show-error --location --retry 3 \
+            -o "$RUNNER_TEMP/nqc-rmc011-foundry/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          printf '%s  %s\n' cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b \
+            "$RUNNER_TEMP/nqc-rmc011-foundry/foundry.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/nqc-rmc011-foundry/foundry.tar.gz" -C "$RUNNER_TEMP/nqc-rmc011-foundry"
+          "$RUNNER_TEMP/nqc-rmc011-foundry/forge" --version | tee "$RUNNER_TEMP/nqc-rmc011-aave-evidence/foundry-version.txt"
+
+      - name: Physically prove six Aave flash / repayment / impossible-subsidy cases in A1 fork
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$RUNNER_TEMP/nqc-rmc011-foundry:$PATH"
+          sandbox="$RUNNER_TEMP/nqc-rmc011-aave-fork"
+          mkdir -p "$sandbox/src" "$sandbox/test"
+          cp ci/nqc-census/weth-physical/foundry.toml "$sandbox/foundry.toml"
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol "$sandbox/src/NqcFlashFundingExecutor.sol"
+          cp ci/nqc-census/weth-physical/test/NqcRmc011AaveFlashPhysicalFork.t.sol "$sandbox/test/"
+          cd "$sandbox"
+          forge fmt
+          forge fmt --check
+          sha256sum foundry.toml src/NqcFlashFundingExecutor.sol \
+            test/NqcRmc011AaveFlashPhysicalFork.t.sol \
+            > "$RUNNER_TEMP/nqc-rmc011-aave-evidence/formatted-executed-sources.sha256"
+          forge build --sizes 2>&1 | tee "$RUNNER_TEMP/nqc-rmc011-aave-evidence/forge-build.txt"
+          forge test --fork-url https://eth.drpc.org --fork-block-number 26095351 \
+            --match-contract NqcRmc011AaveFlashPhysicalForkTest -vvv 2>&1 \
+            | tee "$RUNNER_TEMP/nqc-rmc011-aave-evidence/fork-flash-test.txt"
+          grep -Fq 'Suite result: ok. 6 passed; 0 failed; 0 skipped' \
+            "$RUNNER_TEMP/nqc-rmc011-aave-evidence/fork-flash-test.txt"
+          for name in \
+            testHistoricalA1PoolReportsNonZeroFlashPremium \
+            testHistoricalAaveFlashBorrowAndAtomicRepaymentWithExplicitFeeFixture \
+            testInsufficientFlashPremiumMustAtomicallyRevert \
+            testForgedZeroPremiumCannotBypassRealAaveCallback \
+            testExistingExecutorBalanceCannotSubsidizeMissingPremium \
+            testExistingExecutorBalanceCannotSubsidizePositiveProfitClaim
+          do
+            grep -Fq "[PASS] ${name}()" "$RUNNER_TEMP/nqc-rmc011-aave-evidence/fork-flash-test.txt"
+          done
+          echo RMC011_REAL_AAVE_FLASH_CALLBACK_REPAYMENT_WITH_FAKE_FEE_ONLY_NOT_NEXUS_PNL
+
+      - name: Commit authenticated negative/physical scope and source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/nqc-rmc011-aave-evidence" <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          root=Path(sys.argv[1])
+          weth=json.loads((root/"weth-dual-rpc.json").read_bytes())
+          fee=json.loads((root/"aave-dual-rpc-fee.json").read_bytes())
+          log=(root/"fork-flash-test.txt").read_text()
+          assert "Suite result: ok. 6 passed; 0 failed; 0 skipped" in log
+          def sha(name):return hashlib.sha256((root/name).read_bytes()).hexdigest()
+          report={
+              "schema_version":1,
+              "status":"RMC011_A1_WETH_AAVE_FLASH_PHYSICAL_CALLBACK_REPAYMENT_PASS_FIXTURE_FUNDED",
+              "scope":"ONE_HISTORICAL_A1_BLOCK_FLASH_FUNDING_CALLBACK_ONLY",
+              "ethereum_chain_id":1,
+              "block_number":26095351,
+              "block_hash":"0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781",
+              "aave_pool":"0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+              "weth":"0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+              "flash_principal_wei":"1000000000000000000",
+              "aave_pool_observed_premium_bps":fee["premium_bps"],
+              "historical_dual_rpc_weth_runtime_sha256":weth["weth_runtime_sha256"],
+              "historical_dual_rpc_aave_pool_code_sha256":fee["pool_code_sha256"],
+              "observed_fee_source_sha256":sha("aave-dual-rpc-fee.json"),
+              "observed_weth_source_sha256":sha("weth-dual-rpc.json"),
+              "exact_unmodified_certified_t36_executor_source_sha256":"bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320",
+              "physical_foundry_test_count":6,
+              "real_aave_flashloan_callback_replayed":True,
+              "real_aave_flash_principal_borrow_and_repay_at_historical_block":True,
+              "actual_liquidation_or_capture_executed":False,
+              "test_only_vm_deal_premium_eth_minted":True,
+              "historical_synthetic_positive_profit_usd":"0",
+              "authorized_flash_principal_source_for_nexus_proven":False,
+              "external_gas_sponsor_configured_or_financed":False,
+              "zero_operator_owned_capital_end_to_end_proven":False,
+              "gas_or_mev_costs_and_collision_modeled":False,
+              "nexus_realized_net_pnl_proven":False,
+              "d08_token_status_changed":False,
+              "rcc011_terminal_closed":False,
+              "real_market_census_closed":False,
+              "original_source_sha256":sha("original-sources.sha256"),
+              "tested_formatted_source_sha256":sha("formatted-executed-sources.sha256"),
+              "physical_test_log_sha256":sha("fork-flash-test.txt"),
+          }
+          report["report_sha256"]=hashlib.sha256((json.dumps(report,sort_keys=True,separators=(",",":"))+"\n").encode()).hexdigest()
+          (root/"a1-aave-flash-fork-report.json").write_text(
+              json.dumps(report,sort_keys=True,separators=(",",":"))+"\n")
+          print(report["status"],"fee_bps",report["aave_pool_observed_premium_bps"],"user_pnl_proven",False)
+          PY
+          (cd "$RUNNER_TEMP/nqc-rmc011-aave-evidence" &&
+            find . -maxdepth 1 -type f ! -name archive.sha256 ! -name predecessor.zip -printf '%f\n' | sort |
+            while read -r name; do sha256sum "$name"; done > archive.sha256 &&
+            sha256sum --check --strict archive.sha256)
+          echo RMC011_A1_FLASH_FORK_REPLAYED_BUT_ZERO_OWN_CAPITAL_NOT_CERTIFIED
+
+      - name: Preserve source-bound flash fee and fork diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-a1-weth-aave-flash-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc-rmc011-aave-evidence/*.json
+            ${{ runner.temp }}/nqc-rmc011-aave-evidence/*.sha256
+            ${{ runner.temp }}/nqc-rmc011-aave-evidence/*.txt
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
