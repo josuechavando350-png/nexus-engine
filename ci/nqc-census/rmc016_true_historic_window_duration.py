@@ -30,7 +30,7 @@ def need(condition,message):
 def canonical_header(provider,number,expected_hash,*,call=rpc):
     pid,operator,url=provider
     header=call(url,"eth_getBlockByNumber",[hex(number),False])
-    need(type(header) is dict and economic.object_json, "historic header absent")
+    need(type(header) is dict, "historic header absent")
     def integer_hex(x,what):
         need(type(x) is str and x.startswith("0x") and x[2:]
              and all(c in "0123456789abcdef" for c in x[2:]) and
