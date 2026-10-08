@@ -33,7 +33,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor abe54f1f23bd7bff8c37871200f7da7a9014e2ff9a HEAD
+          git merge-base --is-ancestor abe54f1f23bd7bff8c37871200f7da7c59c45ac3 HEAD
           test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
           python3 ci/nqc-census/test_rmc016_aave_event_legs.py
           python3 -m py_compile ci/nqc-census/rmc016_aave_event_legs.py ci/nqc-census/test_rmc016_aave_event_legs.py
@@ -56,7 +56,7 @@ jobs:
         run: |
           set -euo pipefail
           source_run=37718661409
-          source_head=abe54f1f23bd7bff8c37871200f7da7a9014e2ff9a
+          source_head=abe54f1f23bd7bff8c37871200f7da7c59c45ac3
           source_tree=c74f8d9d2c317a011284398643b2d4aa6de06e83
           source_artifact=11524139188
           source_digest=6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204
