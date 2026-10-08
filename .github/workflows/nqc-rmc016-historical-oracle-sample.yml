@@ -1,0 +1,101 @@
+name: NQC RMC-016 Historical WETH Price Oracle Sample
+
+on:
+  push:
+    branches:
+      - 'nqc/rmc016-historical-gas-oracle-probe-20261008'
+    paths:
+      - 'ci/nqc-census/rmc016_historical_gas_price_oracle.py'
+      - 'ci/nqc-census/test_rmc016_historical_gas_price_oracle.py'
+      - 'ci/nqc-census/RMC016_HISTORICAL_WETH_ORACLE_PROBE_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-historical-oracle-sample.yml'
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc016_historical_gas_price_oracle.py'
+      - 'ci/nqc-census/test_rmc016_historical_gas_price_oracle.py'
+      - 'ci/nqc-census/RMC016_HISTORICAL_WETH_ORACLE_PROBE_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-historical-oracle-sample.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc016-weth-oracle-sample-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  exact-source-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Exact D16 economic boundary and test historical price probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor abe54f1f23bd7bff8c37871200f7da7c59c45ac3 HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = \
+            "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
+          python3 ci/nqc-census/test_rmc016_historical_gas_price_oracle.py
+          python3 -m py_compile \
+            ci/nqc-census/rmc016_historical_gas_price_oracle.py \
+            ci/nqc-census/test_rmc016_historical_gas_price_oracle.py
+          jq -e '
+            .authority.nqc_capture_probability_lower_bound_wad == "0" and
+            .authority.nqc_conservative_realizable_capacity_usd_wad == "0" and
+            .authority.month1_300k_target_proven == false
+          ' ci/nqc-census/rmc016-production-evidence.json >/dev/null
+          echo RMC016_HISTORICAL_WETH_ORACLE_OFFLINE_REGRESSIONS_PASS
+
+  real-historical-oracle-sample:
+    if: ${{ github.event_name == 'push' }}
+    needs: exact-source-regressions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Compare historical WETH prices across dRPC and BlastAPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rmc016-weth-oracle"
+          python3 ci/nqc-census/rmc016_historical_gas_price_oracle.py \
+            --min-interval 2 \
+            --out "$RUNNER_TEMP/rmc016-weth-oracle/price-samples.json"
+          jq -e '
+            .status == "RMC016_TWO_OPERATOR_AAVE_WETH_HISTORICAL_ORACLE_SAMPLE_PASS" and
+            .independent_sample_consensus == true and
+            .sample_count == 4 and
+            .source_oracle == "0x54586be62e3c3580375ae3723c145253060ca0c2" and
+            .asset == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" and
+            .base_currency_unit == 100000000 and
+            .d08_terminal_anchor_weth_price == 270926731143 and
+            .prices["26095351"].price_raw == "270926731143" and
+            .claims_exact_pre_transaction_price == false and
+            .historical_full_receipt_gas_priced == false and
+            .nexus_profitability_proven == false and
+            .real_market_census_closed == false and
+            .lookahead_used == false
+          ' "$RUNNER_TEMP/rmc016-weth-oracle/price-samples.json" >/dev/null
+          (
+            cd "$RUNNER_TEMP/rmc016-weth-oracle"
+            sha256sum price-samples.json > archive.sha256
+            sha256sum -c archive.sha256
+          )
+          echo RMC016_TWO_OPERATOR_AAVE_WETH_ORACLE_SAMPLE_NO_NET_PNL
+      - name: Save exact price sample or denied historical source diagnostic
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-historical-weth-oracle-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc016-weth-oracle/
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
