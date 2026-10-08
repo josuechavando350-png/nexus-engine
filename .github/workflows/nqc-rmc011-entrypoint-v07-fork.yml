@@ -168,9 +168,15 @@ jobs:
           refund=event("NQC_V07_REVERTED_USEROP_WETH_REIMBURSEMENT_WEI")
           active=event("NQC_V07_REAL_PROVIDER_GAS_AUTHORIZED")
           gap=event("NQC_V07_TEST_SPONSOR_UNRECOVERED_ETH_PAR_WEI")
+          postop_basis=event("NQC_V07_POSTOP_INPUT_ACTUAL_GAS_COST_WEI")
+          excluded_native=event("NQC_V07_FULL_DEPOSIT_CHARGE_BEYOND_POSTOP_INPUT_WEI")
           full_recovery=event("NQC_V07_TEST_SPONSOR_8PCT_FULL_GAS_RECOVERY_PROVEN")
           assert 0<weth<eth_paid<2*10**16
           assert gap==eth_paid-weth and gap>0
+          assert 0<postop_basis<eth_paid and excluded_native==eth_paid-postop_basis
+          assert weth==(postop_basis*10800+9999)//10000
+          break_even_bps=max(0,(eth_paid*10000+postop_basis-1)//postop_basis-10000)
+          assert break_even_bps>800 and break_even_bps<=10000
           assert weth+retained==90814117763741536 and unpaid>0
           assert refund==0 and active==0 and full_recovery==0
           output={
@@ -186,6 +192,10 @@ jobs:
              "actual_test_account_weth_remaining_after_postop_wei":str(retained),
              "test_sponsor_8pct_fee_did_not_cover_full_native_gas":True,
              "test_sponsor_unrecovered_native_eth_par_wei":str(gap),
+             "actual_postop_input_cost_wei_before_own_postop_overhead":str(postop_basis),
+             "actual_native_eth_debit_excluded_from_postop_input_wei":str(excluded_native),
+             "test_only_break_even_service_fee_bps_over_postop_input":break_even_bps,
+             "test_only_stated_service_fee_bps":800,
              "test_sponsor_production_profitability_proven":False,
              "failed_application_userop_test_sponsor_eth_deposit_loss_wei":str(unpaid),
              "failed_application_userop_weth_reimbursement_wei":"0",
@@ -206,6 +216,7 @@ jobs:
           (root/"real-v07-paymaster-evidence.json").write_bytes(canon(output))
           print(output["status"],"test_sponsor_eth_spent",eth_paid,
                 "test_sponsor_unrecovered_eth_par_wei",gap,
+                "test_only_break_even_fee_bps",break_even_bps,
                 "failed_userop_eth_loss",unpaid)
           PY
           (cd "$RUNNER_TEMP/nqc011-real-entrypoint" && find . -maxdepth 1 -type f ! -name archive.sha256 ! -name '*.zip' -printf '%f\n' | sort | while read -r n; do sha256sum "$n"; done > archive.sha256 && sha256sum -c archive.sha256)
