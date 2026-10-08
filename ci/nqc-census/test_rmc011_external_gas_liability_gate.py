@@ -148,7 +148,7 @@ class Rmc011ThirdPartyGasLiabilityTests(unittest.TestCase):
 
     def test_t36_executor_code_mutation_fails(self):
         with patch.object(m,"T36_RAW_GIT_BLOB",m.git_blob(base_executor())):
-            with self.assertRaisesRegex(ValueError,"raw"):
+            with self.assertRaisesRegex(ValueError,"Git blob"):
                 m.inspect_unmodified_executor(base_executor()+b"\n// unexpected mutation\n")
 
     def test_t36_without_operator_payout_fails_even_if_hash_claimed(self):
