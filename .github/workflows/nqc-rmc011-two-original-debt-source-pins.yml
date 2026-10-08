@@ -1,0 +1,154 @@
+name: NQC RMC-011 Independent Original D08 Two Debt Pins (NOT D11 TERMINAL)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc011-two-original-debt-source-pins.yml'
+      - 'ci/nqc-census/rmc011-capital-source-universe.json'
+      - 'ci/nqc-census/verify-rmc011-debt-family-promotion.py'
+      - 'ci/nqc-census/test_verify_rmc011_debt_family_promotion.py'
+      - 'ci/nqc-census/test_verify_rmc011_capital_source_universe.py'
+      - 'ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py'
+      - 'ci/nqc-census/rmc011_independent_two_debt_pins.py'
+      - 'ci/nqc-census/test_rmc011_independent_two_debt_pins.py'
+      - 'ci/nqc-census/RMC011_TWO_ORIGINAL_D08_DEBT_PINS.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: nqc-rmc011-independent-original-debt-pins-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  independent-original-two-source-authenticator-not-census:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact source head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify new nine-family lock and never claim terminal D11
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object ci/nqc-census/rmc011-capital-source-universe.json)" = c1b9f136a13f220af9dceaae50e5caa3105121eb
+          test "$(git hash-object ci/nqc-census/rmc011-real-source-inputs.json)" = 1db0bbd78af36ee61dd6a44630a3b6614f3e9309
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json)" = 100fd25c99217e82f4d5b00bd67b9c87be3d1afa
+          test "$(git hash-object ci/nqc-census/rmc011-collateral-funding-path-catalog.json)" = d21b0731f76658121fbf1daf63bf9e19f742840e
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          python3 -m py_compile ci/nqc-census/rmc011_independent_two_debt_pins.py ci/nqc-census/test_rmc011_independent_two_debt_pins.py
+          python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
+          python3 ci/nqc-census/test_verify_rmc011_debt_family_promotion.py -v
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
+          python3 ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          python3 ci/nqc-census/verify-rmc011-debt-family-promotion.py
+          jq -e '.status=="BLOCKED_INCOMPLETE_SOURCE_UNIVERSE" and
+                 .d11_terminal_closed==false and .terminal_claim_allowed==false and
+                 ([.families[]|select(.terminally_resolved==true)]|length)==9 and
+                 ([.families[]|select(.terminally_resolved==false)]|length)==4 and
+                 .family_universe_discovery.status=="NOT_CERTIFIED"' \
+            ci/nqc-census/rmc011-capital-source-universe.json >/dev/null
+          echo RMC011_NINE_REFERENCES_DECLARED_FOUR_NATIVE_STILL_UNRESOLVED
+      - name: Authenticate original D08-backed debt production run and exact ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-two-source-pins"
+          mkdir -p "$ROOT/private" "$ROOT/public"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/37832286518" > "$ROOT/private/producer.run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11573678487" > "$ROOT/private/producer.artifact.json"
+          gh api "repos/$GITHUB_REPOSITORY/git/commits/5b79e7be1c185cbb4924d592991b9c990fc0465a" > "$ROOT/private/producer.commit.json"
+          jq -e '.id==37832286518 and .head_sha=="5b79e7be1c185cbb4924d592991b9c990fc0465a" and
+                 .status=="completed" and .conclusion=="success" and
+                 .name=="NQC RMC-011 Original D08 Debt Family Rejection Evidence (NO D11 CLOSE)"' \
+            "$ROOT/private/producer.run.json" >/dev/null
+          jq -e '.id==11573678487 and .expired==false and
+                 .digest=="sha256:151847cdf85b1b49298d59b41d1bf939f6854d4556060a03ab7dd5a2e1359916" and
+                 .workflow_run.id==37832286518 and .workflow_run.head_sha=="5b79e7be1c185cbb4924d592991b9c990fc0465a"' \
+            "$ROOT/private/producer.artifact.json" >/dev/null
+          curl --fail --silent --show-error --location --retry 2 --max-time 60 \
+            -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11573678487/zip" \
+            -o "$ROOT/private/original-debt.zip"
+          printf '%s  %s\n' 151847cdf85b1b49298d59b41d1bf939f6854d4556060a03ab7dd5a2e1359916 "$ROOT/private/original-debt.zip" \
+            | sha256sum -c --strict
+          echo RMC011_DEBT_ORIGINAL_IMMUTABLE_ZIP_AUTHENTICATED
+      - name: Independently confirm five original D06-D10 stage run, artifact and tree sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-two-source-pins/private"
+          INPUTS=ci/nqc-census/rmc011-real-source-inputs.json
+          for key in d06 d07 d08 d09 d10; do
+            run_id="$(jq -r --arg key "$key" '.[$key].run_id' "$INPUTS")"
+            artifact_id="$(jq -r --arg key "$key" '.[$key].artifact_id' "$INPUTS")"
+            head="$(jq -r --arg key "$key" '.[$key].head_sha' "$INPUTS")"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$ROOT/$key.run.json"
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id" > "$ROOT/$key.artifact.json"
+            gh api "repos/$GITHUB_REPOSITORY/git/commits/$head" > "$ROOT/$key.commit.json"
+            jq -e --arg h "$head" --argjson id "$run_id" \
+              '.id==$id and .head_sha==$h and .status=="completed" and .conclusion=="success"' \
+              "$ROOT/$key.run.json" >/dev/null
+            jq -e --argjson id "$artifact_id" --argjson run "$run_id" \
+              '.id==$id and .workflow_run.id==$run and .expired==false' \
+              "$ROOT/$key.artifact.json" >/dev/null
+          done
+          echo RMC011_ALL_FIVE_ORIGINAL_SOURCE_PROVENANCES_INDEPENDENTLY_RECHECKED
+      - name: Run source-independent report verifier and adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-two-source-pins"
+          SCRIPT=ci/nqc-census/rmc011_independent_two_debt_pins.py
+          TEST=ci/nqc-census/test_rmc011_independent_two_debt_pins.py
+          audit() {
+            python3 "$SCRIPT" \
+              --original-zip "$ROOT/private/original-debt.zip" \
+              --run-meta "$ROOT/private/producer.run.json" \
+              --artifact-meta "$ROOT/private/producer.artifact.json" \
+              --commit-meta "$ROOT/private/producer.commit.json" \
+              --original-upstream-dir "$ROOT/private" \
+              --out "$1"
+          }
+          python3 "$TEST" \
+            --original-zip "$ROOT/private/original-debt.zip" \
+            --run-meta "$ROOT/private/producer.run.json" \
+            --artifact-meta "$ROOT/private/producer.artifact.json" \
+            --commit-meta "$ROOT/private/producer.commit.json" \
+            --original-upstream-dir "$ROOT/private" \
+            -v 2>&1 | tee "$ROOT/public/test-results.txt"
+          audit "$ROOT/public/independent-two-debt-report.json"
+          audit "$ROOT/private/independent-second-replay.json"
+          cmp "$ROOT/public/independent-two-debt-report.json" \
+              "$ROOT/private/independent-second-replay.json"
+          jq -e '.status=="RMC011_TWO_ORIGINAL_D08_DEBT_REJECTIONS_INDEPENDENTLY_AUTHENTICATED_NOT_D11" and
+                 .bounded_capital_families_with_original_source_evidence==9 and
+                 .remaining_unresolved_count==4 and
+                 .original_d08_historical_aave_facility_count==67 and
+                 .family_universe_discovery_authenticated==false and
+                 .rmc011_terminal_closed==false and .real_market_census_closed==false and
+                 .nqc_authorized_native_eth_gas_source_count==0 and .nqc_realized_usd_wad=="0"' \
+            "$ROOT/public/independent-two-debt-report.json" >/dev/null
+          sha256sum "$SCRIPT" "$TEST" ci/nqc-census/RMC011_TWO_ORIGINAL_D08_DEBT_PINS.md \
+            > "$ROOT/public/source-code.sha256"
+          (cd "$ROOT/public" &&
+            sha256sum independent-two-debt-report.json test-results.txt source-code.sha256 > evidence.sha256 &&
+            sha256sum -c --strict evidence.sha256)
+          echo RMC011_NINE_OF_THIRTEEN_SOURCE_FAMILIES_REAUTHENTICATED_D11_NOT_CLOSED
+      - name: Publish only source hashes and no individual borrower rows
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-independent-original-two-debt-pins-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/rmc011-two-source-pins/public/*.json
+            ${{ runner.temp }}/rmc011-two-source-pins/public/*.sha256
+            ${{ runner.temp }}/rmc011-two-source-pins/public/*.txt
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
