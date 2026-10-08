@@ -71,8 +71,8 @@ class HistoricalOracleGate(unittest.TestCase):
             return api(u,m,p)
         self.assertIn("independent providers disagree",M.probe(bad)["blocking_reason"])
     def test_changing_provider_set_rejected(self):
-        report=M.probe(api,providers=[M.PROVIDERS[0],M.PROVIDERS[0]])
-        self.assertIn("exact two independent operators",report["blocking_reason"] if "blocking_reason" in report else "")
+        with self.assertRaisesRegex(ValueError,"exact two independent operators"):
+            M.probe(api,providers=[M.PROVIDERS[0],M.PROVIDERS[0]])
     def test_rpc_failure_report_not_fake_success(self):
         def bad(u,m,p):
             if m=="eth_call":raise ValueError("historical provider unavailable")
