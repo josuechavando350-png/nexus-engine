@@ -1,0 +1,29 @@
+name: NQC RMC-300K Target Gate
+
+on:
+  push:
+    branches:
+      - nqc/rmc300k-net-acceptance-gate-20261007
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audited-target-baseline:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - name: Check immutable source and run adversarial regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
+          python3 ci/nqc-census/test_rmc300k_monthly_net_gate.py
+          python3 ci/nqc-census/rmc300k_monthly_net_gate.py --source ci/nqc-census/rmc016-production-evidence.json --out /tmp/rmc300k-underwriting.json
+          jq -e '.status=="RMC300K_NET_MONTHLY_TARGET_UNPROVEN" and .target_monthly_net_usd_wad=="300000000000000000000000" and .monthly_300k_certified==false and .real_market_census_closed==false and .nexus_net_monthly_forecast_usd_wad==null' /tmp/rmc300k-underwriting.json
+          echo RMC300K_POLICY_GATE_PASS_NOT_PROVEN
