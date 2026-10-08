@@ -48,3 +48,12 @@ If, solely for sensitivity analysis, a fraction of theoretically available gross
 | 100% | USD 300,000 |
 
 No percent here is a measured Nexus win rate, probability or forecast. Any real protocol, flash, swap, priority, failed gas, builder, infrastructure or capital fee INCREASES the requirement. The table is an underwriting sensitivity under a simplifying mathematical relation, not a prediction or a claim of actual observed market capacity.
+
+
+## Separate current external funding admission blocker
+
+The RMC-011 registered authorized external-provider file currently has **provider_count=0** and explicitly states no external gas provider is configured or claimed available. Exact source Git blob: a9c1427bb05828d08ade537899ee1b8e43b97ed2, path ci/nqc-census/rmc011-external-capital-provider-registry.json.
+
+This does not prove external sponsors do not exist anywhere in the market. It DOES prohibit marking a zero-own-capital operational route as proven on this head until separately authenticated authorized providers, actual gas sponsorship and full payment semantics are admitted.
+
+The underwriting report binds this absence as a separate negative evidence source. A forged provider JSON with provider_count>0 changes the source blob and is rejected. None of the other competition/cost/temporal blockers are waived if a provider is later registered.
