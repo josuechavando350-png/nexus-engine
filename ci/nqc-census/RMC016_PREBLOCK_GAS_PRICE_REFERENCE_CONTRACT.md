@@ -32,3 +32,7 @@ Reference gas price remains **previous block end only**, from two independently 
 ## Third immutable historical gas reference batch (blocks 11–15 of 123)
 
 The second price-reference producer succeeded at GitHub run 37725048195, exact commit d9c0b8882e84d43e865206c28e008de3d588823e, tree c666c8a8c6d3c91c6a6e12b853f8359b5a1dea74, artifact 11527388437, sha256:4df64e0aec5693165685279999d4c14f1da02404a9cc4434604b129ecc4f0ae0. That archive has five disjoint previous-block WETH gas references at offsets 5–9. This new producer authenticates its entire exact run/head/tree/artifact/inner-manifest identity, enforces source membership at indices 5–9 and no overlap with indices 10–14 before issuing any new RPC price query. Full Nexus P&L, exact pre-transaction prices and capital-feasibility remain unproven.
+
+## Fourth immutable historical gas reference batch (blocks 16–20 of 123)
+
+Third predecessor: workflow run 37725515273 SUCCESS at commit 19a795b750e1670907f2db0c409f0638ec8e7cd7, tree 669aa9e471707f414276eaae1de1fd1bca0a7371, artifact 11527183000 (sha256:260f413126733b639a66fe55d4e9b0cd4150972119819e305af502dec3380e40). That ZIP authenticates five historical prior-block price references at source winner-block offsets 10–14. This fourth batch reauthenticates exact source identity and previous covered blocks, requires zero overlap with offsets 15–19 and invokes two independent RPCs for real historic observations. It does not claim transaction prestate gas cost, Nexus financing or net P&L.
