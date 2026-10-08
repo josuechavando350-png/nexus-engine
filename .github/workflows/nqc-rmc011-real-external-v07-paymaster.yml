@@ -8,6 +8,7 @@ on:
       - 'ci/nqc-census/test_rmc011_pimlico_v07_historical_provider.py'
       - 'ci/nqc-census/weth-physical/test/NqcRmc011PimlicoRealExternalV07ReadOnlyFork.t.sol'
       - 'ci/nqc-census/RMC011_EXTERNAL_SINGLETON_V07_SOURCE_GATE.md'
+      - 'ci/nqc-census/RMC011_EXTERNAL_GAS_PROVIDER_UNDERWRITING_REQUEST.md'
   workflow_dispatch:
 
 permissions:
@@ -40,6 +41,7 @@ jobs:
             ci/nqc-census/test_rmc011_pimlico_v07_historical_provider.py \
             ci/nqc-census/weth-physical/test/NqcRmc011PimlicoRealExternalV07ReadOnlyFork.t.sol \
             ci/nqc-census/RMC011_EXTERNAL_SINGLETON_V07_SOURCE_GATE.md \
+            ci/nqc-census/RMC011_EXTERNAL_GAS_PROVIDER_UNDERWRITING_REQUEST.md \
             > "$RUNNER_TEMP/nqc011-external-v07/original-source-sha256.txt"
           echo RMC011_REAL_EXTERNAL_V07_OFFLINE_NO_CREDIT_PROMOTION_PASS
 
