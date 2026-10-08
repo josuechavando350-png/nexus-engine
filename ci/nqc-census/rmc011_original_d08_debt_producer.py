@@ -175,8 +175,21 @@ def verified_zip_members(z: ZipFile) -> None:
 
 
 def command(*args: str, cwd: Path | None = None) -> str:
-    x = subprocess.run(list(args), cwd=cwd, check=True, text=True,
-                       stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # Fail closed but expose bounded ORIGINAL Rust diagnostics. The source CLI
+    # output is needed to distinguish a source mismatch from mere transport.
+    # Never print GitHub tokens, query payloads, or complete account ledgers.
+    try:
+        x = subprocess.run(list(args), cwd=cwd, check=True, text=True,
+                           stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    except subprocess.CalledProcessError as exc:
+        stderr = (exc.stderr or "").strip()
+        stdout = (exc.stdout or "").strip()
+        print("RMC011_FROZEN_SOURCE_REPLAY_FAILED step="
+              + Path(args[0]).name
+              + " exit=" + str(exc.returncode)
+              + " stderr_tail=" + repr(stderr[-1600:])
+              + " stdout_tail=" + repr(stdout[-350:]), flush=True)
+        raise ValueError("frozen source replay did not pass; no capital promotion") from exc
     return x.stdout.strip()
 
 
