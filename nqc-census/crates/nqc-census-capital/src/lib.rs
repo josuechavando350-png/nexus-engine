@@ -3405,9 +3405,70 @@ impl CapitalCensusLedger {
 
     pub fn evaluate_all(&mut self) -> Result<(), CapitalError> {
         self.results.clear();
-        let sources = self.sources.values().cloned().collect::<Vec<_>>();
+
+        // The public checked evaluator still validates an arbitrary full source
+        // slice, including duplicate IDs and conflicting stable keys. A ledger
+        // has already enforced those invariants during register_source, so it
+        // can safely restrict each request to sources that match at least one
+        // funding leg by asset and capital class. Foreign anchors, operator
+        // ownership, execution blockers and atomicity mismatches must remain
+        // in the candidate slice: they determine exact rejection semantics.
+        //
+        // Index once instead of building a complete residual network for
+        // every independent borrower requirement.
+        // Only keys demanded by an actual funding leg can participate in
+        // residual flow or in rejection classification. A real V2 census has
+        // hundreds of thousands of unrelated asset keys; indexing them all
+        // retains a large unnecessary allocation for each evaluation batch.
+        let mut required_keys = BTreeSet::<(CapitalAsset, CapitalClass)>::new();
         for requirement in self.requirements.values() {
-            let result = evaluate_capital_feasibility_checked(requirement, &sources)?;
+            for leg in requirement.legs() {
+                if matches!(
+                    leg.kind(),
+                    RequirementKind::Repayment | RequirementKind::FundingFee
+                ) {
+                    continue;
+                }
+                for class in leg.allowed_classes() {
+                    required_keys.insert((leg.asset(), *class));
+                }
+            }
+        }
+
+        let mut source_index =
+            BTreeMap::<(CapitalAsset, CapitalClass), Vec<CapitalSourceId>>::new();
+        for source in self.sources.values() {
+            let key = (source.asset(), source.class());
+            if required_keys.contains(&key) {
+                source_index.entry(key).or_default().push(source.id());
+            }
+        }
+
+        for requirement in self.requirements.values() {
+            let mut relevant_ids = BTreeSet::<CapitalSourceId>::new();
+            for leg in requirement.legs() {
+                if matches!(
+                    leg.kind(),
+                    RequirementKind::Repayment | RequirementKind::FundingFee
+                ) {
+                    continue;
+                }
+                for class in leg.allowed_classes() {
+                    if let Some(ids) = source_index.get(&(leg.asset(), *class)) {
+                        relevant_ids.extend(ids.iter().copied());
+                    }
+                }
+            }
+            let candidates = relevant_ids
+                .into_iter()
+                .map(|id| {
+                    self.sources
+                        .get(&id)
+                        .cloned()
+                        .ok_or(CapitalError::MissingSourceForAllocation)
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            let result = evaluate_capital_feasibility_checked(requirement, &candidates)?;
             self.results.insert(requirement.id(), result);
         }
         self.validate_allocations()
