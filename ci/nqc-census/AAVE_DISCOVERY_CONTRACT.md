@@ -1,0 +1,227 @@
+# RMC-006 — Authoritative Aave Reconciled Discovery
+
+Status: certified only by an all-green exact-head run of
+`nqc-census-aave-discovery.yml`. This document is the contract, not evidence.
+
+Authorities:
+
+- Census parent `8ebf6860e0a16964f5293df0ef40695b303b286d`.
+- RMC-003.2 `519e5f6f7a4d42ff1cab67fef8306cfef9aab120`: log topics are ABI
+  words that may be zero.
+
+## Declared scope
+
+Ethereum mainnet / Aave V3 / one D05-admitted deployment:
+
+- Pool `0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2`;
+- AddressesProvider `0x2f39d218133afab8f2b819b1066c7e434ad94e9e`;
+- observation anchor 25,437,474
+  (`0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8`).
+
+This scope does not claim all Aave, all Aave V3, all Ethereum lending, or a
+global market census.
+
+## Surface A — exact-anchor getters (3 providers, byte-identical)
+
+**Runtime code.** AddressesProvider, Pool proxy, Pool implementation (the
+EIP-1967 slot) and price oracle runtime sha256 values must equal the
+Protocol/Fork certified baseline. The PoolConfigurator proxy and its EIP-1967
+implementation are recorded.
+
+**Pool enumeration.**
+- `getReserveAddressById(i)` is read for `i` in `0..getReservesCount()`.
+- A zero slot is a dropped reserve, recorded in `dropped_reserve_ids`.
+- `getReservesList()` must equal the non-empty slots in id order.
+- `getReserveData` must return 15 words whose `id` equals the slot.
+
+## Lineage — AddressesProvider history (2 providers, logs agreed exactly)
+
+Scanned events: `ProxyCreated`, `AddressSet`, `AddressSetAsProxy`,
+`PoolUpdated` and `PoolConfiguratorUpdated`. The scan runs from the
+AddressesProvider's earliest-code block to the anchor.
+
+**Pool lineage**
+- Exactly one `ProxyCreated(POOL)`, at the Pool's earliest-code block.
+- Any `AddressSet(POOL)` fails closed: it would be another deployment.
+- The implementation chain (`PoolUpdated`, `AddressSetAsProxy(POOL)`) must be
+  continuous. The first update may have a zero `old` only in the creating
+  transaction. The chain must end at the exact-anchor EIP-1967
+  implementation.
+
+**PoolConfigurator lineage**
+- Exactly one `ProxyCreated(POOL_CONFIGURATOR)`, at its earliest-code block.
+- Every `AddressSet(POOL_CONFIGURATOR)` opens a new configurator window and
+  must replace the current configurator.
+- The last window must be the exact-anchor configurator.
+- The implementation chain must be continuous and end at the exact-anchor
+  EIP-1967 implementation.
+
+Events for other ids are counted, not used. Indexed zero addresses (for
+example the `old` of an initial update) are ordinary topics.
+
+## Surface B — reserve lifecycle (2 providers, logs agreed exactly)
+
+- `ReserveInitialized` and `ReserveDropped` are scanned from every historical
+  configurator.
+- An event is accepted only from the configurator whose window contains its
+  coordinate `(block, transaction index, log index)`. An event from a
+  replaced configurator fails closed.
+- The lifecycle is replayed in canonical order with Aave V3
+  `_addReserveToList` semantics:
+  - an initialisation takes the first empty slot below the count, otherwise
+    the next id;
+  - a drop empties its slot;
+  - an initialisation while active, or a drop while inactive, fails closed.
+
+## Reconciliation
+
+These are UNEXPLAINED deltas, and any one fails the node:
+
+- `CURRENT_ONLY`
+- `EVENT_ACTIVE_ONLY`
+- `RESERVE_COUNT_MISMATCH` (simulated slots vs `getReservesCount`)
+- `RESERVE_ID_SLOT_MISMATCH` (any slot)
+- `TOKEN_IDENTITY_MISMATCH` (aToken, variable debt token)
+
+Historical and dropped reserves are preserved in the reserve manifest. A
+removal is EXPLAINED only by a canonical `ReserveDropped`; no reason is
+inferred from absence.
+
+## Evidence
+
+- Every read is an RMC-003 typed observation in the RMC-004 store.
+- Log scans are window checkpoints certified by `certify_range`.
+- The history report lists every job manifest (`replay_manifests`).
+- D05 admission is materialised from the observed code, configuration and
+  oracle fingerprints, with every manifest as an evidence reference.
+
+## Public RPC load
+
+Live acquisition runs only from a `workflow_dispatch` on the exact branch
+head, in the repository-wide concurrency group `nqc-census-public-rpc`
+(`cancel-in-progress: false`). At most one live Census acquisition runs at a
+time, and a running one is never cancelled. GitHub keeps one pending run per
+group and a newer pending run replaces an older one. So a `pull_request` run
+executes every gate except the live acquisition, in its own per-ref group,
+and certifies nothing.
+Log windows follow what each endpoint actually serves. mevblocker's window is
+its documented 10,000 blocks: at 250,000 blocks it answered `-32603 service
+temporarily unavailable` for about half of the windows (probe run
+36588018889), and because the chain layer retries a whole batch when any item
+is transient, D06 runs 36524919359 and 36526056098 exhausted their retry
+budget. At 10,000 blocks, batched 100 per request, the same three filters
+over the same range came back with zero failed items (probe run 36589205446).
+A transient failure is retried and then resumed from committed RMC-004
+checkpoints; it is never read as an empty range. Evidence, with an index of
+every file's sha256, is uploaded even when the run fails, under a name
+carrying the exact head, run id and attempt.
+
+## Anchors
+
+A run observes the declared anchor unless a dispatch names another block by
+number and canonical hash, given together (`anchor_number`, `anchor_hash`).
+The later anchor is for an incremental refresh (RMC-010).
+
+The same checks apply at any anchor:
+- Three providers must agree on the anchor header and the current surface.
+- The history must run to that anchor.
+- The history step refuses a current-surface report observed at another
+  anchor.
+
+At the declared anchor the measured reserve count (67) is required. At any
+other anchor, the reserve count read from the three-provider current surface
+must be reproduced exactly by the history reconciliation and the closeout.
+
+A Pool implementation other than the Protocol/Fork certified one fails
+closed at any anchor. The evidence artifact is named by anchor, exact head,
+run and attempt.
+
+## Crash/resume equivalence (offline, no network)
+
+`nqc-rmc006-aave-resume-check` runs inside a network namespace with no
+interfaces. It rebuilds a replay transport from the listed manifests only,
+then:
+
+1. Replays the whole reconstruction into a fresh store. The report must be
+   byte-identical to the live report.
+2. Repeats into fresh stores crashed after 1, ⅓, ½, ⅔ and all-but-one of the
+   recorded requests. Each is resumed; the report and the RMC-004 evidence
+   root must be identical to the clean replay. The five cases share nothing
+   (each has its own store and transport) and run concurrently. Every one is
+   checked and reported in cut order.
+
+A tampered report, or a report missing a manifest, is rejected.
+
+Public providers answer the same request with different bytes of the same
+JSON value: key order, or a trailing newline. D06 run 36616344742 recorded
+45 such requests, all on mevblocker, within one job and across jobs. A
+transport keyed by request alone serves one byte form to every job, so that
+run's replay could not reproduce the jobs that saw the other form. The
+replay therefore:
+
+- answers each request with its next recorded occurrence, in the order the
+  reconstruction runs its jobs (bootstrap and anchor per provider, the three
+  earliest-code searches, the lineage windows, the reserve windows);
+- takes that order from the report, whose job lists must name exactly
+  `replay_manifests`;
+- fails when a request is made more often than it was recorded;
+- after an interruption, first sets aside the occurrences of the jobs the
+  store has committed, because the chain layer replays those from their own
+  manifests, not through the transport.
+
+The resume report counts the requests recorded with differing responses and,
+for each interruption, the jobs already committed.
+
+## Closeout
+
+- Artifacts carry:
+  - `schema_version`;
+  - `generated_at`, set to the anchor block timestamp (RFC 3339, never the
+    wall clock);
+  - code commit and tree, declared universe id and D05 admission id;
+  - chain domain, anchor, history range, lineage and source provenance.
+- Each artifact's sha256 and RMC-004 artifact id are listed in
+  `evidence-manifest.json`.
+- The closeout is generated twice and must be byte-identical (`diff -r`).
+
+PASS requires all of this on the exact head:
+
+- zero provider mismatches;
+- zero unexplained deltas;
+- crash/resume equivalence;
+- D05 admission;
+- deterministic closeout;
+- RMC-004 offline verification.
+
+## Immutable-source offline recertification pilot
+
+The restored canonical workflow accepts only the authenticated original D06
+package named by `rmc006-recertification-source.json`. It has no live acquisition
+path. Blank or altered dispatch identities fail; pull requests run code and
+negative gates and certify nothing. The observation authority remains original
+run 36820687233, artifact 11143129177 and block 26095351. The older live CLI
+default is never used in recertification.
+
+The current replay uses verified bootstrap and intact committed point checkpoints
+with an empty replay transport and no fallback. History retains its original
+occurrence-ordered replay and five independent crash cuts. Both execute inside a
+new disconnected network namespace; the authenticated source is bind-mounted
+read-only. Admission and two byte-identical closeouts use a separate working store.
+The source and output stores must pass independent Rust and Python verification.
+
+New closeout producer identity is the actual verification checkout commit/tree.
+Original observations, source member commitments and acquisition identity remain
+unchanged and accompany the new evidence. Anchor-derived `generated_at` remains
+the historical observation time, not the time of verification. Local replay is
+not canonical certification. Only a successful exact-head canonical workflow
+and its final immutable artifact provide new verification authority. D14 remains
+blocked; this pilot does not grant admission to other stages or alter ancestry.
+
+`offline-verification.json` records `verification_started_at` and
+`verification_completed_at` from the new run's actual UTC system clock. It
+explicitly separates those times from `original_observation_at`, which remains
+the source anchor block timestamp. The existing evidence index binds this whole
+report through its SHA-256 and size; its schema is unchanged. Canonical run ID,
+attempt, success and authoritative run timing must additionally be authenticated
+from GitHub Actions metadata after completion. Original observation reports are
+never redated, and a new verification time never implies a new acquisition.
