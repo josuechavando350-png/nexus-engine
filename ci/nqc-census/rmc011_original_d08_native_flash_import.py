@@ -223,7 +223,7 @@ def run_real_import(work:Path,lock:Path):
         raise ValueError("original full D08 native family importer did not replay")
     summary=origin.json_object((output/"capital-census-summary.json").read_bytes())
     closeout=origin.json_object((output/"capital-real-source-closeout.json").read_bytes())
-    require(summary.get("real_source_certification") is False
+    need(summary.get("real_source_certification") is False
             and summary.get("profitability_claimed") is False
             and closeout.get("real_source_certification") is True
             and closeout.get("terminal_capital_census_complete") is False
@@ -231,7 +231,7 @@ def run_real_import(work:Path,lock:Path):
             and closeout.get("real_pnl_claimed") is False,
             "D08 two-protocol import overstates terminal economics")
     classes=summary.get("sources_by_class")
-    require(type(classes) is dict and
+    need(type(classes) is dict and
             all(type(v) is int and v>=0 for v in classes.values()) and
             sum(classes.values())==summary.get("source_count") and
             closeout.get("d08_source_count")==summary["source_count"],
@@ -243,7 +243,7 @@ def publish(work:Path,upstream:list[dict],native:list[dict],summary,closeout,hea
     classes=summary["sources_by_class"]
     aave=classes.get("PROTOCOL_NATIVE_FLASH_LOAN",0)
     v2=classes.get("FLASH_SWAP",0)
-    require(type(aave) is int and type(v2) is int and aave>=0 and v2>=0,
+    need(type(aave) is int and type(v2) is int and aave>=0 and v2>=0,
             "noncanonical native capital class count")
     report={
         "schema_version":1,
