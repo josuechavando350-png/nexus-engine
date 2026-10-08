@@ -17,6 +17,7 @@ import zipfile
 D08_OUTER_SHA = "9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913"
 D12_OUTER_SHA = "bbe6a6365d563eb41125d9fcdba79ac384c21182f31f6761897e0ce2ee8fa3b8"
 D08_TOKEN_SHA = "f7ada7b07f1efef31e3cd9d9d8ddcae0ecd1bfa6ced96e6d6ff94bc8ee48d65d"
+D08_MARKET_SHA = "c64719793eed5fd5b09eb725f18b811746b1a50e101bfa00b9569be65282d19e"
 D12_ACTION_SHA = "1c2d4ffe4970f418c495d917e9b28e34494d67f29052669d775583e2240f5baf"
 D12_PROMOTION_SHA = "6bcba8925d60b30aa46f6772f6ffb1d1f6dfc5f3c0b3310efbfb50b09d6b1569"
 EXPECTED_D08_TOKENS = 514_279
@@ -147,6 +148,110 @@ def parse_actionability(actions,promotions):
              "noncanonical oracle-base WAD valuation")
         gross.append(int(c)-int(d))
     return needed,debt_counts,collateral_counts,gross
+
+
+def capital_principal_requirements(actions,promotions):
+    action_by_id={r["candidate_id"]:r for r in actions if r.get("status")=="ADMITTED"}
+    need(len(action_by_id)==EXPECTED_ACTIONABLE and len(promotions)==EXPECTED_ACTIONABLE,
+         "capital actionability conservation missing")
+    maxima={}
+    for record in promotions:
+        identifier=record.get("actionable_candidate_id")
+        require=action_by_id.get(identifier)
+        need(require is not None and record.get("debt_asset")==require["debt_asset"],
+             "capital source/principal asset does not match borrower debt")
+        raw=record.get("principal")
+        need(type(raw) is str and re.fullmatch(r"[0-9a-f]{64}",raw) is not None,
+             "original uint256 principal not exact 32-byte hexadecimal")
+        amount=int(raw,16)
+        need(amount>0,"empty historical capital requirement")
+        asset=require["debt_asset"]
+        maxima[asset]=max(maxima.get(asset,0),amount)
+    need(len(maxima)==EXPECTED_DEBT_ASSETS,"missing per-debt-asset maxima")
+    return maxima
+
+
+def nominal_reserve_diagnostic(archive,required_debt):
+    need(len(required_debt)==EXPECTED_DEBT_ASSETS,
+         "nominal reserve demands not conserved")
+    markets={}
+    counts=Counter()
+    h=sha256()
+    with zipfile.ZipFile(archive) as z:
+        evidence=parse_unique(z.read("closeout/evidence-manifest.json"))
+        entry=[x for x in evidence.get("artifacts",[]) if x.get("path")=="market-state-manifest.jsonl"]
+        need(len(entry)==1 and entry[0].get("sha256")==D08_MARKET_SHA and
+             entry[0].get("bytes")==478607674,
+             "D08 market state manifest provenance differs")
+        with z.open("closeout/market-state-manifest.jsonl") as stream:
+            for raw in stream:
+                h.update(raw)
+                if b'"protocol":"AAVE_V3"' in raw:
+                    row=parse_unique(raw)
+                    need(row.get("protocol")=="AAVE_V3",
+                         "false Aave market state row identifier")
+                    counts["aave"]+=1
+                    asset=row.get("asset")
+                    if asset in required_debt:
+                        need(asset not in markets,"duplicated required Aave reserve state")
+                        facts=row.get("protocol_facts")
+                        need(type(facts) is dict and
+                             row.get("lifecycle")=="CURRENT" and
+                             row.get("stage_state_reconstructable")=="ADVANCE",
+                             "Aave reserve not current or reconstructable")
+                        avail=facts.get("available_liquidity")
+                        need(type(avail) is str and avail.isdecimal()
+                             and not (len(avail)>1 and avail[0]=="0"),
+                             "noncanonical historical Aave underlying available liquidity")
+                        need(type(facts.get("active")) is bool and
+                             type(facts.get("paused")) is bool and
+                             type(facts.get("flash_loan_enabled")) is bool,
+                             "Aave reserve mode flags not Boolean")
+                        markets[asset]={
+                            "available_liquidity_raw_underlying":avail,
+                            "active":facts["active"],
+                            "paused":facts["paused"],
+                            "flash_loan_enabled":facts["flash_loan_enabled"],
+                        }
+                else:
+                    counts["non_aave"]+=1
+    need(h.hexdigest()==D08_MARKET_SHA and counts["aave"]==67 and
+         counts["non_aave"]==523424 and set(markets)==set(required_debt),
+         "D08 exact original Aave market-state universe/hash drift")
+    return nominal_liquidity_comparison(markets,required_debt)
+
+
+def nominal_liquidity_comparison(markets,requirements):
+    need(set(markets)==set(requirements) and len(markets)==EXPECTED_DEBT_ASSETS,
+         "required Aave reserve capacity basis incomplete")
+    rows=[]
+    for asset in sorted(requirements):
+        r=markets[asset]
+        cap=int(r["available_liquidity_raw_underlying"])
+        amount=requirements[asset]
+        need(type(amount) is int and amount>0 and cap>=0,
+             "invalid exact raw underlying liquidity/principal")
+        rows.append({
+            "debt_asset":asset,
+            "source_available_liquidity_raw":str(cap),
+            "largest_single_candidate_flash_principal_raw":str(amount),
+            "nominal_single_candidate_capacity_sufficient":cap>=amount,
+            "reserve_active_flash_enabled_and_unpaused":
+                r["active"] and r["flash_loan_enabled"] and not r["paused"],
+            "liquidity_not_an_execution_approval":True,
+        })
+    return {
+        "source_d08_market_state_sha256":D08_MARKET_SHA,
+        "single_candidate_nominal_liquidity_checked_assets":len(rows),
+        "all_required_reserves_have_adequate_nominal_single_trade_liquidity":
+            all(x["nominal_single_candidate_capacity_sufficient"] for x in rows),
+        "required_reserves_active_flash_enabled_unpaused_count":
+            sum(x["reserve_active_flash_enabled_and_unpaused"] for x in rows),
+        "principal_source_eligible_for_execution_claimed":False,
+        "simultaneous_liquidity_capacity_certified":False,
+        "same_block_available_liquidity_guaranteed":False,
+        "observations":rows,
+    }
 
 
 def scan_d08_tokens(archive,required):
@@ -291,7 +396,13 @@ def audit(d08_zip,d12_zip):
     summary,actions,promotions=read_d12(d12_zip)
     required,debt,collateral,gross=parse_actionability(actions,promotions)
     found,statuses,_=scan_d08_tokens(d08_zip,required)
+    max_principal=capital_principal_requirements(actions,promotions)
+    nominal=nominal_reserve_diagnostic(d08_zip,max_principal)
     result=summarize(required,debt,collateral,gross,found,statuses)
+    result["historical_aave_reserve_nominal_principal_diagnostic"]=nominal
+    need(nominal["all_required_reserves_have_adequate_nominal_single_trade_liquidity"] is True
+         and nominal["required_reserves_active_flash_enabled_unpaused_count"]==27,
+         "Aave nominal reserve study disagrees with original anchored funding demands")
     need(result["required_asset_blocker_frequency"].get("FEE_ON_TRANSFER_UNPROVEN")==43
          and result["required_asset_blocker_frequency"].get("TRANSFER_HOOKS_UNPROVEN")==43
          and result["debt_candidate_weighted_blocker_frequency"].get("FEE_ON_TRANSFER_UNPROVEN")==432
