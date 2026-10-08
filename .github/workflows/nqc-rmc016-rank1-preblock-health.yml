@@ -1,0 +1,108 @@
+name: NQC RMC-016 Rank-One Aave Preblock Health Truth
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc016-rank1-preblock-health.yml'
+      - 'ci/nqc-census/rmc016_rank1_preblock_health.py'
+      - 'ci/nqc-census/test_rmc016_rank1_preblock_health.py'
+      - 'ci/nqc-census/RMC016_RANK1_PREBLOCK_HEALTH_CONTRACT.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc016-rank1-hf-preblock-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  source-bound-historical-health:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Preserve D16 lineage and execute 13 adversarial no-lookahead health tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 806484f1df1d9b10c4ed392a60c9bdfbff496009 HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          python3 ci/nqc-census/test_rmc016_rank1_preblock_health.py
+          python3 ci/nqc-census/test_rmc016_rank1_prestate_probe.py
+          python3 -m py_compile ci/nqc-census/rmc016_rank1_preblock_health.py
+          mkdir -p "$RUNNER_TEMP/nqc016-rank1-hf"
+          sha256sum ci/nqc-census/rmc016_rank1_preblock_health.py \
+                    ci/nqc-census/RMC016_RANK1_PREBLOCK_HEALTH_CONTRACT.md \
+                    > "$RUNNER_TEMP/nqc016-rank1-hf/source-sha256.txt"
+          echo RMC016_PREBLOCK_HEALTH_FAIL_CLOSED_OFFLINE_TESTS_PASS
+
+      - name: Authenticate predecessor receipt/borrower certificate before health calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          run=37739155239
+          sha=806484f1df1d9b10c4ed392a60c9bdfbff496009
+          artifact=11532149885
+          digest=01778616235930c3ac02f0aa1f3d1e8a7e5185317022ecf74707a278bd9be964
+          meta="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run")"
+          art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
+          test "$(jq -r .status <<<"$meta")" = completed
+          test "$(jq -r .conclusion <<<"$meta")" = success
+          test "$(jq -r .name <<<"$meta")" = 'NQC RMC-016 Rank-One Real Prestate Witness'
+          test "$(jq -r .head_sha <<<"$meta")" = "$sha"
+          test "$(jq -r .expired <<<"$art")" = false
+          test "$(jq -r .name <<<"$art")" = "rmc016-rank1-real-prestate-$sha"
+          test "$(jq -r .digest <<<"$art")" = "sha256:$digest"
+          test "$(jq -r .workflow_run.id <<<"$art")" = "$run"
+          out="$RUNNER_TEMP/nqc016-rank1-hf/predecessor.zip"
+          curl --fail --silent --show-error --location --retry 2 \
+            -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact/zip" -o "$out"
+          printf '%s  %s\n' "$digest" "$out" | sha256sum --check --strict
+          echo RMC016_RANK1_IMMUTABLE_HISTORICAL_SOURCE_AUTHENTICATED
+
+      - name: Compare real borrower HF at exact previous block across two operators
+        shell: bash
+        run: |
+          set -euo pipefail
+          target="$RUNNER_TEMP/nqc016-rank1-hf/rank1-previous-block-health.json"
+          python3 ci/nqc-census/rmc016_rank1_preblock_health.py \
+            --source-zip "$RUNNER_TEMP/nqc016-rank1-hf/predecessor.zip" --out "$target"
+          jq -e '
+            (.status == "RMC016_RANK1_PREBLOCK_HEALTH_FACTOR_BELOW_ONE" or
+             .status == "RMC016_RANK1_PREBLOCK_HEALTH_FACTOR_NOT_BELOW_ONE") and
+            .previous_block_number == 25938047 and
+            .independent_operator_account_state_consensus == true and
+            (.operators | length) == 2 and
+            .source_retrospective_selection_only == true and
+            .discovery_or_capture_prior_to_winner_proven == false and
+            .atomic_liquidation_replayed == false and
+            .external_gas_sponsor_authorized == false and
+            .nexus_net_profit_proven == false and
+            .real_market_census_closed == false
+          ' "$target" >/dev/null
+          (cd "$RUNNER_TEMP/nqc016-rank1-hf" && \
+            sha256sum rank1-previous-block-health.json source-sha256.txt > archive.sha256 && \
+            sha256sum -c archive.sha256)
+          echo RMC016_INDEPENDENT_PREBLOCK_HF_OBSERVED_NOT_NEXUS_NET
+
+      - name: Preserve append-only source-locked health report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-rank1-hf-preblock-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc016-rank1-hf/*.json
+            ${{ runner.temp }}/nqc016-rank1-hf/*.txt
+            ${{ runner.temp }}/nqc016-rank1-hf/archive.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
