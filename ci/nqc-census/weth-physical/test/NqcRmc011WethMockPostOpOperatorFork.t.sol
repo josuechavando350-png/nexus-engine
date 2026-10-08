@@ -4,6 +4,11 @@ pragma solidity ^0.8.24;
 import {NqcFlashFundingExecutor, IERC20FlashMinimal} from "../src/NqcFlashFundingExecutor.sol";
 import {NqcRmc016WethActualLiquidationStrategy} from "./NqcRmc016RankOneSelfFinancingFork.t.sol";
 
+interface IWethRmc011Postop is IERC20FlashMinimal {
+    function allowance(address owner, address spender) external view returns (uint256);
+    function transferFrom(address owner, address to, uint256 amount) external returns (bool);
+}
+
 interface VmRmc011Postop {
     function envAddress(string calldata name) external returns (address);
     function envUint(string calldata name) external returns (uint256);
@@ -87,7 +92,7 @@ contract NqcRmc011PaymasterCollectionFixture {
 
     function pullFromAccount(address account, uint256 amount) external {
         require(msg.sender == facade, "UNAUTHORIZED_POSTOP_COLLECTOR");
-        require(IERC20FlashMinimal(weth).transferFrom(account, treasury, amount),
+        require(IWethRmc011Postop(weth).transferFrom(account, treasury, amount),
                 "POSTOP_TOKEN_COLLECTION_FAILED");
     }
 }
@@ -148,7 +153,7 @@ contract NqcRmc011EntryPointLikeFacadeFixture {
         require(IERC20FlashMinimal(weth).balanceOf(address(account)) ==
                 priorAccountWeth + surplus - quotedTokenCharge,
                 "TOKEN_SETTLEMENT_CONSERVATION_FAILURE");
-        require(IERC20FlashMinimal(weth).allowance(address(account), address(collector)) == 0,
+        require(IWethRmc011Postop(weth).allowance(address(account), address(collector)) == 0,
                 "TOKEN_SPENDER_ALLOWANCE_NOT_REVOKED");
     }
 }
