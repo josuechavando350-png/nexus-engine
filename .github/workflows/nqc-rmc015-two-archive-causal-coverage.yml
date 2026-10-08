@@ -1,0 +1,108 @@
+name: NQC RMC-015 Two Immutable Archives Causal Coverage (PARTIAL ONLY)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc015-two-archive-causal-coverage.yml'
+      - 'ci/nqc-census/rmc015_dual_source_causal_coverage.py'
+      - 'ci/nqc-census/test_rmc015_dual_source_causal_coverage.py'
+      - 'ci/nqc-census/RMC015_TWO_ARCHIVE_CAUSAL_COVERAGE.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: nqc-rmc015-two-source-coverage-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  authenticate-and-censor-not-certify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Run adversarial tests before fetching historical archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor c2d84ff6486202eb2a5810852e21e89b3ab5e2c5 HEAD
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          python3 ci/nqc-census/test_rmc015_dual_source_causal_coverage.py
+          python3 -m py_compile ci/nqc-census/rmc015_dual_source_causal_coverage.py
+          mkdir -p "$RUNNER_TEMP/nqc015-coverage/private" "$RUNNER_TEMP/nqc015-coverage/public"
+          sha256sum ci/nqc-census/rmc015_dual_source_causal_coverage.py \
+                    ci/nqc-census/test_rmc015_dual_source_causal_coverage.py \
+                    ci/nqc-census/RMC015_TWO_ARCHIVE_CAUSAL_COVERAGE.md \
+            > "$RUNNER_TEMP/nqc015-coverage/public/producer-source.sha256"
+      - name: Reauthenticate two ALREADY SUCCEEDED distinct GitHub Actions archive sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          for row in \
+            'population 37802830152 11561622884 38fe58debbd729753f84d4587a9f3b961a542bc9 15bbe3f90214c95692f0fa64997d1bd103177f02ed78049f17a8500925408829' \
+            'events 37807155179 11562554317 c2d84ff6486202eb2a5810852e21e89b3ab5e2c5 f431bc64770be49ebeee5d48a40f8013592c3a4f1c25fd3abbd4c43f6c66c9f3'; do
+            read -r label rid aid head digest <<<"$row"
+            run="$(gh api "repos/$REPO/actions/runs/$rid")"
+            artifact="$(gh api "repos/$REPO/actions/artifacts/$aid")"
+            test "$(jq -r .status <<<"$run")" = completed
+            test "$(jq -r .conclusion <<<"$run")" = success
+            test "$(jq -r .head_sha <<<"$run")" = "$head"
+            test "$(jq -r .expired <<<"$artifact")" = false
+            test "$(jq -r .workflow_run.id <<<"$artifact")" = "$rid"
+            test "$(jq -r .digest <<<"$artifact")" = "sha256:$digest"
+            curl --fail --silent --show-error --location --retry 2 \
+              -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$REPO/actions/artifacts/$aid/zip" \
+              -o "$RUNNER_TEMP/nqc015-coverage/private/$label.zip"
+            printf '%s  %s\n' "$digest" "$RUNNER_TEMP/nqc015-coverage/private/$label.zip" \
+              | sha256sum --check --strict
+            echo "SOURCE_LOCKED_ORIGINAL_ARCHIVE_VERIFIED $label run=$rid artifact=$aid"
+          done
+      - name: Admit exact source reports and publish ONLY bounded/censored aggregate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/rmc015_dual_source_causal_coverage.py \
+            --population-archive "$RUNNER_TEMP/nqc015-coverage/private/population.zip" \
+            --event-archive "$RUNNER_TEMP/nqc015-coverage/private/events.zip" \
+            --out "$RUNNER_TEMP/nqc015-coverage/public/partial-causal-coverage.json"
+          python3 ci/nqc-census/rmc015_dual_source_causal_coverage.py \
+            --population-archive "$RUNNER_TEMP/nqc015-coverage/private/population.zip" \
+            --event-archive "$RUNNER_TEMP/nqc015-coverage/private/events.zip" \
+            --out "$RUNNER_TEMP/nqc015-coverage/private/independent-replay.json"
+          cmp "$RUNNER_TEMP/nqc015-coverage/public/partial-causal-coverage.json" \
+              "$RUNNER_TEMP/nqc015-coverage/private/independent-replay.json"
+          jq -e '.status=="RMC015_TWO_PINNED_ARCHIVES_PARTIAL_CAUSAL_COVERAGE_ONLY" and
+                 .source_archives_authenticated==true and
+                 .fixed_prior_selected_material_risk_cohort==857 and
+                 .independently_verified_executed_event_blocks==480 and
+                 .unobserved_executed_event_blocks==6720 and
+                 .observed_global_aave_liquidation_calls_first_480_blocks==0 and
+                 .historical_replay_is_not_a_real_time_ex_ante_signal==true and
+                 .executed_liquidation_count_for_full_7200_blocks==null and
+                 .precommitted_positive_alarm_count_at_anchor==null and
+                 .positive_alarm_precision==null and
+                 .positive_alarm_recall==null and
+                 .nqc_gas_provider_execution_authorized==false and
+                 .nqc_realized_net_usd_wad=="0" and
+                 .real_market_census_closed==false' \
+            "$RUNNER_TEMP/nqc015-coverage/public/partial-causal-coverage.json" >/dev/null
+          (cd "$RUNNER_TEMP/nqc015-coverage/public" &&
+            sha256sum partial-causal-coverage.json producer-source.sha256 > archive.sha256 &&
+            sha256sum --check --strict archive.sha256)
+          echo RMC015_480_REAL_BLOCKS_6720_CENSORED_NO_PROFIT_OR_CLOSURE
+      - name: Preserve read-only PUBLIC aggregate and source hashes, never borrower addresses
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc015-two-source-partial-causal-coverage-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc015-coverage/public/*.json
+            ${{ runner.temp }}/nqc015-coverage/public/*.sha256
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
