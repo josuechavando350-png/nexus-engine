@@ -1,0 +1,207 @@
+name: NQC RMC-015 857 Cohort Complete 7200-Block Actual Event Window
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc015-857-full-window-shards.yml'
+      - 'ci/nqc-census/rmc015_857_window_shard_continuation.py'
+      - 'ci/nqc-census/test_rmc015_857_window_shard_continuation.py'
+      - 'ci/nqc-census/RMC015_857_FULL_WINDOW_14_SHARD_CONTINUATION.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: nqc-rmc015-complete-857-7200-executed-events-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  true-857-cohort-postanchor-all-liquidation-events:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify exact PR lineage and fail-closed negative tests before network activity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor c2d84ff6486202eb2a5810852e21e89b3ab5e2c5 HEAD
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          python3 ci/nqc-census/test_rmc015_857_window_shard_continuation.py
+          python3 -m py_compile ci/nqc-census/rmc015_857_window_shard_continuation.py
+          mkdir -p "$RUNNER_TEMP/nqc015-causal/public" "$RUNNER_TEMP/nqc015-causal/private"
+          sha256sum ci/nqc-census/rmc015_857_window_shard_continuation.py \
+                    ci/nqc-census/test_rmc015_857_window_shard_continuation.py \
+                    ci/nqc-census/RMC015_857_FULL_WINDOW_14_SHARD_CONTINUATION.md \
+            > "$RUNNER_TEMP/nqc015-causal/public/producer-source.sha256"
+          echo NQC_015_FIXED_COHORT_FULL_SUCCESSOR_WINDOW_ADVERSARIAL_TESTS_PASS
+      - name: Authenticate original exactly known 857-source selector Git object
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha=5542bbec0840335994cbbab272e6228756ba6eb0
+          test ! -f ci/nqc-census/rmc015_material_frontier.py
+          gh api "repos/$GITHUB_REPOSITORY/git/blobs/$sha" \
+            | jq -r .content | tr -d '\n' | base64 --decode \
+            > ci/nqc-census/rmc015_material_frontier.py
+          test "$(git hash-object ci/nqc-census/rmc015_material_frontier.py)" = "$sha"
+          # Not committed in this PR, not used for terminal self-certification.
+          test "$(git status --porcelain ci/nqc-census/rmc015_material_frontier.py | cut -c1-2)" = "??"
+          echo RMC015_PREEXISTING_REAL_D08_D09_SELECTOR_SHA_CONFIRMED
+      - name: Independently authenticate two upstream full immutable account/state archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          for row in \
+            'D08 36964016388 11237887761 36c732a36789e1967ce7178010889427ad7cf0f2 9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913' \
+            'D09 36823489219 11159396055 6db82ca89d4ef3a66a1b236de95670a6967eb3ea 9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6'; do
+            read -r stage rid aid head digest <<<"$row"
+            run="$(gh api "repos/$REPO/actions/runs/$rid")"
+            art="$(gh api "repos/$REPO/actions/artifacts/$aid")"
+            test "$(jq -r .status <<<"$run")" = completed
+            test "$(jq -r .conclusion <<<"$run")" = success
+            test "$(jq -r .head_sha <<<"$run")" = "$head"
+            test "$(jq -r .expired <<<"$art")" = false
+            test "$(jq -r .workflow_run.id <<<"$art")" = "$rid"
+            test "$(jq -r .digest <<<"$art")" = "sha256:$digest"
+            curl --fail --silent --show-error --location --retry 3 \
+              -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$REPO/actions/artifacts/$aid/zip" \
+              -o "$RUNNER_TEMP/nqc015-causal/private/$stage.zip"
+            printf '%s  %s\n' "$digest" "$RUNNER_TEMP/nqc015-causal/private/$stage.zip" | sha256sum --check --strict
+            echo RMC015_ORIGINAL_ARCHIVE_AUTHENTICATED "$stage" "$rid"
+          done
+      - name: Materialize EXACT anchor watchlist privately, forbid before-anchor evaluation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          python3 ci/nqc-census/rmc015_material_frontier.py \
+            --d08 "$RUNNER_TEMP/nqc015-causal/private/D08.zip" \
+            --d09 "$RUNNER_TEMP/nqc015-causal/private/D09.zip" \
+            --d08-sha256 9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913 \
+            --d09-sha256 9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6 \
+            --d08-commit 36c732a36789e1967ce7178010889427ad7cf0f2 \
+            --d09-commit 6db82ca89d4ef3a66a1b236de95670a6967eb3ea \
+            --summary-out "$RUNNER_TEMP/nqc015-causal/private/anchor-frontier.json" \
+            --watchlist-out "$RUNNER_TEMP/nqc015-causal/private/anchor-857-watchlist.jsonl" \
+            --evaluation-start-block 26095352
+          jq -e '.status=="RMC015_AUXILIARY_RISK_FRONTIER_VERIFIED" and
+                 .anchor.block_number==26095351 and
+                 .material_risk_frontier.account_count==857 and
+                 .earliest_ex_ante_evaluation_block==26095352 and
+                 .retrospective_backtest_admitted==false and
+                 .realized_profitability_proven==false and
+                 .execution_or_capital_feasibility_proven==false' \
+            "$RUNNER_TEMP/nqc015-causal/private/anchor-frontier.json" >/dev/null
+          test "$(wc -l < "$RUNNER_TEMP/nqc015-causal/private/anchor-857-watchlist.jsonl")" = 857
+          echo RMC015_857_FIXED_BEFORE_FUTURE_STATE_LOOKUP_WATCHLIST_PRIVATE
+      - name: Independently authenticate the exact PR650 successful first-480-block artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          runid=37807155179
+          commit=c2d84ff6486202eb2a5810852e21e89b3ab5e2c5
+          aid=11562554317
+          digest=f431bc64770be49ebeee5d48a40f8013592c3a4f1c25fd3abbd4c43f6c66c9f3
+          run="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$runid")"
+          art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$aid")"
+          test "$(jq -r .status <<<"$run")" = completed
+          test "$(jq -r .conclusion <<<"$run")" = success
+          test "$(jq -r .head_sha <<<"$run")" = "$commit"
+          test "$(jq -r .name <<<"$run")" = 'NQC RMC-015 Real 857 Cohort Successor Aave Liquidation Event Window'
+          test "$(jq -r .expired <<<"$art")" = false
+          test "$(jq -r .workflow_run.id <<<"$art")" = "$runid"
+          test "$(jq -r .digest <<<"$art")" = "sha256:$digest"
+          test "$(jq -r .name <<<"$art")" = "rmc015-real-post-anchor-857-events-$commit"
+          dir="$RUNNER_TEMP/nqc015-causal/pr650"
+          mkdir -p "$dir"
+          curl --fail --silent --show-error --location --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$aid/zip" \
+            -o "$dir/original-pr650-archive.zip"
+          printf '%s  %s\n' "$digest" "$dir/original-pr650-archive.zip" | sha256sum --check --strict
+          mkdir -p "$dir/artifact"
+          unzip -qq "$dir/original-pr650-archive.zip" -d "$dir/artifact"
+          (cd "$dir/artifact" && sha256sum --check --strict archive.sha256)
+          jq -e '
+             .status=="RMC015_857_HISTORIC_REAL_POST_ANCHOR_EVENTS_VERIFIED_NOT_NQC_CAPTURE" and
+             .original_D09_selection_block==26095351 and
+             .event_window_start_block==26095352 and
+             .event_window_end_block==26095831 and
+             .full_source_cohort_size==857 and
+             .real_independent_operator_consensus==true and
+             .real_aave_liquidation_logs_in_window_all_borrowers==0 and
+             .real_aave_liquidation_events_matching_source_cohort==0 and
+             .uninspected_original_successor_blocks==6720 and
+             .full_7200_block_source_window_certified==false and
+             .NQC_realized_profit_usd=="0" and
+             .real_market_census_closed==false
+          ' "$dir/artifact/all-857-future-liquidation-events.json" >/dev/null
+          echo NQC_ORIGINAL_FIRST_480_BLOCK_SOURCE_AND_HASH_VERIFIED
+
+      - name: Observe remaining 6720 historical blocks in fourteen fail-closed dual-RPC shards
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/nqc015-causal/public/857-cohort-entire-7200-executed-event-window.json"
+          python3 ci/nqc-census/rmc015_857_window_shard_continuation.py \
+            --source-summary "$RUNNER_TEMP/nqc015-causal/private/anchor-frontier.json" \
+            --watchlist-jsonl "$RUNNER_TEMP/nqc015-causal/private/anchor-857-watchlist.jsonl" \
+            --first-shard-report "$RUNNER_TEMP/nqc015-causal/pr650/artifact/all-857-future-liquidation-events.json" \
+            --checkpoint-dir "$RUNNER_TEMP/nqc015-causal/public/checkpoints" \
+            --out "$out"
+          jq -e '
+            .status=="RMC015_857_DUAL_RPC_FULL_OBSERVED_EVENT_WINDOW_NOT_CAPTURE" and
+            .original_anchor_block==26095351 and
+            .original_857_members_selected_before_any_future_labels==true and
+            .source_chosen_winners_as_selection_inputs==false and
+            .full_window_start_block==26095352 and
+            .full_window_end_block==26102551 and
+            .verified_contiguous_480_block_shard_count==15 and
+            .verified_original_source_480_block_shards==1 and
+            .new_verified_independent_480_block_shards==14 and
+            .verified_total_block_count==7200 and
+            .missing_original_window_block_count==0 and
+            .verified_original_first_480_source.original_artifact_id==11562554317 and
+            (.all_checkpoints|length)==14 and
+            .source_event_data_only_not_unexecuted_eligible_opportunities==true and
+            .was_data_observed_live_during_historical_blocks==false and
+            .probabilistic_capture_calibrated==false and
+            .external_gas_nonrecourse_provider_authorized==false and
+            .nqc_realized_profit_usd=="0" and
+            .nqc_revenue_15k_or_55k_monthly_certified==false and
+            .rmc015_terminal_authority_closed==false and
+            .real_market_census_closed==false and
+            .original_stage_lock_was_modified==false
+          ' "$out" >/dev/null
+          (
+            cd "$RUNNER_TEMP/nqc015-causal/public"
+            sha256sum 857-cohort-entire-7200-executed-event-window.json producer-source.sha256 \
+              > full-window-manifest.sha256
+            sha256sum --check --strict full-window-manifest.sha256
+            cd checkpoints
+            sha256sum shard-*.json > shard-manifest.sha256
+            sha256sum --check --strict shard-manifest.sha256
+          )
+          echo NQC_ALL_7200_EXECUTED_EVENTS_DUAL_SOURCE_WITNESSED_NOT_REALIZED_PROFIT
+
+      - name: Preserve only aggregated hashed output, no source account addresses
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc015-857-full-7200-executed-events-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc015-causal/public/*.json
+            ${{ runner.temp }}/nqc015-causal/public/*.sha256
+            ${{ runner.temp }}/nqc015-causal/public/checkpoints/*.json
+            ${{ runner.temp }}/nqc015-causal/public/checkpoints/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
