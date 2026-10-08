@@ -165,33 +165,60 @@ def main():
     p.add_argument("--event-sha256",required=True)
     p.add_argument("--out",required=True,type=Path)
     p.add_argument("--providers",nargs=2,default=["drpc","blast"])
-    p.add_argument("--min-interval",type=float,default=1.2)
+    p.add_argument("--min-interval",type=float,default=2.0)
     args=p.parse_args()
     need(args.providers==["drpc","blast"],"must use two fixed independent operators")
     need(0<=args.min_interval<=30,"invalid interval")
     _,events,ids=load_source(args.event_zip,args.event_sha256)
-    got=[]
-    for provider_id in args.providers:
-        provider=next(x for x in PROVIDERS if x[0]==provider_id)
-        values={}
-        for tid in ids:
-            time.sleep(args.min_interval)
-            raw=rpc(provider[2],"eth_getTransactionReceipt",[tid])
-            need(raw is not None,provider_id+" receipt unavailable")
-            values[tid]=raw
-            # Fail early on wrong source and minimize requests.
-            receipt_normalized(tid,events[tid],raw)
-        got.append(values)
-    report,rows=reconcile(got[0],got[1],args.event_zip,args.event_sha256)
     need(not args.out.exists(),"append-only output")
     args.out.mkdir(parents=True)
-    (args.out/"receipt-parity-report.json").write_bytes(canonical(report))
-    (args.out/"winner-receipt-evidence.jsonl").write_bytes(b"".join(canonical(x) for x in rows))
-    with (args.out/"archive.sha256").open("w") as f:
-        for path in sorted(args.out.iterdir()):
-            if path.name!="archive.sha256":
-                f.write(sha(path.read_bytes())+"  "+path.name+"\n")
-    print(report["status"],"transactions",report["winner_transaction_count"],
-          "gas_wei",report["gas_paid_wei"])
+    got=[]
+    stages=[]
+    current="NONE"
+    def checksum_manifest():
+        with (args.out/"archive.sha256").open("w") as f:
+            for path in sorted(args.out.iterdir()):
+                if path.is_file() and path.name!="archive.sha256":
+                    f.write(sha(path.read_bytes())+"  "+path.name+"\n")
+    try:
+        for provider_id in args.providers:
+            current=provider_id
+            provider=next(x for x in PROVIDERS if x[0]==provider_id)
+            values={}
+            attest=[]
+            stages.append({"provider_id":provider_id,"verified_transaction_count":0,
+                           "source_scope":"ONE_PROVIDER_RECEIPT_WITNESSES_ONLY"})
+            for tid in ids:
+                time.sleep(args.min_interval)
+                raw=rpc(provider[2],"eth_getTransactionReceipt",[tid])
+                need(raw is not None,provider_id+" receipt unavailable")
+                record=receipt_normalized(tid,events[tid],raw)
+                values[tid]=raw
+                attest.append(record)
+                stages[-1]["verified_transaction_count"]=len(attest)
+            got.append(values)
+            (args.out/f"verified-{provider_id}-receipts.jsonl").write_bytes(
+                b"".join(canonical(x) for x in attest))
+        current="FINAL_CROSS_PROVIDER_PARITY"
+        report,rows=reconcile(got[0],got[1],args.event_zip,args.event_sha256)
+        (args.out/"receipt-parity-report.json").write_bytes(canonical(report))
+        (args.out/"winner-receipt-evidence.jsonl").write_bytes(b"".join(canonical(x) for x in rows))
+        checksum_manifest()
+        print(report["status"],"transactions",report["winner_transaction_count"],
+              "gas_wei",report["gas_paid_wei"])
+    except Exception as error:
+        report={"schema_version":1,"status":"RMC016_HISTORICAL_WINNER_RECEIPT_PARITY_BLOCKED",
+                "source_event_artifact_sha256":args.event_sha256,
+                "expected_unique_winner_transaction_count":127,
+                "provider_stages":stages,"blocked_at":current,
+                "blocking_reason":f"{type(error).__name__}: {str(error)[:240]}",
+                "independent_receipt_parity_complete":False,
+                "gas_usd_conversion_completed":False,
+                "nexus_execution_proven":False,"nexus_capture_calibrated":False,
+                "nexus_net_pnl_proven":False,"real_market_census_closed":False}
+        (args.out/"receipt-parity-report.json").write_bytes(canonical(report))
+        checksum_manifest()
+        print(report["status"],"blocked_at",current,"stages",stages)
+        raise SystemExit(2) from error
 
 if __name__=="__main__":main()
