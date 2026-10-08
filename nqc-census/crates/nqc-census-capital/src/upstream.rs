@@ -255,9 +255,8 @@ pub(crate) fn token_execution_blockers(
             }
         }
         let original_sha: [u8; 32] = Sha256::digest(
-            row.canonical().map_err(|_| {
-                CapitalError::InvalidCanonical("D08 token canonical JSON failed")
-            })?,
+            row.canonical()
+                .map_err(|_| CapitalError::InvalidCanonical("D08 token canonical JSON failed"))?,
         )
         .into();
         if let Some(previous) = tokens.get_mut(&token) {
@@ -875,8 +874,7 @@ mod original_d08_duplicate_token_tests {
     }
 
     #[test]
-    fn contradictory_non_execution_fields_also_force_non_execution(
-    ) -> Result<(), CapitalError> {
+    fn contradictory_non_execution_fields_also_force_non_execution() -> Result<(), CapitalError> {
         let token = token()?;
         let first = admission(token, "PROVEN_COMPATIBLE", "[]", "RUNTIME_A");
         let second = admission(token, "PROVEN_COMPATIBLE", "[]", "RUNTIME_B");
@@ -889,8 +887,7 @@ mod original_d08_duplicate_token_tests {
     }
 
     #[test]
-    fn conflicting_status_and_blocker_in_same_row_still_fails_closed(
-    ) -> Result<(), CapitalError> {
+    fn conflicting_status_and_blocker_in_same_row_still_fails_closed() -> Result<(), CapitalError> {
         let token = token()?;
         let valid = admission(token, "PROVEN_COMPATIBLE", "[]", "A");
         let forged = admission(token, "BLOCKED", "[]", "B");
@@ -914,7 +911,9 @@ mod original_d08_duplicate_token_tests {
         );
         assert!(matches!(
             token_execution_blockers(forged.as_bytes()),
-            Err(CapitalError::InvalidCanonical("duplicate D08 execution blocker"))
+            Err(CapitalError::InvalidCanonical(
+                "duplicate D08 execution blocker"
+            ))
         ));
         Ok(())
     }
