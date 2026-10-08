@@ -5,7 +5,7 @@ One-provider discovery is NOT independent temporal authority or Nexus P&L.
 Runs with exact RMC015B anchor; no estimates, signing or broadcasts.
 """
 from __future__ import annotations
-import argparse, hashlib, json, re, sys
+import argparse, hashlib, json, re, sys, time
 from pathlib import Path
 from rmc016_probe_historical_rpc import (
     AAVE_POOL, CHAIN_ID, START_BLOCK, START_HASH, END_BLOCK, END_HASH,
@@ -60,21 +60,28 @@ def split_allowed(error):
                                 "response exceeds bound"))
 
 def gather(provider, call=rpc, *, chunk=8192, call_budget=MAX_CALLS, receipts=False,
-           start=START_BLOCK, end=END_BLOCK, strict_counts=True):
+           start=START_BLOCK, end=END_BLOCK, strict_counts=True, min_rpc_interval=0.0):
     need(provider in PROVIDERS,"noncanonical provider")
     need(type(start) is int and type(end) is int and START_BLOCK<=start<=end<=END_BLOCK,
          "invalid block range")
-    need(type(chunk) is int and 0<chunk<=65536, "invalid chunk")
+    need(type(chunk) is int and 0<chunk<=262144, "invalid chunk")
+    need(type(min_rpc_interval) in (int,float) and 0<=min_rpc_interval<=30,
+         "invalid rate limit spacing")
     need(type(call_budget) is int and 3<call_budget<=5000,"invalid budget")
     name,operator,url=provider
     calls = 0
+    last_rpc_at = None
     errors = []
     shards = []
     events = []
     gas_rows = []
     def query(method,params):
-        nonlocal calls
+        nonlocal calls, last_rpc_at
         need(calls<call_budget,"RPC_CALL_BUDGET_EXHAUSTED")
+        if last_rpc_at is not None and min_rpc_interval:
+            remaining=min_rpc_interval-(time.monotonic()-last_rpc_at)
+            if remaining>0:time.sleep(remaining)
+        last_rpc_at=time.monotonic()
         calls+=1
         try:
             return call(url,method,params)
@@ -105,7 +112,10 @@ def gather(provider, call=rpc, *, chunk=8192, call_budget=MAX_CALLS, receipts=Fa
         return {"schema_version":1,"status":"RMC016_FULL_HISTORICAL_LOG_RECOVERY_BLOCKED",
                 "provider_id":name,"operator":operator,
                 "range":{"start":start,"end":end},
+                "rpc_min_interval_seconds":min_rpc_interval,
                 "rpc_calls":calls,"completed_shards":len(shards),"partial_logs":len(events),
+                "partial_events_sha256":sha(b"".join(canonical(e) for e in sorted(events,key=sortkey))),
+                "partial_shard_coverage":shards,
                 "failure_type":type(exc).__name__,"failure":str(exc)[:300],
                 "shard_failures":errors,"coverage_complete":False,
                 "independent_provider_consensus":False,"nexus_pnl_proven":False,
@@ -173,6 +183,7 @@ def gather(provider, call=rpc, *, chunk=8192, call_budget=MAX_CALLS, receipts=Fa
                 "queried_range":{"start":start,"end":end},
                 "start_header":first,"end_header":last,
                 "coverage_complete":True,"shard_count":len(shards),
+                "rpc_min_interval_seconds":min_rpc_interval,
                 "rpc_calls":calls,"liquidation_event_count":len(events),
                 "unique_winner_transaction_count":len(ids),
                 "expected_liquidation_event_count":EVENTS_EXPECTED,
@@ -192,7 +203,8 @@ def gather(provider, call=rpc, *, chunk=8192, call_budget=MAX_CALLS, receipts=Fa
         report["commitment_sha256"]=sha(canonical(report))
         return report,events,ids,gas_rows
     except Exception as exc:
-        return blocked(exc)
+        failure=blocked(exc)
+        return failure[0], sorted(events,key=sortkey), sorted({e["transaction_hash"] for e in events}), []
 
 def write_report(directory, result, events, ids, receipts):
     need(not directory.exists(),"output must be a fresh directory")
@@ -203,6 +215,11 @@ def write_report(directory, result, events, ids, receipts):
         (directory/"winner-transactions.txt").write_bytes(b"".join((x+"\n").encode() for x in ids))
         if receipts:
             (directory/"winner-receipts-gas.jsonl").write_bytes(b"".join(canonical(x) for x in receipts))
+    if not result.get("coverage_complete") and events:
+        (directory/"partial-event-identities.jsonl").write_bytes(b"".join(
+            canonical(x) for x in sorted(events,key=sortkey)))
+        (directory/"partial-winner-hashes.txt").write_bytes(b"".join(
+            (x+"\n").encode() for x in sorted(ids)))
     with (directory/"archive.sha256").open("w") as f:
         for p in sorted(directory.iterdir()):
             if p.is_file() and p.name!="archive.sha256":
@@ -212,13 +229,14 @@ def main():
     p=argparse.ArgumentParser()
     p.add_argument("--provider",choices=sorted({v[0] for v in PROVIDERS}),default="blockscout")
     p.add_argument("--out",required=True,type=Path)
-    p.add_argument("--chunk",default=8192,type=int)
+    p.add_argument("--chunk",default=262144,type=int)
+    p.add_argument("--min-rpc-interval",default=0.0,type=float)
     p.add_argument("--max-calls",default=MAX_CALLS,type=int)
     p.add_argument("--receipts",action="store_true")
     args=p.parse_args()
     provider=next(x for x in PROVIDERS if x[0]==args.provider)
     result,events,ids,gas=gather(provider,chunk=args.chunk,call_budget=args.max_calls,
-                                  receipts=args.receipts)
+                                  receipts=args.receipts,min_rpc_interval=args.min_rpc_interval)
     write_report(args.out,result,events,ids,gas)
     print(result["status"],"events",result.get("liquidation_event_count"),
           "txs",result.get("unique_winner_transaction_count"),
