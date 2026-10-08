@@ -383,9 +383,15 @@ contract NqcRmc011RealEntryPointV07ForkTest {
                 "HISTORICAL_8PCT_TEST_SPONSOR_UNDERRECOVERY_CHANGED");
         require(collectedWeth == paymaster.collectedWeth() && paymaster.lastMode() == 0,
                 "REAL_POSTOP_NOT_CALLED");
-        require(paymaster.postOpCount() == 1 &&
-                paymaster.lastActualGasCostWei() > 0,
+        uint256 postOpInputGasCost = paymaster.lastActualGasCostWei();
+        require(paymaster.postOpCount() == 1 && postOpInputGasCost > 0,
                 "REAL_PAYMASTER_ACCOUNTING_NOT_EXECUTED");
+        // Actual EntryPoint charge is larger than the fee basis passed
+        // into postOp. The paymaster does NOT receive its final total
+        // gas debit as the postOp actualGasCost input.
+        require(postOpInputGasCost < nativeSpentByTestSponsor &&
+                collectedWeth == (postOpInputGasCost * 10_800 + 9_999) / 10_000,
+                "REAL_ENTRYPOINT_POSTOP_BILLING_BASIS_DRIFT");
         require(collectedWeth + remainingWeth == ORIGINAL_FORK_SURPLUS,
                 "REAL_ENTRYPOINT_WETH_PROFIT_CONSERVATION_BROKEN");
         require(INqcRmc011Weth(WETH).allowance(address(account),address(paymaster)) == 0,
@@ -400,6 +406,9 @@ contract NqcRmc011RealEntryPointV07ForkTest {
                             collectedWeth);
         emit log_named_uint("NQC_V07_TEST_SPONSOR_UNRECOVERED_ETH_PAR_WEI",
                             nativeSpentByTestSponsor - collectedWeth);
+        emit log_named_uint("NQC_V07_POSTOP_INPUT_ACTUAL_GAS_COST_WEI",postOpInputGasCost);
+        emit log_named_uint("NQC_V07_FULL_DEPOSIT_CHARGE_BEYOND_POSTOP_INPUT_WEI",
+                            nativeSpentByTestSponsor - postOpInputGasCost);
         emit log_named_uint("NQC_V07_TEST_SPONSOR_8PCT_FULL_GAS_RECOVERY_PROVEN",0);
         emit log_named_uint("NQC_V07_REAL_ENTRYPOINT_ACCOUNT_WETH_REMAINING_WEI",
                             remainingWeth);
