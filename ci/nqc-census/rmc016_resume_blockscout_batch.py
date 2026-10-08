@@ -122,7 +122,7 @@ def load_prior(path, expected_sha, drpc, events, txids):
         rows.append(row)
     count=report.get("blockscout_receipts_verified",
                      report.get("verified_receipt_count"))
-    need(type(count) is int and 0<count<127 and count==len(rows),
+    need(type(count) is int and 10<=count<127 and count==len(rows),
          "prior checkpoint has wrong count")
     if report["status"]=="RMC016_SECOND_OPERATOR_BATCH_CHECKPOINT_PARTIAL":
         need(type(report.get("remaining_receipt_count")) is int and
