@@ -12,6 +12,7 @@ DEBT_FAMILIES = {"COLLATERALIZED_BORROWING", "PERSISTENT_DEBT"}
 EXPECTED_REPOSITORY = "josuechavando350-png/nexus-engine"
 EXPECTED_WORKFLOW = "NQC RMC-011 Real Source Certification"
 EXPECTED_ARTIFACT_PREFIX = "rmc011-real-source-certification-"
+EXPECTED_REAL_SOURCE_PATH = "nqc-census/crates/nqc-census-capital/src/external_debt.rs"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 ARTIFACT_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -27,10 +28,22 @@ def require(condition: bool, message: str) -> None:
 
 
 def validate_document(doc: dict) -> dict:
+    require(
+        type(doc.get("schema_version")) is int and doc["schema_version"] == 2,
+        "source-universe schema must be exactly version 2",
+    )
     require(doc.get("stage") == "RMC-011", "source-universe stage must equal RMC-011")
+    require(doc.get("d11_terminal_closed") is False, "this helper cannot close terminal D11")
     rows = doc.get("families")
     require(isinstance(rows, list), "source-universe families must be an array")
-    by_id = {row.get("id"): row for row in rows if isinstance(row, dict)}
+    require(all(isinstance(row, dict) for row in rows), "malformed source-universe family row")
+    family_ids = [row.get("id") for row in rows]
+    require(
+        all(isinstance(name, str) and name for name in family_ids)
+        and len(family_ids) == len(set(family_ids)),
+        "duplicate, missing or invalid source-universe family identity",
+    )
+    by_id = {row["id"]: row for row in rows}
     require(DEBT_FAMILIES <= set(by_id), "debt family set is incomplete")
 
     rejected = {
@@ -58,10 +71,71 @@ def validate_document(doc: dict) -> dict:
             authenticated == DEBT_FAMILIES and not rejected,
             "debt families cannot mix authenticated-real-source and rejection promotion",
         )
+        # Historical bug: a pair of bare status strings previously reached the
+        # AUTHENTICATED_REAL_SOURCE_PATH result without ANY capital witness.
+        # Even after this syntax gate passes, GitHub archive bytes must still
+        # be authenticated independently by the enclosing source workflow.
+        shared = None
+        file_hashes: set[str] = set()
+        for family in sorted(DEBT_FAMILIES):
+            row = by_id[family]
+            require(row.get("terminally_resolved") is True,
+                    f"{family}: authenticated source missing terminal flag")
+            require(row.get("real_source_path") == EXPECTED_REAL_SOURCE_PATH,
+                    f"{family}: canonical real-source implementation missing")
+            evidence = row.get("resolution_evidence")
+            require(isinstance(evidence, dict),
+                    f"{family}: authenticated real-source evidence missing")
+            require(evidence.get("kind") == "AUTHENTICATED_REAL_SOURCE",
+                    f"{family}: real-source evidence kind differs")
+            require(evidence.get("repository") == EXPECTED_REPOSITORY,
+                    f"{family}: real-source repository differs")
+            require(evidence.get("workflow_name") == EXPECTED_WORKFLOW,
+                    f"{family}: real-source workflow differs")
+            run_id = evidence.get("run_id")
+            artifact_id = evidence.get("artifact_id")
+            require(type(run_id) is int and run_id > 0,
+                    f"{family}: invalid real-source run ID")
+            require(type(artifact_id) is int and artifact_id > 0,
+                    f"{family}: invalid real-source artifact ID")
+            head_sha = evidence.get("head_sha")
+            require(isinstance(head_sha, str) and HEX40.fullmatch(head_sha),
+                    f"{family}: invalid real-source producing head")
+            name = evidence.get("artifact_name")
+            require(isinstance(name, str)
+                    and name.startswith(EXPECTED_ARTIFACT_PREFIX)
+                    and head_sha in name,
+                    f"{family}: real-source artifact name/head mismatch")
+            artifact_digest = evidence.get("artifact_digest")
+            require(isinstance(artifact_digest, str)
+                    and ARTIFACT_DIGEST.fullmatch(artifact_digest)
+                    and artifact_digest != "sha256:" + "0" * 64,
+                    f"{family}: missing real-source artifact SHA-256")
+            require(
+                evidence.get("file") ==
+                f"debt-family-evidence/families/{family}/evidence.json",
+                f"{family}: real-source evidence member path differs",
+            )
+            file_hash = evidence.get("sha256")
+            require(isinstance(file_hash, str) and HEX64.fullmatch(file_hash)
+                    and file_hash != "0" * 64 and file_hash not in file_hashes,
+                    f"{family}: zero or duplicated real-source file SHA-256")
+            file_hashes.add(file_hash)
+            transport = (run_id, head_sha, artifact_id, name, artifact_digest)
+            if shared is None:
+                shared = transport
+            else:
+                require(shared == transport,
+                        f"{family}: real-source evidence mixes runs/artifacts")
         return {
-            "promotion_state": "AUTHENTICATED_REAL_SOURCE_PATH",
+            "promotion_state": "AUTHENTICATED_REAL_SOURCE_REFERENCES_DECLARED",
             "rejected_count": 0,
             "authenticated_count": len(authenticated),
+            "shared_run_id": shared[0],
+            "shared_head_sha": shared[1],
+            "shared_artifact_id": shared[2],
+            "independent_artifact_authentication_complete": False,
+            "d11_terminal_closed": False,
         }
 
     require(
@@ -100,14 +174,19 @@ def validate_document(doc: dict) -> dict:
         )
         require(
             isinstance(artifact_digest, str)
-            and ARTIFACT_DIGEST.fullmatch(artifact_digest) is not None,
+            and ARTIFACT_DIGEST.fullmatch(artifact_digest) is not None
+            and artifact_digest != "sha256:" + "0" * 64,
             f"{family}: artifact_digest invalid",
         )
         require(
             file_path == f"debt-family-evidence/families/{family}/evidence.json",
             f"{family}: per-family evidence path differs",
         )
-        require(isinstance(file_sha, str) and HEX64.fullmatch(file_sha) is not None, f"{family}: file sha256 invalid")
+        require(
+            isinstance(file_sha, str) and HEX64.fullmatch(file_sha) is not None
+            and file_sha != "0" * 64,
+            f"{family}: missing or zero file sha256",
+        )
         require(file_sha not in file_hashes, f"{family}: duplicate family evidence sha256")
         file_hashes.add(file_sha)
 
@@ -124,6 +203,8 @@ def validate_document(doc: dict) -> dict:
         "shared_run_id": shared[0],
         "shared_head_sha": shared[1],
         "shared_artifact_id": shared[2],
+        "independent_artifact_authentication_complete": False,
+        "d11_terminal_closed": False,
     }
 
 
