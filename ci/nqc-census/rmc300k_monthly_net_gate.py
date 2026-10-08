@@ -21,6 +21,7 @@ DAYS_IN_TARGET_PERIOD = 30
 REQUIRED_LOWER_CONFIDENCE = "0.90"
 SOURCE_COMMIT = "96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a"
 SOURCE_GIT_BLOB = "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
+CAPITAL_REGISTRY_GIT_BLOB = "a9c1427bb05828d08ade537899ee1b8e43b97ed2"
 D15_START = 25880316
 D15_END = 26095351
 EXACT_NONCLAIMS = frozenset({
@@ -90,6 +91,29 @@ def parse_locked_source(raw):
     require(principal>0 and gross>gas>0,"malformed historical market gross/gas")
     return principal,gross,gas
 
+def evaluate_external_capital_registry(raw: bytes | None) -> dict:
+    if raw is None:
+        return {"status":"NOT_INDEPENDENTLY_ADMITTED","source_git_blob_sha1":None,
+                "registered_authorized_provider_count":None,
+                "external_gas_provider_authorized":False}
+    require(git_blob(raw)==CAPITAL_REGISTRY_GIT_BLOB,
+            "external capital provider registry is not exact pinned Git blob")
+    doc=json.loads(raw)
+    require(type(doc) is dict and doc.get("schema_version")==1 and
+            doc.get("stage")=="RMC-011" and
+            doc.get("contract")=="NQC_RMC011_EXTERNAL_CAPITAL_PROVIDER_REGISTRY_V1" and
+            doc.get("registry_scope")=="NQC_EXECUTION_AUTHORIZED_EXTERNAL_CAPITAL_PROVIDERS" and
+            doc.get("status")=="DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE",
+            "external provider registry status or domain mismatch")
+    require(doc.get("provider_count")==0 and doc.get("providers")==[],
+            "registered external provider inventory differs from pinned status")
+    require("NO_EXTERNAL_GAS_SOURCE_IS_CLAIMED_AVAILABLE" in doc.get("non_claims",[]),
+            "gas funding claimed without configured provider")
+    return {"status":"PINNED_EMPTY_PROVIDER_REGISTRY_NOT_GLOBAL_NONEXISTENCE",
+            "source_git_blob_sha1":CAPITAL_REGISTRY_GIT_BLOB,
+            "registered_authorized_provider_count":0,
+            "external_gas_provider_authorized":False}
+
 def money(x):
     sign="-" if x<0 else ""
     whole,fract=divmod(abs(x),WAD)
@@ -111,8 +135,9 @@ def gross_requirement_sensitivity():
         })
     return output
 
-def assess(source_raw):
+def assess(source_raw, external_registry_raw=None):
     principal,gross,gas=parse_locked_source(source_raw)
+    capital_registry=evaluate_external_capital_registry(external_registry_raw)
     remainder=gross-gas
     with localcontext() as ctx:
         ctx.prec=42
@@ -133,6 +158,7 @@ def assess(source_raw):
         "minimum_required_reliability":"P(monthly_net>=300000_USD)>=0.90",
         "minimum_p_target":REQUIRED_LOWER_CONFIDENCE,
         "own_capital_required_usd":"0",
+        "external_capital_registry":capital_registry,
         "target_is_minimum_not_achieved_claim":True,
         "observed_historical_winner_transaction_count":127,
         "observed_historical_liquidation_event_count":139,
@@ -162,10 +188,12 @@ def assess(source_raw):
 def main():
     p=argparse.ArgumentParser()
     p.add_argument("--source",type=Path,required=True)
+    p.add_argument("--capital-registry",type=Path)
     p.add_argument("--out",type=Path,required=True)
     a=p.parse_args()
     require(not a.out.exists(),"append-only report required")
-    result=assess(a.source.read_bytes())
+    result=assess(a.source.read_bytes(),
+                  a.capital_registry.read_bytes() if a.capital_registry else None)
     a.out.parent.mkdir(parents=True,exist_ok=True)
     a.out.write_bytes(canonical(result))
     print(result["status"],"target_USD",TARGET_USD,
