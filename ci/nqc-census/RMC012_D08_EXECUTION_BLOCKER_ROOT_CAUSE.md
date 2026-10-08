@@ -15,6 +15,11 @@
 - D12's actual capital-rejection classifier in `nqc-census/crates/nqc-census-capital/src/lib.rs` returns `EXECUTION_BLOCKED` when, for the unmet funding leg, non-execution-eligible sources with matching asset/anchor/atomicity have nominal capacity >= the unmet amount. The D08 importer in `upstream.rs` assigns token compatibility blockers to those source objects. **This is a principal execution-admission problem, not automatically proof of missing flash liquidity.**
 - The arithmetic oracle-base gross differences in this terminal A1 snapshot are tiny and are not economic or portfolio authority. No inference about uncaptured liquidations, other dates/chains or the true end-to-end P&L distribution is permitted.
 
+
+## Additional pinned Aave nominal liquidity fact at the same anchor
+
+The exact D08 `market-state-manifest.jsonl` (SHA-256 `c64719793eed5fd5b09eb725f18b811746b1a50e101bfa00b9569be65282d19e`, 67 Aave markets plus 523,424 V2 market rows) contains one reconstructable Aave reserve state for each of the **27 distinct debt assets** in D12. At block 26095351, all 27 report `active=true`, `paused=false`, `flash_loan_enabled=true`. The reported **available underlying balance exceeded the largest single candidate's raw principal** for each respective debt asset. This is a source-bounded comparison in original token units, not a current on-chain quote, a proof of aggregate/concurrent liquidity, or a guarantee that a real flashLoanSimple invocation succeeds. It does NOT override the D08 token compatibility blockers, the 432/432 execution rejection, or the separate missing gas sponsor.
+
 ## Required engineering evidence before removal of a blocker
 
 D08 compatibility must be proven for a **specific asset, version, chain and historical block** with runtime code identity/proxy implementation lineage; actual transfer, mint, redemption and allowance delta behavior (including fee-on-transfer/rebasing/hook cases); PFT/fork execution equivalence; and independent chain witnesses. Transfer gas, flash premium and collateral sale execution are separately required. Do **not** set `PROVEN_COMPATIBLE` or change `execution_eligible` from a model, label, token popularity or a code-presence call.
