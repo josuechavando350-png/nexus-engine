@@ -1,0 +1,161 @@
+name: NQC RMC-016 Historical Aave Raw Liquidation Legs
+
+on:
+  push:
+    branches:
+      - nqc/rmc016-authenticated-liquidation-legs-20261008
+  pull_request:
+    paths:
+      - ci/nqc-census/rmc016_aave_event_legs.py
+      - ci/nqc-census/test_rmc016_aave_event_legs.py
+      - ci/nqc-census/RMC016_AUTHENTICATED_LIQUIDATION_LEGS.md
+      - .github/workflows/nqc-rmc016-aave-event-legs.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc016-aave-leg-evidence-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  provenance-and-adversarial:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Reject source substitutions and test exact ABI commitments
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor abe54f1f23bd7bff8c37871200f7da7a9014e2ff9a HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          python3 ci/nqc-census/test_rmc016_aave_event_legs.py
+          python3 -m py_compile ci/nqc-census/rmc016_aave_event_legs.py ci/nqc-census/test_rmc016_aave_event_legs.py
+          echo RMC016_RAW_LEGS_ABI_OFFLINE_PASS
+
+  acquire-authentic-legs:
+    needs: provenance-and-adversarial
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Authenticate exact immutable 139-event source
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_run=37718661409
+          source_head=abe54f1f23bd7bff8c37871200f7da7a9014e2ff9a
+          source_tree=c74f8d9d2c317a011284398643b2d4aa6de06e83
+          source_artifact=11524139188
+          source_digest=6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204
+          run="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$source_run")"
+          art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$source_artifact")"
+          test "$(jq -r .status <<<"$run")" = completed
+          test "$(jq -r .conclusion <<<"$run")" = success
+          test "$(jq -r .name <<<"$run")" = 'NQC RMC-016 Full Liquidation Ledger Discovery'
+          test "$(jq -r .head_sha <<<"$run")" = "$source_head"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$source_head" --jq .tree.sha)" = "$source_tree"
+          test "$(jq -r .expired <<<"$art")" = false
+          test "$(jq -r .workflow_run.id <<<"$art")" = "$source_run"
+          test "$(jq -r .name <<<"$art")" = "rmc016-full-liquidation-events-$source_head"
+          test "$(jq -r .digest <<<"$art")" = "sha256:$source_digest"
+          mkdir -p "$RUNNER_TEMP/nqc016-legs-source"
+          curl --fail --silent --show-error --location --retry 2 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$source_artifact/zip" \
+            -o "$RUNNER_TEMP/nqc016-legs-source/source.zip"
+          printf '%s  %s\n' "$source_digest" "$RUNNER_TEMP/nqc016-legs-source/source.zip" | sha256sum -c --strict
+      - name: Reacquire 139 raw Aave LiquidationCall events and verify each SHA against source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc016-legs-source"
+          python3 - "$RUNNER_TEMP/nqc016-legs-source/raw-logs.jsonl" <<'PY'
+          import json,sys,time
+          from urllib.request import Request,urlopen
+          from urllib.error import HTTPError,URLError
+          ENDPOINT="https://eth.blockscout.com/api/eth-rpc"
+          PAYLOAD={"jsonrpc":"2.0","id":1,"method":"eth_getLogs","params":[{
+            "address":"0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+            "topics":["0xe413a321e8681d831f4dbccbca790d2952b56f977908e45be37335533e005286"],
+            "fromBlock":hex(25880316),"toBlock":hex(26095351)}]}
+          req=Request(ENDPOINT,data=json.dumps(PAYLOAD,separators=(",",":")).encode(),
+                      headers={"Content-Type":"application/json","Accept":"application/json",
+                               "User-Agent":"NQC-RMC016-ReadOnly-RawLegs/1.0"},method="POST")
+          last=None
+          for attempt in range(2):
+            if attempt:time.sleep(40)
+            try:
+              with urlopen(req,timeout=40) as f:
+                raw=f.read(9_000_000)
+              doc=json.loads(raw)
+              if doc.get("error") is not None:raise ValueError("RPC error "+str(doc["error"])[:200])
+              logs=doc.get("result")
+              if type(logs) is not list or len(logs)!=139:raise ValueError("not exactly 139 raw logs")
+              with open(sys.argv[1],"wb") as f:
+                for record in logs:
+                  if type(record) is not dict:raise ValueError("nonmapping event")
+                  f.write((json.dumps(record,sort_keys=True,separators=(",",":"))+"\n").encode())
+              print("RMC016_FULL_RAW_ETHEREUM_LIQUIDATION_LOGS_ACQUIRED count=139")
+              break
+            except (HTTPError,URLError,TimeoutError,ValueError) as e:
+              last=e
+              if attempt==1:raise
+          PY
+          python3 ci/nqc-census/rmc016_aave_event_legs.py \
+            --event-zip "$RUNNER_TEMP/nqc016-legs-source/source.zip" \
+            --raw-logs "$RUNNER_TEMP/nqc016-legs-source/raw-logs.jsonl" \
+            --out "$RUNNER_TEMP/nqc016-legs-source/decoded.jsonl"
+          python3 - "$RUNNER_TEMP/nqc016-legs-source/decoded.jsonl" "$RUNNER_TEMP/nqc016-legs-source/report.json" <<'PY'
+          import hashlib,json,sys,collections
+          rows=[json.loads(s) for s in open(sys.argv[1],encoding="utf8")]
+          assert len(rows)==139 and len({x["transaction_hash"] for x in rows})==127
+          assert all(isinstance(x["debt_to_cover_raw"],str) and
+                     isinstance(x["collateral_liquidated_raw"],str) for x in rows)
+          debt=collections.Counter(x["debt_asset"] for x in rows)
+          collateral=collections.Counter(x["collateral_asset"] for x in rows)
+          pairs=collections.Counter((x["collateral_asset"],x["debt_asset"]) for x in rows)
+          report={"schema_version":1,"status":"RMC016_SINGLE_OPERATOR_REAL_INTEGER_LIQUIDATION_LEGS_SOURCE_MATCH",
+                  "events":139,"unique_winner_transactions":127,
+                  "distinct_debt_assets":len(debt),"distinct_collateral_assets":len(collateral),
+                  "distinct_asset_pairs":len(pairs),
+                  "receive_atoken_event_count":sum(int(x["receive_a_token"]) for x in rows),
+                  "event_rows_sha256":hashlib.sha256(open(sys.argv[1],"rb").read()).hexdigest(),
+                  "block_pinned_token_decimals_complete":False,
+                  "oracle_usd_pricing_complete":False,
+                  "independent_full_month_log_consensus":False,
+                  "execution_route_costs_complete":False,"nexus_external_funding_proven":False,
+                  "nexus_net_profitability_proven":False,"real_market_census_closed":False}
+          with open(sys.argv[2],"w") as f:json.dump(report,f,sort_keys=True,separators=(",",":"));f.write("\n")
+          print(json.dumps({"events":139,"transactions":127,"debt_assets":len(debt),
+                            "collateral_assets":len(collateral),"asset_pairs":len(pairs)}))
+          PY
+          mkdir -p "$RUNNER_TEMP/nqc016-legs-evidence"
+          cp "$RUNNER_TEMP/nqc016-legs-source/decoded.jsonl" "$RUNNER_TEMP/nqc016-legs-evidence/decoded-liquidation-legs.jsonl"
+          cp "$RUNNER_TEMP/nqc016-legs-source/report.json" "$RUNNER_TEMP/nqc016-legs-evidence/decoded-legs-report.json"
+          (cd "$RUNNER_TEMP/nqc016-legs-evidence" &&
+            sha256sum decoded-liquidation-legs.jsonl decoded-legs-report.json > archive.sha256 &&
+            sha256sum -c archive.sha256)
+          echo RMC016_RAW_INTEGER_LEGS_SOURCE_MATCH_NOT_PNL
+      - name: Preserve sanitized proof or explicit failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-integer-liquidation-legs-${{ github.sha }}
+          path: ${{ runner.temp }}/nqc016-legs-evidence/
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
