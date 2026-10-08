@@ -1,0 +1,120 @@
+name: NQC RMC-011 Real External Native Gas Liability
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc011-external-gas-liability.yml'
+      - 'ci/nqc-census/rmc011_external_gas_liability_gate.py'
+      - 'ci/nqc-census/test_rmc011_external_gas_liability_gate.py'
+      - 'ci/nqc-census/RMC011_EXTERNAL_GAS_PAYMASTER_ADMISSION_CONTRACT.md'
+      - 'nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/gas_credit.rs'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  real-source-no-provider-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Source-lock original capital registry and T36 executor and run regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 0d700182e776b8efc261e8e5c9ebcebdcbaf9d11 HEAD
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = aa3883fa141aa096006e90e56d8d4150c9ee14ef
+          test "$(git hash-object nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs)" = 5a301f92850bd00594996cbf013d9e4f74867d62
+          test "$(git hash-object nqc-census/crates/nqc-census-capital/src/gas_credit.rs)" = 090f23df1326a0e6feb6f3afbe2151278d3b9499
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          python3 ci/nqc-census/test_rmc011_external_gas_liability_gate.py
+          python3 -m py_compile ci/nqc-census/rmc011_external_gas_liability_gate.py
+          mkdir -p "$RUNNER_TEMP/nqc011-gas-liability"
+          sha256sum ci/nqc-census/rmc011_external_gas_liability_gate.py ci/nqc-census/test_rmc011_external_gas_liability_gate.py ci/nqc-census/RMC011_EXTERNAL_GAS_PAYMASTER_ADMISSION_CONTRACT.md > "$RUNNER_TEMP/nqc011-gas-liability/source-sha256.txt"
+          echo RMC011_ZERO_CAPITAL_NATIVE_GAS_NO_SPONSOR_REGRESSION_PASS
+
+      - name: Reauthenticate exact successful historical gas source Actions archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          runid=37742063251
+          sourcehead=0d700182e776b8efc261e8e5c9ebcebdcbaf9d11
+          artifact=11533854519
+          expected=2f31b24005ac3050574d6669b904415d09a438648575cdcbdbbd2b5a4dcf40e9
+          run="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$runid")"
+          art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
+          test "$(jq -r .status <<<"$run")" = completed
+          test "$(jq -r .conclusion <<<"$run")" = success
+          test "$(jq -r .name <<<"$run")" = 'NQC RMC-016 Real Fork Gas Budget Comparator'
+          test "$(jq -r .head_sha <<<"$run")" = "$sourcehead"
+          test "$(jq -r .expired <<<"$art")" = false
+          test "$(jq -r .workflow_run.id <<<"$art")" = "$runid"
+          test "$(jq -r .name <<<"$art")" = "rmc016-rank1-gas-budget-$sourcehead"
+          test "$(jq -r .digest <<<"$art")" = "sha256:$expected"
+          file="$RUNNER_TEMP/nqc011-gas-liability/real-gas-source.zip"
+          curl --fail --silent --show-error --location --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact/zip" -o "$file"
+          printf '%s  %s\n' "$expected" "$file" | sha256sum --check --strict
+          echo RMC011_REAL_COUNTERFACTUAL_GAS_ARCHIVE_SOURCE_LOCK_PASS
+
+      - name: Reconcile provider absence and 15 worst-case sponsor liability scenarios
+        shell: bash
+        run: |
+          set -euo pipefail
+          result="$RUNNER_TEMP/nqc011-gas-liability/real-gas-admission.json"
+          python3 ci/nqc-census/rmc011_external_gas_liability_gate.py \
+            --gas-zip "$RUNNER_TEMP/nqc011-gas-liability/real-gas-source.zip" \
+            --provider-registry ci/nqc-census/rmc011-external-capital-provider-registry.json \
+            --executor-source ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol \
+            --sponsor-adapter nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs \
+            --credit-adapter nqc-census/crates/nqc-census-capital/src/gas_credit.rs \
+            --out "$result"
+          jq -e '
+            .status=="RMC011_EXTERNAL_NATIVE_GAS_SPONSOR_NOT_ADMITTED_SOURCE_BOUND" and
+            .authorized_external_gas_providers == 0 and
+            .available_external_native_gas_wei_proven == "0" and
+            .provider_discovery_global_nonexistence_proven == false and
+            (.tested_route_templates | length) == 4 and
+            ([.tested_route_templates[].nqc_executable] | all(. == false)) and
+            (.native_gas_and_revert_liability_stress | length) == 15 and
+            ([.native_gas_and_revert_liability_stress[].postop_reimbursement_authenticated] | all(. == false)) and
+            .erc4337_entrypoint_deposit_queried_or_proven == false and
+            .paymaster_userop_quote_or_signature_obtained == false and
+            .rmc011_source_importer_native_gas_semantics.both_importers_observe_native_prepayment_to_borrower == true and
+            .rmc011_source_importer_native_gas_semantics.erc4337_entrypoint_deposit_delivery_semantics_equivalent == false and
+            .rmc011_source_importer_native_gas_semantics.erc4337_paymaster_can_be_relabelled_as_existing_native_credit_without_new_adapter == false and
+            .profit_weth_delivered_to_userop_sender_and_postop_collected_proven == false and
+            .operator_invoice_recourse_liability_excluded_by_contract == false and
+            .pre_execution_native_gas_route_or_entrypoint_deposit_authenticated == false and
+            .non_prefunded_full_native_gas_transaction_executed == false and
+            .nqc_executable_with_own_capital_zero == false and
+            .nqc_realized_net_profit_proven == false and
+            .rmc011_terminal_closed == false and
+            .real_market_census_closed == false
+          ' "$result" > /dev/null
+          (cd "$RUNNER_TEMP/nqc011-gas-liability" && \
+            sha256sum real-gas-admission.json source-sha256.txt > archive.sha256 && \
+            sha256sum -c archive.sha256)
+          echo RMC011_NO_REAL_THIRD_PARTY_GAS_OR_GAS_INVOICE_LIABILITY_AUTHORITY
+
+      - name: Retain exact content-addressed no-gas-sponsor diagnostic
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-external-gas-liability-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc011-gas-liability/*.json
+            ${{ runner.temp }}/nqc011-gas-liability/*.sha256
+            ${{ runner.temp }}/nqc011-gas-liability/*.txt
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
