@@ -12,7 +12,7 @@ import rmc015_post_anchor_causal_sampler as src
 from test_rmc015_post_anchor_causal_sampler import fixture
 
 PROVIDERS=[("blast","BlastAPI","https://blast.invalid"),
-           ("one_rpc","Automata 1RPC","https://one_rpc.invalid")]
+           ("blockscout","Blockscout","https://blockscout.invalid")]
 EVT_TX="0x"+"f"*64
 EVT_POOL=src.POOL
 
@@ -30,7 +30,7 @@ def original_first(summary):
       "source_watchlist_commitment_sha256":summary["watchlist_commitment_sha256"],
       "source_frontier_authority_sha256":summary["authority_commitment_sha256"],
       "real_independent_operator_consensus":True,
-      "observed_successful_public_rpc_operator_ids":["drpc","blast"],
+      "observed_successful_public_rpc_operator_ids":["blast","blockscout"],
       "real_aave_liquidation_logs_in_window_all_borrowers":0,
       "real_aave_liquidation_events_matching_source_cohort":0,
       "real_winner_tx_count_matching_source_cohort":0,
@@ -107,7 +107,7 @@ class SourceRpc:
                 known["blockHash"]=m.CANARY_BLOCK_HASH
                 known["transactionHash"]=m.CANARY_WINNER_TX
                 return [known]
-            if "blast.invalid" in url or "one_rpc.invalid" in url:
+            if "blast.invalid" in url:
                 assert hi-lo+1<=10
             return [copy.deepcopy(x) for x in self.events
                     if lo<=int(x["blockNumber"],16)<=hi]
@@ -167,7 +167,7 @@ class TestNew14HistoricalShards(unittest.TestCase):
             m.verified_original_first(p,s)
 
     def test_both_real_archive_operators_are_partioned_at_most_ten_blocks(self):
-        self.assertEqual(m.MAX_REAL_ARCHIVE_LOG_RANGE,{"blast":10,"one_rpc":10})
+        self.assertEqual(m.MAX_REAL_ARCHIVE_LOG_RANGE,{"blast":10,"blockscout":480})
         s,w,p=self.inputs()
         members={json.loads(line)["account"] for line in w.splitlines()}
         self.assertEqual(len(members),857)
@@ -220,7 +220,7 @@ class TestNew14HistoricalShards(unittest.TestCase):
         fake=SourceRpc()
         def conflicting(url,method,args):
             out=fake(url,method,args)
-            if method=="eth_getLogs" and args[0]["fromBlock"]==hex(m.CANARY_BLOCK) and "one_rpc.invalid" in url:
+            if method=="eth_getLogs" and args[0]["fromBlock"]==hex(m.CANARY_BLOCK) and "blockscout.invalid" in url:
                 extra=copy.deepcopy(out[0])
                 extra["transactionHash"]="0x"+"e"*64
                 extra["logIndex"]="0x2"
@@ -291,7 +291,7 @@ class TestNew14HistoricalShards(unittest.TestCase):
         s,w,p=self.inputs()
         fake=SourceRpc([event(m.FIRST+480,"0x"+"f"*40)])
         def different(url,method,args):
-            if "one_rpc.invalid" in url and method=="eth_getLogs" and args[0]["fromBlock"]!=hex(m.CANARY_BLOCK):
+            if "blockscout.invalid" in url and method=="eth_getLogs" and args[0]["fromBlock"]!=hex(m.CANARY_BLOCK):
                 return []
             return fake(url,method,args)
         with tempfile.TemporaryDirectory() as d:
@@ -369,6 +369,77 @@ class TestNew14HistoricalShards(unittest.TestCase):
                       "real_market_census_closed",
                       "source_chosen_winners_as_selection_inputs"):
                 self.assertIs(r[k],False,k)
+
+
+    def test_original_pr650_real_operator_ids_must_match_exactly(self):
+        summary,_,original=self.inputs()
+        original["observed_successful_public_rpc_operator_ids"]=["drpc","blast"]
+        original["report_sha256"]=m.sha_json({
+            k:v for k,v in original.items() if k!="report_sha256"
+        })
+        with self.assertRaisesRegex(ValueError,"BlastAPI/Blockscout pair"):
+            m.verified_original_first(original,summary)
+
+    def test_exact_independent_source_log_ranges_for_all_shards(self):
+        summary,watchlist,first=self.inputs()
+        stub=SourceRpc()
+        with tempfile.TemporaryDirectory() as d:
+            r=m.whole_window(summary,watchlist,first,Path(d)/"shards",
+                             providers=PROVIDERS,call=stub)
+        all_logs=[(url,int(params[0]["toBlock"],16)-
+                        int(params[0]["fromBlock"],16)+1)
+                  for url,method,params in stub.calls
+                  if method=="eth_getLogs" and
+                     int(params[0]["fromBlock"],16)!=m.CANARY_BLOCK]
+        blast=[size for url,size in all_logs if "blast.invalid" in url]
+        scout=[size for url,size in all_logs if "blockscout.invalid" in url]
+        self.assertEqual(len(blast),14*48)
+        self.assertEqual(len(scout),14)
+        self.assertTrue(all(x<=10 for x in blast))
+        self.assertTrue(all(x==480 for x in scout))
+        self.assertEqual(r["verified_total_block_count"],7200)
+        self.assertEqual(r["original_and_successor_dual_rpc_persistent_operator_ids"],
+                         ["blast","blockscout"])
+        self.assertFalse(r["real_market_census_closed"])
+
+    def test_quota_retry_same_operator_and_exact_range(self):
+        called=[]
+        slept=[]
+        def fake(url,method,params):
+            called.append((url,method,params))
+            if len(called)<3:
+                raise ValueError("HTTPError: HTTP Error 429: Too Many Requests")
+            return [{"observed":"valid-after-retry"}]
+        data=m.authenticated_log_rpc(
+            fake,"https://blockscout.invalid","eth_getLogs",
+            [{"fromBlock":"0x11","toBlock":"0x12"}],"blockscout",
+            sleep=slept.append)
+        self.assertEqual(data,[{"observed":"valid-after-retry"}])
+        self.assertEqual(slept,[2,6])
+        self.assertEqual(len(called),3)
+        self.assertTrue(all(v[0]=="https://blockscout.invalid" for v in called))
+        self.assertTrue(all(v[2]==called[0][2] for v in called))
+
+    def test_quota_retry_exhaustion_never_produces_empty_log(self):
+        calls=[]
+        def limited(url,method,params):
+            calls.append(1)
+            raise ValueError("HTTP 429 Too Many Requests")
+        with self.assertRaisesRegex(ValueError,"429"):
+            m.authenticated_log_rpc(
+                limited,"https://blockscout.invalid",
+                "eth_getLogs",[{"fromBlock":"0x1"}],
+                "blockscout",sleep=lambda seconds:None)
+        self.assertEqual(len(calls),5)
+        calls.clear()
+        def denied(url,method,params):
+            calls.append(1)
+            raise ValueError("not authorized for archive")
+        with self.assertRaisesRegex(ValueError,"not authorized"):
+            m.authenticated_log_rpc(
+                denied,"https://blockscout.invalid",
+                "eth_getLogs",[],"blockscout",sleep=lambda seconds:None)
+        self.assertEqual(len(calls),1)
 
 if __name__=="__main__":
     unittest.main()
