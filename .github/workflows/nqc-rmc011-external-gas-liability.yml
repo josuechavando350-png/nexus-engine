@@ -93,7 +93,7 @@ jobs:
             .rmc011_source_importer_native_gas_semantics.erc4337_entrypoint_deposit_delivery_semantics_equivalent == false and
             .rmc011_source_importer_native_gas_semantics.erc4337_paymaster_can_be_relabelled_as_existing_native_credit_without_new_adapter == false and
             .profit_weth_delivered_to_userop_sender_and_postop_collected_proven == false and
-            .operator_invoice_recource_liability_excluded_by_contract == false and
+            .operator_invoice_recourse_liability_excluded_by_contract == false and
             .pre_execution_native_gas_route_or_entrypoint_deposit_authenticated == false and
             .non_prefunded_full_native_gas_transaction_executed == false and
             .nqc_executable_with_own_capital_zero == false and
