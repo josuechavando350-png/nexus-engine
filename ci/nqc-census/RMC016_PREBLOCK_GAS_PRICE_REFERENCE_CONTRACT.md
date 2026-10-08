@@ -19,4 +19,4 @@ Production CI authenticates all three immutable run/head/tree/artifact-name/dige
 
 ## Planned next gates
 
-Continue through all 123 unique observed winning blocks under independently corroborated, rate-safe acquisition, then historical oracle pricing of the 13 debt and 18 collateral underlying assets (31 distinct total from certified 139 leg events), historical decimals/configuration, flash premiums, route costs and Nexus ex-ante feasibility. All observations must remain partitioned by transaction with integer arithmetic and no assumed capture.
+Continue through all 123 unique observed winning blocks under independently corroborated, rate-safe acquisition, then historical oracle pricing of the 23 unique underlying assets (13 appearing as debt and 18 as collateral, with overlapping roles) from the certified 139 event legs, historical decimals/configuration, flash premiums, route costs and Nexus ex-ante feasibility. All observations must remain partitioned by transaction with integer arithmetic and no assumed capture.
