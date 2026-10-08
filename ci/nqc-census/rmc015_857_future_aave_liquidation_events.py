@@ -17,6 +17,10 @@ from rmc016_probe_historical_rpc import PROVIDERS, rpc, LIQUIDATION_TOPIC
 START=source.FIRST
 END=source.LATER
 CHUNK=480
+# BlastAPI free historical eth_getLogs limit is 10 blocks, observed at
+# exact-head Actions 37804041633. Different real RPC operators may require
+# different segment sizes, but must agree on the COMPLETE normalized log set.
+PROVIDER_SPANS={"blast":10}
 AAVE_POOL=source.POOL
 HEX32=re.compile(r"0x[0-9a-f]{64}\Z")
 DATA4=re.compile(r"0x[0-9a-f]{256}\Z")
@@ -85,8 +89,10 @@ def fetch_one(provider,source_members,*,call=rpc):
     results=[]
     seen=set()
     coverage=[]
-    for lo in range(START,END+1,CHUNK):
-        hi=min(lo+CHUNK-1,END)
+    segment=PROVIDER_SPANS.get(pid,CHUNK)
+    need(1<=segment<=CHUNK,"unsafe log span")
+    for lo in range(START,END+1,segment):
+        hi=min(lo+segment-1,END)
         raw=call(url,"eth_getLogs",[{
             "address":AAVE_POOL,"topics":[LIQUIDATION_TOPIC],
             "fromBlock":hex(lo),"toBlock":hex(hi)
@@ -138,7 +144,7 @@ def fetch_one(provider,source_members,*,call=rpc):
         # sorted hashed matched identities, not original wallet addresses.
         "matched_cohort_event_commitment_sha256":
            source.sha(b"".join(source.canonical(x) for x in matched)),
-        "strict_480_block_chunk_partitions":len(coverage),
+        "strict_source_verified_contiguous_partitions":len(coverage),
         "canonical_nonempty_event_block_headers_verified":len(blocks),
         "event_data_from_only_post_anchor_blocks":True,
     }
@@ -162,7 +168,6 @@ def independently_supported_archives(*,call=rpc,candidates=None):
     selected=[]
     rejected=[]
     lo=START
-    hi=min(START+CHUNK-1,END)
     for p in candidates:
         pid,operator,url=p
         try:
@@ -171,6 +176,7 @@ def independently_supported_archives(*,call=rpc,candidates=None):
                 call(url,"eth_getBlockByNumber",[hex(START),False]),START)
             need(hdr["parent_hash"]==source.ANCHOR_HASH,
                  "provider source predecessor hash mismatch")
+            hi=min(lo+PROVIDER_SPANS.get(pid,CHUNK)-1,END)
             raw=call(url,"eth_getLogs",[{
                 "address":AAVE_POOL,"topics":[LIQUIDATION_TOPIC],
                 "fromBlock":hex(lo),"toBlock":hex(hi)}])
@@ -209,7 +215,6 @@ def assess(summary,watchlist_blob,*,call=rpc,providers=None):
              "realized_cohort_event_count","realized_cohort_unique_winning_transactions",
              "realized_cohort_unique_borrowers","realized_cohort_event_types",
              "matched_cohort_event_commitment_sha256",
-             "strict_480_block_chunk_partitions",
              "canonical_nonempty_event_block_headers_verified")
     need(all(a[k]==b[k] for k in fields),
          "two independently observed Ethereum liquidation event universes disagree")
@@ -226,7 +231,10 @@ def assess(summary,watchlist_blob,*,call=rpc,providers=None):
        "event_window_start_block":START,
        "event_window_end_block":END,
        "fully_segmented_Aave_LiquidationCall_event_window":True,
-       "event_chunks_per_provider":a["strict_480_block_chunk_partitions"],
+       "event_chunks_per_provider":{
+          a["provider_id"]:a["strict_source_verified_contiguous_partitions"],
+          b["provider_id"]:b["strict_source_verified_contiguous_partitions"],
+       },
        "real_aave_liquidation_logs_in_window_all_borrowers":a["canonical_raw_event_count"],
        "real_aave_liquidation_events_matching_source_cohort":a["realized_cohort_event_count"],
        "real_winner_tx_count_matching_source_cohort":a["realized_cohort_unique_winning_transactions"],
