@@ -45,7 +45,7 @@ def rpc(url,method,params):
             "parentHash":src.ANCHOR_HASH,"stateRoot":A,"timestamp":"0x70"}
         if n==src.FIRST+1:return {
             "number":hex(n),"hash":U,"parentHash":T,"stateRoot":A,"timestamp":"0x7a"}
-        if n==src.LATER:return {
+        if n==m.END:return {
             "number":hex(n),"hash":R,"parentHash":U,"stateRoot":A,"timestamp":"0x80"}
         raise AssertionError("unexpected block header")
     if method=="eth_getLogs":
@@ -231,7 +231,7 @@ class Test857PreselectedAgainstRealLaterEvents(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"two independent public archive RPCs"):
             m.independently_supported_archives(call=all_blocked,candidates=candidates)
 
-    def test_exact_temporal_chunks_cover_7200_blocks(self):
+    def test_exact_temporal_chunks_cover_first_480_blocks(self):
         self.assertEqual(m.END-m.START+1,480)
         self.assertEqual(m.CHUNK,480)
         self.assertEqual((m.END-m.START+1)//m.CHUNK,1)
