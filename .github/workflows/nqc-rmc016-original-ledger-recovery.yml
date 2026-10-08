@@ -67,7 +67,7 @@ jobs:
             --selection "$RUNNER_TEMP/nqc016-ledger-recovery/public/selection.json"
           jq -e '.status=="RMC016_EXISTING_ACTIONS_LEDGER_RECOVERY_BOUNDED_SELECTION" and
                  .original_transaction_economics_sha256=="55d5d6be9e09f2e499e1ca8949c4305d05824dffa61e363f4371c615537dcb1c" and
-                 .scan_budget==48 and
+                 .scan_budget==128 and
                  .no_global_absence_claim==true and
                  .real_market_census_closed==false' \
             "$RUNNER_TEMP/nqc016-ledger-recovery/public/selection.json" >/dev/null
