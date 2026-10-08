@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Adversarial offline regression of seven-winner historical WETH/WETH cost budget."""
+"""Adversarial offline regression of nine-winner historical WETH/WETH cost budget."""
 from __future__ import annotations
 
 import copy
@@ -31,14 +31,14 @@ def corpus():
                        "total_gas_paid_wei": str(gas)}
         r = {"transaction_hash": tx, "block_number": block, "block_hash": hashval,
              "log_index": i, "transaction_index": 0,
-             "collateral_asset": m.WETH if i < 7 else "0x" + "a" * 40,
-             "debt_asset": m.WETH if i < 7 else "0x" + "b" * 40,
+             "collateral_asset": m.WETH if i < 9 else "0x" + "a" * 40,
+             "debt_asset": m.WETH if i < 9 else "0x" + "b" * 40,
              "debt_to_cover_raw": str(debt),
              "collateral_liquidated_raw": str(collateral),
              "receive_a_token": False,
              "original_event_commitment_sha256": "a" * 64}
         rows.append(r)
-        if 7 <= i < 19:
+        if 9 <= i < 21:
             more = r.copy()
             more["log_index"] = 1000 + i
             rows.append(more)
@@ -62,10 +62,12 @@ def corpus():
 
 
 class HistoricalWethAuditTest(unittest.TestCase):
-    def test_seven_rows_and_two_historical_prices(self):
+    def test_nine_rows_seven_positive_after_gas_and_two_historical_prices(self):
         rows, receipts, prices = corpus()
         answer = m.calculate(rows, receipts, prices)
-        self.assertEqual(len(answer), 7)
+        self.assertEqual(len(answer), 9)
+        self.assertEqual(sum(r["positive_after_historical_competitor_gas"] for r in answer), 7)
+        self.assertEqual(sum(not r["positive_after_historical_competitor_gas"] for r in answer), 2)
         self.assertEqual([r["transaction_hash"] for r in answer[:2]], list(m.TOP_TWO))
         self.assertEqual(int(answer[0]["collateral_minus_debt_minus_winner_gas_wei"]),
                          96136430295441074)
@@ -97,7 +99,7 @@ class HistoricalWethAuditTest(unittest.TestCase):
     def test_missing_or_extra_weth_candidate_rejected(self):
         rows, receipts, prices = corpus()
         rows[6]["debt_asset"] = "0x" + "e" * 40
-        with self.assertRaisesRegex(ValueError, "exactly seven"):
+        with self.assertRaisesRegex(ValueError, "exactly nine")
             m.calculate(rows, receipts, prices)
 
     def test_missing_receipt_rejected(self):
