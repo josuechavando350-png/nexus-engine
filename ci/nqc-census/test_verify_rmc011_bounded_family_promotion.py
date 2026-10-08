@@ -122,5 +122,31 @@ class BoundedFamilyPromotionTests(unittest.TestCase):
             mod.validate_document(doc)
 
 
+
+    def test_historical_merge_sha_named_artifact_cannot_be_promoted(self) -> None:
+        doc = copy.deepcopy(UNIVERSE)
+        promote_all(doc)
+        for row in doc["families"]:
+            if row["id"] in mod.BOUNDED_FAMILIES:
+                row["resolution_evidence"]["artifact_name"] = (
+                    "rmc011-bounded-family-rejections-" + "f" * 40 + "-12345-1"
+                )
+        with self.assertRaisesRegex(mod.PromotionError, "artifact_name"):
+            mod.validate_document(doc)
+
+    def test_workflow_publishes_exact_checked_out_head_not_pr_merge_sha(self) -> None:
+        workflow = Path(
+            ".github/workflows/nqc-census-capital-bounded-family-rejections.yml"
+        ).read_text(encoding="utf-8")
+        expected = (
+            "name: rmc011-bounded-family-rejections-"
+            "${{ github.event.pull_request.head.sha || github.sha }}-"
+            "${{ github.run_id }}-${{ github.run_attempt }}"
+        )
+        self.assertIn(expected, workflow)
+        self.assertNotIn(
+            "name: rmc011-bounded-family-rejections-${{ github.sha }}-", workflow
+        )
+
 if __name__ == "__main__":
     unittest.main()
