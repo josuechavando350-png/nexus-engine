@@ -11,6 +11,7 @@ Sources: exact D15B run `37669899465`, artifact `11504276505`; D16 run `37673653
 ## Required evidence before full 127-transaction reconstruction
 
 - Two independent RPC providers must return exact matching canonical headers, one valid `LiquidationCall` receipt, and identical sampled logs/receipt gas.
+- Blockscout Ethereum mainnet explorer exposes a separate public `/api/eth-rpc` endpoint supporting `eth_getBlockByNumber`, `eth_getLogs` and `eth_getTransactionReceipt` (official Blockscout API documentation). It is classified as its own data operator, not silently combined with dRPC. A provider's self-declared identity never replaces actual matching independent evidence. Each failed request must identify the failing JSON-RPC method and bounded HTTP error body.
 - Ethereum Pool V3 address: `0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2`.
 - The Aave `LiquidationCall` topic must be exact and stable; source: official `IPool.sol` ABI and independently published Ethereum transaction event decoding.
 - On successful preflight, expand to complete historical `eth_getLogs` over the entire pinned window, preserve every event's tx hash, block hash, ordering and receipt, check full cross-provider agreement, enforce `139` events and exactly `127` unique winner transactions or fail closed. No post-hoc filtering to force those counts.
