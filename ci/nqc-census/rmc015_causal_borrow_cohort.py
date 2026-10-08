@@ -252,11 +252,52 @@ def holdout_stage(provider,feature_commitment,call=rpc):
 
 
 def assess(*,call=rpc,providers=None):
-    providers=providers or [x for x in PROVIDERS if x[0] in ("drpc","blast")]
-    require(len(providers)==2 and [x[0] for x in providers]==["drpc","blast"]
-            and providers[0][1]!=providers[1][1] and providers[0][2]!=providers[1][2],
-            "need two independently operated unique historical RPCs")
-    f=[feature_stage(provider,call=call) for provider in providers]
+    failures=[]
+    if providers is None:
+        # Availability fallback only, NOT quorum cherry-picking. The FIRST
+        # complete two independently operated archive providers must agree
+        # exactly, or the experiment fails CLOSED. Never switch after a
+        # disagreement. A provider that cannot serve full historical Borrow
+        # logs/state is not misreported as observing zero opportunities.
+        order=("publicnode","blast","drpc","llama","blockpi","blockscout")
+        candidate_set=sorted(PROVIDERS,key=lambda x:order.index(x[0])
+                             if x[0] in order else len(order))
+        admitted=[]
+        frozen=[]
+        for provider in candidate_set:
+            if len(admitted)>=2:
+                break
+            try:
+                observed=feature_stage(provider,call=call)
+            except Exception as error:
+                failures.append({
+                    "provider_id":provider[0],
+                    "operator":provider[1],
+                    "rejection_code":"HISTORICAL_ARCHIVE_LOG_OR_STATE_UNAVAILABLE",
+                    "error_type":type(error).__name__,
+                    "detail":str(error)[:250],
+                })
+                continue
+            if admitted and observed["features"]!=frozen[0]["features"]:
+                raise ValueError(
+                    "independent providers disagree on pre-cutoff cohort/health: "
+                    "do not silently try a third opinion")
+            admitted.append(provider)
+            frozen.append(observed)
+        require(len(admitted)==2,
+                "fewer than two independent full historical RPC providers after explicit failures")
+        providers=admitted
+        f=frozen
+    else:
+        require(type(providers) in (tuple,list) and len(providers)==2
+                and [x[0] for x in providers]==["drpc","blast"]
+                and providers[0][1]!=providers[1][1] and
+                providers[0][2]!=providers[1][2],
+                "need two independently operated unique historical RPCs")
+        f=[feature_stage(provider,call=call) for provider in providers]
+    require(providers[0][1]!=providers[1][1] and providers[0][2]!=providers[1][2]
+            and providers[0][0]!=providers[1][0],
+            "provider quorum insufficient independence")
     require(f[0]["features"]==f[1]["features"],
             "independent operators disagree on before-cutoff cohort/health/risk")
     committed=f[0]["features"]["features_frozen_sha256"]
@@ -303,6 +344,8 @@ def assess(*,call=rpc,providers=None):
         "source_features":features,
         "operator_features":f,
         "operator_holdout_evidence":h,
+        "historical_rpc_unavailable_provider_ledger":failures,
+        "historical_rpc_fallback_allowed_before_quorum_only":True,
         "signal_discovery_uses_future_winner_knowledge":False,
         "study_was_designed_with_prior_knowledge_of_this_historical_winner_block":True,
         "unbiased_ex_ante_out_of_sample_validation_complete":False,
