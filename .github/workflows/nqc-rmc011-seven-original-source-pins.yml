@@ -32,7 +32,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git hash-object ci/nqc-census/rmc011-capital-source-universe.json)" = 6754a74c5c1e348c0c731618332ba8feba96834e
+          test "$(git hash-object ci/nqc-census/rmc011-capital-source-universe.json)" = c1b9f136a13f220af9dceaae50e5caa3105121eb
           test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
           test "$(git hash-object ci/nqc-census/rmc011-execution-plan-requirement-catalog.json)" = 53aacf43fac87bbf4a5438ceeab7530d9287e88f
           test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
@@ -42,7 +42,7 @@ jobs:
           python3 ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py -v
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py \
             | tee "$RUNNER_TEMP/rmc011-seven-universe.txt"
-          grep -F 'resolved=7 unresolved=6' "$RUNNER_TEMP/rmc011-seven-universe.txt"
+          grep -F 'resolved=9 unresolved=4' "$RUNNER_TEMP/rmc011-seven-universe.txt"
           grep -F 'terminal_claim_allowed=false' "$RUNNER_TEMP/rmc011-seven-universe.txt"
           python3 ci/nqc-census/verify-rmc011-bounded-family-promotion.py
           echo NQC_D11_PARTIAL_SEVEN_BOUNDED_ONLY_NOT_TERMINAL
