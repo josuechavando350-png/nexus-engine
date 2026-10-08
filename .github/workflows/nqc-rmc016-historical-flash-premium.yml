@@ -1,0 +1,99 @@
+name: NQC RMC-016 Historical Aave Flash Premium Truth
+
+on:
+  push:
+    branches:
+      - 'nqc/rmc016-weth-flash-premium-truth-20261008'
+    paths:
+      - '.github/workflows/nqc-rmc016-historical-flash-premium.yml'
+      - 'ci/nqc-census/rmc016_historical_aave_flash_premium.py'
+      - 'ci/nqc-census/test_rmc016_historical_aave_flash_premium.py'
+      - 'ci/nqc-census/RMC016_REAL_AAVE_FLASH_PREMIUM_CONTRACT.md'
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc016-historical-flash-premium.yml'
+      - 'ci/nqc-census/rmc016_historical_aave_flash_premium.py'
+      - 'ci/nqc-census/test_rmc016_historical_aave_flash_premium.py'
+      - 'ci/nqc-census/RMC016_REAL_AAVE_FLASH_PREMIUM_CONTRACT.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-rmc016-historical-premium-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  true-previous-block-fee:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Authenticate exact ancestry and test adversarial historical premium model
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          python3 ci/nqc-census/test_rmc016_historical_aave_flash_premium.py
+          python3 ci/nqc-census/test_rmc016_rank2_weth_oracle.py
+          python3 ci/nqc-census/test_rmc016_weth_cashflow_audit.py
+          python3 -m py_compile ci/nqc-census/rmc016_historical_aave_flash_premium.py
+          echo RMC016_ACTUAL_HISTORICAL_AAVE_FEE_OFFLINE_ADVERSARIAL_PASS
+      - name: Reauthenticate three source-locked historical diagnostic ZIP artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/rmc016-flash-fee-sources"
+          mkdir -p "$root"
+          check() {
+            local run="$1" head="$2" workflow="$3" art="$4" artname="$5" expected="$6" label="$7"
+            local meta archive
+            meta="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run")"
+            archive="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$art")"
+            test "$(jq -r .status <<<"$meta")" = completed
+            test "$(jq -r .conclusion <<<"$meta")" = success
+            test "$(jq -r .head_sha <<<"$meta")" = "$head"
+            test "$(jq -r .name <<<"$meta")" = "$workflow"
+            test "$(jq -r .expired <<<"$archive")" = false
+            test "$(jq -r .workflow_run.id <<<"$archive")" = "$run"
+            test "$(jq -r .name <<<"$archive")" = "$artname"
+            test "$(jq -r .digest <<<"$archive")" = "sha256:$expected"
+            curl --fail --silent --show-error --location --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$art/zip" -o "$root/$label.zip"
+            printf '%s  %s\n' "$expected" "$root/$label.zip" | sha256sum --check --strict
+          }
+          check 37732376404 d90922e0bb030c9b56836bcacde0d8dfe52e2236 'NQC RMC-016 WETH Cashflow Source Audit' 11530691544 'rmc016-weth-cost-budget-c25617ed6d1f6b9947a193448714b217cf544d25' '79cd8ee2056df668d31169444271bafb8f8ff3552e993000cf4e7df63ad28cb3' audit
+          check 37732663268 40e0918026c5fbfec0611d872dbb6d7258007948 'NQC RMC-016 Missing WETH Rank-2 Historical Oracle' 11530582289 'rmc016-rank2-weth-preblock-40e0918026c5fbfec0611d872dbb6d7258007948' 'ece575718b4834293ffb0a6e42f4329f41b39fef4b1befcad96eac507df1a92f' rank2
+          check 37726618359 a569b0a6ba11c0d12de3a1ac0d16d85b896933f6 'NQC RMC-016 Two WETH Winner Historical Prices' 11527902751 'rmc016-two-weth-winner-historical-prices-a569b0a6ba11c0d12de3a1ac0d16d85b896933f6' '5ae6c45b53ded26f327270758c248f7f4ec0ff1365f550e54dcf28feb4a83a03' priced
+          echo RMC016_THREE_AUTHENTIC_CASHFLOW_AND_PRICE_ARCHIVES_VERIFIED
+      - name: Observe true Aave flashLoanSimple fee bps on three previous block states
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/rmc016-flash-fee-sources"
+          result="$RUNNER_TEMP/rmc016-flash-fee-result"
+          mkdir -p "$result"
+          python3 ci/nqc-census/rmc016_historical_aave_flash_premium.py \
+            --audit-zip "$root/audit.zip" \
+            --rank2-zip "$root/rank2.zip" \
+            --priced13-zip "$root/priced.zip" \
+            --out "$result/observed-aave-flash-premium.json"
+          jq -e '.status == "RMC016_AAVE_PREBLOCK_ACTUAL_FLASH_PREMIUM_3_WETH_WINNERS_PASS" and (.network_observed_history | length) == 3 and .operator_count == 2 and .same_block_flash_principal_liquidity_verified == false and .native_gas_sponsor_authorized == false and .nexus_flash_principal_provider_authorized == false and .nexus_realized_net_pnl_proven == false and .real_market_census_closed == false' "$result/observed-aave-flash-premium.json"
+          (cd "$result" && sha256sum observed-aave-flash-premium.json > archive.sha256 && sha256sum -c archive.sha256)
+          echo RMC016_HISTORICAL_REAL_FLASH_PREMIUM_NOT_NEXUS_CAPITAL
+      - name: Persist successful source-bound historic fee evidence only
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-three-weth-real-flash-fees-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/rmc016-flash-fee-result/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
