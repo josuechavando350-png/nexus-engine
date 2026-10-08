@@ -18,12 +18,12 @@
   },
   "providers": [
     {
-      "provider_id": "blastapi-public",
-      "rpc_url": "https://eth-mainnet.public.blastapi.io"
+      "provider_id": "publicnode",
+      "rpc_url": "https://ethereum-rpc.publicnode.com"
     },
     {
-      "provider_id": "mevblocker-rpc",
-      "rpc_url": "https://rpc.mevblocker.io"
+      "provider_id": "drpc",
+      "rpc_url": "https://eth.drpc.org"
     }
   ],
   "route_policy": {
