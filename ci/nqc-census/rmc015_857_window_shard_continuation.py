@@ -36,13 +36,18 @@ SOURCE_RUN=37807155179
 SOURCE_ARTIFACT=11562554317
 SOURCE_ZIP_SHA256="f431bc64770be49ebeee5d48a40f8013592c3a4f1c25fd3abbd4c43f6c66c9f3"
 SOURCE_GENESIS_REPORT="all-857-future-liquidation-events.json"
-PROVIDER_IDS=("drpc","blast")
-# dRPC free-tier historical log archives unexpectedly reject some 480-block
-# requests with code 35 ("ranges over 10000 blocks") even though 480 < 10000.
-# Work around the *provider capability*, never an absent-result assumption.
-# BlastAPI requires <=10 blocks (observed from HTTP 400 free-tier response).
-# Restrict BOTH operators to deterministic non-overlapping 10-block partitions.
-MAX_REAL_ARCHIVE_LOG_RANGE={"drpc":10,"blast":10}
+PROVIDER_IDS=("blast","one_rpc")
+# dRPC historically returns error code 35/27 for older log ranges, even 10-block
+# partitions; its failure is NEVER interpreted as zero events.
+# Automata 1RPC provides public keyless Ethereum JSON-RPC; its actual
+# historical availability and independence from BlastAPI must be tested, not
+# inferred from operator labels. Refuse a deployment without positive canary.
+PROVIDER_ONE_RPC=("one_rpc","Automata 1RPC","https://public.1rpc.io/eth")
+PROVIDER_PAIRS=(next(p for p in PROVIDERS if p[0]=="blast"),PROVIDER_ONE_RPC)
+MAX_REAL_ARCHIVE_LOG_RANGE={"blast":10,"one_rpc":10}
+CANARY_BLOCK=25938048
+CANARY_BLOCK_HASH="0xf143f9988199037938e4dff57aaf24301a4c26770aefc0ec64774954cbf2dbe4"
+CANARY_WINNER_TX="0x6313fb267755f3cfa48214bf74309505984306129ee09a558efe4801006dcbba"
 SOURCE_ISSUE="RMC015_857_DUAL_RPC_FULL_OBSERVED_EVENT_WINDOW_NOT_CAPTURE"
 SHARD_STATUS="RMC015_SOURCE_LOCKED_INDEPENDENT_480_BLOCK_SHARD_NOT_CAPTURE"
 
@@ -139,6 +144,62 @@ def read_header(call,url,n):
          and type(hdr.get("timestamp")) is int
          and hdr["timestamp"]>0,"incomplete source Ethereum header")
     return hdr
+
+
+def positive_archive_log_canary(providers,*,call=rpc):
+    """Disallow an archive RPC pair that silently returns empty log history.
+
+    PR #633 documented the actual historical Aave rank-one winner (unrelated
+    to the 857-member cohort), which canary-tests *provider capability only*.
+    One positive known event is necessary but not sufficient for global
+    completeness; full consecutive log partitions and quorum still required.
+    """
+    need(len(providers)==2 and
+         [p[0] for p in providers]==list(PROVIDER_IDS) and
+         providers[0][1]!=providers[1][1] and
+         providers[0][2]!=providers[1][2],
+         "independent positive-canary archive operators required")
+    witnesses=[]
+    for pid,operator,url in providers:
+        need(call(url,"eth_chainId",[])=="0x1","positive-canary wrong chain")
+        hdr=read_header(call,url,CANARY_BLOCK)
+        need(hdr["hash"]==CANARY_BLOCK_HASH,
+             "known real liquidation canary block hash mismatch")
+        logs=call(url,"eth_getLogs",[{
+           "address":prior.AAVE_POOL,
+           "topics":[LIQUIDATION_TOPIC],
+           "fromBlock":hex(CANARY_BLOCK),
+           "toBlock":hex(CANARY_BLOCK),
+        }])
+        need(type(logs) is list and 0<len(logs)<10000,
+             "known positive history omitted by historical event RPC")
+        parsed=[prior.check_log(x,CANARY_BLOCK,CANARY_BLOCK) for x in logs]
+        need(all(x["block_hash"]==CANARY_BLOCK_HASH for x in parsed) and
+             any(x["tx"]==CANARY_WINNER_TX for x in parsed),
+             "actual source-witnessed rank-one Aave liquidation absent")
+        parsed.sort(key=lambda x:(x["tx_index"],x["log_index"],x["tx"]))
+        witnesses.append({
+            "operator":operator,
+            "provider_id":pid,
+            "positive_canary_event_count":len(parsed),
+            "source_real_historical_log_digest_sha256":
+                source.sha(b"".join(source.canonical(x) for x in parsed)),
+        })
+    need(witnesses[0]["positive_canary_event_count"]==
+         witnesses[1]["positive_canary_event_count"] and
+         witnesses[0]["source_real_historical_log_digest_sha256"]==
+         witnesses[1]["source_real_historical_log_digest_sha256"],
+         "positive historical canary event sets differ across RPC operators")
+    return {
+        "known_historical_winner_block":CANARY_BLOCK,
+        "known_historical_winner_block_hash":CANARY_BLOCK_HASH,
+        "verified_distinct_log_operator_count":2,
+        "known_positive_historical_event_digest":
+            witnesses[0]["source_real_historical_log_digest_sha256"],
+        "canary_used_for_cohort_borrower_selection":False,
+        "canary_not_proof_of_NQC_capture":True,
+        "original_canary_operator_observations":witnesses,
+    }
 
 
 def scan_one(provider, shard_index, members, expected_previous_hash,
@@ -265,7 +326,7 @@ def whole_window(source_summary,watchlist_blob,original_first_report,
     need(len(members)==857,"original 857 source borrowers were changed")
     first=verified_original_first(original_first_report,source_summary)
     if providers is None:
-        providers=[next(p for p in PROVIDERS if p[0]==pid) for pid in PROVIDER_IDS]
+        providers=list(PROVIDER_PAIRS)
     need(len(providers)==2 and [p[0] for p in providers]==list(PROVIDER_IDS)
          and providers[0][1]!=providers[1][1]
          and providers[0][2]!=providers[1][2],
@@ -274,6 +335,8 @@ def whole_window(source_summary,watchlist_blob,original_first_report,
          (checkpoint_dir.is_dir() and not any(checkpoint_dir.iterdir())),
          "append-only run must start with an empty checkpoint directory")
     checkpoint_dir.mkdir(parents=True,exist_ok=True)
+
+    positive_source_capability=positive_archive_log_canary(providers,call=call)
 
     previous=read_header(call,providers[0][2],FIRST_DONE_END)
     verification=read_header(call,providers[1][2],FIRST_DONE_END)
@@ -314,6 +377,8 @@ def whole_window(source_summary,watchlist_blob,original_first_report,
         "status":SOURCE_ISSUE,
         "source_chosen_winners_as_selection_inputs":False,
         "original_857_members_selected_before_any_future_labels":True,
+        "independent_older_known_positive_liquidation_archive_canary":positive_source_capability,
+        "uncorroborated_archive_empty_result_accepted":False,
         "original_anchor_block":source.ANCHOR,
         "original_anchor_block_hash":source.ANCHOR_HASH,
         "source_857_watchlist_sha256":source_summary["watchlist_commitment_sha256"],
