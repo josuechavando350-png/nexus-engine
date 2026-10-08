@@ -368,3 +368,49 @@ rows because one candidate may retain multiple exact execution variants.
 This prevents an economically positive quote from becoming Shadow-eligible
 while silently relying on unfunded transaction gas, without pretending
 mutually exclusive opportunities consume shared gas capacity concurrently.
+
+
+### Exhaustively empty capital-feasible input: evidence-bounded negative closure
+
+When, and **only** when, an exact successful immutable RMC-012 terminal package
+proves `principal_capital_feasible = 0`, `principal_capital_rejected =
+principal_capital_promoted = admitted`, and all admitted candidate identities
+are covered by an explicit non-UNKNOWN funding rejection, RMC-013 may certify
+the **empty set** of execution-simulatable candidates as a negative result.
+
+This path requires exact authentication of the original RMC-012 artifact,
+the RMC-011 archive and its capital-source bytes; the complete RMC-012
+actionability records and capital promotions must be conserved by identity,
+hash, authority commitment, timestamp/block anchor, classification and count.
+The same negative package MUST be reconstructed from those inputs by the
+independent terminal verifier and must compare **byte-for-byte**.
+
+Because there are zero candidates for which the operator can source principal
+or flash repayment, **no RPC fee-history request, gas estimate, route or fork
+simulation has authority or purpose in this negative branch**. It is forbidden
+to synthesize them, insert fabricated zero-dollar execution quotes, interpret
+unavailable RPC evidence as a PASS, or claim physical execution was performed.
+The artifact must explicitly retain:
+
+- `input_candidate_count = execution_simulatable_count = economics_quote_count = 0`;
+- all profit, gas-funding, capacity and Shadow candidate counts equal to zero;
+- `historical_gas_price_evidence_collected = false`;
+- `physical_execution_performed = false`;
+- `zero_own_capital_execution_proven = false`;
+- `realized_profitability_proven = false`;
+- `monthly_target_probability_proven = false`;
+- no claim of global absence or global source/route completeness.
+
+The terminal certificate can attest **exact coverage of the empty
+evidence-eligible universe**, not execution success, gas-source availability,
+positive net EV, capture probability or revenue. Any future D12 package with
+one or more capital-feasible candidates MUST use the full physical,
+multi-provider gas and exact economic procedure; it cannot enter the
+negative path.
+
+This fail-closed exception is needed to distinguish a scientifically valid
+negative Census conclusion from a CI/network infrastructure failure. An
+honest negative Census conclusion does not meet the operator's USD 500,000
+Month-1 realized-net objective; economic optimization and Shadow/Canary
+remain blocked until actual capital/gas sourcing and positive-net
+opportunities are proven.
