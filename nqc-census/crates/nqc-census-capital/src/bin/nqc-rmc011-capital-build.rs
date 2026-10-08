@@ -129,6 +129,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         &args.code_tree,
     )?;
     let bundle = export_capital_artifacts(&ledger, &context, &provenance)?;
+    // Adopt previously reviewed RMC-011 PR #599: release the complete ledger
+    // once its canonical artifact bytes own their data. The independent
+    // verifier re-imports the original D08/D09 files and does not trust these
+    // in-memory source objects after export.
+    drop(ledger);
 
     let d08_replay = D08ReplayInputs {
         state_manifest_jsonl: &d08_state,
