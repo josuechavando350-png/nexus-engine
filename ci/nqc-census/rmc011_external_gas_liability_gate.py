@@ -19,6 +19,9 @@ GAS_ARCHIVE_SHA = "2f31b24005ac3050574d6669b904415d09a438648575cdcbdbbd2b5a4dcf4
 GAS_REPORT_SHA = "83aaa0010fc409daa3a7abe19e2441ba0d085ec8fb5f3673ae8b44a735870909"
 REGISTRY_GIT_BLOB = "a9c1427bb05828d08ade537899ee1b8e43b97ed2"
 T36_RAW_GIT_BLOB = "aa3883fa141aa096006e90e56d8d4150c9ee14ef"
+SPONSOR_IMPORTER_GIT_BLOB = "5a301f92850bd00594996cbf013d9e4f74867d62"
+CREDIT_IMPORTER_GIT_BLOB = "090f23df1326a0e6feb6f3afbe2151278d3b9499"
+PRE_EXECUTION_DELIVERY = "PRE_EXECUTION_NATIVE_GAS_TO_BORROWER_NO_OPERATOR_PREFUND_V1"
 WINNER_TX = "0x6313fb267755f3cfa48214bf74309505984306129ee09a558efe4801006dcbba"
 FORK_GAS_CALL_UNITS = 562357
 GAS_BASE_FEE_WEI = 59451728
@@ -183,6 +186,29 @@ def inspect_unmodified_executor(source: bytes):
     }
 
 
+def inspect_existing_rust_gas_importers(sponsor_module: bytes, credit_module: bytes):
+    for label, data, expected in (
+        ("EXTERNAL_GAS_SPONSOR", sponsor_module, SPONSOR_IMPORTER_GIT_BLOB),
+        ("EXTERNAL_GAS_CREDIT", credit_module, CREDIT_IMPORTER_GIT_BLOB),
+    ):
+        need(git_blob(data) == expected,
+             label + " original Rust adapter Git blob drift")
+        src = data.decode("utf-8")
+        need(PRE_EXECUTION_DELIVERY in src
+             and "if operator_prefund_required {" in src
+             and "provider_observations" in src,
+             label + " importer no longer has exact no-operator-prefund source semantics")
+    return {
+        "sponsor_importer_raw_git_blob": SPONSOR_IMPORTER_GIT_BLOB,
+        "gas_credit_importer_raw_git_blob": CREDIT_IMPORTER_GIT_BLOB,
+        "both_importers_observe_native_prepayment_to_borrower": True,
+        "erc4337_entrypoint_deposit_delivery_semantics_equivalent": False,
+        "erc4337_paymaster_can_be_relabelled_as_existing_native_credit_without_new_adapter": False,
+        "onchain_identity_and_liability_from_untrusted_json_authenticated": False,
+        "no_existing_importer_authority_issued": True,
+    }
+
+
 def candidate_route_templates():
     # Technical categories only. Public documentation is NOT a product quote
     # or permission to sponsor this WETH liquidator/operation.
@@ -252,11 +278,14 @@ def modeled_postop_liability(budget):
     return scenarios
 
 
-def diagnose(budget, registry, executor_source: bytes):
+def diagnose(budget, registry, executor_source: bytes,
+             sponsor_adapter_source: bytes, credit_adapter_source: bytes):
     need(budget["status"] == "RMC016_RANK1_FORK_GAS_BREAK_EVEN_SENSITIVITY_DIAGNOSTIC_NOT_NET"
             and registry["provider_count"] == 0 and registry["providers"] == [],
             "gas sources cannot be promoted without source authentication")
     binding = inspect_unmodified_executor(executor_source)
+    importers = inspect_existing_rust_gas_importers(
+        sponsor_adapter_source, credit_adapter_source)
     routes = candidate_route_templates()
     scenarios = modeled_postop_liability(budget)
     result = {
@@ -267,6 +296,8 @@ def diagnose(budget, registry, executor_source: bytes):
         "source_original_budget_report_sha256": GAS_REPORT_SHA,
         "source_provider_registry_git_blob": REGISTRY_GIT_BLOB,
         "source_executor_git_blob": T36_RAW_GIT_BLOB,
+        "source_gas_sponsor_adapter_git_blob": SPONSOR_IMPORTER_GIT_BLOB,
+        "source_gas_credit_adapter_git_blob": CREDIT_IMPORTER_GIT_BLOB,
         "historical_winner_tx": WINNER_TX,
         "historical_weth_liquidation_fork_surplus_wei": str(SURPLUS_WETH_WEI),
         "measured_ev_call_gas_units": FORK_GAS_CALL_UNITS,
@@ -276,6 +307,7 @@ def diagnose(budget, registry, executor_source: bytes):
         "provider_discovery_global_nonexistence_proven": False,
         "tested_route_templates": routes,
         "t36_payout_and_smart_account_binding": binding,
+        "rmc011_source_importer_native_gas_semantics": importers,
         "native_gas_and_revert_liability_stress": scenarios,
         "erc4337_entrypoint_deposit_queried_or_proven": False,
         "paymaster_userop_quote_or_signature_obtained": False,
@@ -303,21 +335,26 @@ def diagnose(budget, registry, executor_source: bytes):
     return result
 
 
-def audit(gas_zip: Path, registry_path: Path, executor_path: Path):
+def audit(gas_zip: Path, registry_path: Path, executor_path: Path,
+          sponsor_adapter_path: Path, credit_adapter_path: Path):
     return diagnose(
         read_authenticated_budget(gas_zip),
         read_original_registry(registry_path.read_bytes()),
         executor_path.read_bytes(),
+        sponsor_adapter_path.read_bytes(),
+        credit_adapter_path.read_bytes(),
     )
 
 
 def main():
     parser = argparse.ArgumentParser()
-    for label in ("gas-zip", "provider-registry", "executor-source", "out"):
+    for label in ("gas-zip", "provider-registry", "executor-source",
+                  "sponsor-adapter", "credit-adapter", "out"):
         parser.add_argument("--" + label, type=Path, required=True)
     args = parser.parse_args()
     need(not args.out.exists(), "append-only sponsor diagnostic output required")
-    report = audit(args.gas_zip, args.provider_registry, args.executor_source)
+    report = audit(args.gas_zip, args.provider_registry, args.executor_source,
+                   args.sponsor_adapter, args.credit_adapter)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_bytes(canonical(report))
     print(report["status"],
