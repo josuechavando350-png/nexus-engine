@@ -167,7 +167,7 @@ class TestNew14HistoricalShards(unittest.TestCase):
             m.verified_original_first(p,s)
 
     def test_both_real_archive_operators_are_partioned_at_most_ten_blocks(self):
-        self.assertEqual(m.MAX_REAL_ARCHIVE_LOG_RANGE,{"drpc":10,"blast":10})
+        self.assertEqual(m.MAX_REAL_ARCHIVE_LOG_RANGE,{"blast":10,"one_rpc":10})
         s,w,p=self.inputs()
         members={json.loads(line)["account"] for line in w.splitlines()}
         self.assertEqual(len(members),857)
@@ -291,7 +291,7 @@ class TestNew14HistoricalShards(unittest.TestCase):
         s,w,p=self.inputs()
         fake=SourceRpc([event(m.FIRST+480,"0x"+"f"*40)])
         def different(url,method,args):
-            if "blast.invalid" in url and method=="eth_getLogs":
+            if "one_rpc.invalid" in url and method=="eth_getLogs" and args[0]["fromBlock"]!=hex(m.CANARY_BLOCK):
                 return []
             return fake(url,method,args)
         with tempfile.TemporaryDirectory() as d:
