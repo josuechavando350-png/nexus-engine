@@ -1,0 +1,150 @@
+name: NQC RMC-016 Original Ledger SHA Recovery (GitHub Archives ONLY)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc016-original-ledger-recovery.yml'
+      - 'ci/nqc-census/rmc016_source_artifact_recovery.py'
+      - 'ci/nqc-census/test_rmc016_source_artifact_recovery.py'
+      - 'ci/nqc-census/RMC016_ORIGINAL_TRANSACTION_LEDGER_RECOVERY.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: nqc-rmc016-original-ledger-recovery-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  source-locked-artifact-recovery-not-economic-certification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Enforce immutable D16 source and run offline adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          python3 ci/nqc-census/test_rmc016_source_artifact_recovery.py
+          python3 -m py_compile ci/nqc-census/rmc016_source_artifact_recovery.py
+          mkdir -p "$RUNNER_TEMP/nqc016-ledger-recovery/private-zips" "$RUNNER_TEMP/nqc016-ledger-recovery/public"
+          sha256sum ci/nqc-census/rmc016_source_artifact_recovery.py \
+                    ci/nqc-census/test_rmc016_source_artifact_recovery.py \
+                    ci/nqc-census/RMC016_ORIGINAL_TRANSACTION_LEDGER_RECOVERY.md \
+            > "$RUNNER_TEMP/nqc016-ledger-recovery/public/producer-source.sha256"
+          echo RMC016_ORIGINAL_SOURCE_SHA_LOCK_AND_NEGATIVE_TESTS_PASS
+      - name: Inventory ONLY existing Actions artifact metadata, without Ethereum RPC
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPOSITORY="$GITHUB_REPOSITORY"
+          INDEX="$RUNNER_TEMP/nqc016-ledger-recovery/private-zips/original-index.jsonl"
+          : > "$INDEX"
+          # Bounded, explicit pages: no hidden --paginate partial-data promotion.
+          # Some public artifact-list pagination has returned incomplete JSON;
+          # a bad page fails closed rather than reporting no matching source.
+          for page in $(seq 1 30); do
+            page_file="$RUNNER_TEMP/nqc016-ledger-recovery/private-zips/page-$page.json"
+            gh api --method GET "repos/$REPOSITORY/actions/artifacts?per_page=50&page=$page" > "$page_file"
+            jq -e '(.artifacts | type)=="array"' "$page_file" >/dev/null
+            jq -c '.artifacts[] | {id:.id,name:.name,size_in_bytes:.size_in_bytes,expired:.expired,digest:.digest,run_id:.workflow_run.id,head_sha:.workflow_run.head_sha}' "$page_file" >> "$INDEX"
+            rows="$(jq -r '.artifacts | length' "$page_file")"
+            echo "RMC016_METADATA_PAGE=$page ITEMS=$rows"
+            if [ "$rows" -lt 50 ]; then
+              break
+            fi
+          done
+          test -s "$RUNNER_TEMP/nqc016-ledger-recovery/private-zips/original-index.jsonl"
+          python3 ci/nqc-census/rmc016_source_artifact_recovery.py \
+            --economic-source ci/nqc-census/rmc016-production-evidence.json \
+            --index "$RUNNER_TEMP/nqc016-ledger-recovery/private-zips/original-index.jsonl" \
+            --selection "$RUNNER_TEMP/nqc016-ledger-recovery/public/selection.json"
+          jq -e '.status=="RMC016_EXISTING_ACTIONS_LEDGER_RECOVERY_BOUNDED_SELECTION" and
+                 .original_transaction_economics_sha256=="55d5d6be9e09f2e499e1ca8949c4305d05824dffa61e363f4371c615537dcb1c" and
+                 .scan_budget==128 and
+                 .no_global_absence_claim==true and
+                 .real_market_census_closed==false' \
+            "$RUNNER_TEMP/nqc016-ledger-recovery/public/selection.json" >/dev/null
+          echo RMC016_ORIGINAL_LEDGER_BOUNDED_METADATA_DISCOVERY_DONE
+      - name: Verify and download a strictly bounded selection of pre-existing successful archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPOSITORY="$GITHUB_REPOSITORY"
+          ROOT="$RUNNER_TEMP/nqc016-ledger-recovery"
+          jq -c '.selected[]' "$ROOT/public/selection.json" | while IFS= read -r item; do
+            id="$(jq -r .id <<< "$item")"
+            run_id="$(jq -r .run_id <<< "$item")"
+            sha="$(jq -r .head_sha <<< "$item")"
+            digest="$(jq -r .digest <<< "$item")"
+            run="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+            if ! jq -e --arg h "$sha" \
+                '.status=="completed" and .conclusion=="success" and .head_sha==$h' \
+                <<< "$run" >/dev/null; then
+              echo "RMC016_ORIGINAL_LEDGER_UNSCANNED_NON_SUCCESSFUL_OR_MISMATCH_RUN artifact=$id"
+              continue
+            fi
+            metadata="$(gh api "repos/$REPOSITORY/actions/artifacts/$id")"
+            if ! jq -e --arg d "$digest" --argjson run "$run_id" \
+                '.expired==false and .digest==$d and .workflow_run.id==$run' \
+                <<< "$metadata" >/dev/null; then
+              echo "RMC016_ORIGINAL_LEDGER_UNSCANNED_METADATA_MISMATCH artifact=$id"
+              continue
+            fi
+            target="$ROOT/private-zips/$id.zip"
+            curl --fail --silent --show-error --location --retry 2 \
+              --connect-timeout 10 --max-time 60 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$id/zip" \
+              -o "$target"
+            printf '%s  %s\n' "$(cut -d: -f2 <<< "$digest")" "$target" \
+              | sha256sum --check --strict
+            echo "RMC016_ARCHIVED_ZIP_VERIFIED artifact=$id run=$run_id"
+          done
+      - name: Scan exact original transaction SHA, preserve all nonclaims
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/nqc016-ledger-recovery"
+          python3 ci/nqc-census/rmc016_source_artifact_recovery.py \
+            --economic-source ci/nqc-census/rmc016-production-evidence.json \
+            --index "$ROOT/private-zips/original-index.jsonl" \
+            --selection "$ROOT/public/selection.json" \
+            --zip-root "$ROOT/private-zips" \
+            --report "$ROOT/public/recovery-report.json"
+          jq -e '.source_d16_ledger_sha256=="55d5d6be9e09f2e499e1ca8949c4305d05824dffa61e363f4371c615537dcb1c" and
+                 .original_ledger_full_costs_independently_replayed==false and
+                 .original_127_row_economics_certified_by_this_search==false and
+                 .source_absent_globally_proven==false and
+                 .nqc_capture_probability_calibrated==false and
+                 .nonrecourse_native_gas_funding_authorized==false and
+                 .nqc_realized_net_usd_wad=="0" and
+                 .real_market_census_closed==false' "$ROOT/public/recovery-report.json" >/dev/null
+          python3 ci/nqc-census/rmc016_source_artifact_recovery.py \
+            --economic-source ci/nqc-census/rmc016-production-evidence.json \
+            --index "$ROOT/private-zips/original-index.jsonl" \
+            --selection "$ROOT/public/selection.json" \
+            --zip-root "$ROOT/private-zips" \
+            --report "$ROOT/private-zips/independent-replay.json"
+          cmp "$ROOT/public/recovery-report.json" "$ROOT/private-zips/independent-replay.json"
+          (cd "$ROOT/public" &&
+            sha256sum recovery-report.json selection.json producer-source.sha256 > archive.sha256 &&
+            sha256sum --check --strict archive.sha256)
+          echo RMC016_ORIGINAL_LEDGER_SEARCH_ONLY_NOT_CAPTURE_OR_CENSUS_CLOSEOUT
+      - name: Publish only metadata, SHA and audit scope; no raw source rows
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-original-ledger-sha-recovery-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc016-ledger-recovery/public/*.json
+            ${{ runner.temp }}/nqc016-ledger-recovery/public/*.sha256
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
