@@ -38,9 +38,13 @@ def reject_both(doc: dict) -> None:
 
 
 class DebtFamilyPromotionTests(unittest.TestCase):
-    def test_current_universe_is_pending(self) -> None:
+    def test_current_two_debt_rejections_are_source_witnessed_only(self) -> None:
         result = mod.validate_document(copy.deepcopy(UNIVERSE))
-        self.assertEqual(result["promotion_state"], "PENDING")
+        self.assertEqual(result["promotion_state"], "EXHAUSTIVE_REJECTION_REFERENCES_DECLARED")
+        self.assertEqual(result["rejected_count"], 2)
+        self.assertEqual(result["shared_run_id"], 37832286518)
+        self.assertFalse(result["independent_artifact_authentication_complete"])
+        self.assertFalse(result["d11_terminal_closed"])
 
     def test_atomic_debt_rejection_promotion_passes(self) -> None:
         doc = copy.deepcopy(UNIVERSE)
