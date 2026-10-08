@@ -17,3 +17,9 @@ Every matching receipt is compared to the dRPC transaction's block/hash/ordering
 Future runs must **explicitly repin** the preceding exact run ID, commit/tree, artifact ID/digest and monotonic verified prefix. No floating latest, no inferred artifact SHA-256, no resubmitting failed requests as success. A complete 127/127 two-provider receipt result would still not prove an independently complete second full-month log census, historic USD oracle gas conversion, principal/flash capital, gas sponsorship, route monetization, MEV capture, Nexus inclusion, positive P&L or Month-1 target.
 
 The upstream RMC-015/D16 certificate is unchanged; the entire effort is read-only and financially non-authoritative. No live signing or transaction broadcast; OWN_CAPITAL=0 remains the user constraint.
+
+## Second immutable batch: 16 → at most 22 verified receipts
+
+The first batch succeeded on exact push run 37721062634 at commit 264dd05e346a3b2fe65d4022f4fccaf7f966c312, tree 11ebf1d196e66e9f978a0e85043f4b85bf5c414b, artifact 11525961944, outer SHA-256 8ffc179a69f535c47035d5d4ef6201a44e56956ec7dbbed125f0729aa264f7ce. It authenticated 16 unique Blockscout receipts in exact sorted order and reported 111 still unmatched. The second-batch producer **does not download or authenticate the failed 10-row artifact as its direct parent**: its exact direct parent is the successful 16-row artifact above, which in turn binds the failed 10-row evidence. Original 127-row dRPC and 139-event Blockscout identities remain unchanged.
+
+The second batch may acquire at most 6 NEW receipts, preserving the immutable existing 16, source-linked gas in wei and a complete SHA-256 ledger. The final marker, capture calibration, Nexus financing and economic claims remain forbidden. Earlier failed workflows are historical context, not authoritative closing gates.
