@@ -28,7 +28,7 @@ class RealSourceSevenTests(unittest.TestCase):
         cls.source=Path("ci/nqc-census/rmc011-capital-source-universe.json").read_bytes()
         cls.provider=Path("ci/nqc-census/rmc011-external-capital-provider-registry.json").read_bytes()
         cls.plans=Path("ci/nqc-census/rmc011-execution-plan-requirement-catalog.json").read_bytes()
-        cls.run=mod.decode(ARGS.run_meta.read_bytes())
+        cls.run_metadata=mod.decode(ARGS.run_meta.read_bytes())
         cls.artifact=mod.decode(ARGS.artifact_meta.read_bytes())
 
     def gate(self,**overrides):
@@ -37,7 +37,7 @@ class RealSourceSevenTests(unittest.TestCase):
             "source_bytes":self.source,
             "provider_bytes":self.provider,
             "plan_bytes":self.plans,
-            "run":copy.deepcopy(self.run),
+            "run":copy.deepcopy(self.run_metadata),
             "artifact":copy.deepcopy(self.artifact),
         }
         args.update(overrides)
@@ -74,17 +74,17 @@ class RealSourceSevenTests(unittest.TestCase):
         self.fail("outer SHA-256",original_zip=self.archive+b"\x00")
 
     def test_original_successful_run_required(self):
-        run=copy.deepcopy(self.run)
+        run=copy.deepcopy(self.run_metadata)
         run["conclusion"]="failure"
         self.fail("producing run",run=run)
 
     def test_no_boolean_run_id(self):
-        run=copy.deepcopy(self.run)
+        run=copy.deepcopy(self.run_metadata)
         run["id"]=True
         self.fail("producing run",run=run)
 
     def test_github_synthetic_merge_sha_is_not_source_head(self):
-        run=copy.deepcopy(self.run)
+        run=copy.deepcopy(self.run_metadata)
         run["head_sha"]="5eec64fb169cf99b649ba727a8ebc603bd950c8a"
         self.fail("producing run",run=run)
 
