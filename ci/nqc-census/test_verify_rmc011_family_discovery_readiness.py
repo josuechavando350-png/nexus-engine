@@ -70,17 +70,17 @@ def validate_with_complete_scope(discovery: dict, universe: dict) -> dict:
 
 
 class FamilyDiscoveryReadinessTests(unittest.TestCase):
-    def test_current_universe_is_blocked_without_terminal_family_evidence(self) -> None:
+    def test_current_all_thirteen_families_transport_ready_but_not_discovery_authenticated(self) -> None:
         result = mod.validate_documents(
             copy.deepcopy(DISCOVERY),
             copy.deepcopy(UNIVERSE),
         )
-        self.assertFalse(result["ready"])
+        self.assertTrue(result["ready"])
         self.assertFalse(result["already_authenticated"])
         self.assertEqual(result["family_count"], 13)
-        self.assertEqual(result["resolved_count"], 9)
-        self.assertEqual(result["unresolved_count"], 4)
-        self.assertEqual(result["status"], "RMC011_FAMILY_DISCOVERY_BLOCKED")
+        self.assertEqual(result["resolved_count"], 13)
+        self.assertEqual(result["unresolved_count"], 0)
+        self.assertEqual(result["status"], "RMC011_FAMILY_DISCOVERY_TRANSPORT_READY")
 
     def test_all_thirteen_terminal_families_are_transport_ready(self) -> None:
         universe = copy.deepcopy(UNIVERSE)
@@ -102,13 +102,13 @@ class FamilyDiscoveryReadinessTests(unittest.TestCase):
     def test_partial_terminal_resolution_remains_blocked(self) -> None:
         universe = copy.deepcopy(UNIVERSE)
         row = universe["families"][0]
-        row["status"] = "AUTHENTICATED_REAL_SOURCE"
-        row["terminally_resolved"] = True
-        row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", 1)
+        row["status"] = "SEMANTIC_ADMISSION_READY_NOT_AUTHENTICATED"
+        row["terminally_resolved"] = False
+        row["resolution_evidence"] = None
         result = mod.validate_documents(copy.deepcopy(DISCOVERY), universe)
         self.assertFalse(result["ready"])
-        self.assertEqual(result["resolved_count"], 10)
-        self.assertEqual(result["unresolved_count"], 3)
+        self.assertEqual(result["resolved_count"], 12)
+        self.assertEqual(result["unresolved_count"], 1)
 
     def test_terminal_evidence_kind_mismatch_fails(self) -> None:
         universe = copy.deepcopy(UNIVERSE)
