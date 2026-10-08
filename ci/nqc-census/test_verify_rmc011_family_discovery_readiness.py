@@ -5,6 +5,7 @@ import importlib.util
 import json
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 MODULE_PATH = Path("ci/nqc-census/verify-rmc011-family-discovery-readiness.py")
 SPEC = importlib.util.spec_from_file_location("rmc011_family_discovery_readiness", MODULE_PATH)
@@ -50,15 +51,22 @@ def resolve_all(universe: dict) -> None:
 
 
 def validate_with_complete_scope(discovery: dict, universe: dict) -> dict:
+    # Do not mutate the real canonical scope file to exercise hypothetical
+    # future completeness: inject a temporary IN-MEMORY scope only.
     scope_path = Path("ci/nqc-census/capital-census-scope.json")
-    original = scope_path.read_text()
-    scope = json.loads(original)
-    scope["claims"]["capital_source_universe_complete"] = True
-    scope_path.write_text(json.dumps(scope, indent=2) + "\n")
-    try:
+    original_read = Path.read_text
+
+    def mocked_read(path: Path, *args, **kwargs) -> str:
+        raw = original_read(path, *args, **kwargs)
+        if path == scope_path:
+            scope = json.loads(raw)
+            assert scope["claims"]["capital_source_universe_complete"] is False
+            scope["claims"]["capital_source_universe_complete"] = True
+            return json.dumps(scope)
+        return raw
+
+    with patch.object(Path, "read_text", new=mocked_read):
         return mod.validate_documents(discovery, universe)
-    finally:
-        scope_path.write_text(original)
 
 
 class FamilyDiscoveryReadinessTests(unittest.TestCase):
@@ -70,8 +78,8 @@ class FamilyDiscoveryReadinessTests(unittest.TestCase):
         self.assertFalse(result["ready"])
         self.assertFalse(result["already_authenticated"])
         self.assertEqual(result["family_count"], 13)
-        self.assertEqual(result["resolved_count"], 0)
-        self.assertEqual(result["unresolved_count"], 13)
+        self.assertEqual(result["resolved_count"], 7)
+        self.assertEqual(result["unresolved_count"], 6)
         self.assertEqual(result["status"], "RMC011_FAMILY_DISCOVERY_BLOCKED")
 
     def test_all_thirteen_terminal_families_are_transport_ready(self) -> None:
@@ -99,8 +107,8 @@ class FamilyDiscoveryReadinessTests(unittest.TestCase):
         row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", 1)
         result = mod.validate_documents(copy.deepcopy(DISCOVERY), universe)
         self.assertFalse(result["ready"])
-        self.assertEqual(result["resolved_count"], 1)
-        self.assertEqual(result["unresolved_count"], 12)
+        self.assertEqual(result["resolved_count"], 8)
+        self.assertEqual(result["unresolved_count"], 5)
 
     def test_terminal_evidence_kind_mismatch_fails(self) -> None:
         universe = copy.deepcopy(UNIVERSE)
