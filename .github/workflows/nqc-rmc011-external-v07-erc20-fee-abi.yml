@@ -1,0 +1,110 @@
+name: NQC RMC-011 Real External V07 ERC20 Fee ABI Truth
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc011-external-v07-erc20-fee-abi.yml'
+      - 'ci/nqc-census/rmc011_external_v07_fee_abi.py'
+      - 'ci/nqc-census/test_rmc011_external_v07_fee_abi.py'
+      - 'ci/nqc-census/RMC011_REAL_V07_ERC20_FEE_ABI_CONTRACT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: nqc-rmc011-v07-fee-abi-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  real-external-paymaster-readonly-fees:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Source-lock prior actual code and reject forged capital sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 3c9a5669447df006fd9cc90b4d54e4a1b0fac9e9 HEAD
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = aa3883fa141aa096006e90e56d8d4150c9ee14ef
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          jq -e '.status=="DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE" and .provider_count==0 and .providers==[]' ci/nqc-census/rmc011-external-capital-provider-registry.json >/dev/null
+          python3 ci/nqc-census/test_rmc011_external_v07_fee_abi.py
+          python3 -m py_compile ci/nqc-census/rmc011_external_v07_fee_abi.py
+          mkdir -p "$RUNNER_TEMP/nqc011-v07-fees/vendor"
+          sha256sum ci/nqc-census/rmc011_external_v07_fee_abi.py ci/nqc-census/test_rmc011_external_v07_fee_abi.py ci/nqc-census/RMC011_REAL_V07_ERC20_FEE_ABI_CONTRACT.md > "$RUNNER_TEMP/nqc011-v07-fees/source.sha256"
+          echo RMC011_V07_FEE_SOURCE_LOCKED_ADVERSARIAL_TESTS_PASS
+      - name: Independently authenticate earlier successful actual deployed paymaster source
+        shell: bash
+        run: |
+          set -euo pipefail
+          rid=37749452459
+          head=3c9a5669447df006fd9cc90b4d54e4a1b0fac9e9
+          aid=11536559079
+          dg=f647e86f3a53a33612df214987a09f89eb22f46f86629972247eb2f641b743f9
+          run="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$rid")"
+          art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$aid")"
+          test "$(jq -r .status <<<"$run")" = completed
+          test "$(jq -r .conclusion <<<"$run")" = success
+          test "$(jq -r .name <<<"$run")" = 'NQC RMC-011 Real Deployed External V07 Paymaster Source'
+          test "$(jq -r .head_sha <<<"$run")" = "$head"
+          test "$(jq -r .expired <<<"$art")" = false
+          test "$(jq -r .workflow_run.id <<<"$art")" = "$rid"
+          test "$(jq -r .name <<<"$art")" = "rmc011-real-external-v07-provider-$head"
+          test "$(jq -r .digest <<<"$art")" = "sha256:$dg"
+          zip="$RUNNER_TEMP/nqc011-v07-fees/pr642-source.zip"
+          curl --fail --silent --show-error --location --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$aid/zip" -o "$zip"
+          printf '%s  %s\n' "$dg" "$zip" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/nqc011-v07-fees/upstream"
+          unzip -qq "$zip" -d "$RUNNER_TEMP/nqc011-v07-fees/upstream"
+          (cd "$RUNNER_TEMP/nqc011-v07-fees/upstream" && sha256sum --check --strict archive.sha256)
+          jq -e '.status=="RMC011_EXTERNAL_V07_PAYMASTER_CODE_AND_ENTRYPPOINT_DEPOSIT_OBSERVED_NOT_ADMITTED" and .paymaster_runtime_sha256=="7072ea9287df0e632703bb6c410be3bbfbcaff40bdcb6e6136a982d05dac5bd1" and .real_contract_code_and_total_deposit_dual_operator_consensus==true and .source_contains_proof_of_nqc_allocated_credit==false and .nqc_capital_feasible_for_own_capital_zero==false and .real_market_census_closed==false' "$RUNNER_TEMP/nqc011-v07-fees/upstream/source-witness.json" >/dev/null
+          echo RMC011_PR642_IMMUTABLE_EXTERNAL_CODE_ALREADY_AUTHENTICATED
+      - name: Authenticate exact public upstream Pimlico Solidity source and recourse README
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/nqc011-v07-fees/vendor"
+          getblob() {
+            local oid="$1" name="$2"
+            gh api "repos/pimlicolabs/singleton-paymaster/git/blobs/$oid" | jq -r .content | tr -d '\n' | base64 --decode > "$root/$name"
+            test "$(git hash-object "$root/$name")" = "$oid"
+          }
+          getblob 344bde651e1f8a3954532b207f4bc11635100696 singleton-v7.sol
+          getblob cc0fab63d188d6bfca6200236ff3e7e88c3f57b0 singleton-base.sol
+          getblob 5454391aa7a37d464191772cc927ba1e5709be5c source-readme.md
+          grep -Fq 'PENALTY_PERCENT = 10' "$root/singleton-v7.sol"
+          grep -Fq '_actualGasCost + expectedPenaltyGasCost' "$root/singleton-v7.sol"
+          grep -Fq 'getCostInToken(actualGasCost, ctx.postOpGas, _actualUserOpFeePerGas, ctx.exchangeRate) + ctx.constantFee' "$root/singleton-v7.sol"
+          grep -Fq 'if (cfg.preFundInToken > 0)' "$root/singleton-v7.sol"
+          grep -Fq 'bool isSignatureValid = signers[recoveredSigner]' "$root/singleton-v7.sol"
+          grep -Fq '_postOpGas * _actualUserOpFeePerGas' "$root/singleton-base.sol"
+          grep -Fq 'funded from their Pimlico balance' "$root/source-readme.md"
+          sha256sum "$root/singleton-v7.sol" "$root/singleton-base.sol" "$root/source-readme.md" > "$RUNNER_TEMP/nqc011-v07-fees/vendor-blobs.sha256"
+          echo RMC011_EXACT_PUBLIC_SOURCE_SIGNATURE_TOKEN_FEE_AND_RECOURSE_BOUNDARY
+      - name: Four real deployed paymaster ABI pricing-and-penalty observations per operator
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/nqc011-v07-fees/real-historic-fee-witness.json"
+          python3 ci/nqc-census/rmc011_external_v07_fee_abi.py --out "$out"
+          jq -e '.status=="RMC011_REAL_EXTERNAL_V07_ERC20_FEE_ABI_AND_PENALTY_PARITY_PASS_NOT_CREDIT" and .historical_source_block==25938047 and .historical_paymaster_code_sha256=="7072ea9287df0e632703bb6c410be3bbfbcaff40bdcb6e6136a982d05dac5bd1" and .real_deployed_pure_abi_functions_and_illustrative_math_agree==true and (.four_illustrative_cost_cases|length)==4 and (.read_only_provider_operator_witnesses|length)==2 and .provider_signed_exchange_rate_or_constant_fee_obtained==false and .nqc_specific_paymaster_signer_authorization_granted==false and .provider_reverted_gas_nonrecourse_liability_accepted==false and .operator_pimlico_balance_or_other_recourse_excluded==false and .third_party_native_gas_line_reserved_for_nqc==false and .contract_penalty_math_is_an_actual_pimlico_policy_quote==false and .nqc_executable_with_zero_own_capital==false and .nqc_realized_pnl_proven==false and .rmc011_terminal_closed==false and .real_market_census_closed==false' "$out" >/dev/null
+          (cd "$RUNNER_TEMP/nqc011-v07-fees" &&
+            sha256sum real-historic-fee-witness.json source.sha256 vendor-blobs.sha256 > archive.sha256 &&
+            sha256sum --check --strict archive.sha256)
+          echo RMC011_REAL_V07_FEE_MATH_NOT_A_SIGNED_PROVIDER_QUOTE
+      - name: Preserve only source hashes and read-only fee evidence, no upstream vendor source
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-real-v07-fee-math-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc011-v07-fees/*.json
+            ${{ runner.temp }}/nqc011-v07-fees/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
