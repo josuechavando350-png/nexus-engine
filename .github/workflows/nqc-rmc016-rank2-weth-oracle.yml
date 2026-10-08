@@ -1,0 +1,100 @@
+name: NQC RMC-016 Missing WETH Rank-2 Historical Oracle
+on:
+  push:
+    branches:
+      - 'nqc/rmc016-rank2-weth-oracle-20261008'
+    paths:
+      - '.github/workflows/nqc-rmc016-rank2-weth-oracle.yml'
+      - 'ci/nqc-census/rmc016_rank2_weth_oracle.py'
+      - 'ci/nqc-census/test_rmc016_rank2_weth_oracle.py'
+      - 'ci/nqc-census/RMC016_RANK2_WETH_HISTORICAL_PRICE_CONTRACT.md'
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc016-rank2-weth-oracle.yml'
+      - 'ci/nqc-census/rmc016_rank2_weth_oracle.py'
+      - 'ci/nqc-census/test_rmc016_rank2_weth_oracle.py'
+      - 'ci/nqc-census/RMC016_RANK2_WETH_HISTORICAL_PRICE_CONTRACT.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-rmc016-rank2-weth-oracle-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  source-locked-historical-rank2:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Exact D16 ancestry and adversarial offline price/rank tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
+          python3 ci/nqc-census/test_rmc016_rank2_weth_oracle.py
+          python3 ci/nqc-census/test_rmc016_weth_cashflow_audit.py
+          python3 -m py_compile ci/nqc-census/rmc016_rank2_weth_oracle.py
+          echo RMC016_RANK2_WETH_ORACLE_ADVERSARIAL_TESTS_PASS
+      - name: Independently authenticate immutable historical event receipt leg oracle archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/rmc016-rank2-inputs"
+          mkdir -p "$root"
+          authenticate() {
+            local run="$1" sha="$2" workflow="$3" outcome="$4" artifact="$5" name="$6" digest="$7" label="$8"
+            local runmeta art
+            runmeta="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run")"
+            art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
+            test "$(jq -r .status <<<"$runmeta")" = completed
+            test "$(jq -r .conclusion <<<"$runmeta")" = "$outcome"
+            test "$(jq -r .name <<<"$runmeta")" = "$workflow"
+            test "$(jq -r .head_sha <<<"$runmeta")" = "$sha"
+            test "$(jq -r .expired <<<"$art")" = false
+            test "$(jq -r .name <<<"$art")" = "$name"
+            test "$(jq -r .digest <<<"$art")" = "sha256:$digest"
+            test "$(jq -r .workflow_run.id <<<"$art")" = "$run"
+            curl --fail --silent --show-error --location --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact/zip" -o "$root/$label.zip"
+            printf '%s  %s\n' "$digest" "$root/$label.zip" | sha256sum --check --strict
+          }
+          authenticate 37718661409 abe54f1f23bd7bff8c37871200f7da7c59c45ac3 'NQC RMC-016 Full Liquidation Ledger Discovery' success 11524139188 'rmc016-full-liquidation-events-abe54f1f23bd7bff8c37871200f7da7c59c45ac3' '6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204' events
+          authenticate 37719091371 569d4aaeecb3d066389c054efed695be02e3ef40 'NQC RMC-016 Dual Operator Winner Receipt Parity' failure 11524199698 'rmc016-dual-winner-receipts-569d4aaeecb3d066389c054efed695be02e3ef40' '182b5e81b00ca04e53c9193c1496a725dc152ade9a17d3ab2dfaeb5045ac86b6' receipts
+          authenticate 37722878737 b02e7c5a4ff9a8c38898ab35e46777f9af35d192 'NQC RMC-016 Historical Aave Raw Liquidation Legs' success 11525823668 'rmc016-integer-liquidation-legs-b02e7c5a4ff9a8c38898ab35e46777f9af35d192' 'b5927f49a5099a9fe8971df82f1ea5fa2c4a169b11a846f2f3c2671b1efa71ee' legs
+          authenticate 37719715290 1a03cbb1c95ae9b66096ab19e5842cec435f1e1e 'NQC RMC-016 Historical WETH Price Oracle Sample' success 11524894285 'rmc016-historical-weth-oracle-1a03cbb1c95ae9b66096ab19e5842cec435f1e1e' '5d321ec4707da6b9b0a0e1b24ce2d28992bb9329dd937baa6466c759359c3f73' oracle-sample
+          echo RMC016_RANK2_ALL_FOUR_SOURCE_ARCHIVES_AUTHENTICATED
+      - name: Two independent historical WETH oracle prices for actual rank-two winner
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/rmc016-rank2-inputs"
+          result="$RUNNER_TEMP/rmc016-rank2-output"
+          mkdir -p "$result"
+          python3 ci/nqc-census/rmc016_rank2_weth_oracle.py \
+            --event-zip "$root/events.zip" \
+            --receipt-zip "$root/receipts.zip" \
+            --legs-zip "$root/legs.zip" \
+            --sample-zip "$root/oracle-sample.zip" \
+            --spacing 1.5 \
+            --out "$result/rank2-preblock-weth-price.json"
+          jq -e '.status == "RMC016_RANK2_WETH_DUAL_OPERATOR_PREBLOCK_ORACLE_PASS" and .historical_weth_weth_winner_count == 9 and .selected_rank == 2 and .row.block_number == 26024990 and .row.two_independent_operator_price_consensus == true and .row.previous_block_price_is_not_exact_pretransaction_price == true and .row.nexus_positive_net_pnl_proven == false and .real_market_census_closed == false' "$result/rank2-preblock-weth-price.json" >/dev/null
+          (cd "$result" && sha256sum rank2-preblock-weth-price.json > archive.sha256 && sha256sum -c archive.sha256)
+          echo RMC016_RANK2_REAL_PREBLOCK_PRICE_REF_ONLY_NO_NEXUS_PNL
+      - name: Preserve historical rank-two price evidence or fail-closed diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-rank2-weth-preblock-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/rmc016-rank2-output/
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
