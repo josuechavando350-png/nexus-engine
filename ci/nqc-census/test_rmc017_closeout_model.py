@@ -37,6 +37,9 @@ class T(unittest.TestCase):
    with self.assertRaises(ValueError): m.validate(d)
  def test_foundation_never_emits_final_marker(self):
   o=m.validate(valid()); self.assertNotIn("REAL_MARKET_CENSUS_CLOSED",str(o)); self.assertFalse(o["terminal_authority"])
+  import hashlib
+  legacy="0x"+hashlib.sha256(m.canonical({"domain":"NQC-RMC017-FINAL-CLOSEOUT-V1","authorities":o["authorities"]})).hexdigest()
+  self.assertNotEqual(o["candidate_commitment"],legacy)
  def test_boolean_ids_zero_digests_and_boolean_counts_rejected(self):
   for stage_index, field, value in [
    (0,"workflow_run_id",True), (1,"artifact_id",True),
