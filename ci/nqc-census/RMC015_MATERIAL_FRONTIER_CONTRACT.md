@@ -4,6 +4,8 @@
 
 This read-only selector is a deterministic, content-addressed snapshot-derived **prioritization aid**. It does **not** advance RMC-015A trigger acquisition, RMC-015B executable opportunity episodes, RMC-016 conservative capacity or RMC-017 terminal Census authority. It does not authorize execution, P&L, revenue or any capital-source promotion.
 
+Selecting the watchlist using D09 at **block 26,095,351** and evaluating it as if it had been selected at earlier blocks introduces **survivorship/selection look-ahead bias**. This auxiliary output is valid only for cross-sectional description at its anchor and **ex-ante forward monitoring from block 26,095,352 onward**. The `--evaluation-start-block` guard fails closed on any earlier or equal block. A historical backtest MUST build its candidate universe from pre-period independently observed information or reconstruct the full historical event universe without this hindsight selection.
+
 An Aave borrower with `healthFactor >= 1e18` is **not liquidatable** solely because they enter the watchlist. An oracle-base-unit debt figure is **not** liquidator-receivable value or revenue. One observed anchor does not establish future price movements or opportunity arrival rates.
 
 ## Authenticated inputs
@@ -25,7 +27,7 @@ The selector independently authenticates archive ZIP SHA-256; evidence-ledger me
 - Partition the entire debt-bearing universe into disjoint, half-open health-factor intervals: below 1, [1,1.01), [1.01,1.05), [1.05,1.10), [1.10,1.20), [1.20,1.50), [1.50,2), [2,+inf).
 - Watchlist admission is **strictly** `1e18 <= healthFactor < 1.2e18` and `totalDebtBase >= 10,000 * authenticated_oracle_base_unit`. This generates **historical monitoring targets**, not liquidation candidates.
 - The tool may optionally emit the ordered, exact watchlist for subsequent historical reconstruction; the canonical workflow publishes only aggregate stats and its watchlist commitment, not borrower addresses.
-- Output includes the A1 source artifact commits/digests, manifest digests, exact quantity strings, partitions, and SHA-256 commitment, with explicit nonclaims. No extrapolation or capture probability is ever computed.
+- Output includes the A1 source artifact commits/digests, manifest digests, exact quantity strings, partitions, and SHA-256 commitment, with explicit nonclaims. No extrapolation or capture probability is ever computed. The output contains `retrospective_backtest_admitted=false` and the earliest ex-ante evaluation block.
 
 ## Production next step
 
