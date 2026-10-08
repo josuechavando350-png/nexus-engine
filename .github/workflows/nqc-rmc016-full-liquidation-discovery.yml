@@ -72,7 +72,8 @@ jobs:
           set -euo pipefail
           python3 ci/nqc-census/rmc016_collect_winner_events.py \
             --provider blockscout \
-            --chunk 8192 \
+            --chunk 262144 \
+            --min-rpc-interval 22 \
             --max-calls 1200 \
             --out "$RUNNER_TEMP/rmc016-full-liquidation"
           report="$RUNNER_TEMP/rmc016-full-liquidation/discovery-report.json"
