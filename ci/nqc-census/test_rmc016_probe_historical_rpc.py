@@ -106,6 +106,13 @@ class HistoricalProbe(unittest.TestCase):
         b["reference_receipt"]["gas_used"]="1234"
         self.assertFalse(M.evaluate([{"admitted":True,"evidence":a},
                                      {"admitted":True,"evidence":b}]))
+    def test_sampled_log_interval_exactly_ten_blocks(self):
+        def measure(u,m,p):
+            if m=="eth_getLogs":
+                self.assertEqual(p[0]["fromBlock"],hex(M.END_BLOCK-9))
+                self.assertEqual(p[0]["toBlock"],hex(M.END_BLOCK))
+            return api(u,m,p)
+        M.probe_one(M.PROVIDERS[0],measure)
     def test_provider_rejects_failures_with_exact_method(self):
         def fail_method(u,m,p):
             if m=="eth_getLogs":raise ValueError("historical log range denied")
