@@ -146,16 +146,30 @@ def read_header(call,url,n):
     return hdr
 
 
-def authenticated_log_rpc(call,url,method,params,pid,*,sleep=time.sleep):
-    """Retry only a quota-throttled Blockscout request, never invent logs.
+_last_blockscout_public_request_monotonic=0.0
 
-    The second operator must still return a complete verifiable response.
-    An exhausted or unrelated failure aborts certification, retaining only
-    already separately verified immutable shard checkpoints.
+
+def authenticated_log_rpc(call,url,method,params,pid,*,sleep=time.sleep):
+    """Bounded rate-limited read-only RPC; Never treat HTTP429 as empty state.
+
+    The original source-verified independent Blockscout operator may throttle
+    ANY method, including canonical event-block headers, not just eth_getLogs.
+    Retrying only logs was insufficient in prior source run 37813351815.
+    When using the real network, pace same-operator calls so the public
+    provider is not flooded. Tests with injected RPC functions do not sleep.
     """
-    if pid!="blockscout" or method!="eth_getLogs":
+    global _last_blockscout_public_request_monotonic
+    if pid!="blockscout":
         return call(url,method,params)
+    need(method in ("eth_chainId","eth_getBlockByNumber","eth_getLogs"),
+         "unexpected Blockscout read-only RPC method")
     for i in range(5):
+        if call is rpc:
+            now=time.monotonic()
+            gap=now-_last_blockscout_public_request_monotonic
+            if _last_blockscout_public_request_monotonic and gap<3.0:
+                sleep(3.0-gap)
+            _last_blockscout_public_request_monotonic=time.monotonic()
         try:
             return call(url,method,params)
         except ValueError as error:
@@ -181,8 +195,9 @@ def positive_archive_log_canary(providers,*,call=rpc):
          "independent positive-canary archive operators required")
     witnesses=[]
     for pid,operator,url in providers:
-        need(call(url,"eth_chainId",[])=="0x1","positive-canary wrong chain")
-        hdr=read_header(call,url,CANARY_BLOCK)
+        pinned=lambda u,m,p:authenticated_log_rpc(call,u,m,p,pid)
+        need(pinned(url,"eth_chainId",[])=="0x1","positive-canary wrong chain")
+        hdr=read_header(pinned,url,CANARY_BLOCK)
         need(hdr["hash"]==CANARY_BLOCK_HASH,
              "known real liquidation canary block hash mismatch")
         logs=authenticated_log_rpc(call,url,"eth_getLogs",[{
@@ -229,13 +244,14 @@ def scan_one(provider, shard_index, members, expected_previous_hash,
          "entire original 857 source members needed")
     need(pid in PROVIDER_IDS,"unauthorized RPC operator in full-window scan")
     lo,hi=bounded_shard(shard_index)
-    need(call(url,"eth_chainId",[])=="0x1","shard RPC not Ethereum")
-    anchor=read_header(call,url,source.ANCHOR)
+    pinned=lambda u,m,p:authenticated_log_rpc(call,u,m,p,pid)
+    need(pinned(url,"eth_chainId",[])=="0x1","shard RPC not Ethereum")
+    anchor=read_header(pinned,url,source.ANCHOR)
     need(anchor["hash"]==source.ANCHOR_HASH,
          "Aave original canonical borrower anchor changed")
-    previous=read_header(call,url,lo-1)
-    start=read_header(call,url,lo)
-    end=read_header(call,url,hi)
+    previous=read_header(pinned,url,lo-1)
+    start=read_header(pinned,url,lo)
+    end=read_header(pinned,url,hi)
     need(previous["hash"]==expected_previous_hash,
          "shard chain parent not equal to previously authenticated shard end")
     need(start["parent_hash"]==previous["hash"] and
@@ -271,7 +287,7 @@ def scan_one(provider, shard_index, members, expected_previous_hash,
          and all(spans[i][1]+1==spans[i+1][0] for i in range(len(spans)-1)),
          "incomplete or overlapping intra-shard event range")
     for event_block in sorted({e["block"] for e in records}):
-        hdr=read_header(call,url,event_block)
+        hdr=read_header(pinned,url,event_block)
         need(all(e["block_hash"]==hdr["hash"] for e in records
                  if e["block"]==event_block),
              "event block hash is not actual canonical Ethereum header")
@@ -360,8 +376,10 @@ def whole_window(source_summary,watchlist_blob,original_first_report,
     positive_source_capability=positive_archive_log_canary(providers,call=call)
     checkpoint_dir.mkdir(parents=True,exist_ok=True)
 
-    previous=read_header(call,providers[0][2],FIRST_DONE_END)
-    verification=read_header(call,providers[1][2],FIRST_DONE_END)
+    first_call=lambda u,m,p:authenticated_log_rpc(call,u,m,p,providers[0][0])
+    second_call=lambda u,m,p:authenticated_log_rpc(call,u,m,p,providers[1][0])
+    previous=read_header(first_call,providers[0][2],FIRST_DONE_END)
+    verification=read_header(second_call,providers[1][2],FIRST_DONE_END)
     need(previous==verification,
          "two real RPCs disagree on the original first 480-block canonical endpoint")
     prevhash=previous["hash"]
