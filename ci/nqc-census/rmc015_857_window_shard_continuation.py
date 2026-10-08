@@ -334,9 +334,10 @@ def whole_window(source_summary,watchlist_blob,original_first_report,
     need(not checkpoint_dir.exists() or
          (checkpoint_dir.is_dir() and not any(checkpoint_dir.iterdir())),
          "append-only run must start with an empty checkpoint directory")
-    checkpoint_dir.mkdir(parents=True,exist_ok=True)
-
+    # Do not create mutable "verified" checkpoint namespace before known-positive
+    # history and two-operator agreement have been authenticated.
     positive_source_capability=positive_archive_log_canary(providers,call=call)
+    checkpoint_dir.mkdir(parents=True,exist_ok=True)
 
     previous=read_header(call,providers[0][2],FIRST_DONE_END)
     verification=read_header(call,providers[1][2],FIRST_DONE_END)
