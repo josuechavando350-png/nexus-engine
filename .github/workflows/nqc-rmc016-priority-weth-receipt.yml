@@ -1,0 +1,131 @@
+name: NQC RMC-016 Highest WETH-Leg Historical Receipt Parity
+
+on:
+  push:
+    branches:
+      - nqc/rmc016-priority-weth-receipt-20261008
+  pull_request:
+    paths:
+      - .github/workflows/nqc-rmc016-priority-weth-receipt.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  priority-real-receipt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Exact historical source ancestry and adversarial receipt parser tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 7ec0f23fb7e114c6ac6d873bdb2889f309c2ac50 HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = \
+            5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          python3 ci/nqc-census/test_rmc016_two_operator_receipts.py
+          python3 ci/nqc-census/test_rmc016_resume_verified_receipts.py
+      - name: Reauthenticate exact full event and separately completed dRPC witness archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc016-priority-source"
+          mkdir -p "$ROOT"
+          check() {
+            local run="$1" head="$2" tree="$3" wf="$4" outcome="$5" artifact="$6" artname="$7" digest="$8"
+            local r a
+            r="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run")"
+            a="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
+            test "$(jq -r .status <<<"$r")" = completed
+            test "$(jq -r .conclusion <<<"$r")" = "$outcome"
+            test "$(jq -r .name <<<"$r")" = "$wf"
+            test "$(jq -r .head_sha <<<"$r")" = "$head"
+            test "$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$head" --jq '.tree.sha')" = "$tree"
+            test "$(jq -r .expired <<<"$a")" = false
+            test "$(jq -r .workflow_run.id <<<"$a")" = "$run"
+            test "$(jq -r .name <<<"$a")" = "$artname"
+            test "$(jq -r .digest <<<"$a")" = "sha256:$digest"
+            curl --fail --silent --show-error --location --retry 2 \
+              -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact/zip" \
+              -o "$ROOT/artifact-$artifact.zip"
+            printf '%s  %s\n' "$digest" "$ROOT/artifact-$artifact.zip" | sha256sum -c --strict
+          }
+          check 37718661409 abe54f1f23bd7bff8c37871200f7da7c59c45ac3 \
+            c74f8d9d2c317a011284398643b2d4aa6de06e83 \
+            'NQC RMC-016 Full Liquidation Ledger Discovery' success \
+            11524139188 rmc016-full-liquidation-events-abe54f1f23bd7bff8c37871200f7da7c59c45ac3 \
+            6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204
+          check 37719091371 569d4aaeecb3d066389c054efed695be02e3ef40 \
+            ba648214fb5cb1cdca1db1f42f28059054d78e63 \
+            'NQC RMC-016 Dual Operator Winner Receipt Parity' failure \
+            11524199698 rmc016-dual-winner-receipts-569d4aaeecb3d066389c054efed695be02e3ef40 \
+            182b5e81b00ca04e53c9193c1496a725dc152ade9a17d3ab2dfaeb5045ac86b6
+          echo "NQC_PRIORITY_ROOT=$ROOT" >> "$GITHUB_ENV"
+      - name: Compare exactly one high-priority observed WETH winner receipt with independent Blockscout
+        if: ${{ github.event_name == 'push' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rmc016-priority-report"
+          python3 - "$NQC_PRIORITY_ROOT" "$RUNNER_TEMP/rmc016-priority-report" <<'PY'
+          import hashlib,json,sys,time
+          from pathlib import Path
+          sys.path.insert(0,'ci/nqc-census')
+          from rmc016_resume_verified_receipts import authenticated_drpc_checkpoint
+          from rmc016_two_operator_receipts import receipt_normalized
+          from rmc016_probe_historical_rpc import rpc
+          source=Path(sys.argv[1]);dest=Path(sys.argv[2])
+          tx='0x6313fb267755f3cfa48214bf74309505984306129ee09a558efe4801006dcbba'
+          drpc,events,ids=authenticated_drpc_checkpoint(
+              source/'artifact-11524199698.zip',source/'artifact-11524139188.zip')
+          assert tx in ids and len(events[tx])==1 and events[tx][0]['block_number']==25938048
+          assert events[tx][0]['block_hash']=='0xf143f9988199037938e4dff57aaf24301a4c26770aefc0ec64774954cbf2dbe4'
+          assert events[tx][0]['log_index']==21
+          assert events[tx][0]['event_commitment_sha256']=='d25b174177afd25fc6b789a4d76bad535120a9a883209ee7205a49d703d73949'
+          report={'schema_version':1,'source_kind':'RETROSPECTIVELY_SELECTED_HISTORICAL_WINNER',
+            'target_transaction_hash':tx,'historical_source_block':25938048,
+            'historical_same_asset_weth_leg_candidate_only':True,
+            'independent_full_window_log_consensus':False,
+            'exact_pre_transaction_state_proven':False,
+            'nexus_gas_or_principal_funding_proven':False,
+            'nexus_capture_probability_calibrated':False,
+            'nexus_net_profitability_proven':False,'real_market_census_closed':False}
+          try:
+            time.sleep(3)
+            raw=rpc('https://eth.blockscout.com/api/eth-rpc','eth_getTransactionReceipt',[tx])
+            observed=receipt_normalized(tx,events[tx],raw)
+            assert observed==drpc[tx],'dRPC and Blockscout receipt facts differ'
+            report.update(status='RMC016_PRIORITY_WETH_WINNER_RECEIPT_DUAL_OPERATOR_PASS',
+                          historical_winner_gas_wei=observed['total_gas_paid_wei'],
+                          receipt_evidence_sha256=observed['receipt_evidence_sha256'],
+                          independent_receipt_parity_complete_for_this_transaction=True)
+          except Exception as error:
+            report.update(status='RMC016_PRIORITY_RECEIPT_INDEPENDENT_CHECK_BLOCKED',
+                          independent_receipt_parity_complete_for_this_transaction=False,
+                          blocker_type=type(error).__name__,blocker=str(error)[:200])
+          canonical=lambda d:(json.dumps(d,sort_keys=True,separators=(',',':'))+'\n').encode()
+          payload=canonical(report)
+          (dest/'priority-weth-receipt-report.json').write_bytes(payload)
+          (dest/'archive.sha256').write_text(hashlib.sha256(payload).hexdigest()+'  priority-weth-receipt-report.json\n')
+          print(report['status'])
+          if report['status']!='RMC016_PRIORITY_WETH_WINNER_RECEIPT_DUAL_OPERATOR_PASS':
+              raise SystemExit(2)
+          PY
+      - name: Publish exact single-winner receipt parity or fail-closed diagnosis
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-priority-weth-receipt-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc016-priority-report/
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
