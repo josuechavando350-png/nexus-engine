@@ -157,12 +157,16 @@ pub struct CapitalArtifactVerification {
 /// record binding.
 pub fn parse_capital_sources_artifact(bytes: &[u8]) -> Result<Vec<CapitalSource>, CapitalError> {
     let records = parse_jsonl(bytes)?;
-    let mut sources = Vec::with_capacity(records.len());
+    // Consume all original JSONL records lazily; the public decoder must not
+    // silently stop before a malformed tail or allocate a second Vec<Json>.
+    let mut sources = Vec::new();
     let mut source_ids = BTreeSet::new();
     let mut source_key_ids = BTreeSet::new();
     let mut common_provenance: Option<ArtifactProvenance> = None;
 
-    for record in &records {
+    for record in records {
+        let record = record?;
+        let record = &record;
         let encoded = decode_plain_hex(
             record
                 .str_field("canonical_record")
