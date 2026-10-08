@@ -58,14 +58,14 @@ class OriginalD08NativeFlashImportTests(unittest.TestCase):
                 producer.origin.verified_source(p,producer.INPUT_BLOB)
 
     def test_original_upstream_archive_head_modified_rejected(self):
-        bad=copy.deepcopy(self.inputs)
-        bad["d08"]["head_sha"]="f"*40
-        with patch.object(producer.origin,"verified_source",
-                          side_effect=lambda path,sha: bad if sha==producer.INPUT_BLOB
-                          else producer.origin.verified_source(path,sha)):
-            pass
-        # The canonical file is immutable; mutating a local copy alone does
-        # not change an original SHA-locked producing workflow.
+        source=self.inputs["d08"]
+        fake_run={"id":source["run_id"],"status":"completed","conclusion":"success",
+                  "name":source["workflow_name"],"head_sha":"f"*40}
+        fake_artifact={"id":source["artifact_id"],"name":source["artifact_name"],
+                       "digest":source["artifact_digest"],"expired":False,
+                       "workflow_run":{"id":source["run_id"],"head_sha":source["head_sha"]}}
+        with self.assertRaisesRegex(ValueError,"original producer workflow/head"):
+            producer.origin.original_run_and_artifact(fake_run,fake_artifact,source)
 
     def test_boolean_or_negative_flash_source_count_fails_closed(self):
         self.assertRaisesRegex(ValueError,"noncanonical",self.emit,{"PROTOCOL_NATIVE_FLASH_LOAN":True},0)
