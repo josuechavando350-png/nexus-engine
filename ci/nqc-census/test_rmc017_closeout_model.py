@@ -48,6 +48,11 @@ class T(unittest.TestCase):
   ]:
    d=valid(); d["authorities"][stage_index][field]=value
    with self.assertRaises(ValueError,msg=field): m.validate(d)
+ def test_boolean_schema_and_temporal_unknown_fail(self):
+  d=valid(); d["schema_version"]=True
+  with self.assertRaises(ValueError): m.validate(d)
+  d=valid(); d["authorities"][1]["material_unknown_count"]=False
+  with self.assertRaises(ValueError): m.validate(d)
  def test_source_lock_self_close_fails(self):
   d=valid(); d["real_market_census_closed"]=True
   with self.assertRaises(ValueError): m.validate(d)
