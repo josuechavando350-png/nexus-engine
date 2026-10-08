@@ -169,12 +169,19 @@ contract NqcRmc011WethPhysicalCompatibilityForkTest {
 
     function testCannotTransferUnownedWeth() public {
         IMainnetWeth t = _weth();
-        require(t.balanceOf(address(this)) == 0, "FIXTURE_NOT_ISOLATED");
+        // The historical fork may already contain WETH at Foundry's
+        // deterministic test-contract address. Never assume a clean balance
+        // and never let existing chain state subsidize a test expectation.
+        uint256 holderBefore = t.balanceOf(address(this));
         uint256 beneficiaryBefore = t.balanceOf(BENEFICIARY);
+        uint256 supplyBefore = t.totalSupply();
+        require(holderBefore < type(uint256).max, "BALANCE_OVERFLOW");
         (bool ok, ) = WETH.call(
-            abi.encodeWithSelector(t.transfer.selector, BENEFICIARY, 1)
+            abi.encodeWithSelector(t.transfer.selector, BENEFICIARY, holderBefore + 1)
         );
         require(!ok, "UNFUNDED_TRANSFER_SUCCEEDED");
+        require(t.balanceOf(address(this)) == holderBefore, "UNFUNDED_HOLDER_MUTATED");
         require(t.balanceOf(BENEFICIARY) == beneficiaryBefore, "UNFUNDED_TRANSFER_MUTATED");
+        require(t.totalSupply() == supplyBefore, "UNFUNDED_SUPPLY_MUTATED");
     }
 }
