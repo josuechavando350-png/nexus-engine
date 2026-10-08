@@ -3,7 +3,7 @@ name: NQC RMC-016 Preblock WETH Gas Reference
 on:
   push:
     branches:
-      - 'nqc/rmc016-preblock-weth-gas-batch03-20261008'
+      - 'nqc/rmc016-preblock-weth-gas-batch04-20261008'
     paths:
       - 'ci/nqc-census/rmc016_historical_gas_price_oracle.py'
       - 'ci/nqc-census/test_rmc016_historical_gas_price_oracle.py'
@@ -90,11 +90,11 @@ jobs:
             'NQC RMC-016 Historical WETH Price Oracle Sample' success \
             11524894285 rmc016-historical-weth-oracle-1a03cbb1c95ae9b66096ab19e5842cec435f1e1e \
             5d321ec4707da6b9b0a0e1b24ce2d28992bb9329dd937baa6466c759359c3f73
-          check 37725048195 d9c0b8882e84d43e865206c28e008de3d588823e \
-            c666c8a8c6d3c91c6a6e12b853f8359b5a1dea74 \
+          check 37725515273 19a795b750e1670907f2db0c409f0638ec8e7cd7 \
+            669aa9e471707f414276eaae1de1fd1bca0a7371 \
             'NQC RMC-016 Preblock WETH Gas Reference' success \
-            11527388437 rmc016-weth-gas-reference-d9c0b8882e84d43e865206c28e008de3d588823e \
-            4df64e0aec5693165685279999d4c14f1da02404a9cc4434604b129ecc4f0ae0
+            11527183000 rmc016-weth-gas-reference-19a795b750e1670907f2db0c409f0638ec8e7cd7 \
+            260f413126733b639a66fe55d4e9b0cd4150972119819e305af502dec3380e40
           echo "NQC_ORACLE_SOURCE_ROOT=$ROOT" >> "$GITHUB_ENV"
       - name: Adversarial test matrix and authentic source cardinality
         shell: bash
@@ -121,7 +121,7 @@ jobs:
           sys.path.insert(0,'ci/nqc-census')
           from rmc016_preblock_gas_oracle_batch import src
           root=Path(sys.argv[1])
-          previous=root/'github-actions-artifact-11527388437.zip'
+          previous=root/'github-actions-artifact-11527183000.zip'
           with zipfile.ZipFile(previous) as archive:
               names=archive.namelist()
               assert len(names)==len(set(names)) and set(names)=={'archive.sha256','preblock-gas-reference.json'}
@@ -132,16 +132,16 @@ jobs:
                                 root/'github-actions-artifact-11524199698.zip',
                                 root/'github-actions-artifact-11524894285.zip')
           assert evidence['status']=='RMC016_DUAL_OPERATOR_PREBLOCK_GAS_REFERENCE_PASS'
-          assert evidence['offset']==5 and evidence['count']==5 and evidence['verified_blocks']==5
-          assert evidence['requested_blocks']==blocks[5:10]
-          assert [x['tx_block'] for x in evidence['prices']]==blocks[5:10]
-          assert blocks[10:15] and set(evidence['requested_blocks']).isdisjoint(blocks[10:15])
+          assert evidence['offset']==10 and evidence['count']==5 and evidence['verified_blocks']==5
+          assert evidence['requested_blocks']==blocks[10:15]
+          assert [x['tx_block'] for x in evidence['prices']]==blocks[10:15]
+          assert blocks[15:20] and set(evidence['requested_blocks']).isdisjoint(blocks[15:20])
           assert evidence['two_provider_consensus'] is True
           assert evidence['reference_only'] is True
           assert evidence['exact_pre_tx_state_proven'] is False
           assert evidence['nexus_net_profit_proven'] is False
           assert evidence['real_market_census_closed'] is False
-          assert sum(x['winner_transaction_count'] for x in evidence['prices'])==sum(len(by[n]) for n in blocks[5:10])
+          assert sum(x['winner_transaction_count'] for x in evidence['prices'])==sum(len(by[n]) for n in blocks[10:15])
           print('RMC016_IMMUTABLE_PREVIOUS_FIVE_BLOCKS_AUTHENTICATED_NO_OVERLAP')
           PY
       - name: Independent two-provider previous-block gas valuation
@@ -154,7 +154,7 @@ jobs:
             --event-zip "$NQC_ORACLE_SOURCE_ROOT/github-actions-artifact-11524139188.zip" \
             --drpc-zip "$NQC_ORACLE_SOURCE_ROOT/github-actions-artifact-11524199698.zip" \
             --price-sample-zip "$NQC_ORACLE_SOURCE_ROOT/github-actions-artifact-11524894285.zip" \
-            --offset 10 --count 5 --spacing 2 \
+            --offset 15 --count 5 --spacing 2 \
             --out "$RUNNER_TEMP/nqc-gas-reference/preblock-gas-reference.json"
           jq -e '
             .status == "RMC016_DUAL_OPERATOR_PREBLOCK_GAS_REFERENCE_PASS" and
