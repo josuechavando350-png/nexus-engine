@@ -232,6 +232,8 @@ def run_real_import(work:Path,lock:Path):
             "D08 two-protocol import overstates terminal economics")
     classes=summary.get("sources_by_class")
     need(type(classes) is dict and
+            type(summary.get("source_count")) is int and
+            type(closeout.get("d08_source_count")) is int and
             all(type(v) is int and v>=0 for v in classes.values()) and
             sum(classes.values())==summary.get("source_count") and
             closeout.get("d08_source_count")==summary["source_count"],
@@ -243,7 +245,9 @@ def publish(work:Path,upstream:list[dict],native:list[dict],summary,closeout,hea
     classes=summary["sources_by_class"]
     aave=classes.get("PROTOCOL_NATIVE_FLASH_LOAN",0)
     v2=classes.get("FLASH_SWAP",0)
-    need(type(aave) is int and type(v2) is int and aave>=0 and v2>=0,
+    need(type(aave) is int and type(v2) is int and aave>=0 and v2>=0
+            and type(summary.get("source_count")) is int
+            and sum(classes.values())==summary["source_count"],
             "noncanonical native capital class count")
     report={
         "schema_version":1,
