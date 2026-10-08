@@ -12,6 +12,8 @@ DEBT_FAMILIES = {"COLLATERALIZED_BORROWING", "PERSISTENT_DEBT"}
 EXPECTED_REPOSITORY = "josuechavando350-png/nexus-engine"
 EXPECTED_WORKFLOW = "NQC RMC-011 Real Source Certification"
 EXPECTED_ARTIFACT_PREFIX = "rmc011-real-source-certification-"
+ORIGINAL_D08_WORKFLOW = "NQC RMC-011 Original D08 Debt Family Rejection Evidence (NO D11 CLOSE)"
+ORIGINAL_D08_ARTIFACT_PREFIX = "rmc011-original-d08-debt-rejections-"
 EXPECTED_REAL_SOURCE_PATH = "nqc-census/crates/nqc-census-capital/src/external_debt.rs"
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
@@ -153,7 +155,12 @@ def validate_document(doc: dict) -> dict:
         require(isinstance(evidence, dict), f"{family}: resolution_evidence missing")
         require(evidence.get("kind") == "EXHAUSTIVE_REJECTION", f"{family}: evidence kind differs")
         require(evidence.get("repository") == EXPECTED_REPOSITORY, f"{family}: repository differs")
-        require(evidence.get("workflow_name") == EXPECTED_WORKFLOW, f"{family}: workflow differs")
+        workflow = evidence.get("workflow_name")
+        require(workflow in {EXPECTED_WORKFLOW, ORIGINAL_D08_WORKFLOW}, f"{family}: workflow differs")
+        prefix = (
+            ORIGINAL_D08_ARTIFACT_PREFIX if workflow == ORIGINAL_D08_WORKFLOW
+            else EXPECTED_ARTIFACT_PREFIX
+        )
 
         run_id = evidence.get("run_id")
         artifact_id = evidence.get("artifact_id")
@@ -168,8 +175,9 @@ def validate_document(doc: dict) -> dict:
         require(isinstance(head_sha, str) and HEX40.fullmatch(head_sha) is not None, f"{family}: head_sha invalid")
         require(
             isinstance(artifact_name, str)
-            and artifact_name.startswith(EXPECTED_ARTIFACT_PREFIX)
-            and head_sha in artifact_name,
+            and artifact_name.startswith(prefix)
+            and head_sha in artifact_name
+            and f"-{run_id}-" in artifact_name,
             f"{family}: artifact_name does not bind exact head",
         )
         require(
