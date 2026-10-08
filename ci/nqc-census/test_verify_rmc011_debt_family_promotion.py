@@ -30,7 +30,7 @@ def reject_both(doc: dict) -> None:
             "run_id": 12345,
             "head_sha": "a" * 40,
             "artifact_id": 67890,
-            "artifact_name": "rmc011-real-source-certification-" + "a" * 40,
+            "artifact_name": "rmc011-real-source-certification-" + "a" * 40 + "-12345-1",
             "artifact_digest": "sha256:" + "b" * 64,
             "file": f"debt-family-evidence/families/{family}/evidence.json",
             "sha256": f"{index:064x}",
@@ -121,7 +121,7 @@ def attest_both_synthetic(doc: dict) -> None:
             "run_id": 12345,
             "head_sha": "a" * 40,
             "artifact_id": 67890,
-            "artifact_name": mod.EXPECTED_ARTIFACT_PREFIX + "a" * 40,
+            "artifact_name": mod.EXPECTED_ARTIFACT_PREFIX + "a" * 40 + "-12345-1",
             "artifact_digest": "sha256:" + "b" * 64,
             "file": f"debt-family-evidence/families/{family}/evidence.json",
             "sha256": f"{index:064x}",
@@ -153,6 +153,7 @@ class DebtAuthenticatedSourceAdversarialTests(unittest.TestCase):
         for row in doc["families"]:
             if row["id"] in mod.DEBT_FAMILIES:
                 row["status"] = "AUTHENTICATED_REAL_SOURCE"
+                row["terminally_resolved"] = False
         self.reject(doc, "terminal flag")
 
     def test_real_source_without_evidence_must_fail(self) -> None:
