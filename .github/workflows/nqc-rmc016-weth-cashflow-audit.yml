@@ -73,7 +73,7 @@ jobs:
           authenticate 37719091371 569d4aaeecb3d066389c054efed695be02e3ef40 'NQC RMC-016 Dual Operator Winner Receipt Parity' failure 11524199698 'rmc016-dual-winner-receipts-569d4aaeecb3d066389c054efed695be02e3ef40' '182b5e81b00ca04e53c9193c1496a725dc152ade9a17d3ab2dfaeb5045ac86b6' receipts
           authenticate 37722878737 b02e7c5a4ff9a8c38898ab35e46777f9af35d192 'NQC RMC-016 Historical Aave Raw Liquidation Legs' success 11525823668 'rmc016-integer-liquidation-legs-b02e7c5a4ff9a8c38898ab35e46777f9af35d192' 'b5927f49a5099a9fe8971df82f1ea5fa2c4a169b11a846f2f3c2671b1efa71ee' legs
           authenticate 37726618359 a569b0a6ba11c0d12de3a1ac0d16d85b896933f6 'NQC RMC-016 Two WETH Winner Historical Prices' success 11527902751 'rmc016-two-weth-winner-historical-prices-a569b0a6ba11c0d12de3a1ac0d16d85b896933f6' '5ae6c45b53ded26f327270758c248f7f4ec0ff1365f550e54dcf28feb4a83a03' prices
-      - name: Independently reconstruct seven WETH/WETH competitor cost budgets
+      - name: Independently reconstruct all nine WETH/WETH competitors and seven after-gas positives
         if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
         shell: bash
         run: |
@@ -82,7 +82,7 @@ jobs:
           result="$RUNNER_TEMP/nqc016-cashflow-result"
           mkdir -p "$result"
           python3 ci/nqc-census/rmc016_weth_cashflow_audit.py --event-zip "$root/events.zip" --receipt-zip "$root/receipts.zip" --legs-zip "$root/legs.zip" --price-zip "$root/prices.zip" --out "$result/historical-weth-cashflow.json"
-          jq -e '.status == "RMC016_HISTORICAL_WETH_WETH_COST_BUDGET_DIAGNOSTIC_ONLY" and .historical_weth_weth_winner_transactions == 7 and (.all_seven_weth_weth_records|length) == 7 and .historical_liquidation_events == 139 and .historical_winner_transactions == 127 and .real_market_census_closed == false and .external_gas_financing_authenticated == false and .external_flash_principal_authenticated == false and .real_nexus_execution_or_capture_proven == false and .capture_adjusted_or_monthly_net_proven == false' "$result/historical-weth-cashflow.json"
+          jq -e '.status == "RMC016_HISTORICAL_WETH_WETH_COST_BUDGET_DIAGNOSTIC_ONLY" and .historical_weth_weth_winner_transactions == 9 and .historical_weth_weth_positive_after_competitor_gas_transactions == 7 and (.all_nine_weth_weth_records|length) == 9 and .historical_liquidation_events == 139 and .historical_winner_transactions == 127 and .real_market_census_closed == false and .external_gas_financing_authenticated == false and .external_flash_principal_authenticated == false and .real_nexus_execution_or_capture_proven == false and .capture_adjusted_or_monthly_net_proven == false' "$result/historical-weth-cashflow.json"
           (cd "$result" && sha256sum historical-weth-cashflow.json > archive.sha256 && sha256sum -c archive.sha256)
           echo RMC016_HISTORICAL_COST_BUDGET_NOT_NEXUS_PNL
       - name: Retain immutable read-only output if actual sources authenticate
