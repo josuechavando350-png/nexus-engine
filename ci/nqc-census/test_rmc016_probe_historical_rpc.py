@@ -106,6 +106,18 @@ class HistoricalProbe(unittest.TestCase):
         b["reference_receipt"]["gas_used"]="1234"
         self.assertFalse(M.evaluate([{"admitted":True,"evidence":a},
                                      {"admitted":True,"evidence":b}]))
+    def test_provider_rejects_failures_with_exact_method(self):
+        def fail_method(u,m,p):
+            if m=="eth_getLogs":raise ValueError("historical log range denied")
+            return api(u,m,p)
+        with self.assertRaisesRegex(ValueError,"eth_getLogs: ValueError"):
+            M.probe_one(M.PROVIDERS[0],fail_method)
+    def test_blockscout_is_distinct_explorer_api(self):
+        p=[x for x in M.PROVIDERS if x[0]=="blockscout"]
+        self.assertEqual(len(p),1)
+        self.assertEqual(p[0][1],"Blockscout")
+        self.assertEqual(p[0][2],"https://eth.blockscout.com/api/eth-rpc")
+        self.assertEqual(len({p[0] for p in M.PROVIDERS}),len(M.PROVIDERS))
     def test_missing_provider_does_not_fake_quorum(self):
         a=M.probe_one(M.PROVIDERS[0],api)
         b={"provider_id":"blocked","admitted":False}
