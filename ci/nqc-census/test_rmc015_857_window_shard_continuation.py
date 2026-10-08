@@ -11,8 +11,8 @@ import rmc015_857_window_shard_continuation as m
 import rmc015_post_anchor_causal_sampler as src
 from test_rmc015_post_anchor_causal_sampler import fixture
 
-PROVIDERS=[("drpc","dRPC","https://drpc.invalid"),
-           ("blast","BlastAPI","https://blast.invalid")]
+PROVIDERS=[("blast","BlastAPI","https://blast.invalid"),
+           ("one_rpc","Automata 1RPC","https://one_rpc.invalid")]
 EVT_TX="0x"+"f"*64
 EVT_POOL=src.POOL
 
@@ -82,6 +82,12 @@ class SourceRpc:
                    "number":hex(b),"hash":src.ANCHOR_HASH,
                    "parentHash":"0x"+"8"*64,"stateRoot":"0x"+"a"*64,
                    "timestamp":"0x64"}
+            if b==m.CANARY_BLOCK:
+                return {
+                   "number":hex(b),"hash":m.CANARY_BLOCK_HASH,
+                   "parentHash":"0x"+"8"*64,
+                   "stateRoot":"0x"+"a"*64,
+                   "timestamp":"0x60"}
             if m.FIRST<=b<=m.LAST:
                 parent=src.ANCHOR_HASH if b==m.FIRST else "0x"+f"{b-1:064x}"
                 return {
@@ -96,7 +102,12 @@ class SourceRpc:
             lo=int(data["fromBlock"],16)
             hi=int(data["toBlock"],16)
             assert 1<=hi-lo+1<=m.SHARD_SIZE
-            if "blast.invalid" in url or "drpc.invalid" in url:
+            if lo==m.CANARY_BLOCK and hi==m.CANARY_BLOCK:
+                known=event(m.CANARY_BLOCK,"0x"+"e"*40)
+                known["blockHash"]=m.CANARY_BLOCK_HASH
+                known["transactionHash"]=m.CANARY_WINNER_TX
+                return [known]
+            if "blast.invalid" in url or "one_rpc.invalid" in url:
                 assert hi-lo+1<=10
             return [copy.deepcopy(x) for x in self.events
                     if lo<=int(x["blockNumber"],16)<=hi]
@@ -182,6 +193,50 @@ class TestNew14HistoricalShards(unittest.TestCase):
             self.assertTrue(all(slices[i][1]+1==slices[i+1][0]
                                 for i in range(len(slices)-1)))
         self.assertFalse(observed["census_closed"])
+
+    def test_known_positive_historical_canary_requires_true_logs_on_both_operators(self):
+        fake=SourceRpc()
+        canary=m.positive_archive_log_canary(PROVIDERS,call=fake)
+        self.assertEqual(canary["known_historical_winner_block"],25938048)
+        self.assertEqual(canary["verified_distinct_log_operator_count"],2)
+        self.assertFalse(canary["canary_used_for_cohort_borrower_selection"])
+        self.assertTrue(canary["canary_not_proof_of_NQC_capture"])
+        self.assertEqual(len(canary["original_canary_operator_observations"]),2)
+
+    def test_archive_silent_empty_canary_is_not_a_market_zero(self):
+        fake=SourceRpc()
+        def silent(url,method,args):
+            if method=="eth_getLogs" and args[0]["fromBlock"]==hex(m.CANARY_BLOCK):
+                return []
+            return fake(url,method,args)
+        s,w,p=self.inputs()
+        with tempfile.TemporaryDirectory() as d:
+            folder=Path(d)/"checkpoints"
+            with self.assertRaisesRegex(ValueError,"known positive history omitted"):
+                m.whole_window(s,w,p,folder,providers=PROVIDERS,call=silent)
+            self.assertFalse(folder.exists())
+
+    def test_archive_canary_independent_set_disagreement_fails_closed(self):
+        fake=SourceRpc()
+        def conflicting(url,method,args):
+            out=fake(url,method,args)
+            if method=="eth_getLogs" and args[0]["fromBlock"]==hex(m.CANARY_BLOCK) and "one_rpc.invalid" in url:
+                extra=copy.deepcopy(out[0])
+                extra["transactionHash"]="0x"+"e"*64
+                extra["logIndex"]="0x2"
+                return out+[extra]
+            return out
+        with self.assertRaisesRegex(ValueError,"canary event sets differ"):
+            m.positive_archive_log_canary(PROVIDERS,call=conflicting)
+
+    def test_archive_canary_receipt_is_not_cohort_member_selection(self):
+        s,w,p=self.inputs()
+        members={json.loads(line)["account"] for line in w.splitlines()}
+        self.assertEqual(len(members),857)
+        self.assertNotIn("0x"+"e"*40,members)
+        r=m.positive_archive_log_canary(PROVIDERS,call=SourceRpc())
+        self.assertFalse(r["canary_used_for_cohort_borrower_selection"])
+        self.assertNotIn("0x"+"e"*40,str(r))
 
     def test_realistic_empty_observed_future_events_complete_7200(self):
         s,w,p=self.inputs()
