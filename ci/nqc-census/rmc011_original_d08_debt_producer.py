@@ -101,7 +101,8 @@ def validate_sources():
                 and type(source.get("artifact_name")) is str
                 and source["head_sha"] in source["artifact_name"]
                 and type(source.get("authority_file")) is str
-                and source["authority_file"].startswith("closeout/")
+                and not source["authority_file"].startswith("/")
+                and "\\" not in source["authority_file"]
                 and ".." not in PurePosixPath(source["authority_file"]).parts,
                 f"{key}: invalid exact upstream artifact commitment")
     u = d["universe"]
