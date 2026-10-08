@@ -1,0 +1,148 @@
+name: NQC RMC-016 Dual Operator Winner Receipt Parity
+
+on:
+  push:
+    branches:
+      - 'nqc/rmc016-dual-receipt-parity-20261008'
+    paths:
+      - 'ci/nqc-census/rmc016_two_operator_receipts.py'
+      - 'ci/nqc-census/test_rmc016_two_operator_receipts.py'
+      - 'ci/nqc-census/rmc016-dual-receipt-inputs.json'
+      - 'ci/nqc-census/RMC016_DUAL_RECEIPT_PARITY_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-dual-receipt-parity.yml'
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc016_two_operator_receipts.py'
+      - 'ci/nqc-census/test_rmc016_two_operator_receipts.py'
+      - 'ci/nqc-census/rmc016-dual-receipt-inputs.json'
+      - 'ci/nqc-census/RMC016_DUAL_RECEIPT_PARITY_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-dual-receipt-parity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc016-dual-receipts-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  source-and-argument-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Authenticate pinned source identity and offline adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor abe54f1f23bd7bff8c37871200f7da7c59c45ac3 HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = \
+            "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
+          jq -e '
+            .schema_version == 1 and
+            .status == "PINNED" and
+            .blocking_reasons == [] and
+            .source.run_id == 37718661409 and
+            .source.head_sha == "abe54f1f23bd7bff8c37871200f7da7c59c45ac3" and
+            .source.tree_sha == "c74f8d9d2c317a011284398643b2d4aa6de06e83" and
+            .source.workflow_name == "NQC RMC-016 Full Liquidation Ledger Discovery" and
+            .source.artifact_id == 11524139188 and
+            .source.artifact_name == "rmc016-full-liquidation-events-abe54f1f23bd7bff8c37871200f7da7c59c45ac3" and
+            .source.artifact_digest == "sha256:6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204" and
+            .source.source_event_count == 139 and
+            .source.source_unique_transaction_count == 127 and
+            .realized_nexus_profitability_proven == false and
+            .providers == [
+              {"provider_id":"drpc","operator":"dRPC"},
+              {"provider_id":"blast","operator":"BlastAPI"}
+            ]
+          ' ci/nqc-census/rmc016-dual-receipt-inputs.json >/dev/null
+          python3 ci/nqc-census/test_rmc016_two_operator_receipts.py
+          python3 -m py_compile ci/nqc-census/rmc016_two_operator_receipts.py \
+            ci/nqc-census/test_rmc016_two_operator_receipts.py
+          echo RMC016_DUAL_OPERATOR_RECEIPTS_OFFLINE_GATES_PASS
+
+  physical-receipts:
+    if: ${{ github.event_name == 'push' }}
+    needs: source-and-argument-preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      GH_TOKEN: ${{ github.token }}
+      INPUTS: ci/nqc-census/rmc016-dual-receipt-inputs.json
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Independently authenticate exact successful event source ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          id="$(jq -r '.source.run_id' "$INPUTS")"
+          sha="$(jq -r '.source.head_sha' "$INPUTS")"
+          tree="$(jq -r '.source.tree_sha' "$INPUTS")"
+          artifact="$(jq -r '.source.artifact_id' "$INPUTS")"
+          digest="$(jq -r '.source.artifact_digest' "$INPUTS")"
+          run_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id")"
+          artifact_json="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
+          test "$(jq -r '.status' <<<"$run_json")" = completed
+          test "$(jq -r '.conclusion' <<<"$run_json")" = success
+          test "$(jq -r '.head_sha' <<<"$run_json")" = "$sha"
+          test "$(jq -r '.name' <<<"$run_json")" = "NQC RMC-016 Full Liquidation Ledger Discovery"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$sha" --jq '.tree.sha')" = "$tree"
+          test "$(jq -r '.expired' <<<"$artifact_json")" = false
+          test "$(jq -r '.workflow_run.id' <<<"$artifact_json")" = "$id"
+          test "$(jq -r '.name' <<<"$artifact_json")" = \
+            "rmc016-full-liquidation-events-abe54f1f23bd7bff8c37871200f7da7c59c45ac3"
+          test "$(jq -r '.digest' <<<"$artifact_json")" = "$digest"
+          mkdir -p "$RUNNER_TEMP/nqc016-source"
+          curl --fail --location --silent --show-error --retry 2 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact/zip" \
+            -o "$RUNNER_TEMP/nqc016-source/source.zip"
+          printf '%s  %s\n' "$(jq -r '.source.artifact_digest|sub("^sha256:";"")' "$INPUTS")" \
+            "$RUNNER_TEMP/nqc016-source/source.zip" | sha256sum --check --strict
+          echo "SOURCE_ZIP=$RUNNER_TEMP/nqc016-source/source.zip" >> "$GITHUB_ENV"
+          echo "SOURCE_SHA=$(jq -r '.source.artifact_digest|sub("^sha256:";"")' "$INPUTS")" >> "$GITHUB_ENV"
+      - name: Verify 127 winner receipts from dRPC and BlastAPI and reconcile gas in wei
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/rmc016_two_operator_receipts.py \
+            --event-zip "$SOURCE_ZIP" \
+            --event-sha256 "$SOURCE_SHA" \
+            --providers drpc blast \
+            --min-interval 2 \
+            --out "$RUNNER_TEMP/nqc016-dual-receipts"
+          jq -e '
+            .status == "RMC016_TWO_OPERATOR_RECEIPT_CONSISTENCY_ONLY" and
+            .winner_transaction_count == 127 and
+            .event_count == 139 and
+            .independent_source_log_completeness_certified == false and
+            .gas_usd_conversion_completed == false and
+            .fifteen_cost_categories_proven == false and
+            .operator_gas_funding_proven == false and
+            .nexus_execution_proven == false and
+            .nexus_capture_calibrated == false and
+            .nexus_net_pnl_proven == false and
+            .real_market_census_closed == false and
+            .monthly_nexus_pnl_usd == null
+          ' "$RUNNER_TEMP/nqc016-dual-receipts/receipt-parity-report.json" >/dev/null
+          (cd "$RUNNER_TEMP/nqc016-dual-receipts" && sha256sum -c archive.sha256)
+          echo RMC016_HISTORICAL_WINNER_RECEIPT_PARITY_PASS_NOT_NEXUS_PNL
+      - name: Preserve append-only authoritative-or-blocked receipt diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-dual-winner-receipts-${{ github.sha }}
+          path: ${{ runner.temp }}/nqc016-dual-receipts/
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
