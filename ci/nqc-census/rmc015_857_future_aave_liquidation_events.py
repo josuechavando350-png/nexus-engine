@@ -144,14 +144,64 @@ def fetch_one(provider,source_members,*,call=rpc):
     }
 
 
+def independently_supported_archives(*,call=rpc,candidates=None):
+    """Reject historical log-limited free RPCs before claiming any full-window census.
+
+    First 480 historical blocks are a real provider capability preflight;
+    the full window is still required to complete on the selected two.
+    No paid endpoint, API key, account signup or historical-result fallback.
+    """
+    order=("blast","publicnode","llama","blockpi","blockscout","drpc")
+    if candidates is None:
+        candidates=[next(p for p in PROVIDERS if p[0]==name) for name in order]
+    need(len(candidates)>=2 and
+         len({p[0] for p in candidates})==len(candidates) and
+         len({p[1] for p in candidates})==len(candidates) and
+         len({p[2] for p in candidates})==len(candidates),
+         "preflight candidate providers not independently identified")
+    selected=[]
+    rejected=[]
+    lo=START
+    hi=min(START+CHUNK-1,END)
+    for p in candidates:
+        pid,operator,url=p
+        try:
+            need(call(url,"eth_chainId",[])=="0x1","not Ethereum")
+            hdr=parent.checked_header(
+                call(url,"eth_getBlockByNumber",[hex(START),False]),START)
+            need(hdr["parent_hash"]==source.ANCHOR_HASH,
+                 "provider source predecessor hash mismatch")
+            raw=call(url,"eth_getLogs",[{
+                "address":AAVE_POOL,"topics":[LIQUIDATION_TOPIC],
+                "fromBlock":hex(lo),"toBlock":hex(hi)}])
+            need(type(raw) is list and len(raw)<10000,
+                 "provider cannot supply bounded historical event logs")
+            for item in raw: check_log(item,lo,hi)
+            selected.append(p)
+        except Exception as error:
+            rejected.append({"provider_id":pid,
+                             "operator":operator,
+                             "reason":"HISTORICAL_LOGS_NOT_AUTHENTICATABLE_ON_PUBLIC_RPC",
+                             "error_type":type(error).__name__,
+                             "detail":str(error)[:180]})
+        if len(selected)==2:
+            break
+    need(len(selected)==2 and selected[0][1]!=selected[1][1],
+         "two independent public archive RPCs with actual historic logs unavailable: "+
+         json.dumps(rejected,sort_keys=True))
+    return selected,rejected
+
+
 def assess(summary,watchlist_blob,*,call=rpc,providers=None):
     original=parent.all_preselected(summary,watchlist_blob)
     members={r["account"] for r in original}
     need(len(members)==857,"source fixed cohort missing accounts")
-    providers=providers or [x for x in PROVIDERS if x[0] in ("drpc","blast")]
-    need(len(providers)==2 and [x[0] for x in providers]==["drpc","blast"]
-         and providers[0][1]!=providers[1][1]
-         and providers[0][2]!=providers[1][2],
+    if providers is None:
+        providers,rejections=independently_supported_archives(call=call)
+    else:
+        rejections=[]
+    need(len(providers)==2 and providers[0][0]!=providers[1][0] and
+         providers[0][1]!=providers[1][1] and providers[0][2]!=providers[1][2],
          "two independent historical RPC operators/endpoints mandatory")
     a,b=[fetch_one(x,members,call=call) for x in providers]
     fields=( "source_anchor_hash","start_hash","end_hash",
@@ -185,6 +235,9 @@ def assess(summary,watchlist_blob,*,call=rpc,providers=None):
        "all_liquidation_event_commitment_sha256":a["canonical_public_event_commitment_sha256"],
        "source_cohort_matched_event_commitment_sha256":a["matched_cohort_event_commitment_sha256"],
        "real_independent_operator_consensus":True,
+       "observed_successful_public_rpc_operator_ids":[a["provider_id"],b["provider_id"]],
+       "refused_other_public_rpc_operators":rejections,
+       "paid_archive_rpc_credentials_or_services_used":False,
        "winners_are_third_parties_not_NQC":True,
        "matched_winners_profit_after_builder_inclusion_proven":False,
        "short_lived_unexecuted_liquidatable_opportunities_exhaustive":False,
