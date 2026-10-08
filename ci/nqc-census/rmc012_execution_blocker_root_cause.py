@@ -121,8 +121,9 @@ def parse_actionability(actions,promotions):
          "D12 432/42 actionability conservation mismatch")
     candidate_ids={r.get("candidate_id") for r in admitted}
     need(len(candidate_ids)==len(admitted),"duplicate admitted actionability candidate")
-    need(len({p.get("actionable_candidate_id") for p in promotions})==len(promotions),
-         "duplicate capital-promotion candidate identity")
+    promoted_ids={p.get("actionable_candidate_id") for p in promotions}
+    need(len(promoted_ids)==len(promotions) and promoted_ids==candidate_ids,
+         "capital-promoted candidate identities do not exactly match admitted actionability")
     need(all(p.get("capital_status")=="REJECTED" and
              p.get("rejection_reason")=="EXECUTION_BLOCKED" and
              p.get("funding_scope")=="PRINCIPAL_AND_FLASH_SETTLEMENT_ONLY_GAS_UNCERTIFIED" and
