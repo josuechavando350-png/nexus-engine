@@ -40,7 +40,7 @@ jobs:
           PARENT="96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a"
           git merge-base --is-ancestor "$PARENT" HEAD
           test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = \
-            "5d5ed3635a426d686c8a98aa3547fd5b9b95aa"
+            "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
           python3 ci/nqc-census/test_rmc016_probe_historical_rpc.py
           python3 -m py_compile \
             ci/nqc-census/rmc016_probe_historical_rpc.py \
