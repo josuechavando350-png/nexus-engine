@@ -283,7 +283,10 @@ fn discovers_exact_borrow_cap_upper_bound_from_authenticated_d08() -> TestResult
         Some(format!("{:064x}", 1_000_000_000_u64))
     );
     assert_eq!(
-        facility.borrow_cap_remaining.as_ref().map(|cap| cap.to_hex()),
+        facility
+            .borrow_cap_remaining
+            .as_ref()
+            .map(|cap| cap.to_hex()),
         Some(format!("{:064x}", 600_000_000_u64))
     );
     assert_eq!(
