@@ -6,6 +6,7 @@ import importlib.util
 import json
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 MODULE_PATH = Path("ci/nqc-census/verify-rmc011-capital-source-universe.py")
 SPEC = importlib.util.spec_from_file_location("rmc011_universe", MODULE_PATH)
@@ -46,23 +47,30 @@ def resolve_all_families(doc: dict) -> None:
 
 
 def validate_with_complete_scope(doc: dict) -> dict:
+    # Hypothetical FUTURE source readiness is tested entirely in-memory.
+    # The canonical scope file must never be rewritten in a synthetic test.
     scope_path = Path("ci/nqc-census/capital-census-scope.json")
-    original = scope_path.read_text()
-    scope = json.loads(original)
-    scope["claims"]["capital_source_universe_complete"] = True
-    scope_path.write_text(json.dumps(scope, indent=2) + "\n")
-    try:
+    original_read = Path.read_text
+
+    def mocked_read(path: Path, *args, **kwargs) -> str:
+        raw = original_read(path, *args, **kwargs)
+        if path == scope_path:
+            scope = json.loads(raw)
+            assert scope["claims"]["capital_source_universe_complete"] is False
+            scope["claims"]["capital_source_universe_complete"] = True
+            return json.dumps(scope)
+        return raw
+
+    with patch.object(Path, "read_text", new=mocked_read):
         return mod.validate_document(doc)
-    finally:
-        scope_path.write_text(original)
 
 
 class SourceUniverseTests(unittest.TestCase):
     def test_current_blocked_contract_is_valid(self) -> None:
         result = mod.validate_document(copy.deepcopy(BASE))
         self.assertEqual(result["family_count"], 13)
-        self.assertEqual(result["resolved_count"], 0)
-        self.assertEqual(result["unresolved_count"], 13)
+        self.assertEqual(result["resolved_count"], 7)
+        self.assertEqual(result["unresolved_count"], 6)
         self.assertFalse(result["family_universe_discovery_complete"])
         self.assertFalse(result["terminal_claim_allowed"])
         self.assertFalse(result["d11_terminal_closed"])
@@ -129,6 +137,7 @@ class SourceUniverseTests(unittest.TestCase):
         row = next(row for row in doc["families"] if row["real_source_path"] is None)
         row["status"] = "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE"
         row["terminally_resolved"] = True
+        row["resolution_evidence"] = None
         with self.assertRaises(mod.UniverseError):
             mod.validate_document(doc)
 
@@ -180,7 +189,10 @@ class SourceUniverseTests(unittest.TestCase):
 
     def test_model_only_cannot_smuggle_real_source_path(self) -> None:
         doc = copy.deepcopy(BASE)
-        row = next(row for row in doc["families"] if row["status"] == "MODEL_ONLY")
+        row = next(row for row in doc["families"] if row["id"] == "BOND_OR_STAKE")
+        row["status"] = "MODEL_ONLY"
+        row["terminally_resolved"] = False
+        row["resolution_evidence"] = None
         row["real_source_path"] = "fake/path"
         with self.assertRaises(mod.UniverseError):
             mod.validate_document(doc)
@@ -193,7 +205,10 @@ class SourceUniverseTests(unittest.TestCase):
             for row in doc["families"]
             if row["id"] == "EXTERNAL_GAS_SPONSOR"
         )
-        self.assertEqual(row["status"], "SEMANTIC_ADMISSION_IMPLEMENTED")
+        self.assertEqual(row["status"], "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE")
+        row["status"] = "SEMANTIC_ADMISSION_IMPLEMENTED"
+        row["terminally_resolved"] = False
+        row["resolution_evidence"] = None
         row["real_source_path"] = "fake/path"
         with self.assertRaises(mod.UniverseError):
             mod.validate_document(doc)
@@ -205,7 +220,10 @@ class SourceUniverseTests(unittest.TestCase):
             for row in doc["families"]
             if row["id"] == "TRANSIENT_EXTERNAL_CREDIT"
         )
-        self.assertEqual(row["status"], "SEMANTIC_ADMISSION_IMPLEMENTED")
+        self.assertEqual(row["status"], "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE")
+        row["status"] = "SEMANTIC_ADMISSION_IMPLEMENTED"
+        row["terminally_resolved"] = False
+        row["resolution_evidence"] = None
         row["real_source_path"] = (
             "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs"
         )
