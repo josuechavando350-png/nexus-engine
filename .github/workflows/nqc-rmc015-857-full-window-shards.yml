@@ -5,6 +5,7 @@ on:
       - '.github/workflows/nqc-rmc015-857-full-window-shards.yml'
       - 'ci/nqc-census/rmc015_857_window_shard_continuation.py'
       - 'ci/nqc-census/test_rmc015_857_window_shard_continuation.py'
+      - 'ci/nqc-census/RMC015_BLAST_BLOCKSCOUT_ORIGINAL_QUORUM_CONTRACT.md'
       - 'ci/nqc-census/RMC015_857_FULL_WINDOW_14_SHARD_CONTINUATION.md'
   workflow_dispatch:
 permissions:
@@ -36,6 +37,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/nqc015-causal/public" "$RUNNER_TEMP/nqc015-causal/private"
           sha256sum ci/nqc-census/rmc015_857_window_shard_continuation.py \
                     ci/nqc-census/test_rmc015_857_window_shard_continuation.py \
+                    ci/nqc-census/RMC015_BLAST_BLOCKSCOUT_ORIGINAL_QUORUM_CONTRACT.md \
                     ci/nqc-census/RMC015_857_FULL_WINDOW_14_SHARD_CONTINUATION.md \
             > "$RUNNER_TEMP/nqc015-causal/public/producer-source.sha256"
           echo NQC_015_FIXED_COHORT_FULL_SUCCESSOR_WINDOW_ADVERSARIAL_TESTS_PASS
