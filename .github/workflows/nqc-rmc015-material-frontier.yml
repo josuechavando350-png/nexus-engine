@@ -93,6 +93,8 @@ jobs:
             .realized_profitability_proven == false and
             .execution_or_capital_feasibility_proven == false and
             .lookahead_used == false and .extrapolation_used == false and
+            .retrospective_backtest_admitted == false and
+            .earliest_ex_ante_evaluation_block == 26095352 and
             .anchor.block_number == 26095351 and
             .underwater_accounts == 400 and
             .debt_accounts == 28275 and
