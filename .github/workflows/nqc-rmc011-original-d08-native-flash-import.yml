@@ -9,6 +9,9 @@ on:
       - 'ci/nqc-census/test_rmc011_original_d08_native_flash_import.py'
       - 'ci/nqc-census/RMC011_ORIGINAL_D08_NATIVE_FLASH_IMPORT.md'
       - 'nqc-census/crates/nqc-census-capital/src/upstream.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/artifacts.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/lib.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/bin/nqc-rmc011-capital-build.rs'
   pull_request:
     paths:
       - '.github/workflows/nqc-rmc011-original-d08-native-flash-import.yml'
@@ -16,6 +19,9 @@ on:
       - 'ci/nqc-census/test_rmc011_original_d08_native_flash_import.py'
       - 'ci/nqc-census/RMC011_ORIGINAL_D08_NATIVE_FLASH_IMPORT.md'
       - 'nqc-census/crates/nqc-census-capital/src/upstream.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/artifacts.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/lib.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/bin/nqc-rmc011-capital-build.rs'
   workflow_dispatch:
 permissions:
   contents: read
@@ -61,7 +67,8 @@ jobs:
           cd nqc-census
           cargo fmt --all -- --check
           cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
-          cargo test --locked -p nqc-census-capital --lib
+          cargo test --locked -p nqc-census-capital
+          cargo test --locked --workspace
           cargo build --release --locked -p nqc-census-capital \
             --bin nqc-rmc011-authority-lock-build \
             --bin nqc-rmc011-capital-build \
