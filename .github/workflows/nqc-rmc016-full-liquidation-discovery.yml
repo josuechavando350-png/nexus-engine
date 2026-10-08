@@ -1,0 +1,102 @@
+name: NQC RMC-016 Full Liquidation Ledger Discovery
+
+on:
+  push:
+    branches:
+      - 'nqc/rmc016-full-liquidation-ledger-20261008'
+    paths:
+      - 'ci/nqc-census/rmc016_collect_winner_events.py'
+      - 'ci/nqc-census/test_rmc016_collect_winner_events.py'
+      - 'ci/nqc-census/RMC016_FULL_LIQUIDATION_LEDGER_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-full-liquidation-discovery.yml'
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc016_collect_winner_events.py'
+      - 'ci/nqc-census/test_rmc016_collect_winner_events.py'
+      - 'ci/nqc-census/RMC016_FULL_LIQUIDATION_LEDGER_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-full-liquidation-discovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-rmc016-full-liquidation-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  exact-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify D16 economic authority and execute adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = \
+            "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
+          python3 ci/nqc-census/test_rmc016_probe_historical_rpc.py
+          python3 ci/nqc-census/test_rmc016_collect_winner_events.py
+          python3 -m py_compile \
+            ci/nqc-census/rmc016_collect_winner_events.py \
+            ci/nqc-census/test_rmc016_collect_winner_events.py
+          jq -e '
+            .authority.window.start_block == 25880316 and
+            .authority.window.end_block == 26095351 and
+            .authority.definite_transaction_count == 127 and
+            .authority.definite_episode_count == 139 and
+            .authority.nqc_capture_probability_lower_bound_wad == "0" and
+            .authority.nqc_conservative_realizable_capacity_usd_wad == "0" and
+            .authority.month1_300k_target_proven == false
+          ' ci/nqc-census/rmc016-production-evidence.json >/dev/null
+          echo RMC016_FULL_LOG_SCANNER_OFFLINE_TESTS_PASS
+
+  full-history-observation:
+    needs: exact-preflight
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Read-only exact-window Blockscout LiquidationCall enumeration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/rmc016_collect_winner_events.py \
+            --provider blockscout \
+            --chunk 8192 \
+            --max-calls 1200 \
+            --out "$RUNNER_TEMP/rmc016-full-liquidation"
+          report="$RUNNER_TEMP/rmc016-full-liquidation/discovery-report.json"
+          jq -e '
+            .status == "RMC016_SINGLE_SOURCE_WINNER_EVENTS_COUNTS_RECONCILED" and
+            .chain_id == 1 and
+            .coverage_complete == true and
+            .liquidation_event_count == 139 and
+            .unique_winner_transaction_count == 127 and
+            .counts_match_source_certificate == true and
+            .independent_provider_consensus == false and
+            .nexus_pnl_proven == false and
+            .own_capital_funding_proven == false and
+            .real_market_census_closed == false and
+            .nexus_net_pnl_monthly_usd == null
+          ' "$report" >/dev/null
+          (cd "$RUNNER_TEMP/rmc016-full-liquidation" && sha256sum -c archive.sha256)
+          echo RMC016_FULL_SINGLE_SOURCE_DISCOVERY_SUCCESS_NOT_NET_PNL
+      - name: Preserve immutable public-chain discovery or fail-closed diagnosis
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-full-liquidation-events-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc016-full-liquidation/
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
