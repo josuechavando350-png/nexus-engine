@@ -82,19 +82,33 @@ def load_prior(path, expected_sha, drpc, events, txids):
     need(hashes==PREVIOUS_MEMBERS-{"archive.sha256"},"prior archive checksum incomplete")
     report=json.loads(contents["receipt-parity-report.json"])
     need(type(report) is dict and
-         report.get("status")=="RMC016_SECOND_OPERATOR_RECEIPT_VALIDATION_BLOCKED" and
-         report.get("independent_receipt_parity_complete") is False and
-         report.get("nexus_realized_pnl_proven") is False and
+         report.get("status") in {
+            "RMC016_SECOND_OPERATOR_RECEIPT_VALIDATION_BLOCKED",
+            "RMC016_SECOND_OPERATOR_BATCH_CHECKPOINT_PARTIAL"
+         } and report.get("nexus_realized_pnl_proven") is False and
          report.get("real_market_census_closed") is False and
-         report.get("first_operator")=="dRPC" and
-         report.get("second_operator")=="Blockscout" and
-         report.get("dRPC_receipts_verified_from_checkpoint")==127 and
-         report.get("historical_source_artifact_sha256")==SOURCE_ARTIFACT_SHA256 and
-         report.get("prior_drpc_checkpoint_artifact_sha256")==DRPC_CHECKPOINT_SHA256,
+         report.get("historical_source_artifact_sha256",
+                    report.get("source_event_artifact_sha256"))==SOURCE_ARTIFACT_SHA256 and
+         report.get("prior_drpc_checkpoint_artifact_sha256",
+                    report.get("drpc_source_checkpoint_artifact_sha256"))==DRPC_CHECKPOINT_SHA256,
          "prior Blockscout source boundary differs")
+    if report["status"]=="RMC016_SECOND_OPERATOR_RECEIPT_VALIDATION_BLOCKED":
+        need(report.get("independent_receipt_parity_complete") is False and
+             report.get("first_operator")=="dRPC" and
+             report.get("second_operator")=="Blockscout" and
+             report.get("dRPC_receipts_verified_from_checkpoint")==127,
+             "prior failed-run stages differ")
+    else:
+        need(report.get("all_127_receipts_cross_operator_reconciled") is False and
+             report.get("independent_full_window_log_consensus") is False and
+             report.get("nexus_gas_funding_proven") is False and
+             report.get("nexus_execution_proven") is False and
+             report.get("nexus_capture_probability_calibrated") is False,
+             "prior batch exceeds receipt-only authority")
     prior_raw=contents["verified-blockscout-receipts.jsonl"]
-    need(type(report.get("partial_evidence_sha256")) is str and
-         sha(prior_raw)==report["partial_evidence_sha256"],
+    prev_digest=report.get("partial_evidence_sha256",
+                           report.get("verified_receipts_sha256"))
+    need(type(prev_digest) is str and sha(prior_raw)==prev_digest,
          "prior partial ledger SHA differs")
     need(prior_raw.endswith(b"\n"), "prior partial ledger not newline-terminated")
     rows=[]
@@ -106,9 +120,17 @@ def load_prior(path, expected_sha, drpc, events, txids):
         need(tx not in observed,"duplicate prior receipt")
         observed.add(tx)
         rows.append(row)
-    count=report.get("blockscout_receipts_verified")
+    count=report.get("blockscout_receipts_verified",
+                     report.get("verified_receipt_count"))
     need(type(count) is int and 0<count<127 and count==len(rows),
          "prior checkpoint has wrong count")
+    if report["status"]=="RMC016_SECOND_OPERATOR_BATCH_CHECKPOINT_PARTIAL":
+        need(type(report.get("remaining_receipt_count")) is int and
+             report["remaining_receipt_count"]==127-count and
+             type(report.get("new_receipt_count")) is int and
+             0<report["new_receipt_count"]<=8 and
+             report.get("historical_liquidation_event_count")==139,
+             "prior batch chain did not conserve 127/139")
     need([r["transaction_hash"] for r in rows]==txids[:count],
          "prior receipt identities are not an exact sorted prefix")
     return rows
