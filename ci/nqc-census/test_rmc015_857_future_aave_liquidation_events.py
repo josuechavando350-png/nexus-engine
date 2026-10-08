@@ -22,7 +22,7 @@ def event(block,number,borrower,collateral=ASSET,debt=ASSET):
         "address":m.AAVE_POOL,"topics":[m.LIQUIDATION_TOPIC,t(collateral),t(debt),t(borrower)],
         "data":"0x"+f"{100:064x}"+f"{110:064x}"+f"{int(SENDER,16):064x}"+f"{0:064x}",
         "blockNumber":hex(block),"blockHash":T if block==src.FIRST else U,
-        "transactionHash":"0x"+f"{number+1:064x}","logIndex":hex(number),
+        "transactionHash":"0x"+f"{(block<<8)+number+1:064x}","logIndex":hex(number),
         "transactionIndex":hex(number),"removed":False
     }
 
