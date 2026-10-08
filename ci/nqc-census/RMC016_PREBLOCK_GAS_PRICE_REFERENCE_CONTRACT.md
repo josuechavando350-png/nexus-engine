@@ -20,3 +20,11 @@ Production CI authenticates all three immutable run/head/tree/artifact-name/dige
 ## Planned next gates
 
 Continue through all 123 unique observed winning blocks under independently corroborated, rate-safe acquisition, then historical oracle pricing of the 23 unique underlying assets (13 appearing as debt and 18 as collateral, with overlapping roles) from the certified 139 event legs, historical decimals/configuration, flash premiums, route costs and Nexus ex-ante feasibility. All observations must remain partitioned by transaction with integer arithmetic and no assumed capture.
+
+## Second immutable historical gas reference batch (blocks 6–10 of 123)
+
+This batch is explicitly **offset 5, count 5**, over the sorted 123 distinct winner blocks. Previous source [GitHub run 37724463691](https://github.com/josuechavando350-png/nexus-engine/actions/runs/37724463691) completed successfully at code commit `1e612f07344425dd32328f145d6b443ea6c13170`, tree `8a1449282ca4cdecbfa32fce704cf871c7201cfc`, artifact `11526732517`, outer SHA-256 `638c24697432ca5b5dd1651ddd1adb494489a6f49714afedac414809e3b5acd5`.
+
+Before querying another block, independently reauthenticate that exact workflow, commit/tree, artifact identity and outer/inner SHA-256; then verify source coverage of exactly sorted blocks indices 0–4, compare evidence timestamps and per-block transaction counts to exact dRPC receipt sources, and reject any overlap with blocks 5–9. On failure, stop without trying to estimate missing prices or promoting the prior batch to terminal money authority.
+
+Reference gas price remains **previous block end only**, from two independently operated RPC providers, and deliberately differs from a certified transaction prestate price. The prior 5-block result is not extrapolated to the rest of the month. Both batches are source observations of competitors, never Nexus cash flow or profit. No final Census closeout.
