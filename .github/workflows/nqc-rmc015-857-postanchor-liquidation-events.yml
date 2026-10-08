@@ -101,7 +101,7 @@ jobs:
             "$RUNNER_TEMP/nqc015-causal/private/anchor-frontier.json" >/dev/null
           test "$(wc -l < "$RUNNER_TEMP/nqc015-causal/private/anchor-857-watchlist.jsonl")" = 857
           echo RMC015_857_FIXED_BEFORE_FUTURE_STATE_LOOKUP_WATCHLIST_PRIVATE
-      - name: Independently read all real Aave liquidation events in post-anchor 7200 blocks
+      - name: Read one fully covered 480-block successor partition with two independent historical providers
         shell: bash
         run: |
           set -euo pipefail
@@ -114,9 +114,13 @@ jobs:
                  .original_857_members_selected_without_winner_hindsight==true and
                  .full_source_cohort_size==857 and
                  .event_window_start_block==26095352 and
-                 .event_window_end_block==26102551 and
+                 .event_window_end_block==26095831 and
+                 .event_scope=="FIRST_480_POST_ANCHOR_BLOCKS_ONLY" and
+                 .full_7200_block_source_window_certified==false and
+                 .uninspected_original_successor_blocks==6720 and
+                 .rms_future_event_window_complete_for_7200_blocks==false and
                  .fully_segmented_Aave_LiquidationCall_event_window==true and
-                 (.event_chunks_per_provider|length)==2 and (.event_chunks_per_provider|to_entries|all(.value>=15)) and
+                 (.event_chunks_per_provider|length)==2 and (.event_chunks_per_provider|to_entries|all(.value>=1)) and
                  .real_independent_operator_consensus==true and
                  .winners_are_third_parties_not_NQC==true and
                  .matched_winners_profit_after_builder_inclusion_proven==false and

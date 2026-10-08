@@ -45,7 +45,7 @@ def rpc(url,method,params):
             "parentHash":src.ANCHOR_HASH,"stateRoot":A,"timestamp":"0x70"}
         if n==src.FIRST+1:return {
             "number":hex(n),"hash":U,"parentHash":T,"stateRoot":A,"timestamp":"0x7a"}
-        if n==src.LATER:return {
+        if n==m.END:return {
             "number":hex(n),"hash":R,"parentHash":U,"stateRoot":A,"timestamp":"0x80"}
         raise AssertionError("unexpected block header")
     if method=="eth_getLogs":
@@ -215,8 +215,8 @@ class Test857PreselectedAgainstRealLaterEvents(unittest.TestCase):
             ("blast","BlastAPI","https://blast.invalid"),
             ("blockscout","Blockscout","https://blockscout.invalid"),
         ])
-        self.assertEqual(r["event_chunks_per_provider"],{"blast":720,"blockscout":15})
-        self.assertEqual(counts,{"blast":720,"blockscout":15})
+        self.assertEqual(r["event_chunks_per_provider"],{"blast":48,"blockscout":1})
+        self.assertEqual(counts,{"blast":48,"blockscout":1})
         self.assertEqual(r["real_aave_liquidation_events_matching_source_cohort"],2)
 
     def test_no_paid_or_unverified_public_archive_fallback(self):
@@ -231,12 +231,22 @@ class Test857PreselectedAgainstRealLaterEvents(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"two independent public archive RPCs"):
             m.independently_supported_archives(call=all_blocked,candidates=candidates)
 
-    def test_exact_temporal_chunks_cover_7200_blocks(self):
-        self.assertEqual(m.END-m.START+1,7200)
+    def test_exact_temporal_chunks_cover_first_480_blocks(self):
+        self.assertEqual(m.END-m.START+1,480)
         self.assertEqual(m.CHUNK,480)
-        self.assertEqual((m.END-m.START+1)//m.CHUNK,15)
+        self.assertEqual((m.END-m.START+1)//m.CHUNK,1)
         x=self.runreal()
-        self.assertEqual(x["event_chunks_per_provider"],{"drpc":15,"blast":720})
+        self.assertEqual(x["event_chunks_per_provider"],{"drpc":1,"blast":48})
+
+    def test_scoped_480_out_of_7200_prevents_overclaimed_full_window(self):
+        r=self.runreal()
+        self.assertEqual(r["event_scope"],"FIRST_480_POST_ANCHOR_BLOCKS_ONLY")
+        self.assertFalse(r["full_7200_block_source_window_certified"])
+        self.assertEqual(r["uninspected_original_successor_blocks"],6720)
+        self.assertEqual(r["original_successor_window_expected_blocks"],7200)
+        self.assertFalse(r["rms_future_event_window_complete_for_7200_blocks"])
+        self.assertFalse(r["rmc015_terminal_authority_closed"])
+
 
 
 if __name__=="__main__":

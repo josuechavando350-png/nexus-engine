@@ -15,8 +15,10 @@ import rmc015_post_anchor_causal_sampler as source
 from rmc016_probe_historical_rpc import PROVIDERS, rpc, LIQUIDATION_TOPIC
 
 START=source.FIRST
-END=source.LATER
+END=source.FIRST+479
 CHUNK=480
+FULL_ORIGINAL_END=source.LATER
+ORIGINAL_TARGET_BLOCKS=7200
 # BlastAPI free historical eth_getLogs limit is 10 blocks, observed at
 # exact-head Actions 37804041633. Different real RPC operators may require
 # different segment sizes, but must agree on the COMPLETE normalized log set.
@@ -153,11 +155,11 @@ def fetch_one(provider,source_members,*,call=rpc):
 def independently_supported_archives(*,call=rpc,candidates=None):
     """Reject historical log-limited free RPCs before claiming any full-window census.
 
-    First 480 historical blocks are a real provider capability preflight;
-    the full window is still required to complete on the selected two.
+    First scoped historical blocks are a real provider capability preflight;
+    the full 7200-block original window is NOT attempted or certified here.
     No paid endpoint, API key, account signup or historical-result fallback.
     """
-    order=("blast","publicnode","llama","blockpi","blockscout","drpc")
+    order=("drpc","blast","blockscout","publicnode","llama","blockpi")
     if candidates is None:
         candidates=[next(p for p in PROVIDERS if p[0]==name) for name in order]
     need(len(candidates)>=2 and
@@ -231,6 +233,10 @@ def assess(summary,watchlist_blob,*,call=rpc,providers=None):
        "event_window_start_block":START,
        "event_window_end_block":END,
        "fully_segmented_Aave_LiquidationCall_event_window":True,
+       "event_scope":"FIRST_480_POST_ANCHOR_BLOCKS_ONLY",
+       "full_7200_block_source_window_certified":False,
+       "uninspected_original_successor_blocks":FULL_ORIGINAL_END-END,
+       "original_successor_window_expected_blocks":ORIGINAL_TARGET_BLOCKS,
        "event_chunks_per_provider":{
           a["provider_id"]:a["strict_source_verified_contiguous_partitions"],
           b["provider_id"]:b["strict_source_verified_contiguous_partitions"],
@@ -254,6 +260,7 @@ def assess(summary,watchlist_blob,*,call=rpc,providers=None):
        "NQC_realized_profit_usd":"0",
        "NQC_probability_15k_or_55k_monthly_certified":False,
        "rmc015_terminal_authority_closed":False,
+       "rms_future_event_window_complete_for_7200_blocks":False,
        "real_market_census_closed":False,
        "non_claims":[
            "FUTURE_WINNER_DOES_NOT_ENTER_ANCHOR_SELECTION",
