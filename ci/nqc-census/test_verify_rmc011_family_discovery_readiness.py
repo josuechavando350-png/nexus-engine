@@ -78,8 +78,8 @@ class FamilyDiscoveryReadinessTests(unittest.TestCase):
         self.assertFalse(result["ready"])
         self.assertFalse(result["already_authenticated"])
         self.assertEqual(result["family_count"], 13)
-        self.assertEqual(result["resolved_count"], 7)
-        self.assertEqual(result["unresolved_count"], 6)
+        self.assertEqual(result["resolved_count"], 9)
+        self.assertEqual(result["unresolved_count"], 4)
         self.assertEqual(result["status"], "RMC011_FAMILY_DISCOVERY_BLOCKED")
 
     def test_all_thirteen_terminal_families_are_transport_ready(self) -> None:
@@ -107,8 +107,8 @@ class FamilyDiscoveryReadinessTests(unittest.TestCase):
         row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", 1)
         result = mod.validate_documents(copy.deepcopy(DISCOVERY), universe)
         self.assertFalse(result["ready"])
-        self.assertEqual(result["resolved_count"], 8)
-        self.assertEqual(result["unresolved_count"], 5)
+        self.assertEqual(result["resolved_count"], 10)
+        self.assertEqual(result["unresolved_count"], 3)
 
     def test_terminal_evidence_kind_mismatch_fails(self) -> None:
         universe = copy.deepcopy(UNIVERSE)
