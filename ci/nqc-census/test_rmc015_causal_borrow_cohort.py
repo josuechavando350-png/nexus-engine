@@ -300,5 +300,59 @@ class TestCausalBorrowCohort(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"canonical mismatch"):
             m.assess(call=bad,providers=self.fake_providers())
 
+    def test_public_archive_fallback_keeps_distinct_operator_quorum(self):
+        stub=StubRPC()
+        providers=[
+            ("publicnode","PublicNode","https://fail.invalid"),
+            ("blast","BlastAPI","https://b.invalid"),
+            ("drpc","dRPC","https://a.invalid"),
+        ]
+        def query(url,method,args):
+            if "fail.invalid" in url and method=="eth_getLogs":
+                raise ValueError("historical logs unsupported")
+            return stub(url,method,args)
+        with patch.object(m,"PROVIDERS",tuple(providers)):
+            r=m.assess(call=query)
+        self.assertEqual([x["provider_id"] for x in r["operator_features"]],
+                         ["blast","drpc"])
+        self.assertEqual(len(r["historical_rpc_unavailable_provider_ledger"]),1)
+        self.assertEqual(r["historical_rpc_unavailable_provider_ledger"][0]["provider_id"],
+                         "publicnode")
+        self.assertFalse(r["nqc_revenue_or_income_found"])
+        self.assertFalse(r["real_market_census_closed"])
+
+    def test_no_source_quorum_fails_and_never_calls_label_stage(self):
+        stub=StubRPC()
+        providers=[
+            ("publicnode","PublicNode","https://fail1.invalid"),
+            ("blast","BlastAPI","https://fail2.invalid"),
+        ]
+        def query(url,method,args):
+            if method=="eth_getLogs" and args[0].get("topics")==[m.BORROW_TOPIC]:
+                raise ValueError("no archive logs")
+            return stub(url,method,args)
+        with patch.object(m,"PROVIDERS",tuple(providers)):
+            with self.assertRaisesRegex(ValueError,"fewer than two independent"):
+                m.assess(call=query)
+        self.assertFalse(any(name=="eth_getBlockByNumber"
+                             and args==[hex(m.NEXT_BLOCK),False]
+                             for _,name,args in stub.calls))
+
+    def test_ambiguous_third_archive_quorum_not_used_to_mask_disagreement(self):
+        stub=StubRPC()
+        providers=[
+            ("publicnode","PublicNode","https://a.invalid"),
+            ("blast","BlastAPI","https://b.invalid"),
+            ("drpc","dRPC","https://c.invalid"),
+        ]
+        def query(url,method,args):
+            if url=="https://b.invalid" and method=="eth_call":
+                return account(m.WAD+10**14)
+            return stub(url,method,args)
+        with patch.object(m,"PROVIDERS",tuple(providers)):
+            with self.assertRaisesRegex(ValueError,"do not silently try a third opinion"):
+                m.assess(call=query)
+        self.assertFalse(any("c.invalid" in url for url,_,_ in stub.calls))
+
 if __name__=="__main__":
     unittest.main()
