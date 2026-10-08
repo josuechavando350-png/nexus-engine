@@ -792,3 +792,36 @@ fn downstream_source_reader_reconstructs_exact_canonical_source_set() -> TestRes
     );
     Ok(())
 }
+
+#[test]
+fn downstream_source_reader_fails_closed_on_corrupted_and_replayed_rows() -> TestResult {
+    let ledger = ledger()?;
+    let provenance = ArtifactProvenance::new(
+        "2023-11-14T22:13:20Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
+    let original = &bundle
+        .file(CAPITAL_SOURCES_FILE)
+        .ok_or("missing canonical sources")?
+        .bytes;
+
+    let mut truncated = original.clone();
+    assert_eq!(truncated.pop(), Some(b'\n'));
+    assert!(parse_capital_sources_artifact(&truncated).is_err());
+
+    let mut bad_tail = original.clone();
+    bad_tail.extend_from_slice(b"{bad-json}\n");
+    assert!(parse_capital_sources_artifact(&bad_tail).is_err());
+
+    let mut noncanonical = original.clone();
+    noncanonical.insert(1, b' ');
+    assert!(parse_capital_sources_artifact(&noncanonical).is_err());
+
+    let mut duplicate = original.clone();
+    duplicate.extend_from_slice(original);
+    assert!(parse_capital_sources_artifact(&duplicate).is_err());
+
+    Ok(())
+}

@@ -156,20 +156,34 @@ pub struct CapitalArtifactVerification {
 /// authenticated RMC-011 archive without reimplementing its readable/canonical
 /// record binding.
 pub fn parse_capital_sources_artifact(bytes: &[u8]) -> Result<Vec<CapitalSource>, CapitalError> {
-    let records = parse_jsonl(bytes)?;
-    let mut sources = Vec::with_capacity(records.len());
+    if !bytes.is_empty() && !bytes.ends_with(b"\n") {
+        return Err(CapitalError::InvalidCanonical(
+            "capital JSONL must end with newline",
+        ));
+    }
+    // D11 can contain more than a million canonical sources. Verify each
+    // record as it is decoded: retaining a second Vec<Json> alongside the
+    // resulting Vec<CapitalSource> needlessly duplicates the entire universe.
+    // Preserve every provenance, identity, canonical-byte and duplicate check.
+    let mut sources = Vec::new();
     let mut source_ids = BTreeSet::new();
     let mut source_key_ids = BTreeSet::new();
     let mut common_provenance: Option<ArtifactProvenance> = None;
 
-    for record in &records {
+    for line in bytes.split(|byte| *byte == b'\n') {
+        if line.is_empty() {
+            continue;
+        }
+        let record = Json::parse(line)
+            .map_err(|_| CapitalError::InvalidCanonical("invalid capital JSONL record"))?;
+        require_canonical_json(line, &record)?;
         let encoded = decode_plain_hex(
             record
                 .str_field("canonical_record")
                 .map_err(|_| CapitalError::InvalidCanonical("source canonical record missing"))?,
         )?;
         let decoded = CapitalSource::decode_canonical(&encoded)?;
-        let provenance = record_provenance(record)?;
+        let provenance = record_provenance(&record)?;
         provenance.validate_anchor(decoded.anchor())?;
         if let Some(expected) = &common_provenance {
             if expected != &provenance {
@@ -180,7 +194,7 @@ pub fn parse_capital_sources_artifact(bytes: &[u8]) -> Result<Vec<CapitalSource>
         } else {
             common_provenance = Some(provenance.clone());
         }
-        if canonical(&source_record(&decoded, &provenance))? != canonical(record)? {
+        if canonical(&source_record(&decoded, &provenance))? != canonical(&record)? {
             return Err(CapitalError::InvalidCanonical(
                 "source readable fields differ from canonical record",
             ));
