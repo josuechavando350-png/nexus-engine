@@ -33,7 +33,10 @@ jobs:
           set -euo pipefail
           git merge-base --is-ancestor cc30f574dfab736723530df18c52f0afeb4f10cf HEAD
           test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
-          test "$(sha256sum ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol | cut -d' ' -f1)" = bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320
+          # Preserve the EXACT immutable raw Git blob used by formal T36 closeout.
+          # T36's SHA256 bbb596... was computed AFTER forge fmt, not on this
+          # unformatted repository source. Verify that separately after formatting.
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = aa3883fa141aa096006e90e56d8d4150c9ee14ef
           python3 ci/nqc-census/weth-physical/test_verify_weth_rpc.py
           python3 ci/nqc-census/weth-physical/test_verify_aave_a1_flash.py
           python3 -m py_compile ci/nqc-census/weth-physical/verify_aave_a1_flash.py
@@ -135,6 +138,7 @@ jobs:
           cd "$sandbox"
           forge fmt
           forge fmt --check
+          test "$(sha256sum src/NqcFlashFundingExecutor.sol | cut -d' ' -f1)" = bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320
           sha256sum foundry.toml src/NqcFlashFundingExecutor.sol \
             test/NqcRmc011AaveFlashPhysicalFork.t.sol \
             > "$RUNNER_TEMP/nqc-rmc011-aave-evidence/formatted-executed-sources.sha256"
