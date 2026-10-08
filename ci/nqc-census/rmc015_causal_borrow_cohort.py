@@ -285,7 +285,8 @@ def assess(*,call=rpc,providers=None):
             admitted.append(provider)
             frozen.append(observed)
         require(len(admitted)==2,
-                "fewer than two independent full historical RPC providers after explicit failures")
+                "fewer than two independent full historical RPC providers after explicit failures; "
+                +"errors="+json.dumps(failures,sort_keys=True,separators=(",",":")))
         providers=admitted
         f=frozen
     else:
