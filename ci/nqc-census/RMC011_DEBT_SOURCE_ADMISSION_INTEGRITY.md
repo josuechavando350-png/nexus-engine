@@ -28,6 +28,14 @@ From the exact feature head, run:
 
 The specialized GitHub Actions workflow also checks the pinned Git blob identity of the unchanged canonical RMC-011 capital universe, provider registry, and final-Census authority lock. It must remain **blocked**: 13 unresolved families, 0 authorized external providers, and no terminal Census closeout. No RPC requests, accounts, payments, wallet signing, or live trades.
 
+## Separate seven-family evidence transport defect
+
+A previously successful original source run, [Actions 37670688821](https://github.com/josuechavando350-png/nexus-engine/actions/runs/37670688821), published archive **11505471187** (ZIP SHA-256 `a8f289f5c6139c84051f1430e0df8a84ee48aaee42f44a049ac433647971db47`). Its recorded GitHub producing head is `284273331a0db6332af534e7d1184827708d23ba`, but its artifact name contains `5eec64fb169cf99b649ba727a8ebc603bd950c8a`, GitHub's PR merge commit. The source-family promotion gate requires that the artifact name contain **the exact producing source head**. Therefore the previously green run is insufficient for promotion without correcting the archive identity.
+
+The bounded-family evidence workflow now uses `github.event.pull_request.head.sha || github.sha` consistently for checkout, internal evidence head and artifact name, on both PR and push runs. Tests reject mock evidence named with the wrong SHA and check the workflow's exact interpolation. The workflow reruns its original seven-family exhaustive-rejection tests, and additionally runs the source-family promotion regressions.
+
+The new producer correction does **not** authorize retroactively renaming original immutable archives or pinning any RMC-011 family. First produce new archive bytes and reauthenticate the exact successful workflow run, artifact digest and per-family member hashes independently. Old mismatched artifacts stay mismatched; evidence must not be manufactured.
+
 ## Outstanding material blockers
 
 Authenticated 13-family capital discovery/resolution and *actual* nonrecourse native-gas underwriting are still required before D11 can close. D12 full actionability, D13 executable economics, D14 eight genuine stage pins, D15 temporal completeness, D16 conservative economics and D17 independent final adjudication remain separate. A negative terminal Census is allowed only when scope completeness and source authorities actually support it.
