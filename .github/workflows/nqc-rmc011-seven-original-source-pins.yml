@@ -99,7 +99,7 @@ jobs:
           cmp "$WORK/public/independent-seven-bounded.json" "$WORK/private/independent-replay.json"
           jq -e '.status=="RMC011_SEVEN_BOUNDED_REJECTIONS_INDEPENDENTLY_REAUTHENTICATED_NOT_D11" and
                  .rejected_families_within_nqc_configured_scope==7 and
-                 .remaining_unresolved_families==6 and
+                 .remaining_unresolved_families==4 and
                  .family_universe_discovery_certified==false and
                  .capital_truth_D11_terminal_closed==false and
                  .nqc_approved_external_gas_provider_count==0 and
