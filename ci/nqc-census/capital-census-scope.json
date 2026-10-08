@@ -11,7 +11,7 @@
     "capital_requirement_model": true,
     "capital_feasibility_model": true,
     "real_source_certification": false,
-    "capital_source_universe_complete": false,
+    "capital_source_universe_complete": true,
     "systemwide_zero_own_capital_capacity": false,
     "profitability": false,
     "shadow_execution": false,

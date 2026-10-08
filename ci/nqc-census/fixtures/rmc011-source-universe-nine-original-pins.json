@@ -2,86 +2,42 @@
   "schema_version": 2,
   "stage": "RMC-011",
   "contract": "NQC_RMC011_CAPITAL_SOURCE_UNIVERSE_V1",
-  "status": "CAPITAL_SOURCE_UNIVERSE_COMPLETE",
-  "terminal_claim_allowed": true,
+  "status": "BLOCKED_INCOMPLETE_SOURCE_UNIVERSE",
+  "terminal_claim_allowed": false,
   "unknown_family_count": 0,
   "observation_scope": "ETHEREUM_ANCHOR_BOUND_WHERE_APPLICABLE",
   "families": [
     {
       "id": "AAVE_V3_FLASH_LOAN",
       "capital_class": "PROTOCOL_NATIVE_FLASH_LOAN",
-      "status": "AUTHENTICATED_REAL_SOURCE",
+      "status": "SEMANTIC_ADMISSION_READY_NOT_AUTHENTICATED",
       "real_source_path": "RMC008_AAVE_V3",
-      "terminally_resolved": true,
-      "resolution_evidence": {
-        "kind": "AUTHENTICATED_REAL_SOURCE",
-        "repository": "josuechavando350-png/nexus-engine",
-        "workflow_name": "NQC RMC-011 Four Native Source Witness Producer (NOT D11 CLOSE)",
-        "run_id": 37839794172,
-        "head_sha": "0d6f9c685033500614e9f05d0d99965783f96659",
-        "artifact_id": 11576204678,
-        "artifact_name": "rmc011-four-native-source-certification-0d6f9c685033500614e9f05d0d99965783f96659-37839794172-1",
-        "artifact_digest": "sha256:16856326b33d92c679e7cd070c947bcf6628653d8bea4d3ebb851222bbf354eb",
-        "file": "protocol-family-evidence/families/AAVE_V3_FLASH_LOAN/evidence.json",
-        "sha256": "a4f979f07d54080feacef371f92f85a41df3469739487d65f6df9410aa6490ee"
-      }
+      "terminally_resolved": false,
+      "resolution_evidence": null
     },
     {
       "id": "UNISWAP_V2_FLASH_SWAP",
       "capital_class": "FLASH_SWAP",
-      "status": "AUTHENTICATED_REAL_SOURCE",
+      "status": "SEMANTIC_ADMISSION_READY_NOT_AUTHENTICATED",
       "real_source_path": "RMC008_UNISWAP_V2",
-      "terminally_resolved": true,
-      "resolution_evidence": {
-        "kind": "AUTHENTICATED_REAL_SOURCE",
-        "repository": "josuechavando350-png/nexus-engine",
-        "workflow_name": "NQC RMC-011 Four Native Source Witness Producer (NOT D11 CLOSE)",
-        "run_id": 37839794172,
-        "head_sha": "0d6f9c685033500614e9f05d0d99965783f96659",
-        "artifact_id": 11576204678,
-        "artifact_name": "rmc011-four-native-source-certification-0d6f9c685033500614e9f05d0d99965783f96659-37839794172-1",
-        "artifact_digest": "sha256:16856326b33d92c679e7cd070c947bcf6628653d8bea4d3ebb851222bbf354eb",
-        "file": "protocol-family-evidence/families/UNISWAP_V2_FLASH_SWAP/evidence.json",
-        "sha256": "dfee6380be7a222e27c7808a66b07578944f78a7e4008754da33e409d4130da3"
-      }
+      "terminally_resolved": false,
+      "resolution_evidence": null
     },
     {
       "id": "BALANCER_V2_FLASH_LOAN",
       "capital_class": "ATOMIC_FLASH_LIQUIDITY",
-      "status": "AUTHENTICATED_REAL_SOURCE",
+      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
       "real_source_path": "nqc-census/crates/nqc-census-capital/src/balancer_live.rs",
-      "terminally_resolved": true,
-      "resolution_evidence": {
-        "kind": "AUTHENTICATED_REAL_SOURCE",
-        "repository": "josuechavando350-png/nexus-engine",
-        "workflow_name": "NQC RMC-011 Four Native Source Witness Producer (NOT D11 CLOSE)",
-        "run_id": 37839794172,
-        "head_sha": "0d6f9c685033500614e9f05d0d99965783f96659",
-        "artifact_id": 11576204678,
-        "artifact_name": "rmc011-four-native-source-certification-0d6f9c685033500614e9f05d0d99965783f96659-37839794172-1",
-        "artifact_digest": "sha256:16856326b33d92c679e7cd070c947bcf6628653d8bea4d3ebb851222bbf354eb",
-        "file": "protocol-family-evidence/families/BALANCER_V2_FLASH_LOAN/evidence.json",
-        "sha256": "1152d08e5fabbd09c91ec7f6c2782dbda2d30c4855d3c81d91c136923c9a6b5c"
-      }
+      "terminally_resolved": false,
+      "resolution_evidence": null
     },
     {
       "id": "UNISWAP_V3_FLASH",
       "capital_class": "ATOMIC_FLASH_LIQUIDITY",
-      "status": "AUTHENTICATED_REAL_SOURCE",
+      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
       "real_source_path": "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs",
-      "terminally_resolved": true,
-      "resolution_evidence": {
-        "kind": "AUTHENTICATED_REAL_SOURCE",
-        "repository": "josuechavando350-png/nexus-engine",
-        "workflow_name": "NQC RMC-011 Four Native Source Witness Producer (NOT D11 CLOSE)",
-        "run_id": 37839794172,
-        "head_sha": "0d6f9c685033500614e9f05d0d99965783f96659",
-        "artifact_id": 11576204678,
-        "artifact_name": "rmc011-four-native-source-certification-0d6f9c685033500614e9f05d0d99965783f96659-37839794172-1",
-        "artifact_digest": "sha256:16856326b33d92c679e7cd070c947bcf6628653d8bea4d3ebb851222bbf354eb",
-        "file": "protocol-family-evidence/families/UNISWAP_V3_FLASH/evidence.json",
-        "sha256": "8943448a890bf9db757d706727273f91e0c68364902118ca4886834252e5e9c5"
-      }
+      "terminally_resolved": false,
+      "resolution_evidence": null
     },
     {
       "id": "EXTERNAL_GAS_CREDIT",
@@ -266,19 +222,8 @@
     "EXTERNAL_GAS_REQUIRES_AUTHENTICATED_REAL_SOURCE_EVIDENCE"
   ],
   "family_universe_discovery": {
-    "status": "AUTHENTICATED_COMPLETE",
-    "evidence": {
-      "kind": "AUTHENTICATED_DISCOVERY",
-      "repository": "josuechavando350-png/nexus-engine",
-      "workflow_name": "NQC RMC-011 Family Discovery Evidence",
-      "run_id": 37841923756,
-      "head_sha": "377aca59a85abbccd57e4f1831973416b9399b83",
-      "artifact_id": 11577503474,
-      "artifact_name": "rmc011-family-discovery-377aca59a85abbccd57e4f1831973416b9399b83-37841923756-1",
-      "artifact_digest": "sha256:9bd159b2d5f246fef9b62d7ad67c8cfa0010092a3e78f86548dba1da1cd8fbdc",
-      "file": "discovery-evidence.json",
-      "sha256": "ea24166dd495115bea25fcf9dea1cad6c9d27cab78d58803aeb9e3cc13202632"
-    },
+    "status": "NOT_CERTIFIED",
+    "evidence": null,
     "terminal_requirement": "AUTHENTICATED_COMPLETE"
   },
   "claim_scope": "SOURCE_UNIVERSE_READINESS_ONLY",

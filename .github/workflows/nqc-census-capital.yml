@@ -4,6 +4,7 @@ name: NQC RMC-011 Capital Census
 on:
   pull_request:
     paths:
+      - "ci/nqc-census/rmc011_discovery_test_fixtures.py"
       - "nqc-census/crates/nqc-census-capital/**"
       - "nqc-census/Cargo.toml"
       - "nqc-census/Cargo.lock"
@@ -57,10 +58,11 @@ jobs:
           grep -F '"pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf"' ci/nqc-census/capital-census-scope.json
           jq -e '
             .claims.real_source_certification == false and
-            .claims.capital_source_universe_complete == false and
             .claims.systemwide_zero_own_capital_capacity == false and
             .claims.profitability == false
           ' ci/nqc-census/capital-census-scope.json >/dev/null
+          # Derive readiness from both coupled documents; retain all economic nonclaims.
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           grep -F 'Zero-own-capital is a constraint to prove' ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
           grep -F '"source_universe_basis": "RMC008_CURRENT_STATE_PLUS_CANONICAL_PERMISSIONLESS_DISCOVERY_PLUS_AUTHENTICATED_EXTERNAL_REGISTRIES_AND_EXECUTION_PLAN_REQUIREMENT_CATALOGS"' ci/nqc-census/capital-census-scope.json
           grep -F '"global_capital_source_completeness": false' ci/nqc-census/capital-census-scope.json

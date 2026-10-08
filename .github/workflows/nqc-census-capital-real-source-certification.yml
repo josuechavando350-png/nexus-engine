@@ -4,6 +4,7 @@ name: NQC RMC-011 Real Source Certification
 on:
   pull_request:
     paths:
+      - "ci/nqc-census/rmc011_discovery_test_fixtures.py"
       - ".github/workflows/nqc-census-capital-real-source-certification.yml"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - "ci/nqc-census/capital-census-scope.json"
@@ -61,6 +62,7 @@ on:
       - "nqc/rmc-011-capital-census-foundation-20260929"
       - "nqc/rmc-011-derived-authority-lock-20260930"
     paths:
+      - "ci/nqc-census/rmc011_discovery_test_fixtures.py"
       - ".github/workflows/nqc-census-capital-real-source-certification.yml"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - "ci/nqc-census/capital-census-scope.json"

@@ -332,6 +332,15 @@ def validate_document(doc: dict) -> dict:
     require(doc.get("status") != "D11_TERMINAL_CLOSED", "source-universe file cannot close D11")
 
     claims = scope.get("claims", {})
+    # This contract grants readiness only in both pending and admitted states.
+    # Economic execution and D11 terminal authority belong to separate gates.
+    for claim in (
+        "real_source_certification", "systemwide_zero_own_capital_capacity",
+        "profitability", "shadow_execution", "canary", "real_pnl",
+        "global_capital_source_completeness", "repayment_cashflow_sufficiency",
+        "terminal_capital_census_closed", "actionability",
+    ):
+        require(claims.get(claim) is False, f"readiness-only scope cannot claim {claim}")
     if universe_complete:
         require(
             claims.get("capital_source_universe_complete") is True,

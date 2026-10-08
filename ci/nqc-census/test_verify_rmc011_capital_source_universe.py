@@ -6,7 +6,16 @@ import importlib.util
 import json
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+
+from rmc011_discovery_test_fixtures import (
+    CANONICAL_PATHS,
+    READINESS_ONLY_NONCLAIMS,
+    SCOPE_PATH,
+    UNIVERSE_PATH,
+    admitted_state,
+    in_memory_scope,
+    pending_state,
+)
 
 MODULE_PATH = Path("ci/nqc-census/verify-rmc011-capital-source-universe.py")
 SPEC = importlib.util.spec_from_file_location("rmc011_universe", MODULE_PATH)
@@ -14,8 +23,7 @@ assert SPEC is not None and SPEC.loader is not None
 mod = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(mod)
 
-BASE = json.loads(Path("ci/nqc-census/rmc011-capital-source-universe.json").read_text())
-SCOPE = json.loads(Path("ci/nqc-census/capital-census-scope.json").read_text())
+BASE, SCOPE = pending_state()
 
 
 def evidence(kind: str, byte: str) -> dict:
@@ -46,28 +54,19 @@ def resolve_all_families(doc: dict) -> None:
         row["terminally_resolved"] = True
 
 
-def validate_with_complete_scope(doc: dict) -> dict:
-    # Hypothetical FUTURE source readiness is tested entirely in-memory.
-    # The canonical scope file must never be rewritten in a synthetic test.
-    scope_path = Path("ci/nqc-census/capital-census-scope.json")
-    original_read = Path.read_text
-
-    def mocked_read(path: Path, *args, **kwargs) -> str:
-        raw = original_read(path, *args, **kwargs)
-        if path == scope_path:
-            scope = json.loads(raw)
-            assert scope["claims"]["capital_source_universe_complete"] is False
-            scope["claims"]["capital_source_universe_complete"] = True
-            return json.dumps(scope)
-        return raw
-
-    with patch.object(Path, "read_text", new=mocked_read):
+def validate_with_scope(doc: dict, scope: dict = SCOPE) -> dict:
+    with in_memory_scope(scope):
         return mod.validate_document(doc)
 
 
+def validate_with_complete_scope(doc: dict) -> dict:
+    _, scope = admitted_state()
+    return validate_with_scope(doc, scope)
+
+
 class SourceUniverseTests(unittest.TestCase):
-    def test_current_blocked_contract_is_valid(self) -> None:
-        result = mod.validate_document(copy.deepcopy(BASE))
+    def test_explicit_pending_contract_is_valid(self) -> None:
+        result = validate_with_scope(copy.deepcopy(BASE))
         self.assertEqual(result["family_count"], 13)
         self.assertEqual(result["resolved_count"], 13)
         self.assertEqual(result["unresolved_count"], 0)
@@ -76,11 +75,63 @@ class SourceUniverseTests(unittest.TestCase):
         self.assertFalse(result["d11_terminal_closed"])
         self.assertEqual(result["status"], "BLOCKED_INCOMPLETE_SOURCE_UNIVERSE")
 
+    def test_live_canonical_contract_is_readiness_complete_only(self) -> None:
+        universe = json.loads(UNIVERSE_PATH.read_text(encoding="utf-8"))
+        scope = json.loads(SCOPE_PATH.read_text(encoding="utf-8"))
+        result = mod.validate_document(universe)
+        self.assertEqual(result["family_count"], 13)
+        self.assertEqual(result["resolved_count"], 13)
+        self.assertEqual(result["unresolved_count"], 0)
+        self.assertTrue(result["family_universe_discovery_complete"])
+        self.assertTrue(result["terminal_claim_allowed"])
+        self.assertFalse(result["d11_terminal_closed"])
+        self.assertEqual(result["status"], "CAPITAL_SOURCE_UNIVERSE_COMPLETE")
+        self.assertIs(scope["claims"]["capital_source_universe_complete"], True)
+        for claim in READINESS_ONLY_NONCLAIMS:
+            with self.subTest(claim=claim):
+                self.assertIs(scope["claims"][claim], False)
+
+    def test_admitted_universe_rejects_pending_scope(self) -> None:
+        universe, _ = admitted_state()
+        _, scope = pending_state()
+        with self.assertRaisesRegex(
+            mod.UniverseError, "capital_source_universe_complete=true in scope"
+        ):
+            validate_with_scope(universe, scope)
+
+    def test_pending_universe_rejects_admitted_scope(self) -> None:
+        universe, _ = pending_state()
+        _, scope = admitted_state()
+        with self.assertRaisesRegex(
+            mod.UniverseError, "incomplete source universe cannot claim capital_source_universe_complete"
+        ):
+            validate_with_scope(universe, scope)
+
+    def test_readiness_only_nonclaims_rejected_in_both_states(self) -> None:
+        for state, factory in (("pending", pending_state), ("admitted", admitted_state)):
+            universe, scope = factory()
+            validate_with_scope(universe, scope)
+            for claim in READINESS_ONLY_NONCLAIMS:
+                with self.subTest(state=state, claim=claim):
+                    invalid_scope = copy.deepcopy(scope)
+                    invalid_scope["claims"][claim] = True
+                    with self.assertRaises(mod.UniverseError):
+                        validate_with_scope(universe, invalid_scope)
+
+    def test_both_state_fixtures_never_change_canonical_bytes(self) -> None:
+        before = {path: path.read_bytes() for path in CANONICAL_PATHS}
+        for factory in (pending_state, admitted_state):
+            universe, scope = factory()
+            snapshot = copy.deepcopy((universe, scope))
+            validate_with_scope(universe, scope)
+            self.assertEqual((universe, scope), snapshot)
+        self.assertEqual({path: path.read_bytes() for path in CANONICAL_PATHS}, before)
+
     def test_schema_must_be_v2(self) -> None:
         doc = copy.deepcopy(BASE)
         doc["schema_version"] = 1
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_implemented_parser_is_not_terminal_evidence(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -88,7 +139,7 @@ class SourceUniverseTests(unittest.TestCase):
         row["status"] = "SEMANTIC_ADMISSION_IMPLEMENTED"
         row["terminally_resolved"] = True
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_authenticated_family_requires_hash_bound_evidence(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -97,7 +148,7 @@ class SourceUniverseTests(unittest.TestCase):
         row["terminally_resolved"] = True
         row["resolution_evidence"] = None
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_locator_and_sha_alone_cannot_authenticate_family(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -110,7 +161,7 @@ class SourceUniverseTests(unittest.TestCase):
             "sha256": "a" * 64,
         }
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_terminal_evidence_must_bind_artifact_to_exact_head(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -120,7 +171,7 @@ class SourceUniverseTests(unittest.TestCase):
         row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", "a")
         row["resolution_evidence"]["artifact_name"] = "rmc011-family-evidence-wrong-head"
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_terminal_evidence_file_cannot_escape_artifact(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -130,7 +181,7 @@ class SourceUniverseTests(unittest.TestCase):
         row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", "b")
         row["resolution_evidence"]["file"] = "../forged.json"
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_exhaustive_rejection_requires_hash_bound_evidence(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -139,12 +190,12 @@ class SourceUniverseTests(unittest.TestCase):
         row["terminally_resolved"] = True
         row["resolution_evidence"] = None
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_all_families_resolved_is_not_enough_without_discovery_authority(self) -> None:
         doc = copy.deepcopy(BASE)
         resolve_all_families(doc)
-        result = mod.validate_document(doc)
+        result = validate_with_scope(doc)
         self.assertEqual(result["resolved_count"], 13)
         self.assertFalse(result["family_universe_discovery_complete"])
         self.assertFalse(result["terminal_claim_allowed"])
@@ -185,7 +236,7 @@ class SourceUniverseTests(unittest.TestCase):
         doc = copy.deepcopy(BASE)
         doc["families"][0]["id"] = "UNKNOWN_CAPITAL_FAMILY"
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_model_only_cannot_smuggle_real_source_path(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -195,7 +246,7 @@ class SourceUniverseTests(unittest.TestCase):
         row["resolution_evidence"] = None
         row["real_source_path"] = "fake/path"
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
 
     def test_implemented_family_requires_canonical_existing_source_path(self) -> None:
@@ -211,7 +262,7 @@ class SourceUniverseTests(unittest.TestCase):
         row["resolution_evidence"] = None
         row["real_source_path"] = "fake/path"
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_implemented_family_cannot_point_at_another_real_importer(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -228,7 +279,7 @@ class SourceUniverseTests(unittest.TestCase):
             "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs"
         )
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
 
     def test_collateralized_borrowing_cannot_substitute_importer(self) -> None:
@@ -246,7 +297,7 @@ class SourceUniverseTests(unittest.TestCase):
             "nqc-census/crates/nqc-census-capital/src/transient_credit.rs"
         )
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_persistent_debt_cannot_substitute_importer(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -263,7 +314,7 @@ class SourceUniverseTests(unittest.TestCase):
             "nqc-census/crates/nqc-census-capital/src/gas_credit.rs"
         )
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
 
     def test_terminal_evidence_file_sha256_cannot_be_all_zero(self) -> None:
@@ -274,7 +325,7 @@ class SourceUniverseTests(unittest.TestCase):
         row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", "a")
         row["resolution_evidence"]["sha256"] = "0" * 64
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_terminal_evidence_artifact_digest_cannot_be_all_zero(self) -> None:
         doc = copy.deepcopy(BASE)
@@ -284,7 +335,7 @@ class SourceUniverseTests(unittest.TestCase):
         row["resolution_evidence"] = evidence("AUTHENTICATED_REAL_SOURCE", "a")
         row["resolution_evidence"]["artifact_digest"] = "sha256:" + "0" * 64
         with self.assertRaises(mod.UniverseError):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_scope_must_enumerate_exact_source_family_set(self) -> None:
         scope = copy.deepcopy(SCOPE)

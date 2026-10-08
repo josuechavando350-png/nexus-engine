@@ -4,6 +4,10 @@ on:
     paths:
       - '.github/workflows/nqc-rmc011-seven-original-source-pins.yml'
       - 'ci/nqc-census/rmc011-capital-source-universe.json'
+      - 'ci/nqc-census/fixtures/rmc011-source-universe-nine-original-pins.json'
+      - 'ci/nqc-census/rmc011_historical_source_compatibility.py'
+      - 'ci/nqc-census/test_rmc011_historical_source_compatibility.py'
+      - 'ci/nqc-census/RMC011_HISTORICAL_SOURCE_REPLAY.md'
       - 'ci/nqc-census/rmc011_independent_seven_bounded_rejections.py'
       - 'ci/nqc-census/test_rmc011_independent_seven_bounded_rejections.py'
       - 'ci/nqc-census/RMC011_SEVEN_BOUNDED_ORIGINAL_PINS.md'
@@ -28,11 +32,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-      - name: Verify exact 7/13 source lock; never promote full D11
+      - name: Validate current registry and freeze original nine-family replay
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git hash-object ci/nqc-census/rmc011-capital-source-universe.json)" = c1b9f136a13f220af9dceaae50e5caa3105121eb
           test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
           test "$(git hash-object ci/nqc-census/rmc011-execution-plan-requirement-catalog.json)" = 53aacf43fac87bbf4a5438ceeab7530d9287e88f
           test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
@@ -40,12 +43,26 @@ jobs:
           python3 ci/nqc-census/test_verify_rmc011_family_discovery_readiness.py -v
           python3 ci/nqc-census/test_verify_rmc011_family_discovery_promotion.py -v
           python3 ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py -v
-          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py \
-            | tee "$RUNNER_TEMP/rmc011-seven-universe.txt"
-          grep -F 'resolved=9 unresolved=4' "$RUNNER_TEMP/rmc011-seven-universe.txt"
-          grep -F 'terminal_claim_allowed=false' "$RUNNER_TEMP/rmc011-seven-universe.txt"
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           python3 ci/nqc-census/verify-rmc011-bounded-family-promotion.py
-          echo NQC_D11_PARTIAL_SEVEN_BOUNDED_ONLY_NOT_TERMINAL
+          WORK="$RUNNER_TEMP/nqc011-source-original"
+          mkdir -p "$WORK/private/historical/ci" "$WORK/public"
+          python3 ci/nqc-census/test_rmc011_historical_source_compatibility.py -v
+          python3 ci/nqc-census/rmc011_historical_source_compatibility.py \
+            --out "$WORK/public/historical-current-compatibility.json"
+          # Never overwrite the checked-out current registry. Original producers
+          # and their unchanged reports consume only this exact historical input.
+          cp -a ci/nqc-census "$WORK/private/historical/ci/"
+          cp ci/nqc-census/fixtures/rmc011-source-universe-nine-original-pins.json \
+            "$WORK/private/historical/ci/nqc-census/rmc011-capital-source-universe.json"
+          test "$(git hash-object "$WORK/private/historical/ci/nqc-census/rmc011-capital-source-universe.json")" = c1b9f136a13f220af9dceaae50e5caa3105121eb
+          jq -e '.status=="BLOCKED_INCOMPLETE_SOURCE_UNIVERSE" and
+                 .d11_terminal_closed==false and .terminal_claim_allowed==false and
+                 ([.families[]|select(.terminally_resolved==true)]|length)==9 and
+                 ([.families[]|select(.terminally_resolved==false)]|length)==4 and
+                 .family_universe_discovery.status=="NOT_CERTIFIED"' \
+            "$WORK/private/historical/ci/nqc-census/rmc011-capital-source-universe.json" >/dev/null
+          echo RMC011_CURRENT_BINDINGS_COMPATIBLE_HISTORICAL_REPLAY_NOT_D11
       - name: Independently authenticate original producing GitHub workflow & artifact
         shell: bash
         run: |
@@ -79,6 +96,8 @@ jobs:
         run: |
           set -euo pipefail
           WORK="$RUNNER_TEMP/nqc011-source-original"
+          # Counts and nonclaims below describe the frozen historical replay.
+          cd "$WORK/private/historical"
           python3 -m py_compile ci/nqc-census/rmc011_independent_seven_bounded_rejections.py \
             ci/nqc-census/test_rmc011_independent_seven_bounded_rejections.py
           python3 ci/nqc-census/test_rmc011_independent_seven_bounded_rejections.py \
@@ -110,9 +129,13 @@ jobs:
           sha256sum ci/nqc-census/rmc011_independent_seven_bounded_rejections.py \
             ci/nqc-census/test_rmc011_independent_seven_bounded_rejections.py \
             ci/nqc-census/RMC011_SEVEN_BOUNDED_ORIGINAL_PINS.md \
+            ci/nqc-census/rmc011_historical_source_compatibility.py \
+            ci/nqc-census/test_rmc011_historical_source_compatibility.py \
+            ci/nqc-census/fixtures/rmc011-source-universe-nine-original-pins.json \
+            ci/nqc-census/RMC011_HISTORICAL_SOURCE_REPLAY.md \
             > "$WORK/public/producer-source.sha256"
           (cd "$WORK/public" &&
-            sha256sum independent-seven-bounded.json adversarial-tests.txt producer-source.sha256 > archive.sha256 &&
+            sha256sum independent-seven-bounded.json historical-current-compatibility.json adversarial-tests.txt producer-source.sha256 > archive.sha256 &&
             sha256sum -c archive.sha256)
           echo RMC011_SEVEN_REAL_BOUNDED_SOURCE_REFERENCES_VERIFIED_D11_BLOCKED
       - name: Publish only source SHA witnesses and NO raw provider/account data
