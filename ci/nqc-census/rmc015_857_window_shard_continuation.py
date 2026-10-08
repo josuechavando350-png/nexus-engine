@@ -62,27 +62,33 @@ def verified_original_first(report, summary):
     need(type(commitment) is str and commitment==sha_json({
           k:v for k,v in report.items() if k!="report_sha256"}),
          "PR650 original success report commitment invalid")
-    need(report.get("status")==
-         "RMC015_857_HISTORIC_REAL_POST_ANCHOR_EVENTS_VERIFIED_NOT_NQC_CAPTURE"
-         and report.get("original_D09_selection_block")==source.ANCHOR
-         and report.get("original_D09_selection_block_hash")==source.ANCHOR_HASH
-         and report.get("event_window_start_block")==FIRST
-         and report.get("event_window_end_block")==FIRST_DONE_END
-         and report.get("event_scope")=="FIRST_480_POST_ANCHOR_BLOCKS_ONLY"
-         and report.get("full_source_cohort_size")==857
-         and report.get("source_watchlist_commitment_sha256")==
-              summary.get("watchlist_commitment_sha256")
-         and report.get("source_frontier_authority_sha256")==
-              summary.get("authority_commitment_sha256")
-         and report.get("real_independent_operator_consensus") is True
-         and set(report.get("observed_successful_public_rpc_operator_ids",[]))==
-             set(PROVIDER_IDS)
-         and report.get("real_aave_liquidation_logs_in_window_all_borrowers")==0
-         and report.get("real_aave_liquidation_events_matching_source_cohort")==0
-         and report.get("real_winner_tx_count_matching_source_cohort")==0
-         and report.get("distinct_original_cohort_borrowers_liquidated_in_window")==0
-         and report.get("uninspected_original_successor_blocks")==6720,
-         "PR650 first 480 block source not proven/anchored to original 857")
+    required={
+        "status": "RMC015_857_HISTORIC_REAL_POST_ANCHOR_EVENTS_VERIFIED_NOT_NQC_CAPTURE",
+        "original_D09_selection_block":source.ANCHOR,
+        "original_D09_selection_block_hash":source.ANCHOR_HASH,
+        "event_window_start_block":FIRST,
+        "event_window_end_block":FIRST_DONE_END,
+        "event_scope":"FIRST_480_POST_ANCHOR_BLOCKS_ONLY",
+        "full_source_cohort_size":857,
+        "source_watchlist_commitment_sha256":
+            summary.get("watchlist_commitment_sha256"),
+        "source_frontier_authority_sha256":
+            summary.get("authority_commitment_sha256"),
+        "real_independent_operator_consensus":True,
+        "real_aave_liquidation_logs_in_window_all_borrowers":0,
+        "real_aave_liquidation_events_matching_source_cohort":0,
+        "real_winner_tx_count_matching_source_cohort":0,
+        "distinct_original_cohort_borrowers_liquidated_in_window":0,
+        "uninspected_original_successor_blocks":6720,
+    }
+    for k,expected in required.items():
+        need(report.get(k)==expected and
+             (type(expected) is not bool or type(report.get(k)) is bool),
+             "PR650 first source failed exact bound field "+k)
+    operators=report.get("observed_successful_public_rpc_operator_ids")
+    need(type(operators) is list and len(operators)==2
+         and set(operators)==set(PROVIDER_IDS),
+         "PR650 first source did not have original dRPC+BlastAPI independence")
     for k in ("full_7200_block_source_window_certified",
               "NQC_own_capital_zero_external_gas_authorized",
               "rmc015_terminal_authority_closed",
