@@ -151,7 +151,7 @@ jobs:
               "flash_principal_or_gas_sponsor_admitted":False,
               "aave_liquidation_or_flash_callback_executed":False,
               "actual_nexus_net_pnl_proven":False,
-              "rcc011_terminal_closed":False,
+              "rmc011_terminal_closed":False,
               "real_market_census_closed":False,
           }
           payload=(json.dumps(report,sort_keys=True,separators=(",",":"))+"\n").encode()
