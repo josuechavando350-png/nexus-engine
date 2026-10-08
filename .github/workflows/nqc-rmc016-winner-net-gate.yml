@@ -1,0 +1,139 @@
+name: NQC RMC-016 Winner Net Evidence Gate
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc016_winner_net_audit.py'
+      - 'ci/nqc-census/test_rmc016_winner_net_audit.py'
+      - 'ci/nqc-census/RMC016_WINNER_NET_EVIDENCE_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-winner-net-gate.yml'
+  push:
+    branches:
+      - 'nqc/rmc016-winner-net-evidence-20261008'
+    paths:
+      - 'ci/nqc-census/rmc016_winner_net_audit.py'
+      - 'ci/nqc-census/test_rmc016_winner_net_audit.py'
+      - 'ci/nqc-census/RMC016_WINNER_NET_EVIDENCE_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-winner-net-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-rmc016-winner-net-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  historical-winner-economics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      EXPECTED_D16: '96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a'
+    steps:
+      - name: Checkout exact head with full history
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Reject floating provenance or modified D16 aggregate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git cat-file -e "$EXPECTED_D16^{commit}"
+          git merge-base --is-ancestor "$EXPECTED_D16" HEAD
+          test "$(git show -s --format=%T "$EXPECTED_D16")" = '7b642905ebebbaaa1d6ae895280756efd3727601'
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = '5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa'
+          python3 ci/nqc-census/test_rmc016_winner_net_audit.py
+          python3 -m py_compile ci/nqc-census/rmc016_winner_net_audit.py ci/nqc-census/test_rmc016_winner_net_audit.py
+
+      - name: Reauthenticate immutable D15B and D16 GitHub Actions artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/rmc016-winner-gate"
+          mkdir -p "$OUT"
+          check() {
+            local run="$1" head="$2" tree="$3" workflow="$4" artifact="$5" artifact_name="$6" sha="$7" out="$8"
+            local r a
+            r="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run")"
+            a="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
+            test "$(jq -r '.status' <<< "$r")" = completed
+            test "$(jq -r '.conclusion' <<< "$r")" = success
+            test "$(jq -r '.name' <<< "$r")" = "$workflow"
+            test "$(jq -r '.head_sha' <<< "$r")" = "$head"
+            test "$(jq -r '.expired' <<< "$a")" = false
+            test "$(jq -r '.name' <<< "$a")" = "$artifact_name"
+            test "$(jq -r '.digest' <<< "$a")" = "sha256:$sha"
+            test "$(jq -r '.workflow_run.id' <<< "$a")" = "$run"
+            test "$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$head" --jq '.tree.sha')" = "$tree"
+            curl --fail --silent --show-error --location --retry 2 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact/zip" -o "$out"
+            printf '%s  %s\n' "$sha" "$out" | sha256sum --check --strict
+            echo "AUTHENTICATED_RUN_AND_ARTIFACT run=$run artifact=$artifact"
+          }
+          check 37669899465 cb413ee9747e83be2bf5e05b8270edabf4f6e221 5a73aed2e8a2b8b1d375e2d0b65dc41258788172 \
+            'NQC RMC-015B Temporal Opportunity Authority' 11504276505 \
+            'rmc015b-temporal-opportunity-authority-cb413ee9747e83be2bf5e05b8270edabf4f6e221' \
+            aff472236ff5177f123e4a6ccc95d4dae5fb37833f8645984116c407c179d790 "$OUT/d15.zip"
+          check 37673653265 96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a 7b642905ebebbaaa1d6ae895280756efd3727601 \
+            'NQC RMC-016 Conservative Realizable Capacity' 11505504820 \
+            'rmc016-conservative-capacity-96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a' \
+            27bd8909f865429e6bbc4580adf52af985beab8ed45cc11850616ab53a02b199 "$OUT/d16.zip"
+          echo "ARTIFACT_ROOT=$OUT" >> "$GITHUB_ENV"
+
+      - name: Reproduce aggregate-only economic truth twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/rmc016_winner_net_audit.py \
+            --d15-archive "$ARTIFACT_ROOT/d15.zip" \
+            --d16-archive "$ARTIFACT_ROOT/d16.zip" \
+            --economic-source ci/nqc-census/rmc016-production-evidence.json \
+            --out "$ARTIFACT_ROOT/first.json"
+          python3 ci/nqc-census/rmc016_winner_net_audit.py \
+            --d15-archive "$ARTIFACT_ROOT/d15.zip" \
+            --d16-archive "$ARTIFACT_ROOT/d16.zip" \
+            --economic-source ci/nqc-census/rmc016-production-evidence.json \
+            --out "$ARTIFACT_ROOT/second.json"
+          cmp "$ARTIFACT_ROOT/first.json" "$ARTIFACT_ROOT/second.json"
+          jq -e '
+            .schema_version == 1 and
+            .status == "AGGREGATE_AUTHENTICATED_TRANSACTION_LEDGER_MISSING" and
+            .historical_winner_transaction_count == 127 and
+            .historical_liquidation_event_count == 139 and
+            .historical_market_gross_oracle_edge_usd_wad == "138045174690310000000000" and
+            .historical_winner_gas_usd_wad == "1144134260592713842029" and
+            .gross_minus_observed_winner_gas_usd_wad == "136901040429717286157971" and
+            .per_transaction_economics_materialized == false and
+            .all_execution_costs_reconciled == false and
+            .independent_transaction_replay_complete == false and
+            .nexus_capture_probability_calibrated == false and
+            .nexus_realized_profitability_proven == false and
+            .nexus_monthly_pnl_estimate_usd_wad == null and
+            .nexus_conservative_realizable_capacity_usd_wad == "0" and
+            .monthly_target_300k_proven == false and
+            (.blocking_reasons | length == 4)
+          ' "$ARTIFACT_ROOT/first.json" >/dev/null
+          mkdir -p "$ARTIFACT_ROOT/report"
+          cp "$ARTIFACT_ROOT/first.json" "$ARTIFACT_ROOT/report/rmc016-observed-winner-economics-baseline.json"
+          (
+            cd "$ARTIFACT_ROOT/report"
+            sha256sum rmc016-observed-winner-economics-baseline.json > archive.sha256
+            sha256sum -c archive.sha256
+          )
+          echo RMC016_WINNER_ECONOMIC_BASELINE_AUTHENTICATED_NO_NET_CLAIM
+
+      - name: Publish immutable aggregate audit, no raw borrower identities
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-winner-aggregate-audit-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc016-winner-gate/report/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
