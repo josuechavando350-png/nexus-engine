@@ -232,9 +232,16 @@ class PostAnchorTests(unittest.TestCase):
 
     def test_debt_free_account_can_be_censored_at_later_snapshot(self):
         s,d=fixture()
-        r=m.assess(s,d,providers=PROVIDERS,call=fake_rpc)
+        selected,_=m.select(s,d)
+        censored=int(selected[0][1]["account"],16)
+        def debt_closed(url,method,args):
+            if method=="eth_call" and args[1]==hex(m.LATER) and int(args[0]["data"][10:],16)==censored:
+                return words([10**16,0,0,8500,7500,2**256-1])
+            return fake_rpc(url,method,args)
+        r=m.assess(s,d,providers=PROVIDERS,call=debt_closed)
         aggregate=r["post_anchor_endpoint_observations"]["future_7200"]["cohort_outcome_counts"]
-        self.assertIn("NO_DEBT_AT_ENDPOINT"," ".join(aggregate.keys()))
+        self.assertIn("CLOSEST_TO_ONE__NO_DEBT_AT_ENDPOINT",aggregate)
+        self.assertEqual(aggregate["CLOSEST_TO_ONE__NO_DEBT_AT_ENDPOINT"],1)
 
     def test_reject_ambiguous_duplicate_json_fields(self):
         with self.assertRaisesRegex(ValueError,"duplicate JSON"):
