@@ -1,0 +1,104 @@
+name: NQC RMC-012 D08 Execution Blocker Truth
+
+on:
+  push:
+    branches:
+      - 'nqc/rmc012-root-cause-execution-blockers-20261008'
+    paths:
+      - 'ci/nqc-census/rmc012_execution_blocker_root_cause.py'
+      - 'ci/nqc-census/test_rmc012_execution_blocker_root_cause.py'
+      - 'ci/nqc-census/RMC012_D08_EXECUTION_BLOCKER_ROOT_CAUSE.md'
+      - '.github/workflows/nqc-rmc012-execution-blocker-truth.yml'
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc012_execution_blocker_root_cause.py'
+      - 'ci/nqc-census/test_rmc012_execution_blocker_root_cause.py'
+      - 'ci/nqc-census/RMC012_D08_EXECUTION_BLOCKER_ROOT_CAUSE.md'
+      - '.github/workflows/nqc-rmc012-execution-blocker-truth.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-rmc012-rejection-analysis-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  immutable-negative-capital-diagnosis:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Run adversarial no-promotion tests before source ingestion
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
+          python3 ci/nqc-census/test_rmc012_execution_blocker_root_cause.py
+          python3 -m py_compile ci/nqc-census/rmc012_execution_blocker_root_cause.py
+          echo RMC012_NO_FALSE_EXECUTION_ADMISSION_TESTS_PASS
+      - name: Download immutable original D08 token-admission and D12 capital rejection certificates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rmc012-blocker-sources"
+          fetch() {
+            local id="$1" expected="$2" output="$3"
+            local art
+            art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$id")"
+            test "$(jq -r .expired <<<"$art")" = false
+            test "$(jq -r .digest <<<"$art")" = "sha256:$expected"
+            curl --fail --silent --show-error --location --retry 2 \
+              -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$id/zip" \
+              -o "$RUNNER_TEMP/rmc012-blocker-sources/$output"
+            printf '%s  %s\n' "$expected" "$RUNNER_TEMP/rmc012-blocker-sources/$output" | sha256sum --check --strict
+          }
+          fetch 11237887761 9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913 d08.zip
+          fetch 11519153831 bbe6a6365d563eb41125d9fcdba79ac384c21182f31f6761897e0ce2ee8fa3b8 d12.zip
+          echo RMC012_EXACT_D08_D12_IMMUTABLE_ZIPS_AUTHENTICATED
+      - name: Stream exact 514279 D08 token records and reconcile 432 blocked D12 candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          result="$RUNNER_TEMP/rmc012-execution-blocker-result"
+          mkdir -p "$result"
+          python3 ci/nqc-census/rmc012_execution_blocker_root_cause.py \
+            --d08-zip "$RUNNER_TEMP/rmc012-blocker-sources/d08.zip" \
+            --d12-zip "$RUNNER_TEMP/rmc012-blocker-sources/d12.zip" \
+            --out "$result/execution-blocker-diagnostic.json"
+          jq -e '.status == "RMC012_EXECUTION_BLOCKER_ROOT_CAUSE_DIAGNOSTIC_ONLY" and
+                 .distinct_required_underlying_count == 43 and
+                 .required_underlying_source_status == "ALL_BLOCKED_NOT_ADMITTED" and
+                 .d12_actionability_admitted == 432 and
+                 .d12_principal_rejection_count == 432 and
+                 .d12_principal_capital_feasible == 0 and
+                 .historical_aave_reserve_nominal_principal_diagnostic.single_candidate_nominal_liquidity_checked_assets == 27 and
+                 .historical_aave_reserve_nominal_principal_diagnostic.all_required_reserves_have_adequate_nominal_single_trade_liquidity == true and
+                 .historical_aave_reserve_nominal_principal_diagnostic.required_reserves_active_flash_enabled_unpaused_count == 27 and
+                 .historical_aave_reserve_nominal_principal_diagnostic.principal_source_eligible_for_execution_claimed == false and
+                 .d12_rejection_reason == "EXECUTION_BLOCKED" and
+                 .required_asset_blocker_frequency.FEE_ON_TRANSFER_UNPROVEN == 43 and
+                 .required_asset_blocker_frequency.TRANSFER_HOOKS_UNPROVEN == 43 and
+                 .nexus_executable_trades_proven == false and
+                 .nexus_net_profitability_proven == false and
+                 .real_market_census_closed == false' "$result/execution-blocker-diagnostic.json"
+          (cd "$result" && sha256sum execution-blocker-diagnostic.json > archive.sha256 && sha256sum -c archive.sha256)
+          echo RMC012_NEGATIVE_BLOCKER_TRUTH_NOT_EXECUTION_OR_MONTHLY_PNL
+      - name: Retain SHA bound negative evidence and no wallet data
+        if: success()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc012-d08-blocked-token-census-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ runner.temp }}/rmc012-execution-blocker-result/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
