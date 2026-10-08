@@ -197,15 +197,20 @@ def calculate(legs, receipts, price_rows):
             "positive_after_hypothetical_5bps": remaining > 0,
         })
     positive_count = sum(r["positive_after_historical_competitor_gas"] for r in rows)
-    require(positive_count == 7,
+    require(positive_count == 9,
             "historical gross-minus-winner-gas count differs from prior claim: observed="
             + str(positive_count) + " of " + str(len(rows)) +
             " values=" + str([(r["transaction_hash"], r["collateral_minus_debt_minus_winner_gas_wei"],
                              r["receive_a_token"]) for r in rows]))
     rows.sort(key=lambda r: (-int(r["collateral_minus_debt_minus_winner_gas_wei"]),
                              r["transaction_hash"]))
-    require(tuple(x["transaction_hash"] for x in rows[:2]) == TOP_TWO,
-            "retrospective top-two selection diverged from full seven-event census")
+    for rank, row in enumerate(rows, start=1):
+        row["historical_after_gas_rank_in_nine"] = rank
+    by_ranked_tx = {r["transaction_hash"]: r for r in rows}
+    require(set(TOP_TWO).issubset(by_ranked_tx), "priced sample not in real nine-winner corpus")
+    source_price_ranks = tuple(by_ranked_tx[tx]["historical_after_gas_rank_in_nine"] for tx in TOP_TWO)
+    require(source_price_ranks == (1, 3),
+            "real-source WETH price sample is not rank 1 and rank 3: " + str(source_price_ranks))
     require(type(price_rows) is list and len(price_rows) == 2, "two-source price reference must contain two rows")
     price_by = {}
     for p in price_rows:
@@ -214,7 +219,7 @@ def calculate(legs, receipts, price_rows):
         price_by[tx] = p
     require(set(price_by) == set(TOP_TWO), "missing priced winner")
     for i, tx in enumerate(TOP_TWO):
-        row = rows[i]
+        row = by_ranked_tx[tx]
         p = price_by[tx]
         pre = p.get("preblock")
         end = p.get("block_end")
@@ -265,7 +270,7 @@ def audit(event_zip, receipt_zip, legs_zip, price_zip):
             and priced.get("exact_intratransaction_price_proven") is False,
             "two-price source claim/status mismatch")
     records = calculate(decoded, receipts, priced["transactions"])
-    selected = records[:2]
+    selected = {r["transaction_hash"]: r for r in records if r["transaction_hash"] in TOP_TWO}
     out = {
         "schema_version": 1,
         "status": "RMC016_HISTORICAL_WETH_WETH_COST_BUDGET_DIAGNOSTIC_ONLY",
@@ -274,13 +279,17 @@ def audit(event_zip, receipt_zip, legs_zip, price_zip):
         "historical_winner_transactions": 127,
         "historical_liquidation_events": 139,
         "historical_weth_weth_winner_transactions": 9,
-        "historical_weth_weth_positive_after_competitor_gas_transactions": 7,
+        "historical_weth_weth_positive_after_competitor_gas_transactions": 9,
         "historical_positive_after_hypothetical_5bps_transactions": sum(
             r["positive_after_hypothetical_5bps"] for r in records),
         "all_nine_weth_weth_records": records,
-        "retrospective_top_two_transaction_hashes": list(TOP_TWO),
+        "historical_actual_top_two_transaction_hashes": [r["transaction_hash"] for r in records[:2]],
+        "historical_priced_sample_transaction_hashes": list(TOP_TWO),
+        "historical_priced_sample_ranks_in_nine": [selected[tx]["historical_after_gas_rank_in_nine"] for tx in TOP_TWO],
+        "historical_price_sample_was_actual_full_universe_top_two": False,
+        "historical_second_rank_winner_has_preblock_usd_oracle_evidence": False,
         "conditional_two_winner_reference_usd_wad_sum": str(sum(
-            int(r["preblock_usd_wad_conditional_cost_budget"]) for r in selected)),
+            int(selected[tx]["preblock_usd_wad_conditional_cost_budget"]) for tx in TOP_TWO)),
         "hypothetical_flash_premium_bps": HYPOTHETICAL_FLASH_BPS,
         "hypothetical_flash_premium_is_provider_quote": False,
         "competitor_gas_is_nexus_gas": False,
@@ -312,7 +321,7 @@ def main():
     out = audit(args.event_zip, args.receipt_zip, args.legs_zip, args.price_zip)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_bytes(canonical(out))
-    print(out["status"], "observed_weth_weth_tx", 9, "positive_after_winner_gas", 7,
+    print(out["status"], "observed_weth_weth_tx", 9, "positive_after_winner_gas", 9,
           "two_historical_winner_conditional_reference_usd_wad",
           out["conditional_two_winner_reference_usd_wad_sum"],
           "nexus_monthly_net_UNPROVEN")
