@@ -5,7 +5,7 @@ A real 857-member cohort is selected and frozen at Ethereum 26095351 from
 independent original D08/D09 archives. PR650 independently verified first 480
 blocks against two real RPC operators; this code authenticates that immutable
 artifact, then scans 14 remaining consecutive 480-block shards. Each shard is
-independently verified by dRPC and BlastAPI and is written as a content-hashed
+independently verified by BlastAPI and Blockscout and is written as a content-hashed
 checkpoint ONLY after both operators agree. Any mismatch/error prevents the
 full-window report; earlier successful shards are never counted twice.
 
@@ -36,15 +36,14 @@ SOURCE_RUN=37807155179
 SOURCE_ARTIFACT=11562554317
 SOURCE_ZIP_SHA256="f431bc64770be49ebeee5d48a40f8013592c3a4f1c25fd3abbd4c43f6c66c9f3"
 SOURCE_GENESIS_REPORT="all-857-future-liquidation-events.json"
-PROVIDER_IDS=("blast","one_rpc")
-# dRPC historically returns error code 35/27 for older log ranges, even 10-block
-# partitions; its failure is NEVER interpreted as zero events.
-# Automata 1RPC provides public keyless Ethereum JSON-RPC; its actual
-# historical availability and independence from BlastAPI must be tested, not
-# inferred from operator labels. Refuse a deployment without positive canary.
-PROVIDER_ONE_RPC=("one_rpc","Automata 1RPC","https://public.1rpc.io/eth")
-PROVIDER_PAIRS=(next(p for p in PROVIDERS if p[0]=="blast"),PROVIDER_ONE_RPC)
-MAX_REAL_ARCHIVE_LOG_RANGE={"blast":10,"one_rpc":10}
+PROVIDER_IDS=("blast","blockscout")
+# The immutable original PR #650 source used BlastAPI and Blockscout (NOT dRPC).
+# Blast free historical eth_getLogs <= 10 blocks; Blockscout independently
+# served the first 480-block window but sometimes returns HTTP 429. Retry 429
+# on the SAME provider, with finite backoff, never treating throttling as empty.
+PROVIDER_PAIRS=tuple(next(p for p in PROVIDERS if p[0]==pid)
+                     for pid in PROVIDER_IDS)
+MAX_REAL_ARCHIVE_LOG_RANGE={"blast":10,"blockscout":480}
 CANARY_BLOCK=25938048
 CANARY_BLOCK_HASH="0xf143f9988199037938e4dff57aaf24301a4c26770aefc0ec64774954cbf2dbe4"
 CANARY_WINNER_TX="0x6313fb267755f3cfa48214bf74309505984306129ee09a558efe4801006dcbba"
@@ -100,8 +99,9 @@ def verified_original_first(report, summary):
     need(type(operators) is list and len(operators)==2
          and len(set(operators))==2
          and all(type(x) is str and x for x in operators)
+         and operators==list(PROVIDER_IDS)
          and all(any(p[0]==x for p in PROVIDERS) for x in operators),
-         "PR650 first source did not establish two distinct known archive operator IDs")
+         "PR650 first-shard externally proven BlastAPI/Blockscout pair mismatch")
     for k in ("full_7200_block_source_window_certified",
               "NQC_own_capital_zero_external_gas_authorized",
               "rmc015_terminal_authority_closed",
@@ -146,6 +146,26 @@ def read_header(call,url,n):
     return hdr
 
 
+def authenticated_log_rpc(call,url,method,params,pid,*,sleep=time.sleep):
+    """Retry only a quota-throttled Blockscout request, never invent logs.
+
+    The second operator must still return a complete verifiable response.
+    An exhausted or unrelated failure aborts certification, retaining only
+    already separately verified immutable shard checkpoints.
+    """
+    if pid!="blockscout" or method!="eth_getLogs":
+        return call(url,method,params)
+    for i in range(5):
+        try:
+            return call(url,method,params)
+        except ValueError as error:
+            msg=str(error)
+            if ("429" not in msg and "Too Many Requests" not in msg) or i==4:
+                raise
+            sleep((2,6,15,30)[i])
+    raise AssertionError("unreachable Blockscout retry")
+
+
 def positive_archive_log_canary(providers,*,call=rpc):
     """Disallow an archive RPC pair that silently returns empty log history.
 
@@ -165,12 +185,12 @@ def positive_archive_log_canary(providers,*,call=rpc):
         hdr=read_header(call,url,CANARY_BLOCK)
         need(hdr["hash"]==CANARY_BLOCK_HASH,
              "known real liquidation canary block hash mismatch")
-        logs=call(url,"eth_getLogs",[{
+        logs=authenticated_log_rpc(call,url,"eth_getLogs",[{
            "address":prior.AAVE_POOL,
            "topics":[LIQUIDATION_TOPIC],
            "fromBlock":hex(CANARY_BLOCK),
            "toBlock":hex(CANARY_BLOCK),
-        }])
+        }],pid)
         need(type(logs) is list and 0<len(logs)<10000,
              "known positive history omitted by historical event RPC")
         parsed=[prior.check_log(x,CANARY_BLOCK,CANARY_BLOCK) for x in logs]
@@ -222,19 +242,20 @@ def scan_one(provider, shard_index, members, expected_previous_hash,
          anchor["timestamp"]<previous["timestamp"]<start["timestamp"]<=end["timestamp"],
          "shard boundary not canonical consecutive Ethereum blocks")
     interval=MAX_REAL_ARCHIVE_LOG_RANGE[pid]
-    need(1<=interval<=10 and SHARD_SIZE%interval==0,
-         "historical archive segmentation must be complete and <= 10 blocks")
+    need(1<=interval<=SHARD_SIZE and SHARD_SIZE%interval==0
+         and (pid!="blast" or interval<=10),
+         "historical archive segmentation must be complete and Blast <=10 blocks")
     records=[]
     seen=set()
     spans=[]
     for from_block in range(lo,hi+1,interval):
         to_block=min(from_block+interval-1,hi)
-        raw=call(url,"eth_getLogs",[{
+        raw=authenticated_log_rpc(call,url,"eth_getLogs",[{
            "address":prior.AAVE_POOL,
            "topics":[LIQUIDATION_TOPIC],
            "fromBlock":hex(from_block),
            "toBlock":hex(to_block),
-        }])
+        }],pid)
         need(type(raw) is list and len(raw)<10000,
              "archive returned incomplete/unbounded historical log partition")
         spans.append((from_block,to_block))
