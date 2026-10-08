@@ -6,6 +6,7 @@ on:
       - 'ci/nqc-census/rmc015_weth_time_only_inputs.py'
       - 'ci/nqc-census/test_rmc015_weth_time_only_inputs.py'
       - 'ci/nqc-census/weth-physical/test/NqcRmc015WethTimeOnlyHF.t.sol'
+      - 'ci/nqc-census/weth-physical/foundry-time-only.toml'
       - 'ci/nqc-census/RMC015_WETH_TIME_ONLY_FORK_CONTRACT.md'
   workflow_dispatch:
 permissions:
@@ -79,7 +80,7 @@ jobs:
           root="$RUNNER_TEMP/rmc015-time"
           forge_root="$RUNNER_TEMP/rmc015-forge"
           mkdir -p "$forge_root/test" "$forge_root/src"
-          cp ci/nqc-census/weth-physical/foundry.toml "$forge_root/foundry.toml"
+          cp ci/nqc-census/weth-physical/foundry-time-only.toml "$forge_root/foundry.toml"
           cp ci/nqc-census/weth-physical/test/NqcRmc015WethTimeOnlyHF.t.sol "$forge_root/test/"
           cd "$forge_root"
           forge fmt
