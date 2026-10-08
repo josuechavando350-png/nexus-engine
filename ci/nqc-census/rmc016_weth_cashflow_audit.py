@@ -196,8 +196,12 @@ def calculate(legs, receipts, price_rows):
             "positive_after_historical_competitor_gas": after_gas > 0,
             "positive_after_hypothetical_5bps": remaining > 0,
         })
-    require(sum(r["positive_after_historical_competitor_gas"] for r in rows) == 7,
-            "actual raw source must contain seven historical WETH/WETH positive-after-winner-gas transactions")
+    positive_count = sum(r["positive_after_historical_competitor_gas"] for r in rows)
+    require(positive_count == 7,
+            "historical gross-minus-winner-gas count differs from prior claim: observed="
+            + str(positive_count) + " of " + str(len(rows)) +
+            " values=" + str([(r["transaction_hash"], r["collateral_minus_debt_minus_winner_gas_wei"],
+                             r["receive_a_token"]) for r in rows]))
     rows.sort(key=lambda r: (-int(r["collateral_minus_debt_minus_winner_gas_wei"]),
                              r["transaction_hash"]))
     require(tuple(x["transaction_hash"] for x in rows[:2]) == TOP_TWO,
