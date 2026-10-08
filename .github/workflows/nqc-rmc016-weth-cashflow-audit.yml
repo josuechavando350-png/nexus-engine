@@ -1,0 +1,96 @@
+name: NQC RMC-016 WETH Cashflow Source Audit
+
+on:
+  push:
+    branches:
+      - 'nqc/rmc016-weth-cashflow-audit-20261008'
+    paths:
+      - 'ci/nqc-census/rmc016_weth_cashflow_audit.py'
+      - 'ci/nqc-census/test_rmc016_weth_cashflow_audit.py'
+      - 'ci/nqc-census/RMC016_WETH_WETH_COST_BUDGET_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-weth-cashflow-audit.yml'
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc016_weth_cashflow_audit.py'
+      - 'ci/nqc-census/test_rmc016_weth_cashflow_audit.py'
+      - 'ci/nqc-census/RMC016_WETH_WETH_COST_BUDGET_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-weth-cashflow-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc016-weth-cashflow-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  source-locked-cashflow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Enforce immutable D16 ancestry and 18 adversarial offline tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
+          python3 ci/nqc-census/test_rmc016_weth_cashflow_audit.py
+          python3 -m py_compile ci/nqc-census/rmc016_weth_cashflow_audit.py ci/nqc-census/test_rmc016_weth_cashflow_audit.py
+          echo RMC016_WETH_WETH_COST_AUDIT_OFFLINE_TESTS_PASS
+      - name: Authenticate and download exact four immutable historical artifacts
+        if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/nqc016-cashflow-source"
+          mkdir -p "$root"
+          authenticate() {
+            local run="$1" sha="$2" workflow="$3" outcome="$4" artifact="$5" name="$6" digest="$7" label="$8"
+            local meta art
+            meta="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run")"
+            art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
+            test "$(jq -r .status <<<"$meta")" = completed
+            test "$(jq -r .conclusion <<<"$meta")" = "$outcome"
+            test "$(jq -r .name <<<"$meta")" = "$workflow"
+            test "$(jq -r .head_sha <<<"$meta")" = "$sha"
+            test "$(jq -r .expired <<<"$art")" = false
+            test "$(jq -r .name <<<"$art")" = "$name"
+            test "$(jq -r .digest <<<"$art")" = "sha256:$digest"
+            test "$(jq -r .workflow_run.id <<<"$art")" = "$run"
+            curl --fail --silent --show-error --location --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact/zip" -o "$root/$label.zip"
+            printf '%s  %s\n' "$digest" "$root/$label.zip" | sha256sum --check --strict
+            echo "$label provenance: exact run $run, artifact $artifact, SHA256 $digest"
+          }
+          authenticate 37718661409 abe54f1f23bd7bff8c37871200f7da7c59c45ac3 'NQC RMC-016 Full Liquidation Ledger Discovery' success 11524139188 'rmc016-full-liquidation-events-abe54f1f23bd7bff8c37871200f7da7c59c45ac3' '6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204' events
+          authenticate 37719091371 569d4aaeecb3d066389c054efed695be02e3ef40 'NQC RMC-016 Dual Operator Winner Receipt Parity' failure 11524199698 'rmc016-dual-winner-receipts-569d4aaeecb3d066389c054efed695be02e3ef40' '182b5e81b00ca04e53c9193c1496a725dc152ade9a17d3ab2dfaeb5045ac86b6' receipts
+          authenticate 37722878737 b02e7c5a4ff9a8c38898ab35e46777f9af35d192 'NQC RMC-016 Historical Aave Raw Liquidation Legs' success 11525823668 'rmc016-integer-liquidation-legs-b02e7c5a4ff9a8c38898ab35e46777f9af35d192' 'b5927f49a5099a9fe8971df82f1ea5fa2c4a169b11a846f2f3c2671b1efa71ee' legs
+          authenticate 37726618359 a569b0a6ba11c0d12de3a1ac0d16d85b896933f6 'NQC RMC-016 Two WETH Winner Historical Prices' success 11527902751 'rmc016-two-weth-winner-historical-prices-a569b0a6ba11c0d12de3a1ac0d16d85b896933f6' '5ae6c45b53ded26f327270758c248f7f4ec0ff1365f550e54dcf28feb4a83a03' prices
+      - name: Independently reconstruct all nine WETH/WETH positive-after-gas competitors
+        if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/nqc016-cashflow-source"
+          result="$RUNNER_TEMP/nqc016-cashflow-result"
+          mkdir -p "$result"
+          python3 ci/nqc-census/rmc016_weth_cashflow_audit.py --event-zip "$root/events.zip" --receipt-zip "$root/receipts.zip" --legs-zip "$root/legs.zip" --price-zip "$root/prices.zip" --out "$result/historical-weth-cashflow.json"
+          jq -e '.status == "RMC016_HISTORICAL_WETH_WETH_COST_BUDGET_DIAGNOSTIC_ONLY" and .historical_weth_weth_winner_transactions == 9 and .historical_weth_weth_positive_after_competitor_gas_transactions == 9 and .historical_priced_sample_ranks_in_nine == [1,3] and .historical_price_sample_was_actual_full_universe_top_two == false and (.all_nine_weth_weth_records|length) == 9 and .historical_liquidation_events == 139 and .historical_winner_transactions == 127 and .real_market_census_closed == false and .external_gas_financing_authenticated == false and .external_flash_principal_authenticated == false and .real_nexus_execution_or_capture_proven == false and .capture_adjusted_or_monthly_net_proven == false' "$result/historical-weth-cashflow.json"
+          (cd "$result" && sha256sum historical-weth-cashflow.json > archive.sha256 && sha256sum -c archive.sha256)
+          echo RMC016_HISTORICAL_COST_BUDGET_NOT_NEXUS_PNL
+      - name: Retain immutable read-only output if actual sources authenticate
+        if: ${{ success() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-weth-cost-budget-${{ github.sha }}
+          path: ${{ runner.temp }}/nqc016-cashflow-result/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
