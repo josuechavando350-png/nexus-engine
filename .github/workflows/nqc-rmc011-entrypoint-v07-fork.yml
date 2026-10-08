@@ -1,0 +1,251 @@
+name: NQC RMC-011 Real EntryPoint v07 Historical Gas Economics
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc011-entrypoint-v07-fork.yml'
+      - 'ci/nqc-census/weth-physical/test/NqcRmc011EntryPointV07ActualFork.t.sol'
+      - 'ci/nqc-census/RMC011_REAL_ENTRYPOINT_V07_TEST_DEPOSIT_CONTRACT.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  historical-v07-entrypoint-physical:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Pin real old Aave/T36 source, empty sponsor registry and test-only deposit domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 6d01038a0584826991e9f8a72433b231cd1fba61 HEAD
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = aa3883fa141aa096006e90e56d8d4150c9ee14ef
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          jq -e '.status=="DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE" and .provider_count==0 and .providers==[]' ci/nqc-census/rmc011-external-capital-provider-registry.json >/dev/null
+          ! grep -F 'eth_sendRawTransaction' ci/nqc-census/weth-physical/test/NqcRmc011EntryPointV07ActualFork.t.sol
+          ! grep -F 'vm.store(' ci/nqc-census/weth-physical/test/NqcRmc011EntryPointV07ActualFork.t.sol
+          mkdir -p "$RUNNER_TEMP/nqc011-real-entrypoint"
+          sha256sum ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol ci/nqc-census/weth-physical/test/NqcRmc011EntryPointV07ActualFork.t.sol ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol ci/nqc-census/RMC011_REAL_ENTRYPOINT_V07_TEST_DEPOSIT_CONTRACT.md > "$RUNNER_TEMP/nqc011-real-entrypoint/original-sources.sha256"
+          echo RMC011_REAL_ENTRYPOINT_SOURCE_PASS_TEST_ETH_NOT_EXTERNAL_CAPITAL
+
+      - name: Authenticate previous original Aave clock state and mock operator receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/nqc011-real-entrypoint"
+          check() {
+            local run="$1" head="$2" workflow="$3" artifact="$4" name="$5" digest="$6" label="$7"
+            local m a
+            m="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run")"
+            a="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
+            test "$(jq -r .status <<<"$m")" = completed
+            test "$(jq -r .conclusion <<<"$m")" = success
+            test "$(jq -r .head_sha <<<"$m")" = "$head"
+            test "$(jq -r .name <<<"$m")" = "$workflow"
+            test "$(jq -r .expired <<<"$a")" = false
+            test "$(jq -r .name <<<"$a")" = "$name"
+            test "$(jq -r .workflow_run.id <<<"$a")" = "$run"
+            test "$(jq -r .digest <<<"$a")" = "sha256:$digest"
+            local file="$root/$label.zip"
+            curl --fail --silent --show-error --location --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact/zip" -o "$file"
+            printf '%s  %s\n' "$digest" "$file" | sha256sum --check --strict
+            mkdir -p "$root/$label"
+            unzip -qq "$file" -d "$root/$label"
+            (cd "$root/$label" && sha256sum --check --strict archive.sha256)
+          }
+          check 37740704145 030d95c705a1fce77c3345cada4c8cd698f4a1db 'NQC RMC-015 WETH Time-Only Intrablock Probe' 11533288894 'rmc015-three-weth-time-only-030d95c705a1fce77c3345cada4c8cd698f4a1db' 7d813c6cad278a5044d1c4ce57492efb07c5c0d73d69481769f92a4cc4151185 time-source
+          check 37745616966 6d01038a0584826991e9f8a72433b231cd1fba61 'NQC RMC-011 WETH Mock PostOp Operator Bridge' 11535761859 'rmc011-weth-mock-postop-6d01038a0584826991e9f8a72433b231cd1fba61' 68700064cf60dcb36f614dbbecf9183e93a08c94cb24de7b3a07819711102f28 previous-test
+          jq -e '.status=="RMC015_REAL_TOP3_WETH_PREBLOCK_AND_WINNER_TIME_ANCHORS_PASS" and .canonical_time_anchors[0].rank==1 and .canonical_time_anchors[0].previous_block_number==25938047 and .canonical_time_anchors[0].winning_block_number==25938048 and .source_two_operator_time_consensus==true' "$root/time-source/anchors.json" >/dev/null
+          jq -e '.status=="RMC011_WETH_OPERATOR_POSTOP_MOCK_FORK_TOKEN_FLOW_PASS_NOT_AUTHORIZED" and .actual_weth_surplus_delivered_to_test_operator_account_wei=="90814117763741536" and .mock_entrypoint_like_facade_only==true and .third_party_eth_entrypoint_deposit_authenticated==false and .real_market_census_closed==false' "$root/previous-test/mock-postop-operator-report.json" >/dev/null
+          echo RMC011_SOURCE_CLOCK_AND_WETH_REPLAY_AUTHENTICATED_NO_GAS_SPONSOR
+
+      - name: Independently pin true Ethereum mainnet EntryPoint v0.7 runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,sys
+          from pathlib import Path
+          sys.path.insert(0,"ci/nqc-census")
+          from rmc016_probe_historical_rpc import rpc
+          root=Path(__import__('os').environ["RUNNER_TEMP"])/"nqc011-real-entrypoint"
+          block=25938047
+          parent="0x42cf44b75185587327a1aa8fc859cc5f49a639e7256547511430d6068b6f09ab"
+          entry="0x0000000071727de22e5e9d8baf0edac6f37da032"
+          rows=[]
+          for key,operator,url in [
+              ("drpc","dRPC","https://eth.drpc.org"),
+              ("blast","BlastAPI","https://eth-mainnet.public.blastapi.io")
+          ]:
+              assert rpc(url,"eth_chainId",[])=="0x1"
+              head=rpc(url,"eth_getBlockByNumber",[hex(block),False])
+              assert int(head["number"],16)==block and head["hash"]==parent
+              code=rpc(url,"eth_getCode",[entry,hex(block)])
+              assert code.startswith("0x") and len(code)>2002
+              content=bytes.fromhex(code[2:])
+              rows.append({"provider":key,"operator":operator,
+                           "block":block,"block_hash":head["hash"],
+                           "runtime_sha256":hashlib.sha256(content).hexdigest(),
+                           "runtime_bytes":len(content)})
+          assert rows[0]["runtime_sha256"]==rows[1]["runtime_sha256"]
+          assert rows[0]["runtime_bytes"]==rows[1]["runtime_bytes"]
+          out={"schema_version":1,"status":"RMC011_MAINNET_ENTRYPOINT_V07_DUAL_RPC_RUNTIME_PASS",
+               "entrypoint_v07_address":entry,"historical_block":block,
+               "two_operator_code_parity":True,"operators":rows,
+               "production_entrypoint_sponsor_authorized":False,
+               "real_market_census_closed":False}
+          (root/"v07-mainnet-runtime.json").write_text(json.dumps(out,sort_keys=True,separators=(",",":"))+"\n")
+          print(out["status"],rows[0]["runtime_sha256"])
+          PY
+
+      - name: Install pinned Foundry 1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc011-real-foundry"
+          curl --fail --silent --show-error --location --retry 3 -o "$RUNNER_TEMP/nqc011-real-foundry.tar.gz" https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          printf '%s  %s\n' cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b "$RUNNER_TEMP/nqc011-real-foundry.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/nqc011-real-foundry.tar.gz" -C "$RUNNER_TEMP/nqc011-real-foundry"
+          "$RUNNER_TEMP/nqc011-real-foundry/forge" --version
+
+      - name: REAL EntryPoint v0.7 handleOps, sponsored-success, unfunded, invalid signature and revert losses
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$RUNNER_TEMP/nqc011-real-foundry:$PATH"
+          root="$RUNNER_TEMP/nqc011-real-entrypoint"
+          src="$root/time-source/anchors.json"
+          export NQC_RMC016_RANK1_BORROWER="$(jq -r '.canonical_time_anchors[0].borrower' "$src")"
+          export NQC_RMC016_RANK1_PREVIOUS_TIMESTAMP="$(jq -r '.canonical_time_anchors[0].previous_block_timestamp' "$src")"
+          export NQC_RMC016_RANK1_WINNER_TIMESTAMP="$(jq -r '.canonical_time_anchors[0].winning_block_timestamp' "$src")"
+          forge_root="$RUNNER_TEMP/nqc011-actual-entrypoint-forge"
+          mkdir -p "$forge_root/src" "$forge_root/test"
+          cp ci/nqc-census/weth-physical/foundry-time-only.toml "$forge_root/foundry.toml"
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol "$forge_root/src/"
+          cp ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol "$forge_root/test/"
+          cp ci/nqc-census/weth-physical/test/NqcRmc011EntryPointV07ActualFork.t.sol "$forge_root/test/"
+          cd "$forge_root"
+          forge fmt
+          forge fmt --check
+          test "$(sha256sum src/NqcFlashFundingExecutor.sol | cut -d' ' -f1)" = bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320
+          sha256sum foundry.toml src/NqcFlashFundingExecutor.sol test/NqcRmc016RankOneSelfFinancingFork.t.sol test/NqcRmc011EntryPointV07ActualFork.t.sol > "$root/formatted-tested-sources.sha256"
+          forge build --sizes 2>&1 | tee "$root/forge-build.txt"
+          forge test --fork-url https://eth.drpc.org --fork-block-number 25938047 --match-contract NqcRmc011RealEntryPointV07ForkTest -vvv 2>&1 | tee "$root/real-entrypoint-tests.txt"
+          grep -Fq 'Suite result: ok. 6 passed; 0 failed; 0 skipped' "$root/real-entrypoint-tests.txt"
+          grep -Fq 'NQC_V07_REAL_ENTRYPOINT_SPONSOR_TEST_DEPOSIT_SPENT_WEI:' "$root/real-entrypoint-tests.txt"
+          grep -Fq 'NQC_V07_REVERTED_USEROP_SPONSOR_ETH_DEPOSIT_LOSS_WEI:' "$root/real-entrypoint-tests.txt"
+          echo RMC011_REAL_V07_ENTRYPOINT_HANDLEOPS_WITH_TEST_ONLY_ETH_PASS
+
+      - name: Audit native ETH deposit, WETH collection and reverted UserOp liability
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,re
+          from pathlib import Path
+          import os
+          root=Path(os.environ["RUNNER_TEMP"])/"nqc011-real-entrypoint"
+          text=(root/"real-entrypoint-tests.txt").read_text()
+          def event(name):
+              vals=re.findall(r"^\s*"+re.escape(name)+r": ([0-9]+)\s*$",text,re.MULTILINE)
+              assert len(vals)==1,(name,vals)
+              return int(vals[0])
+          eth_paid=event("NQC_V07_REAL_ENTRYPOINT_SPONSOR_TEST_DEPOSIT_SPENT_WEI")
+          weth=event("NQC_V07_REAL_ENTRYPOINT_POSTOP_COLLECTED_WETH_WEI")
+          retained=event("NQC_V07_REAL_ENTRYPOINT_ACCOUNT_WETH_REMAINING_WEI")
+          unpaid=event("NQC_V07_REVERTED_USEROP_SPONSOR_ETH_DEPOSIT_LOSS_WEI")
+          refund=event("NQC_V07_REVERTED_USEROP_WETH_REIMBURSEMENT_WEI")
+          active=event("NQC_V07_REAL_PROVIDER_GAS_AUTHORIZED")
+          gap=event("NQC_V07_TEST_SPONSOR_UNRECOVERED_ETH_PAR_WEI")
+          postop_basis=event("NQC_V07_POSTOP_INPUT_ACTUAL_GAS_COST_WEI")
+          excluded_native=event("NQC_V07_FULL_DEPOSIT_CHARGE_BEYOND_POSTOP_INPUT_WEI")
+          full_recovery=event("NQC_V07_TEST_SPONSOR_8PCT_FULL_GAS_RECOVERY_PROVEN")
+          additional_quote=event("NQC_V07_TEST_QUOTED_POSTOP_RESERVE_WEI")
+          quoted_gas=event("NQC_V07_TEST_QUOTED_SUCCESS_SPONSOR_NATIVE_GAS_DEBIT_WEI")
+          quoted_collected=event("NQC_V07_TEST_QUOTED_SUCCESS_WETH_COLLECTED_WEI")
+          quoted_coverage=event("NQC_V07_TEST_QUOTED_SUCCESS_COVERAGE_WEI")
+          quote_not_authorized=event("NQC_V07_TEST_QUOTED_SUCCESS_PRODUCTION_SPONSOR_PROVEN")
+          assert 0<weth<eth_paid<2*10**16
+          assert gap==eth_paid-weth and gap>0
+          assert 0<postop_basis<eth_paid and excluded_native==eth_paid-postop_basis
+          assert weth==(postop_basis*10800+9999)//10000
+          break_even_bps=max(0,(eth_paid*10000+postop_basis-1)//postop_basis-10000)
+          assert break_even_bps>800 and break_even_bps<=10000
+          assert weth+retained==90814117763741536 and unpaid>0
+          assert refund==0 and active==0 and full_recovery==0
+          assert additional_quote==700000000000000
+          assert quoted_collected==quoted_gas+quoted_coverage
+          assert quoted_collected>quoted_gas>0 and quoted_coverage>0
+          assert quote_not_authorized==0
+          output={
+             "schema_version":1,
+             "status":"RMC011_ACTUAL_V07_ENTRYPOINT_FORK_HANDLEOPS_POSTOP_PASS_TEST_ETH_ONLY",
+             "historical_block_before":25938047,
+             "counterfactual_clock_only_block":25938048,
+             "real_mainnet_entrypoint_v07_deployed_code_replayed":True,
+             "original_mainnet_aave_flash_and_liquidation_replayed":True,
+             "original_aave_weth_surplus_wei":"90814117763741536",
+             "actual_real_entrypoint_native_sponsor_deposit_spent_wei":str(eth_paid),
+             "actual_real_entrypoint_test_paymaster_postop_weth_collected_wei":str(weth),
+             "actual_test_account_weth_remaining_after_postop_wei":str(retained),
+             "test_sponsor_8pct_fee_did_not_cover_full_native_gas":True,
+             "test_sponsor_unrecovered_native_eth_par_wei":str(gap),
+             "actual_postop_input_cost_wei_before_own_postop_overhead":str(postop_basis),
+             "actual_native_eth_debit_excluded_from_postop_input_wei":str(excluded_native),
+             "test_only_break_even_service_fee_bps_over_postop_input":break_even_bps,
+             "test_only_stated_service_fee_bps":800,
+             "test_only_precommitted_postop_gas_reserve_weI":str(additional_quote),
+             "test_only_reserved_success_native_eth_debit_wei":str(quoted_gas),
+             "test_only_reserved_success_postop_weth_collected_wei":str(quoted_collected),
+             "test_only_reserved_success_eth_weth_par_coverage_wei":str(quoted_coverage),
+             "one_quoted_success_does_not_cover_reverts_or_future_operations":True,
+             "test_sponsor_production_profitability_proven":False,
+             "failed_application_userop_test_sponsor_eth_deposit_loss_wei":str(unpaid),
+             "failed_application_userop_weth_reimbursement_wei":"0",
+             "historical_gas_oracle_and_rpc_source_consensus":True,
+             "test_only_account_and_paymaster":True,
+             "paymaster_native_eth_deposit_funded_by_foundry_vm_deal_fixture":True,
+             "bundler_transaction_sender_eth_funded_by_foundry_vm_deal_fixture":True,
+             "production_4337_account_and_paymaster_security_audited":False,
+             "third_party_financially_independent_eth_sponsor_approved":False,
+             "real_provider_signed_quote_and_norecourse_failure_contract":False,
+             "ex_ante_detection_and_competitive_inclusion_proven":False,
+             "nexus_realized_net_profit_proven":False,
+             "rmc011_terminal_closed":False,
+             "real_market_census_closed":False,
+          }
+          def canon(v):return (json.dumps(v,sort_keys=True,separators=(",",":"))+"\n").encode()
+          output["report_sha256"]=hashlib.sha256(canon(output)).hexdigest()
+          (root/"real-v07-paymaster-evidence.json").write_bytes(canon(output))
+          print(output["status"],"test_sponsor_eth_spent",eth_paid,
+                "test_sponsor_unrecovered_eth_par_wei",gap,
+                "test_only_break_even_fee_bps",break_even_bps,
+                "test_only_quoted_success_coverage_wei",quoted_coverage,
+                "failed_userop_eth_loss",unpaid)
+          PY
+          (cd "$RUNNER_TEMP/nqc011-real-entrypoint" && find . -maxdepth 1 -type f ! -name archive.sha256 ! -name '*.zip' -printf '%f\n' | sort | while read -r n; do sha256sum "$n"; done > archive.sha256 && sha256sum -c archive.sha256)
+          echo RMC011_REAL_ENTRYPOINT_TEST_FUNDED_EXTERNAL_PROVIDER_NOT_AUTHORIZED
+
+      - name: Preserve onchain-code fork evidence or failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-real-v07-entrypoint-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc011-real-entrypoint/*.json
+            ${{ runner.temp }}/nqc011-real-entrypoint/*.txt
+            ${{ runner.temp }}/nqc011-real-entrypoint/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
