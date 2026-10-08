@@ -137,6 +137,10 @@ contract NqcRmc011V07TestPaymaster {
     address public immutable fixture;
     address public allowedAccount;
     uint16 public serviceFeeBps;
+    // A single signed provider quote would be required in production. This is
+    // only a TEST-ONLY immutable-before-operation gas overhead sensitivity.
+    bool public overheadQuoteSet;
+    uint256 public quotedPostopOverheadWei;
     uint256 public collectedWeth;
     uint256 public lastActualGasCostWei;
     uint256 public revertedOperationGasLossWei;
@@ -159,6 +163,15 @@ contract NqcRmc011V07TestPaymaster {
         require(msg.sender == fixture && allowedAccount == address(0) &&
                 account_ != address(0), "TEST_ACCOUNT_BOUND_ONCE");
         allowedAccount = account_;
+    }
+
+    function configureTestPostopOverheadQuote(uint256 quoteWei) external {
+        require(msg.sender == fixture && !overheadQuoteSet && postOpCount == 0,
+                "OVERHEAD_QUOTE_CANNOT_CHANGE");
+        require(quoteWei > 0 && quoteWei <= 0.005 ether,
+                "TEST_OVERHEAD_QUOTE_OUT_OF_RANGE");
+        quotedPostopOverheadWei = quoteWei;
+        overheadQuoteSet = true;
     }
 
     function depositFixtureEth() external payable {
@@ -196,7 +209,8 @@ contract NqcRmc011V07TestPaymaster {
         postOpCount++;
         if (mode == 0) {
             uint256 costWithServiceFee =
-                (actualGasCost * (10_000 + serviceFeeBps) + 9_999) / 10_000;
+                (actualGasCost * (10_000 + serviceFeeBps) + 9_999) / 10_000
+                + quotedPostopOverheadWei;
             require(INqcRmc011Weth(weth).transferFrom(
                 sender, treasury, costWithServiceFee), "POSTOP_REAL_ERC20_COLLECTION_FAILED");
             NqcRmc011V07TestAccount(sender).clearPaymasterAllowance();
@@ -413,6 +427,33 @@ contract NqcRmc011RealEntryPointV07ForkTest {
         emit log_named_uint("NQC_V07_REAL_ENTRYPOINT_ACCOUNT_WETH_REMAINING_WEI",
                             remainingWeth);
         emit log_named_uint("NQC_V07_REAL_PROVIDER_GAS_AUTHORIZED",0);
+    }
+
+    function testPrequotedTestPostOpOverheadCoversOneSuccessfulSponsorDepositCharge() public {
+        _timeOnly();
+        // TEST sensitivity only, not a real provider quote and not a promise
+        // that this amount covers future gas regimes or reverted attempts.
+        uint256 quote = 700_000_000_000_000; // 0.0007 WETH at ETH/WETH par.
+        paymaster.configureTestPostopOverheadQuote(quote);
+        _testFundDepositFromMintedThirdPartyEth();
+        uint256 beforeDeposit=INqcEntryPointV07(ENTRYPOINT).balanceOf(address(paymaster));
+        _executeUserOperation(_op(hex"433705",1,false));
+        uint256 afterDeposit=INqcEntryPointV07(ENTRYPOINT).balanceOf(address(paymaster));
+        uint256 nativeGas=beforeDeposit-afterDeposit;
+        uint256 collected=paymaster.collectedWeth();
+        require(nativeGas > 0 && collected >= nativeGas,
+                "PREQUOTED_TEST_OVERHEAD_FAILED_TO_COVER_GAS");
+        require(collected + INqcRmc011Weth(WETH).balanceOf(address(account)) ==
+                ORIGINAL_FORK_SURPLUS,"WETH_ACCOUNTING_WITH_QUOTE_CHANGED");
+        require(paymaster.postOpCount() == 1 && paymaster.lastMode() == 0,
+                "REAL_ENTRYPOINT_POSTOP_NOT_EXECUTED");
+        require(INqcRmc011Weth(WETH).allowance(address(account),address(paymaster)) == 0,
+                "TEST_PAYMASTER_ALLOWANCE_DID_NOT_CLEAR");
+        emit log_named_uint("NQC_V07_TEST_QUOTED_POSTOP_RESERVE_WEI",quote);
+        emit log_named_uint("NQC_V07_TEST_QUOTED_SUCCESS_SPONSOR_NATIVE_GAS_DEBIT_WEI",nativeGas);
+        emit log_named_uint("NQC_V07_TEST_QUOTED_SUCCESS_WETH_COLLECTED_WEI",collected);
+        emit log_named_uint("NQC_V07_TEST_QUOTED_SUCCESS_COVERAGE_WEI",collected-nativeGas);
+        emit log_named_uint("NQC_V07_TEST_QUOTED_SUCCESS_PRODUCTION_SPONSOR_PROVEN",0);
     }
 
     function testUnfundedRealEntryPointPaymasterCannotExecuteLiquidation() public {
