@@ -1,0 +1,114 @@
+name: NQC RMC-015 Material Risk Frontier (Auxiliary)
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc015_material_frontier.py"
+      - "ci/nqc-census/test_rmc015_material_frontier.py"
+      - "ci/nqc-census/RMC015_MATERIAL_FRONTIER_CONTRACT.md"
+      - ".github/workflows/nqc-rmc015-material-frontier.yml"
+  push:
+    branches:
+      - "nqc/rmc015-material-frontier-20261008"
+    paths:
+      - "ci/nqc-census/rmc015_material_frontier.py"
+      - "ci/nqc-census/test_rmc015_material_frontier.py"
+      - "ci/nqc-census/RMC015_MATERIAL_FRONTIER_CONTRACT.md"
+      - ".github/workflows/nqc-rmc015-material-frontier.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc015-material-frontier-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  exact-frontier:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Offline adversarial regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s ci/nqc-census -p test_rmc015_material_frontier.py -v
+
+      - name: Independently authenticate two immutable upstream actions
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          mkdir -p "$RUNNER_TEMP/frontier-inputs"
+          for row in \
+            'D08 36964016388 11237887761 36c732a36789e1967ce7178010889427ad7cf0f2 9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913 NQC_RMC_008' \
+            'D09 36823489219 11159396055 6db82ca89d4ef3a66a1b236de95670a6967eb3ea 9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6 NQC_RMC_009'; do
+            read -r stage run artifact head digest label <<< "$row"
+            run_data="$(gh api "repos/$REPO/actions/runs/$run")"
+            artifact_data="$(gh api "repos/$REPO/actions/artifacts/$artifact")"
+            test "$(jq -r '.status' <<< "$run_data")" = completed
+            test "$(jq -r '.conclusion' <<< "$run_data")" = success
+            test "$(jq -r '.head_sha' <<< "$run_data")" = "$head"
+            test "$(jq -r '.expired' <<< "$artifact_data")" = false
+            test "$(jq -r '.id' <<< "$artifact_data")" = "$artifact"
+            test "$(jq -r '.workflow_run.id' <<< "$artifact_data")" = "$run"
+            test "$(jq -r '.digest' <<< "$artifact_data")" = "sha256:$digest"
+            test "$(jq -r '.name' <<< "$artifact_data" | grep -c -- "$head")" = 1
+            curl --fail --silent --show-error --location --retry 3 \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$REPO/actions/artifacts/$artifact/zip" \
+              --output "$RUNNER_TEMP/frontier-inputs/$stage.zip"
+            echo "$digest  $RUNNER_TEMP/frontier-inputs/$stage.zip" | sha256sum -c -
+            echo "${label}_VERIFIED run=$run artifact=$artifact commit=$head"
+          done
+
+      - name: Deterministic historical risk frontier (no execution)
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/frontier-result"
+          mkdir -p "$OUT"
+          python3 ci/nqc-census/rmc015_material_frontier.py \
+            --d08 "$RUNNER_TEMP/frontier-inputs/D08.zip" \
+            --d09 "$RUNNER_TEMP/frontier-inputs/D09.zip" \
+            --d08-sha256 9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913 \
+            --d09-sha256 9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6 \
+            --d08-commit 36c732a36789e1967ce7178010889427ad7cf0f2 \
+            --d09-commit 6db82ca89d4ef3a66a1b236de95670a6967eb3ea \
+            --summary-out "$OUT/material-risk-frontier.json"
+          jq -e '
+            .status == "RMC015_AUXILIARY_RISK_FRONTIER_VERIFIED" and
+            .terminal_authority == false and .census_closed == false and
+            .realized_profitability_proven == false and
+            .execution_or_capital_feasibility_proven == false and
+            .lookahead_used == false and .extrapolation_used == false and
+            .retrospective_backtest_admitted == false and
+            .earliest_ex_ante_evaluation_block == 26095352 and
+            .anchor.block_number == 26095351 and
+            .underwater_accounts == 400 and
+            .debt_accounts == 28275 and
+            .material_risk_frontier.account_count == 857
+          ' "$OUT/material-risk-frontier.json" >/dev/null
+          (cd "$OUT" && sha256sum material-risk-frontier.json > material-risk-frontier.sha256 \
+            && sha256sum -c material-risk-frontier.sha256)
+          echo RMC015_FRONTIER_AUXILIARY=PASS
+
+      - name: Upload reproducible auxiliary evidence (no watchlist addresses)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc015-material-risk-frontier-${{ github.sha }}
+          path: ${{ runner.temp }}/frontier-result/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
