@@ -442,5 +442,46 @@ class TestNew14HistoricalShards(unittest.TestCase):
                 "eth_getLogs",[],"blockscout",sleep=lambda seconds:None)
         self.assertEqual(len(calls),1)
 
+
+    def test_429_on_canonical_block_header_is_retried_without_skipping(self):
+        attempts=[]
+        slept=[]
+        def artificial(url,method,params):
+            attempts.append((url,method,params))
+            if len(attempts)<3:
+                raise ValueError("HTTP Error 429 Too Many Requests")
+            return {"number":"0x1","hash":"0x"+"a"*64}
+        data=m.authenticated_log_rpc(
+            artificial,"https://blockscout.invalid",
+            "eth_getBlockByNumber",["0x1",False],
+            "blockscout",sleep=slept.append)
+        self.assertEqual(data["number"],"0x1")
+        self.assertEqual(len(attempts),3)
+        self.assertEqual(slept,[2,6])
+        self.assertTrue(all(x[1]=="eth_getBlockByNumber" for x in attempts))
+        self.assertTrue(all(x[2]==["0x1",False] for x in attempts))
+
+    def test_throttled_real_event_header_retains_two_operator_consensus(self):
+        summary,watchlist,first=self.inputs()
+        stub=SourceRpc()
+        triggered=[]
+        def noisy(url,method,params):
+            if ("blockscout.invalid" in url and
+                method=="eth_getBlockByNumber" and
+                int(params[0],16)==m.FIRST_DONE_END+1 and not triggered):
+                triggered.append(True)
+                raise ValueError("HTTP Error 429 Too Many Requests")
+            return stub(url,method,params)
+        with tempfile.TemporaryDirectory() as d:
+            with patch.object(m.time,"sleep",return_value=None):
+                result=m.whole_window(
+                    summary,watchlist,first,Path(d)/"checkpoints",
+                    providers=PROVIDERS,call=noisy)
+        self.assertTrue(triggered)
+        self.assertEqual(result["verified_total_block_count"],7200)
+        self.assertFalse(result["probabilistic_capture_calibrated"])
+        self.assertFalse(result["external_gas_nonrecourse_provider_authorized"])
+        self.assertEqual(result["nqc_realized_profit_usd"],"0")
+
 if __name__=="__main__":
     unittest.main()
