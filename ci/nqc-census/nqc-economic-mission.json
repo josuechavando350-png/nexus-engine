@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "document_kind": "STRATEGIC_ECONOMIC_OBJECTIVE_NOT_CERTIFICATION",
+  "status": "TARGET_NOT_PROVEN",
+  "owner_directive_date": "2026-10-07",
+  "portfolio": "NEXUS_QUANT_CAPITAL",
+  "measurement": {
+    "start_event": "FIRST_AUDITABLE_AUTHORIZED_PRODUCTION_LIVE_EXECUTION",
+    "period_type": "NON_OVERLAPPING_30_CONSECUTIVE_FULL_UTC_DAYS",
+    "first_period_days": 30,
+    "profit_unit": "USD",
+    "profit_metric": "REALIZED_NET_PNL_ALL_REAL_COSTS_INCLUDED",
+    "exclude": [
+      "SHADOW_PREDICTIONS",
+      "CANARY_SIMULATIONS",
+      "GROSS_LIQUIDATION_VALUE",
+      "TOTAL_VALUE_LOCKED",
+      "LOAN_NOTIONAL",
+      "UNCONFIRMED_REVENUE",
+      "DOUBLE_COUNTED_OPPORTUNITIES"
+    ]
+  },
+  "economic_targets": {
+    "first_month_min_net_usd": "500000.00",
+    "subsequent_months": "SEEK_INCREASING_REALIZED_NET_PROFIT_WITH_ADVERSARIAL_RISK_CONTROLS",
+    "artificial_profit_cap_usd": null,
+    "artificial_market_cap": null,
+    "reliability_aspiration": {
+      "type": "EMPIRICAL_CALIBRATION_REQUIRED",
+      "threshold_probability_lower_bound": null,
+      "example_goal_probability": "0.90",
+      "target": "MONTH_1_NET_GTE_500000_USD"
+    },
+    "target_is_guarantee": false,
+    "target_is_census_admission_override": false
+  },
+  "capital_constraint": {
+    "own_capital_usd": "0",
+    "operator_prefunded_gas_allowed": false,
+    "operator_collateral_allowed": false,
+    "external_principal_required": true,
+    "external_gas_funding_evidence_required": true,
+    "flash_principal_cannot_pay_upfront_gas": true
+  },
+  "authority": {
+    "real_market_census_closed": false,
+    "final_census_authority": "RMC-017",
+    "prerequisite_terminal_chain": [
+      "RMC-011",
+      "RMC-012",
+      "RMC-013",
+      "RMC-014",
+      "RMC-015",
+      "RMC-016"
+    ],
+    "proof_of_month_one_target": false,
+    "proof_of_realized_pnl": false,
+    "proof_of_capture_probability": false,
+    "fail_closed": true,
+    "objective_must_not_change_certification_thresholds": true
+  },
+  "mandatory_cost_categories": [
+    "PROTOCOL_FEES",
+    "FLASH_AND_CAPITAL_FEES",
+    "SWAP_FEES",
+    "PRICE_IMPACT",
+    "BASE_GAS",
+    "PRIORITY_FEE",
+    "BUILDER_PAYMENTS",
+    "MEV",
+    "FINANCING",
+    "HEDGING",
+    "INVENTORY",
+    "FAILURE_REVERT",
+    "OPPORTUNITY_COST",
+    "CHAIN_SPECIFIC",
+    "OTHER_REAL_COSTS"
+  ]
+}
