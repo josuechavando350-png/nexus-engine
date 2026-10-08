@@ -1,0 +1,123 @@
+name: NQC RMC-011 Original Native Dual Provider Audit (NOT D11 CLOSE)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc011-original-native-dual-provider.yml'
+      - 'ci/nqc-census/rmc011_original_native_dual_provider_source_audit.py'
+      - 'ci/nqc-census/test_rmc011_original_native_dual_provider_source_audit.py'
+      - 'ci/nqc-census/RMC011_ORIGINAL_NATIVE_DUAL_PROVIDER_EVIDENCE.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: nqc-rmc011-original-native-dual-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  source-archive-independent-audit-not-terminal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Pin partial Capital Truth, reject forged terminal D11
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object ci/nqc-census/rmc011-capital-source-universe.json)" = c1b9f136a13f220af9dceaae50e5caa3105121eb
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          python3 -m py_compile ci/nqc-census/rmc011_original_native_dual_provider_source_audit.py ci/nqc-census/test_rmc011_original_native_dual_provider_source_audit.py
+          jq -e '.stage=="RMC-011" and .status=="BLOCKED_INCOMPLETE_SOURCE_UNIVERSE" and
+                 .d11_terminal_closed==false and .terminal_claim_allowed==false and
+                 ([.families[]|select(.terminally_resolved==true)]|length)==9 and
+                 ([.families[]|select(.terminally_resolved==false)]|length)==4' \
+            ci/nqc-census/rmc011-capital-source-universe.json >/dev/null
+          echo RMC011_NINE_FAMILIES_SOURCE_ONLY_FOUR_PENDING_NO_GAS
+      - name: Authenticate producer acquisition job SUCCESS while overall workflow FAILED
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR="$RUNNER_TEMP/nqc011-native-original"
+          mkdir -p "$DIR/private" "$DIR/public"
+          REPO="$GITHUB_REPOSITORY"
+          gh api "repos/$REPO/actions/runs/37689816997" > "$DIR/private/run.json"
+          gh api "repos/$REPO/actions/jobs/113026823480" > "$DIR/private/job.json"
+          gh api "repos/$REPO/actions/artifacts/11514391050" > "$DIR/private/artifact.json"
+          gh api "repos/$REPO/git/commits/ea488b9dc13b690921416dd11c4369cfb76912e5" > "$DIR/private/commit.json"
+          jq -e '.id==37689816997 and .conclusion=="failure" and .status=="completed" and
+                 .head_sha=="ea488b9dc13b690921416dd11c4369cfb76912e5"' "$DIR/private/run.json" >/dev/null
+          jq -e '.id==113026823480 and .run_id==37689816997 and
+                 .name=="authoritative-real-source-certification" and
+                 .conclusion=="success"' "$DIR/private/job.json" >/dev/null
+          jq -e '.id==11514391050 and .expired==false and
+                 .digest=="sha256:a0ab50b41f5653e7749dc7360eb8006f3f088477372654ade9d966b3373f006f" and
+                 .workflow_run.id==37689816997' "$DIR/private/artifact.json" >/dev/null
+          jq -e '.sha=="ea488b9dc13b690921416dd11c4369cfb76912e5" and
+                 .tree.sha=="095942bdca0ef08b835d66e6807f30ccb8d601ff"' "$DIR/private/commit.json" >/dev/null
+          echo RMC011_IMMUTABLE_ORIGINAL_ACQUISITION_JOB_SUCCESS_NOT_WORKFLOW_SUCCESS
+      - name: Download only EXISTING dual-provider GitHub artifact, no chain RPC
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR="$RUNNER_TEMP/nqc011-native-original"
+          curl --fail --silent --show-error --location --retry 2 \
+            --connect-timeout 15 --max-time 600 \
+            -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11514391050/zip" \
+            -o "$DIR/private/original.zip"
+          printf '%s  %s\n' a0ab50b41f5653e7749dc7360eb8006f3f088477372654ade9d966b3373f006f "$DIR/private/original.zip" \
+            | sha256sum -c --strict
+      - name: Independently replay all 30030 original source hashes and 17 adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR="$RUNNER_TEMP/nqc011-native-original"
+          OPTIONS=(
+            --zip "$DIR/private/original.zip"
+            --run-meta "$DIR/private/run.json"
+            --job-meta "$DIR/private/job.json"
+            --artifact-meta "$DIR/private/artifact.json"
+            --commit-meta "$DIR/private/commit.json"
+          )
+          python3 ci/nqc-census/test_rmc011_original_native_dual_provider_source_audit.py ${OPTIONS[@]} -v 2>&1 \
+            | tee "$DIR/public/adversarial-tests.txt"
+          python3 ci/nqc-census/rmc011_original_native_dual_provider_source_audit.py ${OPTIONS[@]} \
+            --report "$DIR/public/native-source-report.json"
+          python3 ci/nqc-census/rmc011_original_native_dual_provider_source_audit.py ${OPTIONS[@]} \
+            --report "$DIR/private/independent-replay.json"
+          cmp "$DIR/public/native-source-report.json" "$DIR/private/independent-replay.json"
+          jq -e '.status=="RMC011_ORIGINAL_DUAL_PROVIDER_NATIVE_FLASH_OBSERVED_ZERO_EXECUTABLE_NOT_D11" and
+                 .total_native_historical_sources==69815 and
+                 .historical_sources_recorded_execution_eligible==0 and
+                 .historical_sources_recorded_executable_capital==0 and
+                 .original_internal_sha256_manifest_entries==30030 and
+                 .original_workflow_conclusion=="failure" and
+                 .original_acquisition_job_conclusion=="success" and
+                 .original_source_family_evidence.BALANCER_V2_FLASH_LOAN.source_count_historical==67 and
+                 .original_source_family_evidence.UNISWAP_V3_FLASH.source_count_historical==69748 and
+                 .independently_admitted_family_terminal_closeout==false and
+                 .nqc_externally_authorized_gas_sponsors==0 and
+                 .rmc011_terminal_closed==false and .real_market_census_closed==false and
+                 .nqc_realized_profit_usd_wad=="0"' "$DIR/public/native-source-report.json" >/dev/null
+          sha256sum ci/nqc-census/rmc011_original_native_dual_provider_source_audit.py \
+                    ci/nqc-census/test_rmc011_original_native_dual_provider_source_audit.py \
+                    ci/nqc-census/RMC011_ORIGINAL_NATIVE_DUAL_PROVIDER_EVIDENCE.md \
+             > "$DIR/public/producer-source.sha256"
+          (cd "$DIR/public" && sha256sum native-source-report.json adversarial-tests.txt producer-source.sha256 > audit.sha256 && sha256sum -c --strict audit.sha256)
+          echo RMC011_TWO_NATIVE_HISTORICAL_SOURCES_ZERO_EXECUTION_NOT_D11_CLOSED
+      - name: Publish content-addressed aggregates only; no original pool data
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-original-native-dual-source-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc011-native-original/public/*.json
+            ${{ runner.temp }}/nqc011-native-original/public/*.txt
+            ${{ runner.temp }}/nqc011-native-original/public/*.sha256
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
