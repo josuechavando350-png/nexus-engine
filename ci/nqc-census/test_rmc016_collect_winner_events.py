@@ -128,6 +128,34 @@ class FullHistoricalDiscovery(unittest.TestCase):
     def test_forged_provider_rejected(self):
         with self.assertRaises(ValueError):
             M.gather(("sham","Blockscout","https://evil.invalid"),fake())
+    def test_wide_range_one_shard_without_sample_extrapolation(self):
+        report, events, txids, _ = M.gather(self.provider,fake(),chunk=262144)
+        self.assertTrue(report["coverage_complete"])
+        self.assertEqual(report["shard_count"],1)
+        self.assertEqual(report["liquidation_event_count"],139)
+        self.assertEqual(len(txids),127)
+    def test_partial_checkpoint_saved_on_rate_limit(self):
+        def throttled(url,method,params):
+            if method=="eth_getLogs" and int(params[0]["fromBlock"],16)>=M.START_BLOCK+8192:
+                raise ValueError("429 Too Many Requests")
+            return fake()(url,method,params)
+        report,events,ids,gas=M.gather(self.provider,throttled,chunk=8192)
+        self.assertFalse(report["coverage_complete"])
+        self.assertGreater(len(events),0)
+        self.assertEqual(len(ids),127)
+        with tempfile.TemporaryDirectory() as d:
+            out=Path(d)/"partial"
+            M.write_report(out,report,events,ids,gas)
+            self.assertTrue((out/"partial-event-identities.jsonl").is_file())
+            self.assertFalse((out/"liquidation-events.jsonl").exists())
+            self.assertIn("partial_events_sha256",report)
+            self.assertEqual(M.sha((out/"partial-event-identities.jsonl").read_bytes()),
+                             report["partial_events_sha256"])
+    def test_rate_spacing_is_explicit_and_default_free_for_fixtures(self):
+        with self.assertRaises(ValueError):
+            M.gather(self.provider,fake(),min_rpc_interval=45)
+        r,*_=M.gather(self.provider,fake(),min_rpc_interval=0)
+        self.assertEqual(r["rpc_min_interval_seconds"],0)
     def test_report_append_only_and_checksums(self):
         with tempfile.TemporaryDirectory() as d:
             path=Path(d)/"output"
