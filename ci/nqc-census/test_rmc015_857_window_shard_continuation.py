@@ -96,7 +96,7 @@ class SourceRpc:
             lo=int(data["fromBlock"],16)
             hi=int(data["toBlock"],16)
             assert 1<=hi-lo+1<=m.SHARD_SIZE
-            if "blast.invalid" in url:
+            if "blast.invalid" in url or "drpc.invalid" in url:
                 assert hi-lo+1<=10
             return [copy.deepcopy(x) for x in self.events
                     if lo<=int(x["blockNumber"],16)<=hi]
@@ -154,6 +154,34 @@ class TestNew14HistoricalShards(unittest.TestCase):
         p["source_watchlist_commitment_sha256"]="1"*64
         with self.assertRaisesRegex(ValueError,"commitment"):
             m.verified_original_first(p,s)
+
+    def test_both_real_archive_operators_are_partioned_at_most_ten_blocks(self):
+        self.assertEqual(m.MAX_REAL_ARCHIVE_LOG_RANGE,{"drpc":10,"blast":10})
+        s,w,p=self.inputs()
+        members={json.loads(line)["account"] for line in w.splitlines()}
+        self.assertEqual(len(members),857)
+        witness=SourceRpc()
+        previous_hash="0x"+f"{m.FIRST_DONE_END:064x}"
+        observed,events=m.verify_one_shard(
+            1,members,previous_hash,providers=PROVIDERS,call=witness)
+        self.assertEqual(events,[])
+        self.assertEqual(observed["matched_source_cohort_event_count"],0)
+        chunks={}
+        for url,method,args in witness.calls:
+            if method!="eth_getLogs":continue
+            chunk=args[0]
+            lo=int(chunk["fromBlock"],16)
+            hi=int(chunk["toBlock"],16)
+            self.assertTrue(1<=hi-lo+1<=10)
+            chunks.setdefault(url,[]).append((lo,hi))
+        self.assertEqual(len(chunks),2)
+        for slices in chunks.values():
+            self.assertEqual(len(slices),48)
+            self.assertEqual(slices[0][0],m.FIRST_DONE_END+1)
+            self.assertEqual(slices[-1][1],m.FIRST_DONE_END+480)
+            self.assertTrue(all(slices[i][1]+1==slices[i+1][0]
+                                for i in range(len(slices)-1)))
+        self.assertFalse(observed["census_closed"])
 
     def test_realistic_empty_observed_future_events_complete_7200(self):
         s,w,p=self.inputs()
