@@ -197,6 +197,28 @@ class Test857PreselectedAgainstRealLaterEvents(unittest.TestCase):
         self.assertEqual([p[0] for p in admitted],["blast","publicnode"])
         self.assertEqual([x["provider_id"] for x in rejected],["drpc"])
 
+    def test_blast_free_rpc_requires_ten_block_segments_without_losing_events(self):
+        s,data=fixture()
+        counts={"blast":0,"blockscout":0}
+        def strict(url,method,params):
+            if method=="eth_getLogs":
+                lo=int(params[0]["fromBlock"],16)
+                hi=int(params[0]["toBlock"],16)
+                if "blast.invalid" in url:
+                    self.assertLessEqual(hi-lo+1,10)
+                    counts["blast"]+=1
+                elif "blockscout.invalid" in url:
+                    self.assertLessEqual(hi-lo+1,480)
+                    counts["blockscout"]+=1
+            return rpc(url,method,params)
+        r=m.assess(s,data,call=strict,providers=[
+            ("blast","BlastAPI","https://blast.invalid"),
+            ("blockscout","Blockscout","https://blockscout.invalid"),
+        ])
+        self.assertEqual(r["event_chunks_per_provider"],{"blast":720,"blockscout":15})
+        self.assertEqual(counts,{"blast":720,"blockscout":15})
+        self.assertEqual(r["real_aave_liquidation_events_matching_source_cohort"],2)
+
     def test_no_paid_or_unverified_public_archive_fallback(self):
         candidates=[
           ("drpc","dRPC","https://drpc.invalid"),
@@ -214,7 +236,7 @@ class Test857PreselectedAgainstRealLaterEvents(unittest.TestCase):
         self.assertEqual(m.CHUNK,480)
         self.assertEqual((m.END-m.START+1)//m.CHUNK,15)
         x=self.runreal()
-        self.assertEqual(x["event_chunks_per_provider"],15)
+        self.assertEqual(x["event_chunks_per_provider"],{"drpc":15,"blast":720})
 
 
 if __name__=="__main__":
