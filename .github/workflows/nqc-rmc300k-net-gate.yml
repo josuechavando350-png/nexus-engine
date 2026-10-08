@@ -27,3 +27,11 @@ jobs:
           python3 ci/nqc-census/rmc300k_monthly_net_gate.py --source ci/nqc-census/rmc016-production-evidence.json --out /tmp/rmc300k-underwriting.json
           jq -e '.status=="RMC300K_NET_MONTHLY_TARGET_UNPROVEN" and .target_monthly_net_usd_wad=="300000000000000000000000" and .monthly_300k_certified==false and .real_market_census_closed==false and .nexus_net_monthly_forecast_usd_wad==null' /tmp/rmc300k-underwriting.json
           echo RMC300K_POLICY_GATE_PASS_NOT_PROVEN
+      - name: Retain source-locked negative underwriting evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc300k-net-target-baseline-${{ github.sha }}
+          path: /tmp/rmc300k-underwriting.json
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
