@@ -62,7 +62,10 @@ def recover_ranked_sources(event_zip,receipt_zip,legs_zip):
         require(tid==tx and leg["block_number"]==block and
                 int(leg["debt_to_cover_raw"])==debt and actual_margin==margin,
                 "original top-3 WETH ranking or amounts changed")
-        require(len(original[tx])==1,"ranked historical competitor winner has multiple events")
+        # One winner tx may contain other Aave LiquidationCall events; the
+        # whole receipt is still authenticated once, then the selected
+        # WETH/WETH event is matched by its exact canonical log index.
+        require(len(original[tx])>=1,"historical competitor receipt missing Aave events")
         targets.append({
             "rank":i+1,
             "transaction_hash":tx,"winning_block_number":block,
@@ -97,11 +100,16 @@ def observe_provider(provider,targets,call=rpc,spacing=0):
               and str(x.get("address","")).lower()==AAVE_POOL
               and type(x.get("topics")) is list and len(x["topics"])==4
               and str(x["topics"][0]).lower()==LIQUIDATION_TOPIC]
-        require(len(logs)==1,"historical winner Aave event cardinality differs")
-        original_log=decode(logs[0])
+        require(len(logs)==len(t["original_event_list"]),
+                "full Aave source event count disagrees with actual winner receipt")
+        wanted_index=t["original_abi_event"]["log_index"]
+        matches=[log for log in logs if int(str(log.get("logIndex","-1")),16)==wanted_index]
+        require(len(matches)==1,
+                "exact WETH/WETH liquidation log index not unique in historical winner")
+        original_log=decode(matches[0])
         require(original_log==t["original_abi_event"],
                 "raw source event ABI / borrower hash differs")
-        borrower="0x"+str(logs[0]["topics"][3]).lower()[-40:]
+        borrower="0x"+str(matches[0]["topics"][3]).lower()[-40:]
         require(HEX40.fullmatch(borrower) is not None and borrower!="0x"+"0"*40,
                 "invalid source borrower address")
         if spacing:time.sleep(spacing)
