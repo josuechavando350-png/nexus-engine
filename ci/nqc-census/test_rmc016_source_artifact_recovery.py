@@ -184,8 +184,8 @@ class ArtifactRecoveryTests(unittest.TestCase):
                                      expected_member=rec.sha256(sample)),[])
 
     def test_no_invented_100percent_coverage_when_indexed_many(self):
-        x=rec.select([row(100+i) for i in range(70)])
-        self.assertEqual(x["eligible_not_selected_due_to_scan_budget"],22)
+        x=rec.select([row(100+i) for i in range(170)])
+        self.assertEqual(x["eligible_not_selected_due_to_scan_budget"],42)
         self.assertTrue(x["unscanned_global_repo_artifacts_may_contain_source"])
 
 
