@@ -183,6 +183,32 @@ class Test857PreselectedAgainstRealLaterEvents(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"SHA256"):
             m.assess(s,d,call=rpc,providers=OPERATORS)
 
+    def test_source_admission_refuses_historical_logs_free_tier_and_uses_independent_alternatives(self):
+        candidates=[
+          ("drpc","dRPC","https://drpc.invalid"),
+          ("blast","BlastAPI","https://blast.invalid"),
+          ("publicnode","PublicNode","https://publicnode.invalid")
+        ]
+        def constrained(url,method,params):
+            if "drpc.invalid" in url and method=="eth_getLogs":
+                raise ValueError("ranges over 10000 blocks are not supported on free plan")
+            return rpc(url,method,params)
+        admitted,rejected=m.independently_supported_archives(call=constrained,candidates=candidates)
+        self.assertEqual([p[0] for p in admitted],["blast","publicnode"])
+        self.assertEqual([x["provider_id"] for x in rejected],["drpc"])
+
+    def test_no_paid_or_unverified_public_archive_fallback(self):
+        candidates=[
+          ("drpc","dRPC","https://drpc.invalid"),
+          ("blast","BlastAPI","https://blast.invalid")
+        ]
+        def all_blocked(url,method,params):
+            if method=="eth_getLogs":
+                raise ValueError("premium API key required")
+            return rpc(url,method,params)
+        with self.assertRaisesRegex(ValueError,"two independent public archive RPCs"):
+            m.independently_supported_archives(call=all_blocked,candidates=candidates)
+
     def test_exact_temporal_chunks_cover_7200_blocks(self):
         self.assertEqual(m.END-m.START+1,7200)
         self.assertEqual(m.CHUNK,480)
