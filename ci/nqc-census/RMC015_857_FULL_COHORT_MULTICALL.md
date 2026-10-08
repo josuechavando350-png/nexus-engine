@@ -1,0 +1,21 @@
+# RMC-015: Entire 857-account material risk cohort, two real Ethereum post-anchor Aave snapshots
+
+**Stage**: observational, no retrospective winner selection, no NQC profit or gas financing claim.
+
+The real D08/D09 source at Ethereum Aave block 26095351 authenticated **246,929 account states** and **28,275 debt-bearing accounts**. Its source-backed filtered 857-account cohort comprises healthy (HF between 1 and 1.2), material (debt at least 10,000 Aave oracle base currency units) borrowers at exactly that source anchor. The full list is extracted privately from the original two independently hash-verified source ZIP archives by the original PR #605 selector, fetched by exact Git blob 5542bbec0840335994cbbab272e6228756ba6eb0. DO NOT use it to select candidates in any block at or before 26095351: original census membership would then leak future knowledge.
+
+PR #645 sampled 12 borrowers with read-only archive `eth_call` at anchor, block 26095352 and block 26102551, authenticated independently by dRPC/BlastAPI. Exactly 10/12 were healthy at the later endpoint; two no longer had debt; neither later endpoint identified an underwater position in that 12-person sample. That is not proof of no intermediate liquidations, no NQC capture and no statistical inference over 857.
+
+**This new study rescans all 857 anchor-selected positions** at exactly two later Ethereum blocks (**26095352** and **26102551**) with the Ethereum-deployed read-only Multicall3 contract, address `0xca11bde05977b3631167028862be2a173976ca11` and original deployed Aave V3 Pool `0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2`. Each batch is exactly at most 20 read-only Aave `getUserAccountData(address)` calls, encoded as `aggregate3((address,bool,bytes)[])` selector 0x82ad56cb, `allowFailure=false`, with all results required to contain canonical ABI of exactly 6 original Aave uint256s. Total 43 batches per observation block and two independently operated archive RPC providers; 172 real aggregate3 calls. Block source hashes, next-child relation, timestamps and real deployed Multicall3 full runtime code SHA256 are checked across both operators. Every original selected account is preserved; no failed call is filtered; total partition must be exactly 857 at each endpoint. Unsafe gas is not spent because these are read-only `eth_call` simulations.
+
+Record counts of account status (healthy, below HF 1 at **the endpoint**, or debt-free), HF buckets and exact Aave oracle-base debt aggregated, but **never publish the account-address list**, since the goal is economic aggregate signal rather than distributing a speculative watchlist.
+
+**Strict boundaries**: even if some borrowers are below 1 at one of the two later snapshots, they are not proven to have been liquidatable before the actual first competitor transaction, economically material after close-factor constraints, capital-feasible for NQC, possible to win at any price, or evidence of realized NQC profit. No evidence of when the crossing occurred between these two endpoint blocks exists. Archive queries in October 2026 are not preserved real-time Nexus signals from the historical time. NQC historical realized profit remains $0; external authorized gas providers=0; Census still open.
+
+### Why this is commercially important
+
+Repeated future-only source-cohort measurements can falsify a misleading thesis: perhaps position health near 1 and high nominal debt almost never converts into sustainably capturable cashflows. Before paying for any ultra-low-latency infrastructure, an honest sample of conversion rates and status churn can establish whether enough opportunity supply even exists in this slice.
+
+Next significant step is reconstructing block-by-block crossing episodes in candidates below 1 at an endpoint, determining chronological earliest observation, competitor inclusion and finally Net Retained P&L after builder bids, funding, flash premium and revert risk. A positive endpoint count is **not** a trading strategy. Negative rate from this one cohort cannot be extrapolated to the full protocol without independently proven coverage.
+
+This PR doesn't modify earlier source authority locks, commit to full Census closeout, broadcast, sign user operations, spend ETH or user money, or authorize third-party financing.
