@@ -15,12 +15,17 @@ on:
       - "ci/nqc-census/collect_rmc013_gas_evidence.py"
       - "ci/nqc-census/reconcile_rmc013_gas_evidence.py"
       - "ci/nqc-census/test_rmc013_gas_evidence.py"
+      - "ci/nqc-census/test_materialize_rmc013_no_eligible.py"
+      - "ci/nqc-census/materialize_rmc013_no_eligible.py"
+      - "ci/nqc-census/materialize_rmc013_execution_economics.py"
+      - "ci/nqc-census/test_materialize_rmc013_execution_economics.py"
       - "ci/nqc-census/materialize_effective_source.py"
       - "ci/nqc-census/effective-source-profile.json"
       - ".github/workflows/nqc-census-execution-evidence.yml"
   push:
     branches:
       - "nqc/rmc-013-clean-restack-d12-20260930"
+      - "nqc/rmc-013-materialization-hardening-20261007"
     paths:
       - "ci/nqc-census/rmc013-execution-inputs.json"
       - "ci/nqc-census/plan_rmc013_v2_routes.py"
@@ -34,6 +39,10 @@ on:
       - "ci/nqc-census/collect_rmc013_gas_evidence.py"
       - "ci/nqc-census/reconcile_rmc013_gas_evidence.py"
       - "ci/nqc-census/test_rmc013_gas_evidence.py"
+      - "ci/nqc-census/test_materialize_rmc013_no_eligible.py"
+      - "ci/nqc-census/materialize_rmc013_no_eligible.py"
+      - "ci/nqc-census/materialize_rmc013_execution_economics.py"
+      - "ci/nqc-census/test_materialize_rmc013_execution_economics.py"
       - ".github/workflows/nqc-census-execution-evidence.yml"
 
 permissions:
@@ -42,7 +51,7 @@ permissions:
 
 concurrency:
   group: rmc013-real-execution-evidence-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   INPUTS: ci/nqc-census/rmc013-execution-inputs.json
@@ -87,7 +96,7 @@ jobs:
             .gas_policy.base_fee_policy == "NEXT_BLOCK_MAX_EIP1559_CEIL_9_OVER_8" and
             .gas_policy.provider_reconciliation == "MAX_ADMISSION_PRIORITY_FEE_REQUIRE_EXACT_ANCHOR_AND_NATIVE_PRICE" and
             .gas_policy.native_price_source == "RMC008_AAVE_ORACLE_MANIFEST" and
-            (.providers | map(.provider_id)) == ["blastapi-public","mevblocker-rpc"] and
+            (.providers | map(.provider_id)) == ["publicnode","drpc"] and
             (if .status == "BLOCKED_AWAITING_CERTIFIED_RMC012"
              then .d12 == null and (.blocking_reasons | length > 0)
              else
@@ -119,13 +128,16 @@ jobs:
           python3 ci/nqc-census/test_run_rmc013_anvil_batch.py
           python3 ci/nqc-census/test_reconcile_rmc013_provider_evidence.py
           python3 ci/nqc-census/test_rmc013_gas_evidence.py
+          python3 ci/nqc-census/test_materialize_rmc013_execution_economics.py
           python3 -m py_compile \
             ci/nqc-census/plan_rmc013_v2_routes.py \
             ci/nqc-census/run_rmc013_anvil_candidate.py \
             ci/nqc-census/run_rmc013_anvil_batch.py \
             ci/nqc-census/reconcile_rmc013_provider_evidence.py \
+            ci/nqc-census/materialize_rmc013_execution_economics.py \
             ci/nqc-census/collect_rmc013_gas_evidence.py \
-            ci/nqc-census/reconcile_rmc013_gas_evidence.py
+            ci/nqc-census/reconcile_rmc013_gas_evidence.py \
+            ci/nqc-census/materialize_rmc013_execution_economics.py
 
       - name: Verify producer has no live signing authority
         shell: bash
@@ -138,6 +150,13 @@ jobs:
             ci/nqc-census/reconcile_rmc013_provider_evidence.py
           grep -F 'local_url = f"http://127.0.0.1:{port}"' ci/nqc-census/run_rmc013_anvil_candidate.py
           grep -F '"live_transaction_sent": False' ci/nqc-census/run_rmc013_anvil_candidate.py
+
+      - name: Adversarial no-capital-feasible coverage tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_materialize_rmc013_no_eligible.py
+          python3 -m py_compile ci/nqc-census/materialize_rmc013_no_eligible.py
 
   producer:
     if: ${{ github.event_name == 'push' && needs.preflight.outputs.status == 'PINNED' }}
@@ -240,7 +259,34 @@ jobs:
           cp -- "$D08_ORACLE" "$WORK/d08-oracle-manifest.jsonl"
           cp -- "$WORK/d11/d11/capital-sources.jsonl" "$WORK/capital-sources.jsonl"
 
+      - name: Derive exact D12 capital-feasible scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          D12_CERT="$WORK/d12/terminal-actionability-certification.json"
+          D12_SUMMARY="$WORK/actionability-summary.json"
+          jq -e --slurpfile authority "$D12_CERT" '
+            .status == "RMC_012_ACTIONABILITY_PASS" and
+            .principal_capital_conserved == true and
+            .principal_capital_promoted == .admitted and
+            .principal_capital_promoted == (.principal_capital_feasible + .principal_capital_rejected) and
+            .principal_capital_feasible == $authority[0].principal_capital_feasible and
+            .principal_capital_rejected == $authority[0].principal_capital_rejected and
+            .admitted == $authority[0].admitted and
+            (.expected_pairs == (.admitted + .rejected))
+          ' "$D12_SUMMARY" >/dev/null
+          CAPITAL_FEASIBLE="$(jq -r '.principal_capital_feasible' "$D12_SUMMARY")"
+          [[ "$CAPITAL_FEASIBLE" =~ ^[0-9]+$ ]]
+          if test "$CAPITAL_FEASIBLE" = 0; then
+            echo "RMC013_ZERO_INPUT=true" >> "$GITHUB_ENV"
+            echo "RMC013_EXACT_ZERO_CAPITAL_FEASIBLE_SET=DETECTED"
+          else
+            echo "RMC013_ZERO_INPUT=false" >> "$GITHUB_ENV"
+            echo "RMC013_EXECUTION_EVIDENCE_REQUIRED candidates=$CAPITAL_FEASIBLE"
+          fi
+
       - name: Plan every positive exact V2 route
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -260,6 +306,7 @@ jobs:
           ' "$WORK/routes/v2-route-summary.json" >/dev/null
 
       - name: Collect independent pre-anchor gas evidence
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -268,24 +315,32 @@ jobs:
           HISTORY_BLOCKS="$(jq -r '.gas_policy.history_blocks' "$INPUTS")"
           PERCENTILES="$(jq -r '.gas_policy.reward_percentiles | map(tostring) | join(",")' "$INPUTS")"
           ADMISSION_PERCENTILE="$(jq -r '.gas_policy.admission_priority_percentile' "$INPUTS")"
-          jq -c '.providers[]' "$INPUTS" | while read -r provider; do
-            PROVIDER_ID="$(jq -r '.provider_id' <<<"$provider")"
-            RPC_URL="$(jq -r '.rpc_url' <<<"$provider")"
+          collect_gas() {
+            local provider_id="$1"
+            local rpc_url="$2"
             python3 ci/nqc-census/collect_rmc013_gas_evidence.py \
-              --rpc-url "$RPC_URL" \
-              --provider-id "$PROVIDER_ID" \
+              --rpc-url "$rpc_url" \
+              --provider-id "$provider_id" \
               --anchor-summary "$WORK/actionability-summary.json" \
               --oracle-manifest "$WORK/d08-oracle-manifest.jsonl" \
               --wrapped-native "$WRAPPED_NATIVE" \
               --history-blocks "$HISTORY_BLOCKS" \
               --reward-percentiles "$PERCENTILES" \
               --admission-priority-percentile "$ADMISSION_PERCENTILE" \
-              --out "$WORK/gas/providers/$PROVIDER_ID.json"
-          done
+              --out "$WORK/gas/providers/$provider_id.json"
+          }
+          PUBLICNODE_GAS="$(jq -r '.providers[] | select(.provider_id=="publicnode") | .rpc_url' "$INPUTS")"
+          DRPC_GAS="$(jq -r '.providers[] | select(.provider_id=="drpc") | .rpc_url' "$INPUTS")"
+          collect_gas publicnode "$PUBLICNODE_GAS" &
+          PID_PUBLICNODE_GAS=$!
+          collect_gas drpc "$DRPC_GAS" &
+          PID_DRPC_GAS=$!
+          wait "$PID_PUBLICNODE_GAS"
+          wait "$PID_DRPC_GAS"
 
           python3 ci/nqc-census/reconcile_rmc013_gas_evidence.py \
-            --provider-evidence "$WORK/gas/providers/blastapi-public.json" \
-            --provider-evidence "$WORK/gas/providers/mevblocker-rpc.json" \
+            --provider-evidence "$WORK/gas/providers/publicnode.json" \
+            --provider-evidence "$WORK/gas/providers/drpc.json" \
             --out "$WORK/gas/gas-price-evidence.json"
 
           jq -e '
@@ -295,6 +350,7 @@ jobs:
           ' "$WORK/gas/gas-price-evidence.json" >/dev/null
 
       - name: Install exact PFT executor toolchain
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -315,6 +371,7 @@ jobs:
           "$TOOL/solc-0.8.24" --version | grep -F "$SOLC_VERSION"
 
       - name: Rebuild exact PFT Aave executor twice
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -367,50 +424,53 @@ jobs:
           echo RMC013_PFT_EXECUTOR_REBUILD_PASS
 
       - name: Execute every retained route on both exact provider forks
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
           export PATH="$WORK/toolchain/bin:$PATH"
-          BLAST="$(jq -r '.providers[] | select(.provider_id=="blastapi-public") | .rpc_url' "$INPUTS")"
-          MEV="$(jq -r '.providers[] | select(.provider_id=="mevblocker-rpc") | .rpc_url' "$INPUTS")"
-          test -n "$BLAST"
-          test -n "$MEV"
+          PUBLICNODE="$(jq -r '.providers[] | select(.provider_id=="publicnode") | .rpc_url' "$INPUTS")"
+          DRPC="$(jq -r '.providers[] | select(.provider_id=="drpc") | .rpc_url' "$INPUTS")"
+          test -n "$PUBLICNODE"
+          test -n "$DRPC"
 
-          python3 ci/nqc-census/run_rmc013_anvil_batch.py \
-            --routes "$WORK/routes/v2-route-plans.jsonl" \
-            --rpc-url "$BLAST" \
-            --provider-id blastapi-public \
-            --creation-bytecode "$WORK/pft/aave-creation-bytecode.hex" \
-            --output "$WORK/evidence/blastapi-public.jsonl" \
-            --summary "$WORK/evidence/blastapi-public-summary.json" \
-            --anvil-log "$WORK/evidence/blastapi-public-anvil.log" \
-            --port 18545
-
-          python3 ci/nqc-census/run_rmc013_anvil_batch.py \
-            --routes "$WORK/routes/v2-route-plans.jsonl" \
-            --rpc-url "$MEV" \
-            --provider-id mevblocker-rpc \
-            --creation-bytecode "$WORK/pft/aave-creation-bytecode.hex" \
-            --output "$WORK/evidence/mevblocker-rpc.jsonl" \
-            --summary "$WORK/evidence/mevblocker-rpc-summary.json" \
-            --anvil-log "$WORK/evidence/mevblocker-rpc-anvil.log" \
-            --port 18546
+          run_fork_batch() {
+            local rpc_url="$1"
+            local provider_id="$2"
+            local port="$3"
+            python3 ci/nqc-census/run_rmc013_anvil_batch.py \
+              --routes "$WORK/routes/v2-route-plans.jsonl" \
+              --rpc-url "$rpc_url" \
+              --provider-id "$provider_id" \
+              --creation-bytecode "$WORK/pft/aave-creation-bytecode.hex" \
+              --output "$WORK/evidence/$provider_id.jsonl" \
+              --summary "$WORK/evidence/$provider_id-summary.json" \
+              --anvil-log "$WORK/evidence/$provider_id-anvil.log" \
+              --port "$port"
+          }
+          run_fork_batch "$PUBLICNODE" publicnode 18545 &
+          PID_PUBLICNODE_EXEC=$!
+          run_fork_batch "$DRPC" drpc 18546 &
+          PID_DRPC_EXEC=$!
+          wait "$PID_PUBLICNODE_EXEC"
+          wait "$PID_DRPC_EXEC"
 
           jq -e '.status=="RMC_013_ANVIL_BATCH_PASS" and .route_conserved==true and .live_transaction_sent==false and .own_capital_used==false' \
-            "$WORK/evidence/blastapi-public-summary.json" >/dev/null
+            "$WORK/evidence/publicnode-summary.json" >/dev/null
           jq -e '.status=="RMC_013_ANVIL_BATCH_PASS" and .route_conserved==true and .live_transaction_sent==false and .own_capital_used==false' \
-            "$WORK/evidence/mevblocker-rpc-summary.json" >/dev/null
+            "$WORK/evidence/drpc-summary.json" >/dev/null
 
       - name: Reconcile provider execution semantics
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
           python3 ci/nqc-census/reconcile_rmc013_provider_evidence.py \
             --routes "$WORK/routes/v2-route-plans.jsonl" \
-            --left "$WORK/evidence/blastapi-public.jsonl" \
-            --right "$WORK/evidence/mevblocker-rpc.jsonl" \
-            --left-summary "$WORK/evidence/blastapi-public-summary.json" \
-            --right-summary "$WORK/evidence/mevblocker-rpc-summary.json" \
+            --left "$WORK/evidence/publicnode.jsonl" \
+            --right "$WORK/evidence/drpc.jsonl" \
+            --left-summary "$WORK/evidence/publicnode-summary.json" \
+            --right-summary "$WORK/evidence/drpc-summary.json" \
             --output "$WORK/evidence/reconciled-execution.jsonl" \
             --summary "$WORK/evidence/provider-reconciliation-summary.json"
 
@@ -426,7 +486,52 @@ jobs:
             "$(( $(jq '.candidate_with_route_count' "$WORK/routes/v2-route-summary.json") + $(jq '.route_unavailable_candidate_count' "$WORK/routes/v2-route-summary.json") ))"
           echo RMC013_PHYSICAL_PROVIDER_CONSENSUS_PASS
 
+      - name: Materialize exact terminal execution economics
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ECON="$WORK/economics"
+          rm -rf "$ECON"
+          mkdir -p "$ECON"
+          python3 ci/nqc-census/materialize_rmc013_execution_economics.py \
+            --routes "$WORK/routes/v2-route-plans.jsonl" \
+            --route-rejections "$WORK/routes/v2-route-rejections.jsonl" \
+            --reconciled "$WORK/evidence/reconciled-execution.jsonl" \
+            --gas-evidence "$WORK/gas/gas-price-evidence.json" \
+            --capital-sources "$WORK/capital-sources.jsonl" \
+            --d12-summary "$WORK/actionability-summary.json" \
+            --d12-artifact-digest "$(jq -r '.d12.artifact_digest' "$INPUTS")" \
+            --out "$ECON"
+
+          SUMMARY="$ECON/execution-evidence-summary.json"
+          jq -e '
+            .status == "RMC_013_REAL_EXECUTION_ECONOMICS_PASS" and
+            .coverage_complete == true and
+            .unresolved_mismatch_count == 0 and
+            .unknown_rejection_count == 0 and
+            .capture_probability_invented == false and
+            .global_concurrent_gas_capacity_claimed == false and
+            .economics_quote_count >= .economics_candidate_count and
+            .execution_variant_count == .economics_quote_count and
+            .input_candidate_count == (.execution_simulatable_count + .explicit_rejection_count) and
+            .economics_candidate_count == .execution_simulatable_count and
+            .gas_funding_candidate_count == .execution_simulatable_count and
+            .operator_owned_gas_funding_count == 0 and
+            (.execution_simulatable_count == 0 or .zero_own_capital_proven == true) and
+            .capture_calibrated_count == 0 and
+            .realized_profitability_proven == false and
+            .monthly_target_probability_proven == false
+          ' "$SUMMARY" >/dev/null
+
+          test "$(wc -l < "$ECON/execution-economics.jsonl")" -eq "$(jq '.economics_quote_count' "$SUMMARY")"
+          test "$(jq -r '.candidate_id' "$ECON/execution-economics.jsonl" 2>/dev/null | LC_ALL=C sort -u | wc -l)" -eq "$(jq '.economics_candidate_count' "$SUMMARY")"
+          test "$(wc -l < "$ECON/gas-funding-bindings.jsonl")" -eq "$(jq '.gas_funding_candidate_count' "$SUMMARY")"
+          jq -e -s 'all(.[]; .reason != "UNKNOWN")' "$ECON/execution-rejection-ledger.jsonl" >/dev/null
+          echo RMC013_ECONOMICS_MATERIALIZATION_PASS
+
       - name: Assemble immutable physical execution evidence
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -434,9 +539,10 @@ jobs:
           rm -rf "$OUT"
           mkdir -p "$OUT"
           cp "$WORK/routes/"{v2-route-plans.jsonl,v2-route-rejections.jsonl,v2-route-summary.json} "$OUT/"
-          cp "$WORK/evidence/"{blastapi-public.jsonl,blastapi-public-summary.json,mevblocker-rpc.jsonl,mevblocker-rpc-summary.json,reconciled-execution.jsonl,provider-reconciliation-summary.json} "$OUT/"
+          cp "$WORK/evidence/"{publicnode.jsonl,publicnode-summary.json,drpc.jsonl,drpc-summary.json,reconciled-execution.jsonl,provider-reconciliation-summary.json} "$OUT/"
           cp "$WORK/gas/gas-price-evidence.json" "$OUT/"
-          cp "$WORK/gas/providers/"{blastapi-public.json,mevblocker-rpc.json} "$OUT/"
+          cp "$WORK/gas/providers/"{publicnode.json,drpc.json} "$OUT/"
+          cp "$WORK/economics/"{execution-evidence-summary.json,execution-economics.jsonl,execution-rejection-ledger.jsonl,capacity-curves.jsonl,shadow-predictions.jsonl,gas-funding-bindings.jsonl,gas-conflict-claims.jsonl,evidence-manifest.json} "$OUT/"
           cp "$WORK/pft/"{aave-creation-bytecode.hex,aave-template-A.hex,executor-build.sha256,PFT-COMPAT-007-aave-stack-lifetime.patch} "$OUT/"
           cp "$WORK/d08-oracle-manifest.jsonl" "$OUT/"
 
@@ -450,6 +556,8 @@ jobs:
             --arg oracle_sha "$(sha256sum "$OUT/d08-oracle-manifest.jsonl" | awk '{print $1}')" \
             --arg gas_sha "$(sha256sum "$OUT/gas-price-evidence.json" | awk '{print $1}')" \
             --arg executor_sha "$(sha256sum "$OUT/aave-creation-bytecode.hex" | awk '{print $1}')" \
+            --arg economics_summary_sha "$(sha256sum "$OUT/execution-evidence-summary.json" | awk '{print $1}')" \
+            --arg economics_manifest_sha "$(sha256sum "$OUT/evidence-manifest.json" | awk '{print $1}')" \
             --argjson planned "$(jq '.emitted_route_count' "$OUT/v2-route-summary.json")" \
             --argjson route_rejected "$(jq '.route_unavailable_candidate_count' "$OUT/v2-route-summary.json")" \
             --argjson passed "$(jq '.execution_pass_count' "$OUT/provider-reconciliation-summary.json")" \
@@ -470,6 +578,9 @@ jobs:
               oracle_manifest_sha256:$oracle_sha,
               gas_price_evidence_sha256:$gas_sha,
               executor_creation_sha256:$executor_sha,
+              execution_economics_summary_sha256:$economics_summary_sha,
+              execution_economics_manifest_sha256:$economics_manifest_sha,
+              economics_materialized:true,
               planned_route_count:$planned,
               route_unavailable_candidate_count:$route_rejected,
               execution_pass_count:$passed,
@@ -493,6 +604,39 @@ jobs:
             sha256sum -c archive.sha256
           )
           echo RMC013_PHYSICAL_EXECUTION_EVIDENCE_PASS
+
+      - name: Certify exact zero-input coverage without pretending RPC or fork execution
+        if: ${{ env.RMC013_ZERO_INPUT == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$WORK/physical-package"
+          rm -rf "$OUT"
+          python3 ci/nqc-census/materialize_rmc013_no_eligible.py \
+            --d12-certificate "$WORK/d12/terminal-actionability-certification.json" \
+            --d12-summary "$WORK/actionability-summary.json" \
+            --d12-records "$WORK/actionability-records.jsonl" \
+            --d12-promotions "$WORK/capital-promotions.jsonl" \
+            --d11-sources "$WORK/capital-sources.jsonl" \
+            --d12-artifact-digest "$(jq -r '.d12.artifact_digest' "$INPUTS")" \
+            --code-commit "$(git rev-parse HEAD)" \
+            --code-tree "$(git rev-parse 'HEAD^{tree}')" \
+            --out "$OUT"
+          (
+            cd "$OUT"
+            sha256sum -c archive.sha256
+          )
+          jq -e '
+            .status == "RMC_013_NO_EXECUTION_ELIGIBLE_CANDIDATES_PROVEN" and
+            .input_candidate_count == 0 and
+            .execution_simulatable_count == 0 and
+            .economics_quote_count == 0 and
+            .gas_price_evidence_collected == false and
+            .physical_execution_claimed == false and
+            .fork_simulations_executed == 0 and
+            .coverage_complete == true
+          ' "$OUT/execution-evidence-summary.json" >/dev/null
+          echo "RMC013_EMPTY_UNIVERSE_EVIDENCE_AUTHENTICATED=PASS"
 
       - name: Upload immutable physical execution evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

@@ -1,16 +1,30 @@
 {
   "schema_version": 1,
-  "status": "BLOCKED_AWAITING_CERTIFIED_RMC012_AND_EXECUTION_EVIDENCE",
+  "status": "PINNED",
   "repository": "josuechavando350-png/nexus-engine",
-  "d12": null,
-  "execution_evidence": null,
-  "blocking_reasons": [
-    "RMC012_TERMINAL_ACTIONABILITY_ARTIFACT_NOT_PINNED",
-    "REAL_EXECUTION_ECONOMICS_EVIDENCE_NOT_PINNED"
-  ],
+  "d12": {
+    "run_id": 37704109137,
+    "head_sha": "9368ec833ee26d0bf8f8203ce2ca1ef09ae004a2",
+    "tree_sha": "0aa1df487271739f9620b641466bb72bad1eea10",
+    "workflow_name": "NQC RMC-012 Terminal Actionability Authority",
+    "artifact_id": 11519153831,
+    "artifact_name": "rmc012-terminal-actionability-9368ec833ee26d0bf8f8203ce2ca1ef09ae004a2",
+    "artifact_digest": "sha256:bbe6a6365d563eb41125d9fcdba79ac384c21182f31f6761897e0ce2ee8fa3b8"
+  },
+  "execution_evidence": {
+    "run_id": 37708049397,
+    "head_sha": "2034ca9456cea84aa49f5c90660a59a93db3a1b8",
+    "tree_sha": "e26963f340af7399721f2c32e44edbb5d578a2a6",
+    "workflow_name": "NQC RMC-013 Real Execution Evidence",
+    "artifact_id": 11520253970,
+    "artifact_name": "rmc013-physical-execution-2034ca9456cea84aa49f5c90660a59a93db3a1b8",
+    "artifact_digest": "sha256:8c11ab9e455f91257f215a678b71df10e7f693886cfcce5baa54fbc1b6fb30b9"
+  },
+  "blocking_reasons": [],
   "notes": [
-    "RMC-013 terminal authority never consumes synthetic economics fixtures.",
-    "Every D12 capital-feasible candidate must be either execution-simulatable with exact economics or explicitly rejected with a non-UNKNOWN reason.",
-    "Capture probability may remain UNCALIBRATED; RMC only certifies exact pre-capture economics and deterministic Shadow handoff."
+    "D12 certified 432 actionable liquidation candidates, all 432 principal-capital rejected: no execution-simulatable candidates.",
+    "Execution-evidence stage has zero gas measurements and zero physical forks; it explicitly does NOT claim any executed transactions.",
+    "Terminal must independently replay immutable D12 and D11 source proof; zero input only, not global proof of market absence.",
+    "Month-1 USD 500000 realized-net objective remains NOT_PROVEN."
   ]
 }

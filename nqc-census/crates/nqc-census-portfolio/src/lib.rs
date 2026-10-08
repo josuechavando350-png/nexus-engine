@@ -783,10 +783,12 @@ pub fn evaluate_portfolio(
         &feasibility_map,
         &source_by_id,
         &resources,
-        capital_feasible_count,
-        &capital_rejected,
-        &conflicts,
-        &components,
+        ReportCommitmentContext {
+            capital_feasible_count,
+            rejected: &capital_rejected,
+            conflicts: &conflicts,
+            components: &components,
+        },
     )?;
     Ok(PortfolioReport {
         candidate_count: candidates.len(),
@@ -993,16 +995,26 @@ fn encode_evidence(evidence: &[CapitalEvidenceRef], out: &mut Vec<u8>) {
     }
 }
 
+struct ReportCommitmentContext<'a> {
+    capital_feasible_count: usize,
+    rejected: &'a [CapitalBlockedCandidate],
+    conflicts: &'a [PortfolioConflict],
+    components: &'a [PortfolioComponent],
+}
+
 fn report_commitment(
     candidates: &[PortfolioCandidate],
     feasibility: &BTreeMap<CapitalRequirementId, &CapitalFeasibility>,
     sources: &BTreeMap<CapitalSourceId, &CapitalSource>,
     resources: &BTreeMap<SharedResourceKeyId, &SharedResource>,
-    capital_feasible_count: usize,
-    rejected: &[CapitalBlockedCandidate],
-    conflicts: &[PortfolioConflict],
-    components: &[PortfolioComponent],
+    context: ReportCommitmentContext<'_>,
 ) -> Result<[u8; 32], PortfolioError> {
+    let ReportCommitmentContext {
+        capital_feasible_count,
+        rejected,
+        conflicts,
+        components,
+    } = context;
     let mut hasher = Sha256::new();
     hasher.update(PORTFOLIO_COMMITMENT_DOMAIN);
 

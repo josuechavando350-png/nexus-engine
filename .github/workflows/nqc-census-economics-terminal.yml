@@ -9,6 +9,7 @@ on:
   push:
     branches:
       - "nqc/rmc-013-clean-restack-d12-20260930"
+      - "nqc/rmc-013-materialization-hardening-20261007"
     paths:
       - "ci/nqc-census/rmc013-terminal-inputs.json"
       - "ci/nqc-census/EXECUTION_ECONOMICS_CONTRACT.md"
@@ -20,7 +21,7 @@ permissions:
 
 concurrency:
   group: rmc013-terminal-economics-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   INPUTS: ci/nqc-census/rmc013-terminal-inputs.json
@@ -147,7 +148,7 @@ jobs:
           CERT="$D12/terminal-actionability-certification.json"
           test -f "$CERT"
           jq -e '
-            .schema_version == 1 and
+            .schema_version == 2 and
             .status == "RMC_012_TERMINAL_ACTIONABILITY_CERTIFIED" and
             .principal_capital_promotion_certified == true and
             .principal_capital_promoted == (.principal_capital_feasible + .principal_capital_rejected) and
@@ -221,7 +222,7 @@ jobs:
             cd "$EXEC"
             sha256sum -c archive.sha256
           )
-          for name in             execution-evidence-summary.json             execution-economics.jsonl             execution-rejection-ledger.jsonl             capacity-curves.jsonl             shadow-predictions.jsonl             gas-funding-bindings.jsonl             evidence-manifest.json
+          for name in             execution-evidence-summary.json             execution-economics.jsonl             execution-rejection-ledger.jsonl             capacity-curves.jsonl             shadow-predictions.jsonl             gas-funding-bindings.jsonl             gas-conflict-claims.jsonl             evidence-manifest.json
           do
             test -f "$EXEC/$name"
           done
@@ -231,7 +232,13 @@ jobs:
           D12_DIGEST="$(jq -r '.d12.artifact_digest' "$INPUTS")"
           jq -e             --argjson d12_feasible "$D12_FEASIBLE"             --arg d12_digest "$D12_DIGEST" '
             .schema_version == 1 and
-            .status == "RMC_013_REAL_EXECUTION_ECONOMICS_PASS" and
+            (.status == "RMC_013_REAL_EXECUTION_ECONOMICS_PASS" or
+             (.status == "RMC_013_NO_EXECUTION_ELIGIBLE_CANDIDATES_PROVEN" and
+              $d12_feasible == 0 and
+              .gas_price_evidence_collected == false and
+              .fork_simulations_executed == 0 and
+              .physical_execution_claimed == false and
+              .zero_own_capital_proven == false)) and
             .coverage_complete == true and
             .unresolved_mismatch_count == 0 and
             .unknown_rejection_count == 0 and
@@ -239,6 +246,10 @@ jobs:
             .input_candidate_count == $d12_feasible and
             .input_candidate_count == (.execution_simulatable_count + .explicit_rejection_count) and
             .economics_candidate_count == .execution_simulatable_count and
+            .economics_quote_count >= .economics_candidate_count and
+            .execution_variant_count == .economics_quote_count and
+            .capture_probability_invented == false and
+            .global_concurrent_gas_capacity_claimed == false and
             .positive_gross_value_count <= .execution_simulatable_count and
             .positive_success_path_net_count <= .positive_gross_value_count and
             .capacity_material_count <= .positive_success_path_net_count and
@@ -252,15 +263,48 @@ jobs:
           ' "$SUMMARY" >/dev/null
 
           jq -e -s 'all(.[]; .reason != "UNKNOWN")'             "$EXEC/execution-rejection-ledger.jsonl" >/dev/null
-          test "$(wc -l < "$EXEC/execution-economics.jsonl")" -eq             "$(jq '.economics_candidate_count' "$SUMMARY")"
+          test "$(wc -l < "$EXEC/execution-economics.jsonl")" -eq             "$(jq '.economics_quote_count' "$SUMMARY")"
+          test "$(jq -r '.candidate_id' "$EXEC/execution-economics.jsonl" | LC_ALL=C sort -u | wc -l)" -eq             "$(jq '.economics_candidate_count' "$SUMMARY")"
           test "$(wc -l < "$EXEC/shadow-predictions.jsonl")" -eq             "$(jq '.shadow_prediction_count' "$SUMMARY")"
+          test "$(wc -l < "$EXEC/gas-conflict-claims.jsonl")" -eq             "$(jq '.shared_gas_conflict_claim_count' "$SUMMARY")"
 
-          python3 - "$D11_SOURCES" "$EXEC/execution-economics.jsonl" "$EXEC/gas-funding-bindings.jsonl" "$RUNNER_TEMP/d12/actionability-summary.json" "$SUMMARY" <<'PY'
-          import collections
+          if test "$(jq -r '.status' "$SUMMARY")" = "RMC_013_NO_EXECUTION_ELIGIBLE_CANDIDATES_PROVEN"; then
+            test "$D12_FEASIBLE" = 0
+            test -f "$EXEC/zero-capital-feasible-proof.json"
+            test -f "$EXEC/physical-execution-summary.json"
+            jq -e '
+              .status == "RMC_013_NO_PHYSICAL_EXECUTION_REQUIRED_EMPTY_UNIVERSE" and
+              .gas_price_evidence_collected == false and
+              .provider_consensus == false and
+              .physical_execution_claimed == false and
+              .fork_simulations_executed == 0 and
+              .onchain_transactions_sent == 0
+            ' "$EXEC/physical-execution-summary.json" >/dev/null
+            REPLAY="$RUNNER_TEMP/rmc013-independent-zero-replay"
+            rm -rf "$REPLAY"
+            python3 ci/nqc-census/materialize_rmc013_no_eligible.py \
+              --d12-certificate "$D12_CERT" \
+              --d12-summary "$RUNNER_TEMP/d12/actionability-summary.json" \
+              --d12-records "$RUNNER_TEMP/d12/actionability-records.jsonl" \
+              --d12-promotions "$RUNNER_TEMP/d12/capital-promotions.jsonl" \
+              --d11-sources "$D11_SOURCES" \
+              --d12-artifact-digest "$D12_DIGEST" \
+              --code-commit "$(jq -r '.execution_evidence.head_sha' "$INPUTS")" \
+              --code-tree "$(jq -r '.execution_evidence.tree_sha' "$INPUTS")" \
+              --out "$REPLAY"
+            diff -ruN "$REPLAY" "$EXEC"
+            (cd "$REPLAY"; sha256sum -c archive.sha256)
+            echo "RMC013_EMPTY_SCOPE_INDEPENDENT_REPLAY=PASS"
+            echo "EXEC_SUMMARY=$SUMMARY" >> "$GITHUB_ENV"
+            echo "EXEC_ROOT=$EXEC" >> "$GITHUB_ENV"
+            exit 0
+          fi
+
+          python3 - "$D11_SOURCES" "$EXEC/execution-economics.jsonl" "$EXEC/gas-funding-bindings.jsonl" "$EXEC/gas-conflict-claims.jsonl" "$RUNNER_TEMP/d12/actionability-summary.json" "$SUMMARY" <<'PY'
           import json
           import sys
 
-          sources_path, economics_path, bindings_path, d12_summary_path, summary_path = sys.argv[1:]
+          sources_path, economics_path, bindings_path, claims_path, d12_summary_path, summary_path = sys.argv[1:]
 
           def require(condition, message):
               if not condition:
@@ -291,13 +335,18 @@ jobs:
 
           economics = rows(economics_path)
           economics_ids = [row.get("candidate_id") for row in economics]
+          quote_ids = [row.get("quote_id") for row in economics]
           require(
               all(isinstance(value, str) and value for value in economics_ids),
               "economics row missing candidate_id",
           )
           require(
-              len(economics_ids) == len(set(economics_ids)),
-              "duplicate economics candidate",
+              all(isinstance(value, str) and value for value in quote_ids),
+              "economics row missing quote_id",
+          )
+          require(
+              len(quote_ids) == len(set(quote_ids)),
+              "duplicate economics quote_id",
           )
           economics_set = set(economics_ids)
 
@@ -322,7 +371,7 @@ jobs:
           d12_anchor = d12_summary.get("anchor")
           require(isinstance(d12_anchor, dict), "D12 actionability summary has no anchor")
 
-          aggregate = collections.Counter()
+          claims = rows(claims_path)
           operator_owned = 0
 
           for binding in bindings:
@@ -370,21 +419,44 @@ jobs:
                   require(source.get("anchor") == d12_anchor, f"{source_id}: gas source anchor mismatch")
                   value = amount(allocation.get("amount"))
                   require(value > 0, f"{candidate_id}: zero allocation from {source_id}")
+                  capacity_text = source.get("executable_capacity")
+                  require(capacity_text is not None, f"{source_id}: executable capacity missing")
+                  capacity = amount(capacity_text)
+                  require(
+                      value <= capacity,
+                      f"{candidate_id}: allocation exceeds source capacity source={source_id} amount={value} capacity={capacity}",
+                  )
                   allocated += value
-                  aggregate[source_id] += value
               require(
                   allocated == required,
                   f"{candidate_id}: gas allocation {allocated} differs from requirement {required}",
               )
 
-          for source_id, claimed in aggregate.items():
-              capacity_text = sources[source_id].get("executable_capacity")
-              require(capacity_text is not None, f"{source_id}: executable capacity missing")
-              capacity = amount(capacity_text)
+          claim_pairs = set()
+          for claim in claims:
+              require(claim.get("resource_kind") == "SHARED_EXTERNAL_GAS_SOURCE", "unknown gas conflict resource kind")
+              candidate_id = claim.get("candidate_id")
+              source_id = claim.get("resource_id")
+              require(candidate_id in economics_set, f"gas conflict claim has unknown candidate {candidate_id}")
+              require(source_id in sources, f"gas conflict claim has unknown source {source_id}")
+              pair = (candidate_id, source_id)
+              require(pair not in claim_pairs, f"duplicate gas conflict claim {pair}")
+              claim_pairs.add(pair)
+              require(amount(claim.get("amount")) > 0, f"{pair}: zero gas conflict claim")
               require(
-                  claimed <= capacity,
-                  f"{source_id}: gas source oversubscribed claimed={claimed} capacity={capacity}",
+                  amount(claim.get("source_executable_capacity")) == amount(sources[source_id].get("executable_capacity")),
+                  f"{pair}: gas conflict source capacity differs from D11",
               )
+
+          allocation_pairs = {
+              (binding["candidate_id"], allocation["source_id"])
+              for binding in bindings
+              for allocation in binding["allocations"]
+          }
+          require(
+              claim_pairs == allocation_pairs,
+              "gas conflict claims differ from exact per-candidate allocations",
+          )
 
           with open(summary_path, encoding="utf-8") as handle:
               summary = json.load(handle)
@@ -403,9 +475,10 @@ jobs:
                   "execution economics lacks zero-own-capital proof",
               )
           print(
-              "RMC013_EXTERNAL_GAS_CAPACITY_PASS",
+              "RMC013_EXTERNAL_GAS_FEASIBILITY_PASS",
               f"candidates={len(bindings)}",
-              f"sources={len(aggregate)}",
+              f"shared_claims={len(claim_pairs)}",
+              "global_concurrent_capacity_claimed=false",
           )
           PY
 
@@ -419,18 +492,43 @@ jobs:
           OUT="$RUNNER_TEMP/rmc013-terminal"
           rm -rf "$OUT"
           mkdir -p "$OUT"
-          cp "$EXEC_ROOT/"{execution-evidence-summary.json,execution-economics.jsonl,execution-rejection-ledger.jsonl,capacity-curves.jsonl,shadow-predictions.jsonl,gas-funding-bindings.jsonl,evidence-manifest.json} "$OUT/"
+          cp "$EXEC_ROOT/"{execution-evidence-summary.json,execution-economics.jsonl,execution-rejection-ledger.jsonl,capacity-curves.jsonl,shadow-predictions.jsonl,gas-funding-bindings.jsonl,gas-conflict-claims.jsonl,evidence-manifest.json} "$OUT/"
+          if test -f "$EXEC_ROOT/zero-capital-feasible-proof.json"; then
+            cp "$EXEC_ROOT/zero-capital-feasible-proof.json" "$OUT/"
+          fi
 
           HEAD="$(git rev-parse HEAD)"
           TREE="$(git rev-parse 'HEAD^{tree}')"
           SUMMARY="$EXEC_SUMMARY"
-          jq -S -c -n             --arg head "$HEAD"             --arg tree "$TREE"             --arg d12_digest "$(jq -r '.d12.artifact_digest' "$INPUTS")"             --arg exec_digest "$(jq -r '.execution_evidence.artifact_digest' "$INPUTS")"             --arg coverage "$(jq -r '.coverage_commitment' "$SUMMARY")"             --arg authority "$(jq -r '.authority_commitment' "$SUMMARY")"             --argjson input "$(jq '.input_candidate_count' "$SUMMARY")"             --argjson simulatable "$(jq '.execution_simulatable_count' "$SUMMARY")"             --argjson rejected "$(jq '.explicit_rejection_count' "$SUMMARY")"             --argjson gross "$(jq '.positive_gross_value_count' "$SUMMARY")"             --argjson success_net "$(jq '.positive_success_path_net_count' "$SUMMARY")"             --argjson material "$(jq '.capacity_material_count' "$SUMMARY")"             --argjson shadow "$(jq '.shadow_prediction_count' "$SUMMARY")"             --argjson calibrated "$(jq '.capture_calibrated_count' "$SUMMARY")" \
+          # jq // treats false as absent; never default a verified no-execution
+          # report to true. Ensure zero-input physical/gas non-claims survive
+          # into the immutable D13 certificate exactly.
+          jq -e '
+            (.physical_execution_claimed | type) == "boolean" and
+            (.gas_price_evidence_collected | type) == "boolean" and
+            (.fork_simulations_executed | type) == "number" and
+            (.physical_execution_claimed == (.fork_simulations_executed > 0)) and
+            (if .input_candidate_count == 0 then
+               .fork_simulations_executed == 0 and
+               .physical_execution_claimed == false and
+               .gas_price_evidence_collected == false
+             else true end)
+          ' "$SUMMARY" >/dev/null
+
+          jq -S -c -n             --arg head "$HEAD"             --arg tree "$TREE"             --arg d12_digest "$(jq -r '.d12.artifact_digest' "$INPUTS")"             --arg exec_digest "$(jq -r '.execution_evidence.artifact_digest' "$INPUTS")"             --arg coverage "$(jq -r '.coverage_commitment' "$SUMMARY")"             --arg authority "$(jq -r '.authority_commitment' "$SUMMARY")"             --argjson input "$(jq '.input_candidate_count' "$SUMMARY")"             --argjson simulatable "$(jq '.execution_simulatable_count' "$SUMMARY")"             --argjson quotes "$(jq '.economics_quote_count' "$SUMMARY")"             --argjson variants "$(jq '.execution_variant_count' "$SUMMARY")"             --argjson rejected "$(jq '.explicit_rejection_count' "$SUMMARY")"             --argjson gross "$(jq '.positive_gross_value_count' "$SUMMARY")"             --argjson success_net "$(jq '.positive_success_path_net_count' "$SUMMARY")"             --argjson material "$(jq '.capacity_material_count' "$SUMMARY")"             --argjson shadow "$(jq '.shadow_prediction_count' "$SUMMARY")"             --argjson calibrated "$(jq '.capture_calibrated_count' "$SUMMARY")" \
             --argjson gas_funded "$(jq '.gas_funding_candidate_count' "$SUMMARY")" \
             --argjson operator_gas "$(jq '.operator_owned_gas_funding_count' "$SUMMARY")" \
-            --argjson zero_own "$(jq '.zero_own_capital_proven' "$SUMMARY")" '
+            --argjson zero_own "$(jq '.zero_own_capital_proven' "$SUMMARY")" \
+            --arg scope "$(jq -r '.status' "$SUMMARY")" \
+            --argjson physical "$(jq -c 'if (.physical_execution_claimed | type) == "boolean" then .physical_execution_claimed else error("non-boolean physical_execution_claimed") end' "$SUMMARY")" \
+            --argjson gas_measured "$(jq -c 'if (.gas_price_evidence_collected | type) == "boolean" then .gas_price_evidence_collected else error("non-boolean gas_price_evidence_collected") end' "$SUMMARY")" '
             {
               schema_version:1,
               status:"RMC_013_TERMINAL_ECONOMICS_CERTIFIED",
+              evidence_scope:$scope,
+              physical_execution_performed:$physical,
+              historical_gas_price_evidence_collected:$gas_measured,
+              no_capital_feasible_candidates_proven:($scope == "RMC_013_NO_EXECUTION_ELIGIBLE_CANDIDATES_PROVEN"),
               code_commit:$head,
               code_tree:$tree,
               d12_artifact_digest:$d12_digest,
@@ -441,6 +539,8 @@ jobs:
               execution_simulatable_count:$simulatable,
               explicit_rejection_count:$rejected,
               economics_candidate_count:$simulatable,
+              economics_quote_count:$quotes,
+              execution_variant_count:$variants,
               positive_gross_value_count:$gross,
               positive_success_path_net_count:$success_net,
               capacity_material_count:$material,
@@ -457,6 +557,16 @@ jobs:
               realized_profitability_proven:false,
               monthly_target_probability_proven:false
             }' > "$OUT/terminal-economics-certification.json"
+
+          # Independently compare source facts to emitted certificate,
+          # including booleans that may legitimately be false.
+          jq -e -s '
+            length == 2 and
+            .[0].physical_execution_claimed == .[1].physical_execution_performed and
+            .[0].gas_price_evidence_collected == .[1].historical_gas_price_evidence_collected and
+            .[0].input_candidate_count == .[1].input_candidate_count and
+            .[0].execution_simulatable_count == .[1].execution_simulatable_count
+          ' "$SUMMARY" "$OUT/terminal-economics-certification.json" >/dev/null
 
           (
             cd "$OUT"

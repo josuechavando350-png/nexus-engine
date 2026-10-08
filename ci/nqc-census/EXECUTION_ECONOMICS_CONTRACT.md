@@ -117,6 +117,9 @@ non-zero bindings. Changing any one of them changes the quote commitment.
 ## Capacity curve
 
 Multiple trade sizes for the same execution variant form a capacity curve.
+Multiple execution variants for one candidate remain distinct and MUST NOT be
+collapsed into a fictitious single curve point. A materialized candidate record
+therefore separates `variants` from each variant's measured size curve.
 
 The curve MUST:
 
@@ -285,6 +288,22 @@ and:
 ```
 execution-simulatable candidates
   = exact economics candidate coverage
+
+Economics candidate coverage and quote/variant coverage are distinct
+cardinalities. A candidate may expose multiple independently simulated
+execution variants at the same or different measured sizes. Therefore:
+
+```
+economics_candidate_count = unique candidate ids with >=1 exact quote
+economics_quote_count = exact execution quote rows
+execution_variant_count = exact distinct execution-plan/route variants
+economics_quote_count >= economics_candidate_count
+```
+
+No terminal verifier may force one candidate = one quote. Every emitted quote
+must bind one concrete execution variant; every capacity-curve row must group
+only variants/points for one exact candidate without collapsing distinct route
+evidence.
 ```
 
 with zero UNKNOWN rejections, zero unexplained mismatches and zero uncovered
@@ -331,12 +350,67 @@ The terminal verifier independently re-downloads the exact D11 package carried
 by the authenticated D12 certificate and refuses any gas allocation unless the
 referenced D11 source is `GAS_FUNDING`, denominated in `NATIVE_GAS`,
 non-operator-owned, execution-eligible, blocker-free and anchored to the exact
-D12 state anchor. Per candidate, allocated gas MUST equal the exact declared gas
-requirement. Across all candidates, aggregate allocation against each source
-MUST NOT exceed that source's exact D11 `executable_capacity`.
+D12 state anchor. Per candidate, allocated gas MUST equal the exact declared gas requirement and
+each allocation MUST be individually bounded by the referenced source's exact
+D11 `executable_capacity`.
 
-The candidate set in `gas-funding-bindings.jsonl` MUST equal the candidate set
-in `execution-economics.jsonl` exactly. This prevents an economically positive
-quote from becoming Shadow-eligible while silently relying on unfunded
-transaction gas or reusing the same external gas capacity beyond its admitted
-limit.
+RMC-013 MUST NOT sum gas allocations across mutually exclusive future
+opportunities as if all candidates execute simultaneously. Doing so converts a
+shared-source contention problem into a false capital shortage and can
+materially understate executable capacity. Instead, RMC-013 emits deterministic
+shared gas-source claims for every candidate/source pair. Reuse of one source
+by multiple candidates becomes an explicit conflict resource for portfolio and
+temporal scheduling in RMC-012/RMC-016.
+
+The candidate set in `gas-funding-bindings.jsonl` MUST equal the unique
+candidate set in `execution-economics.jsonl`. Quote rows may exceed candidate
+rows because one candidate may retain multiple exact execution variants.
+This prevents an economically positive quote from becoming Shadow-eligible
+while silently relying on unfunded transaction gas, without pretending
+mutually exclusive opportunities consume shared gas capacity concurrently.
+
+
+### Exhaustively empty capital-feasible input: evidence-bounded negative closure
+
+When, and **only** when, an exact successful immutable RMC-012 terminal package
+proves `principal_capital_feasible = 0`, `principal_capital_rejected =
+principal_capital_promoted = admitted`, and all admitted candidate identities
+are covered by an explicit non-UNKNOWN funding rejection, RMC-013 may certify
+the **empty set** of execution-simulatable candidates as a negative result.
+
+This path requires exact authentication of the original RMC-012 artifact,
+the RMC-011 archive and its capital-source bytes; the complete RMC-012
+actionability records and capital promotions must be conserved by identity,
+hash, authority commitment, timestamp/block anchor, classification and count.
+The same negative package MUST be reconstructed from those inputs by the
+independent terminal verifier and must compare **byte-for-byte**.
+
+Because there are zero candidates for which the operator can source principal
+or flash repayment, **no RPC fee-history request, gas estimate, route or fork
+simulation has authority or purpose in this negative branch**. It is forbidden
+to synthesize them, insert fabricated zero-dollar execution quotes, interpret
+unavailable RPC evidence as a PASS, or claim physical execution was performed.
+The artifact must explicitly retain:
+
+- `input_candidate_count = execution_simulatable_count = economics_quote_count = 0`;
+- all profit, gas-funding, capacity and Shadow candidate counts equal to zero;
+- `historical_gas_price_evidence_collected = false`;
+- `physical_execution_performed = false`;
+- `zero_own_capital_execution_proven = false`;
+- `realized_profitability_proven = false`;
+- `monthly_target_probability_proven = false`;
+- no claim of global absence or global source/route completeness.
+
+The terminal certificate can attest **exact coverage of the empty
+evidence-eligible universe**, not execution success, gas-source availability,
+positive net EV, capture probability or revenue. Any future D12 package with
+one or more capital-feasible candidates MUST use the full physical,
+multi-provider gas and exact economic procedure; it cannot enter the
+negative path.
+
+This fail-closed exception is needed to distinguish a scientifically valid
+negative Census conclusion from a CI/network infrastructure failure. An
+honest negative Census conclusion does not meet the operator's USD 500,000
+Month-1 realized-net objective; economic optimization and Shadow/Canary
+remain blocked until actual capital/gas sourcing and positive-net
+opportunities are proven.

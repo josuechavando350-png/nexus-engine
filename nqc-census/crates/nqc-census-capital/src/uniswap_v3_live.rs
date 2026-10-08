@@ -5,9 +5,7 @@
 //! block-pinned chain evidence obligations.
 
 use crate::{
-    permissionless_atomic::{
-        admit_uniswap_v3_dual_provider, UniswapV3AuthenticatedObservation,
-    },
+    permissionless_atomic::{admit_uniswap_v3_dual_provider, UniswapV3AuthenticatedObservation},
     source_authority::D11SourceAuthority,
     Amount256, CapitalEvidenceRef, CapitalSource,
 };
@@ -18,8 +16,7 @@ use std::{collections::BTreeSet, error::Error};
 
 pub const UNISWAP_V3_FACTORY: &str = "0x1f98431c8ad98523631ae4a59f267346ea31f984";
 pub const UNISWAP_V3_DEPLOYMENT_REPOSITORY: &str = "Uniswap/v3-periphery";
-pub const UNISWAP_V3_DEPLOYMENT_COMMIT: &str =
-    "0682387198a24c7cd63566a2c58398533860a5d1";
+pub const UNISWAP_V3_DEPLOYMENT_COMMIT: &str = "0682387198a24c7cd63566a2c58398533860a5d1";
 pub const UNISWAP_V3_DEPLOYMENT_BLOB: &str = "c0af53cb35bdef902965262c23b34f5d39baf343";
 pub const UNISWAP_V3_DEPLOYMENT_PATH: &str = "deploys.md";
 
@@ -130,14 +127,10 @@ fn topic_u24(topic: &LogTopic, label: &'static str) -> Result<u32, ChainError> {
 }
 
 fn decode_i24_word(word: &[u8; 32]) -> Result<i32, ChainError> {
-    let raw =
-        (u32::from(word[29]) << 16) | (u32::from(word[30]) << 8) | u32::from(word[31]);
+    let raw = (u32::from(word[29]) << 16) | (u32::from(word[30]) << 8) | u32::from(word[31]);
     let negative = raw & 0x0080_0000 != 0;
     let expected_padding = if negative { 0xff } else { 0x00 };
-    if word[..29]
-        .iter()
-        .any(|byte| *byte != expected_padding)
-    {
+    if word[..29].iter().any(|byte| *byte != expected_padding) {
         return Err(ChainError::Evidence(
             "Uniswap V3 tickSpacing has non-canonical int24 sign extension".into(),
         ));
@@ -219,7 +212,6 @@ pub fn decode_uniswap_v3_pool_created(
         pool,
     })
 }
-
 
 fn reconciliation_sha256(bytes: &[u8]) -> String {
     hex::plain(&Sha256::digest(bytes))
@@ -317,7 +309,10 @@ fn validate_capture_identity(capture: &Json) -> Result<(), Box<dyn Error>> {
     if factory.str_field("address")? != UNISWAP_V3_FACTORY {
         return Err("Uniswap V3 capture factory address differs".into());
     }
-    validate_sha256_text(factory.str_field("runtime_sha256")?, "factory runtime_sha256")?;
+    validate_sha256_text(
+        factory.str_field("runtime_sha256")?,
+        "factory runtime_sha256",
+    )?;
     Ok(())
 }
 
@@ -462,7 +457,10 @@ pub fn build_uniswap_v3_reconciliation_artifact(
                 "executable_capacity",
                 Json::string(source.executable_capacity()?.to_hex()),
             ),
-            ("execution_eligible", Json::Bool(source.execution_eligible())),
+            (
+                "execution_eligible",
+                Json::Bool(source.execution_eligible()),
+            ),
             (
                 "execution_blockers",
                 Json::array(
@@ -556,10 +554,7 @@ pub fn source_authority_from_uniswap_v3_reconcile_artifact(
     let mut source_key_ids = BTreeSet::new();
     let mut sources = Vec::with_capacity(rows.len());
     for row in rows {
-        let encoded = hex::decode_data(&format!(
-            "0x{}",
-            row.str_field("canonical_record")?
-        ))?;
+        let encoded = hex::decode_data(&format!("0x{}", row.str_field("canonical_record")?))?;
         let source = CapitalSource::decode_canonical(&encoded)?;
 
         if row.str_field("source_id")? != source.id().to_hex()
@@ -595,11 +590,7 @@ pub fn source_authority_from_uniswap_v3_reconcile_artifact(
             return Err("Uniswap V3 execution blockers differ from canonical record".into());
         }
 
-        let observed_evidence = source
-            .evidence()
-            .iter()
-            .copied()
-            .collect::<BTreeSet<_>>();
+        let observed_evidence = source.evidence().iter().copied().collect::<BTreeSet<_>>();
         if observed_evidence != expected_evidence || source.evidence().len() != 2 {
             return Err(
                 "Uniswap V3 source evidence does not equal the two provider capture digests".into(),
@@ -623,8 +614,7 @@ pub fn source_authority_from_uniswap_v3_reconcile_artifact(
         return Err("Uniswap V3 reconciliation mixes observation anchors".into());
     }
 
-    let authority =
-        D11SourceAuthority::from_reconciliation_artifact(anchor, bytes, &sources)?;
+    let authority = D11SourceAuthority::from_reconciliation_artifact(anchor, bytes, &sources)?;
     authority.verify(bytes, &sources)?;
     Ok((authority, sources))
 }
@@ -661,7 +651,13 @@ mod tests {
         word
     }
 
-    fn pool_log(token0: Address, token1: Address, fee: u32, tick: i32, pool: Address) -> RawLogEnvelope {
+    fn pool_log(
+        token0: Address,
+        token1: Address,
+        fee: u32,
+        tick: i32,
+        pool: Address,
+    ) -> RawLogEnvelope {
         let interface = uniswap_v3_factory_interface();
         let mut pool_word = [0_u8; 32];
         pool_word[12..].copy_from_slice(pool.as_bytes());
@@ -822,10 +818,7 @@ mod tests {
                     ("runtime_sha256", Json::string(digest_hex(0xf1))),
                 ]),
             ),
-            (
-                "pool_event_history_sha256",
-                Json::string(digest_hex(0x61)),
-            ),
+            ("pool_event_history_sha256", Json::string(digest_hex(0x61))),
             ("pool_universe_sha256", Json::string(digest_hex(0x71))),
             (
                 "pools",
@@ -850,9 +843,7 @@ mod tests {
                         Json::array([Json::object([
                             (
                                 "asset",
-                                Json::string(
-                                    "0x1111111111111111111111111111111111111111",
-                                ),
+                                Json::string("0x1111111111111111111111111111111111111111"),
                             ),
                             ("balance", Json::string(balance.to_owned())),
                             ("execution_blockers", Json::array(Vec::<Json>::new())),
@@ -865,21 +856,22 @@ mod tests {
 
     #[test]
     fn dual_provider_reconciliation_emits_exact_flash_source() -> Result<(), Box<dyn Error>> {
-        let first =
-            reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
+        let first = reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
         let second =
             reconciliation_capture("provider-b", "operator-b", &digest_hex(0x92), "123456");
         let sources = reconcile_uniswap_v3_captures(&first, &second)?;
         assert_eq!(sources.len(), 1);
-        assert_eq!(sources[0].maximum_available(), Amount256::from_u128(123_456));
+        assert_eq!(
+            sources[0].maximum_available(),
+            Amount256::from_u128(123_456)
+        );
         assert!(sources[0].execution_eligible());
         Ok(())
     }
 
     #[test]
     fn dual_provider_reconciliation_rejects_active_liquidity_mismatch() {
-        let first =
-            reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
+        let first = reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
         let mut second =
             reconciliation_capture("provider-b", "operator-b", &digest_hex(0x92), "123456");
         let pools = second
@@ -891,11 +883,16 @@ mod tests {
             ("pool", pool.get("pool").cloned().unwrap_or(Json::Null)),
             ("token0", pool.get("token0").cloned().unwrap_or(Json::Null)),
             ("token1", pool.get("token1").cloned().unwrap_or(Json::Null)),
-            ("fee_pips", pool.get("fee_pips").cloned().unwrap_or(Json::Null)),
+            (
+                "fee_pips",
+                pool.get("fee_pips").cloned().unwrap_or(Json::Null),
+            ),
             ("active_liquidity", Json::string("999999")),
             (
                 "pool_runtime_sha256",
-                pool.get("pool_runtime_sha256").cloned().unwrap_or(Json::Null),
+                pool.get("pool_runtime_sha256")
+                    .cloned()
+                    .unwrap_or(Json::Null),
             ),
             (
                 "asset_balances",
@@ -903,47 +900,89 @@ mod tests {
             ),
         ]);
         second = Json::object([
-            ("schema_version", second.get("schema_version").cloned().unwrap_or(Json::Null)),
+            (
+                "schema_version",
+                second.get("schema_version").cloned().unwrap_or(Json::Null),
+            ),
             ("stage", second.get("stage").cloned().unwrap_or(Json::Null)),
-            ("family", second.get("family").cloned().unwrap_or(Json::Null)),
-            ("provider_id", second.get("provider_id").cloned().unwrap_or(Json::Null)),
+            (
+                "family",
+                second.get("family").cloned().unwrap_or(Json::Null),
+            ),
+            (
+                "provider_id",
+                second.get("provider_id").cloned().unwrap_or(Json::Null),
+            ),
             (
                 "provider_operator",
-                second.get("provider_operator").cloned().unwrap_or(Json::Null),
+                second
+                    .get("provider_operator")
+                    .cloned()
+                    .unwrap_or(Json::Null),
             ),
             (
                 "rpc_endpoint_hash",
-                second.get("rpc_endpoint_hash").cloned().unwrap_or(Json::Null),
+                second
+                    .get("rpc_endpoint_hash")
+                    .cloned()
+                    .unwrap_or(Json::Null),
             ),
-            ("anchor", second.get("anchor").cloned().unwrap_or(Json::Null)),
+            (
+                "anchor",
+                second.get("anchor").cloned().unwrap_or(Json::Null),
+            ),
             (
                 "authority_lock_sha256",
-                second.get("authority_lock_sha256").cloned().unwrap_or(Json::Null),
+                second
+                    .get("authority_lock_sha256")
+                    .cloned()
+                    .unwrap_or(Json::Null),
             ),
             (
                 "d08_market_state_sha256",
-                second.get("d08_market_state_sha256").cloned().unwrap_or(Json::Null),
+                second
+                    .get("d08_market_state_sha256")
+                    .cloned()
+                    .unwrap_or(Json::Null),
             ),
             (
                 "d08_token_admission_sha256",
-                second.get("d08_token_admission_sha256").cloned().unwrap_or(Json::Null),
+                second
+                    .get("d08_token_admission_sha256")
+                    .cloned()
+                    .unwrap_or(Json::Null),
             ),
             (
                 "d08_evidence_manifest_sha256",
-                second.get("d08_evidence_manifest_sha256").cloned().unwrap_or(Json::Null),
+                second
+                    .get("d08_evidence_manifest_sha256")
+                    .cloned()
+                    .unwrap_or(Json::Null),
             ),
             (
                 "deployment_sha256",
-                second.get("deployment_sha256").cloned().unwrap_or(Json::Null),
+                second
+                    .get("deployment_sha256")
+                    .cloned()
+                    .unwrap_or(Json::Null),
             ),
-            ("factory", second.get("factory").cloned().unwrap_or(Json::Null)),
+            (
+                "factory",
+                second.get("factory").cloned().unwrap_or(Json::Null),
+            ),
             (
                 "pool_event_history_sha256",
-                second.get("pool_event_history_sha256").cloned().unwrap_or(Json::Null),
+                second
+                    .get("pool_event_history_sha256")
+                    .cloned()
+                    .unwrap_or(Json::Null),
             ),
             (
                 "pool_universe_sha256",
-                second.get("pool_universe_sha256").cloned().unwrap_or(Json::Null),
+                second
+                    .get("pool_universe_sha256")
+                    .cloned()
+                    .unwrap_or(Json::Null),
             ),
             ("pools", Json::array([replacement])),
         ]);
@@ -952,8 +991,7 @@ mod tests {
 
     #[test]
     fn reconciliation_preserves_d08_execution_blockers() -> Result<(), Box<dyn Error>> {
-        let first =
-            reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
+        let first = reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
         let mut second =
             reconciliation_capture("provider-b", "operator-b", &digest_hex(0x92), "123456");
 
@@ -983,14 +1021,19 @@ mod tests {
                 ("pool", pool.get("pool").cloned().unwrap_or(Json::Null)),
                 ("token0", pool.get("token0").cloned().unwrap_or(Json::Null)),
                 ("token1", pool.get("token1").cloned().unwrap_or(Json::Null)),
-                ("fee_pips", pool.get("fee_pips").cloned().unwrap_or(Json::Null)),
+                (
+                    "fee_pips",
+                    pool.get("fee_pips").cloned().unwrap_or(Json::Null),
+                ),
                 (
                     "active_liquidity",
                     pool.get("active_liquidity").cloned().unwrap_or(Json::Null),
                 ),
                 (
                     "pool_runtime_sha256",
-                    pool.get("pool_runtime_sha256").cloned().unwrap_or(Json::Null),
+                    pool.get("pool_runtime_sha256")
+                        .cloned()
+                        .unwrap_or(Json::Null),
                 ),
                 ("asset_balances", Json::array([blocked_balance])),
             ]);
@@ -1012,10 +1055,7 @@ mod tests {
                 "pool_event_history_sha256",
                 "pool_universe_sha256",
             ] {
-                members.push((
-                    key,
-                    capture.get(key).cloned().unwrap_or(Json::Null),
-                ));
+                members.push((key, capture.get(key).cloned().unwrap_or(Json::Null)));
             }
             members.push(("pools", Json::array([blocked_pool])));
             Json::object(members)
@@ -1029,32 +1069,31 @@ mod tests {
             sources[0].execution_blockers(),
             &["TRANSFER_HOOKS_UNPROVEN".to_owned()]
         );
-        assert_eq!(sources[0].maximum_available(), Amount256::from_u128(123_456));
+        assert_eq!(
+            sources[0].maximum_available(),
+            Amount256::from_u128(123_456)
+        );
         assert_eq!(sources[0].executable_capacity()?, Amount256::ZERO);
         Ok(())
     }
 
     #[test]
     fn dual_provider_reconciliation_rejects_balance_mismatch() {
-        let first =
-            reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
+        let first = reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
         let second =
             reconciliation_capture("provider-b", "operator-b", &digest_hex(0x92), "123455");
         assert!(reconcile_uniswap_v3_captures(&first, &second).is_err());
     }
 
     #[test]
-    fn uniswap_v3_reconciliation_artifact_roundtrips_authority(
-    ) -> Result<(), Box<dyn Error>> {
-        let first =
-            reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456")
-                .canonical()?;
+    fn uniswap_v3_reconciliation_artifact_roundtrips_authority() -> Result<(), Box<dyn Error>> {
+        let first = reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456")
+            .canonical()?;
         let second =
             reconciliation_capture("provider-b", "operator-b", &digest_hex(0x92), "123456")
                 .canonical()?;
         let artifact = build_uniswap_v3_reconciliation_artifact(&first, &second)?;
-        let (authority, sources) =
-            source_authority_from_uniswap_v3_reconcile_artifact(&artifact)?;
+        let (authority, sources) = source_authority_from_uniswap_v3_reconcile_artifact(&artifact)?;
         assert_eq!(authority.family().code(), "UNISWAP_V3_FLASH");
         assert_eq!(authority.source_count(), 1);
         assert_eq!(sources.len(), 1);
@@ -1069,5 +1108,4 @@ mod tests {
             reconciliation_capture("provider-b", "same-operator", &digest_hex(0x92), "123456");
         assert!(reconcile_uniswap_v3_captures(&first, &second).is_err());
     }
-
 }
