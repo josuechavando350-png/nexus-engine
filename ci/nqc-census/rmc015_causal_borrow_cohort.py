@@ -21,8 +21,8 @@ CUTOFF = 25938047
 CUTOFF_HASH = "0x42cf44b75185587327a1aa8fc859cc5f49a639e7256547511430d6068b6f09ab"
 NEXT_BLOCK = CUTOFF+1
 NEXT_HASH = "0xf143f9988199037938e4dff57aaf24301a4c26770aefc0ec64774954cbf2dbe4"
-LOOKBACK = 512
-CHUNK = 64
+LOOKBACK = 100
+CHUNK = 10
 MAX_LOGS_PER_CHUNK = 600
 MAX_COHORT = 350
 BORROW_TOPIC = "0xb3d084820fb1a9decffb176436bd02558d15fac9b0ddfed8c465bc7359d7dce0"
@@ -317,7 +317,7 @@ def assess(*,call=rpc,providers=None):
     output={
         "schema_version":1,
         "status":"RMC015_PREWINNER_BORROW_COHORT_CAUSAL_HOLDOUT_OBSERVED_NOT_PNL",
-        "source_selection":"ONLY_BORROW_LOGS_IN_512_BLOCKS_ENDING_BEFORE_HOLDOUT",
+        "source_selection":"ONLY_BORROW_LOGS_IN_100_BLOCKS_ENDING_BEFORE_HOLDOUT",
         "decision_block_number":CUTOFF,
         "next_label_block_number":NEXT_BLOCK,
         "immutable_input_features_sha256":committed,
