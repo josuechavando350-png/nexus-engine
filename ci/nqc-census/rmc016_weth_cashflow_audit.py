@@ -151,8 +151,19 @@ def calculate(legs, receipts, price_rows):
         require(tx in receipts, "decoded leg has no authenticated winner receipt")
         if row["debt_asset"] == WETH and row["collateral_asset"] == WETH:
             by.setdefault(tx, []).append(row)
+    pair_counts = {}
+    for leg in legs:
+        key = (leg["collateral_asset"], leg["debt_asset"])
+        pair_counts[key] = pair_counts.get(key, 0) + 1
     require(len(by) == 7 and sum(map(len, by.values())) == 7,
-            "source must contain exactly seven WETH/WETH winner events")
+            "source must contain exactly seven WETH/WETH winner events: observed "
+            + str(sum(map(len, by.values()))) + " events / " + str(len(by))
+            + " tx; WETH collateral events " +
+            str(sum(v for (c, d), v in pair_counts.items() if c == WETH))
+            + "; WETH debt events " +
+            str(sum(v for (c, d), v in pair_counts.items() if d == WETH))
+            + "; observed pair counts " +
+            str(sorted(pair_counts.items(), key=lambda p: -p[1])[:12]))
     rows = []
     for tx, group in by.items():
         rec = receipts[tx]
