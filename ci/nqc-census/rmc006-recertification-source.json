@@ -1,0 +1,317 @@
+{
+  "anchor": {
+    "hash": "0x0d7a15fbb72e69696a33c65bc20902fe08e5630862ada64b065a97405c70c781",
+    "number": 26095351,
+    "parent_hash": "0xaf6809f0222903662e0814128c37e98296d47c2a78c4d94bdc08e3efa1107792",
+    "state_root": "0x295ca34af4c1652ded4210d6353703c7acea726c04c27978df4a3a88d9e7bbfd",
+    "timestamp": 1790832215
+  },
+  "artifact": {
+    "created_at": "2026-10-01T06:06:44Z",
+    "digest": "sha256:1cdb46fca52ebf1e0e2094b1c14b19384ecb7beceb50229b967592ab7a0308b4",
+    "expires_at": "2026-10-31T06:06:41Z",
+    "id": 11143129177,
+    "name": "nqc-rmc006-evidence-26095351-a33a012591cd6625ddb921d995bb1bd95b4a5406-36820687233-1",
+    "size_in_bytes": 6709740
+  },
+  "chain_domain": {
+    "chain_id": 1,
+    "fork_lineage": "0x349462d471690c164b8109c6dbc41a76afb4033216f379254b3367b75f0fc522",
+    "genesis_hash": "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3",
+    "lineage_block": 1920000,
+    "lineage_hash": "0x4985f5ca3d2afbec36529aa96f74de3cc10a2a4a6c44f2157a57d2c6059a11bb"
+  },
+  "current_providers": [
+    {
+      "label": "blastapi-public",
+      "log_window": 10,
+      "max_batch": 100,
+      "min_interval_ms": 350,
+      "namespace": 257,
+      "operator": "Bware Labs Blast API public endpoint",
+      "pinning": "EIP1898_BLOCK_HASH",
+      "url": "https://eth-mainnet.public.blastapi.io"
+    },
+    {
+      "label": "mevblocker-rpc",
+      "log_window": 1000000,
+      "max_batch": 100,
+      "min_interval_ms": 1250,
+      "namespace": 258,
+      "operator": "MEV Blocker public RPC",
+      "pinning": "EIP1898_BLOCK_HASH",
+      "url": "https://rpc.mevblocker.io"
+    },
+    {
+      "label": "nodies-public",
+      "log_window": 50,
+      "max_batch": 10,
+      "min_interval_ms": 600,
+      "namespace": 259,
+      "operator": "Nodies public endpoint",
+      "pinning": "EIP1898_BLOCK_HASH",
+      "url": "https://ethereum-public.nodies.app"
+    }
+  ],
+  "history_providers": [
+    {
+      "label": "mevblocker-rpc",
+      "log_window": 10000,
+      "max_batch": 100,
+      "min_interval_ms": 1250,
+      "namespace": 258,
+      "operator": "MEV Blocker public RPC",
+      "pinning": "EIP1898_BLOCK_HASH",
+      "url": "https://rpc.mevblocker.io"
+    },
+    {
+      "label": "tenderly-public",
+      "log_window": 3000000,
+      "max_batch": 1,
+      "min_interval_ms": 250,
+      "namespace": 260,
+      "operator": "Tenderly public gateway",
+      "pinning": "NUMBER_WITH_HASH_GUARDS",
+      "url": "https://gateway.tenderly.co/public/mainnet"
+    }
+  ],
+  "history_range": [
+    16291071,
+    26095351
+  ],
+  "history_summary": {
+    "active_event_count": 67,
+    "configurator_count": 1,
+    "configurator_implementation_update_count": 7,
+    "configurator_replacement_count": 0,
+    "current_reserve_count": 67,
+    "historical_market_count": 67,
+    "lineage_log_count": 24,
+    "lineage_zero_topic_log_count": 5,
+    "pool_implementation_update_count": 11,
+    "provider_count": 2,
+    "provider_mismatch_count": 0,
+    "reserve_dropped_count": 0,
+    "reserve_id_slot_count": 67,
+    "reserve_initialized_count": 67,
+    "unexplained_delta_count": 0
+  },
+  "index": {
+    "indexed_members": 4234,
+    "schema": "nqc-rmc006-evidence-index-v1",
+    "sha256": "8ee157ed228695c7ac66bc36135a7a707696234f139b744bafd304a633255fff",
+    "uncompressed_bytes": 8983767,
+    "zip_members": 4235
+  },
+  "repository": {
+    "full_name": "josuechavando350-png/nexus-engine",
+    "id": 1333360261
+  },
+  "required_empty_directories": [
+    "store/tmp"
+  ],
+  "resume": {
+    "clean_evidence_root": "e0417bfba8957c7aafe9aaee8298ca4c01807941b9fce2fb80a1da3262e5fcdc",
+    "clean_replay_report_identical": true,
+    "interruptions": [
+      {
+        "committed_jobs_at_interruption": 0,
+        "evidence_root": "e0417bfba8957c7aafe9aaee8298ca4c01807941b9fce2fb80a1da3262e5fcdc",
+        "interrupted_after_requests": 1,
+        "resumed_report_identical": true
+      },
+      {
+        "committed_jobs_at_interruption": 0,
+        "evidence_root": "e0417bfba8957c7aafe9aaee8298ca4c01807941b9fce2fb80a1da3262e5fcdc",
+        "interrupted_after_requests": 251,
+        "resumed_report_identical": true
+      },
+      {
+        "committed_jobs_at_interruption": 0,
+        "evidence_root": "e0417bfba8957c7aafe9aaee8298ca4c01807941b9fce2fb80a1da3262e5fcdc",
+        "interrupted_after_requests": 377,
+        "resumed_report_identical": true
+      },
+      {
+        "committed_jobs_at_interruption": 0,
+        "evidence_root": "e0417bfba8957c7aafe9aaee8298ca4c01807941b9fce2fb80a1da3262e5fcdc",
+        "interrupted_after_requests": 503,
+        "resumed_report_identical": true
+      },
+      {
+        "committed_jobs_at_interruption": 59,
+        "evidence_root": "e0417bfba8957c7aafe9aaee8298ca4c01807941b9fce2fb80a1da3262e5fcdc",
+        "interrupted_after_requests": 754,
+        "resumed_report_identical": true
+      }
+    ],
+    "recorded_exchanges": 755,
+    "replay_manifests": 70,
+    "replay_order": "RECORDED_OCCURRENCE_ORDER_PER_REQUEST",
+    "requests_recorded_with_differing_responses": 43,
+    "schema": "nqc-rmc-006-aave-resume-equivalence-v1",
+    "status": "RESUME_EQUIVALENCE_PASS"
+  },
+  "run": {
+    "attempt": 1,
+    "conclusion": "success",
+    "event": "workflow_dispatch",
+    "head_branch": "nqc/rmc-006-aave-reconciled-discovery-20260929",
+    "head_sha": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
+    "id": 36820687233,
+    "status": "completed",
+    "tree_sha": "eda36fdc07e82ccdcc9666799fa8fe21aacc7f1d"
+  },
+  "schema": "nqc-rmc006-recertification-source-v1",
+  "scope": "ETHEREUM_MAINNET_AAVE_V3_DECLARED_DEPLOYMENT_ONLY",
+  "source_report_fields": {
+    "aave-admission.json": [
+      "addresses_provider",
+      "admission_id",
+      "capability_state",
+      "chain_id",
+      "configuration_hash",
+      "creation_block",
+      "deployment_code_hash",
+      "deployment_instance",
+      "evidence_ref_count",
+      "implementation",
+      "implementation_code_hash",
+      "observation_block",
+      "oracle_configuration_hash",
+      "pool",
+      "proxy_kind",
+      "remaining_blocker",
+      "schema",
+      "semantics_version",
+      "status",
+      "universe_id"
+    ],
+    "aave-current-surface.json": [
+      "admission_fingerprint",
+      "bootstrap",
+      "facts",
+      "infrastructure_independence",
+      "provider_manifests",
+      "schema",
+      "status"
+    ],
+    "aave-history.json": [
+      "addresses_provider_boundary",
+      "addresses_provider_boundary_manifests",
+      "bootstrap",
+      "configurator_lineage_manifests",
+      "configurator_lineage_scan_evidence",
+      "configurators",
+      "deployment_instance",
+      "event_active",
+      "historical_dropped",
+      "lineage",
+      "non_claims",
+      "pool_boundary",
+      "pool_boundary_manifests",
+      "pool_configurator_boundary",
+      "pool_configurator_boundary_manifests",
+      "replay_manifests",
+      "reserve_events",
+      "scan_evidence",
+      "schema",
+      "simulated_reserve_slots",
+      "status",
+      "summary"
+    ],
+    "aave-resume-equivalence.json": [
+      "clean_evidence_root",
+      "clean_replay_report_identical",
+      "interruptions",
+      "recorded_exchanges",
+      "replay_manifests",
+      "replay_order",
+      "requests_recorded_with_differing_responses",
+      "schema",
+      "status"
+    ],
+    "closeout/aave-discovery-run.json": [
+      "admission_id",
+      "chain_domain",
+      "code_commit",
+      "code_tree",
+      "declared_universe_id",
+      "generated_at",
+      "generated_at_basis",
+      "history_range",
+      "history_summary",
+      "lineage",
+      "non_claims",
+      "observation_anchor",
+      "schema_version",
+      "scope",
+      "status"
+    ],
+    "closeout/aave-discovery-summary.json": [
+      "admission_id",
+      "admission_rejection_count",
+      "blocking_findings",
+      "canonicalization",
+      "chain_id",
+      "code_commit",
+      "code_tree",
+      "configurator_count",
+      "declared_universe_id",
+      "deduplication",
+      "deployment_count",
+      "event_history_count",
+      "event_only_count",
+      "evidence_verification",
+      "explained_delta_count",
+      "generated_at",
+      "generated_at_basis",
+      "getter_count",
+      "getter_only_count",
+      "historical_market_count",
+      "historical_only_count",
+      "intersection_count",
+      "protocol",
+      "provider_mismatch_count",
+      "reserve_union_count",
+      "schema_version",
+      "status",
+      "unexplained_delta_count",
+      "unexplained_findings"
+    ],
+    "closeout/closeout-report.json": [
+      "artifact_count",
+      "evidence_manifest_sha256",
+      "evidence_manifest_store_artifact_id",
+      "provider_mismatch_count",
+      "reserve_union_count",
+      "status",
+      "unexplained_delta_count"
+    ],
+    "closeout/evidence-manifest.json": [
+      "artifacts",
+      "code_commit",
+      "code_tree",
+      "generated_at",
+      "generated_at_basis",
+      "schema_version",
+      "status"
+    ]
+  },
+  "source_report_hashes": {
+    "aave-admission.json": "5c35416b95ee7f5123295f9239a9a3d0b62a9a25b49eb387ef4480330dbc5cc5",
+    "aave-current-surface.json": "e877128e1df0882fb76e1ad8839fcc70e30e16f24462dc659620ebc6baba7bb4",
+    "aave-history.json": "e95e3bb6fc601c2eb6662a14025ab38676b59ef2eb00a475f405a531a86e3cd4",
+    "aave-resume-equivalence.json": "70852efb3b967d2e6b702d6858d571665181b25e2a789d6666f5906c5c8eb985",
+    "closeout/aave-discovery-run.json": "dc7c5fdbb254a0ebe6ba5c36b5c3ab6e991b0c517abea387dd747325bf56e74c",
+    "closeout/aave-discovery-summary.json": "40d420d68a550dd02179a70a51505d50b2dc199b3d10e53a335d1b39ed3158b0",
+    "closeout/closeout-report.json": "9c237e1928fae2bfc7b8afd7f2e62f65f0acef78d9a3efad34199acce76976f6",
+    "closeout/evidence-manifest.json": "005715e6f4479a6e9c12c62eed40b3d027107a1c9f4d31c6461845181dc733c4"
+  },
+  "store_evidence_root": "e3d2b0739d3e5affea6b337540cf3cb9b2caaedd438656d2759105d39dacba03",
+  "workflow": {
+    "id": 369620615,
+    "name": "NQC RMC-006 Aave Discovery",
+    "path": ".github/workflows/nqc-census-aave-discovery.yml"
+  }
+}
