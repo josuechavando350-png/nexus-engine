@@ -11,7 +11,7 @@ def canonical(v): return (json.dumps(v,sort_keys=True,separators=(",",":"))+"\n"
 def require(c,m):
  if not c: raise ValueError(m)
 def validate(doc):
- require(isinstance(doc,dict) and doc.get("schema_version")==1,"schema")
+ require(isinstance(doc,dict) and type(doc.get("schema_version")) is int and doc["schema_version"]==1,"schema")
  require(doc.get("real_market_census_closed") is False,"source lock cannot self-close")
  rows=doc.get("authorities"); require(isinstance(rows,list) and len(rows)==3,"three authorities required")
  by={}
@@ -30,7 +30,7 @@ def validate(doc):
   if s=="RMC-014":
    require(r.get("structural_chain_certified") is True and r.get("real_market_census_closed") is False,"D14 boundary")
   if s=="RMC-015":
-   require(r.get("temporal_conservation_complete") is True and r.get("lookahead_used") is False and r.get("material_unknown_count")==0,"D15 boundary")
+   require(r.get("temporal_conservation_complete") is True and r.get("lookahead_used") is False and type(r.get("material_unknown_count")) is int and r["material_unknown_count"]==0,"D15 boundary")
   if s=="RMC-016":
    require(r.get("conservative_realizable_capacity_only") is True,"D16 conservative boundary")
    require(r.get("global_market_maximum_claimed") is False,"D16 global maximum forbidden")
