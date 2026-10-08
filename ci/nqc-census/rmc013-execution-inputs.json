@@ -1,8 +1,16 @@
 {
   "schema_version": 1,
-  "status": "BLOCKED_AWAITING_CERTIFIED_RMC012",
+  "status": "PINNED",
   "repository": "josuechavando350-png/nexus-engine",
-  "d12": null,
+  "d12": {
+    "run_id": 37704109137,
+    "head_sha": "9368ec833ee26d0bf8f8203ce2ca1ef09ae004a2",
+    "tree_sha": "0aa1df487271739f9620b641466bb72bad1eea10",
+    "workflow_name": "NQC RMC-012 Terminal Actionability Authority",
+    "artifact_id": 11519153831,
+    "artifact_name": "rmc012-terminal-actionability-9368ec833ee26d0bf8f8203ce2ca1ef09ae004a2",
+    "artifact_digest": "sha256:bbe6a6365d563eb41125d9fcdba79ac384c21182f31f6761897e0ce2ee8fa3b8"
+  },
   "pft": {
     "certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
     "certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853",
@@ -25,9 +33,7 @@
     "discovery": "EXHAUSTIVE_SIMPLE_PATHS_OVER_EXACT_RMC008_STATE",
     "emission_policy": "ALL_POSITIVE_ELSE_BEST_NONPOSITIVE"
   },
-  "blocking_reasons": [
-    "RMC012_TERMINAL_ACTIONABILITY_ARTIFACT_NOT_PINNED"
-  ],
+  "blocking_reasons": [],
   "notes": [
     "This file may become PINNED only to one successful immutable RMC-012 terminal actionability artifact.",
     "The producer performs fork-local counterfactual transactions only; it has no live signing or broadcast authority.",
