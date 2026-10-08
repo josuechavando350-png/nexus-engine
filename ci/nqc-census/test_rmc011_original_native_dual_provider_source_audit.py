@@ -22,7 +22,7 @@ class SourceAuthorityTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.original_zip=ARGS.zip
-        cls.run=proof.json_obj(ARGS.run_meta.read_bytes())
+        cls.original_run_metadata=proof.json_obj(ARGS.run_meta.read_bytes())
         cls.job=proof.json_obj(ARGS.job_meta.read_bytes())
         cls.artifact=proof.json_obj(ARGS.artifact_meta.read_bytes())
         cls.commit=proof.json_obj(ARGS.commit_meta.read_bytes())
@@ -83,7 +83,7 @@ class SourceAuthorityTests(unittest.TestCase):
     def test_old_failed_overall_run_must_not_be_reported_as_success(self):
         self.assertEqual(self.verified["original_workflow_conclusion"],"failure")
         self.assertEqual(self.verified["original_acquisition_job_conclusion"],"success")
-        forged=copy.deepcopy(self.run)
+        forged=copy.deepcopy(self.original_run_metadata)
         forged["conclusion"]="success"
         with self.assertRaisesRegex(ValueError,"overall run must be recorded as FAILED"):
             proof.verify_producer(forged,self.job,self.artifact,self.commit)
@@ -92,31 +92,31 @@ class SourceAuthorityTests(unittest.TestCase):
         forged=copy.deepcopy(self.job)
         forged["conclusion"]="failure"
         with self.assertRaisesRegex(ValueError,"acquisition producing job"):
-            proof.verify_producer(self.run,forged,self.artifact,self.commit)
+            proof.verify_producer(self.original_run_metadata,forged,self.artifact,self.commit)
 
     def test_artifact_sha_mutation_cannot_be_promoted(self):
         forged=copy.deepcopy(self.artifact)
         forged["digest"]="sha256:"+"a"*64
         with self.assertRaisesRegex(ValueError,"artifact identity"):
-            proof.verify_producer(self.run,self.job,forged,self.commit)
+            proof.verify_producer(self.original_run_metadata,self.job,forged,self.commit)
 
     def test_expired_original_artifact_is_not_source_authority(self):
         forged=copy.deepcopy(self.artifact)
         forged["expired"]=True
         with self.assertRaisesRegex(ValueError,"artifact identity"):
-            proof.verify_producer(self.run,self.job,forged,self.commit)
+            proof.verify_producer(self.original_run_metadata,self.job,forged,self.commit)
 
     def test_wrong_code_tree_rejected(self):
         forged=copy.deepcopy(self.commit)
         forged["tree"]["sha"]="f"*40
         with self.assertRaisesRegex(ValueError,"code commit/tree"):
-            proof.verify_producer(self.run,self.job,self.artifact,forged)
+            proof.verify_producer(self.original_run_metadata,self.job,self.artifact,forged)
 
     def test_bool_original_job_identifier_cannot_pass(self):
         forged=copy.deepcopy(self.job)
         forged["id"]=True
         with self.assertRaisesRegex(ValueError,"acquisition producing job"):
-            proof.verify_producer(self.run,forged,self.artifact,self.commit)
+            proof.verify_producer(self.original_run_metadata,forged,self.artifact,self.commit)
 
     def test_missing_original_archive_never_produces_a_certificate(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -127,7 +127,7 @@ class SourceAuthorityTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"provider source changed"):
             proof.audit(
                 archive_path=self.original_zip,
-                run=self.run,job=self.job,artifact=self.artifact,commit=self.commit,
+                run=self.original_run_metadata,job=self.job,artifact=self.artifact,commit=self.commit,
                 capital_source_universe=self.universe,
                 provider_registry=self.registry+b" ",
                 final_census_lock=self.final,
