@@ -10,6 +10,8 @@ The execution source depends on the exact RMC-016 commit `96a0b3e3c0b55df1b1d890
 
 ## Scope and strict admission
 
+- Rate-safe wide-range mode first attempts a single full-window log query, splitting deterministically only where providers explicitly require smaller block ranges. The GitHub producer uses a minimum **22-second interval between HTTP requests** to respect unauthenticated public-provider limits. This is throttled access, not rate-limit circumvention. A mid-run 429 remains a source blocker.
+- On interruption, every already completed shard remains separately committed with a content-addressed **partial** event record. No partial record may be interpreted as complete enumeration. The full source admission still requires every block, all event identities, and exact cardinality reconciliation.
 - Queries `eth_chainId`, both exact block headers, and `eth_getLogs` over a disjoint exhaustive partition. Bounded adaptive splitting is permitted for genuine range limits; forbidden/unauthorized or pruned RPC data is a terminal source blocker, not an invitation to forge completeness.
 - Each log must match pool/topic/ABI shape, canonical event ordering, block range, transaction hash, block hash and valid non-reorg state. Reject duplicate logs, overlapping/missing shards, provider result caps and any input from a different chain.
 - Complete single-source discovery can *corroborate* exactly 139 events / 127 distinct transaction hashes, but is always labelled `RMC016_SINGLE_SOURCE_WINNER_EVENTS_COUNTS_RECONCILED` and `independent_provider_consensus=false`. Any different count remains a mismatch rather than being pruned to force 139 or 127.
