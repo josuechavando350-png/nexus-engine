@@ -9,6 +9,8 @@ on:
       - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
       - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
       - ".github/workflows/nqc-census-capital-bounded-family-rejections.yml"
   push:
     branches:
@@ -20,6 +22,8 @@ on:
       - "ci/nqc-census/verify-rmc011-execution-plan-requirement-catalog.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
       - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
       - ".github/workflows/nqc-census-capital-bounded-family-rejections.yml"
   workflow_dispatch:
 
@@ -56,6 +60,9 @@ jobs:
           set -euo pipefail
           python3 -m py_compile             ci/nqc-census/verify-rmc011-bounded-family-rejections.py             ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
           python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-promotion.py ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-promotion.py
           python3             ci/nqc-census/verify-rmc011-bounded-family-rejections.py             "$RUNNER_TEMP/rmc011-bounded-family-rejections.json"
 
       - name: Build per-family immutable evidence
@@ -165,7 +172,7 @@ jobs:
       - name: Upload immutable bounded-family rejection evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: rmc011-bounded-family-rejections-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: rmc011-bounded-family-rejections-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/rmc011-bounded-family-rejection-evidence/
           if-no-files-found: error
           retention-days: 90

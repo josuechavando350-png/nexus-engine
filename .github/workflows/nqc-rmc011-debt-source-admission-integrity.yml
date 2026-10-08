@@ -1,0 +1,123 @@
+name: NQC RMC-011 Debt Real-Source Admission Integrity (NO D11 CLOSE)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc011-debt-source-admission-integrity.yml'
+      - 'ci/nqc-census/verify-rmc011-debt-family-promotion.py'
+      - 'ci/nqc-census/test_verify_rmc011_debt_family_promotion.py'
+      - 'ci/nqc-census/RMC011_DEBT_SOURCE_ADMISSION_INTEGRITY.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nqc-rmc011-debt-source-admission-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  debt-real-source-witness-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify immutable source lock and run adversarial regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git hash-object ci/nqc-census/rmc011-capital-source-universe.json)" = 8f42e9ab127cc567409c20383de3fea4e3618e5f
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          mkdir -p "$RUNNER_TEMP/nqc-rmc011-debt-integrity"
+          python3 -m py_compile \
+            ci/nqc-census/verify-rmc011-debt-family-promotion.py \
+            ci/nqc-census/test_verify_rmc011_debt_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_debt_family_promotion.py -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-rmc011-debt-integrity/test-results.txt"
+          python3 ci/nqc-census/verify-rmc011-debt-family-promotion.py \
+            | tee "$RUNNER_TEMP/nqc-rmc011-debt-integrity/debt-current-source.txt"
+          grep -F 'state=PENDING' "$RUNNER_TEMP/nqc-rmc011-debt-integrity/debt-current-source.txt"
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py \
+            | tee "$RUNNER_TEMP/nqc-rmc011-debt-integrity/capital-source-check.txt"
+          grep -F 'resolved=0 unresolved=13' "$RUNNER_TEMP/nqc-rmc011-debt-integrity/capital-source-check.txt"
+          echo RMC011_DEBT_FAKE_REAL_SOURCE_ADMISSION_REJECTED
+      - name: Emit deterministic hash-addressed NEGATIVE authority-boundary report
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR="$RUNNER_TEMP/nqc-rmc011-debt-integrity"
+          report() {
+            python3 - "$1" <<'PY'
+          import hashlib
+          import json
+          import pathlib
+          import subprocess
+          import sys
+
+          p = pathlib.Path
+          universe = json.loads(p("ci/nqc-census/rmc011-capital-source-universe.json").read_text())
+          registry = json.loads(p("ci/nqc-census/rmc011-external-capital-provider-registry.json").read_text())
+          lock = json.loads(p("ci/nqc-census/final-census-authority-lock.json").read_text())
+          assert len(universe["families"]) == 13
+          assert not any(x["terminally_resolved"] for x in universe["families"])
+          assert registry["provider_count"] == 0 and registry["providers"] == []
+          assert lock["status"] == "BLOCKED" and lock["real_market_census_closed"] is False
+          assert len(lock["pinned_stages"]) == 0
+          report = {
+              "schema_version": 1,
+              "status": "RMC011_DEBT_SOURCE_ADMISSION_HELPER_HARDENED_NOT_CERTIFIED",
+              "repository": "josuechavando350-png/nexus-engine",
+              "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
+              "rmc011_capital_universe_blob_sha1": "8f42e9ab127cc567409c20383de3fea4e3618e5f",
+              "rmc011_provider_registry_blob_sha1": "a9c1427bb05828d08ade537899ee1b8e43b97ed2",
+              "rmc014_canonical_lock_blob_sha1": "b1182b27b0ff3856b17a6f829ac3c693eab74400",
+              "required_debt_families": ["COLLATERALIZED_BORROWING", "PERSISTENT_DEBT"],
+              "current_debt_families_terminal_resolved": 0,
+              "rmc011_required_capital_families": 13,
+              "rmc011_terminally_resolved_families": 0,
+              "rmc011_external_authorized_provider_count": 0,
+              "rmc014_terminal_stage_pins": 0,
+              "independent_artifact_authentication_complete": False,
+              "debt_admission_helper_may_self_certify": False,
+              "nqc_nonrecourse_native_gas_authorized": False,
+              "nqc_capture_probability_calibrated": False,
+              "nqc_realized_profit_usd_wad": "0",
+              "real_market_census_closed": False,
+          }
+          def canonical(x):
+              return (json.dumps(x, sort_keys=True, separators=(",", ":"), ensure_ascii=True) + "\n").encode()
+          report["report_sha256"] = hashlib.sha256(canonical(report)).hexdigest()
+          p(sys.argv[1]).write_bytes(canonical(report))
+          PY
+          }
+          report "$DIR/readiness.json"
+          report "$DIR/replay.json"
+          cmp "$DIR/readiness.json" "$DIR/replay.json"
+          rm "$DIR/replay.json"
+          python3 - "$DIR/readiness.json" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          assert d["rmc011_terminally_resolved_families"]==0
+          assert d["rmc011_external_authorized_provider_count"]==0
+          assert d["independent_artifact_authentication_complete"] is False
+          assert d["debt_admission_helper_may_self_certify"] is False
+          assert d["real_market_census_closed"] is False
+          PY
+          sha256sum \
+            ci/nqc-census/verify-rmc011-debt-family-promotion.py \
+            ci/nqc-census/test_verify_rmc011_debt_family_promotion.py \
+            ci/nqc-census/RMC011_DEBT_SOURCE_ADMISSION_INTEGRITY.md \
+            > "$DIR/producer-source.sha256"
+          (cd "$DIR" && sha256sum readiness.json producer-source.sha256 test-results.txt debt-current-source.txt capital-source-check.txt > archive.sha256 && sha256sum -c archive.sha256)
+          echo RMC011_INTEGRITY_ONLY_CENSUS_STILL_BLOCKED
+      - name: Preserve append-only negative diagnostics; not a source admission artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-debt-source-admission-integrity-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc-rmc011-debt-integrity/*.json
+            ${{ runner.temp }}/nqc-rmc011-debt-integrity/*.sha256
+            ${{ runner.temp }}/nqc-rmc011-debt-integrity/*.txt
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
