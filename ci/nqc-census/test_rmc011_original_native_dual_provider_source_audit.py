@@ -30,7 +30,7 @@ class SourceAuthorityTests(unittest.TestCase):
         cls.registry=Path("ci/nqc-census/rmc011-external-capital-provider-registry.json").read_bytes()
         cls.final=Path("ci/nqc-census/final-census-authority-lock.json").read_bytes()
         cls.verified=proof.audit(
-            archive_path=cls.original_zip,run=cls.run,job=cls.job,
+            archive_path=cls.original_zip,run=cls.original_run_metadata,job=cls.job,
             artifact=cls.artifact,commit=cls.commit,
             capital_source_universe=cls.universe,
             provider_registry=cls.registry,
