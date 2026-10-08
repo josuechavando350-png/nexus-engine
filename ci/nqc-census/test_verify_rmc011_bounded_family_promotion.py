@@ -40,11 +40,12 @@ def promote_all(doc: dict) -> None:
 
 
 class BoundedFamilyPromotionTests(unittest.TestCase):
-    def test_current_universe_is_valid_pending_promotion(self) -> None:
+    def test_current_universe_has_seven_pinned_bounded_rejections(self) -> None:
         result = mod.validate_document(copy.deepcopy(UNIVERSE))
-        self.assertEqual(result["promotion_state"], "PENDING")
-        self.assertEqual(result["promoted_count"], 0)
+        self.assertEqual(result["promotion_state"], "AUTHENTICATED_REFERENCES_DECLARED")
+        self.assertEqual(result["promoted_count"], 7)
         self.assertEqual(result["family_count"], 7)
+        self.assertEqual(result["shared_run_id"], 37826819250)
 
     def test_atomic_seven_family_promotion_passes(self) -> None:
         doc = copy.deepcopy(UNIVERSE)
