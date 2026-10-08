@@ -1,0 +1,67 @@
+name: NQC RMC-016 Snapshot Ledger Recovery Tool
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc016_snapshot_evidence_finder.py'
+      - 'ci/nqc-census/test_rmc016_snapshot_evidence_finder.py'
+      - 'ci/nqc-census/RMC016_ORIGINAL_LEDGER_SNAPSHOT_RECOVERY.md'
+      - '.github/workflows/nqc-rmc016-snapshot-evidence-finder.yml'
+  push:
+    branches:
+      - 'nqc/rmc016-snapshot-ledger-recovery-20261008'
+    paths:
+      - 'ci/nqc-census/rmc016_snapshot_evidence_finder.py'
+      - 'ci/nqc-census/test_rmc016_snapshot_evidence_finder.py'
+      - 'ci/nqc-census/RMC016_ORIGINAL_LEDGER_SNAPSHOT_RECOVERY.md'
+      - '.github/workflows/nqc-rmc016-snapshot-evidence-finder.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-recovery-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Preserve exact D16 source and run adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = \
+            "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
+          python3 ci/nqc-census/test_rmc016_snapshot_evidence_finder.py
+          python3 -m py_compile \
+            ci/nqc-census/rmc016_snapshot_evidence_finder.py \
+            ci/nqc-census/test_rmc016_snapshot_evidence_finder.py
+          python3 - <<'PY'
+          import importlib.util,json
+          p='ci/nqc-census/rmc016_snapshot_evidence_finder.py'
+          spec=importlib.util.spec_from_file_location('finder',p)
+          mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+          with open('ci/nqc-census/rmc016-production-evidence.json') as f:
+              source=json.load(f)['authority']
+          assert mod.TARGETS['D16_TRANSACTION_ECONOMICS']==source['transaction_economics_sha256']
+          assert mod.TARGETS['D16_EVENT_ECONOMICS']==source['event_economics_sha256']
+          assert mod.TARGETS['D16_WINNER_REPLAY']==source['inputs']['winner_replay_sha256']
+          assert mod.TARGETS['D16_LIQUIDATION_PRICE_AUTHORITY']==source['inputs']['liquidation_price_authority_sha256']
+          assert mod.TARGETS['D16_DAILY_BASELINE']==source['daily_baseline_sha256']
+          assert mod.TARGETS['D15B_FULL_BLOCK_ORACLE_TRANSITIONS']=='bbad1eb1a6fba097bd642b1abb5aa417fc86686dfe271da7c66017609bd3c519'
+          assert len(set(mod.TARGETS.values()))==len(mod.TARGETS)
+          print('RMC016_SNAPSHOT_SOURCE_RECOVERY_OFFLINE_GATES_PASS')
+          PY
+      - name: Preserve critical non-authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'This is a source-location aid, not a certification' \
+            ci/nqc-census/RMC016_ORIGINAL_LEDGER_SNAPSHOT_RECOVERY.md
+          ! grep -R -n 'eth_sendRawTransaction\|private_key\|REAL_MARKET_CENSUS_CLOSED' \
+            ci/nqc-census/rmc016_snapshot_evidence_finder.py
+          echo RMC016_SNAPSHOT_TOOL_TESTED_NO_SOURCE_RECOVERED_YET
