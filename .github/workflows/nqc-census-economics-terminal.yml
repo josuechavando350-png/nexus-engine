@@ -500,13 +500,28 @@ jobs:
           HEAD="$(git rev-parse HEAD)"
           TREE="$(git rev-parse 'HEAD^{tree}')"
           SUMMARY="$EXEC_SUMMARY"
+          # jq // treats false as absent; never default a verified no-execution
+          # report to true. Ensure zero-input physical/gas non-claims survive
+          # into the immutable D13 certificate exactly.
+          jq -e '
+            (.physical_execution_claimed | type) == "boolean" and
+            (.gas_price_evidence_collected | type) == "boolean" and
+            (.fork_simulations_executed | type) == "number" and
+            (.physical_execution_claimed == (.fork_simulations_executed > 0)) and
+            (if .input_candidate_count == 0 then
+               .fork_simulations_executed == 0 and
+               .physical_execution_claimed == false and
+               .gas_price_evidence_collected == false
+             else true end)
+          ' "$SUMMARY" >/dev/null
+
           jq -S -c -n             --arg head "$HEAD"             --arg tree "$TREE"             --arg d12_digest "$(jq -r '.d12.artifact_digest' "$INPUTS")"             --arg exec_digest "$(jq -r '.execution_evidence.artifact_digest' "$INPUTS")"             --arg coverage "$(jq -r '.coverage_commitment' "$SUMMARY")"             --arg authority "$(jq -r '.authority_commitment' "$SUMMARY")"             --argjson input "$(jq '.input_candidate_count' "$SUMMARY")"             --argjson simulatable "$(jq '.execution_simulatable_count' "$SUMMARY")"             --argjson quotes "$(jq '.economics_quote_count' "$SUMMARY")"             --argjson variants "$(jq '.execution_variant_count' "$SUMMARY")"             --argjson rejected "$(jq '.explicit_rejection_count' "$SUMMARY")"             --argjson gross "$(jq '.positive_gross_value_count' "$SUMMARY")"             --argjson success_net "$(jq '.positive_success_path_net_count' "$SUMMARY")"             --argjson material "$(jq '.capacity_material_count' "$SUMMARY")"             --argjson shadow "$(jq '.shadow_prediction_count' "$SUMMARY")"             --argjson calibrated "$(jq '.capture_calibrated_count' "$SUMMARY")" \
             --argjson gas_funded "$(jq '.gas_funding_candidate_count' "$SUMMARY")" \
             --argjson operator_gas "$(jq '.operator_owned_gas_funding_count' "$SUMMARY")" \
             --argjson zero_own "$(jq '.zero_own_capital_proven' "$SUMMARY")" \
             --arg scope "$(jq -r '.status' "$SUMMARY")" \
-            --argjson physical "$(jq '.physical_execution_claimed // true' "$SUMMARY")" \
-            --argjson gas_measured "$(jq '.gas_price_evidence_collected // true' "$SUMMARY")" '
+            --argjson physical "$(jq -c 'if (.physical_execution_claimed | type) == "boolean" then .physical_execution_claimed else error("non-boolean physical_execution_claimed") end' "$SUMMARY")" \
+            --argjson gas_measured "$(jq -c 'if (.gas_price_evidence_collected | type) == "boolean" then .gas_price_evidence_collected else error("non-boolean gas_price_evidence_collected") end' "$SUMMARY")" '
             {
               schema_version:1,
               status:"RMC_013_TERMINAL_ECONOMICS_CERTIFIED",
@@ -542,6 +557,16 @@ jobs:
               realized_profitability_proven:false,
               monthly_target_probability_proven:false
             }' > "$OUT/terminal-economics-certification.json"
+
+          # Independently compare source facts to emitted certificate,
+          # including booleans that may legitimately be false.
+          jq -e -s '
+            length == 2 and
+            .[0].physical_execution_claimed == .[1].physical_execution_performed and
+            .[0].gas_price_evidence_collected == .[1].historical_gas_price_evidence_collected and
+            .[0].input_candidate_count == .[1].input_candidate_count and
+            .[0].execution_simulatable_count == .[1].execution_simulatable_count
+          ' "$SUMMARY" "$OUT/terminal-economics-certification.json" >/dev/null
 
           (
             cd "$OUT"
