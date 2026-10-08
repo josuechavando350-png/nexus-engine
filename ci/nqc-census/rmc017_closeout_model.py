@@ -38,7 +38,7 @@ def validate(doc):
   by[s]=r
  require(tuple(sorted(by,key=REQUIRED.index))==REQUIRED,"authority set")
  ordered=[by[s] for s in REQUIRED]
- commitment="0x"+hashlib.sha256(canonical({"domain":"NQC-RMC017-FINAL-CLOSEOUT-V1","authorities":ordered})).hexdigest()
+ commitment="0x"+hashlib.sha256(canonical({"domain":"NQC-RMC017-FOUNDATION-CANDIDATE-V2","authorities":ordered})).hexdigest()
  # This is strictly an offline structural candidate. It cannot authenticate
  # remote GitHub runs, artifact ZIP bytes, or exact inner evidence contracts.
  # Only a separately implemented terminal workflow, after independent
