@@ -34,3 +34,17 @@ D16 source at commit 96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a, Git blob 5d5ed363
 When 300k is not established, status is RMC300K_NET_MONTHLY_TARGET_UNPROVEN, and report precisely missing evidence or measured capacity shortfalls. Do NOT lower target to make a dashboard green. Expanding scope to new chains and protocols is an evidence-collection strategy, not an assumption that the target will be met.
 
 Economic green requires real executable NQC strategy net revenues, not historical gains of other operators or an internal expectation. Neither the gate nor its tests issue an order, fund wallet gas, sign any transaction, edit main/Cano Penal/Vercel or change terminal state.
+
+
+## Necessary gross volume under uncalibrated capture assumptions
+
+If, solely for sensitivity analysis, a fraction of theoretically available gross oracle edge can be captured and **every other cost is zero**, then the required cross-market monthly gross edge is:
+
+| Assumed capture of gross opportunity edge | Minimum cross-market gross under zero other cost |
+|---|---|
+| 10% | USD 3,000,000 |
+| 25% | USD 1,200,000 |
+| 50% | USD 600,000 |
+| 100% | USD 300,000 |
+
+No percent here is a measured Nexus win rate, probability or forecast. Any real protocol, flash, swap, priority, failed gas, builder, infrastructure or capital fee INCREASES the requirement. The table is an underwriting sensitivity under a simplifying mathematical relation, not a prediction or a claim of actual observed market capacity.
