@@ -1,0 +1,168 @@
+name: NQC RMC-016 Independent Blockscout Receipt Reuse
+
+on:
+  push:
+    branches:
+      - 'nqc/rmc016-blockscout-receipt-reuse-20261008'
+    paths:
+      - 'ci/nqc-census/rmc016_reuse_drpc_blockscout.py'
+      - 'ci/nqc-census/test_rmc016_reuse_drpc_blockscout.py'
+      - 'ci/nqc-census/RMC016_BLOCKSCOUT_RECEIPT_REUSE_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-blockscout-receipt-reuse.yml'
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc016_reuse_drpc_blockscout.py'
+      - 'ci/nqc-census/test_rmc016_reuse_drpc_blockscout.py'
+      - 'ci/nqc-census/RMC016_BLOCKSCOUT_RECEIPT_REUSE_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-blockscout-receipt-reuse.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc016-blockscout-receipts-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  exact-offline-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Validate immutable source lineage and 10 adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 569d4aaeecb3d066389c054efed695be02e3ef40 HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = \
+            "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
+          python3 ci/nqc-census/test_rmc016_reuse_drpc_blockscout.py
+          python3 -m py_compile ci/nqc-census/rmc016_reuse_drpc_blockscout.py \
+            ci/nqc-census/test_rmc016_reuse_drpc_blockscout.py
+          echo RMC016_DRPC_REUSE_OFFLINE_REGRESSIONS_PASS
+
+  sampled-and-full-physical-parity:
+    if: ${{ github.event_name == 'push' }}
+    needs: exact-offline-preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      GH_TOKEN: ${{ github.token }}
+      OUTPUT: ${{ runner.temp }}/rmc016-receipt-reuse
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Reauthenticate exact successful Blockscout event artifact and failed Blast/complete dRPC artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$OUTPUT"
+          check() {
+            local id="$1" workflow="$2" expected_head="$3" tree="$4" artifact="$5"
+            local name="$6" digest="$7" conclusion="$8" outfile="$9"
+            local run_data artifact_data
+            run_data="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$id")"
+            artifact_data="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
+            test "$(jq -r '.status' <<<"$run_data")" = completed
+            test "$(jq -r '.conclusion' <<<"$run_data")" = "$conclusion"
+            test "$(jq -r '.head_sha' <<<"$run_data")" = "$expected_head"
+            test "$(jq -r '.name' <<<"$run_data")" = "$workflow"
+            test "$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$expected_head" --jq '.tree.sha')" = "$tree"
+            test "$(jq -r '.expired' <<<"$artifact_data")" = false
+            test "$(jq -r '.workflow_run.id' <<<"$artifact_data")" = "$id"
+            test "$(jq -r '.name' <<<"$artifact_data")" = "$name"
+            test "$(jq -r '.digest' <<<"$artifact_data")" = "sha256:$digest"
+            curl --fail --location --silent --show-error --retry 2 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact/zip" \
+              -o "$outfile"
+            printf '%s  %s\n' "$digest" "$outfile" | sha256sum --check --strict
+          }
+          check 37718661409 \
+            'NQC RMC-016 Full Liquidation Ledger Discovery' \
+            abe54f1f23bd7bff8c37871200f7da7c59c45ac3 \
+            c74f8d9d2c317a011284398643b2d4aa6de06e83 \
+            11524139188 \
+            'rmc016-full-liquidation-events-abe54f1f23bd7bff8c37871200f7da7c59c45ac3' \
+            6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204 \
+            success "$RUNNER_TEMP/source.zip"
+          check 37719091371 \
+            'NQC RMC-016 Dual Operator Winner Receipt Parity' \
+            569d4aaeecb3d066389c054efed695be02e3ef40 \
+            ba648214fb5cb1cdca1db1f42f28059054d78e63 \
+            11524199698 \
+            'rmc016-dual-winner-receipts-569d4aaeecb3d066389c054efed695be02e3ef40' \
+            182b5e81b00ca04e53c9193c1496a725dc152ade9a17d3ab2dfaeb5045ac86b6 \
+            failure "$RUNNER_TEMP/drpc-receipts.zip"
+          # Never treat failed BlastAPI as successful. The immutable inner report
+          # must independently establish all 127 dRPC witnesses and source hash.
+          python3 - "$RUNNER_TEMP/source.zip" "$RUNNER_TEMP/drpc-receipts.zip" <<'PY'
+          import sys
+          sys.path.insert(0,'ci/nqc-census')
+          from pathlib import Path
+          from rmc016_reuse_drpc_blockscout import admitted_drpc
+          _,ids,rows=admitted_drpc(Path(sys.argv[1]),Path(sys.argv[2]))
+          assert len(ids)==len(rows)==127
+          print("IMMUTABLE_FULL_DRPC_127_RECEIPTS_ADMITTED")
+          PY
+      - name: Stratified 12-receipt Blockscout independent sample
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/rmc016_reuse_drpc_blockscout.py \
+            --source "$RUNNER_TEMP/source.zip" \
+            --drpc-receipts "$RUNNER_TEMP/drpc-receipts.zip" \
+            --limit 12 --min-interval 4 \
+            --out "$OUTPUT/sample-12"
+          jq -e '
+            .status == "RMC016_BLOCKSCOUT_DRPC_RECEIPT_SAMPLE_PASS" and
+            .source_winner_count == 127 and
+            .drpc_verified_receipt_count == 127 and
+            .sample_target_count == 12 and
+            .blockscout_verified_receipt_count == 12 and
+            .complete_independent_receipt_parity == false and
+            .nexus_pnl_proven == false and
+            .nexus_monthly_net_pnl_usd == null
+          ' "$OUTPUT/sample-12/parity-report.json" >/dev/null
+          (cd "$OUTPUT/sample-12" && sha256sum -c archive.sha256)
+          echo RMC016_BLOCKSCOUT_12_RECEIPT_SAMPLE_PASS_NO_NET
+      - name: Reconcile all 127 Blockscout receipts with original dRPC witnesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/rmc016_reuse_drpc_blockscout.py \
+            --source "$RUNNER_TEMP/source.zip" \
+            --drpc-receipts "$RUNNER_TEMP/drpc-receipts.zip" \
+            --limit 127 --min-interval 5 \
+            --out "$OUTPUT/full-127"
+          jq -e '
+            .status == "RMC016_TWO_OPERATOR_127_RECEIPT_PARITY_PASS_NO_NET_CLAIM" and
+            .drpc_verified_receipt_count == 127 and
+            .blockscout_verified_receipt_count == 127 and
+            .complete_independent_receipt_parity == true and
+            (.all_127_receipt_gas_wei_proven_by_two_operators | test("^[0-9]+$")) and
+            .independent_full_historical_event_discovery_proven == false and
+            .historical_127_gas_usd_valued == false and
+            .nexus_external_capital_and_gas_proven == false and
+            .nexus_pnl_proven == false and
+            .nexus_monthly_net_pnl_usd == null
+          ' "$OUTPUT/full-127/parity-report.json" >/dev/null
+          (cd "$OUTPUT/full-127" && sha256sum -c archive.sha256)
+          echo RMC016_127_TWO_OPERATOR_GAS_WEI_PASS_NO_NEXUS_PNL
+      - name: Preserve sampled/full outcome including fail-closed artifacts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-blockscout-d-rpc-receipt-parity-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc016-receipt-reuse/
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
