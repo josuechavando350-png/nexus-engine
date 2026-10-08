@@ -250,7 +250,7 @@ def analyze_records(records, *, base_unit: int, expected: dict, watchlist: bool 
 
 def audit(d08_path: Path, d09_path: Path, d08_sha: str, d09_sha: str,
           *, expected_d08_commit: str, expected_d09_commit: str,
-          emit_watchlist: bool = False) -> tuple[dict, list]:
+          emit_watchlist: bool = False, evaluation_start_block: int | None = None) -> tuple[dict, list]:
     for sha, name in [(expected_d08_commit, "D08 commit"), (expected_d09_commit, "D09 commit")]:
         require(isinstance(sha, str) and GIT40.fullmatch(sha) is not None,
                 f"{name}: noncanonical commit")
@@ -262,6 +262,12 @@ def audit(d08_path: Path, d09_path: Path, d08_sha: str, d09_sha: str,
         s08 = json.loads(verified_file(d08, "closeout/state-summary.json", files08))
         s09 = json.loads(verified_file(d09, "closeout/account-summary.json", files09))
         anchor = parse_anchor(s08, s09)
+        # Never backtest an end-of-window watchlist as if selected earlier.
+        # Such hindsight selection biases the apparent capture/opportunity rate.
+        if evaluation_start_block is not None:
+            require(type(evaluation_start_block) is int and
+                    evaluation_start_block > anchor["block_number"],
+                    "LOOKAHEAD: watchlist may only evaluate at blocks AFTER its anchor")
         # Exact oracle base unit is authenticated in D08; do not assume USD or scale by float.
         oracle = verified_file(d08, "closeout/oracle-manifest.jsonl", files08)
         units = set()
@@ -293,6 +299,9 @@ def audit(d08_path: Path, d09_path: Path, d08_sha: str, d09_sha: str,
             "realized_profitability_proven": False,
             "execution_or_capital_feasibility_proven": False,
             "lookahead_used": False,
+            "lookahead_basis": "CROSS_SECTIONAL_SNAPSHOT_CONSTRUCTION_ONLY",
+            "retrospective_backtest_admitted": False,
+            "earliest_ex_ante_evaluation_block": anchor["block_number"] + 1,
             "extrapolation_used": False,
             "anchor": anchor,
             "oracle_base_currency_unit": str(base_unit),
@@ -309,6 +318,7 @@ def audit(d08_path: Path, d09_path: Path, d08_sha: str, d09_sha: str,
             },
             "limits": [
                 "ONE_HISTORICAL_BLOCK_ONLY",
+                "END_ANCHOR_SELECTION_CANNOT_BACKTEST_PRIOR_BLOCKS",
                 "WATCHLIST_ACCOUNTS_ARE_NOT_YET_LIQUIDATABLE",
                 "NO_FUTURE_PRICE_MOVEMENT_PREDICTED",
                 "NO_CAPITAL_OR_GAS_FUNDING_VERIFIED",
@@ -331,11 +341,13 @@ def main() -> None:
     p.add_argument("--d09-commit", required=True)
     p.add_argument("--summary-out", type=Path, required=True)
     p.add_argument("--watchlist-out", type=Path)
+    p.add_argument("--evaluation-start-block", type=int)
     args = p.parse_args()
     result, rows = audit(args.d08, args.d09, args.d08_sha256, args.d09_sha256,
                          expected_d08_commit=args.d08_commit,
                          expected_d09_commit=args.d09_commit,
-                         emit_watchlist=args.watchlist_out is not None)
+                         emit_watchlist=args.watchlist_out is not None,
+                         evaluation_start_block=args.evaluation_start_block)
     args.summary_out.write_bytes(canonical_bytes(result))
     if args.watchlist_out:
         args.watchlist_out.write_bytes(b"".join(canonical_bytes(v) for v in rows))
