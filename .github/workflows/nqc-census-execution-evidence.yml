@@ -92,7 +92,7 @@ jobs:
             .gas_policy.base_fee_policy == "NEXT_BLOCK_MAX_EIP1559_CEIL_9_OVER_8" and
             .gas_policy.provider_reconciliation == "MAX_ADMISSION_PRIORITY_FEE_REQUIRE_EXACT_ANCHOR_AND_NATIVE_PRICE" and
             .gas_policy.native_price_source == "RMC008_AAVE_ORACLE_MANIFEST" and
-            (.providers | map(.provider_id)) == ["blastapi-public","mevblocker-rpc"] and
+            (.providers | map(.provider_id)) == ["publicnode","drpc"] and
             (if .status == "BLOCKED_AWAITING_CERTIFIED_RMC012"
              then .d12 == null and (.blocking_reasons | length > 0)
              else
@@ -290,18 +290,18 @@ jobs:
               --admission-priority-percentile "$ADMISSION_PERCENTILE" \
               --out "$WORK/gas/providers/$provider_id.json"
           }
-          BLAST_GAS="$(jq -r '.providers[] | select(.provider_id=="blastapi-public") | .rpc_url' "$INPUTS")"
-          MEV_GAS="$(jq -r '.providers[] | select(.provider_id=="mevblocker-rpc") | .rpc_url' "$INPUTS")"
-          collect_gas blastapi-public "$BLAST_GAS" &
-          PID_BLAST_GAS=$!
-          collect_gas mevblocker-rpc "$MEV_GAS" &
-          PID_MEV_GAS=$!
-          wait "$PID_BLAST_GAS"
-          wait "$PID_MEV_GAS"
+          PUBLICNODE_GAS="$(jq -r '.providers[] | select(.provider_id=="publicnode") | .rpc_url' "$INPUTS")"
+          DRPC_GAS="$(jq -r '.providers[] | select(.provider_id=="drpc") | .rpc_url' "$INPUTS")"
+          collect_gas publicnode "$PUBLICNODE_GAS" &
+          PID_PUBLICNODE_GAS=$!
+          collect_gas drpc "$DRPC_GAS" &
+          PID_DRPC_GAS=$!
+          wait "$PID_PUBLICNODE_GAS"
+          wait "$PID_DRPC_GAS"
 
           python3 ci/nqc-census/reconcile_rmc013_gas_evidence.py \
-            --provider-evidence "$WORK/gas/providers/blastapi-public.json" \
-            --provider-evidence "$WORK/gas/providers/mevblocker-rpc.json" \
+            --provider-evidence "$WORK/gas/providers/publicnode.json" \
+            --provider-evidence "$WORK/gas/providers/drpc.json" \
             --out "$WORK/gas/gas-price-evidence.json"
 
           jq -e '
@@ -387,10 +387,10 @@ jobs:
         run: |
           set -euo pipefail
           export PATH="$WORK/toolchain/bin:$PATH"
-          BLAST="$(jq -r '.providers[] | select(.provider_id=="blastapi-public") | .rpc_url' "$INPUTS")"
-          MEV="$(jq -r '.providers[] | select(.provider_id=="mevblocker-rpc") | .rpc_url' "$INPUTS")"
-          test -n "$BLAST"
-          test -n "$MEV"
+          PUBLICNODE="$(jq -r '.providers[] | select(.provider_id=="publicnode") | .rpc_url' "$INPUTS")"
+          DRPC="$(jq -r '.providers[] | select(.provider_id=="drpc") | .rpc_url' "$INPUTS")"
+          test -n "$PUBLICNODE"
+          test -n "$DRPC"
 
           run_fork_batch() {
             local rpc_url="$1"
@@ -406,17 +406,17 @@ jobs:
               --anvil-log "$WORK/evidence/$provider_id-anvil.log" \
               --port "$port"
           }
-          run_fork_batch "$BLAST" blastapi-public 18545 &
-          PID_BLAST_EXEC=$!
-          run_fork_batch "$MEV" mevblocker-rpc 18546 &
-          PID_MEV_EXEC=$!
-          wait "$PID_BLAST_EXEC"
-          wait "$PID_MEV_EXEC"
+          run_fork_batch "$PUBLICNODE" publicnode 18545 &
+          PID_PUBLICNODE_EXEC=$!
+          run_fork_batch "$DRPC" drpc 18546 &
+          PID_DRPC_EXEC=$!
+          wait "$PID_PUBLICNODE_EXEC"
+          wait "$PID_DRPC_EXEC"
 
           jq -e '.status=="RMC_013_ANVIL_BATCH_PASS" and .route_conserved==true and .live_transaction_sent==false and .own_capital_used==false' \
-            "$WORK/evidence/blastapi-public-summary.json" >/dev/null
+            "$WORK/evidence/publicnode-summary.json" >/dev/null
           jq -e '.status=="RMC_013_ANVIL_BATCH_PASS" and .route_conserved==true and .live_transaction_sent==false and .own_capital_used==false' \
-            "$WORK/evidence/mevblocker-rpc-summary.json" >/dev/null
+            "$WORK/evidence/drpc-summary.json" >/dev/null
 
       - name: Reconcile provider execution semantics
         shell: bash
@@ -424,10 +424,10 @@ jobs:
           set -euo pipefail
           python3 ci/nqc-census/reconcile_rmc013_provider_evidence.py \
             --routes "$WORK/routes/v2-route-plans.jsonl" \
-            --left "$WORK/evidence/blastapi-public.jsonl" \
-            --right "$WORK/evidence/mevblocker-rpc.jsonl" \
-            --left-summary "$WORK/evidence/blastapi-public-summary.json" \
-            --right-summary "$WORK/evidence/mevblocker-rpc-summary.json" \
+            --left "$WORK/evidence/publicnode.jsonl" \
+            --right "$WORK/evidence/drpc.jsonl" \
+            --left-summary "$WORK/evidence/publicnode-summary.json" \
+            --right-summary "$WORK/evidence/drpc-summary.json" \
             --output "$WORK/evidence/reconciled-execution.jsonl" \
             --summary "$WORK/evidence/provider-reconciliation-summary.json"
 
@@ -494,9 +494,9 @@ jobs:
           rm -rf "$OUT"
           mkdir -p "$OUT"
           cp "$WORK/routes/"{v2-route-plans.jsonl,v2-route-rejections.jsonl,v2-route-summary.json} "$OUT/"
-          cp "$WORK/evidence/"{blastapi-public.jsonl,blastapi-public-summary.json,mevblocker-rpc.jsonl,mevblocker-rpc-summary.json,reconciled-execution.jsonl,provider-reconciliation-summary.json} "$OUT/"
+          cp "$WORK/evidence/"{publicnode.jsonl,publicnode-summary.json,drpc.jsonl,drpc-summary.json,reconciled-execution.jsonl,provider-reconciliation-summary.json} "$OUT/"
           cp "$WORK/gas/gas-price-evidence.json" "$OUT/"
-          cp "$WORK/gas/providers/"{blastapi-public.json,mevblocker-rpc.json} "$OUT/"
+          cp "$WORK/gas/providers/"{publicnode.json,drpc.json} "$OUT/"
           cp "$WORK/economics/"{execution-evidence-summary.json,execution-economics.jsonl,execution-rejection-ledger.jsonl,capacity-curves.jsonl,shadow-predictions.jsonl,gas-funding-bindings.jsonl,gas-conflict-claims.jsonl,evidence-manifest.json} "$OUT/"
           cp "$WORK/pft/"{aave-creation-bytecode.hex,aave-template-A.hex,executor-build.sha256,PFT-COMPAT-007-aave-stack-lifetime.patch} "$OUT/"
           cp "$WORK/d08-oracle-manifest.jsonl" "$OUT/"
