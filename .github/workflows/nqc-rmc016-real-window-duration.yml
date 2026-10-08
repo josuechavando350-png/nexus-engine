@@ -1,0 +1,113 @@
+name: NQC RMC-016 Real Time-Anchored Market Opportunity Window (NOT PNL)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc016-real-window-duration.yml'
+      - 'ci/nqc-census/rmc016_true_historic_window_duration.py'
+      - 'ci/nqc-census/test_rmc016_true_historic_window_duration.py'
+      - 'ci/nqc-census/RMC016_REAL_HISTORICAL_TIME_NORMALIZATION.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nqc-rmc016-real-time-observed-market-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  original-D16-actual-window-time-not-nexus-monthly-forecast:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Source-lock original D16 (market) and D11 (native gas auth) without revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor a2e7efd233682efc051c1ace4284c9a8156d9c77 HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          jq -e '.schema_version==1 and .status=="RMC016_CONSERVATIVE_REALIZABLE_CAPACITY_PASS" and
+                 .authority.definite_episode_count==139 and .authority.definite_transaction_count==127 and
+                 .authority.observed_market_gross_oracle_edge_usd_wad=="138045174690310000000000" and
+                 .authority.observed_winner_gas_cost_usd_wad=="1144134260592713842029" and
+                 .authority.nqc_conservative_realizable_monthly_capacity_usd_wad=="0" and
+                 (.authority.non_claims|index("NO_NQC_REALIZED_PNL")!=null)' \
+             ci/nqc-census/rmc016-production-evidence.json >/dev/null
+          jq -e '.provider_count==0 and .providers==[] and
+                 .status=="DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE"' \
+             ci/nqc-census/rmc011-external-capital-provider-registry.json >/dev/null
+          echo RMC016_D16_GIT_SOURCE_AND_D11_ZERO_APPROVED_GAS_EXACTLY_UNCHANGED
+      - name: Run source-only adversarial tests and arithmetic consistency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc016_market_revenue_hurdles.py
+          python3 -m py_compile ci/nqc-census/rmc016_market_revenue_hurdles.py
+          python3 ci/nqc-census/test_rmc016_true_historic_window_duration.py
+          python3 -m py_compile ci/nqc-census/rmc016_true_historic_window_duration.py
+          mkdir -p "$RUNNER_TEMP/nqc-rmc016-hurdles"
+          sha256sum ci/nqc-census/rmc016_market_revenue_hurdles.py \
+                    ci/nqc-census/test_rmc016_market_revenue_hurdles.py \
+                    ci/nqc-census/RMC016_MARKET_REVENUE_HURDLE_EVIDENCE.md \
+                    ci/nqc-census/rmc016_true_historic_window_duration.py \
+                    ci/nqc-census/test_rmc016_true_historic_window_duration.py \
+                    ci/nqc-census/RMC016_REAL_HISTORICAL_TIME_NORMALIZATION.md \
+             > "$RUNNER_TEMP/nqc-rmc016-hurdles/producer-source.sha256"
+          echo RMC016_OBSERVED_THIRD_PARTY_GROSS_NOT_NQC_REVENUE_TESTS_PASS
+      - name: Independently validate real D16 historical Ethereum start/end times, no income claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/nqc-rmc016-hurdles/actual-ethereum-historical-market-time.json"
+          python3 ci/nqc-census/rmc016_true_historic_window_duration.py \
+            --repo-root "$GITHUB_WORKSPACE" --out "$out"
+          jq -e '
+            .schema_version==1 and
+            .status=="RMC016_TRUE_HISTORIC_WINDOW_DURATION_DUAL_RPC_NOT_NQC_PNL" and
+            .chain_id==1 and
+            .original_D16_source_git_blob_sha1=="5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa" and
+            .original_market_window_start_block==25880316 and
+            .original_market_window_end_block==26095351 and
+            .original_market_window_block_count==215036 and
+            .independent_historical_block_operator_ids==["drpc","blast"] and
+            (.independent_historical_source_header_witnesses|length)==2 and
+            .actual_elapsed_seconds_between_start_and_end_block_timestamps>864000 and
+            .actual_elapsed_seconds_between_start_and_end_block_timestamps<5184000 and
+            .observed_market_third_party_liquidation_events==139 and
+            .observed_third_party_unique_winning_transactions==127 and
+            .observed_market_oracle_gross_usd_wad=="138045174690310000000000" and
+            .observed_market_partial_after_competitor_paid_gas_usd_wad=="136901040429717286157971" and
+            (.original_same_window_nominal_USD_target_share_thresholds|length)==2 and
+            .one_source_window_not_an_automatically_repeatable_month==true and
+            .post_hoc_historical_arithmetic_is_no_future_market_forecast==true and
+            .all_monetization_execution_capital_builder_costs_complete==false and
+            .nqc_market_share_or_capture_probability_calibrated==false and
+            .nqc_nonrecourse_native_gas_credit_line_available==false and
+            .nqc_realized_net_profit_usd_wad=="0" and
+            .nqc_monthly_USD_15000_or_55000_reliability_certified==false and
+            .rmc011_terminal_closed==false and
+            .rmc015_terminal_closed==false and
+            .rmc016_terminal_authority_closed_by_this_report==false and
+            .real_market_census_closed==false
+          ' "$out" >/dev/null
+          (
+            cd "$RUNNER_TEMP/nqc-rmc016-hurdles"
+            sha256sum actual-ethereum-historical-market-time.json producer-source.sha256 > evidence-manifest.sha256
+            sha256sum --check --strict evidence-manifest.sha256
+          )
+          echo RMC016_DUAL_RPC_TRUE_ELAPSED_MARKET_TIME_NOT_FORECAST_OR_NEXUS_INCOME
+
+      - name: Preserve only hash-pinned accounting hurdle (no projected trades)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-real-historical-market-time-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc-rmc016-hurdles/*.json
+            ${{ runner.temp }}/nqc-rmc016-hurdles/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
