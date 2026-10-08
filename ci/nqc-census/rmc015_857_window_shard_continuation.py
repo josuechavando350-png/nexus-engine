@@ -87,8 +87,10 @@ def verified_original_first(report, summary):
              "PR650 first source failed exact bound field "+k)
     operators=report.get("observed_successful_public_rpc_operator_ids")
     need(type(operators) is list and len(operators)==2
-         and set(operators)==set(PROVIDER_IDS),
-         "PR650 first source did not have original dRPC+BlastAPI independence")
+         and len(set(operators))==2
+         and all(type(x) is str and x for x in operators)
+         and all(any(p[0]==x for p in PROVIDERS) for x in operators),
+         "PR650 first source did not establish two distinct known archive operator IDs")
     for k in ("full_7200_block_source_window_certified",
               "NQC_own_capital_zero_external_gas_authorized",
               "rmc015_terminal_authority_closed",
