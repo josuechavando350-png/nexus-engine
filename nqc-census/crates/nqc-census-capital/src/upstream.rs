@@ -196,11 +196,29 @@ fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
     Ok(rows)
 }
 
+/// Reconcile repeated original D08 token rows conservatively.
+///
+/// The real RMC-008 manifest can contain a token more than once. Treating
+/// every repetition as fatal makes an independently certified 514k-row
+/// historical source impossible to consume. Silently taking first/last is
+/// worse: contradictory observations could create a false executable token.
+///
+/// Identical canonical rows are idempotent. Distinct canonical observations
+/// for the same token append an explicit conflict blocker AND preserve the
+/// union of every independently observed execution blocker. An optimistic
+/// row can therefore never erase a conservative D08 rejection.
 pub(crate) fn token_execution_blockers(
     bytes: &[u8],
 ) -> Result<BTreeMap<Address, Vec<String>>, CapitalError> {
+    let raw = std::str::from_utf8(bytes)
+        .map_err(|_| CapitalError::InvalidCanonical("D08 token JSONL is not UTF-8"))?;
     let mut tokens = BTreeMap::new();
-    for row in parse_jsonl(bytes)? {
+    let mut original_row_sha256: BTreeMap<Address, [u8; 32]> = BTreeMap::new();
+    for line in raw.lines().filter(|line| !line.trim().is_empty()) {
+        // Stream the certified token manifest row-by-row; do not materialize
+        // hundreds of thousands of D08 Json objects just to find 44 repeats.
+        let row = Json::parse(line.as_bytes())
+            .map_err(|_| CapitalError::InvalidCanonical("D08 token JSONL parse failed"))?;
         let token = Address::parse_hex(text(&row, "token")?)
             .map_err(|_| CapitalError::InvalidCanonical("invalid D08 token address"))?;
         let execution = field(&row, "execution_compatibility")?;
@@ -236,10 +254,22 @@ pub(crate) fn token_execution_blockers(
                 ))
             }
         }
-        if tokens.insert(token, blockers).is_some() {
-            return Err(CapitalError::InvalidCanonical(
-                "duplicate D08 token admission",
-            ));
+        let original_sha: [u8; 32] = Sha256::digest(
+            row.canonical().map_err(|_| {
+                CapitalError::InvalidCanonical("D08 token canonical JSON failed")
+            })?,
+        )
+        .into();
+        if let Some(previous) = tokens.get_mut(&token) {
+            if original_row_sha256.get(&token).copied() != Some(original_sha) {
+                previous.extend(blockers);
+                previous.push("D08_INCONSISTENT_DUPLICATE_TOKEN_ADMISSION".to_owned());
+                previous.sort();
+                previous.dedup();
+            }
+        } else {
+            tokens.insert(token, blockers);
+            original_row_sha256.insert(token, original_sha);
         }
     }
     Ok(tokens)
