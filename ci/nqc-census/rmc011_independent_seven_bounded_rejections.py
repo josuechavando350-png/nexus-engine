@@ -22,7 +22,7 @@ RUN_ID=37826819250
 ARTIFACT_ID=11571178483
 ARTIFACT_NAME=f"rmc011-bounded-family-rejections-{HEAD}-{RUN_ID}-1"
 ARCHIVE_SHA="83a22012952b41dea2061134007a65fb6da76b63c0cf7836ea0804828a2a2d5d"
-SOURCE_UNIVERSE_BLOB="6754a74c5c1e348c0c731618332ba8feba96834e"
+SOURCE_UNIVERSE_BLOB="c1b9f136a13f220af9dceaae50e5caa3105121eb"
 PROVIDER_BLOB="a9c1427bb05828d08ade537899ee1b8e43b97ed2"
 PLANS_BLOB="53aacf43fac87bbf4a5438ceeab7530d9287e88f"
 EXTERNAL={"EXTERNAL_GAS_CREDIT","EXTERNAL_GAS_SPONSOR","TRANSIENT_EXTERNAL_CREDIT"}
@@ -30,8 +30,13 @@ PLAN={"BOND_OR_STAKE","INTRA_BLOCK_TEMPORARY_LOCK","INVENTORY_REQUIREMENT","SOLV
 BOUNDED=EXTERNAL|PLAN
 PENDING={
  "AAVE_V3_FLASH_LOAN","UNISWAP_V2_FLASH_SWAP",
- "BALANCER_V2_FLASH_LOAN","UNISWAP_V3_FLASH",
- "COLLATERALIZED_BORROWING","PERSISTENT_DEBT"
+ "BALANCER_V2_FLASH_LOAN","UNISWAP_V3_FLASH"
+}
+# These two historical debt rows have a *separate* independent validator;
+# this seven-family gate confirms their exact reference identity only.
+DEBT_PINS={
+ "COLLATERALIZED_BORROWING":"78e130c871ecf881a90cbe37996046864cb7afc27d79a31dc36c2804a4ba052c",
+ "PERSISTENT_DEBT":"b8b22443a5a3491a1ed64cb8c8c11958503784e42c6537877ac92b70e988b478"
 }
 HEX64=re.compile(r"[0-9a-f]{64}\Z")
 SHA1=re.compile(r"[0-9a-f]{40}\Z")
@@ -156,11 +161,30 @@ def audit(*,original_zip,source_bytes,provider_bytes,plan_bytes,run,artifact):
          len({r["id"] for r in rows})==13,
          "original RMC011 source family population invalid")
     by_id={r["id"]:r for r in rows}
-    need(set(by_id)==BOUNDED|PENDING,"13-family universe not conserved")
-    need(all(r["terminally_resolved"] is False and
-             r["resolution_evidence"] is None for f,r in by_id.items()
-             if f in PENDING),
-         "pending native flash/debt family promoted without source")
+    need(set(by_id)==BOUNDED|PENDING|set(DEBT_PINS),"13-family universe not conserved")
+    need(all(by_id[f]["terminally_resolved"] is False and
+             by_id[f]["resolution_evidence"] is None for f in PENDING),
+         "pending native flash family promoted without source")
+    for debt,sha in DEBT_PINS.items():
+        item=by_id[debt]
+        ref=item.get("resolution_evidence")
+        need(item.get("terminally_resolved") is True and
+             item.get("status")=="EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE" and
+             item.get("real_source_path") is None and type(ref) is dict and
+             ref.get("kind")=="EXHAUSTIVE_REJECTION" and
+             ref.get("repository")==REPO and
+             ref.get("workflow_name")==
+               "NQC RMC-011 Original D08 Debt Family Rejection Evidence (NO D11 CLOSE)" and
+             ref.get("run_id")==37832286518 and
+             ref.get("artifact_id")==11573678487 and
+             ref.get("head_sha")=="5b79e7be1c185cbb4924d592991b9c990fc0465a" and
+             ref.get("artifact_name")==
+               "rmc011-original-d08-debt-rejections-5b79e7be1c185cbb4924d592991b9c990fc0465a-37832286518-1" and
+             ref.get("artifact_digest")==
+               "sha256:151847cdf85b1b49298d59b41d1bf939f6854d4556060a03ab7dd5a2e1359916" and
+             ref.get("file")==f"debt-family-evidence/families/{debt}/evidence.json" and
+             ref.get("sha256")==sha,
+             debt+": independently sourced debt row metadata changed")
     archive=verified_zip(original_zip)
     index=decode(archive["evidence-index.json"])
     rejection=decode(archive["rejection-report.json"])
@@ -247,7 +271,7 @@ def audit(*,original_zip,source_bytes,provider_bytes,plan_bytes,run,artifact):
       "original_bounded_evidence_members_sha256":dict(sorted(source_rows.items())),
       "rejected_families_within_nqc_configured_scope":7,
       "remaining_native_flash_or_debt_families":sorted(PENDING),
-      "remaining_unresolved_families":6,
+      "remaining_unresolved_families":4,
       "family_universe_discovery_certified":False,
       "capital_truth_D11_terminal_closed":False,
       "global_external_funding_nonexistence_proven":False,
@@ -283,7 +307,7 @@ def main():
     args.out.parent.mkdir(parents=True,exist_ok=True)
     args.out.write_bytes(canonical(result))
     print(result["status"],
-          "PINNED_BOUNDED=7 REMAINING_UNRESOLVED=6",
+          "PINNED_BOUNDED=7 REMAINING_UNRESOLVED=4",
           "GAS_SPONSORS_AUTHORIZED=0 CENSUS_CLOSED=false")
 
 
