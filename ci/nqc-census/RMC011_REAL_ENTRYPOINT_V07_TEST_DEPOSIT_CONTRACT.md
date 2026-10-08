@@ -15,6 +15,11 @@ The new contract contains a test-only v0.7 IAccount with test-key signatures and
 
 The successful-case onchain UserOperation calls the genuine flash and liquidation route, returns the WETH surplus to the userOp.sender contract operator, and genuine EntryPoint invokes the test paymaster's actual postOp ABI. PostOp collects WETH from that account, calculates actual entrypoint-accounted gas, and clears token allowance. These are real EVM transitions in a fork but test-only account and sponsor semantics. Verification also checks genuine native ETH charged from the paymaster EntryPoint deposit and paid to the beneficiary.
 
+## Actual v0.7 postOp economic counterexample — sponsor shortfall at 8% TEST markup
+
+The initial historical handleOps fork confirmed that the original WETH liquidation and real postOp completed correctly, **but** the test paymaster's 8% markup over the actualGasCost provided to postOp failed to recover its **full native ETH EntryPoint deposit decrement**. The EntryPoint also charges gas attributable to postOp and other operation overhead *after* the cost input passed to postOp. Do not assume that 8% of postOp's observed actualGasCost equals 8% of all native gas charged. Keep the fee at the original 8% TEST assumption; measure and report the **difference as sponsor under-recovery** at ETH/WETH par. A separate test must still verify a reverted UserOperation burns the test sponsor's ETH with zero WETH reimbursement. This is a counterfactual technical finding, **not** an actual Alchemy/Pimlico price quote or a production provider financial loss.
+
+
 Negative cases: unfunded paymaster cannot execute; incorrect signer fails; reverted application operation STILL burns real EntryPoint deposit ETH in the fork while receiving no WETH repayment; no role/access shortcuts. This last negative case exposes why a nonrecourse sponsor agreement covering failed gas is indispensable.
 
 ## Strict nonclaims
