@@ -15,6 +15,8 @@ on:
       - "ci/nqc-census/collect_rmc013_gas_evidence.py"
       - "ci/nqc-census/reconcile_rmc013_gas_evidence.py"
       - "ci/nqc-census/test_rmc013_gas_evidence.py"
+      - "ci/nqc-census/test_materialize_rmc013_no_eligible.py"
+      - "ci/nqc-census/materialize_rmc013_no_eligible.py"
       - "ci/nqc-census/materialize_rmc013_execution_economics.py"
       - "ci/nqc-census/test_materialize_rmc013_execution_economics.py"
       - "ci/nqc-census/materialize_effective_source.py"
@@ -37,6 +39,8 @@ on:
       - "ci/nqc-census/collect_rmc013_gas_evidence.py"
       - "ci/nqc-census/reconcile_rmc013_gas_evidence.py"
       - "ci/nqc-census/test_rmc013_gas_evidence.py"
+      - "ci/nqc-census/test_materialize_rmc013_no_eligible.py"
+      - "ci/nqc-census/materialize_rmc013_no_eligible.py"
       - "ci/nqc-census/materialize_rmc013_execution_economics.py"
       - "ci/nqc-census/test_materialize_rmc013_execution_economics.py"
       - ".github/workflows/nqc-census-execution-evidence.yml"
@@ -147,6 +151,13 @@ jobs:
           grep -F 'local_url = f"http://127.0.0.1:{port}"' ci/nqc-census/run_rmc013_anvil_candidate.py
           grep -F '"live_transaction_sent": False' ci/nqc-census/run_rmc013_anvil_candidate.py
 
+      - name: Adversarial no-capital-feasible coverage tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_materialize_rmc013_no_eligible.py
+          python3 -m py_compile ci/nqc-census/materialize_rmc013_no_eligible.py
+
   producer:
     if: ${{ github.event_name == 'push' && needs.preflight.outputs.status == 'PINNED' }}
     needs: preflight
@@ -248,7 +259,34 @@ jobs:
           cp -- "$D08_ORACLE" "$WORK/d08-oracle-manifest.jsonl"
           cp -- "$WORK/d11/d11/capital-sources.jsonl" "$WORK/capital-sources.jsonl"
 
+      - name: Derive exact D12 capital-feasible scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          D12_CERT="$WORK/d12/terminal-actionability-certification.json"
+          D12_SUMMARY="$WORK/actionability-summary.json"
+          jq -e --slurpfile authority "$D12_CERT" '
+            .status == "RMC_012_ACTIONABILITY_PASS" and
+            .principal_capital_conserved == true and
+            .principal_capital_promoted == .admitted and
+            .principal_capital_promoted == (.principal_capital_feasible + .principal_capital_rejected) and
+            .principal_capital_feasible == $authority[0].principal_capital_feasible and
+            .principal_capital_rejected == $authority[0].principal_capital_rejected and
+            .admitted == $authority[0].admitted and
+            (.expected_pairs == (.admitted + .rejected))
+          ' "$D12_SUMMARY" >/dev/null
+          CAPITAL_FEASIBLE="$(jq -r '.principal_capital_feasible' "$D12_SUMMARY")"
+          [[ "$CAPITAL_FEASIBLE" =~ ^[0-9]+$ ]]
+          if test "$CAPITAL_FEASIBLE" = 0; then
+            echo "RMC013_ZERO_INPUT=true" >> "$GITHUB_ENV"
+            echo "RMC013_EXACT_ZERO_CAPITAL_FEASIBLE_SET=DETECTED"
+          else
+            echo "RMC013_ZERO_INPUT=false" >> "$GITHUB_ENV"
+            echo "RMC013_EXECUTION_EVIDENCE_REQUIRED candidates=$CAPITAL_FEASIBLE"
+          fi
+
       - name: Plan every positive exact V2 route
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -268,6 +306,7 @@ jobs:
           ' "$WORK/routes/v2-route-summary.json" >/dev/null
 
       - name: Collect independent pre-anchor gas evidence
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -311,6 +350,7 @@ jobs:
           ' "$WORK/gas/gas-price-evidence.json" >/dev/null
 
       - name: Install exact PFT executor toolchain
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -331,6 +371,7 @@ jobs:
           "$TOOL/solc-0.8.24" --version | grep -F "$SOLC_VERSION"
 
       - name: Rebuild exact PFT Aave executor twice
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -383,6 +424,7 @@ jobs:
           echo RMC013_PFT_EXECUTOR_REBUILD_PASS
 
       - name: Execute every retained route on both exact provider forks
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -419,6 +461,7 @@ jobs:
             "$WORK/evidence/drpc-summary.json" >/dev/null
 
       - name: Reconcile provider execution semantics
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -444,6 +487,7 @@ jobs:
           echo RMC013_PHYSICAL_PROVIDER_CONSENSUS_PASS
 
       - name: Materialize exact terminal execution economics
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -487,6 +531,7 @@ jobs:
           echo RMC013_ECONOMICS_MATERIALIZATION_PASS
 
       - name: Assemble immutable physical execution evidence
+        if: ${{ env.RMC013_ZERO_INPUT != 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -559,6 +604,39 @@ jobs:
             sha256sum -c archive.sha256
           )
           echo RMC013_PHYSICAL_EXECUTION_EVIDENCE_PASS
+
+      - name: Certify exact zero-input coverage without pretending RPC or fork execution
+        if: ${{ env.RMC013_ZERO_INPUT == 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$WORK/physical-package"
+          rm -rf "$OUT"
+          python3 ci/nqc-census/materialize_rmc013_no_eligible.py \
+            --d12-certificate "$WORK/d12/terminal-actionability-certification.json" \
+            --d12-summary "$WORK/actionability-summary.json" \
+            --d12-records "$WORK/actionability-records.jsonl" \
+            --d12-promotions "$WORK/capital-promotions.jsonl" \
+            --d11-sources "$WORK/capital-sources.jsonl" \
+            --d12-artifact-digest "$(jq -r '.d12.artifact_digest' "$INPUTS")" \
+            --code-commit "$(git rev-parse HEAD)" \
+            --code-tree "$(git rev-parse 'HEAD^{tree}')" \
+            --out "$OUT"
+          (
+            cd "$OUT"
+            sha256sum -c archive.sha256
+          )
+          jq -e '
+            .status == "RMC_013_NO_EXECUTION_ELIGIBLE_CANDIDATES_PROVEN" and
+            .input_candidate_count == 0 and
+            .execution_simulatable_count == 0 and
+            .economics_quote_count == 0 and
+            .gas_price_evidence_collected == false and
+            .physical_execution_claimed == false and
+            .fork_simulations_executed == 0 and
+            .coverage_complete == true
+          ' "$OUT/execution-evidence-summary.json" >/dev/null
+          echo "RMC013_EMPTY_UNIVERSE_EVIDENCE_AUTHENTICATED=PASS"
 
       - name: Upload immutable physical execution evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
