@@ -1,5 +1,14 @@
 name: NQC RMC-011 Original D08 D09 Full Native Flash Import (NOT D11 CLOSE)
 on:
+  push:
+    branches:
+      - 'nqc/rmc011-native-flash-d08-real-import-20261008'
+    paths:
+      - '.github/workflows/nqc-rmc011-original-d08-native-flash-import.yml'
+      - 'ci/nqc-census/rmc011_original_d08_native_flash_import.py'
+      - 'ci/nqc-census/test_rmc011_original_d08_native_flash_import.py'
+      - 'ci/nqc-census/RMC011_ORIGINAL_D08_NATIVE_FLASH_IMPORT.md'
+      - 'nqc-census/crates/nqc-census-capital/src/upstream.rs'
   pull_request:
     paths:
       - '.github/workflows/nqc-rmc011-original-d08-native-flash-import.yml'
