@@ -1,0 +1,150 @@
+name: NQC RMC-016 Preblock WETH Gas Reference
+
+on:
+  push:
+    branches:
+      - 'nqc/rmc016-preblock-weth-gas-pricing-20261008'
+    paths:
+      - 'ci/nqc-census/rmc016_historical_gas_price_oracle.py'
+      - 'ci/nqc-census/test_rmc016_historical_gas_price_oracle.py'
+      - 'ci/nqc-census/rmc016_preblock_gas_oracle_batch.py'
+      - 'ci/nqc-census/test_rmc016_preblock_gas_oracle_batch.py'
+      - 'ci/nqc-census/RMC016_PREBLOCK_GAS_PRICE_REFERENCE_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-preblock-gas-reference.yml'
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc016_preblock_gas_oracle_batch.py'
+      - 'ci/nqc-census/test_rmc016_preblock_gas_oracle_batch.py'
+      - 'ci/nqc-census/RMC016_PREBLOCK_GAS_PRICE_REFERENCE_CONTRACT.md'
+      - '.github/workflows/nqc-rmc016-preblock-gas-reference.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-preblock-gas-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  immutable-sources-and-real-prices:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify immutable D16 code ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 7ec0f23fb7e114c6ac6d873bdb2889f309c2ac50 HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = \
+            '5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa'
+          python3 -m py_compile ci/nqc-census/rmc016_preblock_gas_oracle_batch.py
+          jq -e '.authority.nqc_conservative_realizable_capacity_usd_wad == "0" and
+                 .authority.month1_300k_target_proven == false' \
+            ci/nqc-census/rmc016-production-evidence.json >/dev/null
+      - name: Independently verify three exact immutable GitHub archive identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/nqc-oracle-evidence"
+          mkdir -p "$ROOT"
+          check() {
+            local run="$1" head="$2" tree="$3" workflow="$4" outcome="$5" artifact="$6" artname="$7" expected="$8"
+            local meta art file
+            meta="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run")"
+            art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
+            test "$(jq -r .status <<<"$meta")" = completed
+            test "$(jq -r .conclusion <<<"$meta")" = "$outcome"
+            test "$(jq -r .name <<<"$meta")" = "$workflow"
+            test "$(jq -r .head_sha <<<"$meta")" = "$head"
+            test "$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$head" --jq '.tree.sha')" = "$tree"
+            test "$(jq -r .expired <<<"$art")" = false
+            test "$(jq -r .name <<<"$art")" = "$artname"
+            test "$(jq -r .digest <<<"$art")" = "sha256:$expected"
+            test "$(jq -r '.workflow_run.id' <<<"$art")" = "$run"
+            file="$ROOT/github-actions-artifact-$artifact.zip"
+            curl --fail --silent --show-error --location --retry 2 \
+              -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact/zip" -o "$file"
+            printf '%s  %s\n' "$expected" "$file" | sha256sum --check --strict
+          }
+          check 37718661409 abe54f1f23bd7bff8c37871200f7da7c59c45ac3 \
+            c74f8d9d2c317a011284398643b2d4aa6de06e83 \
+            'NQC RMC-016 Full Liquidation Ledger Discovery' success \
+            11524139188 rmc016-full-liquidation-events-abe54f1f23bd7bff8c37871200f7da7c59c45ac3 \
+            6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204
+          check 37719091371 569d4aaeecb3d066389c054efed695be02e3ef40 \
+            ba648214fb5cb1cdca1db1f42f28059054d78e63 \
+            'NQC RMC-016 Dual Operator Winner Receipt Parity' failure \
+            11524199698 rmc016-dual-winner-receipts-569d4aaeecb3d066389c054efed695be02e3ef40 \
+            182b5e81b00ca04e53c9193c1496a725dc152ade9a17d3ab2dfaeb5045ac86b6
+          check 37719715290 1a03cbb1c95ae9b66096ab19e5842cec435f1e1e \
+            0f24e31f52a31256f2bfc34fa2cb7f46eef9958a \
+            'NQC RMC-016 Historical WETH Price Oracle Sample' success \
+            11524894285 rmc016-historical-weth-oracle-1a03cbb1c95ae9b66096ab19e5842cec435f1e1e \
+            5d321ec4707da6b9b0a0e1b24ce2d28992bb9329dd937baa6466c759359c3f73
+          echo "NQC_ORACLE_SOURCE_ROOT=$ROOT" >> "$GITHUB_ENV"
+      - name: Adversarial test matrix and authentic source cardinality
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc016_historical_gas_price_oracle.py
+          python3 ci/nqc-census/test_rmc016_preblock_gas_oracle_batch.py
+          python3 - "$NQC_ORACLE_SOURCE_ROOT" <<'PY'
+          import sys
+          from pathlib import Path
+          sys.path.insert(0,'ci/nqc-census')
+          from rmc016_preblock_gas_oracle_batch import src
+          root=Path(sys.argv[1])
+          by,blocks,samples=src(root/'github-actions-artifact-11524139188.zip',
+                                root/'github-actions-artifact-11524199698.zip',
+                                root/'github-actions-artifact-11524894285.zip')
+          assert len(blocks)==123 and sum(map(len,by.values()))==127
+          assert samples['25883782']['price_raw']=='243398000000'
+          print('RMC016_127_REAL_RECEIPTS_123_DISTINCT_BLOCKS_PINNED_PASS')
+          PY
+      - name: Independent two-provider previous-block gas valuation
+        if: ${{ github.event_name == 'push' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc-gas-reference"
+          python3 ci/nqc-census/rmc016_preblock_gas_oracle_batch.py \
+            --event-zip "$NQC_ORACLE_SOURCE_ROOT/github-actions-artifact-11524139188.zip" \
+            --drpc-zip "$NQC_ORACLE_SOURCE_ROOT/github-actions-artifact-11524199698.zip" \
+            --price-sample-zip "$NQC_ORACLE_SOURCE_ROOT/github-actions-artifact-11524894285.zip" \
+            --offset 0 --count 5 --spacing 2 \
+            --out "$RUNNER_TEMP/nqc-gas-reference/preblock-gas-reference.json"
+          jq -e '
+            .status == "RMC016_DUAL_OPERATOR_PREBLOCK_GAS_REFERENCE_PASS" and
+            .historical_winner_blocks == 123 and
+            .verified_blocks == 5 and
+            .two_provider_consensus == true and
+            .reference_only == true and
+            .exact_pre_tx_state_proven == false and
+            .complete_historical_gas_usd_proven == false and
+            .complete_transaction_net_proven == false and
+            .nexus_gas_funding_proven == false and
+            .nexus_capture_probability_calibrated == false and
+            .nexus_net_profit_proven == false and
+            .real_market_census_closed == false
+          ' "$RUNNER_TEMP/nqc-gas-reference/preblock-gas-reference.json" >/dev/null
+          (cd "$RUNNER_TEMP/nqc-gas-reference" &&
+            sha256sum preblock-gas-reference.json > archive.sha256 &&
+            sha256sum -c archive.sha256)
+      - name: Preserve sampled oracle evidence or fail-closed diagnostic
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-weth-gas-reference-${{ github.sha }}
+          path: ${{ runner.temp }}/nqc-gas-reference/
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
