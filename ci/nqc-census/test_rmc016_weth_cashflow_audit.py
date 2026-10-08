@@ -75,7 +75,7 @@ class HistoricalWethAuditTest(unittest.TestCase):
         self.assertTrue(answer[0]["fully_executable_by_nexus"] is False)
         self.assertTrue(answer[0]["historical_competitor_gas_not_nexus_gas"])
         self.assertTrue(answer[0]["historical_preblock_price_not_transaction_prestate"])
-        combined = sum(int(x["preblock_usd_wad_conditional_cost_budget"]) for x in answer[:2])
+        combined = sum(int(x["preblock_usd_wad_conditional_cost_budget"]) for x in answer if x["transaction_hash"] in m.TOP_TWO)
         self.assertTrue(329 * m.WEI < combined < 332 * m.WEI)
 
     def test_five_basis_point_ceiling_is_conservative(self):
