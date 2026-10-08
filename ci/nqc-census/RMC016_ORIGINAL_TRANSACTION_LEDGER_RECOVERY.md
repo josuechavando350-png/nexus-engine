@@ -11,7 +11,7 @@ The original source snapshot is registered as DigitalOcean image 248761092, but 
 ## Strictly bounded experiment
 
 1. Enumerate existing repository Actions artifact metadata via the authorized GitHub Actions token. Keep exact original run/head, artifact ID and SHA256 digest.
-2. Ignore unrelated names, expired/missing digest/zero-sized/over 3 MB ZIPs; select at most 48 candidates, prioritize economics/ledger/winner terms plus original D15/D16 artifacts. Explicitly report excluded and unselected counts.
+2. Ignore unrelated names, expired/missing digest/zero-sized/over 3 MB ZIPs; select at most 128 candidates, prioritize economics/ledger/winner terms plus original D15/D16 artifacts. Explicitly report excluded and unselected counts.
 3. Recheck the candidate run's completed SUCCESS, exact head, artifact metadata and original ZIP SHA256 before inspecting any bytes. Any missing/run-failed candidate remains unscanned, not treated as empty.
 4. Scan in-memory ZIP members with bounded count/size and path/symlink/duplicate checks. A positive match requires original file bytes whose SHA256 is *exactly* the D16 precommitted transaction_economics_sha256. Filenames, invented totals or an approximated 127-row sample are insufficient.
 5. Upload only source artifact IDs, hashes, selected scope, counts, and outcome. No raw original accounts/trades/ZIPs and no credentials.
