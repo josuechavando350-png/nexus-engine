@@ -28,7 +28,7 @@ def fixtures():
             "winner_full_tx_gas_wei":str(GAS[j]),
             "historical_weth_debt_raw_wei":str(DEBTS[j]),
             "collateral_minus_debt_minus_winner_gas_wei":str(AFTER[j]),
-            "hypothetical_flash_premium_wei_ceil":str((DEBTS[j]*5+9999)//10000)
+            "hypothetical_5bps_flash_premium_wei_ceil":str((DEBTS[j]*5+9999)//10000)
         })
     audit={"status":"RMC016_HISTORICAL_WETH_WETH_COST_BUDGET_DIAGNOSTIC_ONLY",
            "historical_weth_weth_winner_transactions":9,
