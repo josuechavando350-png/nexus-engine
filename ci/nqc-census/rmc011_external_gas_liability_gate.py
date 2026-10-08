@@ -253,7 +253,7 @@ def modeled_postop_liability(budget):
 
 
 def diagnose(budget, registry, executor_source: bytes):
-    require(budget["status"] == "RMC016_RANK1_FORK_GAS_BREAK_EVEN_SENSITIVITY_DIAGNOSTIC_NOT_NET"
+    need(budget["status"] == "RMC016_RANK1_FORK_GAS_BREAK_EVEN_SENSITIVITY_DIAGNOSTIC_NOT_NET"
             and registry["provider_count"] == 0 and registry["providers"] == [],
             "gas sources cannot be promoted without source authentication")
     binding = inspect_unmodified_executor(executor_source)
