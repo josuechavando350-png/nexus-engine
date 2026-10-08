@@ -27,6 +27,8 @@ PROVIDERS = (
     ("publicnode", "PublicNode", "https://ethereum-rpc.publicnode.com"),
     ("drpc", "dRPC", "https://eth.drpc.org"),
     ("llama", "LlamaNodes", "https://eth.llamarpc.com"),
+    ("blockpi", "BlockPI", "https://ethereum.public.blockpi.network/v1/rpc/public"),
+    ("blast", "BlastAPI", "https://eth-mainnet.public.blastapi.io"),
 )
 HEX32 = re.compile(r"^0x[0-9a-f]{64}$")
 MAX_RESPONSE = 8_000_000
