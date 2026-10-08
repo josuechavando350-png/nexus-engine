@@ -46,7 +46,7 @@ jobs:
           python3 -m py_compile ci/nqc-census/rmc016_weth_cashflow_audit.py ci/nqc-census/test_rmc016_weth_cashflow_audit.py
           echo RMC016_WETH_WETH_COST_AUDIT_OFFLINE_TESTS_PASS
       - name: Authenticate and download exact four immutable historical artifacts
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -74,7 +74,7 @@ jobs:
           authenticate 37722878737 b02e7c5a4ff9a8c38898ab35e46777f9af35d192 'NQC RMC-016 Historical Aave Raw Liquidation Legs' success 11525823668 'rmc016-integer-liquidation-legs-b02e7c5a4ff9a8c38898ab35e46777f9af35d192' 'b5927f49a5099a9fe8971df82f1ea5fa2c4a169b11a846f2f3c2671b1efa71ee' legs
           authenticate 37726618359 a569b0a6ba11c0d12de3a1ac0d16d85b896933f6 'NQC RMC-016 Two WETH Winner Historical Prices' success 11527902751 'rmc016-two-weth-winner-historical-prices-a569b0a6ba11c0d12de3a1ac0d16d85b896933f6' '5ae6c45b53ded26f327270758c248f7f4ec0ff1365f550e54dcf28feb4a83a03' prices
       - name: Independently reconstruct seven WETH/WETH competitor cost budgets
-        if: ${{ github.event_name == 'push' }}
+        if: ${{ github.event_name == 'push' || github.event_name == 'pull_request' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -86,7 +86,7 @@ jobs:
           (cd "$result" && sha256sum historical-weth-cashflow.json > archive.sha256 && sha256sum -c archive.sha256)
           echo RMC016_HISTORICAL_COST_BUDGET_NOT_NEXUS_PNL
       - name: Retain immutable read-only output if actual sources authenticate
-        if: ${{ github.event_name == 'push' && success() }}
+        if: ${{ success() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: rmc016-weth-cost-budget-${{ github.sha }}
