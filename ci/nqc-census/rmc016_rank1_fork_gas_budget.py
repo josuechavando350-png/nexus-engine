@@ -165,7 +165,7 @@ def measured_call_gas(raw):
             "[PASS] testImpossibleProfitClaimRevertsAndCannotSpendExistingBalances()" in raw,
             "physical test success and adversarial rollback not demonstrated")
     evidence = {
-        "NQC_RANK1_FORK_EXECUTE_CALL_GAS_UNITS": (100_000, 3_000_000),
+        "NQC_RANK1_FORK_EXECUTE_CALL_GAS_UNITS": (100_001, 2_999_999),
         "NQC_RANK1_FORK_WETH_SURPLUS_WEI": (SURPLUS_WEI, SURPLUS_WEI),
         "NQC_RANK1_FORK_FLASH_FEE_WEI": (FLASH_FEE_WEI, FLASH_FEE_WEI),
         "NQC_RANK1_FORK_PRODUCTION_GAS_SPONSORED": (0, 0),
