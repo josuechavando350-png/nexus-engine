@@ -25,9 +25,10 @@ def call(url,method,params):
     raise RuntimeError("unexpected method")
 class TestPriceBatch(unittest.TestCase):
     def runit(self,callfn=call,**params):
+        params={"spacing":0,**params}
         with patch.object(M,"src",return_value=source()):
             return M.acquire(Path("x"),Path("y"),Path("z"),request=callfn,
-                             spacing=0,**params)
+                             **params)
     def test_five_blocks_reconciled(self):
         r=self.runit()
         self.assertEqual(r["status"],"RMC016_DUAL_OPERATOR_PREBLOCK_GAS_REFERENCE_PASS")
