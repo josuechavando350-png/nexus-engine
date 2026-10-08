@@ -18,7 +18,7 @@ permissions:
 
 concurrency:
   group: rmc016-batch-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   fixture-gates:
