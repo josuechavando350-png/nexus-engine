@@ -13,6 +13,7 @@ interface IAavePoolFlashFee {
 
 interface IWethForkFeeFixture is IERC20FlashMinimal {
     function deposit() external payable;
+    function totalSupply() external view returns (uint256);
 }
 
 contract NqcAaveFlashFeeOnlyFixture {
@@ -129,15 +130,17 @@ contract NqcRmc011AaveFlashPhysicalForkTest {
         bytes memory payload = hex"110101";
         NqcFlashFundingExecutor.FlashExecutionPlan memory plan = _plan(fee, 0, payload);
 
-        uint256 poolBefore = _weth().balanceOf(AAVE_POOL);
+        // Aave V3 keeps reserve liquidity at the aToken, not in the Pool's
+        // ERC20 balance; never claim pool.balanceOf(WETH) proves flash cash.
+        uint256 supplyBefore = _weth().totalSupply();
         uint256 executorBefore = _weth().balanceOf(address(executor));
         uint256 operatorBefore = _weth().balanceOf(address(this));
-        require(poolBefore >= ONE_WETH, "HISTORICAL_POOL_HAS_INSUFFICIENT_WETH");
         uint256 realized = executor.execute(plan, payload);
         require(realized == 0, "FIXTURE_CANNOT_CLAIM_POSITIVE_NET_PROFIT");
         require(executor.consumedExecutionIdentity(plan.executionIdentityHash), "IDENTITY_NOT_CONSUMED");
         require(_weth().balanceOf(address(executor)) == executorBefore, "EXECUTOR_BASELINE_DRIFT");
-        require(_weth().balanceOf(AAVE_POOL) == poolBefore + fee, "POOL_REPAYMENT_FEE_MISMATCH");
+        // Only the exact vm.deal-backed protocol-fee top-up is minted here.
+        require(_weth().totalSupply() == supplyBefore + fee, "FIXTURE_MINT_FEE_MISMATCH");
         require(_weth().balanceOf(address(this)) == operatorBefore, "OPERATOR_RECEIVED_FREE_WETH");
     }
 
