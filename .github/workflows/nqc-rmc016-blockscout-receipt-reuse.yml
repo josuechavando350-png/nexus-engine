@@ -53,7 +53,7 @@ jobs:
     timeout-minutes: 55
     env:
       GH_TOKEN: ${{ github.token }}
-      OUTPUT: ${{ runner.temp }}/rmc016-receipt-reuse
+      OUTPUT: /tmp/rmc016-receipt-reuse
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
