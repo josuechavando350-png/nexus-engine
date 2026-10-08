@@ -1,0 +1,168 @@
+name: NQC RMC-016 Rank-One Unsubsidized Fork Liquidation
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc016-rank1-unsubsidized-fork.yml'
+      - 'ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol'
+      - 'ci/nqc-census/RMC016_RANK1_UNSUBSIDIZED_AAVE_FORK_CONTRACT.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  real-aave-fork-no-test-weth-topup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify immutable predecessor fork ancestry and genuine T36 implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 030d95c705a1fce77c3345cada4c8cd698f4a1db HEAD
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = aa3883fa141aa096006e90e56d8d4150c9ee14ef
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          if grep -Eq 'vm[.]deal\s*[(]|deal\s*[(]|deal\s*\{' ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol; then
+            echo 'TEST-MINTED FEES/COLLATERAL ARE FORBIDDEN' >&2; exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/nqc016-actual-fork"
+          sha256sum ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol ci/nqc-census/weth-physical/foundry-time-only.toml > "$RUNNER_TEMP/nqc016-actual-fork/original-sources.sha256"
+          echo RMC016_RANK1_T36_REAL_EXECUTOR_NOT_MOCKED_AND_NO_WETH_SUBSIDY
+
+      - name: Authenticate predecessor economic and clock-only fork source
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id=37740704145
+          head=030d95c705a1fce77c3345cada4c8cd698f4a1db
+          artifact_id=11533288894
+          expected=7d813c6cad278a5044d1c4ce57492efb07c5c0d73d69481769f92a4cc4151185
+          run="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id")"
+          art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id")"
+          test "$(jq -r .status <<<"$run")" = completed
+          test "$(jq -r .conclusion <<<"$run")" = success
+          test "$(jq -r .name <<<"$run")" = 'NQC RMC-015 WETH Time-Only Intrablock Probe'
+          test "$(jq -r .head_sha <<<"$run")" = "$head"
+          test "$(jq -r .expired <<<"$art")" = false
+          test "$(jq -r .name <<<"$art")" = "rmc015-three-weth-time-only-$head"
+          test "$(jq -r .digest <<<"$art")" = "sha256:$expected"
+          test "$(jq -r .workflow_run.id <<<"$art")" = "$run_id"
+          file="$RUNNER_TEMP/nqc016-actual-fork/source.zip"
+          curl --fail --silent --show-error --location --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" -o "$file"
+          printf '%s  %s\n' "$expected" "$file" | sha256sum --check --strict
+          unzip -qq -o "$file" -d "$RUNNER_TEMP/nqc016-actual-fork/original"
+          (cd "$RUNNER_TEMP/nqc016-actual-fork/original" && sha256sum --check --strict archive.sha256)
+          jq -e '.status=="RMC015_TOP3_TIME_ONLY_REAL_FORK_DIAGNOSTIC_PASS" and
+                 .observed_case_count==3 and
+                 .time_only_below_one_count==1 and
+                 .measurements[0].rank==1 and
+                 .measurements[0].previous_hf_wad=="1000000001993818630" and
+                 .measurements[0].winner_time_only_hf_wad=="999999999704293538" and
+                 .measurements[0].time_only_below_one==true and
+                 .nexus_execution_or_capture_proven==false and
+                 .real_market_census_closed==false' "$RUNNER_TEMP/nqc016-actual-fork/original/time-only-conclusion.json" >/dev/null
+          jq -e '.status=="RMC015_REAL_TOP3_WETH_PREBLOCK_AND_WINNER_TIME_ANCHORS_PASS" and
+                 .canonical_time_anchors[0].rank==1 and
+                 .canonical_time_anchors[0].previous_block_number==25938047 and
+                 .canonical_time_anchors[0].winning_block_number==25938048 and
+                 .source_two_operator_time_consensus==true' "$RUNNER_TEMP/nqc016-actual-fork/original/anchors.json" >/dev/null
+          echo RMC016_RANK1_ORIGINAL_BLOCK_AND_TIME_FORK_CERTIFICATE_AUTHENTICATED
+
+      - name: Install exact Foundry 1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc016-foundry"
+          curl --fail --silent --show-error --location --retry 3 -o "$RUNNER_TEMP/nqc016-foundry.tar.gz" https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          printf '%s  %s\n' cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b "$RUNNER_TEMP/nqc016-foundry.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/nqc016-foundry.tar.gz" -C "$RUNNER_TEMP/nqc016-foundry"
+          "$RUNNER_TEMP/nqc016-foundry/forge" --version
+
+      - name: Actual Aave liquidation with flash principal paid back only from seized WETH
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$RUNNER_TEMP/nqc016-foundry:$PATH"
+          original="$RUNNER_TEMP/nqc016-actual-fork/original/anchors.json"
+          export NQC_RMC016_RANK1_BORROWER="$(jq -r '.canonical_time_anchors[0].borrower' "$original")"
+          export NQC_RMC016_RANK1_PREVIOUS_TIMESTAMP="$(jq -r '.canonical_time_anchors[0].previous_block_timestamp' "$original")"
+          export NQC_RMC016_RANK1_WINNER_TIMESTAMP="$(jq -r '.canonical_time_anchors[0].winning_block_timestamp' "$original")"
+          sandbox="$RUNNER_TEMP/nqc016-liquidation-executor"
+          result="$RUNNER_TEMP/nqc016-actual-fork"
+          mkdir -p "$sandbox/src" "$sandbox/test"
+          cp ci/nqc-census/weth-physical/foundry-time-only.toml "$sandbox/foundry.toml"
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol "$sandbox/src/"
+          cp ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol "$sandbox/test/"
+          cd "$sandbox"
+          forge fmt
+          forge fmt --check
+          test "$(sha256sum src/NqcFlashFundingExecutor.sol | cut -d' ' -f1)" = bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320
+          sha256sum foundry.toml src/NqcFlashFundingExecutor.sol test/NqcRmc016RankOneSelfFinancingFork.t.sol > "$result/formatted-tested-source.sha256"
+          forge build --sizes 2>&1 | tee "$result/build.txt"
+          forge test --fork-url https://eth.drpc.org --fork-block-number 25938047 --match-contract NqcRmc016RankOneSelfFinancingForkTest -vvv 2>&1 | tee "$result/fork-liquidation.txt"
+          grep -Fq 'Suite result: ok. 2 passed; 0 failed; 0 skipped' "$result/fork-liquidation.txt"
+          grep -Fq '[PASS] testZeroOwnWethFeeWithoutExternalSponsorHasPositiveForkSurplus()' "$result/fork-liquidation.txt"
+          grep -Fq '[PASS] testImpossibleProfitClaimRevertsAndCannotSpendExistingBalances()' "$result/fork-liquidation.txt"
+          grep -Fq 'NQC_RANK1_FORK_WETH_SURPLUS_WEI' "$result/fork-liquidation.txt"
+          echo RMC016_RANK1_HISTORICAL_FORK_FLASH_PLUS_LIQUIDATION_NO_WETH_SUBSIDY
+
+      - name: Report conditional WETH surplus before unfinanced transaction gas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/nqc016-actual-fork" <<'PY'
+          import json,re,hashlib,sys
+          from pathlib import Path
+          root=Path(sys.argv[1])
+          text=(root/"fork-liquidation.txt").read_text()
+          def integer(name):
+              x=re.findall(re.escape(name)+r"\s*:\s*([0-9]+)",text)
+              assert len(x)==1,(name,x)
+              return int(x[0])
+          profit=integer("NQC_RANK1_FORK_WETH_SURPLUS_WEI")
+          premium=integer("NQC_RANK1_FORK_FLASH_FEE_WEI")
+          sponsored=integer("NQC_RANK1_FORK_PRODUCTION_GAS_SPONSORED")
+          assert profit>0 and premium>0 and sponsored==0
+          out={"schema_version":1,
+               "status":"RMC016_RANK1_COUNTERFACTUAL_AAVE_WETH_SURPLUS_FORK_PASS_NOT_NET",
+               "source_sha256":"7d813c6cad278a5044d1c4ce57492efb07c5c0d73d69481769f92a4cc4151185",
+               "fork_block_previous":25938047,"simulated_execution_block":25938048,
+               "flash_weth_principal_wei":"10684013854557827871",
+               "actual_pool_flash_fee_wei":str(premium),
+               "remaining_weth_after_real_aave_liquidation_and_flash_fee_wei":str(profit),
+               "test_minted_fee_or_collateral_wei":"0",
+               "no_original_intrablock_transactions_replayed":True,
+               "selected_retroactively_from_competitor":True,
+               "native_gas_sponsorship_verified":False,
+               "builder_inclusion_and_competition_capture_proven":False,
+               "gas_slippage_mev_failure_costs_completely_verified":False,
+               "nexus_realized_net_profit_proven":False,
+               "real_market_census_closed":False}
+          def canon(v):return (json.dumps(v,sort_keys=True,separators=(",",":"))+"\n").encode()
+          out["report_sha256"]=hashlib.sha256(canon(out)).hexdigest()
+          (root/"physical-liquidation-report.json").write_bytes(canon(out))
+          print(out["status"],"WETH_SURPLUS_WEI",profit,"NOT_NEXUS_PNL")
+          PY
+          (cd "$RUNNER_TEMP/nqc016-actual-fork" && find . -maxdepth 1 -type f ! -name source.zip ! -name archive.sha256 -printf '%f\n' | sort | while read -r file; do sha256sum "$file"; done > archive.sha256 && sha256sum --check --strict archive.sha256)
+
+      - name: Preserve exact physical fork evidence or reversion diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-rank1-aave-real-liquidation-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc016-actual-fork/*.json
+            ${{ runner.temp }}/nqc016-actual-fork/*.txt
+            ${{ runner.temp }}/nqc016-actual-fork/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
