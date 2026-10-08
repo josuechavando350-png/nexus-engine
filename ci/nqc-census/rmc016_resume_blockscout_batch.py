@@ -20,9 +20,9 @@ from rmc016_resume_verified_receipts import (
 )
 from rmc016_two_operator_receipts import PROVIDERS
 
-PREVIOUS_SHA256 = "a05e5ed45a7a702aedac40e442362e9cb57044d2f8a491a43acac366f8d53f87"
-PREVIOUS_RUN_ID = 37721652969
-PREVIOUS_ARTIFACT_ID = 11526366948
+PREVIOUS_SHA256 = "2ea909bc293a6c484cc6da2680c2f9ff0c39b5190c3fe40f2805882bcd380227"
+PREVIOUS_RUN_ID = 37721816337
+PREVIOUS_ARTIFACT_ID = 11526071964
 PREVIOUS_MEMBERS = {"archive.sha256", "receipt-parity-report.json",
                     "verified-blockscout-receipts.jsonl"}
 DECIMAL = re.compile(r"(?:0|[1-9][0-9]*)\Z")
