@@ -163,11 +163,27 @@ class FrontierTests(unittest.TestCase):
                              emit_watchlist=True)
         self.assertFalse(r["terminal_authority"])
         self.assertFalse(r["realized_profitability_proven"])
+        self.assertFalse(r["retrospective_backtest_admitted"])
+        self.assertEqual(r["earliest_ex_ante_evaluation_block"], 26095352)
         self.assertFalse(r["execution_or_capital_feasibility_proven"])
         self.assertEqual(r["material_risk_frontier"]["account_count"], 2)
         self.assertEqual(r["watchlist_commitment_sha256"],
                          digest(b"".join(canonical_bytes(x) for x in watchlist)))
         self.assertRegex(r["authority_commitment_sha256"], r"^[0-9a-f]{64}$")
+
+    def test_end_anchor_selection_cannot_backtest_prior_blocks(self):
+        d08, d09, h08, h09 = self.make_fixture()
+        for invalid in (26095350, 26095351, True):
+            with self.assertRaisesRegex(ValueError, "LOOKAHEAD"):
+                audit(d08, d09, h08, h09,
+                      expected_d08_commit=D08_COMMIT,
+                      expected_d09_commit=D09_COMMIT,
+                      evaluation_start_block=invalid)
+        r, _ = audit(d08, d09, h08, h09,
+                     expected_d08_commit=D08_COMMIT,
+                     expected_d09_commit=D09_COMMIT,
+                     evaluation_start_block=26095352)
+        self.assertFalse(r["retrospective_backtest_admitted"])
 
     def test_wrong_zip_digest_fails_before_interpretation(self):
         d08, d09, h08, h09 = self.make_fixture()
