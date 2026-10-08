@@ -27,9 +27,12 @@ def fixtures():
                            "gas_funding_certified":False,"allocations":[]})
     for i in range(m.EXPECTED_REJECTED_ACTIONABILITY):
         actions.append({"status":"REJECTED","candidate_id":f"{i+1000:064x}"})
-    found={k:{"status":"BLOCKED","blockers":[
+    found={k:{"AAVE_RESERVE_UNDERLYING":{"status":"BLOCKED","blockers":[
         "FEE_ON_TRANSFER_UNPROVEN","TRANSFER_HOOKS_UNPROVEN",
-        "REBASING_UNPROVEN","UPGRADEABLE_UNPROVEN"]} for k in tokens}
+        "REBASING_UNPROVEN","UPGRADEABLE_UNPROVEN"]}} for k in tokens}
+    for t in tokens[:32]:
+        found[t]["UNISWAP_V2_TOKEN"]={"status":"BLOCKED","blockers":[
+            "FEE_ON_TRANSFER_UNPROVEN","TRANSFER_HOOKS_UNPROVEN","RUNTIME_CODE_IDENTITY_NOT_ACQUIRED"]}
     return actions,promotions,found
 
 
@@ -83,7 +86,7 @@ class Rmc012BlockerTests(unittest.TestCase):
 
     def test_unsafe_admission_rejected(self):
         a,p,t=fixtures()
-        t[a[0]["debt_asset"]]["status"]="PROVEN_COMPATIBLE"
+        t[a[0]["debt_asset"]]["AAVE_RESERVE_UNDERLYING"]["status"]="PROVEN_COMPATIBLE"
         with self.assertRaisesRegex(ValueError,"unexpectedly promoted"):
             required,debt,collateral,gross=m.parse_actionability(a,p)
             m.summarize(required,debt,collateral,gross,t,Counter({"BLOCKED":514279}))
@@ -140,9 +143,38 @@ class Rmc012BlockerTests(unittest.TestCase):
         req,deb,col,gross=m.parse_actionability(a,p)
         original=m.summarize(req,deb,col,gross,t,Counter({"BLOCKED":514279}))
         mutated=copy.deepcopy(t)
-        mutated[a[0]["debt_asset"]]["blockers"].append("NEW_UNPROVEN")
+        mutated[a[0]["debt_asset"]]["AAVE_RESERVE_UNDERLYING"]["blockers"].append("NEW_UNPROVEN")
         again=m.summarize(req,deb,col,gross,mutated,Counter({"BLOCKED":514279}))
         self.assertNotEqual(m.digest(m.canonical(original)),m.digest(m.canonical(again)))
+
+    def test_multiple_token_roles_are_independent_observations(self):
+        z=self.classify()
+        self.assertEqual(z["source_role_d08_required_aave_rows"],43)
+        self.assertEqual(z["source_role_d08_required_uniswap_v2_rows"],32)
+        self.assertEqual(z["source_role_d08_required_total_rows"],75)
+        self.assertTrue(z["source_role_comparison_not_token_deduplication"])
+        self.assertEqual(z["required_asset_blocker_frequency"]["FEE_ON_TRANSFER_UNPROVEN"],43)
+        self.assertEqual(z["additional_v2_source_blocker_frequency"]["RUNTIME_CODE_IDENTITY_NOT_ACQUIRED"],32)
+
+    def test_v2_only_code_flags_never_promote_aave_compatibility(self):
+        a,p,t=fixtures()
+        req,debt,collateral,gross=m.parse_actionability(a,p)
+        original=m.summarize(req,debt,collateral,gross,t,Counter({"BLOCKED":514279}))
+        changed=copy.deepcopy(t)
+        token=a[0]["debt_asset"]
+        changed[token]["UNISWAP_V2_TOKEN"]["blockers"].append("V2_CHAIN_EVIDENCE_MISSING")
+        new=m.summarize(req,debt,collateral,gross,changed,Counter({"BLOCKED":514279}))
+        self.assertEqual(original["required_asset_blocker_frequency"],
+                         new["required_asset_blocker_frequency"])
+        self.assertNotEqual(original["additional_v2_source_blocker_frequency"],
+                            new["additional_v2_source_blocker_frequency"])
+
+    def test_missing_aave_surface_rejected_even_if_v2_exists(self):
+        a,p,t=fixtures()
+        req,debt,collateral,gross=m.parse_actionability(a,p)
+        del t[a[0]["debt_asset"]]["AAVE_RESERVE_UNDERLYING"]
+        with self.assertRaisesRegex(ValueError,"Aave reserve"):
+            m.summarize(req,debt,collateral,gross,t,Counter({"BLOCKED":514279}))
 
 
 if __name__=="__main__":
