@@ -1,0 +1,173 @@
+name: NQC RMC-011 Real Deployed External V07 Paymaster Source
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc011-real-external-v07-paymaster.yml'
+      - 'ci/nqc-census/rmc011_pimlico_v07_historical_provider.py'
+      - 'ci/nqc-census/test_rmc011_pimlico_v07_historical_provider.py'
+      - 'ci/nqc-census/weth-physical/test/NqcRmc011PimlicoRealExternalV07ReadOnlyFork.t.sol'
+      - 'ci/nqc-census/RMC011_EXTERNAL_SINGLETON_V07_SOURCE_GATE.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provider-owned-but-not-nqc-authorized:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Source ancestry, no authorized NQC gas, 15 adversarial offline RPC tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 3fabaa52d88774528248145a0e4e8e093bdd8eab HEAD
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = aa3883fa141aa096006e90e56d8d4150c9ee14ef
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          jq -e '.provider_count == 0 and .providers == [] and .status == "DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE"' ci/nqc-census/rmc011-external-capital-provider-registry.json >/dev/null
+          python3 ci/nqc-census/test_rmc011_pimlico_v07_historical_provider.py
+          python3 -m py_compile ci/nqc-census/rmc011_pimlico_v07_historical_provider.py
+          mkdir -p "$RUNNER_TEMP/nqc011-external-v07"
+          sha256sum \
+            ci/nqc-census/rmc011_pimlico_v07_historical_provider.py \
+            ci/nqc-census/test_rmc011_pimlico_v07_historical_provider.py \
+            ci/nqc-census/weth-physical/test/NqcRmc011PimlicoRealExternalV07ReadOnlyFork.t.sol \
+            ci/nqc-census/RMC011_EXTERNAL_SINGLETON_V07_SOURCE_GATE.md \
+            > "$RUNNER_TEMP/nqc011-external-v07/original-source-sha256.txt"
+          echo RMC011_REAL_EXTERNAL_V07_OFFLINE_NO_CREDIT_PROMOTION_PASS
+
+      - name: True independent historic code, canonical block and total provider deposit
+        shell: bash
+        run: |
+          set -euo pipefail
+          report="$RUNNER_TEMP/nqc011-external-v07/source-witness.json"
+          python3 ci/nqc-census/rmc011_pimlico_v07_historical_provider.py --out "$report"
+          jq -e '
+            .status == "RMC011_EXTERNAL_V07_PAYMASTER_CODE_AND_ENTRYPPOINT_DEPOSIT_OBSERVED_NOT_ADMITTED" and
+            .ethereum_chain_id == 1 and
+            .historical_block_number == 25938047 and
+            .historical_block_hash == "0x42cf44b75185587327a1aa8fc859cc5f49a639e7256547511430d6068b6f09ab" and
+            .pimlico_singleton_v7_paymaster_address == "0x777777777777aec03fd955926dbf81597e66834c" and
+            .actual_erc4337_entrypoint_v7_address == "0x0000000071727de22e5e9d8baf0edac6f37da032" and
+            .real_contract_code_and_total_deposit_dual_operator_consensus == true and
+            (.rpc_operator_witnesses | length) == 2 and
+            .source_contains_proof_of_nqc_allocated_credit == false and
+            .source_contains_signed_operation_specific_paymaster_authorization == false and
+            .source_contains_exclusive_native_gas_reservation_for_nqc == false and
+            .source_contains_nqc_nonrecourse_success_and_revert_agreement == false and
+            .real_provider_mainnet_weth_support_and_account_allowance_proven == false and
+            .independent_external_gas_provider_execution_authorized == false and
+            .nqc_capital_feasible_for_own_capital_zero == false and
+            .actual_real_entrypoint_paymaster_userop_executed == false and
+            .nqc_net_profit_proven == false and
+            .rmc011_terminal_closed == false and
+            .real_market_census_closed == false
+          ' "$report" >/dev/null
+          echo RMC011_REAL_EXTERNAL_PROVIDER_TOTAL_DEPOSIT_IS_NOT_AN_NQC_ALLOCATED_GAS_LINE
+
+      - name: Install pinned Foundry 1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc011-real-v07-foundry"
+          curl --fail --silent --show-error --location --retry 3 -o "$RUNNER_TEMP/nqc011-foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          printf '%s  %s\n' cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b "$RUNNER_TEMP/nqc011-foundry.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/nqc011-foundry.tar.gz" -C "$RUNNER_TEMP/nqc011-real-v07-foundry"
+          "$RUNNER_TEMP/nqc011-real-v07-foundry/forge" --version
+
+      - name: Fork actual public paymaster and prove unauthorized validation and postOp reject
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$RUNNER_TEMP/nqc011-real-v07-foundry:$PATH"
+          root="$RUNNER_TEMP/nqc011-external-v07"
+          sandbox="$RUNNER_TEMP/nqc011-external-v07-forge"
+          mkdir -p "$sandbox/test" "$sandbox/src"
+          cp ci/nqc-census/weth-physical/foundry-time-only.toml "$sandbox/foundry.toml"
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol "$sandbox/src/"
+          cp ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol "$sandbox/test/"
+          cp ci/nqc-census/weth-physical/test/NqcRmc011EntryPointV07ActualFork.t.sol "$sandbox/test/"
+          cp ci/nqc-census/weth-physical/test/NqcRmc011PimlicoRealExternalV07ReadOnlyFork.t.sol "$sandbox/test/"
+          cd "$sandbox"
+          forge fmt
+          forge fmt --check
+          test "$(sha256sum src/NqcFlashFundingExecutor.sol | cut -d' ' -f1)" = bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320
+          sha256sum foundry.toml src/NqcFlashFundingExecutor.sol test/NqcRmc016RankOneSelfFinancingFork.t.sol test/NqcRmc011EntryPointV07ActualFork.t.sol test/NqcRmc011PimlicoRealExternalV07ReadOnlyFork.t.sol > "$root/tested-formatted-source-sha256.txt"
+          forge build --sizes 2>&1 | tee "$root/forge-build.txt"
+          forge test --fork-url https://eth.drpc.org --fork-block-number 25938047 \
+            --match-contract NqcRmc011RealExternalPaymasterSourceForkTest -vvv 2>&1 | tee "$root/real-external-v07-fork.txt"
+          grep -Fq 'Suite result: ok. 3 passed; 0 failed; 0 skipped' "$root/real-external-v07-fork.txt"
+          grep -Fq 'NQC_REAL_EXTERNAL_PAYMASTER_HISTORICAL_RUNTIME_SHA256:' "$root/real-external-v07-fork.txt"
+          expected="0x$(jq -r '.paymaster_runtime_sha256' "$root/source-witness.json")"
+          grep -Fq "$expected" "$root/real-external-v07-fork.txt"
+          deposit="$(jq -r '.real_entrypoint_paymaster_total_native_deposit_wei_at_historical_block' "$root/source-witness.json")"
+          grep -Fq "NQC_REAL_EXTERNAL_PAYMASTER_TOTAL_ENTRYPOINT_NATIVE_DEPOSIT_WEI: $deposit" "$root/real-external-v07-fork.txt"
+          grep -Fq 'NQC_REAL_EXTERNAL_PAYMASTER_NQC_SIGNED_QUOTE_PROVEN: 0' "$root/real-external-v07-fork.txt"
+          echo RMC011_ACTUAL_ONCHAIN_EXTERNAL_SINGLETON_V07_ENTRYPOINT_ACCOUNT_QUORUM_NO_AUTHORIZATION
+
+      - name: Preserve exact fork/source sha and all mandatory negative claims
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          root=Path(os.environ["RUNNER_TEMP"])/"nqc011-external-v07"
+          source=json.loads((root/"source-witness.json").read_bytes())
+          log=(root/"real-external-v07-fork.txt").read_bytes()
+          assert b"Suite result: ok. 3 passed; 0 failed; 0 skipped" in log
+          assert source["real_contract_code_and_total_deposit_dual_operator_consensus"] is True
+          assert source["source_contains_signed_operation_specific_paymaster_authorization"] is False
+          assert source["nqc_capital_feasible_for_own_capital_zero"] is False
+          assert source["rmc011_terminal_closed"] is False
+          obj={
+            "schema_version":1,
+            "status":"RMC011_REAL_EXTERNAL_V07_PAYMASTER_CODE_AND_TOTAL_DEPOSIT_AUDITED_NOT_APPROVED",
+            "source_report_sha256":source["report_sha256"],
+            "external_contract_runtime_sha256":source["paymaster_runtime_sha256"],
+            "original_pimlico_v7_contract_present_at_historical_block":True,
+            "real_entrypoint_v07_deposit_observed_wei":source["real_entrypoint_paymaster_total_native_deposit_wei_at_historical_block"],
+            "real_onchain_identity_and_two_direct_call_rejection_tests_pass":True,
+            "external_deposit_owner_does_not_grant_an_nqc_gas_credit_line":True,
+            "provider_signed_approved_weth_useroperation_acquired":False,
+            "provider_legal_credit_and_norecourse_revert_terms_acquired":False,
+            "nqc_operator_owned_gas_zero_mainnet_executable":False,
+            "real_nqc_mainnet_liquidation_captured":False,
+            "nqc_monthly_profitability_verified":False,
+            "rmc011_terminal_closed":False,
+            "real_market_census_closed":False,
+            "physical_fork_log_sha256":hashlib.sha256(log).hexdigest(),
+          }
+          def canon(d):return (json.dumps(d,sort_keys=True,separators=(",",":"))+"\n").encode()
+          obj["report_sha256"]=hashlib.sha256(canon(obj)).hexdigest()
+          (root/"external-provider-admission-diagnostic.json").write_bytes(canon(obj))
+          print(obj["status"],"provider_total_deposit_wei",
+                obj["real_entrypoint_v07_deposit_observed_wei"],
+                "NQC_AUTHORIZED_GAS_PROVIDER_COUNT=0")
+          PY
+          (cd "$RUNNER_TEMP/nqc011-external-v07" &&
+            find . -maxdepth 1 -type f ! -name archive.sha256 -printf '%f\n' | sort |
+              while read -r file; do sha256sum "$file"; done > archive.sha256 &&
+            sha256sum --check --strict archive.sha256)
+          echo RMC011_REAL_PROVIDER_OBSERVED_DOES_NOT_CERTIFY_NQC_ACCESS
+
+      - name: Preserve actual onchain external provider state / failure evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-real-external-v07-provider-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc011-external-v07/*.json
+            ${{ runner.temp }}/nqc011-external-v07/*.txt
+            ${{ runner.temp }}/nqc011-external-v07/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
