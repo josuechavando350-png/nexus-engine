@@ -3,6 +3,7 @@ name: NQC RMC-011 Family Discovery Evidence
 on:
   pull_request:
     paths:
+      - "ci/nqc-census/rmc011_discovery_test_fixtures.py"
       - "ci/nqc-census/test_verify_rmc011_audit_workflow_contract.py"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
@@ -21,6 +22,7 @@ on:
     branches:
       - "nqc/rmc-011-derived-authority-lock-20260930"
     paths:
+      - "ci/nqc-census/rmc011_discovery_test_fixtures.py"
       - "ci/nqc-census/test_verify_rmc011_audit_workflow_contract.py"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"

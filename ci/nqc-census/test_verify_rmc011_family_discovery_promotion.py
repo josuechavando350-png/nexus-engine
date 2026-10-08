@@ -5,7 +5,14 @@ import importlib.util
 import json
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+
+from rmc011_discovery_test_fixtures import (
+    CANONICAL_PATHS,
+    UNIVERSE_PATH,
+    admitted_state,
+    in_memory_scope,
+    pending_state,
+)
 
 MODULE_PATH = Path("ci/nqc-census/verify-rmc011-family-discovery-promotion.py")
 SPEC = importlib.util.spec_from_file_location("rmc011_family_discovery_promotion", MODULE_PATH)
@@ -13,32 +20,17 @@ assert SPEC is not None and SPEC.loader is not None
 mod = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(mod)
 
-UNIVERSE = json.loads(
-    Path("ci/nqc-census/rmc011-capital-source-universe.json").read_text()
-)
-SCOPE_PATH = Path("ci/nqc-census/capital-census-scope.json")
-ORIGINAL_READ_TEXT = Path.read_text
+UNIVERSE, SCOPE = pending_state()
+
+
+def validate_with_scope(doc: dict, scope: dict = SCOPE) -> dict:
+    with in_memory_scope(scope):
+        return mod.validate_document(doc)
 
 
 def validate_synthetic_complete_scope(doc: dict) -> dict:
-    """Test an in-memory FUTURE complete scope; never edit the canonical file.
-
-    The production scope truthfully claims incomplete D11. A simulated
-    complete document must carry a simulated complete scope to test the
-    real gate's downstream evidence conditions, without modifying the
-    repository on disk or relaxing the verifier.
-    """
-    def scoped_read_text(path: Path, *args, **kwargs) -> str:
-        original = ORIGINAL_READ_TEXT(path, *args, **kwargs)
-        if path == SCOPE_PATH:
-            scope = json.loads(original)
-            assert scope["claims"]["capital_source_universe_complete"] is False
-            scope["claims"]["capital_source_universe_complete"] = True
-            return json.dumps(scope)
-        return original
-
-    with patch.object(Path, "read_text", new=scoped_read_text):
-        return mod.validate_document(doc)
+    _, scope = admitted_state()
+    return validate_with_scope(doc, scope)
 
 
 def family_evidence(kind: str, index: int) -> dict:
@@ -71,30 +63,14 @@ def resolve_all(doc: dict) -> None:
 
 
 def promote_discovery(doc: dict) -> None:
-    head = "a" * 40
-    doc["family_universe_discovery"] = {
-        "status": "AUTHENTICATED_COMPLETE",
-        "terminal_requirement": "AUTHENTICATED_COMPLETE",
-        "evidence": {
-            "kind": "AUTHENTICATED_DISCOVERY",
-            "repository": mod.EXPECTED_REPOSITORY,
-            "workflow_name": mod.EXPECTED_WORKFLOW,
-            "run_id": 55555,
-            "head_sha": head,
-            "artifact_id": 66666,
-            "artifact_name": f"rmc011-family-discovery-{head}-55555-1",
-            "artifact_digest": "sha256:" + "b" * 64,
-            "file": "discovery-evidence.json",
-            "sha256": "c" * 64,
-        },
-    }
-    doc["status"] = "CAPITAL_SOURCE_UNIVERSE_COMPLETE"
-    doc["terminal_claim_allowed"] = True
+    admitted, _ = admitted_state()
+    for key in ("family_universe_discovery", "status", "terminal_claim_allowed"):
+        doc[key] = copy.deepcopy(admitted[key])
 
 
 class FamilyDiscoveryPromotionTests(unittest.TestCase):
-    def test_current_pending_discovery_reference_is_valid(self) -> None:
-        result = mod.validate_document(copy.deepcopy(UNIVERSE))
+    def test_explicit_pending_discovery_reference_is_valid(self) -> None:
+        result = validate_with_scope(copy.deepcopy(UNIVERSE))
         self.assertFalse(result["authenticated"])
         self.assertEqual(result["promotion_state"], "PENDING")
 
@@ -121,7 +97,7 @@ class FamilyDiscoveryPromotionTests(unittest.TestCase):
         doc["status"] = "BLOCKED_INCOMPLETE_SOURCE_UNIVERSE"
         doc["terminal_claim_allowed"] = False
         with self.assertRaisesRegex(ValueError, "every family terminally resolved"):
-            mod.validate_document(doc)
+            validate_with_scope(doc)
 
     def test_wrong_discovery_workflow_fails(self) -> None:
         doc = copy.deepcopy(UNIVERSE)
@@ -149,21 +125,36 @@ class FamilyDiscoveryPromotionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "artifact_name must bind the exact producing head"):
             validate_synthetic_complete_scope(doc)
 
-    def test_real_incomplete_scope_cannot_claim_auth_complete(self) -> None:
-        doc = copy.deepcopy(UNIVERSE)
-        resolve_all(doc)
-        promote_discovery(doc)
+    def test_pending_scope_cannot_claim_authenticated_complete(self) -> None:
+        doc, _ = admitted_state()
+        _, scope = pending_state()
         with self.assertRaisesRegex(ValueError, "capital_source_universe_complete=true in scope"):
-            mod.validate_document(doc)
-        self.assertFalse(json.loads(SCOPE_PATH.read_text())["claims"]["capital_source_universe_complete"])
+            validate_with_scope(doc, scope)
 
-    def test_synthetic_completion_never_changes_source_scope_bytes(self) -> None:
-        before = SCOPE_PATH.read_bytes()
-        doc = copy.deepcopy(UNIVERSE)
-        resolve_all(doc)
-        promote_discovery(doc)
-        validate_synthetic_complete_scope(doc)
-        self.assertEqual(SCOPE_PATH.read_bytes(), before)
+    def test_admitted_scope_cannot_claim_pending_discovery(self) -> None:
+        doc, _ = pending_state()
+        _, scope = admitted_state()
+        with self.assertRaisesRegex(
+            ValueError, "incomplete source universe cannot claim capital_source_universe_complete"
+        ):
+            validate_with_scope(doc, scope)
+
+    def test_live_canonical_discovery_reference_is_admitted(self) -> None:
+        doc = json.loads(UNIVERSE_PATH.read_text(encoding="utf-8"))
+        result = mod.validate_document(doc)
+        self.assertTrue(result["authenticated"])
+        self.assertEqual(result["promotion_state"], "AUTHENTICATED_REFERENCE_DECLARED")
+        self.assertEqual(result["file"], "discovery-evidence.json")
+        self.assertFalse(doc["d11_terminal_closed"])
+
+    def test_both_state_fixtures_never_change_canonical_bytes(self) -> None:
+        before = {path: path.read_bytes() for path in CANONICAL_PATHS}
+        for factory in (pending_state, admitted_state):
+            doc, scope = factory()
+            snapshot = copy.deepcopy((doc, scope))
+            validate_with_scope(doc, scope)
+            self.assertEqual((doc, scope), snapshot)
+        self.assertEqual({path: path.read_bytes() for path in CANONICAL_PATHS}, before)
 
 
 if __name__ == "__main__":

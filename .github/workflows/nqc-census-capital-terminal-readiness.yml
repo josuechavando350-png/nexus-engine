@@ -3,6 +3,9 @@ name: NQC RMC-011 Terminal Readiness
 on:
   pull_request:
     paths:
+      - "ci/nqc-census/rmc011_discovery_test_fixtures.py"
+      - "ci/nqc-census/rmc011_independent_discovery_admission.py"
+      - "ci/nqc-census/test_rmc011_independent_discovery_admission.py"
       - "ci/nqc-census/test_verify_rmc011_audit_workflow_contract.py"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
@@ -58,6 +61,9 @@ on:
     branches:
       - "nqc/rmc-011-derived-authority-lock-20260930"
     paths:
+      - "ci/nqc-census/rmc011_discovery_test_fixtures.py"
+      - "ci/nqc-census/rmc011_independent_discovery_admission.py"
+      - "ci/nqc-census/test_rmc011_independent_discovery_admission.py"
       - "ci/nqc-census/test_verify_rmc011_audit_workflow_contract.py"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
@@ -183,6 +189,30 @@ jobs:
           python3 ci/nqc-census/verify-rmc011-terminal-family-partition.py
           python3 -m py_compile ci/nqc-census/acquire_rmc011_balancer_v2.py ci/nqc-census/test_acquire_rmc011_balancer_v2.py
           python3 ci/nqc-census/test_acquire_rmc011_balancer_v2.py -v
+      - name: Independently authenticate original discovery archive and minimal admission
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          test "$REPOSITORY" = josuechavando350-png/nexus-engine
+          OUT="$RUNNER_TEMP/rmc011-discovery-admission"
+          mkdir -p "$OUT"
+          gh api "repos/$REPOSITORY/actions/runs/37841923756" > "$OUT/run.json"
+          gh api "repos/$REPOSITORY/actions/artifacts/11577503474" > "$OUT/artifact.json"
+          gh api "repos/$REPOSITORY/git/commits/377aca59a85abbccd57e4f1831973416b9399b83" > "$OUT/commit.json"
+          curl --fail --silent --show-error --location --retry 2 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            "https://api.github.com/repos/$REPOSITORY/actions/artifacts/11577503474/zip" \
+            -o "$OUT/original.zip"
+          python3 ci/nqc-census/test_rmc011_independent_discovery_admission.py \
+            --zip "$OUT/original.zip" --run "$OUT/run.json" \
+            --artifact "$OUT/artifact.json" --commit "$OUT/commit.json" -v
+          python3 ci/nqc-census/rmc011_independent_discovery_admission.py \
+            --zip "$OUT/original.zip" --run "$OUT/run.json" \
+            --artifact "$OUT/artifact.json" --commit "$OUT/commit.json" \
+            --report "$OUT/admission-report.json"
       - name: Enforce terminal claim boundary
         shell: bash
         env:
