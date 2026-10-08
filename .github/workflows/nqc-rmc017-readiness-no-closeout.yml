@@ -1,0 +1,121 @@
+name: NQC RMC-017 Immutable Source-Lock Readiness (NO CLOSEOUT)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc017-readiness-no-closeout.yml'
+      - 'ci/nqc-census/rmc017_source_lock_readiness.py'
+      - 'ci/nqc-census/test_rmc017_source_lock_readiness.py'
+      - 'ci/nqc-census/RMC017_REAL_TERMINAL_READINESS_CONTRACT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: rmc017-source-readiness-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  exact-authority-lock-readiness-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Authenticate original provider, terminal gate and D16 source identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 6a995b3c80704b587ac22da74b2bd9cb118101a3 HEAD
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/rmc011-capital-source-universe.json)" = 8f42e9ab127cc567409c20383de3fea4e3618e5f
+          test "$(git hash-object ci/nqc-census/rmc012-terminal-inputs.json)" = 5f2694c73568938099a62978476eae37a32db9bb
+          test "$(git hash-object ci/nqc-census/rmc013-terminal-inputs.json)" = 72b1e612732aec8118bed320bc4e55e9f206514d
+          test "$(git hash-object ci/nqc-census/rmc015-trigger-inputs.json)" = 6859795b3d976db4a5f7dd64ffb6eabcd4a7baad
+          test "$(git hash-object ci/nqc-census/rmc016-capacity-inputs.json)" = 7fec5200a97ed56cb07501af5f66b66cfcb758c6
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          test ! -f ci/nqc-census/rmc017-final-inputs.json
+          mkdir -p "$RUNNER_TEMP/nqc017-source-readiness"
+          sha256sum ci/nqc-census/rmc017_source_lock_readiness.py \
+                    ci/nqc-census/test_rmc017_source_lock_readiness.py \
+                    ci/nqc-census/RMC017_REAL_TERMINAL_READINESS_CONTRACT.md \
+                    > "$RUNNER_TEMP/nqc017-source-readiness/new-producer-source.sha256"
+          echo RMC017_EIGHT_SOURCE_LOCKS_PINNED_AS_INPUTS_NOT_CERTIFIED_AS_STAGES
+
+      - name: Run current-source negative regressions without provider/account access
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc017_source_lock_readiness.py
+          python3 -m py_compile ci/nqc-census/rmc017_source_lock_readiness.py
+          echo RMC017_REAL_SOURCE_NEGATIVE_READINESS_TESTS_PASS
+
+      - name: Reauthenticate separate original RMC-017 foundation lock at exact prior PR head
+        shell: bash
+        run: |
+          set -euo pipefail
+          original=eda95cbb90aa12ae69a13b4fbc41f1e0b9cba2a3
+          blob=3cf64b2bdfb9891033850683d8aecf056612d4cb
+          # The original closeout foundation is a different PR branch; do NOT
+          # misstate that its source lock is merged into this branch.
+          gh api "repos/$GITHUB_REPOSITORY/git/blobs/$blob" |
+            jq -r .content | tr -d '\n' | base64 --decode \
+            > "$RUNNER_TEMP/nqc017-source-readiness/original-d17-foundation.json"
+          test "$(git hash-object "$RUNNER_TEMP/nqc017-source-readiness/original-d17-foundation.json")" = "$blob"
+          gh api "repos/$GITHUB_REPOSITORY/commits/$original" |
+            jq -e '.sha=="eda95cbb90aa12ae69a13b4fbc41f1e0b9cba2a3"' >/dev/null
+          jq -e '.status=="BLOCKED_AWAITING_RMC014_RMC015_RMC016" and
+                 .real_market_census_closed==false and
+                 .rmc014==null and .rmc015==null and .rmc016==null and
+                 (.blocking_reasons|length)==3' \
+            "$RUNNER_TEMP/nqc017-source-readiness/original-d17-foundation.json" >/dev/null
+          echo RMC017_SEPARATE_UNMERGED_FOUNDATION_ORIGINAL_SOURCE_AUTHENTICATED
+
+      - name: Publish exact negative structural, temporal, capital and capacity readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/nqc017-source-readiness/real-authority-readiness.json"
+          python3 ci/nqc-census/rmc017_source_lock_readiness.py \
+            --repo-root "$GITHUB_WORKSPACE" \
+            --d17-source-file "$RUNNER_TEMP/nqc017-source-readiness/original-d17-foundation.json" \
+            --out "$out"
+          jq -e '.status=="RMC017_READINESS_EVIDENCE_BLOCKED_NO_TERMINAL_CERTIFICATE" and
+                 .rmc011_required_capital_families==13 and
+                 .rmc011_terminally_resolved_families==0 and
+                 .rmc011_approved_external_providers==0 and
+                 .rmc011_global_external_provider_nonexistence_proven==false and
+                 .rmc012_terminal_authority_obtained==false and
+                 .rmc013_complete_execution_economics_authority_obtained==false and
+                 .rmc014_required_structural_stages==8 and
+                 .rmc014_structural_stage_pins_in_canonical_source_lock==0 and
+                 .rmc015_temporal_authority_pinned==false and
+                 .rmc015_historical_window_declared==false and
+                 .rmc016_pre_shadow_conservative_model_report_pass==true and
+                 .rmc016_127_historical_competitor_receipts_observed==127 and
+                 .rmc016_nqc_ex_ante_capture_probability_calibrated==false and
+                 .rmc016_conservative_nqc_monthly_capacity_usd_wad=="0" and
+                 .rmc017_ready_for_terminal_certificate==false and
+                 .engineering_percentage_certifiable_from_these_locks==false and
+                 .nqc_zero_owned_capital_production_liquidation_authorized==false and
+                 .nqc_realized_profitability_proven==false and
+                 .real_market_census_closed==false' "$out" >/dev/null
+          (cd "$RUNNER_TEMP/nqc017-source-readiness" &&
+            sha256sum original-d17-foundation.json real-authority-readiness.json new-producer-source.sha256 > archive.sha256 &&
+            sha256sum --check --strict archive.sha256)
+          echo RMC017_TERMINAL_CENSUS_NOT_CLOSED_SOURCE_READINESS_NOT_PERCENTAGE
+
+      - name: Preserve real original source lock diagnostic without terminal authority
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc017-source-lock-readiness-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc017-source-readiness/*.json
+            ${{ runner.temp }}/nqc017-source-readiness/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
