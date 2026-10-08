@@ -183,12 +183,26 @@ def scan_d08_tokens(archive,required):
                      "D08 inconsistent token blocker contract")
                 statuses[status]+=1
                 if address in required:
-                    need(address not in found,"required token duplicated in D08")
-                    found[address]=compatibility
+                    roles=row.get("roles")
+                    need(type(roles) is list and all(type(x) is str for x in roles),
+                         "required source token roles malformed")
+                    if roles==["AAVE_RESERVE_UNDERLYING"]:
+                        family="AAVE_RESERVE_UNDERLYING"
+                    elif roles in (["V2_TOKEN0"],["V2_TOKEN1"],["V2_TOKEN0","V2_TOKEN1"]):
+                        family="UNISWAP_V2_TOKEN"
+                    else:
+                        raise ValueError("unexpected required token source role")
+                    family_observations=found.setdefault(address,{})
+                    need(family not in family_observations,
+                         "duplicate token source-family record, not a valid independent surface")
+                    family_observations[family]=compatibility
     need(h.hexdigest()==D08_TOKEN_SHA and count==EXPECTED_D08_TOKENS
          and statuses=={"BLOCKED":EXPECTED_D08_TOKENS}
-         and set(found)==required,
-         "original D08 immutable 514279-token admission evidence drift")
+         and set(found)==required
+         and all("AAVE_RESERVE_UNDERLYING" in x for x in found.values())
+         and sum("UNISWAP_V2_TOKEN" in x for x in found.values())==32
+         and sum(len(x) for x in found.values())==75,
+         "original D08 immutable 514279-token admission/source-family conservation drift")
     return found,statuses,h.hexdigest()
 
 
@@ -199,11 +213,20 @@ def summarize(required,debt_counts,collateral_counts,gross,found,statuses):
          "root-cause input conservation")
     blocker_types=Counter()
     weighted=Counter()
+    v2_types=Counter()
     rows=[]
     for token in sorted(required):
-        c=found[token]
+        surface=found[token]
+        need(type(surface) is dict and "AAVE_RESERVE_UNDERLYING" in surface,
+             "Aave reserve admission surface missing")
+        c=surface["AAVE_RESERVE_UNDERLYING"]
         need(c["status"]=="BLOCKED" and len(c["blockers"])>0,
-             "underlying source unexpectedly promoted")
+             "underlying Aave source unexpectedly promoted")
+        v2=surface.get("UNISWAP_V2_TOKEN")
+        if v2 is not None:
+            need(v2["status"]=="BLOCKED" and len(v2["blockers"])>0,
+                 "historical V2 token compatibility unexpectedly promoted")
+            v2_types.update(v2["blockers"])
         debt=debt_counts[token]
         collateral=collateral_counts[token]
         for name in c["blockers"]:
@@ -212,8 +235,10 @@ def summarize(required,debt_counts,collateral_counts,gross,found,statuses):
         rows.append({"token_address":token,
                      "actionable_debt_candidate_count":debt,
                      "actionable_collateral_candidate_count":collateral,
-                     "source_execution_status":"BLOCKED",
-                     "source_blocker_codes":sorted(c["blockers"]),
+                     "aave_reserve_source_execution_status":"BLOCKED",
+                     "aave_reserve_source_blocker_codes":sorted(c["blockers"]),
+                     "distinct_additional_uniswap_v2_observation":v2 is not None,
+                     "v2_source_blocker_codes":sorted(v2["blockers"]) if v2 is not None else [],
                      "nqc_execution_eligible":False})
     top=sorted((r for r in rows if r["actionable_debt_candidate_count"]>0),
                key=lambda r:(-r["actionable_debt_candidate_count"],r["token_address"]))
@@ -237,7 +262,13 @@ def summarize(required,debt_counts,collateral_counts,gross,found,statuses):
         "collateral_underlying_count":len(collateral_counts),
         "distinct_required_underlying_count":len(required),
         "required_underlying_source_status":"ALL_BLOCKED_NOT_ADMITTED",
+        "source_role_d08_required_aave_rows":len(found),
+        "source_role_d08_required_uniswap_v2_rows":sum(
+            "UNISWAP_V2_TOKEN" in x for x in found.values()),
+        "source_role_d08_required_total_rows":sum(len(x) for x in found.values()),
+        "source_role_comparison_not_token_deduplication":True,
         "required_asset_blocker_frequency":dict(sorted(blocker_types.items())),
+        "additional_v2_source_blocker_frequency":dict(sorted(v2_types.items())),
         "debt_candidate_weighted_blocker_frequency":dict(sorted(weighted.items())),
         "top_debt_asset_tiers":top[:12],
         "positive_arithmetic_oracle_spread_pairs":sum(g>0 for g in gross),
@@ -252,7 +283,7 @@ def summarize(required,debt_counts,collateral_counts,gross,found,statuses):
         "nexus_executable_trades_proven":False,
         "nexus_net_profitability_proven":False,
         "real_market_census_closed":False,
-        "reason_classification_limit":"EXECUTION_BLOCKED indicates sufficient nominal but non-execution-eligible observed source, not proof that a specific token blocker is the unique rejection cause; exact route-level root cause still requires source allocation witnesses.",
+        "reason_classification_limit":"EXECUTION_BLOCKED indicates adequate nominal but non-execution-eligible observed source; Aave-reserve and V2 token evidences have been kept separate. No specific token blocker can be asserted as the sole rejection cause without source allocation witnesses.",
     }
 
 
