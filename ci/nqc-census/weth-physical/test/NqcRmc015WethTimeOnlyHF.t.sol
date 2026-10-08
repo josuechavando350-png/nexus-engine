@@ -23,7 +23,7 @@ interface IAaveRmc015AccountRisk {
 }
 
 /// @notice Fork-only strictly TIME-ONLY beginning-of-winner-block Aave risk.
-//// @dev The borrower was chosen RETROSPECTIVELY from its winning transaction.
+/// @dev The borrower was chosen RETROSPECTIVELY from its winning transaction.
 ///      Only vm.roll and vm.warp are used: no original intra-block transactions,
 ///      oracle writes, token transfers, capital, native gas funding or live trade.
 contract NqcRmc015WethTimeOnlyHfForkTest {
@@ -54,7 +54,9 @@ contract NqcRmc015WethTimeOnlyHfForkTest {
         (
             uint256 collateralBefore,
             uint256 debtBefore,
-            ,,,
+            uint256 availableBefore,
+            uint256 thresholdBefore,
+            uint256 ltvBefore,
             uint256 hfBefore
         ) = IAaveRmc015AccountRisk(AAVE_POOL).getUserAccountData(borrower);
 
@@ -70,12 +72,20 @@ contract NqcRmc015WethTimeOnlyHfForkTest {
         (
             uint256 collateralAfter,
             uint256 debtAfter,
-            ,,,
+            uint256 availableAfter,
+            uint256 thresholdAfter,
+            uint256 ltvAfter,
             uint256 hfAfter
         ) = IAaveRmc015AccountRisk(AAVE_POOL).getUserAccountData(borrower);
 
         require(block.number == winner && block.timestamp == winnerTimestamp,
                 "TIME_ONLY_EVM_CONTEXT_MISMATCH");
+        // Aave risk parameters may change only as calculated values with time,
+        // not because the fixture calls user-triggered state writes.
+        require(thresholdBefore <= 10_000 && thresholdAfter <= 10_000 &&
+                ltvBefore <= 10_000 && ltvAfter <= 10_000 &&
+                availableBefore <= type(uint256).max && availableAfter <= type(uint256).max,
+                "ACCOUNT_DATA_FORMAT_INVALID");
         require(collateralAfter > 0 && debtAfter > 0 && hfAfter > 0,
                 "TIME_ONLY_ACCOUNT_DATA_UNAVAILABLE");
 
