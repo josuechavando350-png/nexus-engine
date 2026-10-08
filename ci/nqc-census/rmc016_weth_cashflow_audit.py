@@ -155,8 +155,8 @@ def calculate(legs, receipts, price_rows):
     for leg in legs:
         key = (leg["collateral_asset"], leg["debt_asset"])
         pair_counts[key] = pair_counts.get(key, 0) + 1
-    require(len(by) == 7 and sum(map(len, by.values())) == 7,
-            "source must contain exactly seven WETH/WETH winner events: observed "
+    require(len(by) == 9 and sum(map(len, by.values())) == 9,
+            "source must contain exactly nine WETH/WETH winner events: observed "
             + str(sum(map(len, by.values()))) + " events / " + str(len(by))
             + " tx; WETH collateral events " +
             str(sum(v for (c, d), v in pair_counts.items() if c == WETH))
@@ -193,7 +193,11 @@ def calculate(legs, receipts, price_rows):
             "direct_liquid_weth_collateral_unproven": any(x["receive_a_token"] for x in group),
             "historical_competitor_gas_not_nexus_gas": True,
             "fully_executable_by_nexus": False,
+            "positive_after_historical_competitor_gas": after_gas > 0,
+            "positive_after_hypothetical_5bps": remaining > 0,
         })
+    require(sum(r["positive_after_historical_competitor_gas"] for r in rows) == 7,
+            "actual raw source must contain seven historical WETH/WETH positive-after-winner-gas transactions")
     rows.sort(key=lambda r: (-int(r["collateral_minus_debt_minus_winner_gas_wei"]),
                              r["transaction_hash"]))
     require(tuple(x["transaction_hash"] for x in rows[:2]) == TOP_TWO,
@@ -265,8 +269,11 @@ def audit(event_zip, receipt_zip, legs_zip, price_zip):
                                   "raw_legs": LEGS_SHA, "preblock_price": PRICE_SHA},
         "historical_winner_transactions": 127,
         "historical_liquidation_events": 139,
-        "historical_weth_weth_winner_transactions": 7,
-        "all_seven_weth_weth_records": records,
+        "historical_weth_weth_winner_transactions": 9,
+        "historical_weth_weth_positive_after_competitor_gas_transactions": 7,
+        "historical_positive_after_hypothetical_5bps_transactions": sum(
+            r["positive_after_hypothetical_5bps"] for r in records),
+        "all_nine_weth_weth_records": records,
         "retrospective_top_two_transaction_hashes": list(TOP_TWO),
         "conditional_two_winner_reference_usd_wad_sum": str(sum(
             int(r["preblock_usd_wad_conditional_cost_budget"]) for r in selected)),
@@ -301,7 +308,7 @@ def main():
     out = audit(args.event_zip, args.receipt_zip, args.legs_zip, args.price_zip)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_bytes(canonical(out))
-    print(out["status"], "observed_weth_weth_tx", 7,
+    print(out["status"], "observed_weth_weth_tx", 9, "positive_after_winner_gas", 7,
           "two_historical_winner_conditional_reference_usd_wad",
           out["conditional_two_winner_reference_usd_wad_sum"],
           "nexus_monthly_net_UNPROVEN")
