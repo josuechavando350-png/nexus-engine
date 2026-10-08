@@ -111,18 +111,25 @@ def create(
     require(len(records) == expected, "D12 actionability records incomplete")
     require(len(promotions) == admitted, "D12 capital promotion records incomplete")
     admitted_ids: set[str] = set()
-    seen_record_keys: set[str] = set()
+    seen_pairs: set[str] = set()
     rejected_count = 0
     for row in records:
-        candidate = row.get("candidate_id")
-        require(isinstance(candidate, str) and re.fullmatch(r"[0-9a-f]{64}", candidate) is not None,
-                "D12 record candidate id invalid")
-        require(candidate not in seen_record_keys, "D12 duplicate candidate")
-        seen_record_keys.add(candidate)
+        pair_id = row.get("pair_id")
+        require(isinstance(pair_id, str) and re.fullmatch(r"[0-9a-f]{64}", pair_id) is not None,
+                "D12 pair id invalid")
+        require(pair_id not in seen_pairs, "D12 duplicate pair")
+        seen_pairs.add(pair_id)
         if row.get("status") == "ADMITTED":
+            candidate = row.get("candidate_id")
+            require(isinstance(candidate, str) and re.fullmatch(r"[0-9a-f]{64}", candidate) is not None,
+                    "D12 admitted candidate id invalid")
+            require(candidate not in admitted_ids, "D12 duplicate admitted candidate")
             admitted_ids.add(candidate)
         else:
             require(row.get("status") == "REJECTED", "D12 record unclassified")
+            reason = row.get("reason")
+            require(isinstance(reason, str) and reason and reason != "UNKNOWN",
+                    "D12 unclassified actionability rejection")
             rejected_count += 1
     require(len(admitted_ids) == admitted and rejected_count == rejected, "D12 actionability classification differs")
     seen_promotions: set[str] = set()
