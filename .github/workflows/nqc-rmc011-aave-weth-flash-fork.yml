@@ -197,7 +197,7 @@ jobs:
               "gas_or_mev_costs_and_collision_modeled":False,
               "nexus_realized_net_pnl_proven":False,
               "d08_token_status_changed":False,
-              "rcc011_terminal_closed":False,
+              "rmc011_terminal_closed":False,
               "real_market_census_closed":False,
               "original_source_sha256":sha("original-sources.sha256"),
               "tested_formatted_source_sha256":sha("formatted-executed-sources.sha256"),
