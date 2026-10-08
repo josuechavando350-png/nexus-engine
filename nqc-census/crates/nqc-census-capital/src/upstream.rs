@@ -212,7 +212,7 @@ pub(crate) fn token_execution_blockers(
 ) -> Result<BTreeMap<Address, Vec<String>>, CapitalError> {
     let raw = std::str::from_utf8(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("D08 token JSONL is not UTF-8"))?;
-    let mut tokens = BTreeMap::new();
+    let mut tokens: BTreeMap<Address, Vec<String>> = BTreeMap::new();
     let mut original_row_sha256: BTreeMap<Address, [u8; 32]> = BTreeMap::new();
     for line in raw.lines().filter(|line| !line.trim().is_empty()) {
         // Stream the certified token manifest row-by-row; do not materialize
