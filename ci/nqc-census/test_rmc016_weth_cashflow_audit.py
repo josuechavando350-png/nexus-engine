@@ -25,7 +25,7 @@ def corpus():
         if i < 2:
             debt, gas, after = m.HISTORICAL_EXPECTED[i]
         else:
-            debt, gas, after = 10**18, 10**14, (7 - i) * 10**12
+            debt, gas, after = 10**18, 10**14, (81693946535782254 if i == 2 else (10 - i) * 10**12)
         collateral = debt + gas + after
         receipt[tx] = {"block_number": block, "block_hash": hashval,
                        "total_gas_paid_wei": str(gas)}
@@ -62,13 +62,14 @@ def corpus():
 
 
 class HistoricalWethAuditTest(unittest.TestCase):
-    def test_nine_rows_seven_positive_after_gas_and_two_historical_prices(self):
+    def test_nine_positive_after_gas_and_first_third_historical_price_ranks(self):
         rows, receipts, prices = corpus()
         answer = m.calculate(rows, receipts, prices)
         self.assertEqual(len(answer), 9)
-        self.assertEqual(sum(r["positive_after_historical_competitor_gas"] for r in answer), 7)
-        self.assertEqual(sum(not r["positive_after_historical_competitor_gas"] for r in answer), 2)
-        self.assertEqual([r["transaction_hash"] for r in answer[:2]], list(m.TOP_TWO))
+        self.assertEqual(sum(r["positive_after_historical_competitor_gas"] for r in answer), 9)
+        self.assertEqual(answer[0]["transaction_hash"], m.TOP_TWO[0])
+        self.assertEqual(answer[2]["transaction_hash"], m.TOP_TWO[1])
+        self.assertEqual(answer[2]["historical_after_gas_rank_in_nine"], 3)
         self.assertEqual(int(answer[0]["collateral_minus_debt_minus_winner_gas_wei"]),
                          96136430295441074)
         self.assertTrue(answer[0]["fully_executable_by_nexus"] is False)
@@ -111,7 +112,7 @@ class HistoricalWethAuditTest(unittest.TestCase):
     def test_retroactive_winner_selection_cannot_change(self):
         rows, receipts, prices = corpus()
         rows[4]["collateral_liquidated_raw"] = str(100 * m.WEI)
-        with self.assertRaisesRegex(ValueError, "retrospective top-two"):
+        with self.assertRaisesRegex(ValueError, "rank 1 and rank 3"):
             m.calculate(rows, receipts, prices)
 
     def test_false_two_operator_claim_rejected(self):
