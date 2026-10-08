@@ -3,6 +3,7 @@ name: NQC RMC-011 Terminal Readiness
 on:
   pull_request:
     paths:
+      - "ci/nqc-census/test_verify_rmc011_audit_workflow_contract.py"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
       - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
@@ -57,6 +58,7 @@ on:
     branches:
       - "nqc/rmc-011-derived-authority-lock-20260930"
     paths:
+      - "ci/nqc-census/test_verify_rmc011_audit_workflow_contract.py"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
       - "ci/nqc-census/rmc011-execution-plan-requirement-catalog.json"
@@ -133,6 +135,10 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXACT_HEAD"
+      - name: Validate audit workflow contract
+        shell: bash
+        run: python3 ci/nqc-census/test_verify_rmc011_audit_workflow_contract.py -v
+
       - name: Validate D11 source-universe truth
         run: |
           python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
@@ -221,7 +227,7 @@ jobs:
               ]))
           PY
 
-            while IFS=\t' read -r label repository workflow_name run_id head_sha artifact_id artifact_name artifact_digest evidence_file evidence_sha; do
+            while IFS=$'\t' read -r label repository workflow_name run_id head_sha artifact_id artifact_name artifact_digest evidence_file evidence_sha; do
               test "$repository" = "$REPOSITORY"
 
               run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"

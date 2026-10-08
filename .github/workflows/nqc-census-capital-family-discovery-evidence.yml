@@ -3,6 +3,7 @@ name: NQC RMC-011 Family Discovery Evidence
 on:
   pull_request:
     paths:
+      - "ci/nqc-census/test_verify_rmc011_audit_workflow_contract.py"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
@@ -20,6 +21,7 @@ on:
     branches:
       - "nqc/rmc-011-derived-authority-lock-20260930"
     paths:
+      - "ci/nqc-census/test_verify_rmc011_audit_workflow_contract.py"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
@@ -64,6 +66,10 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$EXACT_HEAD"
           test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Validate audit workflow contract
+        shell: bash
+        run: python3 ci/nqc-census/test_verify_rmc011_audit_workflow_contract.py -v
 
       - name: Derive family discovery readiness
         id: readiness
@@ -232,7 +238,7 @@ jobs:
         if: steps.readiness.outputs.ready == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: rmc011-family-discovery-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: rmc011-family-discovery-${{ env.EXACT_HEAD }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/rmc011-family-discovery-evidence/
           if-no-files-found: error
           retention-days: 90
