@@ -1,0 +1,90 @@
+name: NQC RMC-015 Causal Borrower Cohort and Historical Forward Holdout
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc015-causal-borrow-cohort.yml'
+      - 'ci/nqc-census/rmc015_causal_borrow_cohort.py'
+      - 'ci/nqc-census/test_rmc015_causal_borrow_cohort.py'
+      - 'ci/nqc-census/RMC015_CAUSAL_BORROW_COHORT_CONTRACT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nqc-causal-cohort-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  freeze-features-before-next-block-labels:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Immutable original protocol, historical source and own-capital boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor a2e7efd233682efc051c1ace4284c9a8156d9c77 HEAD
+          test "$(git hash-object ci/nqc-census/rmc016_probe_historical_rpc.py)" = a53b49abe988d365a16c3317fa7ae974f5595e01
+          test "$(git hash-object ci/nqc-census/rmc016_rank1_preblock_health.py)" = 140899c4bbeff5e4227a6619ed78418cd7de4e4f
+          test "$(git hash-object ci/nqc-census/rmc016_rank1_prestate_probe.py)" = b5f59dc5a3ba242db539458c91ebd740bcaaec9d
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          jq -e '.provider_count==0 and .providers==[] and .status=="DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE"' ci/nqc-census/rmc011-external-capital-provider-registry.json >/dev/null
+          mkdir -p "$RUNNER_TEMP/nqc015-causal-cohort"
+          sha256sum ci/nqc-census/rmc015_causal_borrow_cohort.py \
+                    ci/nqc-census/test_rmc015_causal_borrow_cohort.py \
+                    ci/nqc-census/RMC015_CAUSAL_BORROW_COHORT_CONTRACT.md \
+            > "$RUNNER_TEMP/nqc015-causal-cohort/new-source.sha256"
+          echo NQC_CAUSAL_COHORT_IMMUTABLE_SOURCE_IDENTITIES_PASS
+      - name: Offline adversarial strict as-of tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc015_causal_borrow_cohort.py
+          python3 -m py_compile ci/nqc-census/rmc015_causal_borrow_cohort.py
+          echo NQC_CAUSAL_COHORT_ASOF_NEGATIVE_TESTS_PASS
+      - name: Execute decision-block-frozen Borrow events and separate real successor labels
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/nqc015-causal-cohort/real-causal-forward-cohort.json"
+          python3 ci/nqc-census/rmc015_causal_borrow_cohort.py --out "$out"
+          jq -e '
+            .status=="RMC015_PREWINNER_BORROW_COHORT_CAUSAL_HOLDOUT_OBSERVED_NOT_PNL" and
+            .decision_block_number==25938047 and
+            .next_label_block_number==25938048 and
+            .source_selection=="ONLY_BORROW_LOGS_IN_512_BLOCKS_ENDING_BEFORE_HOLDOUT" and
+            .independent_operator_feature_consensus==true and
+            .independent_operator_holdout_label_consensus==true and
+            (.operator_features|length)==2 and
+            (.operator_holdout_evidence|length)==2 and
+            .source_features.source_retrospectively_chosen_winners_in_input==false and
+            .signal_discovery_uses_future_winner_knowledge==false and
+            .study_was_designed_with_prior_knowledge_of_this_historical_winner_block==true and
+            .unbiased_ex_ante_out_of_sample_validation_complete==false and
+            .historical_cohort_coverage_complete==false and
+            .next_block_liquidation_match_proves_capture==false and
+            .nqc_revenue_or_income_found==false and
+            .nqc_capital_zero_external_gas_authorized==false and
+            .rmc015_terminal_authority_obtained==false and
+            .real_market_census_closed==false and
+            (.holdout_borrowers_present_in_causal_recent_borrow_cohort+
+             .holdout_borrowers_absent_from_causal_recent_borrow_cohort)==
+              .observed_holdout_unique_liquidated_borrowers
+          ' "$out" >/dev/null
+          (cd "$RUNNER_TEMP/nqc015-causal-cohort" &&
+            sha256sum real-causal-forward-cohort.json new-source.sha256 > evidence-manifest.sha256 &&
+            sha256sum --check --strict evidence-manifest.sha256)
+          echo NQC_REAL_ASOF_COHORT_VS_FUTURE_LABELS_PASS_NO_CAPTURE_OR_REVENUE_AUTHORITY
+      - name: Preserve genuine read-only historical evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc015-causal-historical-cohort-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc015-causal-cohort/*.json
+            ${{ runner.temp }}/nqc015-causal-cohort/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
