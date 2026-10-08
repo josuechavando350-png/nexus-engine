@@ -50,7 +50,7 @@ def check_log(log,lo,hi):
          and nums[2]>0 and nums[2] <2**160,
          "invalid integer Aave liquidation amounts/actor/receiveAToken")
     bn=source.inthex(log.get("blockNumber"),"block")
-    need(lo<=bn<=hi,"eth_getLogs emitted event out of requested range")
+    need(lo<=bn<=hi,"eth_getLogs event outside requested range")
     tx=log.get("transactionHash")
     bh=log.get("blockHash")
     need(type(tx) is str and HEX32.fullmatch(tx.lower()) is not None and
@@ -109,6 +109,11 @@ def fetch_one(provider,source_members,*,call=rpc):
     need(all(blocks[r["block"]]["hash"]==r["block_hash"] for r in results),
          "Aave event's historical block hash disagrees with canonical header")
     results.sort(key=lambda x:(x["block"],x["tx_index"],x["log_index"],x["tx"]))
+    tx_to_block={}
+    for row in results:
+        earlier=tx_to_block.setdefault(row["tx"],row["block_hash"])
+        need(earlier==row["block_hash"],
+             "one real transaction hash cannot appear in multiple canonical blocks")
     # The FULL public outcome commitment includes normalized all-Aave
     # LiquidationCalls, not just our conveniently matched shortlist.
     digest=source.sha(b"".join(source.canonical(x) for x in results))
