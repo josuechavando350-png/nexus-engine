@@ -24,6 +24,7 @@ SOURCE_ARTIFACT_ID = 11524139188
 DRPC_CHECKPOINT_SHA256 = "182b5e81b00ca04e53c9193c1496a725dc152ade9a17d3ab2dfaeb5045ac86b6"
 DRPC_CHECKPOINT_RUN_ID = 37719091371
 DRPC_CHECKPOINT_ARTIFACT_ID = 11524199698
+DRPC_EXPECTED_GAS_WEI = 448369976498898050
 CHECKPOINT_MEMBERS = {
     "archive.sha256", "receipt-parity-report.json", "verified-drpc-receipts.jsonl"
 }
@@ -118,7 +119,7 @@ def authenticated_drpc_checkpoint(path: Path, source_zip: Path):
          "source's 127 receipts not completely present in dRPC checkpoint")
     need([json.loads(line)["transaction_hash"] for line in lines.splitlines()] == tids,
          "dRPC checkpoint not sorted by exact source transaction identities")
-    need(sum(int(x["total_gas_paid_wei"]) for x in rows.values()) == 448369976498898050,
+    need(sum(int(x["total_gas_paid_wei"]) for x in rows.values()) == DRPC_EXPECTED_GAS_WEI,
          "source dRPC partial-run gas conservation differs from expected immutable checkpoint")
     return rows, event_rows, tids
 
