@@ -17,6 +17,12 @@ FAMILIES = {
 EXPECTED_REPOSITORY = "josuechavando350-png/nexus-engine"
 EXPECTED_WORKFLOW = "NQC RMC-011 Real Source Certification"
 EXPECTED_ARTIFACT_PREFIX = "rmc011-real-source-certification-"
+ORIGINAL_FOUR_WORKFLOW = "NQC RMC-011 Four Native Source Witness Producer (NOT D11 CLOSE)"
+ORIGINAL_FOUR_ARTIFACT_PREFIX = "rmc011-four-native-source-certification-"
+ALLOWED_PRODUCERS = {
+    EXPECTED_WORKFLOW: EXPECTED_ARTIFACT_PREFIX,
+    ORIGINAL_FOUR_WORKFLOW: ORIGINAL_FOUR_ARTIFACT_PREFIX,
+}
 TERMINAL = {
     "AUTHENTICATED_REAL_SOURCE": "AUTHENTICATED_REAL_SOURCE",
     "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE": "EXHAUSTIVE_REJECTION",
@@ -78,7 +84,8 @@ def validate_document(doc: dict) -> dict:
         require(isinstance(evidence, dict), f"{family}: resolution_evidence missing")
         require(evidence.get("kind") == expected_kind, f"{family}: evidence kind differs")
         require(evidence.get("repository") == EXPECTED_REPOSITORY, f"{family}: repository differs")
-        require(evidence.get("workflow_name") == EXPECTED_WORKFLOW, f"{family}: workflow differs")
+        workflow = evidence.get("workflow_name")
+        require(workflow in ALLOWED_PRODUCERS, f"{family}: workflow differs")
 
         run_id = evidence.get("run_id")
         artifact_id = evidence.get("artifact_id")
@@ -93,8 +100,9 @@ def validate_document(doc: dict) -> dict:
         require(isinstance(head_sha, str) and HEX40.fullmatch(head_sha) is not None, f"{family}: head invalid")
         require(
             isinstance(artifact_name, str)
-            and artifact_name.startswith(EXPECTED_ARTIFACT_PREFIX)
-            and head_sha in artifact_name,
+            and artifact_name.startswith(ALLOWED_PRODUCERS[workflow])
+            and head_sha in artifact_name
+            and f"-{run_id}-" in artifact_name,
             f"{family}: artifact name does not bind exact head",
         )
         require(
