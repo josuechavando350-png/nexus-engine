@@ -3,7 +3,7 @@ name: NQC RMC-016 Immutable Blockscout Receipt Batches
 on:
   push:
     branches:
-      - nqc/rmc016-blockscout-batch-checkpoint-20261008
+      - nqc/rmc016-blockscout-batch02-20261008
   pull_request:
     paths:
       - ci/nqc-census/rmc016_resume_blockscout_batch.py
@@ -90,12 +90,12 @@ jobs:
             11524199698 rmc016-dual-winner-receipts-569d4aaeecb3d066389c054efed695be02e3ef40 \
             182b5e81b00ca04e53c9193c1496a725dc152ade9a17d3ab2dfaeb5045ac86b6 \
             "$RUNNER_TEMP/rmc016-sources/drpc.zip"
-          auth 37720137160 7ec0f23fb7e114c6ac6d873bdb2889f309c2ac50 \
-            3b5f24cee08806403243885e90f662ee75784a85 \
-            'NQC RMC-016 Independent Winner Receipt Continuation' failure \
-            11525810815 rmc016-resumed-independent-receipts-7ec0f23fb7e114c6ac6d873bdb2889f309c2ac50 \
-            b64e15fde2112efa32564a224dbf38b2b338bda35d2aefc68c0cb78b3f6339da \
-            "$RUNNER_TEMP/rmc016-sources/blockscout10.zip"
+          auth 37721062634 264dd05e346a3b2fe65d4022f4fccaf7f966c312 \
+            11ebf1d196e66e9f978a0e85043f4b85bf5c414b \
+            'NQC RMC-016 Immutable Blockscout Receipt Batches' success \
+            11525961944 rmc016-blockscout-batch-264dd05e346a3b2fe65d4022f4fccaf7f966c312 \
+            8ffc179a69f535c47035d5d4ef6201a44e56956ec7dbbed125f0729aa264f7ce \
+            "$RUNNER_TEMP/rmc016-sources/blockscout16.zip"
           echo RMC016_PREVIOUS_FAILURE_EVIDENCE_EXACTLY_AUTHENTICATED
       - name: Resume only six NEW Blockscout receipts at explicit public-provider pace
         shell: bash
@@ -104,15 +104,15 @@ jobs:
           python3 ci/nqc-census/rmc016_resume_blockscout_batch.py \
             --source-zip "$RUNNER_TEMP/rmc016-sources/source.zip" \
             --drpc-zip "$RUNNER_TEMP/rmc016-sources/drpc.zip" \
-            --prior-blockscout-zip "$RUNNER_TEMP/rmc016-sources/blockscout10.zip" \
+            --prior-blockscout-zip "$RUNNER_TEMP/rmc016-sources/blockscout16.zip" \
             --max-new 6 --min-interval 7 \
             --out "$RUNNER_TEMP/rmc016-blockscout-batch"
           report="$RUNNER_TEMP/rmc016-blockscout-batch/receipt-parity-report.json"
           jq -e '
             .status == "RMC016_SECOND_OPERATOR_BATCH_CHECKPOINT_PARTIAL" and
-            .prior_receipt_count == 10 and
+            .prior_receipt_count == 16 and
             .new_receipt_count >= 1 and .new_receipt_count <= 6 and
-            .verified_receipt_count == (10 + .new_receipt_count) and
+            .verified_receipt_count == (16 + .new_receipt_count) and
             .remaining_receipt_count == (127 - .verified_receipt_count) and
             .all_127_receipts_cross_operator_reconciled == false and
             .nexus_realized_pnl_proven == false and
