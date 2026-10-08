@@ -103,10 +103,25 @@ def source_fixture(path,report=None,*,invalid=False,duplicate=False,manifest_los
     return m.sha256(path.read_bytes()),report["report_sha256"]
 
 
+def sample_sponsor_module():
+    return (b'const DELIVERY: &str = "PRE_EXECUTION_NATIVE_GAS_TO_BORROWER_NO_OPERATOR_PREFUND_V1";\n'
+            b'if operator_prefund_required {\n'
+            b'provider_observations\n')
+
+
+def sample_credit_module():
+    return (b'const CREDIT_DELIVERY: &str = "PRE_EXECUTION_NATIVE_GAS_TO_BORROWER_NO_OPERATOR_PREFUND_V1";\n'
+            b'if operator_prefund_required {\n'
+            b'provider_observations\n')
+
+
 class Rmc011ThirdPartyGasLiabilityTests(unittest.TestCase):
     def diagnose(self):
-        with patch.object(m,"T36_RAW_GIT_BLOB",m.git_blob(base_executor())):
-            return m.diagnose(base_budget(),base_registry(),base_executor())
+        with patch.object(m,"T36_RAW_GIT_BLOB",m.git_blob(base_executor())), \
+             patch.object(m,"SPONSOR_IMPORTER_GIT_BLOB",m.git_blob(sample_sponsor_module())), \
+             patch.object(m,"CREDIT_IMPORTER_GIT_BLOB",m.git_blob(sample_credit_module())):
+            return m.diagnose(base_budget(),base_registry(),base_executor(),
+                              sample_sponsor_module(),sample_credit_module())
 
     def test_zero_authorized_provider_admission(self):
         a=self.diagnose()
@@ -145,6 +160,34 @@ class Rmc011ThirdPartyGasLiabilityTests(unittest.TestCase):
         self.assertEqual(terms["real_flash_surplus_destination"],
                          "EXECUTOR_OPERATOR_NOT_AUTOMATIC_4337_USEROP_SENDER")
         self.assertFalse(terms["paymaster_postop_token_settlement_proven"])
+
+    def test_native_gas_delivery_is_not_erc4337_entrypoint_deposit(self):
+        report=self.diagnose()["rmc011_source_importer_native_gas_semantics"]
+        self.assertTrue(report["both_importers_observe_native_prepayment_to_borrower"])
+        self.assertFalse(report["erc4337_entrypoint_deposit_delivery_semantics_equivalent"])
+        self.assertFalse(report["erc4337_paymaster_can_be_relabelled_as_existing_native_credit_without_new_adapter"])
+        self.assertFalse(report["onchain_identity_and_liability_from_untrusted_json_authenticated"])
+        self.assertTrue(report["no_existing_importer_authority_issued"])
+
+    def test_one_native_gas_importer_mutated_rejected(self):
+        with patch.object(m,"SPONSOR_IMPORTER_GIT_BLOB",m.git_blob(sample_sponsor_module())), \
+             patch.object(m,"CREDIT_IMPORTER_GIT_BLOB",m.git_blob(sample_credit_module())):
+            with self.assertRaisesRegex(ValueError,"Git blob drift"):
+                m.inspect_existing_rust_gas_importers(
+                    sample_sponsor_module(),sample_credit_module()+b"fake")
+            with self.assertRaisesRegex(ValueError,"Git blob drift"):
+                m.inspect_existing_rust_gas_importers(
+                    sample_sponsor_module()+b"fake",sample_credit_module())
+
+    def test_attempt_to_replace_native_delivery_with_paymaster_does_not_pass(self):
+        f=sample_sponsor_module().replace(
+           b"PRE_EXECUTION_NATIVE_GAS_TO_BORROWER_NO_OPERATOR_PREFUND_V1",
+           b"PAYMASTER_ENTRYPOINT_DEPOSIT"
+        )
+        with patch.object(m,"SPONSOR_IMPORTER_GIT_BLOB",m.git_blob(f)), \
+             patch.object(m,"CREDIT_IMPORTER_GIT_BLOB",m.git_blob(sample_credit_module())):
+            with self.assertRaisesRegex(ValueError,"no-operator-prefund source semantics"):
+                m.inspect_existing_rust_gas_importers(f,sample_credit_module())
 
     def test_t36_executor_code_mutation_fails(self):
         with patch.object(m,"T36_RAW_GIT_BLOB",m.git_blob(base_executor())):
