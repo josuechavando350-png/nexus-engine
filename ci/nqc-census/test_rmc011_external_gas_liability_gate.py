@@ -133,7 +133,7 @@ class Rmc011ThirdPartyGasLiabilityTests(unittest.TestCase):
             "provider_discovery_global_nonexistence_proven",
             "erc4337_entrypoint_deposit_queried_or_proven",
             "paymaster_userop_quote_or_signature_obtained",
-            "operator_invoice_recource_liability_excluded_by_contract",
+            "operator_invoice_recourse_liability_excluded_by_contract",
             "pre_execution_native_gas_route_or_entrypoint_deposit_authenticated",
             "non_prefunded_full_native_gas_transaction_executed",
             "real_sponsor_identity_and_failure_liability_acceptance_proven",
@@ -248,7 +248,7 @@ class Rmc011ThirdPartyGasLiabilityTests(unittest.TestCase):
             self.assertEqual(row["sponsor_revert_loss_eth_wei_if_no_weth_collected"],
                              row["native_eth_prefund_needed_wei"])
             self.assertFalse(row["postop_reimbursement_authenticated"])
-            self.assertFalse(row["nqc_recource_free_credit_contract_signed"])
+            self.assertFalse(row["nqc_nonrecourse_credit_contract_signed"])
 
     def test_hypothetical_admin_fee_is_integer_ceiling(self):
         rows=m.modeled_postop_liability(base_budget())
