@@ -101,7 +101,7 @@ def gross_requirement_sensitivity():
     assumptions=((10,1,10),(25,1,4),(50,1,2),(100,1,1))
     output=[]
     for share,num,den in assumptions:
-        need(0<num<=den,"hypothetical capture ratio invalid")
+        require(0<num<=den,"hypothetical capture ratio invalid")
         minimum=(TARGET_WAD*den+num-1)//num
         output.append({
             "hypothetical_full_cost_free_capture_percent":share,
