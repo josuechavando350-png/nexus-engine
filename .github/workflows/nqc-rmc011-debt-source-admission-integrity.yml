@@ -25,7 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git hash-object ci/nqc-census/rmc011-capital-source-universe.json)" = 8f42e9ab127cc567409c20383de3fea4e3618e5f
+          test "$(git hash-object ci/nqc-census/rmc011-capital-source-universe.json)" = c1b9f136a13f220af9dceaae50e5caa3105121eb
           test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
           test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
           mkdir -p "$RUNNER_TEMP/nqc-rmc011-debt-integrity"
@@ -36,10 +36,10 @@ jobs:
             2>&1 | tee "$RUNNER_TEMP/nqc-rmc011-debt-integrity/test-results.txt"
           python3 ci/nqc-census/verify-rmc011-debt-family-promotion.py \
             | tee "$RUNNER_TEMP/nqc-rmc011-debt-integrity/debt-current-source.txt"
-          grep -F 'state=PENDING' "$RUNNER_TEMP/nqc-rmc011-debt-integrity/debt-current-source.txt"
+          grep -F 'state=EXHAUSTIVE_REJECTION_REFERENCES_DECLARED' "$RUNNER_TEMP/nqc-rmc011-debt-integrity/debt-current-source.txt"
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py \
             | tee "$RUNNER_TEMP/nqc-rmc011-debt-integrity/capital-source-check.txt"
-          grep -F 'resolved=0 unresolved=13' "$RUNNER_TEMP/nqc-rmc011-debt-integrity/capital-source-check.txt"
+          grep -F 'resolved=9 unresolved=4' "$RUNNER_TEMP/nqc-rmc011-debt-integrity/capital-source-check.txt"
           echo RMC011_DEBT_FAKE_REAL_SOURCE_ADMISSION_REJECTED
       - name: Emit deterministic hash-addressed NEGATIVE authority-boundary report
         shell: bash
@@ -59,7 +59,14 @@ jobs:
           registry = json.loads(p("ci/nqc-census/rmc011-external-capital-provider-registry.json").read_text())
           lock = json.loads(p("ci/nqc-census/final-census-authority-lock.json").read_text())
           assert len(universe["families"]) == 13
-          assert not any(x["terminally_resolved"] for x in universe["families"])
+          assert sum(x["terminally_resolved"] is True for x in universe["families"]) == 9
+          assert sorted(x["id"] for x in universe["families"] if not x["terminally_resolved"]) == [
+              "AAVE_V3_FLASH_LOAN", "BALANCER_V2_FLASH_LOAN",
+              "UNISWAP_V2_FLASH_SWAP", "UNISWAP_V3_FLASH"
+          ]
+          assert universe["status"] == "BLOCKED_INCOMPLETE_SOURCE_UNIVERSE"
+          assert universe["d11_terminal_closed"] is False
+          assert universe["terminal_claim_allowed"] is False
           assert registry["provider_count"] == 0 and registry["providers"] == []
           assert lock["status"] == "BLOCKED" and lock["real_market_census_closed"] is False
           assert len(lock["pinned_stages"]) == 0
@@ -68,13 +75,13 @@ jobs:
               "status": "RMC011_DEBT_SOURCE_ADMISSION_HELPER_HARDENED_NOT_CERTIFIED",
               "repository": "josuechavando350-png/nexus-engine",
               "source_commit": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
-              "rmc011_capital_universe_blob_sha1": "8f42e9ab127cc567409c20383de3fea4e3618e5f",
+              "rmc011_capital_universe_blob_sha1": "c1b9f136a13f220af9dceaae50e5caa3105121eb",
               "rmc011_provider_registry_blob_sha1": "a9c1427bb05828d08ade537899ee1b8e43b97ed2",
               "rmc014_canonical_lock_blob_sha1": "b1182b27b0ff3856b17a6f829ac3c693eab74400",
               "required_debt_families": ["COLLATERALIZED_BORROWING", "PERSISTENT_DEBT"],
-              "current_debt_families_terminal_resolved": 0,
+              "current_debt_families_terminal_resolved": 2,
               "rmc011_required_capital_families": 13,
-              "rmc011_terminally_resolved_families": 0,
+              "rmc011_terminally_resolved_families": 9,
               "rmc011_external_authorized_provider_count": 0,
               "rmc014_terminal_stage_pins": 0,
               "independent_artifact_authentication_complete": False,
@@ -97,7 +104,7 @@ jobs:
           python3 - "$DIR/readiness.json" <<'PY'
           import json,sys
           d=json.load(open(sys.argv[1]))
-          assert d["rmc011_terminally_resolved_families"]==0
+          assert d["rmc011_terminally_resolved_families"]==9
           assert d["rmc011_external_authorized_provider_count"]==0
           assert d["independent_artifact_authentication_complete"] is False
           assert d["debt_admission_helper_may_self_certify"] is False

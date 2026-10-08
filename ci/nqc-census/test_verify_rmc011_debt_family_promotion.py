@@ -30,7 +30,7 @@ def reject_both(doc: dict) -> None:
             "run_id": 12345,
             "head_sha": "a" * 40,
             "artifact_id": 67890,
-            "artifact_name": "rmc011-real-source-certification-" + "a" * 40,
+            "artifact_name": "rmc011-real-source-certification-" + "a" * 40 + "-12345-1",
             "artifact_digest": "sha256:" + "b" * 64,
             "file": f"debt-family-evidence/families/{family}/evidence.json",
             "sha256": f"{index:064x}",
@@ -38,9 +38,13 @@ def reject_both(doc: dict) -> None:
 
 
 class DebtFamilyPromotionTests(unittest.TestCase):
-    def test_current_universe_is_pending(self) -> None:
+    def test_current_two_debt_rejections_are_source_witnessed_only(self) -> None:
         result = mod.validate_document(copy.deepcopy(UNIVERSE))
-        self.assertEqual(result["promotion_state"], "PENDING")
+        self.assertEqual(result["promotion_state"], "EXHAUSTIVE_REJECTION_REFERENCES_DECLARED")
+        self.assertEqual(result["rejected_count"], 2)
+        self.assertEqual(result["shared_run_id"], 37832286518)
+        self.assertFalse(result["independent_artifact_authentication_complete"])
+        self.assertFalse(result["d11_terminal_closed"])
 
     def test_atomic_debt_rejection_promotion_passes(self) -> None:
         doc = copy.deepcopy(UNIVERSE)
@@ -117,7 +121,7 @@ def attest_both_synthetic(doc: dict) -> None:
             "run_id": 12345,
             "head_sha": "a" * 40,
             "artifact_id": 67890,
-            "artifact_name": mod.EXPECTED_ARTIFACT_PREFIX + "a" * 40,
+            "artifact_name": mod.EXPECTED_ARTIFACT_PREFIX + "a" * 40 + "-12345-1",
             "artifact_digest": "sha256:" + "b" * 64,
             "file": f"debt-family-evidence/families/{family}/evidence.json",
             "sha256": f"{index:064x}",
@@ -149,6 +153,7 @@ class DebtAuthenticatedSourceAdversarialTests(unittest.TestCase):
         for row in doc["families"]:
             if row["id"] in mod.DEBT_FAMILIES:
                 row["status"] = "AUTHENTICATED_REAL_SOURCE"
+                row["terminally_resolved"] = False
         self.reject(doc, "terminal flag")
 
     def test_real_source_without_evidence_must_fail(self) -> None:

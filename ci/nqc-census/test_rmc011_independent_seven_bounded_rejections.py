@@ -57,7 +57,7 @@ class RealSourceSevenTests(unittest.TestCase):
         self.assertEqual(report["status"],
             "RMC011_SEVEN_BOUNDED_REJECTIONS_INDEPENDENTLY_REAUTHENTICATED_NOT_D11")
         self.assertEqual(report["rejected_families_within_nqc_configured_scope"],7)
-        self.assertEqual(report["remaining_unresolved_families"],6)
+        self.assertEqual(report["remaining_unresolved_families"],4)
         self.assertFalse(report["capital_truth_D11_terminal_closed"])
         self.assertFalse(report["global_external_funding_nonexistence_proven"])
         self.assertFalse(report["nqc_nonrecourse_native_gas_authorized"])
@@ -137,7 +137,7 @@ class RealSourceSevenTests(unittest.TestCase):
         with patch.object(mod,"SOURCE_UNIVERSE_BLOB",mod.gitblob(raw)):
             self.fail("falsely promotes terminal family",source_bytes=raw)
 
-    def test_six_unresolved_families_cannot_be_removed(self):
+    def test_four_unresolved_native_families_cannot_be_removed(self):
         raw=self.mutated_source(lambda d: d["families"].pop())
         with patch.object(mod,"SOURCE_UNIVERSE_BLOB",mod.gitblob(raw)):
             self.fail("family population invalid",source_bytes=raw)
