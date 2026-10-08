@@ -16,6 +16,14 @@ A real D08 source uses **523,491 market rows**, including 67 Aave V3 and 523,424
 
 Prior #661 independently confirmed **44 non-identical duplicated D08 token admission records**. Its conservative reconciliation marks `D08_INCONSISTENT_DUPLICATE_TOKEN_ADMISSION` and preserves the union of all observed blockers. No compatible token is admitted by choosing a permissive record over a blocked record.
 
+## Reused production-grade memory hardening
+
+The original source-runner in another D11 branch previously reached approximately 15 GB RSS and failed. The previously **reviewed and merged [PR #599](https://github.com/josuechavando350-png/nexus-engine/pull/599)** addressed that exact high-watermark by streaming capital artifact export/parsing, evaluating only demand-relevant source asset/class keys without losing blocker diagnostics, and dropping the certified ledger after producing immutable bytes and before independently replaying D08/D09.
+
+Our stacked branch had diverged and did not include those three improvements. This PR reapplies the **exact merged streaming artifact verifier/export patch and its three 100k-row adversarial tests**, the existing evaluated/reviewed source-key filtering algorithm, and the explicit release-ledger memory boundary. The source scan still covers every D08 market and every D09 requirement; no provider, borrower, route, or error is omitted to get a green workflow.
+
+**Non-claim:** reuse of PR #599 only fixes software memory discipline. It is not evidence of flash capital being available to NQC, nor is it itself successful original 523k-market replay. Only successful exact-head Actions with source SHA-verified original artifacts establishes that separate result.
+
 ## Tests and promotion boundary
 
 `python3 ci/nqc-census/test_rmc011_original_d08_native_flash_import.py -v` covers original frozen metadata, malicious run/head substitutions, synthetic accounting conservation and explicit negative certification flags. The GitHub Actions workflow also runs strict locked Rust fmt/Clippy, the D08 source tests and the unchanged original D11 closeout and independent replay.
