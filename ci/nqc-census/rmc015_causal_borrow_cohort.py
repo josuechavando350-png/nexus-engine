@@ -13,7 +13,8 @@ import json
 import re
 from pathlib import Path
 from rmc016_probe_historical_rpc import PROVIDERS, rpc, AAVE_POOL, LIQUIDATION_TOPIC
-from rmc016_rank1_preblock_health import GET_ACCOUNT_DATA, decode_user_account_data, WAD
+from rmc016_rank1_preblock_health import GET_ACCOUNT_DATA, WAD
+from rmc016_rank1_preblock_health import WORD6
 
 CHAIN = 1
 CUTOFF = 25938047
@@ -60,6 +61,24 @@ def header(h,n,expected):
     require(ts>0,"invalid historical timestamp")
     return {"number":n,"hash":h["hash"],"parent_hash":h["parentHash"],
             "state_root":h["stateRoot"],"timestamp":ts}
+
+
+def decode_account_allow_fully_repaid(raw):
+    """Unlike rank-one witness, a deterministic Borrow cohort includes closed loans."""
+    require(type(raw) is str and WORD6.fullmatch(raw) is not None,
+            "Aave account result must have exactly 6 uint256 words")
+    collateral,debt,available,threshold,ltv,hf=(
+        int(raw[2+64*i:2+64*(i+1)],16) for i in range(6))
+    require(0<=threshold<=10_000 and 0<=ltv<=10_000,
+            "Aave account bps invalid")
+    return {
+        "total_collateral_base":str(collateral),
+        "total_debt_base":str(debt),
+        "available_borrows_base":str(available),
+        "current_liquidation_threshold_bps":threshold,
+        "ltv_bps":ltv,
+        "health_factor_wad":str(hf),
+    }
 
 
 def borrow_identity(log,lower,upper):
@@ -152,7 +171,7 @@ def feature_stage(provider,call=rpc):
     risk=[]
     for borrower in borrowers:
         data=GET_ACCOUNT_DATA+borrower[2:].rjust(64,"0")
-        decoded=decode_user_account_data(
+        decoded=decode_account_allow_fully_repaid(
             gated("eth_call",[{"to":AAVE_POOL,"data":data},hex(CUTOFF)]))
         hf=int(decoded["health_factor_wad"])
         risk.append({
