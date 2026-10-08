@@ -162,8 +162,7 @@ contract NqcRmc011WethPostopOperatorForkTest {
 
     address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address internal constant POOL = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fa4E2;
-    address internal constant MOCK_SPONSOR_TREASURY =
-        0x000000000000000000000000000000000000bA5E;
+    address internal constant MOCK_SPONSOR_TREASURY = address(uint160(0xBA5E));
     uint256 internal constant PREVIOUS_BLOCK = 25_938_047;
     uint256 internal constant WINNER_BLOCK = 25_938_048;
     uint256 internal constant DEBT_WETH_WEI = 10_684_013_854_557_827_871;
