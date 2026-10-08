@@ -232,7 +232,13 @@ jobs:
           D12_DIGEST="$(jq -r '.d12.artifact_digest' "$INPUTS")"
           jq -e             --argjson d12_feasible "$D12_FEASIBLE"             --arg d12_digest "$D12_DIGEST" '
             .schema_version == 1 and
-            .status == "RMC_013_REAL_EXECUTION_ECONOMICS_PASS" and
+            (.status == "RMC_013_REAL_EXECUTION_ECONOMICS_PASS" or
+             (.status == "RMC_013_NO_EXECUTION_ELIGIBLE_CANDIDATES_PROVEN" and
+              $d12_feasible == 0 and
+              .gas_price_evidence_collected == false and
+              .fork_simulations_executed == 0 and
+              .physical_execution_claimed == false and
+              .zero_own_capital_proven == false)) and
             .coverage_complete == true and
             .unresolved_mismatch_count == 0 and
             .unknown_rejection_count == 0 and
@@ -261,6 +267,38 @@ jobs:
           test "$(jq -r '.candidate_id' "$EXEC/execution-economics.jsonl" | LC_ALL=C sort -u | wc -l)" -eq             "$(jq '.economics_candidate_count' "$SUMMARY")"
           test "$(wc -l < "$EXEC/shadow-predictions.jsonl")" -eq             "$(jq '.shadow_prediction_count' "$SUMMARY")"
           test "$(wc -l < "$EXEC/gas-conflict-claims.jsonl")" -eq             "$(jq '.shared_gas_conflict_claim_count' "$SUMMARY")"
+
+          if test "$(jq -r '.status' "$SUMMARY")" = "RMC_013_NO_EXECUTION_ELIGIBLE_CANDIDATES_PROVEN"; then
+            test "$D12_FEASIBLE" = 0
+            test -f "$EXEC/zero-capital-feasible-proof.json"
+            test -f "$EXEC/physical-execution-summary.json"
+            jq -e '
+              .status == "RMC_013_NO_PHYSICAL_EXECUTION_REQUIRED_EMPTY_UNIVERSE" and
+              .gas_price_evidence_collected == false and
+              .provider_consensus == false and
+              .physical_execution_claimed == false and
+              .fork_simulations_executed == 0 and
+              .onchain_transactions_sent == 0
+            ' "$EXEC/physical-execution-summary.json" >/dev/null
+            REPLAY="$RUNNER_TEMP/rmc013-independent-zero-replay"
+            rm -rf "$REPLAY"
+            python3 ci/nqc-census/materialize_rmc013_no_eligible.py \
+              --d12-certificate "$D12_CERT" \
+              --d12-summary "$RUNNER_TEMP/d12/actionability-summary.json" \
+              --d12-records "$RUNNER_TEMP/d12/actionability-records.jsonl" \
+              --d12-promotions "$RUNNER_TEMP/d12/capital-promotions.jsonl" \
+              --d11-sources "$D11_SOURCES" \
+              --d12-artifact-digest "$D12_DIGEST" \
+              --code-commit "$(jq -r '.execution_evidence.head_sha' "$INPUTS")" \
+              --code-tree "$(jq -r '.execution_evidence.tree_sha' "$INPUTS")" \
+              --out "$REPLAY"
+            diff -ruN "$REPLAY" "$EXEC"
+            (cd "$REPLAY"; sha256sum -c archive.sha256)
+            echo "RMC013_EMPTY_SCOPE_INDEPENDENT_REPLAY=PASS"
+            echo "EXEC_SUMMARY=$SUMMARY" >> "$GITHUB_ENV"
+            echo "EXEC_ROOT=$EXEC" >> "$GITHUB_ENV"
+            exit 0
+          fi
 
           python3 - "$D11_SOURCES" "$EXEC/execution-economics.jsonl" "$EXEC/gas-funding-bindings.jsonl" "$EXEC/gas-conflict-claims.jsonl" "$RUNNER_TEMP/d12/actionability-summary.json" "$SUMMARY" <<'PY'
           import json
@@ -455,6 +493,9 @@ jobs:
           rm -rf "$OUT"
           mkdir -p "$OUT"
           cp "$EXEC_ROOT/"{execution-evidence-summary.json,execution-economics.jsonl,execution-rejection-ledger.jsonl,capacity-curves.jsonl,shadow-predictions.jsonl,gas-funding-bindings.jsonl,gas-conflict-claims.jsonl,evidence-manifest.json} "$OUT/"
+          if test -f "$EXEC_ROOT/zero-capital-feasible-proof.json"; then
+            cp "$EXEC_ROOT/zero-capital-feasible-proof.json" "$OUT/"
+          fi
 
           HEAD="$(git rev-parse HEAD)"
           TREE="$(git rev-parse 'HEAD^{tree}')"
@@ -462,10 +503,17 @@ jobs:
           jq -S -c -n             --arg head "$HEAD"             --arg tree "$TREE"             --arg d12_digest "$(jq -r '.d12.artifact_digest' "$INPUTS")"             --arg exec_digest "$(jq -r '.execution_evidence.artifact_digest' "$INPUTS")"             --arg coverage "$(jq -r '.coverage_commitment' "$SUMMARY")"             --arg authority "$(jq -r '.authority_commitment' "$SUMMARY")"             --argjson input "$(jq '.input_candidate_count' "$SUMMARY")"             --argjson simulatable "$(jq '.execution_simulatable_count' "$SUMMARY")"             --argjson quotes "$(jq '.economics_quote_count' "$SUMMARY")"             --argjson variants "$(jq '.execution_variant_count' "$SUMMARY")"             --argjson rejected "$(jq '.explicit_rejection_count' "$SUMMARY")"             --argjson gross "$(jq '.positive_gross_value_count' "$SUMMARY")"             --argjson success_net "$(jq '.positive_success_path_net_count' "$SUMMARY")"             --argjson material "$(jq '.capacity_material_count' "$SUMMARY")"             --argjson shadow "$(jq '.shadow_prediction_count' "$SUMMARY")"             --argjson calibrated "$(jq '.capture_calibrated_count' "$SUMMARY")" \
             --argjson gas_funded "$(jq '.gas_funding_candidate_count' "$SUMMARY")" \
             --argjson operator_gas "$(jq '.operator_owned_gas_funding_count' "$SUMMARY")" \
-            --argjson zero_own "$(jq '.zero_own_capital_proven' "$SUMMARY")" '
+            --argjson zero_own "$(jq '.zero_own_capital_proven' "$SUMMARY")" \
+            --arg scope "$(jq -r '.status' "$SUMMARY")" \
+            --argjson physical "$(jq '.physical_execution_claimed // true' "$SUMMARY")" \
+            --argjson gas_measured "$(jq '.gas_price_evidence_collected // true' "$SUMMARY")" '
             {
               schema_version:1,
               status:"RMC_013_TERMINAL_ECONOMICS_CERTIFIED",
+              evidence_scope:$scope,
+              physical_execution_performed:$physical,
+              historical_gas_price_evidence_collected:$gas_measured,
+              no_capital_feasible_candidates_proven:($scope == "RMC_013_NO_EXECUTION_ELIGIBLE_CANDIDATES_PROVEN"),
               code_commit:$head,
               code_tree:$tree,
               d12_artifact_digest:$d12_digest,
