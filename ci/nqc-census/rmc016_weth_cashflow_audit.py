@@ -83,10 +83,15 @@ def authenticated_zip(path, expected_sha, expected_members):
             require(item.file_size <= 2_000_000, "ZIP member exceeds limit")
         files = {name: z.read(name) for name in names}
     manifest = files["archive.sha256"].decode("ascii")
-    expected_manifest = "".join(
-        digest(files[name]) + "  " + name + "\n" for name in sorted(expected_members)
-    )
-    require(manifest == expected_manifest, "inner archive SHA256 manifest drift")
+    checked = set()
+    for line in manifest.splitlines():
+        require(re.fullmatch(r"[0-9a-f]{64}  [a-zA-Z0-9._-]+", line) is not None,
+                "malformed inner SHA256 record")
+        actual, name = line.split("  ")
+        require(name in expected_members and name not in checked, "missing or duplicate inner SHA256 record")
+        require(actual == digest(files[name]), "inner archive SHA256 manifest drift")
+        checked.add(name)
+    require(checked == expected_members, "inner SHA256 coverage incomplete")
     return files
 
 
