@@ -69,8 +69,8 @@ class SourceUniverseTests(unittest.TestCase):
     def test_current_blocked_contract_is_valid(self) -> None:
         result = mod.validate_document(copy.deepcopy(BASE))
         self.assertEqual(result["family_count"], 13)
-        self.assertEqual(result["resolved_count"], 7)
-        self.assertEqual(result["unresolved_count"], 6)
+        self.assertEqual(result["resolved_count"], 9)
+        self.assertEqual(result["unresolved_count"], 4)
         self.assertFalse(result["family_universe_discovery_complete"])
         self.assertFalse(result["terminal_claim_allowed"])
         self.assertFalse(result["d11_terminal_closed"])
