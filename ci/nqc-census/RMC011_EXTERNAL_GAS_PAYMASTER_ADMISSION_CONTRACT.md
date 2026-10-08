@@ -25,7 +25,7 @@
 3. Operator-invoiced ERC-20 Gas Manager: the provider can front ETH but an invoice to NQC constitutes ongoing operator liability. Not automatically compatible with OWN_CAPITAL=0.
 4. Operator-funded EntryPoint paymaster deposit: operator capital. Not eligible.
 
-The current Rust sponsor adapters describe PRE_EXECUTION_NATIVE_GAS_TO_BORROWER_NO_OPERATOR_PREFUND_V1. An ERC-4337 paymaster paying EntryPoint from its own deposit is an economically different route. Do not forge the native-gas-delivery fact to force an old importer to accept that path; a separate authenticated paymaster model would be needed.
+The current Rust sponsor and credit adapters are separately Git-source-locked: gas_sponsor.rs blob 5a301f92850bd00594996cbf013d9e4f74867d62 and gas_credit.rs blob 090f23df1326a0e6feb6f3afbe2151278d3b9499. BOTH describe PRE_EXECUTION_NATIVE_GAS_TO_BORROWER_NO_OPERATOR_PREFUND_V1. An ERC-4337 paymaster paying EntryPoint from its own deposit is an economically different route. Do not forge the native-gas-delivery fact to force an old importer to accept that path; a separate authenticated paymaster model would be needed.
 
 ## Original 15 stress scenarios, no performance forecast
 
