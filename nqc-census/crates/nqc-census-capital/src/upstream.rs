@@ -180,22 +180,6 @@ fn rfc3339(timestamp: u64) -> String {
     )
 }
 
-fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
-    let text = std::str::from_utf8(bytes)
-        .map_err(|_| CapitalError::InvalidCanonical("D08 JSONL is not UTF-8"))?;
-    let mut rows = Vec::new();
-    for line in text.lines() {
-        if line.is_empty() {
-            continue;
-        }
-        rows.push(
-            Json::parse(line.as_bytes())
-                .map_err(|_| CapitalError::InvalidCanonical("D08 JSONL parse failed"))?,
-        );
-    }
-    Ok(rows)
-}
-
 /// Reconcile repeated original D08 token rows conservatively.
 ///
 /// The real RMC-008 manifest can contain a token more than once. Treating
@@ -554,7 +538,18 @@ fn import_d08_capital_sources_unbound(
     let mut outcomes = Vec::new();
     let mut candidate_keys = BTreeSet::new();
 
-    for row in parse_jsonl(state_manifest_jsonl)? {
+    // The immutable D08 universe has 523,491 market rows. Keeping every
+    // parsed JSON object in memory is neither necessary nor economically
+    // justified. Parse sequentially while maintaining the original complete
+    // candidate-key conservation/duplicate gate and exact outcome commitment.
+    let state_text = std::str::from_utf8(state_manifest_jsonl)
+        .map_err(|_| CapitalError::InvalidCanonical("D08 JSONL is not UTF-8"))?;
+    for line in state_text.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        let row = Json::parse(line.as_bytes())
+            .map_err(|_| CapitalError::InvalidCanonical("D08 JSONL parse failed"))?;
         if u64_field(&row, "schema_version")? != 1 {
             return Err(CapitalError::InvalidCanonical(
                 "unsupported D08 market-state schema",
