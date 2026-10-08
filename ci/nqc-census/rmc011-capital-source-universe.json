@@ -99,18 +99,40 @@
     {
       "id": "COLLATERALIZED_BORROWING",
       "capital_class": "COLLATERALIZED_BORROWING",
-      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
-      "real_source_path": "nqc-census/crates/nqc-census-capital/src/external_debt.rs",
-      "terminally_resolved": false,
-      "resolution_evidence": null
+      "status": "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE",
+      "real_source_path": null,
+      "terminally_resolved": true,
+      "resolution_evidence": {
+        "kind": "EXHAUSTIVE_REJECTION",
+        "repository": "josuechavando350-png/nexus-engine",
+        "workflow_name": "NQC RMC-011 Original D08 Debt Family Rejection Evidence (NO D11 CLOSE)",
+        "run_id": 37832286518,
+        "head_sha": "5b79e7be1c185cbb4924d592991b9c990fc0465a",
+        "artifact_id": 11573678487,
+        "artifact_name": "rmc011-original-d08-debt-rejections-5b79e7be1c185cbb4924d592991b9c990fc0465a-37832286518-1",
+        "artifact_digest": "sha256:151847cdf85b1b49298d59b41d1bf939f6854d4556060a03ab7dd5a2e1359916",
+        "file": "debt-family-evidence/families/COLLATERALIZED_BORROWING/evidence.json",
+        "sha256": "78e130c871ecf881a90cbe37996046864cb7afc27d79a31dc36c2804a4ba052c"
+      }
     },
     {
       "id": "PERSISTENT_DEBT",
       "capital_class": "PERSISTENT_DEBT",
-      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
-      "real_source_path": "nqc-census/crates/nqc-census-capital/src/external_debt.rs",
-      "terminally_resolved": false,
-      "resolution_evidence": null
+      "status": "EXHAUSTIVELY_REJECTED_WITH_REPRODUCIBLE_EVIDENCE",
+      "real_source_path": null,
+      "terminally_resolved": true,
+      "resolution_evidence": {
+        "kind": "EXHAUSTIVE_REJECTION",
+        "repository": "josuechavando350-png/nexus-engine",
+        "workflow_name": "NQC RMC-011 Original D08 Debt Family Rejection Evidence (NO D11 CLOSE)",
+        "run_id": 37832286518,
+        "head_sha": "5b79e7be1c185cbb4924d592991b9c990fc0465a",
+        "artifact_id": 11573678487,
+        "artifact_name": "rmc011-original-d08-debt-rejections-5b79e7be1c185cbb4924d592991b9c990fc0465a-37832286518-1",
+        "artifact_digest": "sha256:151847cdf85b1b49298d59b41d1bf939f6854d4556060a03ab7dd5a2e1359916",
+        "file": "debt-family-evidence/families/PERSISTENT_DEBT/evidence.json",
+        "sha256": "b8b22443a5a3491a1ed64cb8c8c11958503784e42c6537877ac92b70e988b478"
+      }
     },
     {
       "id": "INVENTORY_REQUIREMENT",
