@@ -1,0 +1,146 @@
+name: NQC RMC-015 Real 857 Cohort Successor Aave Liquidation Event Window
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc015-857-postanchor-liquidation-events.yml'
+      - 'ci/nqc-census/rmc015_857_future_aave_liquidation_events.py'
+      - 'ci/nqc-census/test_rmc015_857_future_aave_liquidation_events.py'
+      - 'ci/nqc-census/RMC015_857_REAL_LIQUIDATION_EVENT_WINDOW.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: nqc-rmc015-real-857-postanchor-liquidation-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  true-857-cohort-postanchor-all-liquidation-events:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify exact PR lineage and fail-closed negative tests before network activity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 38fe58debbd729753f84d4587a9f3b961a542bc9 HEAD
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          python3 ci/nqc-census/test_rmc015_857_future_aave_liquidation_events.py
+          python3 -m py_compile ci/nqc-census/rmc015_857_future_aave_liquidation_events.py
+          mkdir -p "$RUNNER_TEMP/nqc015-causal/public" "$RUNNER_TEMP/nqc015-causal/private"
+          sha256sum ci/nqc-census/rmc015_857_future_aave_liquidation_events.py \
+                    ci/nqc-census/test_rmc015_857_future_aave_liquidation_events.py \
+                    ci/nqc-census/RMC015_857_REAL_LIQUIDATION_EVENT_WINDOW.md \
+            > "$RUNNER_TEMP/nqc015-causal/public/producer-source.sha256"
+          echo NQC_015_857_FIXED_COHORT_FUTURE_EVENT_NEGATIVE_TESTS_PASS
+      - name: Authenticate original exactly known 857-source selector Git object
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha=5542bbec0840335994cbbab272e6228756ba6eb0
+          test ! -f ci/nqc-census/rmc015_material_frontier.py
+          gh api "repos/$GITHUB_REPOSITORY/git/blobs/$sha" \
+            | jq -r .content | tr -d '\n' | base64 --decode \
+            > ci/nqc-census/rmc015_material_frontier.py
+          test "$(git hash-object ci/nqc-census/rmc015_material_frontier.py)" = "$sha"
+          # Not committed in this PR, not used for terminal self-certification.
+          test "$(git status --porcelain ci/nqc-census/rmc015_material_frontier.py | cut -c1-2)" = "??"
+          echo RMC015_PREEXISTING_REAL_D08_D09_SELECTOR_SHA_CONFIRMED
+      - name: Independently authenticate two upstream full immutable account/state archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          REPO="$GITHUB_REPOSITORY"
+          for row in \
+            'D08 36964016388 11237887761 36c732a36789e1967ce7178010889427ad7cf0f2 9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913' \
+            'D09 36823489219 11159396055 6db82ca89d4ef3a66a1b236de95670a6967eb3ea 9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6'; do
+            read -r stage rid aid head digest <<<"$row"
+            run="$(gh api "repos/$REPO/actions/runs/$rid")"
+            art="$(gh api "repos/$REPO/actions/artifacts/$aid")"
+            test "$(jq -r .status <<<"$run")" = completed
+            test "$(jq -r .conclusion <<<"$run")" = success
+            test "$(jq -r .head_sha <<<"$run")" = "$head"
+            test "$(jq -r .expired <<<"$art")" = false
+            test "$(jq -r .workflow_run.id <<<"$art")" = "$rid"
+            test "$(jq -r .digest <<<"$art")" = "sha256:$digest"
+            curl --fail --silent --show-error --location --retry 3 \
+              -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$REPO/actions/artifacts/$aid/zip" \
+              -o "$RUNNER_TEMP/nqc015-causal/private/$stage.zip"
+            printf '%s  %s\n' "$digest" "$RUNNER_TEMP/nqc015-causal/private/$stage.zip" | sha256sum --check --strict
+            echo RMC015_ORIGINAL_ARCHIVE_AUTHENTICATED "$stage" "$rid"
+          done
+      - name: Materialize EXACT anchor watchlist privately, forbid before-anchor evaluation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$GITHUB_WORKSPACE"
+          python3 ci/nqc-census/rmc015_material_frontier.py \
+            --d08 "$RUNNER_TEMP/nqc015-causal/private/D08.zip" \
+            --d09 "$RUNNER_TEMP/nqc015-causal/private/D09.zip" \
+            --d08-sha256 9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913 \
+            --d09-sha256 9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6 \
+            --d08-commit 36c732a36789e1967ce7178010889427ad7cf0f2 \
+            --d09-commit 6db82ca89d4ef3a66a1b236de95670a6967eb3ea \
+            --summary-out "$RUNNER_TEMP/nqc015-causal/private/anchor-frontier.json" \
+            --watchlist-out "$RUNNER_TEMP/nqc015-causal/private/anchor-857-watchlist.jsonl" \
+            --evaluation-start-block 26095352
+          jq -e '.status=="RMC015_AUXILIARY_RISK_FRONTIER_VERIFIED" and
+                 .anchor.block_number==26095351 and
+                 .material_risk_frontier.account_count==857 and
+                 .earliest_ex_ante_evaluation_block==26095352 and
+                 .retrospective_backtest_admitted==false and
+                 .realized_profitability_proven==false and
+                 .execution_or_capital_feasibility_proven==false' \
+            "$RUNNER_TEMP/nqc015-causal/private/anchor-frontier.json" >/dev/null
+          test "$(wc -l < "$RUNNER_TEMP/nqc015-causal/private/anchor-857-watchlist.jsonl")" = 857
+          echo RMC015_857_FIXED_BEFORE_FUTURE_STATE_LOOKUP_WATCHLIST_PRIVATE
+      - name: Independently read all real Aave liquidation events in post-anchor 7200 blocks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/rmc015_857_future_aave_liquidation_events.py \
+            --source-summary "$RUNNER_TEMP/nqc015-causal/private/anchor-frontier.json" \
+            --watchlist-jsonl "$RUNNER_TEMP/nqc015-causal/private/anchor-857-watchlist.jsonl" \
+            --out "$RUNNER_TEMP/nqc015-causal/public/all-857-future-liquidation-events.json"
+          jq -e '.status=="RMC015_857_HISTORIC_REAL_POST_ANCHOR_EVENTS_VERIFIED_NOT_NQC_CAPTURE" and
+                 .original_D09_selection_block==26095351 and
+                 .original_857_members_selected_without_winner_hindsight==true and
+                 .full_source_cohort_size==857 and
+                 .event_window_start_block==26095352 and
+                 .event_window_end_block==26102551 and
+                 .fully_segmented_Aave_LiquidationCall_event_window==true and
+                 .event_chunks_per_provider==15 and
+                 .real_independent_operator_consensus==true and
+                 .winners_are_third_parties_not_NQC==true and
+                 .matched_winners_profit_after_builder_inclusion_proven==false and
+                 .short_lived_unexecuted_liquidatable_opportunities_exhaustive==false and
+                 .time_of_first_eligibility_seen_by_NQC_real_time==false and
+                 .NQC_own_capital_zero_external_gas_authorized==false and
+                 .NQC_realized_profit_usd=="0" and
+                 .NQC_probability_15k_or_55k_monthly_certified==false and
+                 .rmc015_terminal_authority_closed==false and
+                 .real_market_census_closed==false' \
+            "$RUNNER_TEMP/nqc015-causal/public/all-857-future-liquidation-events.json" >/dev/null
+          (cd "$RUNNER_TEMP/nqc015-causal/public" &&
+            sha256sum all-857-future-liquidation-events.json producer-source.sha256 > archive.sha256 &&
+            sha256sum --check --strict archive.sha256)
+          echo RMC015_REAL_857_SOURCE_COHORT_POSTANCHOR_EVENTS_NOT_NQC_PROFIT
+
+      - name: Preserve only aggregated hashed output, no source account addresses
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc015-real-post-anchor-857-events-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc015-causal/public/*.json
+            ${{ runner.temp }}/nqc015-causal/public/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
