@@ -1,0 +1,102 @@
+name: NQC RMC-016 Original Observed Market Income Hurdles Not NQC PnL
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc016-original-market-income-hurdles.yml'
+      - 'ci/nqc-census/rmc016_market_revenue_hurdles.py'
+      - 'ci/nqc-census/test_rmc016_market_revenue_hurdles.py'
+      - 'ci/nqc-census/RMC016_MARKET_REVENUE_HURDLE_EVIDENCE.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nqc-rmc016-source-market-hurdle-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  source-locked-necessary-not-sufficient-market-gross-thresholds:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Source-lock original D16 (market) and D11 (native gas auth) without revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor a2e7efd233682efc051c1ace4284c9a8156d9c77 HEAD
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          jq -e '.schema_version==1 and .status=="RMC016_CONSERVATIVE_REALIZABLE_CAPACITY_PASS" and
+                 .authority.definite_episode_count==139 and .authority.definite_transaction_count==127 and
+                 .authority.observed_market_gross_oracle_edge_usd_wad=="138045174690310000000000" and
+                 .authority.observed_winner_gas_cost_usd_wad=="1144134260592713842029" and
+                 .authority.nqc_conservative_realizable_monthly_capacity_usd_wad=="0" and
+                 (.authority.non_claims|index("NO_NQC_REALIZED_PNL")!=null)' \
+             ci/nqc-census/rmc016-production-evidence.json >/dev/null
+          jq -e '.provider_count==0 and .providers==[] and
+                 .status=="DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE"' \
+             ci/nqc-census/rmc011-external-capital-provider-registry.json >/dev/null
+          echo RMC016_D16_GIT_SOURCE_AND_D11_ZERO_APPROVED_GAS_EXACTLY_UNCHANGED
+      - name: Run source-only adversarial tests and arithmetic consistency
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc016_market_revenue_hurdles.py
+          python3 -m py_compile ci/nqc-census/rmc016_market_revenue_hurdles.py
+          mkdir -p "$RUNNER_TEMP/nqc-rmc016-hurdles"
+          sha256sum ci/nqc-census/rmc016_market_revenue_hurdles.py \
+                    ci/nqc-census/test_rmc016_market_revenue_hurdles.py \
+                    ci/nqc-census/RMC016_MARKET_REVENUE_HURDLE_EVIDENCE.md \
+             > "$RUNNER_TEMP/nqc-rmc016-hurdles/producer-source.sha256"
+          echo RMC016_OBSERVED_THIRD_PARTY_GROSS_NOT_NQC_REVENUE_TESTS_PASS
+      - name: Emit deterministic conditional revenue hurdle without future income claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/nqc-rmc016-hurdles/historical-market-hurdle-not-nqc-profit.json"
+          python3 ci/nqc-census/rmc016_market_revenue_hurdles.py --out "$out"
+          jq -e '
+            .status=="RMC016_HISTORIC_MARKET_GROSS_SHARE_HURDLES_ONLY_NOT_NQC_NET" and
+            .observed_window_number_of_blocks==215036 and
+            .observed_competitor_liquidation_events==139 and
+            .observed_competitor_winning_transactions==127 and
+            .observed_market_gross_oracle_edge_usd_wad=="138045174690310000000000" and
+            .observed_market_partial_gross_edge_after_third_party_gas_usd_wad=="136901040429717286157971" and
+            .report_target_scope=="SAME_OBSERVATION_WINDOW_ALGEBRA_ONLY_NOT_CALENDAR_MONTH" and
+            (.conditional_necessary_gross_share_thresholds|length)==2 and
+            .conditional_necessary_gross_share_thresholds[0].hypothetical_same_window_target_usd=="15000" and
+            .conditional_necessary_gross_share_thresholds[1].hypothetical_same_window_target_usd=="55000" and
+            (.conditional_necessary_gross_share_thresholds|all(.confirmed_achievable_by_nexus==false and
+            .empirical_nexus_capture_probability_known==false)) and
+            .complete_transaction_level_cost_ledgers_authenticated_in_this_gate==false and
+            .nqc_external_native_gas_financer_authorized==false and
+            .nqc_realized_income_usd_wad=="0" and
+            .nqc_conservative_realizable_monthly_capacity_usd_wad=="0" and
+            .monthly_income_forecast_usd==null and
+            .monthly_goal_15k_usd_proven==false and
+            .monthly_goal_55k_usd_proven==false and
+            .reliability_p_at_least_90pct_proven==false and
+            .rmc011_terminal_closed==false and
+            .rmc013_terminal_closed==false and
+            .rmc015_terminal_closed==false and
+            .real_market_census_closed==false' "$out" >/dev/null
+          (
+            cd "$RUNNER_TEMP/nqc-rmc016-hurdles"
+            sha256sum historical-market-hurdle-not-nqc-profit.json producer-source.sha256 > evidence-manifest.sha256
+            sha256sum --check --strict evidence-manifest.sha256
+          )
+          echo RMC016_HISTORICAL_MARKET_EDGE_NOT_EX_AN_TE_NEXUS_CAPACITY
+      - name: Preserve only hash-pinned accounting hurdle (no projected trades)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-observed-market-gross-hurdles-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc-rmc016-hurdles/*.json
+            ${{ runner.temp }}/nqc-rmc016-hurdles/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
