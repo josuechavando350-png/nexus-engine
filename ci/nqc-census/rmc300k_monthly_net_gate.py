@@ -95,6 +95,22 @@ def money(x):
     whole,fract=divmod(abs(x),WAD)
     return sign+str(whole)+"."+str(fract).zfill(18)
 
+def gross_requirement_sensitivity():
+    # Illustrative zero-cost necessary gross budget for an ASSUMED capture fraction.
+    # No fraction below is a calibrated Nexus probability or capacity.
+    assumptions=((10,1,10),(25,1,4),(50,1,2),(100,1,1))
+    output=[]
+    for share,num,den in assumptions:
+        need(0<num<=den,"hypothetical capture ratio invalid")
+        minimum=(TARGET_WAD*den+num-1)//num
+        output.append({
+            "hypothetical_full_cost_free_capture_percent":share,
+            "minimum_required_total_gross_usd_wad_at_zero_additional_cost":str(minimum),
+            "hypothetical_not_calibrated":True,
+            "not_a_nexus_forecast":True,
+        })
+    return output
+
 def assess(source_raw):
     principal,gross,gas=parse_locked_source(source_raw)
     remainder=gross-gas
@@ -129,6 +145,7 @@ def assess(source_raw):
         "target_over_observed_oracle_gross_factor":str(ratio),
         "idealized_full_capture_zero_cost_gross_shortfall_usd_wad":str(idealized_gap),
         "idealized_gap_is_global_required_market_capacity":False,
+        "capture_sensitivity_at_zero_other_cost":gross_requirement_sensitivity(),
         "nexus_realized_profit_usd_wad":None,
         "nexus_net_monthly_forecast_usd_wad":None,
         "nexus_positive_capture_lower_bound_usd_wad":"0",
