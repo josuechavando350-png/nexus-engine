@@ -25,6 +25,7 @@ MAX_MEMBERS = 150
 MAX_SELECTED = 48
 EXPECTED_WINNERS = 127
 HEX64 = re.compile(r"[0-9a-f]{64}\Z")
+GIT_SHA1 = re.compile(r"[0-9a-f]{40}\Z")
 SHA256_META = re.compile(r"sha256:([0-9a-f]{64})\Z")
 POTENTIAL = re.compile(r"rmc[-_ ]?0(?:15|16)|winner|econom|transaction|liquidation|ledger|census[-_ ]?capacity", re.I)
 
@@ -96,7 +97,7 @@ def artifact_row(row):
          type(expired) is bool and
          (digest is None or
           (type(digest) is str and SHA256_META.fullmatch(digest))) and
-         type(head) is str and HEX64.fullmatch(head),
+         type(head) is str and GIT_SHA1.fullmatch(head),
          "malformed or unauthenticated artifact inventory row")
     return {
         "id": id_, "run_id": rid, "name": name, "size_in_bytes": sz,
