@@ -27,3 +27,7 @@ The second batch may acquire at most 6 NEW receipts, preserving the immutable ex
 ## Third immutable batch: 22 → at most 28 verified receipts
 
 Previous exact GitHub push run 37721369826, commit 011bba0975ae585ebb8efe6daedb2d5a4dd88ae0, tree 1c6a0262297be41b7294c7def324bd08620e3b2b, artifact 11525806907, ZIP digest sha256:85e2ad6262d556a69c210469419feaab3966693b955f332579b9c28bc2cbbafc. The archive contains precisely 22 receipts (16 earlier plus 6 newly matched), SHA-256 verified, with 105 pending. Continue from this exact predecessor; request only the next six, preserve rate-limit failures, and keep economic/Census authority claims false.
+
+## Fourth immutable batch: 28 → at most 34 verified receipts
+
+Run 37721652969 at commit 369df8fabec17f43a1e91bd00c3a9c46500e2f21 (tree 7ca569d76d703d1eb22e6f05de29b3c1b6deea83) ended SUCCESS. Artifact 11526366948, digest sha256:a05e5ed45a7a702aedac40e442362e9cb57044d2f8a491a43acac366f8d53f87, contains 28 immutable independently matched receipts (22 previous + 6 new), 99 pending. The fourth producer exact-pins this archive, only requests the next six at the same public-provider pacing, and preserves all Census and economic nonclaims.
