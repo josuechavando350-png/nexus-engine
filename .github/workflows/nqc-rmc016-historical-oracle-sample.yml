@@ -37,7 +37,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git merge-base --is-ancestor abe54f1f23bd7bff8c37871200f7da436bca07a25f5 HEAD
+          git merge-base --is-ancestor abe54f1f23bd7bff8c37871200f7da7c59c45ac3 HEAD
           test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = \
             "5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa"
           python3 ci/nqc-census/test_rmc016_historical_gas_price_oracle.py
