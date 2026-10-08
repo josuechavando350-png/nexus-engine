@@ -1,0 +1,84 @@
+name: NQC RMC-011 Original D08 Debt Family Rejection Evidence (NO D11 CLOSE)
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc011-original-d08-debt-rejections.yml'
+      - 'ci/nqc-census/rmc011-real-source-inputs.json'
+      - 'ci/nqc-census/rmc011_original_d08_debt_producer.py'
+      - 'ci/nqc-census/test_rmc011_original_d08_debt_producer.py'
+      - 'ci/nqc-census/RMC011_ORIGINAL_D08_DEBT_REJECTION.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: nqc-rmc011-original-d08-debt-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  frozen-original-upstream-debt-rejection-not-terminal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact source head and freeze its real evidence catalog
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Fail closed on any source drift; adversarial offline tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object ci/nqc-census/rmc011-real-source-inputs.json)" = 1db0bbd78af36ee61dd6a44630a3b6614f3e9309
+          test "$(git hash-object ci/nqc-census/rmc011-capital-source-universe.json)" = 6754a74c5c1e348c0c731618332ba8feba96834e
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/rmc011-permissionless-debt-facility-catalog.json)" = 100fd25c99217e82f4d5b00bd67b9c87be3d1afa
+          test "$(git hash-object ci/nqc-census/rmc011-collateral-funding-path-catalog.json)" = d21b0731f76658121fbf1daf63bf9e19f742840e
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          python3 -m py_compile ci/nqc-census/rmc011_original_d08_debt_producer.py ci/nqc-census/test_rmc011_original_d08_debt_producer.py
+          python3 ci/nqc-census/test_rmc011_original_d08_debt_producer.py -v
+          python3 ci/nqc-census/test_verify_rmc011_debt_family_resolution.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          echo RMC011_FIVE_ORIGINAL_INPUTS_FROZEN_AND_SYNTHETIC_OVERSIGHT_TESTS_PASS
+      - name: Build original locked Rust D08 authority and debt-facility reader
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd nqc-census
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
+          cargo build --release --locked -p nqc-census-capital \
+            --bin nqc-rmc011-authority-lock-build \
+            --bin nqc-rmc011-aave-debt-discovery
+          echo RMC011_DETERMINISTIC_RUST_SOURCE_READERS_COMPILED
+      - name: Reauthenticate 5 original Actions ZIPs and replay exact D08 debt rejection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/rmc011_original_d08_debt_producer.py \
+            --work "$RUNNER_TEMP/rmc011-original-debt-source" \
+            --exact-head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${{ github.run_id }}" \
+            --run-attempt "${{ github.run_attempt }}"
+          PUB="$RUNNER_TEMP/rmc011-original-debt-source/public"
+          (cd "$PUB" && sha256sum -c --strict SHA256SUMS)
+          jq -e '.status=="RMC011_ORIGINAL_D08_TWO_DEBT_REJECTIONS_AUTHENTICATED_NOT_D11" and
+                 .rmc011_terminal_closed==false and .real_market_census_closed==false and
+                 .nqc_external_debt_executable_capacity_claimed==false and
+                 .global_external_credit_nonexistence_claimed==false and
+                 .nqc_authorized_external_gas_providers==0 and
+                 .nqc_realized_usd_wad=="0" and
+                 (.original_two_bounded_debt_evidence_sha256 | length)==2 and
+                 (.five_original_upstream_stage_sources | length)==5' \
+            "$PUB/original-source-report.json" >/dev/null
+          echo RMC011_ORIGINAL_TWO_DEBT_FAMILY_REJECTIONS_ONLY_CENSUS_BLOCKED
+      - name: Publish only source hashes and two debt rejections, no borrower rows
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-original-d08-debt-rejections-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/rmc011-original-debt-source/public/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
