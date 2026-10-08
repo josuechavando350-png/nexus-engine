@@ -23,7 +23,7 @@ def targets():
         "predecessor_number":t[1]-1,
         "original_receipt":{"receipt_evidence_sha256":str(i)+"e"*63},
         "original_event_list":[{}],
-        "original_abi_event":{"borrower_identity_sha256":"d"*64},
+        "original_abi_event":{"borrower_identity_sha256":"d"*64,"log_index":0},
     } for i,t in enumerate(m.RANKED)]
 
 
@@ -112,7 +112,7 @@ class Top3PreviousBlockTests(unittest.TestCase):
                         "parentHash":PRE,"stateRoot":ROOT}
             if method=="eth_getTransactionReceipt":
                 return {"logs":[{"address":m.AAVE_POOL,"topics":[m.LIQUIDATION_TOPIC,"0x"+"0"*64,
-                  "0x"+"0"*64,"0x"+"0"*24+BORROWER[2:]]}]}
+                  "0x"+"0"*64,"0x"+"0"*24+BORROWER[2:]],"logIndex":"0x0"}]}
             if method=="eth_call":
                 return "0x"+"".join(f"{x:064x}" for x in
                       (2000,1000,0,8000,7000,m.RANK1_PREVIOUS_HF_WAD))
@@ -122,6 +122,37 @@ class Top3PreviousBlockTests(unittest.TestCase):
             r=m.observe_provider(("drpc","dRPC","x"),[t],call=request)
         self.assertEqual(r["rows"][0]["predecessor_block"]["hash"],PRE)
         self.assertFalse(r["rows"][0]["health_factor_below_one_at_predecessor"])
+
+    def test_multiple_liquidations_match_only_exact_weth_log_index(self):
+        t=targets()[0]
+        other=copy.deepcopy(t)
+        other["original_event_list"]=[{},{}]
+        # There are two LiquidationCall logs, but the selected WETH log is
+        # the one at index 0; all other event data must still be checked
+        # separately by the normalized full-receipt parity gate.
+        def request(url,method,args):
+            if method=="eth_chainId":return "0x1"
+            if method=="eth_getBlockByNumber":
+                n=int(args[0],16)
+                return {"number":hex(n),
+                        "hash":t["winning_block_hash"] if n==t["winning_block_number"] else PRE,
+                        "parentHash":PRE,"stateRoot":ROOT}
+            if method=="eth_getTransactionReceipt":
+                first={"address":m.AAVE_POOL,
+                       "topics":[m.LIQUIDATION_TOPIC,"0x"+"0"*64,"0x"+"0"*64,
+                                 "0x"+"0"*24+BORROWER[2:]],
+                       "logIndex":"0x0"}
+                second=copy.deepcopy(first)
+                second["logIndex"]="0x1"
+                return {"logs":[first,second]}
+            if method=="eth_call":
+                return "0x"+"".join(f"{x:064x}" for x in
+                      (2000,1000,0,8000,7000,m.RANK1_PREVIOUS_HF_WAD))
+            raise AssertionError(method)
+        with patch.object(m,"receipt_normalized",return_value=t["original_receipt"]),\
+             patch.object(m,"decode",return_value=t["original_abi_event"]):
+            result=m.observe_provider(("drpc","dRPC","x"),[other],call=request)
+        self.assertEqual(result["rows"][0]["borrower"],BORROWER)
 
     def test_wrong_parent_hash_denied(self):
         t=targets()[0]
