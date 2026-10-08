@@ -11,7 +11,7 @@ The evidence chain cannot promote a hindsight-selected target to a prediction. T
 ## Actual source and scope
 
 - Mainnet Ethereum chain 1, original Aave V3 Pool **0x87870Bca3FfD6335C3f4cE8392D69350b4fa4e2**, exact predecessor **block 25,938,047**, block hash **0x42cf44b75185587327a1aa8fc859cc5f49a639e7256547511430d6068b6f09ab**.
-- Enumerate **all canonical Aave Borrow events in the previous 512 blocks**, in independent 64-block chunks, using historical logs alone. Decode actual borrower as **onBehalfOf**, not the transaction sender or borrow initiator. Source event topic is the standard Aave V3 Borrow event.
+- Enumerate **all canonical Aave Borrow events in the previous 100 blocks**, in independent 10-block chunks, using historical logs alone. Decode actual borrower as **onBehalfOf**, not the transaction sender or borrow initiator. Source event topic is the standard Aave V3 Borrow event.
 - Recover the unique canonical cohort from those Borrow events, without any reference to a subsequent liquidation transaction. Require the full bounded cohort or **fail rather than cherry-pick/truncate**.
 - For every cohort borrower, query the **actual historical mainnet Aave Pool getUserAccountData** with eth_call pinned at block 25,938,047; integer HF in WAD. Document active debt, already below 1, HF 1..1.01, and HF 1..1.000001, with no claimed ability to capture a future event from this feature alone.
 - **Two independently operated Ethereum RPCs** (dRPC and BlastAPI) must agree on exact cutoff hash, parent/state root, complete event list/commitment, borrower cohort and risk observations.
