@@ -1,0 +1,122 @@
+name: NQC RMC-011 Original D08 D09 Full Native Flash Import (NOT D11 CLOSE)
+on:
+  push:
+    branches:
+      - 'nqc/rmc011-native-flash-d08-real-import-20261008'
+    paths:
+      - '.github/workflows/nqc-rmc011-original-d08-native-flash-import.yml'
+      - 'ci/nqc-census/rmc011_original_d08_native_flash_import.py'
+      - 'ci/nqc-census/test_rmc011_original_d08_native_flash_import.py'
+      - 'ci/nqc-census/RMC011_ORIGINAL_D08_NATIVE_FLASH_IMPORT.md'
+      - 'nqc-census/crates/nqc-census-capital/src/upstream.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/artifacts.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/lib.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/bin/nqc-rmc011-capital-build.rs'
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc011-original-d08-native-flash-import.yml'
+      - 'ci/nqc-census/rmc011_original_d08_native_flash_import.py'
+      - 'ci/nqc-census/test_rmc011_original_d08_native_flash_import.py'
+      - 'ci/nqc-census/RMC011_ORIGINAL_D08_NATIVE_FLASH_IMPORT.md'
+      - 'nqc-census/crates/nqc-census-capital/src/upstream.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/artifacts.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/lib.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/bin/nqc-rmc011-capital-build.rs'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: nqc-rmc011-full-original-d08-native-flash-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  original-sources-full-native-flash-not-terminal:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact original source consumer head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Source pin, 9/13 partial authority lock and offline adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object ci/nqc-census/rmc011-real-source-inputs.json)" = 1db0bbd78af36ee61dd6a44630a3b6614f3e9309
+          test "$(git hash-object ci/nqc-census/rmc011-capital-source-universe.json)" = c1b9f136a13f220af9dceaae50e5caa3105121eb
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/final-census-authority-lock.json)" = b1182b27b0ff3856b17a6f829ac3c693eab74400
+          python3 -m py_compile ci/nqc-census/rmc011_original_d08_native_flash_import.py ci/nqc-census/test_rmc011_original_d08_native_flash_import.py
+          python3 ci/nqc-census/test_rmc011_original_d08_native_flash_import.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          jq -e '.d11_terminal_closed==false and .terminal_claim_allowed==false and
+                 .status=="BLOCKED_INCOMPLETE_SOURCE_UNIVERSE" and
+                 ([.families[] | select(.terminally_resolved==true)] | length)==9 and
+                 ([.families[] | select(.terminally_resolved==false)] | length)==4' \
+            ci/nqc-census/rmc011-capital-source-universe.json >/dev/null
+          echo RMC011_ORIGINAL_D08_NATIVE_FLASH_FROZEN_INPUT_TESTS_PASS_D11_OPEN
+      - name: Locked Rust format/Clippy tests and exact D08/D09 importer compile
+        shell: bash
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          cd nqc-census
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
+          cargo test --locked -p nqc-census-capital
+          cargo test --locked --workspace
+          cargo build --release --locked -p nqc-census-capital \
+            --bin nqc-rmc011-authority-lock-build \
+            --bin nqc-rmc011-capital-build \
+            --bin nqc-rmc011-upstream-replay-verify
+          echo RMC011_LOCKED_REAL_D08_IMPORT_AND_REPLAY_BINARIES_COMPILED
+      - name: Authenticate ONLY existing original Actions sources and replay full D08/D09
+        shell: bash
+        timeout-minutes: 50
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/nqc-rmc011-full-original-native-flash"
+          python3 ci/nqc-census/rmc011_original_d08_native_flash_import.py \
+            --root "$ROOT" \
+            --head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --run-id "${{ github.run_id }}"
+          test -s "$ROOT/public/native-d08-source-report.json"
+          jq -e '.status=="RMC011_ORIGINAL_D08_AAVE_V3_AND_UNISWAP_V2_SOURCE_IMPORT_REPLAY_ONLY" and
+                 .scope=="EXACT_FROZEN_D08_D09_NATIVE_SOURCE_OBSERVATION_NOT_TERMINAL_D11" and
+                 .d08_import_deterministically_replay_verified==true and
+                 .native_source_universe_family_authentication_pinned==false and
+                 .source_family_universe_discovery_authenticated==false and
+                 .d11_balancer_native_source_family_authenticated==false and
+                 .d11_uniswap_v3_native_source_family_authenticated==false and
+                 .d11_terminal_closed==false and .census_closed==false and
+                 .external_nqc_native_gas_sponsors_approved==0 and
+                 .nqc_capture_competition_calibrated==false and
+                 .nqc_realized_pnl_usd_wad=="0" and
+                 (.d08_source_count|type)=="number" and
+                 (.aave_v3_flash_source_count_observed_not_execution_count|type)=="number" and
+                 (.uniswap_v2_flash_source_count_observed_not_execution_count|type)=="number" and
+                 .d08_source_count==([.d08_source_classes[]]|add)' \
+            "$ROOT/public/native-d08-source-report.json" >/dev/null
+          sha256sum ci/nqc-census/rmc011_original_d08_native_flash_import.py \
+                    ci/nqc-census/test_rmc011_original_d08_native_flash_import.py \
+                    ci/nqc-census/RMC011_ORIGINAL_D08_NATIVE_FLASH_IMPORT.md \
+                    nqc-census/crates/nqc-census-capital/src/upstream.rs \
+            > "$ROOT/public/source-code.sha256"
+          ( cd "$ROOT/public" &&
+            sha256sum native-d08-source-report.json source-code.sha256 > archive.sha256 &&
+            sha256sum -c --strict archive.sha256 )
+          echo RMC011_ORIGINAL_D08_FULL_MARKET_SOURCE_OBSERVATION_ONLY_NOT_CAPITAL_CLOSEOUT
+      - name: Upload only aggregate hashes and source class counts, never raw borrowers
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-original-d08-native-flash-source-import-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc-rmc011-full-original-native-flash/public/*.json
+            ${{ runner.temp }}/nqc-rmc011-full-original-native-flash/public/*.sha256
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
