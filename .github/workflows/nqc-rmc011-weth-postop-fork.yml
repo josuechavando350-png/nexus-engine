@@ -1,0 +1,191 @@
+name: NQC RMC-011 WETH Mock PostOp Operator Bridge
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc011-weth-postop-fork.yml'
+      - 'ci/nqc-census/weth-physical/test/NqcRmc011WethMockPostOpOperatorFork.t.sol'
+      - 'ci/nqc-census/RMC011_WETH_POSTOP_OPERATOR_FORK_CONTRACT.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  historical-aave-postop-test-fixture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact inherited historical T36 and zero gas sponsor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor b6c557328b2da760ccc1886bb98ef1264e756bc8 HEAD
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = aa3883fa141aa096006e90e56d8d4150c9ee14ef
+          test "$(git hash-object ci/nqc-census/rmc011-external-capital-provider-registry.json)" = a9c1427bb05828d08ade537899ee1b8e43b97ed2
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          jq -e '.provider_count == 0 and .providers == [] and .status == "DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE"' ci/nqc-census/rmc011-external-capital-provider-registry.json >/dev/null
+          for path in \
+            ci/nqc-census/weth-physical/test/NqcRmc011WethMockPostOpOperatorFork.t.sol \
+            ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol; do
+            if grep -Eq 'vm[.]deal[[:space:]]*[(]|(deal|store)[[:space:]]*[(]|eth_sendRawTransaction' "$path"; then
+              echo "FORBIDDEN TEST MINT, FUNDING OR BROADCAST IN $path" >&2; exit 1
+            fi
+          done
+          mkdir -p "$RUNNER_TEMP/rmc011-postop-evidence"
+          sha256sum \
+            ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol \
+            ci/nqc-census/weth-physical/test/NqcRmc011WethMockPostOpOperatorFork.t.sol \
+            ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol \
+            ci/nqc-census/RMC011_WETH_POSTOP_OPERATOR_FORK_CONTRACT.md \
+            > "$RUNNER_TEMP/rmc011-postop-evidence/source-sha256.txt"
+          echo RMC011_POSTOP_ONLY_TEST_ACCOUNT_NO_AUTHORIZED_GAS_SOURCE
+
+      - name: Reauthenticate original real Aave WETH liquidation and clock-only proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/rmc011-postop-evidence"
+          check() {
+            local rid="$1" sha="$2" workflow="$3" aid="$4" name="$5" dg="$6" output="$7"
+            local m a
+            m="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$rid")"
+            a="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$aid")"
+            test "$(jq -r .status <<<"$m")" = completed
+            test "$(jq -r .conclusion <<<"$m")" = success
+            test "$(jq -r .name <<<"$m")" = "$workflow"
+            test "$(jq -r .head_sha <<<"$m")" = "$sha"
+            test "$(jq -r .expired <<<"$a")" = false
+            test "$(jq -r .workflow_run.id <<<"$a")" = "$rid"
+            test "$(jq -r .name <<<"$a")" = "$name"
+            test "$(jq -r .digest <<<"$a")" = "sha256:$dg"
+            curl --fail --silent --show-error --location --retry 2 \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$aid/zip" \
+              -o "$root/$output.zip"
+            printf '%s  %s\n' "$dg" "$root/$output.zip" | sha256sum --check --strict
+            mkdir -p "$root/$output"
+            unzip -qq "$root/$output.zip" -d "$root/$output"
+            (cd "$root/$output" && sha256sum --check --strict archive.sha256)
+          }
+          check 37740704145 030d95c705a1fce77c3345cada4c8cd698f4a1db 'NQC RMC-015 WETH Time-Only Intrablock Probe' 11533288894 'rmc015-three-weth-time-only-030d95c705a1fce77c3345cada4c8cd698f4a1db' 7d813c6cad278a5044d1c4ce57492efb07c5c0d73d69481769f92a4cc4151185 source-time
+          check 37741109591 5b5402ff373f06804f8714d91dfe247f0c230c92 'NQC RMC-016 Rank-One Unsubsidized Fork Liquidation' 11534051574 'rmc016-rank1-aave-real-liquidation-5b5402ff373f06804f8714d91dfe247f0c230c92' 9af974b4f87a68ef9e9dcf932e146b2440f197939b8bd75a7e993755b06c8bf1 original-fork
+          jq -e '.status=="RMC015_REAL_TOP3_WETH_PREBLOCK_AND_WINNER_TIME_ANCHORS_PASS" and .canonical_time_anchors[0].rank==1 and .canonical_time_anchors[0].previous_block_number==25938047 and .canonical_time_anchors[0].winning_block_number==25938048 and .source_two_operator_time_consensus==true and .time_only_fork_execution_performed==false and .real_market_census_closed==false' "$root/source-time/anchors.json" >/dev/null
+          jq -e '.status=="RMC015_TOP3_TIME_ONLY_REAL_FORK_DIAGNOSTIC_PASS" and .measurements[0].previous_hf_wad=="1000000001993818630" and .measurements[0].winner_time_only_hf_wad=="999999999704293538" and .measurements[0].time_only_below_one==true and .nexus_execution_or_capture_proven==false and .real_market_census_closed==false' "$root/source-time/time-only-conclusion.json" >/dev/null
+          jq -e '.status=="RMC016_RANK1_COUNTERFACTUAL_AAVE_WETH_SURPLUS_FORK_PASS_NOT_NET" and .remaining_weth_after_real_aave_liquidation_and_flash_fee_wei=="90814117763741536" and .test_minted_fee_or_collateral_wei=="0" and .native_gas_sponsorship_verified==false and .nexus_realized_net_profit_proven==false and .real_market_census_closed==false' "$root/original-fork/physical-liquidation-report.json" >/dev/null
+          echo RMC011_POSTOP_SOURCE_AUTHENTICATED_NO_PRODUCTION_FUNDING
+
+      - name: Install exact Foundry 1.7.1, original T36 code and Solidity compiler
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rmc011-foundry"
+          curl --fail --silent --show-error --location --retry 3 -o "$RUNNER_TEMP/rmc011-foundry.tar.gz" https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          printf '%s  %s\n' cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b "$RUNNER_TEMP/rmc011-foundry.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/rmc011-foundry.tar.gz" -C "$RUNNER_TEMP/rmc011-foundry"
+          "$RUNNER_TEMP/rmc011-foundry/forge" --version
+
+      - name: Physical WETH operator token payout and postOp-like collection on mainnet fork
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$RUNNER_TEMP/rmc011-foundry:$PATH"
+          root="$RUNNER_TEMP/rmc011-postop-evidence"
+          origin="$root/source-time/anchors.json"
+          export NQC_RMC016_RANK1_BORROWER="$(jq -r '.canonical_time_anchors[0].borrower' "$origin")"
+          export NQC_RMC016_RANK1_PREVIOUS_TIMESTAMP="$(jq -r '.canonical_time_anchors[0].previous_block_timestamp' "$origin")"
+          export NQC_RMC016_RANK1_WINNER_TIMESTAMP="$(jq -r '.canonical_time_anchors[0].winning_block_timestamp' "$origin")"
+          sandbox="$RUNNER_TEMP/rmc011-postop-fork"
+          mkdir -p "$sandbox/src" "$sandbox/test"
+          cp ci/nqc-census/weth-physical/foundry-time-only.toml "$sandbox/foundry.toml"
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol "$sandbox/src/"
+          cp ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol "$sandbox/test/"
+          cp ci/nqc-census/weth-physical/test/NqcRmc011WethMockPostOpOperatorFork.t.sol "$sandbox/test/"
+          cd "$sandbox"
+          forge fmt
+          forge fmt --check
+          test "$(sha256sum src/NqcFlashFundingExecutor.sol | cut -d' ' -f1)" = bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320
+          sha256sum foundry.toml src/NqcFlashFundingExecutor.sol test/NqcRmc016RankOneSelfFinancingFork.t.sol test/NqcRmc011WethMockPostOpOperatorFork.t.sol > "$root/tested-formatted-sources.sha256"
+          forge build --sizes 2>&1 | tee "$root/forge-build.txt"
+          forge test --fork-url https://eth.drpc.org --fork-block-number 25938047 --match-contract NqcRmc011WethPostopOperatorForkTest -vvv 2>&1 | tee "$root/physical-postop-fork.txt"
+          grep -Fq 'Suite result: ok. 3 passed; 0 failed; 0 skipped' "$root/physical-postop-fork.txt"
+          for name in testWethProfitReachesSmartAccountAndMockPostOpCollectsGasInSameFork testOversizedMockPostOpChargeRevertsWithoutLiquidationStateMutation testNoUnprivilegedOperatorExecutionOrPaymasterTokenCollection; do
+            grep -Fq "[PASS] $name()" "$root/physical-postop-fork.txt"
+          done
+          grep -Fq 'NQC_RMC011_FORK_OPERATOR_WETH_SURPLUS_WEI' "$root/physical-postop-fork.txt"
+          echo RMC011_ACCOUNT_OPERATOR_WETH_POSTOP_LIKE_MOCK_PASS_NOT_REAL_ERC4337
+
+      - name: Produce fail-closed mock-only economic and gas-admission report
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$RUNNER_TEMP/rmc011-postop-evidence" <<'PY'
+          import hashlib,json,re,sys
+          from pathlib import Path
+          root=Path(sys.argv[1])
+          raw=(root/"physical-postop-fork.txt").read_text()
+          def event(label):
+              values=re.findall(r"^\s*"+re.escape(label)+r": ([0-9]+)\s*$",raw,re.MULTILINE)
+              assert len(values)==1,(label,values)
+              return int(values[0])
+          surplus=event("NQC_RMC011_FORK_OPERATOR_WETH_SURPLUS_WEI")
+          charge=event("NQC_RMC011_HYPOTHETICAL_GAS_WETH_COLLECTED_WEI")
+          kept=event("NQC_RMC011_FORK_ACCOUNT_WETH_AFTER_POSTOP_WEI")
+          sponsor=event("NQC_RMC011_REAL_NATIVE_GAS_SPONSOR_AUTHORIZED")
+          assert surplus==90814117763741536 and charge>0 and kept>0
+          assert surplus-charge==kept and sponsor==0
+          out={
+            "schema_version":1,
+            "status":"RMC011_WETH_OPERATOR_POSTOP_MOCK_FORK_TOKEN_FLOW_PASS_NOT_AUTHORIZED",
+            "source_real_aave_weth_liquidation_sha256":"9af974b4f87a68ef9e9dcf932e146b2440f197939b8bd75a7e993755b06c8bf1",
+            "source_original_historical_clock_sha256":"7d813c6cad278a5044d1c4ce57492efb07c5c0d73d69481769f92a4cc4151185",
+            "historical_fork_predecessor_block":25938047,
+            "historical_clock_only_winner_block":25938048,
+            "real_aave_flash_and_liquidation_executed_in_fork":True,
+            "original_t36_immutable_operator_bound_to_test_account":True,
+            "actual_weth_surplus_delivered_to_test_operator_account_wei":str(surplus),
+            "assumed_eth_gas_equivalent_token_charge_collected_by_mock_wei":str(charge),
+            "weth_retained_by_account_after_mock_collection_wei":str(kept),
+            "physically_executed_mock_token_flow_cases":3,
+            "mock_entrypoint_like_facade_only":True,
+            "actual_entrypoint_handleops_executed":False,
+            "actual_paymaster_validation_or_postop_executed":False,
+            "third_party_eth_entrypoint_deposit_authenticated":False,
+            "paymaster_signed_quote_or_nonrecourse_agreement":False,
+            "production_erc4337_useroperation_executed":False,
+            "real_erc4337_failure_gas_liability_proven":False,
+            "native_eth_gas_externally_sponsored":False,
+            "real_nqc_own_capital_zero_execution_proven":False,
+            "real_nqc_capture_or_net_pnl_proven":False,
+            "rmc011_terminal_closed":False,
+            "real_market_census_closed":False,
+          }
+          def canonical(d):return (json.dumps(d,sort_keys=True,separators=(",",":"))+"\n").encode()
+          out["report_sha256"]=hashlib.sha256(canonical(out)).hexdigest()
+          (root/"mock-postop-operator-report.json").write_bytes(canonical(out))
+          print(out["status"],"mock_WETH_sponsor_collection_wei",charge,"NQC_NET_PNL_UNPROVEN")
+          PY
+          (cd "$RUNNER_TEMP/rmc011-postop-evidence" && find . -maxdepth 1 -type f ! -name archive.sha256 ! -name '*.zip' -printf '%f\n' | sort | while read -r file; do sha256sum "$file"; done > archive.sha256 && sha256sum -c archive.sha256)
+          echo RMC011_NO_ERC4337_NATIVE_GAS_SOURCING_CLAIM
+
+      - name: Preserve source-bound read-only mock operator evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc011-weth-mock-postop-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/rmc011-postop-evidence/*.json
+            ${{ runner.temp }}/rmc011-postop-evidence/*.txt
+            ${{ runner.temp }}/rmc011-postop-evidence/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
