@@ -71,6 +71,23 @@ class NetTargetGuardrails(unittest.TestCase):
         self.assertEqual(x["historical_source_range"],[25880316,26095351])
         self.assertEqual(x["reference_target_days"],30)
         self.assertIn("COMPLETE_30_DAY_NET_CAPACITY_AND_P90_UNPROVEN",x["blocking_reasons"])
+    def test_exact_external_gas_registry_is_empty_and_not_global_proof(self):
+        raw=(HERE/"rmc011-external-capital-provider-registry.json").read_bytes()
+        result=G.assess(self.raw,raw)
+        provider=result["external_capital_registry"]
+        self.assertEqual(provider["source_git_blob_sha1"],G.CAPITAL_REGISTRY_GIT_BLOB)
+        self.assertEqual(provider["registered_authorized_provider_count"],0)
+        self.assertFalse(provider["external_gas_provider_authorized"])
+        self.assertEqual(provider["status"],"PINNED_EMPTY_PROVIDER_REGISTRY_NOT_GLOBAL_NONEXISTENCE")
+        self.assertFalse(result["monthly_300k_certified"])
+
+    def test_forged_external_gas_provider_is_rejected(self):
+        raw=json.loads((HERE/"rmc011-external-capital-provider-registry.json").read_bytes())
+        raw["provider_count"]=1
+        raw["providers"]=[{"name":"imagined sponsor"}]
+        with self.assertRaisesRegex(ValueError,"exact pinned Git blob"):
+            G.assess(self.raw,G.canonical(raw))
+
     def test_zero_own_capital_binds_gas_and_flash_principal(self):
         x=self.report
         self.assertEqual(x["own_capital_required_usd"],"0")
