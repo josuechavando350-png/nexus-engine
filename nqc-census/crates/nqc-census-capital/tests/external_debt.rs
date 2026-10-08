@@ -58,8 +58,7 @@ fn observation(
     credit_limit: Amount256,
     outstanding: Amount256,
     active: bool,
-    provider_b_facts: Option<Hash32>,
-    provider_b_transcript: Option<Hash32>,
+    provider_b_overrides: (Option<Hash32>, Option<Hash32>),
 ) -> Result<Vec<u8>, CapitalError> {
     let provider_identity = hash(8);
     let facility_contract = address(9);
@@ -107,6 +106,7 @@ fn observation(
         ExternalDebtKind::CollateralizedBorrowing => "COLLATERALIZED_BORROWING",
         ExternalDebtKind::PersistentDebt => "PERSISTENT_DEBT",
     };
+    let (provider_b_facts, provider_b_transcript) = provider_b_overrides;
     let provider_a_transcript = hash(40);
     let provider_b_transcript = provider_b_transcript.unwrap_or(hash(41));
     let provider_b_facts = provider_b_facts.unwrap_or(facts);
@@ -266,8 +266,7 @@ fn imports_collateralized_borrowing() -> TestResult {
         amount(900),
         amount(100),
         true,
-        None,
-        None,
+        (None, None),
     )?;
     let source = import_external_debt_observation(&bytes, &observed_anchor)?;
     assert_common_source(&source, CapitalClass::CollateralizedBorrowing)?;
@@ -286,8 +285,7 @@ fn imports_persistent_debt() -> TestResult {
         amount(900),
         amount(100),
         true,
-        None,
-        None,
+        (None, None),
     )?;
     let source = import_external_debt_observation(&bytes, &observed_anchor)?;
     assert_common_source(&source, CapitalClass::PersistentDebt)?;
@@ -313,8 +311,7 @@ fn rejects_anchor_substitution() -> TestResult {
         amount(900),
         amount(100),
         true,
-        None,
-        None,
+        (None, None),
     )?;
     assert!(matches!(
         import_external_debt_observation(&bytes, &expected),
@@ -333,8 +330,7 @@ fn rejects_provider_semantic_divergence() -> TestResult {
         amount(900),
         amount(100),
         true,
-        Some(hash(90)),
-        None,
+        (Some(hash(90)), None),
     )?;
     assert!(matches!(
         import_external_debt_observation(&bytes, &observed_anchor),
@@ -353,8 +349,7 @@ fn rejects_duplicate_provider_transcript() -> TestResult {
         amount(900),
         amount(100),
         true,
-        None,
-        Some(hash(40)),
+        (None, Some(hash(40))),
     )?;
     assert!(matches!(
         import_external_debt_observation(&bytes, &observed_anchor),
@@ -373,8 +368,7 @@ fn inactive_debt_preserves_observation_but_is_not_executable() -> TestResult {
         amount(900),
         amount(100),
         false,
-        None,
-        None,
+        (None, None),
     )?;
     let source = import_external_debt_observation(&bytes, &observed_anchor)?;
 
@@ -399,8 +393,7 @@ fn stable_source_key_does_not_rotate_with_observed_state() -> TestResult {
             amount(900),
             amount(100),
             true,
-            None,
-            None,
+            (None, None),
         )?,
         &observed_anchor,
     )?;
@@ -412,8 +405,7 @@ fn stable_source_key_does_not_rotate_with_observed_state() -> TestResult {
             amount(900),
             amount(200),
             false,
-            None,
-            None,
+            (None, None),
         )?,
         &observed_anchor,
     )?;
