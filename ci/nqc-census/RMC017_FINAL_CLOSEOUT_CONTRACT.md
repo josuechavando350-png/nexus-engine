@@ -33,6 +33,8 @@ Additionally:
 RMC-017 does not prove realized profitability or the Month-1 target. Those remain
 Shadow/Canary/real-P&L claims.
 
+The **offline** `rmc017_closeout_model.validate` helper is foundation-only: even with syntactically valid, artificially constructed authority rows, it MUST emit `RMC017_FOUNDATION_CANDIDATE_VALID_NOT_CERTIFIED`, `terminal_authority=false`, `independent_artifact_authentication_complete=false` and `real_market_census_closed=false`. Synthetic tests and green CI MUST NOT produce a final Census marker. A separate production terminal workflow must independently reauthenticate exact D14/D15/D16 GitHub run metadata, archive bytes and inner semantic evidence before any final claim.
+
 The source lock can never self-certify closure. Only a deterministic final
 certificate generated from pinned, independently reauthenticated artifacts may set:
 
