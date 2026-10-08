@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "status": "PINNED",
+  "repository": "josuechavando350-png/nexus-engine",
+  "source": {
+    "run_id": 37718661409,
+    "head_sha": "abe54f1f23bd7bff8c37871200f7da7c59c45ac3",
+    "tree_sha": "c74f8d9d2c317a011284398643b2d4aa6de06e83",
+    "workflow_name": "NQC RMC-016 Full Liquidation Ledger Discovery",
+    "artifact_id": 11524139188,
+    "artifact_name": "rmc016-full-liquidation-events-abe54f1f23bd7bff8c37871200f7da7c59c45ac3",
+    "artifact_digest": "sha256:6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204",
+    "source_event_count": 139,
+    "source_unique_transaction_count": 127
+  },
+  "providers": [
+    {
+      "provider_id": "drpc",
+      "operator": "dRPC"
+    },
+    {
+      "provider_id": "blast",
+      "operator": "BlastAPI"
+    }
+  ],
+  "blocking_reasons": [],
+  "realized_nexus_profitability_proven": false,
+  "notes": [
+    "Source ZIP has single-provider completed event count and exact 127 public transaction hashes; it does NOT certify independent global log completeness.",
+    "Two independently operated receipts must match all 127 raw transaction receipts, including full LiquidationCall logs and gas in wei.",
+    "No USD gas conversion, no self-funded gas, no gross-oracle-to-net promotion and no RMC final closeout."
+  ]
+}
