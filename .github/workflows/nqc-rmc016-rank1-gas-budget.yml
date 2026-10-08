@@ -1,0 +1,140 @@
+name: NQC RMC-016 Real Fork Gas Budget Comparator
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/nqc-rmc016-rank1-gas-budget.yml'
+      - 'ci/nqc-census/rmc016_rank1_fork_gas_budget.py'
+      - 'ci/nqc-census/test_rmc016_rank1_fork_gas_budget.py'
+      - 'ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol'
+      - 'ci/nqc-census/RMC016_RANK1_FORK_GAS_BREAK_EVEN_CONTRACT.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  immutable-physical-gas-budget:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Original T36/D16 ancestry, no minted subsidy and adversarial offline gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor 5b5402ff373f06804f8714d91dfe247f0c230c92 HEAD
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = aa3883fa141aa096006e90e56d8d4150c9ee14ef
+          test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = 5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa
+          if grep -Eq 'vm[.]deal[[:space:]]*[(]|deal[[:space:]]*[(]' ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol; then
+            echo 'Forbidden native/token test-minted subsidy' >&2; exit 1
+          fi
+          python3 ci/nqc-census/test_rmc016_rank1_fork_gas_budget.py
+          python3 -m py_compile ci/nqc-census/rmc016_rank1_fork_gas_budget.py
+          mkdir -p "$RUNNER_TEMP/nqc016-gas-budget"
+          sha256sum ci/nqc-census/rmc016_rank1_fork_gas_budget.py ci/nqc-census/test_rmc016_rank1_fork_gas_budget.py ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol > "$RUNNER_TEMP/nqc016-gas-budget/source-files.sha256"
+          echo RMC016_FORK_GAS_NEGATIVE_TESTS_PASS_NO_OWN_CAPITAL
+
+      - name: Authenticate independently published original fork and WETH price artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/nqc016-gas-budget"
+          check() {
+            local rid="$1" head="$2" workflow="$3" aid="$4" name="$5" digest="$6" label="$7"
+            local meta art
+            meta="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$rid")"
+            art="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$aid")"
+            test "$(jq -r .status <<<"$meta")" = completed
+            test "$(jq -r .conclusion <<<"$meta")" = success
+            test "$(jq -r .head_sha <<<"$meta")" = "$head"
+            test "$(jq -r .name <<<"$meta")" = "$workflow"
+            test "$(jq -r .expired <<<"$art")" = false
+            test "$(jq -r .workflow_run.id <<<"$art")" = "$rid"
+            test "$(jq -r .name <<<"$art")" = "$name"
+            test "$(jq -r .digest <<<"$art")" = "sha256:$digest"
+            curl --fail --silent --show-error --location --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$aid/zip" -o "$root/$label.zip"
+            printf '%s  %s\n' "$digest" "$root/$label.zip" | sha256sum --check --strict
+          }
+          check 37741109591 5b5402ff373f06804f8714d91dfe247f0c230c92 'NQC RMC-016 Rank-One Unsubsidized Fork Liquidation' 11534051574 'rmc016-rank1-aave-real-liquidation-5b5402ff373f06804f8714d91dfe247f0c230c92' '9af974b4f87a68ef9e9dcf932e146b2440f197939b8bd75a7e993755b06c8bf1' original-fork
+          check 37726618359 a569b0a6ba11c0d12de3a1ac0d16d85b896933f6 'NQC RMC-016 Two WETH Winner Historical Prices' 11527902751 'rmc016-two-weth-winner-historical-prices-a569b0a6ba11c0d12de3a1ac0d16d85b896933f6' '5ae6c45b53ded26f327270758c248f7f4ec0ff1365f550e54dcf28feb4a83a03' priced-oracle
+          echo RMC016_IMMUTABLE_ORIGINAL_COUNTERFACTUAL_AND_ORACLE_SOURCES_AUTHENTICATED
+
+      - name: Install pinned Foundry 1.7.1 and compile original T36 executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc016-gas-foundry"
+          curl --fail --silent --show-error --location --retry 3 -o "$RUNNER_TEMP/nqc016-gas-foundry.tar.gz" https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          printf '%s  %s\n' cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b "$RUNNER_TEMP/nqc016-gas-foundry.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/nqc016-gas-foundry.tar.gz" -C "$RUNNER_TEMP/nqc016-gas-foundry"
+          "$RUNNER_TEMP/nqc016-gas-foundry/forge" --version | tee "$RUNNER_TEMP/nqc016-gas-budget/forge-version.txt"
+
+      - name: Measure actual EVM flash+liquidation execute call on original historical fork
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$RUNNER_TEMP/nqc016-gas-foundry:$PATH"
+          root="$RUNNER_TEMP/nqc016-gas-budget"
+          source="$RUNNER_TEMP/nqc016-gas-original-fork"
+          mkdir -p "$source/src" "$source/test"
+          cp ci/nqc-census/weth-physical/foundry-time-only.toml "$source/foundry.toml"
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol "$source/src/"
+          cp ci/nqc-census/weth-physical/test/NqcRmc016RankOneSelfFinancingFork.t.sol "$source/test/"
+          cd "$source"
+          forge fmt
+          forge fmt --check
+          test "$(sha256sum src/NqcFlashFundingExecutor.sol | cut -d' ' -f1)" = bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320
+          sha256sum foundry.toml src/NqcFlashFundingExecutor.sol test/NqcRmc016RankOneSelfFinancingFork.t.sol > "$root/formatted-physical-source.sha256"
+          forge build --sizes 2>&1 | tee "$root/forge-build.txt"
+          # Original publicly authenticated borrower/timestamps; never hand-edit.
+          # Get exact old source from the prior authentic counterfactual run data.
+          prior=37740704145
+          priorhead=030d95c705a1fce77c3345cada4c8cd698f4a1db
+          priorid=11533288894
+          priordigest=7d813c6cad278a5044d1c4ce57492efb07c5c0d73d69481769f92a4cc4151185
+          a="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$priorid")"
+          r="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$prior")"
+          test "$(jq -r .conclusion <<<"$r")" = success
+          test "$(jq -r .head_sha <<<"$r")" = "$priorhead"
+          test "$(jq -r .digest <<<"$a")" = "sha256:$priordigest"
+          test "$(jq -r .workflow_run.id <<<"$a")" = "$prior"
+          curl --fail --silent --show-error --location --retry 2 -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$priorid/zip" -o "$RUNNER_TEMP/rmc015-original-time.zip"
+          printf '%s  %s\n' "$priordigest" "$RUNNER_TEMP/rmc015-original-time.zip" | sha256sum --check --strict
+          unzip -qq "$RUNNER_TEMP/rmc015-original-time.zip" anchors.json -d "$RUNNER_TEMP"
+          original="$RUNNER_TEMP/anchors.json"
+          jq -e '.status=="RMC015_REAL_TOP3_WETH_PREBLOCK_AND_WINNER_TIME_ANCHORS_PASS" and .canonical_time_anchors[0].rank==1 and .source_two_operator_time_consensus==true and .real_market_census_closed==false' "$original" >/dev/null
+          export NQC_RMC016_RANK1_BORROWER="$(jq -r '.canonical_time_anchors[0].borrower' "$original")"
+          export NQC_RMC016_RANK1_PREVIOUS_TIMESTAMP="$(jq -r '.canonical_time_anchors[0].previous_block_timestamp' "$original")"
+          export NQC_RMC016_RANK1_WINNER_TIMESTAMP="$(jq -r '.canonical_time_anchors[0].winning_block_timestamp' "$original")"
+          forge test --fork-url https://eth.drpc.org --fork-block-number 25938047 --match-contract NqcRmc016RankOneSelfFinancingForkTest -vvv 2>&1 | tee "$root/physical-fork-gas-test.txt"
+          grep -Fq 'Suite result: ok. 2 passed; 0 failed; 0 skipped' "$root/physical-fork-gas-test.txt"
+          grep -Fq 'NQC_RANK1_FORK_EXECUTE_CALL_GAS_UNITS:' "$root/physical-fork-gas-test.txt"
+          echo RMC016_PHYSICAL_FORK_GAS_CALL_MEASURED_NOT_FULL_TX_GAS
+
+      - name: Two-operator historical basefee and immutable WETH gas budget
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/nqc016-gas-budget"
+          python3 "$GITHUB_WORKSPACE/ci/nqc-census/rmc016_rank1_fork_gas_budget.py" --fork-zip "$root/original-fork.zip" --price-zip "$root/priced-oracle.zip" --fork-log "$root/physical-fork-gas-test.txt" --out "$root/fork-gas-break-even.json"
+          jq -e '.status=="RMC016_RANK1_FORK_GAS_BREAK_EVEN_SENSITIVITY_DIAGNOSTIC_NOT_NET" and .historical_base_fee_two_operator_consensus==true and .historical_base_fee_source_operator_count==2 and .source_real_fork_after_flash_surplus_weth_wei=="90814117763741536" and .measured_call_gas_excludes_tx_intrinsic_and_offchain_fees==true and (.sensitivity_cases|length)==5 and .sponsor_collateral_or_repayment_agreement_proven==false and .zero_own_capital_including_eth_gas_proven==false and .nexus_realized_profitability_proven==false and .monthly_reliable_capacity_proven==false and .real_market_census_closed==false' "$root/fork-gas-break-even.json" >/dev/null
+          (cd "$root" && find . -maxdepth 1 -type f ! -name archive.sha256 ! -name original-fork.zip ! -name priced-oracle.zip -printf '%f\n' | sort | while read -r f; do sha256sum "$f"; done > archive.sha256 && sha256sum --check --strict archive.sha256)
+          echo RMC016_GAS_BREAK_EVEN_COUNTERFACTUAL_NOT_NEXUS_NET_OR_NATIVE_SPONSOR
+
+      - name: Retain independent physical fork gas and reference-fee evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc016-rank1-gas-budget-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc016-gas-budget/*.json
+            ${{ runner.temp }}/nqc016-gas-budget/*.txt
+            ${{ runner.temp }}/nqc016-gas-budget/*.sha256
+          if-no-files-found: warn
+          retention-days: 90
+          compression-level: 0
