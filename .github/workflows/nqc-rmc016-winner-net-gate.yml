@@ -5,6 +5,16 @@ on:
     paths:
       - 'ci/nqc-census/rmc016_winner_net_audit.py'
       - 'ci/nqc-census/test_rmc016_winner_net_audit.py'
+      - 'ci/nqc-census/rmc016_recovered_winner_ledger.py'
+      - 'ci/nqc-census/test_rmc016_recovered_winner_ledger.py'
+      - 'ci/nqc-census/rmc_operator_gas_budget.py'
+      - 'ci/nqc-census/rmc016_tenderly_receipt_crosscheck.py'
+      - 'ci/nqc-census/rmc015_full_window_incidence.py'
+      - 'ci/nqc-census/test_rmc015_full_window_incidence.py'
+      - 'ci/nqc-census/test_rmc016_tenderly_receipt_crosscheck.py'
+      - 'ci/nqc-census/operator-gas-scenario.json'
+      - 'ci/nqc-census/recovered-rmc016/**'
+      - 'ci/nqc-census/RMC_OPERATOR_GAS_AND_LEDGER_RECOVERY.md'
       - 'ci/nqc-census/RMC016_WINNER_NET_EVIDENCE_CONTRACT.md'
       - '.github/workflows/nqc-rmc016-winner-net-gate.yml'
   push:
@@ -13,6 +23,15 @@ on:
     paths:
       - 'ci/nqc-census/rmc016_winner_net_audit.py'
       - 'ci/nqc-census/test_rmc016_winner_net_audit.py'
+      - 'ci/nqc-census/rmc016_recovered_winner_ledger.py'
+      - 'ci/nqc-census/test_rmc016_recovered_winner_ledger.py'
+      - 'ci/nqc-census/rmc_operator_gas_budget.py'
+      - 'ci/nqc-census/rmc016_tenderly_receipt_crosscheck.py'
+      - 'ci/nqc-census/rmc015_full_window_incidence.py'
+      - 'ci/nqc-census/test_rmc015_full_window_incidence.py'
+      - 'ci/nqc-census/test_rmc016_tenderly_receipt_crosscheck.py'
+      - 'ci/nqc-census/operator-gas-scenario.json'
+      - 'ci/nqc-census/recovered-rmc016/**'
       - 'ci/nqc-census/RMC016_WINNER_NET_EVIDENCE_CONTRACT.md'
       - '.github/workflows/nqc-rmc016-winner-net-gate.yml'
   workflow_dispatch:
@@ -48,6 +67,7 @@ jobs:
           test "$(git show -s --format=%T "$EXPECTED_D16")" = '7b642905ebebbaaa1d6ae895280756efd3727601'
           test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = '5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa'
           python3 ci/nqc-census/test_rmc016_winner_net_audit.py
+          python3 ci/nqc-census/test_rmc016_recovered_winner_ledger.py
           python3 -m py_compile ci/nqc-census/rmc016_winner_net_audit.py ci/nqc-census/test_rmc016_winner_net_audit.py
 
       - name: Reauthenticate immutable D15B and D16 GitHub Actions artifacts
@@ -58,11 +78,11 @@ jobs:
           mkdir -p "$OUT"
           check() {
             local run="$1" head="$2" tree="$3" workflow="$4" artifact="$5" artifact_name="$6" sha="$7" out="$8"
-            local r a
+            local r a expected_conclusion="${9:-success}"
             r="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run")"
             a="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
             test "$(jq -r '.status' <<< "$r")" = completed
-            test "$(jq -r '.conclusion' <<< "$r")" = success
+            test "$(jq -r '.conclusion' <<< "$r")" = "$expected_conclusion"
             test "$(jq -r '.name' <<< "$r")" = "$workflow"
             test "$(jq -r '.head_sha' <<< "$r")" = "$head"
             test "$(jq -r '.expired' <<< "$a")" = false
@@ -85,6 +105,24 @@ jobs:
             'NQC RMC-016 Conservative Realizable Capacity' 11505504820 \
             'rmc016-conservative-capacity-96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a' \
             27bd8909f865429e6bbc4580adf52af985beab8ed45cc11850616ab53a02b199 "$OUT/d16.zip"
+          check 37718661409 abe54f1f23bd7bff8c37871200f7da7c59c45ac3 c74f8d9d2c317a011284398643b2d4aa6de06e83 \
+            'NQC RMC-016 Full Liquidation Ledger Discovery' 11524139188 \
+            'rmc016-full-liquidation-events-abe54f1f23bd7bff8c37871200f7da7c59c45ac3' \
+            6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204 "$OUT/events.zip"
+          # The original run failed only after its complete dRPC checkpoint.
+          # Do not label that run successful or admit any Blast receipts.
+          check 37719091371 569d4aaeecb3d066389c054efed695be02e3ef40 ba648214fb5cb1cdca1db1f42f28059054d78e63 \
+            'NQC RMC-016 Dual Operator Winner Receipt Parity' 11524199698 \
+            'rmc016-dual-winner-receipts-569d4aaeecb3d066389c054efed695be02e3ef40' \
+            182b5e81b00ca04e53c9193c1496a725dc152ade9a17d3ab2dfaeb5045ac86b6 "$OUT/drpc.zip" failure
+          check 36964016388 36c732a36789e1967ce7178010889427ad7cf0f2 0783c1617de682e4074f9cd91c9111638a89b023 \
+            'NQC RMC-008 State Oracle Token Admission' 11237887761 \
+            'nqc-rmc008-closeout-36c732a36789e1967ce7178010889427ad7cf0f2-36964016388-1' \
+            9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913 "$OUT/d08.zip"
+          check 36823489219 6db82ca89d4ef3a66a1b236de95670a6967eb3ea 4fca26769b9074cc42a7eef5cb18b1bce3e6fc0c \
+            'NQC RMC-009 Aave Account Universe' 11159396055 \
+            'nqc-rmc009-closeout-6db82ca89d4ef3a66a1b236de95670a6967eb3ea-36823489219-1' \
+            9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6 "$OUT/d09.zip"
           echo "ARTIFACT_ROOT=$OUT" >> "$GITHUB_ENV"
 
       - name: Reproduce aggregate-only economic truth twice
@@ -129,10 +167,103 @@ jobs:
           )
           echo RMC016_WINNER_ECONOMIC_BASELINE_AUTHENTICATED_NO_NET_CLAIM
 
-      - name: Publish immutable aggregate audit, no raw borrower identities
+      - name: Authenticate recovered original rows and evaluate declared operator gas
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in first second; do
+            python3 ci/nqc-census/rmc016_recovered_winner_ledger.py \
+              --d15-archive "$ARTIFACT_ROOT/d15.zip" \
+              --d16-archive "$ARTIFACT_ROOT/d16.zip" \
+              --economic-source ci/nqc-census/rmc016-production-evidence.json \
+              --original-ledger ci/nqc-census/recovered-rmc016/rmc016-observed-transaction-economics.jsonl \
+              --scenario ci/nqc-census/operator-gas-scenario.json \
+              --out "$ARTIFACT_ROOT/recovered-$attempt.json"
+          done
+          cmp "$ARTIFACT_ROOT/recovered-first.json" "$ARTIFACT_ROOT/recovered-second.json"
+          jq -e '
+            .status == "ORIGINAL_PARTIAL_WINNER_LEDGER_RECOVERED_AND_RECONCILED" and
+            .original_ledger.transaction_count == 127 and
+            .original_ledger.event_count == 139 and
+            .original_ledger.all_execution_costs_reconciled == false and
+            .current_evaluation_scenario.declared_currency == "MXN" and
+            .current_evaluation_scenario.operator_gas_budget_mxn_wad == "2000000000000000000000" and
+            .gas_budget_sensitivity.cases[0].within_declared_mxn_budget_at_reference_fx == false and
+            .current_evaluation_scenario.live_execution_authorized == false and
+            .real_market_census_closed == false
+          ' "$ARTIFACT_ROOT/recovered-first.json" >/dev/null
+          cp "$ARTIFACT_ROOT/recovered-first.json" "$ARTIFACT_ROOT/report/rmc016-recovered-ledger-and-operator-gas.json"
+          (
+            cd "$ARTIFACT_ROOT/report"
+            sha256sum rmc016-observed-winner-economics-baseline.json rmc016-recovered-ledger-and-operator-gas.json > archive.sha256
+            sha256sum -c archive.sha256
+          )
+
+      - name: Replay independently acquired Tenderly receipts against original dRPC
+        shell: bash
+        run: |
+          set -euo pipefail
+          export RMC016_EVENT_ARCHIVE="$ARTIFACT_ROOT/events.zip"
+          export RMC016_DRPC_ARCHIVE="$ARTIFACT_ROOT/drpc.zip"
+          python3 ci/nqc-census/test_rmc016_tenderly_receipt_crosscheck.py
+          for attempt in first second; do
+            python3 ci/nqc-census/rmc016_tenderly_receipt_crosscheck.py \
+              --event-zip "$ARTIFACT_ROOT/events.zip" --drpc-zip "$ARTIFACT_ROOT/drpc.zip" \
+              --replay-exchanges ci/nqc-census/recovered-rmc016/tenderly-receipts-20261009.jsonl.gz \
+              --out "$ARTIFACT_ROOT/receipt-$attempt.json"
+          done
+          cmp "$ARTIFACT_ROOT/receipt-first.json" "$ARTIFACT_ROOT/receipt-second.json"
+          cp "$ARTIFACT_ROOT/receipt-first.json" "$ARTIFACT_ROOT/report/rmc016-tenderly-drpc-receipt-parity.json"
+          (
+            cd "$ARTIFACT_ROOT/report"
+            sha256sum *.json > archive.sha256
+            sha256sum -c archive.sha256
+          )
+
+      - name: Verify complete predeclared 7200-block executed-event incidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc015_full_window_incidence.py
+          # Reuse the pre-existing immutable selector, privately. The future
+          # event set is never an input to original cohort selection.
+          selector=5542bbec0840335994cbbab272e6228756ba6eb0
+          gh api "repos/$GITHUB_REPOSITORY/git/blobs/$selector" \
+            | jq -r .content | tr -d '\n' | base64 --decode > "$ARTIFACT_ROOT/selector.py"
+          test "$(git hash-object "$ARTIFACT_ROOT/selector.py")" = "$selector"
+          python3 "$ARTIFACT_ROOT/selector.py" \
+            --d08 "$ARTIFACT_ROOT/d08.zip" --d09 "$ARTIFACT_ROOT/d09.zip" \
+            --d08-sha256 9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913 \
+            --d09-sha256 9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6 \
+            --d08-commit 36c732a36789e1967ce7178010889427ad7cf0f2 \
+            --d09-commit 6db82ca89d4ef3a66a1b236de95670a6967eb3ea \
+            --summary-out "$ARTIFACT_ROOT/anchor-frontier.json" \
+            --watchlist-out "$ARTIFACT_ROOT/private-original-watchlist.jsonl" \
+            --evaluation-start-block 26095352
+          for attempt in first second; do
+            python3 ci/nqc-census/rmc015_full_window_incidence.py \
+              --replay ci/nqc-census/recovered-rmc016/full-7200-window-20261009.json.gz \
+              --watchlist "$ARTIFACT_ROOT/private-original-watchlist.jsonl" \
+              --out "$ARTIFACT_ROOT/window-$attempt.json"
+          done
+          cmp "$ARTIFACT_ROOT/window-first.json" "$ARTIFACT_ROOT/window-second.json"
+          jq -e '.covered_block_count == 7200 and .executed_event_count == 2 and
+                 .independent_operator_count == 2 and .provider_mismatch_count == 0 and
+                 .fixed_857_cohort_executed_event_membership.original_cohort_size == 857 and
+                 .fixed_857_cohort_executed_event_membership.executed_events_in_original_cohort == 0 and
+                 .terminal_rmc015_certified == false and .real_market_census_closed == false' \
+             "$ARTIFACT_ROOT/window-first.json" >/dev/null
+          cp "$ARTIFACT_ROOT/window-first.json" "$ARTIFACT_ROOT/report/rmc015-full-window-incidence.json"
+          (
+            cd "$ARTIFACT_ROOT/report"
+            sha256sum *.json > archive.sha256
+            sha256sum -c archive.sha256
+          )
+
+      - name: Publish immutable aggregate audits, no raw borrower identities
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: rmc016-winner-aggregate-audit-${{ github.sha }}
+          name: rmc016-winner-aggregate-audit-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/rmc016-winner-gate/report/
           if-no-files-found: error
           retention-days: 90

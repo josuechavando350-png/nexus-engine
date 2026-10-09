@@ -32,7 +32,6 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-24.04
-    container: node:24
     env:
       GIT_CONFIG_COUNT: 1
       GIT_CONFIG_KEY_0: safe.directory
@@ -41,9 +40,14 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
       - name: Required repository validation
         run: |
           corepack enable
+          corepack prepare pnpm@10.15.0 --activate
           pnpm install --frozen-lockfile
           pnpm lint
           pnpm typecheck

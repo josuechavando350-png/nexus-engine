@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "provider": "Tenderly",
+  "url": "https://gateway.tenderly.co/public/mainnet",
+  "acquisition_started_at": "2026-10-09T21:25:20.795498+00:00",
+  "acquisition_completed_at": "2026-10-09T21:26:10.844450+00:00",
+  "exchange_count": 132,
+  "receipt_count": 127,
+  "compressed_sha256": "2db8f5d3d73c0a83aeae6af16bb61c275c35edcca7b229ce72a8b26484e8fe20",
+  "raw_sha256": "1f113b7092bff015791c72f1ee2cd3b6b677d9e9c24372f8324acb3ee0dc2ffb",
+  "original_collection_result": "ALL_REQUESTS_CAPTURED_RECONCILIATION_BLOCKED_BY_OPTIONAL_BLOB_FIELD_DIALECT",
+  "subsequent_replay_result": "TENDERLY_VS_ORIGINAL_DRPC_127_RECEIPTS_MATCH",
+  "normalization": "EXPLICIT_TYPE_0_OR_2_ZERO_BLOB_GAS_ONLY",
+  "scope": "READ_ONLY_PUBLIC_CHAIN_RECEIPT_ACQUISITION_NOT_CENSUS_CLOSEOUT"
+}

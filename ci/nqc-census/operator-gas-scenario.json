@@ -1,0 +1,27 @@
+{
+  "schema_version": 2,
+  "scenario_id": "OPERATOR_GAS_MXN_2000_20261009",
+  "declared_at": "2026-10-09T15:11:51-06:00",
+  "funding_basis": "USER_DECLARED_BUDGET_NOT_ONCHAIN_BALANCE",
+  "operator_gas_loss_borne_by_operator": true,
+  "external_gas_sponsor_required_for_this_scenario": false,
+  "principal_requires_independently_verified_atomic_funding": true,
+  "gas_asset_and_balance_verified": false,
+  "evaluation_only": true,
+  "live_execution_authorized": false,
+  "historical_zero_own_capital_certificates_reclassified": false,
+  "currency_confirmed_at": "2026-10-09T15:43:41-06:00",
+  "declared_currency": "MXN",
+  "operator_gas_budget_mxn_wad": "2000000000000000000000",
+  "operator_principal_budget_mxn_wad": "0",
+  "operator_collateral_budget_mxn_wad": "0",
+  "supersedes_assistant_usd_currency_assumption": true,
+  "fx_reference": {
+    "source_url": "https://www.banxico.org.mx/tipcamb/llenarTiposCambioAction.do",
+    "determination_date": "2026-10-09",
+    "basis": "BANXICO_FIX_REFERENCE_NOT_EXECUTABLE_QUOTE",
+    "mxn_per_usd_wad": "18416300000000000000",
+    "conversion_fees_included": false,
+    "native_gas_purchase_quote_verified": false
+  }
+}

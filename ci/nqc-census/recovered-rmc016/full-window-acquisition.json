@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "acquisition_started_at": "2026-10-09T21:32:23.617623+00:00",
+  "acquisition_completed_at": "2026-10-09T21:34:35.577635+00:00",
+  "operators": ["Nodies", "Tenderly"],
+  "first_block": 26095352,
+  "last_block": 26102551,
+  "covered_block_count": 7200,
+  "compressed_sha256": "4b5c387e1454b8f86b4f366c314d7c10af363bc087d92d62dc18a9789728ddb1",
+  "raw_sha256": "1abd8fccf50ebffc4c3de6bcad1eaae6911566db81d639f454c1bb0a31a6a754",
+  "executed_liquidation_events": 2,
+  "scope": "WHOLE_AAVE_V3_POOL_EXECUTED_EVENT_INCIDENCE_ONLY",
+  "fixed_857_cohort_membership_verified": false,
+  "unexecuted_opportunity_absence_proven": false,
+  "terminal_rmc015_certified": false
+}

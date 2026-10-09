@@ -13,7 +13,6 @@ concurrency:
 jobs:
   build-verification:
     runs-on: ubuntu-24.04
-    container: node:24
     env:
       GIT_CONFIG_COUNT: 1
       GIT_CONFIG_KEY_0: safe.directory
@@ -22,9 +21,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+
       - name: Install
         run: |
           corepack enable
+          corepack prepare pnpm@10.15.0 --activate
           pnpm install --frozen-lockfile
 
       - name: Typecheck
