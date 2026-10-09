@@ -102,3 +102,31 @@ Two repository validation jobs failed before checkout because Docker Hub rate
 limited `node:24` downloads. They now use the repository's already-pinned
 `actions/setup-node` action for Node 24 on the same Ubuntu runner, with explicit
 pnpm 10.15.0 and all original validation commands retained.
+
+## Full 7,200-block executed-event incidence
+
+The new full-range producer obtained 144 contiguous 50-block log responses from
+Nodies and 15 contiguous 480-block log responses from Tenderly for blocks
+26095352 through 26102551 inclusive. Each operator passed an independent
+positive historical control and matching before/after anchor header checks.
+The full event sets match: **2 executed liquidations**, at blocks 26095959 and
+26098187. These are outside the first previously certified 480-block segment.
+
+Raw transcripts and their acquisition manifest are preserved alongside the
+receipt evidence. Fourteen adversarial tests and duplicate offline replays
+check no range gaps, real-event omission, pseudo-independent providers, reorgs,
+positive controls and failure-to-zero misclassification. This is new whole-pool
+incidence evidence; it does not retroactively mark the 14 failed shard artifacts
+successful, reconstruct the cohort's full temporal state, detect unexecuted opportunities,
+or certify terminal D15. The original final Census lock remains blocked.
+
+The exact original 857-member watchlist was rebuilt privately from authenticated
+D08/D09 archives with the pre-existing selector Git blob
+`5542bbec0840335994cbbab272e6228756ba6eb0`. Its byte commitment remains
+`e3c827033bec5fabd62701579a2b0e7d3f5cc5f5151659ee7e18a7d50fa7fdfb`.
+**Neither of the two executed events belongs to that cohort.** CI repeats the
+original selection before checking membership, rejects any changed watchlist,
+and publishes only aggregate results and public event identifiers. It never
+uses the future winners to reselect borrowers. This establishes executed-event
+membership over the full window, not absence of transient/unexecuted eligible
+positions, complete historical state reconstruction, or NQC capture.

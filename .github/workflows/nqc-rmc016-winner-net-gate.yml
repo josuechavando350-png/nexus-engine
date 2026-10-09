@@ -9,6 +9,8 @@ on:
       - 'ci/nqc-census/test_rmc016_recovered_winner_ledger.py'
       - 'ci/nqc-census/rmc_operator_gas_budget.py'
       - 'ci/nqc-census/rmc016_tenderly_receipt_crosscheck.py'
+      - 'ci/nqc-census/rmc015_full_window_incidence.py'
+      - 'ci/nqc-census/test_rmc015_full_window_incidence.py'
       - 'ci/nqc-census/test_rmc016_tenderly_receipt_crosscheck.py'
       - 'ci/nqc-census/operator-gas-scenario.json'
       - 'ci/nqc-census/recovered-rmc016/**'
@@ -25,6 +27,8 @@ on:
       - 'ci/nqc-census/test_rmc016_recovered_winner_ledger.py'
       - 'ci/nqc-census/rmc_operator_gas_budget.py'
       - 'ci/nqc-census/rmc016_tenderly_receipt_crosscheck.py'
+      - 'ci/nqc-census/rmc015_full_window_incidence.py'
+      - 'ci/nqc-census/test_rmc015_full_window_incidence.py'
       - 'ci/nqc-census/test_rmc016_tenderly_receipt_crosscheck.py'
       - 'ci/nqc-census/operator-gas-scenario.json'
       - 'ci/nqc-census/recovered-rmc016/**'
@@ -111,6 +115,14 @@ jobs:
             'NQC RMC-016 Dual Operator Winner Receipt Parity' 11524199698 \
             'rmc016-dual-winner-receipts-569d4aaeecb3d066389c054efed695be02e3ef40' \
             182b5e81b00ca04e53c9193c1496a725dc152ade9a17d3ab2dfaeb5045ac86b6 "$OUT/drpc.zip" failure
+          check 36964016388 36c732a36789e1967ce7178010889427ad7cf0f2 0783c1617de682e4074f9cd91c9111638a89b023 \
+            'NQC RMC-008 State Oracle Token Admission' 11237887761 \
+            'nqc-rmc008-closeout-36c732a36789e1967ce7178010889427ad7cf0f2-36964016388-1' \
+            9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913 "$OUT/d08.zip"
+          check 36823489219 6db82ca89d4ef3a66a1b236de95670a6967eb3ea 4fca26769b9074cc42a7eef5cb18b1bce3e6fc0c \
+            'NQC RMC-009 Aave Account Universe' 11159396055 \
+            'nqc-rmc009-closeout-6db82ca89d4ef3a66a1b236de95670a6967eb3ea-36823489219-1' \
+            9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6 "$OUT/d09.zip"
           echo "ARTIFACT_ROOT=$OUT" >> "$GITHUB_ENV"
 
       - name: Reproduce aggregate-only economic truth twice
@@ -200,6 +212,46 @@ jobs:
           done
           cmp "$ARTIFACT_ROOT/receipt-first.json" "$ARTIFACT_ROOT/receipt-second.json"
           cp "$ARTIFACT_ROOT/receipt-first.json" "$ARTIFACT_ROOT/report/rmc016-tenderly-drpc-receipt-parity.json"
+          (
+            cd "$ARTIFACT_ROOT/report"
+            sha256sum *.json > archive.sha256
+            sha256sum -c archive.sha256
+          )
+
+      - name: Verify complete predeclared 7200-block executed-event incidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/test_rmc015_full_window_incidence.py
+          # Reuse the pre-existing immutable selector, privately. The future
+          # event set is never an input to original cohort selection.
+          selector=5542bbec0840335994cbbab272e6228756ba6eb0
+          gh api "repos/$GITHUB_REPOSITORY/git/blobs/$selector" \
+            | jq -r .content | tr -d '\n' | base64 --decode > "$ARTIFACT_ROOT/selector.py"
+          test "$(git hash-object "$ARTIFACT_ROOT/selector.py")" = "$selector"
+          python3 "$ARTIFACT_ROOT/selector.py" \
+            --d08 "$ARTIFACT_ROOT/d08.zip" --d09 "$ARTIFACT_ROOT/d09.zip" \
+            --d08-sha256 9431ea07144ae78e68e0ffcc7f650fa32068ee63fb53ca41ff8a062b87845913 \
+            --d09-sha256 9aa6a4beb3ebc90f40d07d1889f84c1bcf94b3dea90b0e7b596dc6ff70fda0f6 \
+            --d08-commit 36c732a36789e1967ce7178010889427ad7cf0f2 \
+            --d09-commit 6db82ca89d4ef3a66a1b236de95670a6967eb3ea \
+            --summary-out "$ARTIFACT_ROOT/anchor-frontier.json" \
+            --watchlist-out "$ARTIFACT_ROOT/private-original-watchlist.jsonl" \
+            --evaluation-start-block 26095352
+          for attempt in first second; do
+            python3 ci/nqc-census/rmc015_full_window_incidence.py \
+              --replay ci/nqc-census/recovered-rmc016/full-7200-window-20261009.json.gz \
+              --watchlist "$ARTIFACT_ROOT/private-original-watchlist.jsonl" \
+              --out "$ARTIFACT_ROOT/window-$attempt.json"
+          done
+          cmp "$ARTIFACT_ROOT/window-first.json" "$ARTIFACT_ROOT/window-second.json"
+          jq -e '.covered_block_count == 7200 and .executed_event_count == 2 and
+                 .independent_operator_count == 2 and .provider_mismatch_count == 0 and
+                 .fixed_857_cohort_executed_event_membership.original_cohort_size == 857 and
+                 .fixed_857_cohort_executed_event_membership.executed_events_in_original_cohort == 0 and
+                 .terminal_rmc015_certified == false and .real_market_census_closed == false' \
+             "$ARTIFACT_ROOT/window-first.json" >/dev/null
+          cp "$ARTIFACT_ROOT/window-first.json" "$ARTIFACT_ROOT/report/rmc015-full-window-incidence.json"
           (
             cd "$ARTIFACT_ROOT/report"
             sha256sum *.json > archive.sha256
