@@ -8,6 +8,8 @@ on:
       - 'ci/nqc-census/rmc016_recovered_winner_ledger.py'
       - 'ci/nqc-census/test_rmc016_recovered_winner_ledger.py'
       - 'ci/nqc-census/rmc_operator_gas_budget.py'
+      - 'ci/nqc-census/rmc016_tenderly_receipt_crosscheck.py'
+      - 'ci/nqc-census/test_rmc016_tenderly_receipt_crosscheck.py'
       - 'ci/nqc-census/operator-gas-scenario.json'
       - 'ci/nqc-census/recovered-rmc016/**'
       - 'ci/nqc-census/RMC_OPERATOR_GAS_AND_LEDGER_RECOVERY.md'
@@ -22,6 +24,8 @@ on:
       - 'ci/nqc-census/rmc016_recovered_winner_ledger.py'
       - 'ci/nqc-census/test_rmc016_recovered_winner_ledger.py'
       - 'ci/nqc-census/rmc_operator_gas_budget.py'
+      - 'ci/nqc-census/rmc016_tenderly_receipt_crosscheck.py'
+      - 'ci/nqc-census/test_rmc016_tenderly_receipt_crosscheck.py'
       - 'ci/nqc-census/operator-gas-scenario.json'
       - 'ci/nqc-census/recovered-rmc016/**'
       - 'ci/nqc-census/RMC016_WINNER_NET_EVIDENCE_CONTRACT.md'
@@ -70,11 +74,11 @@ jobs:
           mkdir -p "$OUT"
           check() {
             local run="$1" head="$2" tree="$3" workflow="$4" artifact="$5" artifact_name="$6" sha="$7" out="$8"
-            local r a
+            local r a expected_conclusion="${9:-success}"
             r="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run")"
             a="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact")"
             test "$(jq -r '.status' <<< "$r")" = completed
-            test "$(jq -r '.conclusion' <<< "$r")" = success
+            test "$(jq -r '.conclusion' <<< "$r")" = "$expected_conclusion"
             test "$(jq -r '.name' <<< "$r")" = "$workflow"
             test "$(jq -r '.head_sha' <<< "$r")" = "$head"
             test "$(jq -r '.expired' <<< "$a")" = false
@@ -97,6 +101,16 @@ jobs:
             'NQC RMC-016 Conservative Realizable Capacity' 11505504820 \
             'rmc016-conservative-capacity-96a0b3e3c0b55df1b1d890f8c70a7a9014e2ff9a' \
             27bd8909f865429e6bbc4580adf52af985beab8ed45cc11850616ab53a02b199 "$OUT/d16.zip"
+          check 37718661409 abe54f1f23bd7bff8c37871200f7da7c59c45ac3 c74f8d9d2c317a011284398643b2d4aa6de06e83 \
+            'NQC RMC-016 Full Liquidation Ledger Discovery' 11524139188 \
+            'rmc016-full-liquidation-events-abe54f1f23bd7bff8c37871200f7da7c59c45ac3' \
+            6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204 "$OUT/events.zip"
+          # The original run failed only after its complete dRPC checkpoint.
+          # Do not label that run successful or admit any Blast receipts.
+          check 37719091371 569d4aaeecb3d066389c054efed695be02e3ef40 ba648214fb5cb1cdca1db1f42f28059054d78e63 \
+            'NQC RMC-016 Dual Operator Winner Receipt Parity' 11524199698 \
+            'rmc016-dual-winner-receipts-569d4aaeecb3d066389c054efed695be02e3ef40' \
+            182b5e81b00ca04e53c9193c1496a725dc152ade9a17d3ab2dfaeb5045ac86b6 "$OUT/drpc.zip" failure
           echo "ARTIFACT_ROOT=$OUT" >> "$GITHUB_ENV"
 
       - name: Reproduce aggregate-only economic truth twice
@@ -168,6 +182,27 @@ jobs:
           (
             cd "$ARTIFACT_ROOT/report"
             sha256sum rmc016-observed-winner-economics-baseline.json rmc016-recovered-ledger-and-operator-gas.json > archive.sha256
+            sha256sum -c archive.sha256
+          )
+
+      - name: Replay independently acquired Tenderly receipts against original dRPC
+        shell: bash
+        run: |
+          set -euo pipefail
+          export RMC016_EVENT_ARCHIVE="$ARTIFACT_ROOT/events.zip"
+          export RMC016_DRPC_ARCHIVE="$ARTIFACT_ROOT/drpc.zip"
+          python3 ci/nqc-census/test_rmc016_tenderly_receipt_crosscheck.py
+          for attempt in first second; do
+            python3 ci/nqc-census/rmc016_tenderly_receipt_crosscheck.py \
+              --event-zip "$ARTIFACT_ROOT/events.zip" --drpc-zip "$ARTIFACT_ROOT/drpc.zip" \
+              --replay-exchanges ci/nqc-census/recovered-rmc016/tenderly-receipts-20261009.jsonl.gz \
+              --out "$ARTIFACT_ROOT/receipt-$attempt.json"
+          done
+          cmp "$ARTIFACT_ROOT/receipt-first.json" "$ARTIFACT_ROOT/receipt-second.json"
+          cp "$ARTIFACT_ROOT/receipt-first.json" "$ARTIFACT_ROOT/report/rmc016-tenderly-drpc-receipt-parity.json"
+          (
+            cd "$ARTIFACT_ROOT/report"
+            sha256sum *.json > archive.sha256
             sha256sum -c archive.sha256
           )
 

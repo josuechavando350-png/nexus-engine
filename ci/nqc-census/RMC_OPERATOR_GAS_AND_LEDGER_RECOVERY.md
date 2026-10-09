@@ -49,7 +49,7 @@ each transaction, or whether gas-limit/max-fee upfront reservations would fit.
 
 ## Still open
 
-Independent acquisition/replay of receipt/oracle/prestate evidence; complete
+Independent oracle/prestate evidence; complete
 protocol/flash/route/builder/failure costs; causal NQC detection and capture;
 native gas balance and transaction-specific upfront reservation; terminal
 D11/D12/D13 authorities; structural D14 and final D15/D16/D17 admission. The
@@ -73,3 +73,32 @@ python3 ci/nqc-census/rmc016_recovered_winner_ledger.py \
 
 The workflow runs both audits twice and requires byte-identical output. It
 publishes aggregate reports and hashes, not the raw transaction ledger.
+
+## Independent receipt acquisition, 2026-10-09
+
+Tenderly returned all 127 receipts plus chain identity and before/after pinned
+headers during 21:25:20–21:26:10 UTC. Raw responses are preserved verbatim in
+`recovered-rmc016/tenderly-receipts-20261009.jsonl.gz`, with acquisition timestamps
+and raw/compressed hashes in `tenderly-acquisition.json`. The original acquisition
+report correctly blocked on a provider dialect difference; no responses changed.
+
+A narrow adapter handles `blobGasUsed=0x0` with absent `blobGasPrice` **only** for
+explicit transaction type 0 or 2. The corpus contains 9 legacy and 118 type-2
+transactions. Unknown types, blob transactions and nonzero blob gas still fail.
+The EIP-4844 blob transaction type is 0x03:
+https://eips.ethereum.org/EIPS/eip-4844#parameters.
+
+Independent replay matches all 127 original dRPC normalized receipts, including
+139 source-event logs, canonical block identities, transaction ordering and
+448369976498898050 wei of whole-transaction gas. The dRPC source **workflow**
+remains failed; only its independently SHA-authenticated complete dRPC checkpoint
+is reused. This is receipt parity, not a new full-cost or Census certificate.
+
+The workflow downloads and authenticates the exact original event and dRPC
+archives, runs 13 adversarial cases against real recorded bytes, and requires
+two byte-identical offline replays. No live RPC is required for replay CI.
+
+Two repository validation jobs failed before checkout because Docker Hub rate
+limited `node:24` downloads. They now use the repository's already-pinned
+`actions/setup-node` action for Node 24 on the same Ubuntu runner, with explicit
+pnpm 10.15.0 and all original validation commands retained.

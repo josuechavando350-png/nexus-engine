@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
 """Adversarial source recovery and gas allocation boundaries, real original rows."""
 import copy
-import json
-import os
-import tempfile
 import unittest
 from pathlib import Path
 
-from rmc016_recovered_winner_ledger import audit, inspect_original_rows
+from rmc016_recovered_winner_ledger import inspect_original_rows
 from rmc016_winner_net_audit import canonical, digest, parse_json
 from rmc_operator_gas_budget import gas_budget_stress, read_scenario
 
