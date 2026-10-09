@@ -1,0 +1,75 @@
+# Current operator-funded gas evaluation and D16 source recovery
+
+The operator declared USD 2,000 for gas on 2026-10-09. The current research
+scenario is `operator-gas-scenario.json`: own gas capital, externally financed
+atomic principal, no allocation of the gas budget to collateral or principal.
+This supersedes the all-costs-zero-own-capital premise for **this evaluation**.
+It does not rewrite historical source certificates or turn a budget declaration
+into an authenticated native-token balance, permission to spend, or a successful
+D11 capital certificate. Operator-paid failed transaction gas is a real cost.
+
+## Recovered source
+
+The original server file
+`/root/workspace/RMC015_REPLAY_30D/rmc016-observed-transaction-economics.jsonl`
+was located on 2026-10-09. The exact recovered 104,736 bytes are preserved in
+`recovered-rmc016/rmc016-observed-transaction-economics.jsonl`.
+SHA-256: `55d5d6be9e09f2e499e1ca8949c4305d05824dffa61e363f4371c615537dcb1c`.
+
+That digest was already committed by the original D16 economic source (Git blob
+`5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa`). The verifier authenticates the
+unchanged original D15B/D16 artifact ZIPs and aggregate source before accepting
+the raw rows. Discovery on the server is not used as independent authority.
+The copied ledger has public transaction identifiers, not borrower-address rows.
+
+The original schema records gross oracle edge, receipt gas and **omitted costs**.
+It is deliberately not coerced into the later complete-cost ledger schema.
+The existing complete-cost validator and original historical audit remain intact.
+The new report is the current recovery result; the old aggregate-only report
+continues to describe its restricted inputs.
+
+## What the verifier establishes
+
+- Exact source bytes; 127 unique transactions and 139 associated events.
+- Transaction ordering, pinned block window, integer USD WAD arithmetic.
+- Gas counted once per transaction, including multi-event transactions.
+- Every gas charge equals gas used times effective gas price times historical
+  ETH oracle price, with the original integer rounding.
+- Principal, gross and gas sums reproduce the pinned D16 aggregates.
+- 83 transactions have positive gross-minus-receipt-gas residual; 44 do not.
+  Neither count is an NQC-executable or full-net-positive count.
+- The USD 2,000 gas budget is evaluated at 1x/2x/4x observed winner costs and
+  0/1/3 equal-cost failed attempts per winner. Those are explicit sensitivities,
+  not measured NQC failure rates or gas prices.
+
+The historical winner sample consumed USD 1,144.134260592713842029 of receipt
+gas. Doubling that cost exceeds USD 2,000. This does not establish whether the
+operator could capture those trades, whether an ETH balance would suffice at
+each transaction, or whether gas-limit/max-fee upfront reservations would fit.
+
+## Still open
+
+Independent acquisition/replay of receipt/oracle/prestate evidence; complete
+protocol/flash/route/builder/failure costs; causal NQC detection and capture;
+native gas balance and transaction-specific upfront reservation; terminal
+D11/D12/D13 authorities; structural D14 and final D15/D16/D17 admission. The
+canonical closeout lock remains unchanged and Census is **not closed**.
+
+## Reproduce
+
+Use exact original artifacts 11504276505 and 11505504820 (the existing winner
+audit workflow independently checks their run/head/tree, expiry and ZIP hashes):
+
+```sh
+python3 ci/nqc-census/test_rmc016_recovered_winner_ledger.py
+python3 ci/nqc-census/rmc016_recovered_winner_ledger.py \
+  --d15-archive /path/to/11504276505.zip \
+  --d16-archive /path/to/11505504820.zip \
+  --economic-source ci/nqc-census/rmc016-production-evidence.json \
+  --original-ledger ci/nqc-census/recovered-rmc016/rmc016-observed-transaction-economics.jsonl \
+  --scenario ci/nqc-census/operator-gas-scenario.json \
+  --out /new/path/report.json
+```
+
+The workflow runs both audits twice and requires byte-identical output. It
+publishes aggregate reports and hashes, not the raw transaction ledger.

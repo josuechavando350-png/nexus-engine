@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "scenario_id": "OPERATOR_GAS_USD_2000_20261009",
+  "declared_at": "2026-10-09T15:11:51-06:00",
+  "funding_basis": "USER_DECLARED_BUDGET_NOT_ONCHAIN_BALANCE",
+  "operator_gas_budget_usd_wad": "2000000000000000000000",
+  "operator_principal_budget_usd_wad": "0",
+  "operator_collateral_budget_usd_wad": "0",
+  "operator_gas_loss_borne_by_operator": true,
+  "external_gas_sponsor_required_for_this_scenario": false,
+  "principal_requires_independently_verified_atomic_funding": true,
+  "gas_asset_and_balance_verified": false,
+  "evaluation_only": true,
+  "live_execution_authorized": false,
+  "historical_zero_own_capital_certificates_reclassified": false
+}

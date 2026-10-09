@@ -5,6 +5,12 @@ on:
     paths:
       - 'ci/nqc-census/rmc016_winner_net_audit.py'
       - 'ci/nqc-census/test_rmc016_winner_net_audit.py'
+      - 'ci/nqc-census/rmc016_recovered_winner_ledger.py'
+      - 'ci/nqc-census/test_rmc016_recovered_winner_ledger.py'
+      - 'ci/nqc-census/rmc_operator_gas_budget.py'
+      - 'ci/nqc-census/operator-gas-scenario.json'
+      - 'ci/nqc-census/recovered-rmc016/**'
+      - 'ci/nqc-census/RMC_OPERATOR_GAS_AND_LEDGER_RECOVERY.md'
       - 'ci/nqc-census/RMC016_WINNER_NET_EVIDENCE_CONTRACT.md'
       - '.github/workflows/nqc-rmc016-winner-net-gate.yml'
   push:
@@ -13,6 +19,11 @@ on:
     paths:
       - 'ci/nqc-census/rmc016_winner_net_audit.py'
       - 'ci/nqc-census/test_rmc016_winner_net_audit.py'
+      - 'ci/nqc-census/rmc016_recovered_winner_ledger.py'
+      - 'ci/nqc-census/test_rmc016_recovered_winner_ledger.py'
+      - 'ci/nqc-census/rmc_operator_gas_budget.py'
+      - 'ci/nqc-census/operator-gas-scenario.json'
+      - 'ci/nqc-census/recovered-rmc016/**'
       - 'ci/nqc-census/RMC016_WINNER_NET_EVIDENCE_CONTRACT.md'
       - '.github/workflows/nqc-rmc016-winner-net-gate.yml'
   workflow_dispatch:
@@ -48,6 +59,7 @@ jobs:
           test "$(git show -s --format=%T "$EXPECTED_D16")" = '7b642905ebebbaaa1d6ae895280756efd3727601'
           test "$(git hash-object ci/nqc-census/rmc016-production-evidence.json)" = '5d5ed3635a426d686c8a98aa3547fd5b9d8b95aa'
           python3 ci/nqc-census/test_rmc016_winner_net_audit.py
+          python3 ci/nqc-census/test_rmc016_recovered_winner_ledger.py
           python3 -m py_compile ci/nqc-census/rmc016_winner_net_audit.py ci/nqc-census/test_rmc016_winner_net_audit.py
 
       - name: Reauthenticate immutable D15B and D16 GitHub Actions artifacts
@@ -129,10 +141,40 @@ jobs:
           )
           echo RMC016_WINNER_ECONOMIC_BASELINE_AUTHENTICATED_NO_NET_CLAIM
 
-      - name: Publish immutable aggregate audit, no raw borrower identities
+      - name: Authenticate recovered original rows and evaluate declared operator gas
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in first second; do
+            python3 ci/nqc-census/rmc016_recovered_winner_ledger.py \
+              --d15-archive "$ARTIFACT_ROOT/d15.zip" \
+              --d16-archive "$ARTIFACT_ROOT/d16.zip" \
+              --economic-source ci/nqc-census/rmc016-production-evidence.json \
+              --original-ledger ci/nqc-census/recovered-rmc016/rmc016-observed-transaction-economics.jsonl \
+              --scenario ci/nqc-census/operator-gas-scenario.json \
+              --out "$ARTIFACT_ROOT/recovered-$attempt.json"
+          done
+          cmp "$ARTIFACT_ROOT/recovered-first.json" "$ARTIFACT_ROOT/recovered-second.json"
+          jq -e '
+            .status == "ORIGINAL_PARTIAL_WINNER_LEDGER_RECOVERED_AND_RECONCILED" and
+            .original_ledger.transaction_count == 127 and
+            .original_ledger.event_count == 139 and
+            .original_ledger.all_execution_costs_reconciled == false and
+            .current_evaluation_scenario.operator_gas_budget_usd_wad == "2000000000000000000000" and
+            .current_evaluation_scenario.live_execution_authorized == false and
+            .real_market_census_closed == false
+          ' "$ARTIFACT_ROOT/recovered-first.json" >/dev/null
+          cp "$ARTIFACT_ROOT/recovered-first.json" "$ARTIFACT_ROOT/report/rmc016-recovered-ledger-and-operator-gas.json"
+          (
+            cd "$ARTIFACT_ROOT/report"
+            sha256sum rmc016-observed-winner-economics-baseline.json rmc016-recovered-ledger-and-operator-gas.json > archive.sha256
+            sha256sum -c archive.sha256
+          )
+
+      - name: Publish immutable aggregate audits, no raw borrower identities
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: rmc016-winner-aggregate-audit-${{ github.sha }}
+          name: rmc016-winner-aggregate-audit-${{ github.event.pull_request.head.sha || github.sha }}
           path: ${{ runner.temp }}/rmc016-winner-gate/report/
           if-no-files-found: error
           retention-days: 90
