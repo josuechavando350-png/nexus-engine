@@ -1,6 +1,8 @@
 # Current operator-funded gas evaluation and D16 source recovery
 
-The operator declared USD 2,000 for gas on 2026-10-09. The current research
+The operator confirmed **MXN 2,000 (Mexican pesos)** for gas on 2026-10-09.
+The assistant previously assumed USD incorrectly. All earlier USD-2,000 budget
+comparisons in this PR are superseded; the underlying on-chain evidence is unchanged. The current research
 scenario is `operator-gas-scenario.json`: own gas capital, externally financed
 atomic principal, no allocation of the gas budget to collateral or principal.
 This supersedes the all-costs-zero-own-capital premise for **this evaluation**.
@@ -38,14 +40,26 @@ continues to describe its restricted inputs.
 - Principal, gross and gas sums reproduce the pinned D16 aggregates.
 - 83 transactions have positive gross-minus-receipt-gas residual; 44 do not.
   Neither count is an NQC-executable or full-net-positive count.
-- The USD 2,000 gas budget is evaluated at 1x/2x/4x observed winner costs and
+- The MXN 2,000 gas budget is evaluated at 1x/2x/4x observed winner costs and
   0/1/3 equal-cost failed attempts per winner. Those are explicit sensitivities,
   not measured NQC failure rates or gas prices.
 
 The historical winner sample consumed USD 1,144.134260592713842029 of receipt
-gas. Doubling that cost exceeds USD 2,000. This does not establish whether the
+gas. The original USD-2,000 sufficiency claim is invalid for the actual peso budget.
+At the reference FX described below, even the baseline whole-sample spend exceeds
+MXN 2,000 before failed attempts. This does not establish whether the
 operator could capture those trades, whether an ETH balance would suffice at
 each transaction, or whether gas-limit/max-fee upfront reservations would fit.
+
+For a reproducible comparison, schema 2 records Banxico's FIX determination dated
+2026-10-09 at **18.4163 MXN per USD**, read from
+https://www.banxico.org.mx/tipcamb/llenarTiposCambioAction.do. This is a reference,
+not an executable FX/ETH purchase quote. The reference equivalent is about
+USD 108.60 before conversion, exchange and on-ramp fees. All declared budget
+amounts stay denominated in MXN. Integer conversion rounds modeled peso costs up
+and the reference dollar budget down. Neither this comparison nor the historical
+127-winner sample measures how many NQC attempts can be financed. Three regression
+cases reject USD substitution, altered/inverted FX and unsafe rounding.
 
 ## Still open
 

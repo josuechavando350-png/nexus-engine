@@ -112,23 +112,44 @@ class GasScenarioTests(unittest.TestCase):
                 read_scenario(canonical(scenario))
 
     def test_gas_cannot_be_reallocated_to_principal_or_collateral(self):
-        for key in ('operator_principal_budget_usd_wad', 'operator_collateral_budget_usd_wad'):
+        for key in ('operator_principal_budget_mxn_wad', 'operator_collateral_budget_mxn_wad'):
             with self.subTest(key=key), self.assertRaisesRegex(ValueError, 'cannot fund'):
                 read_scenario(canonical(dict(self.scenario, **{key: '1'})))
 
     def test_budget_cannot_increase_or_use_float(self):
         for bad in ('2000000000000000000001', 2000.0, True, '-1'):
             with self.subTest(bad=bad), self.assertRaises(ValueError):
-                read_scenario(canonical(dict(self.scenario, operator_gas_budget_usd_wad=bad)))
+                read_scenario(canonical(dict(self.scenario, operator_gas_budget_mxn_wad=bad)))
 
-    def test_failed_attempts_can_exhaust_budget_without_success(self):
+    def test_full_sample_exceeds_mxn_budget_even_without_failed_attempts(self):
         gas = 1144134260592713842029
         result = gas_budget_stress(self.scenario, gas)
         self.assertEqual(len(result['cases']), 9)
-        self.assertTrue(result['cases'][0]['within_declared_usd_budget'])
-        self.assertFalse(result['cases'][1]['within_declared_usd_budget'])
+        self.assertTrue(all(not c['within_declared_mxn_budget_at_reference_fx'] for c in result['cases']))
+        self.assertEqual(result['declared_currency'], 'MXN')
+        self.assertEqual(int(result['reference_equivalent_budget_usd_wad']),
+                         2000 * 10**36 // 18416300000000000000)
         self.assertEqual(int(result['cases'][1]['modeled_gas_spend_usd_wad']), gas * 2)
         self.assertFalse(result['native_asset_prefunding_sufficient_proven'])
+
+    def test_dollars_cannot_silently_replace_user_pesos(self):
+        for mutation in ({'declared_currency': 'USD'},
+                         {'operator_gas_budget_usd_wad': '2000000000000000000000'}):
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, 'Mexican pesos'):
+                read_scenario(canonical(dict(self.scenario, **mutation)))
+
+    def test_fx_inversion_or_unverified_conversion_rejected(self):
+        for mutation in ({'mxn_per_usd_wad': '542996310494'},
+                         {'mxn_per_usd_wad': 18.4163},
+                         {'native_gas_purchase_quote_verified': True}):
+            scenario = copy.deepcopy(self.scenario)
+            scenario['fx_reference'].update(mutation)
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, 'FX reference'):
+                read_scenario(canonical(scenario))
+
+    def test_peso_cost_rounds_up_while_dollar_equivalent_rounds_down(self):
+        case = gas_budget_stress(self.scenario, 1)['cases'][0]
+        self.assertEqual(case['modeled_gas_spend_at_reference_fx_mxn_wad'], '19')
 
     def test_zero_negative_float_and_bool_observed_cost_rejected(self):
         for value in (0, -1, True, 1.5):

@@ -186,7 +186,9 @@ jobs:
             .original_ledger.transaction_count == 127 and
             .original_ledger.event_count == 139 and
             .original_ledger.all_execution_costs_reconciled == false and
-            .current_evaluation_scenario.operator_gas_budget_usd_wad == "2000000000000000000000" and
+            .current_evaluation_scenario.declared_currency == "MXN" and
+            .current_evaluation_scenario.operator_gas_budget_mxn_wad == "2000000000000000000000" and
+            .gas_budget_sensitivity.cases[0].within_declared_mxn_budget_at_reference_fx == false and
             .current_evaluation_scenario.live_execution_authorized == false and
             .real_market_census_closed == false
           ' "$ARTIFACT_ROOT/recovered-first.json" >/dev/null
