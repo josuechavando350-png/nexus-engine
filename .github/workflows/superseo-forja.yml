@@ -1,0 +1,84 @@
+name: SUPERSEO Forja
+
+# Forja el siguiente lote de páginas (elegido por GAUSS) y abre un PR con los
+# borradores para revisarlos. Nada se publica aquí: en rubros sensibles cada página
+# se aprueba después con SUPERSEO Panel → aprobar.
+# Requiere el secreto ANTHROPIC_API_KEY. Opcional: la variable SUPERSEO_MODELO.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: "Cliente (id en superseo/clientes)"
+        required: true
+        default: "cano"
+      cantidad:
+        description: "Cuántas páginas forjar (1-20)"
+        required: true
+        default: "5"
+      pagina:
+        description: "Opcional: id de una página específica del Demand Miner"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  forja:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: main
+
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+
+      - name: Forjar páginas
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPERSEO_MODELO: ${{ vars.SUPERSEO_MODELO }}
+          CLIENTE: ${{ inputs.cliente }}
+          CANTIDAD: ${{ inputs.cantidad }}
+          PAGINA: ${{ inputs.pagina }}
+        run: |
+          set -euo pipefail
+          case "$CLIENTE" in *[!a-z0-9-]*|"") echo "cliente inválido"; exit 2;; esac
+          case "$CANTIDAD" in ''|*[!0-9]*) echo "cantidad inválida"; exit 2;; esac
+          case "$PAGINA" in *[!a-z0-9-]*) echo "página inválida"; exit 2;; esac
+          # Rastrea el sitio primero: así la Forja sabe qué páginas ya existen y no las duplica.
+          node superseo/cli.mjs rastrear "$CLIENTE" --max 300 --salida "superseo-salida/$CLIENTE"
+          SNAP="superseo-salida/$CLIENTE/rastreo.json"
+          if [ -n "$PAGINA" ]; then
+            node superseo/cli.mjs forjar "$CLIENTE" --pagina "$PAGINA" --snapshot "$SNAP" | tee forja.txt
+          else
+            node superseo/cli.mjs forjar "$CLIENTE" --n "$CANTIDAD" --snapshot "$SNAP" | tee forja.txt
+          fi
+          { echo '```'; cat forja.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Abrir PR con los borradores
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLIENTE: ${{ inputs.cliente }}
+        run: |
+          set -euo pipefail
+          git add "superseo/clientes/$CLIENTE/paginas"
+          if git diff --cached --quiet; then echo "Sin páginas nuevas"; exit 0; fi
+          RAMA="superseo/forja-$CLIENTE-$(date -u +%Y%m%d-%H%M%S)"
+          git checkout -q -b "$RAMA"
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "SUPERSEO: borradores forjados para $CLIENTE"
+          git push -q origin "$RAMA"
+          {
+            echo "Borradores forjados por SUPERSEO para **$CLIENTE**. Revisa cada página; las que digan BORRADOR se aprueban con *SUPERSEO Panel → aprobar* después de que el cliente las revise."
+            echo
+            echo '```'
+            cat forja.txt
+            echo '```'
+          } > cuerpo.md
+          gh pr create --base main --head "$RAMA" --title "SUPERSEO: borradores para $CLIENTE" --body-file cuerpo.md

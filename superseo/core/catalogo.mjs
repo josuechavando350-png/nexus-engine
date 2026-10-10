@@ -6,6 +6,7 @@ import { deepFreeze } from "./canonical.mjs";
 export const RUBROS = deepFreeze({
   abogados_penal: {
     nombre: "Abogados penales",
+    torre: { slug: "abogado-penal", titulo: "Abogado penalista en {zona}" },
     ymyl: true,
     arma: "observatorio-delito",
     comerciales: ["abogado", "abogado penalista", "defensa", "consulta", "despacho"],
@@ -118,6 +119,39 @@ export const ZONAS = deepFreeze({
   "cdmx-venustiano-carranza": ["venustiano carranza"],
   "cdmx-xochimilco": ["xochimilco"],
 });
+
+// Nombre con acentos para mostrar al lector.
+export const NOMBRES_ZONA = deepFreeze({
+  mx: "México",
+  cdmx: "CDMX",
+  edomex: "Estado de México",
+  "cdmx-alvaro-obregon": "Álvaro Obregón",
+  "cdmx-azcapotzalco": "Azcapotzalco",
+  "cdmx-benito-juarez": "Benito Juárez",
+  "cdmx-coyoacan": "Coyoacán",
+  "cdmx-cuajimalpa": "Cuajimalpa",
+  "cdmx-cuauhtemoc": "Cuauhtémoc",
+  "cdmx-gustavo-a-madero": "Gustavo A. Madero",
+  "cdmx-iztacalco": "Iztacalco",
+  "cdmx-iztapalapa": "Iztapalapa",
+  "cdmx-magdalena-contreras": "La Magdalena Contreras",
+  "cdmx-miguel-hidalgo": "Miguel Hidalgo",
+  "cdmx-milpa-alta": "Milpa Alta",
+  "cdmx-tlahuac": "Tláhuac",
+  "cdmx-tlalpan": "Tlalpan",
+  "cdmx-venustiano-carranza": "Venustiano Carranza",
+  "cdmx-xochimilco": "Xochimilco",
+});
+
+export function nombreDeZona(zona) {
+  return NOMBRES_ZONA[zona] ?? zona.replace(/^[a-z]+-/, "").split("-").map((p) => p[0].toUpperCase() + p.slice(1)).join(" ");
+}
+
+// Subzonas conocidas de una zona (cdmx → sus 16 alcaldías). Sin subzonas, la zona misma.
+export function subzonas(zona) {
+  const hijas = Object.keys(ZONAS).filter((z) => z.startsWith(`${zona}-`));
+  return hijas.length ? hijas : [zona];
+}
 
 export function terminosDeZona(zona) {
   return ZONAS[zona] ?? [zona.replace(/^[a-z]+-/, "").replace(/-/g, " ")];

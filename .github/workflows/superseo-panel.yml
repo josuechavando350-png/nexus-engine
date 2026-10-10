@@ -1,0 +1,103 @@
+name: SUPERSEO Panel
+
+# Panel desde el teléfono: GitHub → Actions → SUPERSEO Panel → Run workflow.
+# Cada acción queda en el historial del cliente, regenera el paquete del sitio y se
+# guarda en main; el despliegue del sitio aplica el cambio.
+
+on:
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: "Cliente (id en superseo/clientes)"
+        required: true
+        default: "cano"
+      accion:
+        description: "Qué hacer"
+        required: true
+        type: choice
+        options: [estado, preparar, encender, apagar, plan, insumo, aprobar, publicar]
+      valor:
+        description: "plan: BASE o TOTAL · insumo: nombre=si|no (revisor=cliente|nexus|ninguno) · aprobar: id de la página"
+        required: false
+        default: ""
+      revisor:
+        description: "Solo para aprobar: quién revisó"
+        required: false
+        type: choice
+        options: [CLIENTE, NEXUS]
+        default: CLIENTE
+      por:
+        description: "Solo para aprobar: nombre de quien aprueba"
+        required: false
+        default: ""
+      motivo:
+        description: "Motivo (queda en el historial)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency: superseo-panel
+
+jobs:
+  panel:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: main
+
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+
+      - name: Ejecutar acción
+        env:
+          CLIENTE: ${{ inputs.cliente }}
+          ACCION: ${{ inputs.accion }}
+          VALOR: ${{ inputs.valor }}
+          REVISOR: ${{ inputs.revisor }}
+          POR: ${{ inputs.por }}
+          MOTIVO: ${{ inputs.motivo }}
+        run: |
+          set -euo pipefail
+          case "$CLIENTE" in *[!a-z0-9-]*|"") echo "cliente inválido"; exit 2;; esac
+          case "$ACCION" in
+            estado) ;;
+            preparar|encender|apagar) node superseo/cli.mjs "$ACCION" "$CLIENTE" "$MOTIVO" ;;
+            plan) node superseo/cli.mjs plan "$CLIENTE" "$VALOR" ;;
+            insumo)
+              case "$VALOR" in *=*) ;; *) echo "insumo: usa nombre=valor"; exit 2;; esac
+              node superseo/cli.mjs insumo "$CLIENTE" "${VALOR%%=*}" "${VALOR#*=}" ;;
+            aprobar) node superseo/cli.mjs aprobar "$CLIENTE" "$VALOR" --revisor "$REVISOR" --por "$POR" ;;
+            publicar) ;;
+            *) echo "acción desconocida"; exit 2 ;;
+          esac
+          if [ "$ACCION" != estado ]; then node superseo/cli.mjs publicar "$CLIENTE"; fi
+          { echo '```'; node superseo/cli.mjs estado; echo; node superseo/cli.mjs paginas "$CLIENTE"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar en main
+        env:
+          CLIENTE: ${{ inputs.cliente }}
+          ACCION: ${{ inputs.accion }}
+        run: |
+          set -euo pipefail
+          git add superseo apps
+          if git diff --cached --quiet; then echo "Sin cambios"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "SUPERSEO panel: $ACCION $CLIENTE"
+          git push -q origin HEAD:main
+          echo "Cambio guardado en main; el sitio lo aplica en su próximo despliegue." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Avisar a buscadores (IndexNow)
+        if: inputs.accion == 'encender' || inputs.accion == 'publicar' || inputs.accion == 'aprobar'
+        continue-on-error: true
+        env:
+          CLIENTE: ${{ inputs.cliente }}
+        run: |
+          # Espera a que el despliegue sirva la llave y las páginas nuevas.
+          sleep 300
+          node superseo/cli.mjs indexnow "$CLIENTE" | tee -a "$GITHUB_STEP_SUMMARY"

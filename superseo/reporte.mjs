@@ -6,7 +6,7 @@ function celda(t) {
   return String(t ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
 }
 
-export function generarReporte({ perfil, estrategia, auditoria = null, avengers = null, ahora = new Date() }) {
+export function generarReporte({ perfil, estrategia, auditoria = null, avengers = null, grafo = null, searchConsole = null, lote = null, paginas = null, ahora = new Date() }) {
   const fecha = ahora.toISOString().slice(0, 10);
   const l = [];
   l.push(`# SUPERSEO · ${perfil.nombre}`);
@@ -57,6 +57,49 @@ export function generarReporte({ perfil, estrategia, auditoria = null, avengers 
       for (const d of avengers.desbloqueos) l.push(`| ${celda(d.fuente)} | ${d.modulos} |`);
       l.push("");
     }
+  }
+
+  if (searchConsole) {
+    l.push("## Search Console");
+    l.push("");
+    if (searchConsole.estado === "OK") {
+      l.push(`Del ${searchConsole.ventana.inicio} al ${searchConsole.ventana.fin}: ${searchConsole.totales.impresiones.toLocaleString("en-US")} impresiones, ${searchConsole.totales.clics.toLocaleString("en-US")} clics y ${searchConsole.totales.consultas.toLocaleString("en-US")} búsquedas distintas. ${searchConsole.nota}`);
+    } else {
+      l.push(`No disponible: ${searchConsole.motivo}. Mientras tanto, la demanda se estima con fuentes prestadas.`);
+    }
+    l.push("");
+  }
+
+  if (grafo && grafo.paginas) {
+    l.push("## Enlazado interno");
+    l.push("");
+    l.push(`${grafo.paginas} páginas indexables con ${grafo.enlaces} enlaces internos entre ellas. Las páginas con más autoridad interna son ${grafo.nodos.slice(0, 3).map((n) => `\`${n.ruta}\``).join(", ")}.`);
+    if (grafo.recomendaciones.length) {
+      l.push("");
+      for (const r of grafo.recomendaciones.slice(0, 8)) l.push(`- \`${r.ruta}\`: ${r.accion}`);
+    }
+    l.push("");
+  }
+
+  if (lote) {
+    l.push("## Próximo lote de páginas (GAUSS)");
+    l.push("");
+    l.push(lote.nota);
+    if (lote.seleccion.length) {
+      l.push("");
+      l.push("| Página | Tipo | Valor | Fuente del valor |");
+      l.push("| --- | --- | --- | --- |");
+      for (const c of lote.seleccion) l.push(`| ${celda(c.titulo)} (\`${c.ruta}\`) | ${c.tipo} | ${c.valor} | ${c.fuente_valor === "VOLUMEN_REAL" ? "Keyword Planner" : "estimado"} |`);
+    }
+    l.push("");
+  }
+
+  if (paginas) {
+    const cuenta = (e) => paginas.filter((p) => p.estado === e).length;
+    l.push("## Páginas forjadas");
+    l.push("");
+    l.push(paginas.length ? `${cuenta("APROBADA")} aprobadas, ${cuenta("BORRADOR")} esperando revisión y ${cuenta("RECHAZADA")} rechazadas por los candados.` : "Todavía no hay páginas forjadas.");
+    l.push("");
   }
 
   l.push("## Estrategia del cliente");

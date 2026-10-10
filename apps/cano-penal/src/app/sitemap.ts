@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
 import { areas } from "./content";
+import { superseoPaginas } from "../superseo/paquete";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = "https://canopenal.com";
+  const superseo = superseoPaginas();
   const strategic = [
     "/defensa-penal-fiscal",
     "/defraudacion-fiscal",
@@ -34,5 +36,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/` },
     ...strategic.map((path) => ({ url: `${base}${path}` })),
     ...areas.map(([, href]) => ({ url: `${base}${href}` })),
+    ...(superseo.length ? [{ url: `${base}/orientacion-penal` }] : []),
+    ...superseo.map((p) => (p.actualizado ? { url: `${base}${p.ruta}`, lastModified: p.actualizado } : { url: `${base}${p.ruta}` })),
   ];
 }

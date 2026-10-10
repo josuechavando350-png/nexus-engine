@@ -5,13 +5,17 @@ on:
     paths:
       - "superseo/**"
       - "seo-avengers-2500/**"
-      - ".github/workflows/superseo.yml"
+      - "gauss/core/**"
+      - "apps/cano-penal/src/superseo/**"
+      - ".github/workflows/superseo*.yml"
   push:
     branches: [main]
     paths:
       - "superseo/**"
       - "seo-avengers-2500/**"
-      - ".github/workflows/superseo.yml"
+      - "gauss/core/**"
+      - "apps/cano-penal/src/superseo/**"
+      - ".github/workflows/superseo*.yml"
   workflow_dispatch:
     inputs:
       cliente:
@@ -55,7 +59,10 @@ jobs:
   ciclo:
     if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    concurrency: superseo-estado
     env:
       CLIENTE: ${{ inputs.cliente || 'cano' }}
       MAX_PAGINAS: ${{ inputs.max_paginas || '300' }}
@@ -73,12 +80,50 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Ciclo SUPERSEO (rastreo, auditoría, Avengers, reporte)
+      - name: Validar cliente
+        run: |
+          case "$CLIENTE" in *[!a-z0-9-]*|"") echo "cliente inválido"; exit 2;; esac
+          test -f "superseo/clientes/$CLIENTE.json"
+
+      - name: Abrir estado del vigía y el oráculo (rama superseo-estado)
         run: |
           set -euo pipefail
-          case "$CLIENTE" in *[!a-z0-9-]*|"") echo "cliente inválido"; exit 2;; esac
+          if git ls-remote --exit-code --heads origin superseo-estado >/dev/null; then
+            git fetch --depth 1 origin superseo-estado:superseo-estado
+            git worktree add estado superseo-estado
+          else
+            git worktree add --orphan -b superseo-estado estado
+          fi
+
+      - name: Ciclo SUPERSEO (rastreo, auditoría, grafo, Search Console, Avengers, demanda)
+        env:
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          GSC_PROPIEDAD: ${{ vars.GSC_PROPIEDAD }}
+        run: |
+          set -euo pipefail
           node superseo/cli.mjs ciclo "$CLIENTE" --max "$MAX_PAGINAS" --salida "superseo-salida/$CLIENTE" > /dev/null
           cat "superseo-salida/$CLIENTE/reporte.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Vigía de competencia
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          { echo "## Vigía de competencia"; echo; echo '```'; node superseo/cli.mjs vigia "$CLIENTE" --estado "estado/$CLIENTE/vigia" --salida "superseo-salida/$CLIENTE"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Oráculo de tendencias
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          { echo "## Oráculo de tendencias"; echo; echo '```'; node superseo/cli.mjs oraculo "$CLIENTE" --estado "estado/$CLIENTE/oraculo" --salida "superseo-salida/$CLIENTE"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar estado
+        run: |
+          set -euo pipefail
+          cd estado
+          git add -A
+          if git diff --cached --quiet; then echo "Sin cambios de estado"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "SUPERSEO: estado de vigía y oráculo ($CLIENTE)"
+          git push -q origin superseo-estado
 
       - name: Guardar reporte
         if: always()
