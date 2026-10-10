@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "id": "cano",
+  "nombre": "CANO | Estrategia Penal",
+  "dominio": "https://canopenal.com",
+  "rubro": "abogados_penal",
+  "plan": "TOTAL",
+  "estado": "PREPARACION",
+  "territorio": {
+    "especialidades": [
+      "penal-fiscal",
+      "penal-financiero",
+      "penal-empresarial",
+      "penal-patrimonial",
+      "penal-violento",
+      "penal-sexual",
+      "penal-corrupcion",
+      "penal-adolescentes",
+      "amparo-penal",
+      "detenciones"
+    ],
+    "zonas": ["cdmx"],
+    "exclusivo": false
+  },
+  "servicios": [
+    { "slug": "delitos-fiscales-financieros", "nombre": "Delitos fiscales y financieros", "ruta": "/areas/delitos-fiscales-y-financieros" },
+    { "slug": "delitos-patrimoniales-fraude", "nombre": "Delitos patrimoniales y fraude", "ruta": "/areas/delitos-patrimoniales-y-fraude" },
+    { "slug": "homicidio-delitos-violentos", "nombre": "Homicidio y delitos violentos", "ruta": "/areas/homicidio-y-delitos-violentos" },
+    { "slug": "delitos-sexuales", "nombre": "Delitos sexuales", "ruta": "/areas/delitos-sexuales" },
+    { "slug": "corrupcion", "nombre": "Corrupción y delitos contra la administración pública", "ruta": "/areas/corrupcion-y-administracion-publica" },
+    { "slug": "despojo-victimas", "nombre": "Despojo y defensa de víctimas", "ruta": "/areas/despojo-y-defensa-de-victimas" },
+    { "slug": "adolescentes", "nombre": "Justicia penal para adolescentes", "ruta": "/areas/justicia-penal-para-adolescentes" },
+    { "slug": "amparo-penal", "nombre": "Amparo penal, recursos y apelaciones", "ruta": "/areas/amparo-recursos-y-apelaciones" },
+    { "slug": "detenciones", "nombre": "Defensa de personas detenidas", "ruta": "/detenido-cdmx" },
+    { "slug": "citatorios", "nombre": "Citatorio del Ministerio Público", "ruta": "/citatorio-ministerio-publico-cdmx" },
+    { "slug": "orden-aprehension", "nombre": "Orden de aprehensión", "ruta": "/orden-aprehension" },
+    { "slug": "audiencia-inicial", "nombre": "Audiencia inicial y control de detención", "ruta": "/audiencia-inicial" },
+    { "slug": "defensa-penal-fiscal", "nombre": "Defensa penal fiscal", "ruta": "/defensa-penal-fiscal" },
+    { "slug": "defensa-penal-empresarial", "nombre": "Defensa penal empresarial", "ruta": "/defensa-penal-empresarial" }
+  ],
+  "marca": { "terminos": ["cano estrategia penal", "eduardo cano", "cano penal"] },
+  "contacto": {
+    "telefono": "+525560501901",
+    "whatsapp": "https://wa.me/525560501901",
+    "direccion": "World Trade Center Ciudad de México, Montecito 38, piso 28, oficina 16, colonia Nápoles, Benito Juárez, CDMX"
+  },
+  "insumos": {
+    "search_console": false,
+    "notas_voz": false,
+    "perfil_google": false,
+    "videos": false,
+    "revisor": null,
+    "terminos_ads": false
+  },
+  "historial": [
+    { "en": "2026-10-10T20:00:00Z", "accion": "alta", "detalle": "Primer cliente SUPERSEO. Se le pidieron accesos, notas de voz y videos para el sitio." },
+    { "en": "2026-10-10T20:00:00Z", "accion": "preparar", "detalle": "OFF → PREPARACION mientras entrega insumos." }
+  ]
+}

@@ -1,0 +1,90 @@
+name: SUPERSEO
+
+on:
+  pull_request:
+    paths:
+      - "superseo/**"
+      - "seo-avengers-2500/**"
+      - ".github/workflows/superseo.yml"
+  push:
+    branches: [main]
+    paths:
+      - "superseo/**"
+      - "seo-avengers-2500/**"
+      - ".github/workflows/superseo.yml"
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: "Cliente (id en superseo/clientes)"
+        required: true
+        default: "cano"
+      max_paginas:
+        description: "Máximo de páginas a rastrear"
+        required: true
+        default: "300"
+  schedule:
+    - cron: "17 13 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  pruebas:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Pruebas SUPERSEO (incluye los 1,500 módulos Avengers)
+        run: node --test superseo/tests/*.test.mjs
+
+  ciclo:
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      CLIENTE: ${{ inputs.cliente || 'cano' }}
+      MAX_PAGINAS: ${{ inputs.max_paginas || '300' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+
+      - name: Install Python 3.12
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.12"
+
+      - name: Ciclo SUPERSEO (rastreo, auditoría, Avengers, reporte)
+        run: |
+          set -euo pipefail
+          case "$CLIENTE" in *[!a-z0-9-]*|"") echo "cliente inválido"; exit 2;; esac
+          node superseo/cli.mjs ciclo "$CLIENTE" --max "$MAX_PAGINAS" --salida "superseo-salida/$CLIENTE" > /dev/null
+          cat "superseo-salida/$CLIENTE/reporte.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar reporte
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: superseo-${{ env.CLIENTE }}
+          path: superseo-salida/
+          retention-days: 30
+          if-no-files-found: ignore
