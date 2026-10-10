@@ -185,7 +185,7 @@ export function minarDemanda(perfil, { snapshot = null, volumenes = [], searchCo
 // Lee un CSV exportado de Keyword Planner (columnas "Keyword" y "Avg. monthly searches"
 // o sus equivalentes en español). Devuelve [{ consulta, volumen_mensual }].
 export function leerKeywordPlanner(texto) {
-  const lineas = String(texto).replace(/^﻿/, "").split(/\r?\n/).filter((l) => l.trim());
+  const lineas = String(texto).replace(/^\uFEFF/, "").split(/\r?\n/).filter((l) => l.trim());
   // La fila de encabezados es la que nombra la palabra clave Y las búsquedas mensuales
   // (el export de Keyword Planner trae antes un par de líneas de título).
   const esCabecera = (l) => /keyword|palabra clave/i.test(l) && /searches|b[uú]squedas/i.test(l);

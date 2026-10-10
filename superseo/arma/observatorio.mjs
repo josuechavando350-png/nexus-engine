@@ -220,7 +220,7 @@ export function resultadoObservatorio(ag, { recurso = null, corteForzado = null 
 export function procesarTextoCsv(texto, opciones = {}) {
   const ag = new Agregador();
   const p = new ParserCsv((f) => ag.fila(f));
-  p.empujar(String(texto).replace(/^﻿/, ""));
+  p.empujar(String(texto).replace(/^\uFEFF/, ""));
   p.terminar();
   return resultadoObservatorio(ag, opciones);
 }
@@ -245,7 +245,7 @@ export async function descargarYProcesar({ url, fetchImpl = globalThis.fetch, re
   let primero = true;
   for await (const chunk of res.body) {
     let t = decoder.decode(chunk, { stream: true });
-    if (primero) { t = t.replace(/^﻿/, ""); primero = false; }
+    if (primero) { t = t.replace(/^\uFEFF/, ""); primero = false; }
     p.empujar(t);
   }
   p.empujar(decoder.decode());

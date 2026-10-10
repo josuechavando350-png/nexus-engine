@@ -17,7 +17,7 @@ function csvSintetico() {
       filas.push(`${y},${m},,ROBO,CENTRO,FUERA DE CDMX`);
     }
   }
-  return `﻿${filas.join("\r\n")}\r\n`;
+  return `\uFEFF${filas.join("\r\n")}\r\n`;
 }
 
 test("el parser CSV maneja comillas, comas, saltos de línea y comillas escapadas", () => {
