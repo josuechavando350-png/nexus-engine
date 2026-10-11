@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-barata-vs-profesional",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-barata-vs-profesional",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Costos y tiempos",
+  "titulo": "Página web barata vs. profesional: qué cambia",
+  "descripcion": "Qué diferencia realmente a una página web barata de una profesional: velocidad, diseño, textos, seguridad, propiedad y resultados. Cuándo conviene cada una.",
+  "h1": "Página web barata vs. profesional: qué cambia",
+  "respuesta_rapida": [
+    "La diferencia no está en que se vea bonita, sino en si trae clientes y es tuya.",
+    "Las páginas baratas suelen fallar en velocidad, textos, medición, seguridad y propiedad del dominio.",
+    "Una página económica bien hecha puede ser suficiente para empezar.",
+    "La más cara tampoco es mejor si no resuelve lo que tu negocio necesita."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo barato no siempre sale caro",
+      "parrafos": [
+        "Hay páginas económicas que funcionan muy bien para lo que un negocio necesita al empezar: decir quién eres, qué haces y cómo contactarte, rápido y bien en el celular. Y hay páginas caras que se ven espectaculares pero no traen un solo cliente. El precio por sí solo no dice nada.",
+        "Lo que sí importa es qué hay detrás del precio y si ese trabajo resuelve el problema de tu negocio."
+      ]
+    },
+    {
+      "titulo": "Dónde suelen fallar las páginas baratas",
+      "parrafos": [
+        "Velocidad: plantillas pesadas que tardan en cargar en el celular, justo donde está la mayoría de tus clientes. Textos: genéricos o copiados, que no dicen nada de tu negocio ni ayudan a Google a entender qué haces. Contacto: botones escondidos o formularios largos que nadie llena.",
+        "Medición: nadie sabe cuántos mensajes llegan desde la página. Seguridad: sistemas sin actualizar que terminan hackeados. Y propiedad: el dominio a nombre del proveedor, que desaparece con tus accesos."
+      ]
+    },
+    {
+      "titulo": "Lo que agrega una página profesional",
+      "parrafos": [
+        "Un diseño pensado para tu negocio y tu cliente, no una plantilla con tu logo encima. Textos escritos a partir de lo que tú sabes y de lo que tu cliente busca. Velocidad real en el celular. Botones de WhatsApp y llamada visibles y medidos. Estructura técnica para que Google entienda qué haces y dónde.",
+        "Y algo que no se ve pero importa: seguridad desde el primer día y accesos a tu nombre."
+      ]
+    },
+    {
+      "titulo": "Cuándo conviene cada una",
+      "parrafos": [
+        "Si estás empezando y necesitas presencia básica y contacto directo, una página sencilla bien hecha puede ser suficiente. Si tu negocio depende de que te encuentren en Google, de vender en línea o de atender muchos mensajes, necesitas algo más completo.",
+        "Lo importante es que la página pueda crecer contigo, sin tener que rehacerla cada vez que tu negocio cambia."
+      ]
+    },
+    {
+      "titulo": "Cómo evaluar antes de pagar",
+      "parrafos": [
+        "Pide ver trabajos reales y ábrelos en tu celular: mide cuánto tardan en cargar. Pregunta a nombre de quién queda el dominio. Pregunta quién escribe los textos y si se mide el contacto. Revisa si la cotización explica lo que incluye.",
+        "Con esas preguntas, la diferencia entre una página barata y una profesional se vuelve evidente."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Tenemos paquetes desde $1,999 hasta $44,800 MXN. Incluso el más sencillo se entrega con diseño propio, versión rápida en celular, WhatsApp medible, HTTPS y dominio a tu nombre. Lo que cambia entre paquetes es el alcance: más secciones, tienda, agenda, asistente de IA y tecnología para captación.",
+        "El sitio de CANO Estrategia Penal, por ejemplo, marca 99 en rendimiento y 100 en SEO en PageSpeed móvil."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Una plantilla siempre es mala?",
+      "respuesta": "No. Una plantilla bien elegida y optimizada puede funcionar; el problema es cuando es pesada, genérica y nadie la adapta a tu negocio."
+    },
+    {
+      "pregunta": "¿Cómo sé si mi página actual es lenta?",
+      "respuesta": "Puedes revisarla con nuestro analizador gratuito o con PageSpeed Insights de Google."
+    },
+    {
+      "pregunta": "¿Vale la pena rehacer una página barata?",
+      "respuesta": "Si no trae clientes, es lenta o no es tuya, sí. Si funciona, puede bastar con mejorarla."
+    },
+    {
+      "pregunta": "¿El precio incluye que aparezca en Google?",
+      "respuesta": "Un sitio bien construido es la base para aparecer; el posicionamiento continuo es un trabajo aparte."
+    },
+    {
+      "pregunta": "¿Qué es lo mínimo que debe tener cualquier página?",
+      "respuesta": "Que cargue rápido en el celular, diga claramente qué haces, tenga botones de contacto visibles, use HTTPS y que el dominio sea tuyo."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-pagina-web-en-mexico",
+      "texto": "¿Cuánto cuesta una página web en México?"
+    },
+    {
+      "ruta": "/senales-de-que-tu-pagina-web-es-vieja",
+      "texto": "Señales de que tu página web ya es vieja"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:64abbec884397c03521db31124cde503aac69cd6cd7b4c1871fe06eadf9df216",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:64abbec884397c03521db31124cde503aac69cd6cd7b4c1871fe06eadf9df216"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 619,
+    "similitud_max": 0.011,
+    "parecida_a": "/como-elegir-agencia-de-diseno-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:aff043c50c3247fec1a23edcf025bc5b391a54a61170f315674119aa549f1b33",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

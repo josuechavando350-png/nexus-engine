@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "id": "agenda-de-citas-en-linea-para-nutriologos",
+  "cliente": "nexus",
+  "ruta": "/agenda-de-citas-en-linea-para-nutriologos",
+  "tipo": "AGENTE_IA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Agenda de citas en línea para nutriólogos",
+  "descripcion": "Agenda en línea para nutriólogos: primera consulta y seguimientos, presencial o en línea, recordatorios y pago anticipado, sin perseguir pacientes.",
+  "h1": "Agenda de citas en línea para nutriólogos",
+  "respuesta_rapida": [
+    "Primera consulta y seguimientos se reservan desde tu página, presenciales o en línea.",
+    "Al terminar cada consulta queda agendado el siguiente seguimiento.",
+    "Recordatorios automáticos con lo que el paciente debe preparar.",
+    "Pago anticipado o paquetes para asegurar la constancia."
+  ],
+  "secciones": [
+    {
+      "titulo": "La constancia es el resultado",
+      "parrafos": [
+        "En nutrición, el plan funciona si hay seguimiento. Un paciente que viene a la primera consulta y no vuelve pierde el acompañamiento justo cuando más lo necesita, y el nutriólogo pierde un paciente que pudo haberse quedado meses. Muchas de esas bajas no son decisiones; son olvidos y agendas complicadas.",
+        "Una agenda en línea que deja programado el siguiente seguimiento y lo recuerda a tiempo sostiene el proceso sin depender de la memoria del paciente.",
+        "Para el nutriólogo, una agenda que se llena sola con seguimientos es también una agenda más predecible. Saber cuántas consultas hay en las próximas semanas permite planear horarios, decidir cuándo abrir más espacios para pacientes nuevos y organizar el tiempo para preparar planes con calma."
+      ]
+    },
+    {
+      "titulo": "Primera consulta sin fricción",
+      "parrafos": [
+        "El paciente nuevo entra a tu página, elige si quiere consulta presencial o en línea, ve los horarios disponibles y reserva. Recibe una confirmación con lo que debe preparar, por ejemplo traer estudios recientes, venir en ayunas si vas a tomar ciertas mediciones o tener a la mano su registro de alimentación.",
+        "Si la consulta es en línea, recibe el enlace de la videollamada automáticamente."
+      ]
+    },
+    {
+      "titulo": "Seguimientos programados",
+      "parrafos": [
+        "Al terminar la consulta, agendas el siguiente seguimiento en el intervalo que corresponda, y el paciente recibe la confirmación. Antes de cada cita le llega un recordatorio con la opción de confirmar o mover. Si no reserva su siguiente cita, la agenda te avisa para darle seguimiento.",
+        "Los paquetes de consultas se registran en la misma agenda, con el conteo de citas usadas.",
+        "Si el paciente reprograma, el sistema le ofrece los horarios más cercanos al intervalo recomendado, para que el seguimiento no se aleje demasiado."
+      ]
+    },
+    {
+      "titulo": "Consulta en línea para cualquier ciudad",
+      "parrafos": [
+        "La nutrición se presta muy bien a la consulta a distancia. Con una agenda que muestra horarios en la zona horaria de cada paciente y envía los enlaces solos, puedes atender a personas de cualquier ciudad sin complicarte.",
+        "Las mediciones se pueden pedir con una guía sencilla para que el paciente las tome en casa."
+      ]
+    },
+    {
+      "titulo": "Pagos sin incomodidad",
+      "parrafos": [
+        "Cobrar al reservar o vender paquetes en línea reduce las ausencias y quita la conversación del pago al final de la consulta. El comprobante se envía automáticamente y, si emites factura, la solicitud puede hacerse desde el mismo proceso.",
+        "La política de cancelación queda escrita en cada confirmación."
+      ]
+    },
+    {
+      "titulo": "Datos y privacidad",
+      "parrafos": [
+        "La agenda solo pide lo necesario para la cita; la información clínica se maneja en consulta. Todo queda bajo el aviso de privacidad del consultorio y con acceso restringido.",
+        "En Nexus configuramos cada integración con criterio de ciberseguridad."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos tu agenda con primera consulta, seguimientos, modalidades y pagos, integrada a tu página y a WhatsApp. Incluida desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo enviar el plan por la agenda?",
+      "respuesta": "La agenda maneja citas y recordatorios; el plan se entrega en consulta o por el canal que uses, como correo."
+    },
+    {
+      "pregunta": "¿Funciona si atiendo en un consultorio compartido?",
+      "respuesta": "Sí, se bloquean los horarios en que el consultorio no está disponible."
+    },
+    {
+      "pregunta": "¿El paciente puede cambiar su cita solo?",
+      "respuesta": "Sí, desde el enlace del recordatorio, respetando tu política de cancelación."
+    },
+    {
+      "pregunta": "¿Puedo ofrecer consultas para empresas?",
+      "respuesta": "Sí, con un tipo de cita especial y reglas propias."
+    },
+    {
+      "pregunta": "¿Puedo ofrecer consultas grupales o talleres?",
+      "respuesta": "Sí, como un tipo de cita con cupo, ideal para talleres de alimentación o grupos de seguimiento."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-nutriologos",
+      "texto": "Página web para nutriólogos"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:4dfdb58ed450b7bbaad2253d8a725b8162028470a598a221c78dcdfd20ea0fe0",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:4dfdb58ed450b7bbaad2253d8a725b8162028470a598a221c78dcdfd20ea0fe0"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 609,
+    "similitud_max": 0.02,
+    "parecida_a": "/agenda-de-citas-en-linea-para-fisioterapeutas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:0b85c5115a0171bca618f8ac864c284cbfaa400f92009a9fb7d28b5c25ed9544",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

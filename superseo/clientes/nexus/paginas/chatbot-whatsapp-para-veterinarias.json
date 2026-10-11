@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-veterinarias",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-veterinarias",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Chatbot de WhatsApp para veterinarias",
+  "descripcion": "Asistente de IA para clínicas veterinarias: agenda consultas y estética, recuerda vacunas, responde horarios y servicios, y canaliza urgencias al instante.",
+  "h1": "Chatbot de WhatsApp para veterinarias",
+  "respuesta_rapida": [
+    "Responde horarios, servicios, costos de consulta y estética a cualquier hora.",
+    "Agenda consultas, vacunas y baños, y manda recordatorios a los dueños.",
+    "Ante una urgencia, indica traer a la mascota o llamar de inmediato, sin dar consejos médicos.",
+    "Registra a cada mascota para recordarle su siguiente vacuna o desparasitación."
+  ],
+  "secciones": [
+    {
+      "titulo": "Una clínica con muchas conversaciones",
+      "parrafos": [
+        "Una veterinaria recibe mensajes de todo tipo: dueños que quieren agendar consulta, clientes de estética preguntando por un baño, personas que preguntan precios de vacunas, alguien angustiado porque su perro vomitó. Separar lo urgente de lo rutinario mientras se atiende en consultorio es casi imposible, y los mensajes esperan.",
+        "Además, el calendario de vacunas de cada mascota es una oportunidad de regreso que se pierde cuando nadie tiene tiempo de recordarlo."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Saluda, pregunta si es consulta, estética, vacuna u otro servicio, y responde con la información de la clínica. Agenda según los horarios de cada área, porque la estética y el consultorio suelen tener agendas distintas, y confirma con indicaciones útiles, como llegar con la mascota en ayunas para ciertos estudios.",
+        "Registra el nombre y la especie de la mascota y, si la clínica lo autoriza, las fechas de vacunación, para mandar recordatorios cuando se acerque la siguiente dosis. Lo mismo con la estética: un mensaje cuando han pasado las semanas habituales desde el último baño.",
+        "Si un dueño describe síntomas preocupantes, el asistente indica traer a la mascota o llamar de inmediato, y avisa al equipo."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un viernes en la noche escribe una dueña: mi gato no ha comido en todo el día. El asistente responde con empatía, indica que conviene que lo valore un veterinario cuanto antes, comparte el horario de urgencias o el teléfono directo y avisa al médico de guardia. No da consejos de tratamiento.",
+        "El sábado temprano, otro dueño agenda el baño de su perro en un minuto, sin esperar a que abran."
+      ]
+    },
+    {
+      "titulo": "Sin consejos médicos",
+      "parrafos": [
+        "El asistente no diagnostica ni sugiere medicamentos para mascotas. Su papel es informar, agendar, recordar y canalizar. En salud animal, como en salud humana, el criterio lo pone el veterinario.",
+        "Esa claridad también protege a la clínica de malentendidos y reclamos."
+      ]
+    },
+    {
+      "titulo": "Lo que gana la clínica",
+      "parrafos": [
+        "Menos tiempo de recepción en preguntas repetidas, menos citas perdidas, agendas de estética más llenas y, sobre todo, clientes que regresan por sus vacunas y servicios sin que nadie tenga que acordarse de llamarles. Ese regreso constante es lo que da estabilidad a una veterinaria.",
+        "Todas las conversaciones quedan registradas y cualquier persona del equipo puede intervenir."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Primero entendemos cómo funciona la clínica: qué servicios ofrece, cómo se dividen las agendas de consultorio, estética y hotel, cuáles son los costos que se pueden compartir y qué protocolo sigue el equipo ante una urgencia. Con esa información escribimos las respuestas, el equipo las aprueba y conectamos la agenda. Luego cargamos, si la clínica quiere, el registro de mascotas para los recordatorios de vacunas, y revisamos las primeras conversaciones para afinar el tono."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN. Para clínicas con sitio propio, el asistente se cotiza aparte según volumen y agenda."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede manejar el hotel o guardería?",
+      "respuesta": "Sí. Puede consultar disponibilidad, explicar requisitos como vacunas al día y reservar."
+    },
+    {
+      "pregunta": "¿Funciona con varias sucursales?",
+      "respuesta": "Sí, cada sucursal con sus horarios y servicios."
+    },
+    {
+      "pregunta": "¿Los recordatorios son automáticos?",
+      "respuesta": "Sí, según las fechas registradas y las reglas que defina la clínica."
+    },
+    {
+      "pregunta": "¿Puede vender alimento?",
+      "respuesta": "Puede tomar pedidos de productos y alimentos para recoger o entregar, si la clínica lo ofrece."
+    },
+    {
+      "pregunta": "¿Puede atender a clientes de la estética por separado?",
+      "respuesta": "Sí. Identifica si la persona busca consulta o estética y usa la agenda, los precios y el tono de cada área."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-veterinarias",
+      "texto": "Página web para veterinarias"
+    },
+    {
+      "ruta": "/soluciones/clinicas",
+      "texto": "Agentes de IA para clínicas y consultorios"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:7f6f19256740707e344f5b9f0556f85098ab161a4cb46449ad7397372eb6422e",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:7f6f19256740707e344f5b9f0556f85098ab161a4cb46449ad7397372eb6422e"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 627,
+    "similitud_max": 0.014,
+    "parecida_a": "/chatbot-whatsapp-para-barberias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:795015e3fe80b1c5459957b700c4569aa1774df67d7a932925ae41c0c3a77f1c",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

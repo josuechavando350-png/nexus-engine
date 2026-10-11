@@ -2,13 +2,38 @@
 // Cruza situaciones, servicios y zonas del cliente; marca lo que el sitio ya cubre;
 // usa volúmenes reales (Keyword Planner) y Search Console cuando existen. Sin ellos,
 // el valor es una estimación heurística y así queda etiquetado.
-import { sha256, normalizarTexto, deepFreeze } from "../core/canonical.mjs";
+import { SuperSeoError, sha256, normalizarTexto, deepFreeze } from "../core/canonical.mjs";
 import { RUBROS, nombreDeZona, subzonas } from "../core/catalogo.mjs";
 import { SITUACIONES, PESO_INTENCION } from "../core/situaciones.mjs";
 
 const SEGMENTO = /^[a-z0-9](?:[a-z0-9-]{0,78}[a-z0-9])?$/;
 const ESFUERZO = { TORRE_ZONA: 3, GUIA_SITUACION: 2, SERVICIO_SITUACION: 2 };
 const ESPECIFICIDAD = { TORRE_ZONA: 1, GUIA_SITUACION: 1.2, SERVICIO_SITUACION: 0.8 };
+// Tipos de página que puede declarar un portafolio curado (agencias).
+export const TIPOS_PORTAFOLIO = Object.freeze(["GIRO", "AGENTE_IA", "ADS_MAPS", "GUIA", "CIUDAD", "CASO"]);
+const RUTA = /^\/(?:[a-z0-9-]+(?:\/[a-z0-9-]+)*)?$/;
+
+// Valida un portafolio curado (fail-closed): cada página declara su intención,
+// sus búsquedas objetivo y los enlaces internos que debe llevar.
+export function validarPortafolio(portafolio) {
+  if (!Array.isArray(portafolio)) throw new SuperSeoError("PORTAFOLIO_INVALIDO", "debe ser lista");
+  const ids = new Set();
+  return portafolio.map((p, i) => {
+    const falla = (d) => { throw new SuperSeoError("PORTAFOLIO_INVALIDO", `[${i}] ${p?.id ?? ""}: ${d}`); };
+    if (!p || typeof p !== "object") falla("no es objeto");
+    if (typeof p.id !== "string" || !SEGMENTO.test(p.id)) falla("id inválido");
+    if (ids.has(p.id)) falla("id repetido");
+    ids.add(p.id);
+    if (!TIPOS_PORTAFOLIO.includes(p.tipo)) falla(`tipo ${p.tipo}`);
+    if (typeof p.titulo !== "string" || p.titulo.trim().length < 10) falla("titulo");
+    if (!(p.intencion in PESO_INTENCION)) falla(`intencion ${p.intencion}`);
+    if (!Array.isArray(p.consultas) || !p.consultas.length || p.consultas.some((q) => typeof q !== "string" || !q.trim())) falla("consultas");
+    if (p.servicio !== null && typeof p.servicio !== "string") falla("servicio");
+    if (!Array.isArray(p.enlaces) || p.enlaces.some((r) => typeof r !== "string" || !RUTA.test(r) || r === `/${p.id}`)) falla("enlaces");
+    if (typeof p.grupo !== "string" || !p.grupo.trim()) falla("grupo");
+    return { id: p.id, tipo: p.tipo, titulo: p.titulo.trim(), intencion: p.intencion, consultas: p.consultas.map((q) => normalizarTexto(q)), servicio: p.servicio, enlaces: [...p.enlaces], grupo: p.grupo.trim() };
+  });
+}
 
 // Patrones para saber si el sitio ya tiene una página de esa situación.
 const PATRONES_EXISTENTES = {
@@ -60,7 +85,7 @@ export function rutasExistentes({ snapshot = null, perfil }) {
  * @param opciones.volumenes [{ consulta, volumen_mensual }] exportado de Keyword Planner
  * @param opciones.searchConsole [{ query, impressions }] filas de Search Console
  */
-export function minarDemanda(perfil, { snapshot = null, volumenes = [], searchConsole = [] } = {}) {
+export function minarDemanda(perfil, { snapshot = null, volumenes = [], searchConsole = [], portafolio = [] } = {}) {
   const rubro = RUBROS[perfil.rubro];
   const situaciones = SITUACIONES[perfil.rubro];
   const torre = rubro.torre ?? { slug: perfil.rubro.replace(/_/g, "-"), titulo: `${rubro.nombre} en {zona}` };
@@ -86,7 +111,7 @@ export function minarDemanda(perfil, { snapshot = null, volumenes = [], searchCo
     // En los cruces, el orden en que el cliente presenta sus servicios desempata: primero su fuerte.
     const orden = c.servicio ? perfil.servicios.findIndex((s) => s.slug === c.servicio) : -1;
     const ajuste = orden >= 0 ? 1 + 0.1 * (1 - orden / perfil.servicios.length) : 1;
-    const estimado = Math.round(peso * ESPECIFICIDAD[c.tipo] * ajuste * 100) / 10;
+    const estimado = Math.round(peso * (ESPECIFICIDAD[c.tipo] ?? 1) * ajuste * 100) / 10;
     const valor = volumen > 0 ? Math.round(volumen * (peso / 10) + impresiones / 10) : Math.round((estimado + impresiones / 10) * 10) / 10;
     const patron = PATRONES_EXISTENTES[c.situacion];
     const cubiertaPor = existentes.includes(ruta)
@@ -106,16 +131,23 @@ export function minarDemanda(perfil, { snapshot = null, volumenes = [], searchCo
       impresiones_search_console: impresiones > 0 ? impresiones : null,
       fuente_valor: volumen > 0 ? "VOLUMEN_REAL" : "ESTIMADO",
       valor,
-      esfuerzo: ESFUERZO[c.tipo],
+      esfuerzo: ESFUERZO[c.tipo] ?? 2,
       requiere_datos_locales: c.tipo === "TORRE_ZONA",
       cobertura: cubiertaPor ? "EXISTE" : "NUEVA",
       cubierta_por: cubiertaPor,
+      ...(c.enlaces ? { enlaces: c.enlaces, grupo: c.grupo } : {}),
     });
   };
 
+  // 0. Portafolio curado: páginas que el estratega declaró una por una.
+  for (const p of validarPortafolio(portafolio)) {
+    agregar({ tipo: p.tipo, slug: p.id, titulo: p.titulo, zona: zonaPrincipal, situacion: null, servicio: p.servicio, intencion: p.intencion, consultas: p.consultas, enlaces: p.enlaces, grupo: p.grupo });
+  }
+
   // 1. Torres por zona: una por alcaldía, con datos locales propios.
+  // Un rubro con torre: false no las tiene (sería el mismo texto con otro nombre de zona).
   const urgentes = situaciones.filter((s) => s.intencion === "URGENTE");
-  for (const zona of alcaldias) {
+  for (const zona of rubro.torre === false ? [] : alcaldias) {
     const nombre = nombreDeZona(zona);
     agregar({
       tipo: "TORRE_ZONA",

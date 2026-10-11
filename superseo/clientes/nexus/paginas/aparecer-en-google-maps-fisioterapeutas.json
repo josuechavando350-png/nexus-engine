@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-fisioterapeutas",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-fisioterapeutas",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Cómo aparecer en Google Maps: fisioterapeutas",
+  "descripcion": "Guía para que tu consultorio de fisioterapia aparezca en Google Maps: categoría, servicios por lesión, área de domicilio, citas en línea y reseñas de pacientes.",
+  "h1": "Cómo hacer que tu consultorio de fisioterapia aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal: fisioterapeuta o centro de rehabilitación, según tu práctica.",
+    "Servicios por lesión y técnica: lumbalgia, esguince, rehabilitación, punción seca.",
+    "Si atiendes a domicilio, configura el área de servicio.",
+    "Reseñas de pacientes al terminar su tratamiento."
+  ],
+  "secciones": [
+    {
+      "titulo": "El paciente busca alivio cerca",
+      "parrafos": [
+        "Fisioterapeuta cerca, terapia para lumbalgia, rehabilitación de rodilla. Quien tiene dolor busca una solución cercana, porque va a tener que asistir varias veces. El mapa es el lugar donde decide, comparando distancia, estrellas y si puede agendar fácil.",
+        "Un perfil que muestra servicios por lesión y reseñas de pacientes recuperados convence mucho más que uno con información mínima.",
+        "Además, muchos pacientes llegan referidos por su médico y buscan tu nombre para confirmar dónde estás y cómo agendar: el perfil también atiende a ese paciente."
+      ]
+    },
+    {
+      "titulo": "Categoría y servicios",
+      "parrafos": [
+        "La categoría principal puede ser fisioterapeuta o centro de rehabilitación. En servicios, lista los tratamientos por lesión y por técnica: lumbalgia, cervicalgia, esguinces, rehabilitación postquirúrgica, fisioterapia deportiva, neurológica, piso pélvico, punción seca, electroterapia.",
+        "Cada servicio con una descripción breve ayuda a aparecer en búsquedas específicas.",
+        "Si atiendes a deportistas, adultos mayores o pacientes neurológicos, decirlo en la descripción ayuda a que te encuentre justo el paciente que mejor atiendes. Lo mismo si tienes convenios con aseguradoras o trabajas con médicos que te refieren pacientes."
+      ]
+    },
+    {
+      "titulo": "Domicilio y consultorio",
+      "parrafos": [
+        "Si atiendes en consultorio y a domicilio, muestra la dirección del consultorio y configura el área de servicio para domicilio. Si solo atiendes a domicilio, configura el perfil como negocio con área de servicio sin dirección visible.",
+        "En la descripción, menciona las zonas que cubres a domicilio."
+      ]
+    },
+    {
+      "titulo": "Fotos del espacio y del trabajo",
+      "parrafos": [
+        "Fotos del consultorio, de las camillas, del equipo y del área de ejercicio, con buena luz. Fotos del fisioterapeuta trabajando, con permiso de los pacientes que aparezcan. El paciente quiere ver un lugar limpio, profesional y equipado.",
+        "Actualízalas cuando renueves equipo o espacio.",
+        "Un video corto mostrando el espacio o un ejercicio de rehabilitación, sin identificar a pacientes sin permiso, también ayuda a que el paciente nuevo se imagine en tu consultorio antes de llegar."
+      ]
+    },
+    {
+      "titulo": "Reseñas al terminar el tratamiento",
+      "parrafos": [
+        "El mejor momento para pedir una reseña es al cerrar cada tratamiento, cuando el paciente puede contar su experiencia completa; pídela a todos por igual. Un mensaje con el enlace directo funciona bien. Al responder, agradece sin mencionar detalles de salud del paciente.",
+        "Las reseñas que cuentan una recuperación concreta son las más persuasivas para otros pacientes."
+      ]
+    },
+    {
+      "titulo": "Citas desde el perfil",
+      "parrafos": [
+        "Vincula el botón de cita a tu agenda en línea para la valoración inicial. Quien busca de noche puede agendar sin esperar. Mide cuántas valoraciones llegan desde el perfil.",
+        "Mantén el horario exacto y aclara si atiendes con cita solamente."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, lo conectamos con tu agenda, preparamos el sistema de reseñas y medimos valoraciones agendadas. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo aparecer si trabajo dentro de un hospital?",
+      "respuesta": "Sí, con la dirección del hospital y la ubicación exacta del consultorio en la descripción."
+    },
+    {
+      "pregunta": "¿Conviene poner precios?",
+      "respuesta": "El precio de la valoración o de la sesión, como precio desde, ayuda a quien está comparando."
+    },
+    {
+      "pregunta": "¿Cómo respondo reseñas sin revelar datos de salud?",
+      "respuesta": "Agradeciendo de forma general, sin mencionar lesión ni tratamiento."
+    },
+    {
+      "pregunta": "¿Qué pasa si atiendo en dos lugares?",
+      "respuesta": "Cada lugar donde atiendes de forma regular puede tener su perfil."
+    },
+    {
+      "pregunta": "¿Cuánto tarda en notarse una mejora?",
+      "respuesta": "Los cambios en el perfil se reflejan en días; las reseñas constantes y la actividad construyen posición durante semanas y meses."
+    },
+    {
+      "pregunta": "¿Puedo pedir reseñas a pacientes referidos por médicos?",
+      "respuesta": "Sí, como a cualquier paciente satisfecho. Sus reseñas también ayudan a que otros médicos te recomienden con confianza."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-fisioterapeutas",
+      "texto": "Página web para fisioterapeutas"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:30998ad3fc3e9003cede922f417d57d7013206be47cc73f0447982070c497f4a",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:30998ad3fc3e9003cede922f417d57d7013206be47cc73f0447982070c497f4a"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 622,
+    "similitud_max": 0.033,
+    "parecida_a": "/aparecer-en-google-maps-opticas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:184723942ea7c85ac7ad7a16374c58056366d49aabb8def06be2eb50445e7f62",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

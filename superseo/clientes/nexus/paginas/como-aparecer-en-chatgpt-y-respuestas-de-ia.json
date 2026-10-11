@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "como-aparecer-en-chatgpt-y-respuestas-de-ia",
+  "cliente": "nexus",
+  "ruta": "/como-aparecer-en-chatgpt-y-respuestas-de-ia",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "Cómo aparecer en ChatGPT y respuestas con IA",
+  "descripcion": "Cómo funcionan las respuestas de ChatGPT, Gemini y los resúmenes con IA de Google, y qué puede hacer tu negocio para que lo mencionen.",
+  "h1": "Cómo aparecer en ChatGPT y en las respuestas con IA",
+  "respuesta_rapida": [
+    "Los asistentes con IA arman sus respuestas con información que encuentran en buscadores y en la web.",
+    "Si tu negocio es claro, coherente y está bien posicionado, tiene más probabilidad de aparecer.",
+    "Datos estructurados, reseñas, menciones en otros sitios y páginas que responden preguntas ayudan.",
+    "No hay un truco: es el mismo trabajo de fondo que el buen SEO."
+  ],
+  "secciones": [
+    {
+      "titulo": "Una nueva forma de buscar",
+      "parrafos": [
+        "Cada vez más personas preguntan a ChatGPT, a Gemini o a otros asistentes cosas como qué dentista me recomiendas en mi colonia o cuánto cuesta una página web. Google también muestra resúmenes generados con IA arriba de los resultados. Para un negocio, aparecer mencionado en esas respuestas se está volviendo tan importante como aparecer en la lista de enlaces.",
+        "La pregunta es cómo deciden estos sistemas a quién mencionar."
+      ]
+    },
+    {
+      "titulo": "De dónde sacan la información",
+      "parrafos": [
+        "Cuando un asistente responde con información actual, normalmente consulta un buscador o un índice de la web, lee algunas páginas y resume lo que encuentra. Los resúmenes de Google se basan en las páginas que Google ya tiene indexadas. Otros asistentes usan sus propios rastreadores e índices de búsqueda como el de Bing.",
+        "Por eso, si tu negocio no está bien representado en la web, difícilmente aparecerá en una respuesta generada."
+      ]
+    },
+    {
+      "titulo": "Lo que aumenta tus probabilidades",
+      "parrafos": [
+        "Páginas que responden preguntas concretas con claridad: qué haces, para quién, dónde, cuánto cuesta y cómo contactarte. Información coherente en todas partes: sitio, perfil de Google, directorios y redes. Datos estructurados que ayudan a las máquinas a entender tu negocio. Reseñas y menciones en otros sitios confiables, que funcionan como recomendación.",
+        "Los asistentes tienden a citar fuentes claras, actuales y consistentes."
+      ]
+    },
+    {
+      "titulo": "No bloquees a los rastreadores",
+      "parrafos": [
+        "Algunos sitios bloquean, sin saberlo, a los rastreadores de los buscadores o de los asistentes mediante su archivo robots o su configuración de seguridad. Si quieres aparecer en estas respuestas, revisa que tu sitio permita el acceso a los rastreadores de búsqueda legítimos.",
+        "También conviene dar de alta tu sitio en las herramientas para webmasters de Google y de Bing, y avisar de cambios con un sitemap e IndexNow."
+      ]
+    },
+    {
+      "titulo": "Lo que no funciona",
+      "parrafos": [
+        "Llenar páginas de texto artificial para que las máquinas lo lean, inventar reseñas o crear decenas de páginas casi iguales. Los asistentes y los buscadores cada vez detectan mejor ese contenido, y una mención basada en información falsa puede dañar tu reputación.",
+        "La regla es la misma de siempre: información verdadera, útil y bien presentada."
+      ]
+    },
+    {
+      "titulo": "Medir lo que pasa",
+      "parrafos": [
+        "Todavía es difícil medir con precisión cuántas personas llegan desde respuestas con IA, pero puedes revisar las visitas que llegan de esos servicios en tus estadísticas y preguntar a tus clientes cómo te encontraron. También puedes preguntar tú mismo a los asistentes por tu giro y tu zona, y ver si apareces.",
+        "Esa prueba sencilla, repetida cada mes, te da una idea de tu presencia."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Construimos sitios con datos estructurados, información coherente y páginas que responden preguntas reales, y los damos de alta en Google y Bing con sitemap e IndexNow. SUPERSEO revisa cada página para que sea clara y verdadera. Es parte de Nexus Growth."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo pagar para aparecer en ChatGPT?",
+      "respuesta": "Las respuestas orgánicas no se compran; lo que sí puedes hacer es mejorar tu presencia en la web."
+    },
+    {
+      "pregunta": "¿Los resúmenes con IA de Google me quitan visitas?",
+      "respuesta": "Pueden reducir clics en búsquedas informativas, pero las búsquedas de servicios locales siguen llevando a perfiles y sitios."
+    },
+    {
+      "pregunta": "¿Necesito una página especial para la IA?",
+      "respuesta": "No. Lo que funciona es un sitio claro y bien estructurado, el mismo que sirve para las personas."
+    },
+    {
+      "pregunta": "¿Qué son los datos estructurados?",
+      "respuesta": "Información en un formato estándar que describe tu negocio, servicios y preguntas frecuentes para que las máquinas la entiendan."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/que-es-el-seo-local",
+      "texto": "Qué es el SEO local y cómo funciona"
+    },
+    {
+      "ruta": "/como-escribir-los-textos-de-tu-pagina-web",
+      "texto": "Cómo escribir los textos de tu página web"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:b611df220ef96d0da5dc8588f5cd97f5900e8cb6e00c9d6b37360e37f984726e",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:b611df220ef96d0da5dc8588f5cd97f5900e8cb6e00c9d6b37360e37f984726e"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 630,
+    "similitud_max": 0.002,
+    "parecida_a": "/rediseno-o-pagina-nueva"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:a0bf9181c879808aac3f6daccfbdc90f614921280d0a5e88acf1910bb5c22b27",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

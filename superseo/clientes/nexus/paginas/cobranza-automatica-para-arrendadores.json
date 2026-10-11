@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "id": "cobranza-automatica-para-arrendadores",
+  "cliente": "nexus",
+  "ruta": "/cobranza-automatica-para-arrendadores",
+  "tipo": "AGENTE_IA",
+  "servicio": "cobranza",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Cobranza automática de rentas",
+  "descripcion": "Cobranza automática de rentas para arrendadores: recordatorios al inquilino, pago en línea, recibos, registro de pagos y alertas tempranas de atraso.",
+  "h1": "Cobranza automática para arrendadores",
+  "respuesta_rapida": [
+    "Cada inquilino recibe su recordatorio de renta con monto, fecha y forma de pago.",
+    "Al pagar, recibe su recibo automáticamente y el arrendador lo ve registrado.",
+    "Los atrasos se detectan desde el primer día, con seguimiento amable y constante.",
+    "Un reporte por propiedad muestra pagos, saldos y vencimientos de contrato."
+  ],
+  "secciones": [
+    {
+      "titulo": "Rentar es fácil; cobrar no siempre",
+      "parrafos": [
+        "Quien renta uno o varios inmuebles sabe que la parte difícil no es encontrar inquilino, sino cobrar todos los meses sin perseguir a nadie. Revisar depósitos, mandar mensajes, enviar recibos y recordar fechas se vuelve un trabajo de tiempo completo cuando hay varias propiedades. Y los atrasos, si no se atienden pronto, crecen.",
+        "Una cobranza automática pone orden en ese proceso y protege la relación con el inquilino que paga bien."
+      ]
+    },
+    {
+      "titulo": "Cómo funciona",
+      "parrafos": [
+        "Antes de la fecha de pago, cada inquilino recibe un mensaje con el monto, la fecha y la forma de pago, con enlace para pagar en línea o datos para transferencia. Al confirmarse el pago, recibe su recibo y el arrendador lo ve en su reporte.",
+        "Si la fecha pasa, el inquilino recibe un recordatorio amable. Si responde con una fecha, queda registrada y se le recuerda ese día. Si el atraso continúa, el arrendador recibe una alerta con el historial para decidir los siguientes pasos.",
+        "Cuotas de mantenimiento, servicios o el depósito se pueden incluir como conceptos separados."
+      ]
+    },
+    {
+      "titulo": "Respeto y límites",
+      "parrafos": [
+        "Los mensajes son claros y respetuosos, sin amenazas ni presiones indebidas, y solo se envían al inquilino y a los contactos que el contrato autoriza. Un cobro ordenado y cordial suele funcionar mejor que la presión, y evita conflictos que terminan en problemas mayores.",
+        "Cualquier acción legal por incumplimiento corresponde al arrendador y a su abogado, con base en el contrato."
+      ]
+    },
+    {
+      "titulo": "Contratos y vencimientos",
+      "parrafos": [
+        "El sistema también puede recordar al arrendador cuándo vence cada contrato, cuándo toca el ajuste anual de la renta acordado y cuándo conviene preguntar al inquilino si renovará. Ese orden evita meses vacíos entre inquilinos y sorpresas de último momento.",
+        "Cada propiedad tiene su ficha con el inquilino, el contrato y el historial de pagos."
+      ]
+    },
+    {
+      "titulo": "Para administradores de inmuebles",
+      "parrafos": [
+        "Quien administra propiedades de terceros puede manejar varias propiedades y propietarios, y enviar a cada propietario un reporte mensual de lo cobrado. Es una forma de profesionalizar el servicio y justificar la comisión de administración.",
+        "Las rentas vacacionales o por temporada pueden convivir con las de largo plazo en el mismo sistema."
+      ]
+    },
+    {
+      "titulo": "Pagos y privacidad",
+      "parrafos": [
+        "Los pagos en línea se procesan con un proveedor reconocido; el arrendador no guarda datos de tarjetas. La información de inquilinos queda bajo un aviso de privacidad y con acceso restringido. En Nexus configuramos cada integración con criterio de ciberseguridad.",
+        "Los recibos y el historial pueden exportarse para la contabilidad o la declaración de arrendamiento."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos la cobranza con tus propiedades, inquilinos, fechas y mensajes, con pagos en línea y reportes. Se cotiza según el número de propiedades; se incluye en paquetes desde $9,999 MXN cuando va con un sitio."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede emitir recibos con validez fiscal?",
+      "respuesta": "Puede conectarse con tu sistema de facturación para enviar la factura correspondiente a cada pago."
+    },
+    {
+      "pregunta": "¿Sirve si solo tengo un departamento?",
+      "respuesta": "Sí. Incluso con una propiedad, te ahorra recordar fechas y enviar recibos."
+    },
+    {
+      "pregunta": "¿El inquilino necesita una aplicación?",
+      "respuesta": "No. Recibe mensajes por WhatsApp y paga desde un enlace."
+    },
+    {
+      "pregunta": "¿Puedo cobrar servicios aparte?",
+      "respuesta": "Sí, como conceptos separados en el mismo recordatorio o en recordatorios independientes."
+    },
+    {
+      "pregunta": "¿Qué pasa si el inquilino paga en efectivo?",
+      "respuesta": "El arrendador registra el pago y el sistema envía el recibo al inquilino, para que todo quede documentado igual que un pago en línea."
+    },
+    {
+      "pregunta": "¿Puede recordarme el ajuste anual de la renta?",
+      "respuesta": "Sí, con la fecha y el criterio que marque el contrato, para que lo comuniques al inquilino con tiempo."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/soluciones/cobranza",
+      "texto": "Cobranza y recordatorios automáticos"
+    },
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-inmobiliarias",
+      "texto": "Página web para inmobiliarias"
+    },
+    {
+      "ruta": "/automatizar-cotizaciones",
+      "texto": "Cómo automatizar cotizaciones sin perder clientes"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:d0d46d586b3c40dd6dffd04e2cc81837fc3e56e24071b04a89e0270780ec6030",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:d0d46d586b3c40dd6dffd04e2cc81837fc3e56e24071b04a89e0270780ec6030"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 634,
+    "similitud_max": 0.029,
+    "parecida_a": "/cobranza-automatica-para-condominios"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:aa8b9441ac52154ed19340a969e52db2ab571634c0335241e15a73f72a25069f",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

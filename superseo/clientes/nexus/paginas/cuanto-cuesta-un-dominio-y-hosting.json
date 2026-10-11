@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "id": "cuanto-cuesta-un-dominio-y-hosting",
+  "cliente": "nexus",
+  "ruta": "/cuanto-cuesta-un-dominio-y-hosting",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Costos y tiempos",
+  "titulo": "Dominio y hosting: qué son y cuánto cuestan",
+  "descripcion": "Qué es un dominio, qué es el hosting, cuánto cuestan y cómo evitar los errores que hacen que un negocio pierda su dirección en internet.",
+  "h1": "Dominio y hosting: qué son y cuánto cuestan",
+  "respuesta_rapida": [
+    "El dominio es tu dirección en internet; el hosting es el lugar donde vive tu página.",
+    "El dominio se paga cada año y debe estar a tu nombre, con tu correo de acceso.",
+    "El costo del hosting depende de la tecnología, el tráfico y el nivel de servicio.",
+    "El error más caro es dejar que el dominio se venza o que quede a nombre de otro."
+  ],
+  "secciones": [
+    {
+      "titulo": "Dos cosas distintas",
+      "parrafos": [
+        "Mucha gente confunde dominio y hosting. El dominio es el nombre, como tunegocio.com: lo que la gente escribe para llegar a ti y lo que aparece en tu correo. El hosting, u hospedaje, es el servidor donde están guardados los archivos de tu página y desde donde se muestran a quien la visita.",
+        "Puedes tener el dominio en un proveedor y el hosting en otro. Lo que importa es que ambos estén bajo tu control.",
+        "Una buena analogía: el dominio es la dirección de tu local y el hosting es el local mismo. Puedes cambiarte de local manteniendo la misma dirección, siempre que la dirección siga siendo tuya."
+      ]
+    },
+    {
+      "titulo": "Cuánto cuesta un dominio",
+      "parrafos": [
+        "Registrar un dominio se paga por año. El precio varía según la terminación, como punto com o punto com punto mx, y según el proveedor. Algunos ofrecen precios bajos el primer año y una renovación más cara después; conviene revisar el precio de renovación, no solo el de entrada.",
+        "Las terminaciones premium o los nombres muy buscados pueden costar mucho más; para la mayoría de los negocios, un dominio estándar es suficiente."
+      ]
+    },
+    {
+      "titulo": "Cuánto cuesta el hosting",
+      "parrafos": [
+        "El hosting compartido es económico y sirve para páginas sencillas con poco tráfico. Los servidores administrados o las plataformas modernas para aplicaciones web cuestan más, pero ofrecen velocidad, seguridad y escalabilidad. Para una tienda en línea o un sitio con mucho tráfico, conviene invertir en un hospedaje de calidad.",
+        "El hosting más barato suele salir caro si la página es lenta o se cae cuando más visitas tiene."
+      ]
+    },
+    {
+      "titulo": "El error más caro",
+      "parrafos": [
+        "Hemos visto negocios que perdieron su dominio porque lo registró un proveedor a su propio nombre y luego desapareció, o porque la tarjeta de renovación venció y nadie vio los avisos. Cuando un dominio se libera, alguien más puede registrarlo, a veces para venderlo caro o para usarlo con otros fines.",
+        "Protege tu dominio: regístralo a tu nombre, con un correo que revises, activa la renovación automática y guarda los accesos en un lugar seguro."
+      ]
+    },
+    {
+      "titulo": "Correo con tu dominio",
+      "parrafos": [
+        "Tu dominio también sirve para tener correo profesional, como contacto en tu dominio. Ese servicio suele contratarse aparte. Al mover tu página de un proveedor a otro, hay que cuidar la configuración del correo para no interrumpirlo.",
+        "Por eso cualquier cambio de hosting debe planearse con cuidado."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "El dominio, el hosting y los accesos de los sitios que hacemos quedan a nombre del cliente. Si algún día dejas de trabajar con nosotros, conservas tus activos. En la cotización se aclara qué incluye cada paquete en dominio y hospedaje.",
+        "Cuando migramos sitios, como hicimos con CANO Estrategia Penal desde Wix, cuidamos que el correo del negocio siga funcionando."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo cambiar de hosting sin cambiar de dominio?",
+      "respuesta": "Sí. El dominio se apunta al nuevo hosting cambiando su configuración."
+    },
+    {
+      "pregunta": "¿Qué pasa si mi dominio está a nombre de mi proveedor?",
+      "respuesta": "Pide que te lo transfieran. Mientras tanto, guarda evidencia de que el negocio es tuyo y de los pagos."
+    },
+    {
+      "pregunta": "¿Conviene comprar varias terminaciones?",
+      "respuesta": "Para marcas que quieren protegerse, puede convenir registrar las principales y redirigirlas a la misma página."
+    },
+    {
+      "pregunta": "¿El hosting incluye seguridad?",
+      "respuesta": "Depende del proveedor. Pregunta por certificado HTTPS, respaldos y monitoreo."
+    },
+    {
+      "pregunta": "¿Cuánto tiempo puedo registrar un dominio por adelantado?",
+      "respuesta": "La mayoría de los registradores permiten pagar varios años por adelantado, lo que reduce el riesgo de olvidar una renovación."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/dominio-com-o-com-mx",
+      "texto": "¿Dominio .com o .com.mx para tu negocio?"
+    },
+    {
+      "ruta": "/quien-es-dueno-de-mi-pagina-web",
+      "texto": "¿Quién es dueño de tu página web y tu dominio?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:a46c4b522f9468aa4948e6fdc3f2e28a7515b6176b9dccb8542dcc5787e7f4a1",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:a46c4b522f9468aa4948e6fdc3f2e28a7515b6176b9dccb8542dcc5787e7f4a1"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 636,
+    "similitud_max": 0.019,
+    "parecida_a": "/quien-es-dueno-de-mi-pagina-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:caccac99248d9a56ead36d0e621e10cdf0c185472732b029f0153be36d19d02b",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

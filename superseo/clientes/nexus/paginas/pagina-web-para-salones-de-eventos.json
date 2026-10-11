@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-salones-de-eventos",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-salones-de-eventos",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Página web para salones de eventos",
+  "descripcion": "Sitios para salones de eventos y jardines: capacidad, paquetes, galería de montajes, disponibilidad de fechas, visitas agendadas y apartado en línea.",
+  "h1": "Página web para salones de eventos",
+  "respuesta_rapida": [
+    "Quien busca salón compara capacidad, ubicación, paquetes y fechas disponibles.",
+    "La galería de eventos reales, de día y de noche, es la sección que más convence.",
+    "Mostrar disponibilidad de fechas motiva a decidir antes de que otro aparte.",
+    "Agendar visita y apartar con anticipo en línea acortan el camino a la venta."
+  ],
+  "secciones": [
+    {
+      "titulo": "Una decisión con fecha",
+      "parrafos": [
+        "Bodas, XV años, bautizos, graduaciones, posadas de empresa. Quien organiza un evento empieza buscando salón con meses de anticipación y compara varias opciones. Lo primero que quiere saber es si el lugar le cabe a su número de invitados, si está disponible en su fecha y en qué rango de precio está. Si la página no lo dice, pasa al siguiente.",
+        "La página de un salón tiene que funcionar como un buen vendedor: mostrar el espacio, resolver las dudas básicas y facilitar la visita."
+      ]
+    },
+    {
+      "titulo": "Espacios y capacidad",
+      "parrafos": [
+        "Cada área con su capacidad en banquete y en coctel, su ubicación dentro del lugar, si es techada o al aire libre, y fotos reales de día y de noche, vacía y con montaje. Planos sencillos con distribuciones posibles ayudan mucho a quien organiza.",
+        "Estacionamiento, accesibilidad, horario permitido y restricciones de ruido son datos prácticos que evitan sorpresas."
+      ]
+    },
+    {
+      "titulo": "Paquetes claros",
+      "parrafos": [
+        "Solo renta del espacio, renta con mobiliario, paquetes con banquete, bebidas, música y decoración. Cada paquete con lo que incluye y un precio desde por persona o por evento. Si trabajas con proveedores externos o exclusivos, explícalo para evitar malentendidos.",
+        "Una página por tipo de evento, con paquetes y fotos específicas, atrae búsquedas como salón para XV años en una zona concreta."
+      ]
+    },
+    {
+      "titulo": "Disponibilidad y apartado",
+      "parrafos": [
+        "Un calendario que muestre fechas ocupadas y disponibles, aunque sea por mes, crea una urgencia honesta y ahorra preguntas. Un apartado con anticipo en línea formaliza la reserva sin depender de transferencias perdidas en el chat, y los recordatorios automáticos de pagos pendientes evitan conversaciones incómodas.",
+        "Las fechas de alta demanda, como temporada de bodas o fin de año, pueden mostrarse con anticipación."
+      ]
+    },
+    {
+      "titulo": "Visitas que cierran ventas",
+      "parrafos": [
+        "La visita al lugar es donde se decide. Un botón para agendar visita con horarios disponibles y un asistente de WhatsApp que responda capacidad, precios y fechas a cualquier hora aumentan el número de recorridos. Después de la visita, un mensaje con la cotización y la invitación a apartar mantiene la decisión en marcha.",
+        "Medir cuántas visitas vienen de la página te dice cuánto vale cada canal."
+      ]
+    },
+    {
+      "titulo": "Galería y reseñas",
+      "parrafos": [
+        "Fotos de eventos reales, con permiso de los clientes, muestran el potencial del lugar mejor que cualquier render. Videos cortos de un montaje completo o del ambiente de noche son muy efectivos. Las reseñas en Google de clientes satisfechos completan la confianza.",
+        "Los fotógrafos y decoradores que trabajan en tu salón pueden compartir su material con crédito."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para salones con espacios, paquetes, calendario, visitas y apartados en línea. Desde $1,999 MXN; con asistente desde el paquete de $9,999 MXN y tecnología para Google Ads desde el de $19,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Conviene publicar precios?",
+      "respuesta": "Un precio desde por paquete o por persona filtra a quien no está en tu rango y acelera la decisión de quien sí."
+    },
+    {
+      "pregunta": "¿Puedo mostrar fechas ocupadas sin dar detalles?",
+      "respuesta": "Sí. El calendario solo muestra si la fecha está disponible, sin información de los eventos."
+    },
+    {
+      "pregunta": "¿Cómo atraigo eventos de empresa?",
+      "respuesta": "Con una página para empresas que hable de capacidad, servicios, facturación y opciones entre semana."
+    },
+    {
+      "pregunta": "¿Cuánto tarda?",
+      "respuesta": "Entre dos y cuatro semanas desde que apruebas la dirección visual."
+    },
+    {
+      "pregunta": "¿Puedo recibir proveedores externos de banquete o música?",
+      "respuesta": "Si lo permites, dilo en la página con las condiciones, como horarios de montaje o cuotas por proveedor externo. Esa claridad evita conflictos con el cliente y con los proveedores el día del evento."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/google-ads-para-salones-de-eventos",
+      "texto": "Google Ads para salones de eventos"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:b812c49935163d37c49978398c12920d6ffd4c1754dd04c33e5e5dbb5dcc5687",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:b812c49935163d37c49978398c12920d6ffd4c1754dd04c33e5e5dbb5dcc5687"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 627,
+    "similitud_max": 0.024,
+    "parecida_a": "/pagina-web-para-coworking"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:fd2e454fe7c5545567bc98d37225a49199505d90b6fe35ca8db8a4eb928c6244",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

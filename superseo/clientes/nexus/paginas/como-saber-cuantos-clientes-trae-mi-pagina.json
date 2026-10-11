@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "como-saber-cuantos-clientes-trae-mi-pagina",
+  "cliente": "nexus",
+  "ruta": "/como-saber-cuantos-clientes-trae-mi-pagina",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Medir y vender",
+  "titulo": "Cuántos clientes trae tu página: cómo saberlo",
+  "descripcion": "Cómo saber cuántos clientes trae tu página web: qué medir en Analytics y Search Console, cómo registrar el origen de cada cliente y qué revisar cada mes.",
+  "h1": "¿Cuántos clientes trae tu página? Cómo saberlo",
+  "respuesta_rapida": [
+    "Mide los contactos que salen de tu página: WhatsApp, llamadas y formularios.",
+    "Pregunta y registra de dónde llegó cada cliente nuevo.",
+    "Usa Search Console para ver en qué búsquedas apareces en Google.",
+    "Revisa cada mes visitas, contactos y clientes, página por página."
+  ],
+  "secciones": [
+    {
+      "titulo": "Visitas no es lo mismo que clientes",
+      "parrafos": [
+        "Muchos reportes de agencias hablan de visitas, impresiones y posiciones. Son datos útiles, pero no responden la pregunta que le importa al dueño de un negocio: ¿cuántos clientes me trajo la página este mes? Para contestarla hay que medir tres cosas distintas y unirlas.",
+        "La primera es cuánta gente llega. La segunda, cuántos de ellos te contactan. La tercera, cuántos de esos contactos se vuelven clientes. Cada una se mide con una herramienta diferente, y ninguna por sí sola cuenta la historia completa."
+      ]
+    },
+    {
+      "titulo": "Lo que tu analítica puede decirte",
+      "parrafos": [
+        "Google Analytics 4 te muestra cuántas personas visitan cada página, de dónde llegan y desde qué dispositivo. Pero lo más valioso son los eventos: cuántos tocaron el botón de WhatsApp, cuántos el de llamar y cuántos enviaron el formulario. Esos eventos son el puente entre la visita y el contacto.",
+        "Si tu página no tiene esos eventos configurados, empieza por ahí. Sin ellos, la analítica solo te dice cuánta gente pasó, no cuánta gente quiso hablar contigo."
+      ]
+    },
+    {
+      "titulo": "Lo que te dice Search Console",
+      "parrafos": [
+        "Google Search Console es gratuita y muestra en qué búsquedas aparece tu sitio, cuántas veces se mostró, cuántos clics recibió y en qué posición promedio. Te ayuda a entender qué te están buscando y qué páginas reciben tráfico desde Google.",
+        "Es especialmente útil para detectar oportunidades: búsquedas en las que apareces mucho pero casi nadie hace clic suelen indicar un título o una descripción poco atractivos, y búsquedas relevantes en las que no apareces indican páginas que te faltan."
+      ]
+    },
+    {
+      "titulo": "El dato que falta: preguntar",
+      "parrafos": [
+        "Ninguna herramienta sabe con certeza cuántos de esos contactos se volvieron clientes. Ese dato lo tienes tú. La forma más sencilla es preguntar a cada cliente nuevo cómo te encontró y anotarlo: en una etiqueta de WhatsApp Business, en una hoja de cálculo o en tu CRM.",
+        "Un mensaje prellenado distinto en cada página ayuda mucho, porque el chat ya llega diciendo desde dónde escribió la persona. Con eso, tu equipo solo tiene que marcar al final si la conversación terminó en venta."
+      ]
+    },
+    {
+      "titulo": "Un reporte mensual sencillo",
+      "parrafos": [
+        "No necesitas tableros complicados. Una tabla con estas columnas por página basta: visitas, clics a WhatsApp, llamadas, formularios y clientes cerrados. Llénala una vez al mes y compárala con el mes anterior.",
+        "Con el tiempo verás qué páginas traen clientes y cuáles solo traen visitas. Esa diferencia te dice dónde invertir: mejorar una página que ya convierte suele dar más que crear diez nuevas que nadie lee."
+      ]
+    },
+    {
+      "titulo": "Cómo leer los números",
+      "parrafos": [
+        "Si tienes muchas visitas y pocos contactos, el problema suele estar en la página: no se entiende qué haces, el botón no se ve o carga lento en celular. Si tienes muchos contactos y pocos clientes, el problema suele estar en la atención: respuestas lentas, precios poco claros o falta de seguimiento.",
+        "Y si tienes pocas visitas, la tarea es que más gente te encuentre: páginas para lo que realmente busca tu cliente, ficha de Google bien cuidada y, si tiene sentido, anuncios bien medidos."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nexus Growth existe para esto: presencia en Google y medición de lo que pasa después, en visitas, mensajes, llamadas, reservaciones y oportunidades reales. El objetivo no es presumir tráfico, es ayudarte a generar oportunidades de negocio. En el diagnóstico gratuito revisamos qué está midiendo hoy tu página."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Search Console y Analytics son lo mismo?",
+      "respuesta": "No. Search Console muestra cómo te ve Google antes del clic; Analytics muestra qué hace la gente dentro de tu página."
+    },
+    {
+      "pregunta": "¿Cuánto cuesta medir esto?",
+      "respuesta": "Las herramientas de Google son gratuitas. Lo que requiere trabajo es configurarlas bien y registrar el origen de cada cliente."
+    },
+    {
+      "pregunta": "¿Qué hago si no tengo datos de meses anteriores?",
+      "respuesta": "Empieza hoy. En pocas semanas tendrás una base para comparar y tomar decisiones."
+    },
+    {
+      "pregunta": "¿Cuántos clientes debería traer mi página?",
+      "respuesta": "Depende del giro, la zona y la competencia. Lo importante es medir tu propio punto de partida y mejorarlo mes con mes."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/como-medir-clics-de-whatsapp",
+      "texto": "Cómo medir los clics a WhatsApp de tu página"
+    },
+    {
+      "ruta": "/search-console-para-principiantes",
+      "texto": "Google Search Console para principiantes"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:c3b67ea6ff4d1f1ec02b8ddc61fb27a3f48021e510dfc271b027927f5868e050",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:c3b67ea6ff4d1f1ec02b8ddc61fb27a3f48021e510dfc271b027927f5868e050"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 706,
+    "similitud_max": 0.005,
+    "parecida_a": "/search-console-para-principiantes"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:6904257ead31bee76a1c3314821efb7029042058ce6853602bf608ccd11a97b3",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

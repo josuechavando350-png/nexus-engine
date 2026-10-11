@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-abogados-corporativos",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-abogados-corporativos",
+  "tipo": "GIRO",
+  "servicio": "despachos",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Página web para abogados corporativos",
+  "descripcion": "Sitios para despachos corporativos que venden a empresas: áreas de práctica claras, equipo creíble, sectores atendidos y una imagen a la altura de los honorarios.",
+  "h1": "Página web para despachos corporativos",
+  "respuesta_rapida": [
+    "El cliente corporativo no busca con urgencia: compara despachos con calma y revisa el sitio antes de una reunión.",
+    "Lo que decide es la credibilidad: quién integra el equipo, qué sectores conoce y cómo trabaja.",
+    "El sitio debe sostener la conversación con un director jurídico o con un dueño de empresa.",
+    "Una versión en inglés ayuda si el despacho atiende empresas extranjeras."
+  ],
+  "secciones": [
+    {
+      "titulo": "Quién visita la página",
+      "parrafos": [
+        "En derecho corporativo la página rara vez es el primer contacto. Lo habitual es que alguien recomiende al despacho y el director general, el contralor o el director jurídico lo busque en Google para validar. También llegan empresas que buscan algo concreto: constitución de sociedades, contratos, cumplimiento, fusiones, propiedad intelectual.",
+        "Esa persona tiene criterio y poco tiempo. Va a mirar el equipo, las áreas, el tipo de clientes y la forma de trabajar. Si el sitio parece de otra década, el despacho pierde puntos antes de la primera junta."
+      ]
+    },
+    {
+      "titulo": "Estructura que transmite solidez",
+      "parrafos": [
+        "Áreas de práctica con páginas propias que expliquen el tipo de asuntos y el valor que aporta el despacho, no definiciones de enciclopedia. Perfiles de socios y asociados con formación, idiomas y especialidad. Sectores atendidos: inmobiliario, manufactura, tecnología, servicios financieros, lo que aplique.",
+        "Una sección de publicaciones o análisis breves sobre cambios regulatorios demuestra que el despacho está al día y, de paso, atrae búsquedas de empresas con esa duda."
+      ]
+    },
+    {
+      "titulo": "El tono correcto",
+      "parrafos": [
+        "Sobrio, preciso y sin adjetivos inflados. Un corporativo no necesita decir que es líder; necesita mostrar con qué tipo de asuntos trabaja y cómo responde. Las frases cortas y la tipografía cuidada comunican más que cualquier eslogan.",
+        "La fotografía también importa: retratos profesionales del equipo y de la oficina. Las imágenes de banco con apretones de manos restan seriedad."
+      ]
+    },
+    {
+      "titulo": "Contacto pensado para empresas",
+      "parrafos": [
+        "Además de WhatsApp, un correo con dominio propio y un formulario breve para solicitudes de propuesta, porque muchas empresas necesitan dejar registro por escrito. Conviene pedir solo lo indispensable: empresa, tema y forma de contacto.",
+        "Si el despacho atiende clientes del extranjero, una versión en inglés revisada abre una puerta que la mayoría de los despachos medianos deja cerrada."
+      ]
+    },
+    {
+      "titulo": "Lo que mide un sitio corporativo",
+      "parrafos": [
+        "En un despacho corporativo un solo cliente nuevo puede justificar años de inversión en el sitio, así que lo importante no es el volumen de visitas sino la calidad de las solicitudes. Conviene medir cuántas propuestas se solicitan desde el sitio, desde qué páginas y en qué áreas de práctica.",
+        "Con esa información el despacho sabe qué áreas reforzar con contenido y cuáles atraen a empresas del tamaño adecuado. También permite detectar páginas que reciben visitas pero no generan contacto, que suelen necesitar un mensaje más claro o una llamada a la acción más visible.",
+        "Por último, el sitio debe crecer con el despacho: nuevas áreas, nuevos socios, publicaciones. Por eso lo construimos para que actualizarlo no dependa de rehacerlo."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Construimos sitios a medida con una dirección visual propia para cada despacho, pensada para el cliente que paga honorarios altos. Ese mismo criterio lo aplicamos en el sitio de marca personal del Mtro. Eric Ramírez, enfocado en empresarios y personas con patrimonio que cuidar.",
+        "El dominio y los accesos quedan a nombre del despacho, y dejamos el sitio con cabeceras de seguridad y HTTPS desde el primer día."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo mencionar a mis clientes empresariales?",
+      "respuesta": "Solo con su autorización. Una alternativa es describir sectores y tipos de asuntos sin nombrar empresas."
+    },
+    {
+      "pregunta": "¿Necesito blog?",
+      "respuesta": "No un blog genérico. Sí unas cuantas notas útiles sobre temas que sus clientes consultan, escritas o revisadas por el equipo."
+    },
+    {
+      "pregunta": "¿Cuánto tarda un sitio corporativo?",
+      "respuesta": "Entre dos y cuatro semanas desde que se aprueba la dirección visual, según cuántas áreas y perfiles haya que preparar."
+    },
+    {
+      "pregunta": "¿Vale la pena invertir en anuncios?",
+      "respuesta": "Para servicios corporativos muy específicos, como constitución de sociedades o registro de marca, los anuncios pueden funcionar bien. Para asesoría integral suele pesar más el contenido y la recomendación."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/diseno-web-para-despachos-juridicos",
+      "texto": "Diseño web para despachos jurídicos"
+    },
+    {
+      "ruta": "/casos/eric-ramirez",
+      "texto": "Caso: Mtro. Eric Ramírez"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-despachos-de-abogados",
+      "texto": "Chatbot de WhatsApp para despachos de abogados"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:8e8060062131f1981fbb8c3be440502eb2a496072c1a1612ac6e49d7eed63699",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:54Z",
+    "contenido_digest": "sha256:8e8060062131f1981fbb8c3be440502eb2a496072c1a1612ac6e49d7eed63699"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 660,
+    "similitud_max": 0.011,
+    "parecida_a": "/diseno-de-paginas-web-en-colima"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:2a1bf4fc8dbe54a0381bacb7523149479b0a3d58b2afdf3f07fa551c89e8043b",
+    "generado_en": "2026-10-11T02:03:54Z"
+  }
+}

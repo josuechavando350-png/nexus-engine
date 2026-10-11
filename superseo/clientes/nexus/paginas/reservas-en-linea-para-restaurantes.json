@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "reservas-en-linea-para-restaurantes",
+  "cliente": "nexus",
+  "ruta": "/reservas-en-linea-para-restaurantes",
+  "tipo": "GUIA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Por industria",
+  "titulo": "Reservas en línea para restaurantes",
+  "descripcion": "Cómo ofrecer reservas en línea en tu restaurante: opciones, qué datos pedir, confirmaciones, mesas que no llegan y cómo conectarlo con tu página y Google.",
+  "h1": "Reservas en línea para restaurantes",
+  "respuesta_rapida": [
+    "Las reservas en línea te dejan recibir mesas a cualquier hora sin ocupar el teléfono.",
+    "Puedes usar una plataforma de reservas, un sistema propio o un asistente por WhatsApp.",
+    "Pide pocos datos y confirma cada reserva con un mensaje claro.",
+    "Un recordatorio y una política de tolerancia reducen las mesas que no llegan."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué ofrecer reservas en línea",
+      "parrafos": [
+        "En horas de servicio, nadie en el restaurante tiene tiempo de contestar el teléfono con calma. Las reservas en línea permiten que el cliente aparte su mesa en cualquier momento, incluso de noche, sin depender de que alguien conteste. Para quien planea una cena o un festejo, poder reservar desde el celular es una razón para elegirte.",
+        "También te ordenan: sabes cuántas mesas tienes comprometidas, cuántas personas esperar y puedes preparar al equipo y la cocina con anticipación."
+      ]
+    },
+    {
+      "titulo": "Las opciones",
+      "parrafos": [
+        "Hay tres caminos comunes. Las plataformas de reservas te dan un sistema listo y visibilidad dentro de su aplicación, a cambio de una cuota o comisión. Un sistema propio en tu página te da control sobre tus datos y tu marca. Y un asistente por WhatsApp atiende la reserva en el canal que tus clientes ya usan.",
+        "Muchos restaurantes combinan: un botón de reservar en la página y en Google, y WhatsApp para grupos grandes, eventos o solicitudes especiales. Lo importante es que todas las reservas terminen en una sola agenda."
+      ]
+    },
+    {
+      "titulo": "Qué datos pedir",
+      "parrafos": [
+        "Pide solo lo necesario: nombre, teléfono, fecha, hora y número de personas. Agrega un campo opcional para ocasiones especiales, alergias o preferencias de zona, como terraza o interior. Cada campo extra obligatorio hace que alguien abandone la reserva.",
+        "Si manejas turnos, como comida y cena, o tiempos máximos por mesa, muéstralos con claridad desde el principio para evitar malentendidos al llegar."
+      ]
+    },
+    {
+      "titulo": "Confirmaciones y recordatorios",
+      "parrafos": [
+        "Cada reserva debe recibir una confirmación inmediata con fecha, hora, número de personas, dirección y cómo cancelar o modificar. Un recordatorio el mismo día, con opción de confirmar o cancelar, te ayuda a saber qué mesas están realmente comprometidas.",
+        "Si el cliente cancela con tiempo, esa mesa puede ofrecerse a alguien más. Por eso cancelar debe ser tan fácil como reservar."
+      ]
+    },
+    {
+      "titulo": "Mesas que no llegan",
+      "parrafos": [
+        "Las reservas que no se presentan cuestan dinero, sobre todo en noches llenas. Además de los recordatorios, ayuda una política de tolerancia clara, comunicada al reservar: cuánto tiempo se guarda la mesa y qué pasa después.",
+        "Para grupos grandes o fechas especiales, algunos restaurantes piden un anticipo o una tarjeta de garantía. Si lo haces, explica bien cómo se aplica y en qué casos se devuelve."
+      ]
+    },
+    {
+      "titulo": "Conectarlo con tu página y con Google",
+      "parrafos": [
+        "El botón de reservar debe estar visible en tu página, en el menú digital y, si es posible, en tu ficha de Google, para que el cliente reserve desde donde te encontró. Mientras menos saltos haya entre ver tu restaurante y apartar la mesa, más reservas se concretan.",
+        "Mide cuántas reservas vienen de cada lugar: tu página, Google, redes o WhatsApp. Así sabes dónde conviene invertir y qué canal necesita atención."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "En Nexus Bot Studio construimos páginas para restaurantes con menú digital, botón de reservas medible y un asistente por WhatsApp que puede tomar reservas, confirmarlas y recordarlas, conectado a la agenda que uses. El primer diagnóstico es gratuito."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Necesito pagar una plataforma de reservas?",
+      "respuesta": "No necesariamente. Un sistema propio o un asistente por WhatsApp pueden funcionar, según el volumen y lo que quieras controlar."
+    },
+    {
+      "pregunta": "¿Las reservas en línea sirven para fondas o cafeterías?",
+      "respuesta": "Sirven sobre todo para restaurantes con mesas limitadas o fechas muy demandadas. En lugares de paso, puede bastar con WhatsApp."
+    },
+    {
+      "pregunta": "¿Cómo evito reservas duplicadas?",
+      "respuesta": "Concentrando todas las reservas, de cualquier canal, en una sola agenda."
+    },
+    {
+      "pregunta": "¿Puedo pedir anticipo por WhatsApp?",
+      "respuesta": "Sí, con un enlace de pago y una política clara de devoluciones."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/pagina-web-para-restaurantes",
+      "texto": "Página web para restaurantes"
+    },
+    {
+      "ruta": "/menu-digital-con-codigo-qr",
+      "texto": "Menú digital con código QR para tu restaurante"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-restaurantes",
+      "texto": "Chatbot de WhatsApp para restaurantes"
+    },
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:8c57666cbb64d81a93e11a623aa35104b5bb1bd1ae1db322550afc1824208746",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:8c57666cbb64d81a93e11a623aa35104b5bb1bd1ae1db322550afc1824208746"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 638,
+    "similitud_max": 0.006,
+    "parecida_a": "/como-reducir-inasistencias-a-citas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:3cb8cc26edfd5cc8064fe94bc16cd7970925b2de23f7ac781d2e8790410f1ce2",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

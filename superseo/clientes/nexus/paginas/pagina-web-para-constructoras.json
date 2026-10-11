@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-constructoras",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-constructoras",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Página web para constructoras",
+  "descripcion": "Sitios para constructoras: obras realizadas con fotos y datos, servicios por tipo de proyecto, proceso de trabajo y solicitud de cotización detallada.",
+  "h1": "Página web para constructoras",
+  "respuesta_rapida": [
+    "Una constructora se contrata por confianza: obras terminadas, con fotos y datos reales, son el centro del sitio.",
+    "Separa tus servicios: casa habitación, obra comercial, naves industriales, remodelación, obra pública.",
+    "Explica tu proceso: visita, proyecto, presupuesto, contrato, ejecución y entrega.",
+    "Un formulario de cotización con tipo de obra, ubicación y superficie filtra prospectos reales."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo que revisa quien va a construir",
+      "parrafos": [
+        "Quien va a construir una casa, una bodega o un local está por invertir mucho dinero y lo sabe. Antes de llamar a una constructora revisa su trabajo, busca opiniones, compara cómo se presentan y trata de adivinar si va a cumplir tiempos y presupuesto. La página es la primera prueba de seriedad.",
+        "Una constructora con un sitio desordenado o sin obras visibles transmite justo lo que el cliente teme: improvisación. Una con proyectos bien documentados, proceso claro y datos de contacto completos transmite lo contrario."
+      ]
+    },
+    {
+      "titulo": "Portafolio de obras",
+      "parrafos": [
+        "Cada obra con su ficha: tipo de proyecto, ubicación general, superficie, alcance, tiempo de ejecución y fotos del avance y del resultado final. Las fotos del proceso, desde la cimentación hasta los acabados, son muy valoradas porque muestran cómo trabajas y no solo cómo quedó.",
+        "Si tienes obras en distintas ciudades o sectores, un filtro por tipo y ubicación ayuda a cada cliente a ver lo que le interesa."
+      ]
+    },
+    {
+      "titulo": "Servicios por tipo de proyecto",
+      "parrafos": [
+        "Construcción de casa habitación, edificios, naves industriales, locales comerciales, remodelaciones mayores, obra civil, urbanización, mantenimiento. Cada servicio con su página explica qué incluye, para quién es y qué tipo de experiencia tiene la empresa en ello.",
+        "Esas páginas atraen búsquedas concretas, como construcción de naves industriales en una región, que suelen venir de clientes con presupuesto definido."
+      ]
+    },
+    {
+      "titulo": "Proceso y transparencia",
+      "parrafos": [
+        "Explicar paso a paso cómo trabajas reduce la desconfianza: visita al terreno, levantamiento, proyecto ejecutivo, presupuesto detallado, contrato, calendario de obra, reportes de avance, entrega y garantía. Si das reportes con fotos semanales o tienes un sistema para que el cliente vea el avance, menciónalo: es una gran diferencia.",
+        "También conviene aclarar cómo manejas permisos, licencias y la relación con el director responsable de obra."
+      ]
+    },
+    {
+      "titulo": "Cotizaciones que valen la pena",
+      "parrafos": [
+        "Un formulario que pida tipo de obra, ubicación, superficie aproximada, si ya hay proyecto arquitectónico y el plazo deseado permite responder con seriedad y separar a quien está explorando de quien está listo para construir. Un asistente de WhatsApp puede recoger esos datos a cualquier hora.",
+        "Responder rápido a una solicitud de cotización es, en este giro, una de las señales más fuertes de profesionalismo."
+      ]
+    },
+    {
+      "titulo": "Credibilidad empresarial",
+      "parrafos": [
+        "Razón social, años de operación, registros ante cámaras del ramo si los tienes, equipo técnico con su formación, maquinaria propia y clientes con los que has trabajado, siempre con su permiso. Para obra privada grande o licitaciones, estos datos pueden ser decisivos.",
+        "Las certificaciones de seguridad en obra y las pólizas de responsabilidad también suman confianza."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para constructoras con portafolio de obras, servicios por proyecto y cotizador. Desde $1,999 MXN; con asistente que recibe solicitudes desde el paquete de $9,999 MXN y con tecnología para Google Ads desde el de $19,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo mostrar obras sin nombrar al cliente?",
+      "respuesta": "Sí. Basta con describir el tipo de proyecto y la zona general. Para nombrar al cliente se necesita su permiso."
+    },
+    {
+      "pregunta": "¿Sirve publicar precios por metro cuadrado?",
+      "respuesta": "Puede servir como orientación, aclarando que varían según acabados, terreno y ubicación. Muchas constructoras prefieren dar rangos solo en la cotización."
+    },
+    {
+      "pregunta": "¿Cómo muestro el avance de obra al cliente?",
+      "respuesta": "Se puede crear un área privada o enviar reportes automáticos con fotos por WhatsApp o correo."
+    },
+    {
+      "pregunta": "¿Conviene una página para licitaciones o empresas?",
+      "respuesta": "Si participas en proyectos para empresas o gobierno, una sección con tu capacidad técnica, maquinaria, experiencia comprobable y documentación disponible facilita que te consideren y que te contacten las personas correctas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-constructoras",
+      "texto": "Chatbot de WhatsApp para constructoras"
+    },
+    {
+      "ruta": "/google-ads-para-constructoras",
+      "texto": "Google Ads para constructoras"
+    },
+    {
+      "ruta": "/automatizar-cotizaciones",
+      "texto": "Cómo automatizar cotizaciones sin perder clientes"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:3901e9dd8749cd16482619ccac9ba68fe1189dcc667c89a6918f766d38c8e52c",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:3901e9dd8749cd16482619ccac9ba68fe1189dcc667c89a6918f766d38c8e52c"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 637,
+    "similitud_max": 0.01,
+    "parecida_a": "/pagina-web-para-salones-de-eventos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:300284de391cb65212b173b4d1fcd04bf3a077ea04dc4e8e582bf7d77aae166e",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

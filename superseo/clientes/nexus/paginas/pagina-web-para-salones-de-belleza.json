@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-salones-de-belleza",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-salones-de-belleza",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Página web para salones de belleza",
+  "descripcion": "Sitios para salones de belleza: servicios con duración y precio, galería de trabajos reales, citas en línea y recordatorios por WhatsApp.",
+  "h1": "Página web para salones de belleza",
+  "respuesta_rapida": [
+    "Tu clienta decide por lo que ve: una galería de trabajos reales vende más que cualquier texto.",
+    "Lista tus servicios con duración aproximada y precio desde, para que nadie tenga que preguntar lo básico.",
+    "Agendar debe tomar un minuto, sin esperar respuesta: agenda en línea o asistente de WhatsApp.",
+    "Los recordatorios automáticos reducen las citas perdidas y traen de vuelta a quien ya te conoce."
+  ],
+  "secciones": [
+    {
+      "titulo": "Instagram no alcanza",
+      "parrafos": [
+        "Muchos salones viven de Instagram, y está bien: ahí se ven los trabajos y se construye comunidad. El problema es que Instagram no aparece cuando alguien busca salón de belleza en tu colonia, no muestra tus precios ordenados y no deja agendar sin mandar mensaje y esperar respuesta.",
+        "La página web complementa las redes: es el lugar donde la clienta nueva confirma que eres un salón serio, ve tus servicios con calma y reserva sin fricción. Y es tuya: no depende de un algoritmo ni de una cuenta que se pueda suspender."
+      ]
+    },
+    {
+      "titulo": "Servicios claros, precios sin misterio",
+      "parrafos": [
+        "Corte, color, mechas, balayage, alaciado, tratamientos, peinados, maquillaje, uñas, pestañas. Cada servicio con una descripción breve, la duración aproximada y un precio desde. La frase pregunta por precio por inbox espanta a muchas clientas que solo querían una idea antes de escribir.",
+        "Para servicios que dependen del largo o del estado del cabello, como color o alaciado, basta con explicar que el precio final se confirma en la valoración."
+      ]
+    },
+    {
+      "titulo": "Galería que convence",
+      "parrafos": [
+        "Fotos reales, con buena luz, del trabajo terminado. Si es posible, organizadas por servicio, para que quien busca balayage vea balayage. Las fotos de antes y después funcionan muy bien en este giro, siempre con permiso de la clienta.",
+        "También ayuda mostrar el espacio: el salón limpio, las estaciones, el área de lavado. La clienta nueva quiere imaginarse ahí antes de reservar."
+      ]
+    },
+    {
+      "titulo": "Agenda sin ida y vuelta",
+      "parrafos": [
+        "El mensaje de hola, ¿tienes lugar el sábado? seguido de tres horas sin respuesta es donde se pierden muchas clientas. Una agenda en línea que muestre horarios disponibles por estilista, o un asistente de WhatsApp que conteste al momento, resuelve eso incluso cuando estás con las manos ocupadas.",
+        "El sistema puede pedir anticipo para servicios largos, lo que reduce las cancelaciones de último momento."
+      ]
+    },
+    {
+      "titulo": "Que regresen solas",
+      "parrafos": [
+        "Un recordatorio el día anterior a la cita, y otro cuando han pasado las semanas habituales desde el último retoque de color, mantienen la agenda llena sin que tengas que escribir a cada clienta. Son mensajes útiles, no publicidad, y la mayoría los agradece.",
+        "Si manejas paquetes o membresías, el sistema puede llevar el control y avisar cuando quedan pocas sesiones."
+      ]
+    },
+    {
+      "titulo": "Aparecer en el mapa",
+      "parrafos": [
+        "Cuando alguien busca un salón cerca, Google muestra primero el mapa. Tu perfil de empresa debe tener las categorías correctas, fotos recientes, horarios exactos y reseñas reales. Pedir una reseña al terminar cada servicio, con un enlace directo, es la forma más eficaz de crecer ahí.",
+        "La página y el perfil deben decir lo mismo; cuando coinciden, Google confía más en ambos."
+      ]
+    },
+    {
+      "titulo": "Lo que hacemos en Nexus",
+      "parrafos": [
+        "Diseñamos sitios para salones con tu estilo, no con una plantilla. Integramos galería, servicios, agenda y WhatsApp medido, rápido en celular. Los paquetes van desde $1,999 MXN; la agenda con asistente y recordatorios está incluida desde el de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo cobrar anticipo al agendar?",
+      "respuesta": "Sí. Se puede integrar un pago en línea para servicios largos o en horarios de alta demanda, con una política de cancelación clara."
+    },
+    {
+      "pregunta": "¿La agenda funciona con varias estilistas?",
+      "respuesta": "Sí. Cada una puede tener sus horarios y servicios, y la clienta elige con quién quiere su cita."
+    },
+    {
+      "pregunta": "¿Tengo que dejar Instagram?",
+      "respuesta": "No. La página se conecta con tus redes y les da un lugar donde convertir a la clienta que te descubrió ahí."
+    },
+    {
+      "pregunta": "¿Cuánto tarda?",
+      "respuesta": "Entre dos y cuatro semanas desde que apruebas la dirección visual, según cuántas fotos y servicios incluyamos."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/agenda-de-citas-en-linea-para-salones-de-belleza",
+      "texto": "Agenda de citas en línea para salones de belleza"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-salones-de-belleza",
+      "texto": "Cómo aparecer en Google Maps: salones de belleza"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:b593b4f01ba0fc3807963be9bbeee571e146351c33d9dcd657708a612f3aeadf",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:b593b4f01ba0fc3807963be9bbeee571e146351c33d9dcd657708a612f3aeadf"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 646,
+    "similitud_max": 0.011,
+    "parecida_a": "/pagina-web-para-fisioterapeutas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:a8bce63c50bc0283c3c13503537e117900517d2642781bb14ade8af367468a88",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

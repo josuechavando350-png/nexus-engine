@@ -19,14 +19,14 @@ Si un cliente no tiene SUPERSEO, su sitio queda como sitio NEXUS normal.
 | Ojos | NEXUS Crawler | `ojos/crawler.mjs` |
 | Ojos | Despertador de autoridad (auditoría técnica) | `ojos/auditoria.mjs` |
 | Ojos | Search Console (cuenta de servicio) | `ojos/search-console.mjs` |
-| Ojos | Demand Miner (+ Keyword Planner) | `ojos/demanda.mjs` |
+| Ojos | Demand Miner (+ Keyword Planner y portafolio curado) | `ojos/demanda.mjs` |
 | Ojos | Link Graph interno | `ojos/grafo.mjs` |
 | Cerebro | Estratega, Territorios, Interruptor | `core/` |
 | Cerebro | SEO Avengers M1001–M2500 | `cerebro/avengers.mjs` → `seo-avengers-2500/` |
 | Cerebro | GAUSS: lote óptimo de páginas | `cerebro/priorizar.mjs` → `gauss/` |
 | Manos | Forja de páginas Torre y redactores | `manos/forja.mjs`, `manos/redactores.mjs` |
 | Manos | Candado anti-clones | `core/similitud.mjs` |
-| Manos | Publicación en el sitio | `manos/publicar.mjs` → `apps/cano-penal/src/app/[superseo]` |
+| Manos | Publicación en el sitio (app del repo o ZIP) | `manos/publicar.mjs` → `apps/cano-penal/src/app/[superseo]` o `clientes/<id>/entrega/` |
 | Manos | Indexación: sitemap, enlaces internos, IndexNow | `manos/indexacion.mjs` |
 | Tercer ojo | Vigía de competencia | `tercer-ojo/vigia.mjs` |
 | Tercer ojo | Oráculo de tendencias | `tercer-ojo/oraculo.mjs` |
@@ -80,6 +80,8 @@ node superseo/cli.mjs forjar cano --n 5 --snapshot superseo-salida/cano/rastreo.
 node superseo/cli.mjs aprobar cano acusacion-falsa-cdmx --revisor CLIENTE --por "Eduardo Cano"
 node superseo/cli.mjs encender cano "arranca la mensualidad"
 node superseo/cli.mjs publicar cano
+node superseo/cli.mjs forjar nexus --redactor manual --archivo lote.json
+node superseo/cli.mjs publicar nexus
 ```
 
 ## Cómo se activa en un cliente nuevo
@@ -90,6 +92,16 @@ node superseo/cli.mjs publicar cano
 4. Agrega en la app la ruta `[superseo]` y el lector `src/superseo/paquete.ts`, igual que en `apps/cano-penal`.
 5. **SUPERSEO Panel** → `preparar`. Si su territorio choca con un cliente exclusivo, no pasa.
 
+## Agencias y sitios fuera del repo (Nexus)
+
+Nexus Bot Studio usa SUPERSEO en su propio sitio, que vive fuera del monorepo y se despliega desde un ZIP.
+
+- **Rubro `agencia_web`.** No es sensible (sus páginas aprobadas por los candados se publican sin esperar) y no genera Torres por zona: un texto de agencia repetido por alcaldía sería un clon.
+- **Portafolio curado.** `clientes/<id>/portafolio.json` (`schema_version: 1`, `paginas[]`) declara cada página: `id`, `tipo` (GIRO, AGENTE_IA, ADS_MAPS, GUIA, CIUDAD), `grupo`, `titulo`, `intencion`, `consultas`, `servicio` y los `enlaces` internos que debe llevar. Se valida fail-closed: ids repetidos, tipos inventados, enlaces a sí misma o sin grupo no pasan.
+- **Entrega por ZIP.** `clientes/<id>/sitio.json` con `"app": null`, `"entrega": "ZIP"` y `rutas` (las páginas fijas del sitio, para validar enlaces sin rastrearlo). `publicar` escribe `clientes/<id>/entrega/paginas.json`; ese archivo se copia a `src/superseo/paginas.json` del sitio, y la llave de IndexNow a `public/<llave>.txt`.
+- **Redacción por lotes.** `forjar --redactor manual --archivo lote.json` acepta `{ "paginas": { "<id>": contenido } }` y pasa cada página por los mismos candados.
+- **El grupo viaja al sitio.** Cada página publicada lleva su `grupo`, para armar los índices `/industrias` y `/guias`.
+
 ## Reglas que no se negocian
 
 - **Nada de trucos.** Todo es white-hat: sin páginas clonadas, sin reseñas falsas, sin enlaces comprados, sin scrapear Google. Los Avengers corren en modo observación.
@@ -98,7 +110,7 @@ node superseo/cli.mjs publicar cano
 - **Torres con datos reales.** Una página por alcaldía solo pasa si trae al menos 3 datos locales verificados. Sin eso sería un clon con otro nombre de zona.
 - **Territorios respetados.** Un cliente con exclusividad bloquea a otro en su especialidad y zona.
 - **Apagar no rompe nada.** Las páginas ya aprobadas redirigen a su servicio; el sitio base sigue igual.
-- **Metas, no garantías.** Ningún reporte promete posiciones en Google.
+- **Metas, no garantías.** Ningún reporte ni página promete posiciones en Google; frases como "primer lugar en Google" se rechazan.
 
 ## Pruebas
 

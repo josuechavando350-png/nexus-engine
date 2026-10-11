@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "marca-personal-para-abogados",
+  "cliente": "nexus",
+  "ruta": "/marca-personal-para-abogados",
+  "tipo": "GUIA",
+  "servicio": "despachos",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Por industria",
+  "titulo": "Marca personal para abogados: cómo construirla",
+  "descripcion": "Cómo construir la marca personal de un abogado: página con su nombre, público claro, contenido que demuestre criterio, imagen propia y buen filtro de contacto.",
+  "h1": "Marca personal para abogados: cómo construirla",
+  "respuesta_rapida": [
+    "Una marca personal hace que lo elijan por su nombre y su criterio, no solo por precio.",
+    "Empieza con una página propia con su nombre, trayectoria y materias.",
+    "Defina a quién atiende y escriba para esas personas.",
+    "Publique contenido que demuestre criterio, con ética y sin prometer resultados."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué es y para qué sirve",
+      "parrafos": [
+        "La marca personal de un abogado es la forma en que lo reconocen sus clientes y colegas: su especialidad, su manera de trabajar, su criterio y su imagen. Siempre existe, se cuide o no. La diferencia está en si usted la construye con intención o la dejan definir otros.",
+        "Una marca personal bien cuidada hace que los clientes lleguen buscándolo a usted, con más confianza y menos comparación de precios. Es especialmente valiosa para abogados independientes o socios que quieren crecer con su propio nombre."
+      ]
+    },
+    {
+      "titulo": "Una página con su nombre",
+      "parrafos": [
+        "El punto de partida es una página propia con su nombre como dominio o como eje principal. Ahí deben estar su trayectoria verificable, su formación, sus áreas de práctica, cómo trabaja y cómo contactarlo. Cuando alguien busque su nombre en Google, debe encontrar esa página primero.",
+        "A diferencia de un perfil en redes o en un directorio, la página es suya: usted decide qué se muestra, cómo se ve y qué tan profesional es la primera impresión."
+      ]
+    },
+    {
+      "titulo": "A quién atiende",
+      "parrafos": [
+        "Una marca personal fuerte tiene un público claro. No es lo mismo atender a empresarios con asuntos fiscales que a familias en un conflicto patrimonial. Defina a quién quiere atender y escriba pensando en esas personas: sus preocupaciones, su lenguaje y lo que necesitan saber antes de contratarlo.",
+        "Esa claridad también ayuda a filtrar. Quien no encaja con su práctica lo nota rápido, y quien sí encaja siente que llegó al lugar correcto."
+      ]
+    },
+    {
+      "titulo": "Contenido que demuestra criterio",
+      "parrafos": [
+        "Publicar artículos breves sobre temas de su materia, comentar reformas o explicar errores comunes demuestra conocimiento mejor que cualquier lista de logros. Si participa en medios, conferencias o publicaciones, reúnalos en una sección de su página.",
+        "Cuide la ética: hable de temas generales, no de casos concretos de sus clientes, y evite afirmaciones sobre el resultado de juicios. El contenido debe ayudar a entender, no prometer."
+      ]
+    },
+    {
+      "titulo": "Imagen y tono",
+      "parrafos": [
+        "La imagen de una marca personal debe corresponder a su práctica y a su público. Un abogado que atiende a empresarios y patrimonios necesita una presencia sobria y cuidada; uno que atiende asuntos urgentes, cercanía y claridad. Fotografía profesional, tipografía coherente y un tono de voz constante hacen la diferencia.",
+        "Evite los símbolos jurídicos genéricos, como balanzas y mazos, que hacen que todas las páginas de abogados se parezcan. Lo que lo distingue es usted."
+      ]
+    },
+    {
+      "titulo": "Filtrar el contacto",
+      "parrafos": [
+        "Cuando la marca crece, también crecen los contactos que no corresponden a su práctica. Una forma elegante de filtrar es explicar con claridad cómo es la primera asesoría, si tiene costo y qué incluye. El precio y la imagen filtran solos.",
+        "Un formulario breve o un asistente que pregunte la materia y la urgencia ayuda a que usted dedique su tiempo a los asuntos que sí son para su despacho."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nexus Bot Studio está desarrollando el sitio de marca personal del Mtro. Eric Ramírez, abogado con base en Colima y alcance en Ciudad de México: dirección editorial de revista, retrato en blanco y negro que pasa a color al tocarlo, cuatro áreas de práctica y un panel a la medida para publicar en sus secciones de medios e historias. El proyecto está en desarrollo."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Necesito un dominio con mi nombre?",
+      "respuesta": "Es lo ideal para una marca personal, porque facilita que lo encuentren y que lo recuerden."
+    },
+    {
+      "pregunta": "¿Debo estar en todas las redes sociales?",
+      "respuesta": "No. Es mejor una página sólida y una o dos redes bien cuidadas que muchas abandonadas."
+    },
+    {
+      "pregunta": "¿Puedo hablar de mis casos?",
+      "respuesta": "Solo en términos generales y con el permiso del cliente. La confidencialidad está primero."
+    },
+    {
+      "pregunta": "¿Cuánto tarda construir una marca personal?",
+      "respuesta": "La página puede estar lista en semanas; la reputación se construye con constancia a lo largo del tiempo."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/casos/eric-ramirez",
+      "texto": "Caso: Mtro. Eric Ramírez"
+    },
+    {
+      "ruta": "/diseno-web-para-despachos-juridicos",
+      "texto": "Diseño web para despachos jurídicos"
+    },
+    {
+      "ruta": "/pagina-web-para-abogados-fiscalistas",
+      "texto": "Página web para abogados fiscalistas"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:c38edabcc99df50310e460307a6591fe654ca2be306696e59971758e481f62bb",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:c38edabcc99df50310e460307a6591fe654ca2be306696e59971758e481f62bb"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 678,
+    "similitud_max": 0.022,
+    "parecida_a": "/diseno-de-paginas-web-en-colima"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:f21b0ef0e7158b7e13043e03ecb299db03c5019a894ba33f86f27c6161c63f44",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "seguridad-de-pagina-web-para-negocios",
+  "cliente": "nexus",
+  "ruta": "/seguridad-de-pagina-web-para-negocios",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Seguridad y propiedad",
+  "titulo": "Seguridad de tu página web: lo básico",
+  "descripcion": "Las medidas básicas de seguridad que toda página web de negocio debería tener: HTTPS, actualizaciones, contraseñas, doble factor, respaldos y cabeceras de seguridad.",
+  "h1": "Seguridad de tu página web: lo básico",
+  "respuesta_rapida": [
+    "HTTPS en todo el sitio y sin avisos de no seguro.",
+    "Sistema y complementos actualizados, o una tecnología con pocas piezas que mantener.",
+    "Contraseñas fuertes, doble factor y accesos solo para quien los necesita.",
+    "Respaldos automáticos y cabeceras de seguridad configuradas."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué un negocio pequeño es blanco",
+      "parrafos": [
+        "Muchos dueños creen que nadie va a atacar su página porque es pequeña. Pero la mayoría de los ataques no son personales: son robots que recorren internet buscando sitios con fallas conocidas para aprovecharlas. Un sitio desactualizado puede terminar mostrando anuncios de apuestas, redirigiendo a páginas fraudulentas o enviando correos de spam desde tu dominio.",
+        "El daño no es solo técnico: tus clientes ven tu nombre asociado a algo sospechoso."
+      ]
+    },
+    {
+      "titulo": "HTTPS siempre",
+      "parrafos": [
+        "HTTPS cifra la comunicación entre el navegador y tu sitio. Sin él, los navegadores muestran un aviso de no seguro, que espanta a cualquier cliente. Hoy los certificados se pueden obtener sin costo con muchos proveedores, así que no hay excusa para no tenerlo en todas las páginas.",
+        "Además, conviene que el sitio obligue a usar HTTPS siempre, incluso si alguien escribe la dirección sin él."
+      ]
+    },
+    {
+      "titulo": "Actualizaciones y menos piezas",
+      "parrafos": [
+        "La mayoría de los sitios hackeados tenían software sin actualizar: el sistema de gestión, un tema o un complemento con una falla conocida. Si usas un gestor de contenido, alguien debe actualizarlo con regularidad. Una alternativa es construir con tecnología moderna y pocas dependencias, lo que reduce la superficie de ataque.",
+        "Cada complemento que no usas es una puerta que no necesitas."
+      ]
+    },
+    {
+      "titulo": "Accesos bien cuidados",
+      "parrafos": [
+        "Contraseñas largas y únicas para el hosting, el dominio, el panel y el correo, guardadas en un gestor de contraseñas. Verificación en dos pasos en todas las cuentas que la permitan. Cada persona con su propio usuario y solo los permisos que necesita. Y quitar accesos a quien ya no trabaja contigo.",
+        "Muchos incidentes empiezan con una contraseña reutilizada o compartida por mensaje.",
+        "Cuando alguien deja de trabajar contigo, sea un empleado o una agencia, quita sus accesos el mismo día. Muchos sitios quedan expuestos por cuentas viejas que nadie recordó cerrar."
+      ]
+    },
+    {
+      "titulo": "Respaldos y cabeceras",
+      "parrafos": [
+        "Los respaldos automáticos, guardados fuera del servidor principal, permiten recuperar el sitio en minutos si algo sale mal. Las cabeceras de seguridad son instrucciones que tu sitio envía al navegador para protegerse: obligar el uso de HTTPS, impedir que otros sitios incrusten el tuyo de forma engañosa o limitar qué scripts pueden ejecutarse.",
+        "Son configuraciones invisibles para el visitante, pero hacen una gran diferencia."
+      ]
+    },
+    {
+      "titulo": "Formularios y asistentes",
+      "parrafos": [
+        "Los formularios deben validar en el servidor lo que reciben y protegerse contra envíos automáticos. Los asistentes de IA conectados a WhatsApp, a la agenda o al CRM son una superficie de ataque real: necesitan control de acceso, límites claros sobre lo que pueden consultar y registro de actividad.",
+        "La seguridad debe pensarse desde el diseño, no agregarse después."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nuestro fundador viene de la ciberseguridad, y ese criterio está en cada sitio: HTTPS estricto, cabeceras de seguridad, pocas dependencias, validación estricta y control de acceso desde el primer día. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cómo sé si mi sitio tiene problemas de seguridad?",
+      "respuesta": "Search Console te avisa si Google detecta algo; también puedes revisar las cabeceras y el HTTPS con nuestro analizador gratuito."
+    },
+    {
+      "pregunta": "¿El hosting me protege?",
+      "respuesta": "Ayuda, pero no reemplaza las actualizaciones ni el cuidado de los accesos."
+    },
+    {
+      "pregunta": "¿Necesito un firewall?",
+      "respuesta": "Para sitios con mucho tráfico o tiendas, un firewall de aplicaciones web es recomendable."
+    },
+    {
+      "pregunta": "¿Cada cuánto cambio contraseñas?",
+      "respuesta": "Cuando alguien deja el equipo o sospechas una filtración; más importante que cambiarlas seguido es que sean únicas y con doble factor."
+    },
+    {
+      "pregunta": "¿Cada cuánto debo revisar la seguridad de mi página?",
+      "respuesta": "Una revisión ligera cada mes y una más completa cada vez que cambies de proveedor, agregues funciones o alguien deje de tener acceso."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/nosotros",
+      "texto": "Quién está detrás de Nexus"
+    },
+    {
+      "ruta": "/certificado-ssl-https",
+      "texto": "Certificado SSL y HTTPS: qué son"
+    },
+    {
+      "ruta": "/que-hacer-si-hackean-mi-pagina-web",
+      "texto": "Qué hacer si hackean tu página web"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:8fce2a6655bf97ab4d4d7fe1bbb27b0714541c8f3bfcef20bef9bce28786b0f8",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:8fce2a6655bf97ab4d4d7fe1bbb27b0714541c8f3bfcef20bef9bce28786b0f8"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 641,
+    "similitud_max": 0.007,
+    "parecida_a": "/chatbot-whatsapp-para-despachos-de-abogados"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:41886e53a1c8503070db6c3d4da6ff8de001e85831de8d2101a7346a1e444429",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

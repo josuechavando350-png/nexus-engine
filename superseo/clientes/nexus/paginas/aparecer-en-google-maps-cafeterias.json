@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-cafeterias",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-cafeterias",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comida",
+  "titulo": "Cómo aparecer en Google Maps: cafeterías",
+  "descripcion": "Guía para que tu cafetería aparezca en Google Maps: categoría, atributos como wifi y terraza, carta vinculada, fotos del espacio y reseñas frecuentes.",
+  "h1": "Cómo hacer que tu cafetería aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal: cafetería, o tienda de café si vendes grano principalmente.",
+    "Atributos como wifi, enchufes, terraza o mascotas permitidas te hacen aparecer en búsquedas filtradas.",
+    "Fotos del espacio con luz natural, de las bebidas y de la barra.",
+    "Reseñas frecuentes con un código QR en la barra o en la mesa."
+  ],
+  "secciones": [
+    {
+      "titulo": "Un café se elige en segundos",
+      "parrafos": [
+        "Cafetería cerca, café para trabajar, cafetería con terraza, café de especialidad. Son búsquedas rápidas, hechas caminando o desde la oficina, que se resuelven en el mapa. El cliente mira fotos, estrellas, si está abierto y qué tan lejos queda, y elige en segundos.",
+        "Para una cafetería independiente, el mapa es la mejor oportunidad de competir contra las cadenas: en la búsqueda local, un perfil cuidado pesa tanto como una marca grande.",
+        "Además, la cafetería tiene una ventaja: mucha gente la visita varias veces por semana, lo que genera reseñas, fotos y actividad constante si se sabe aprovechar."
+      ]
+    },
+    {
+      "titulo": "Categoría y atributos",
+      "parrafos": [
+        "La categoría principal suele ser cafetería. Si vendes café en grano o tienes tostador, una categoría secundaria de tienda de café o tostador de café ayuda. Los atributos son muy importantes en este giro: wifi gratuito, enchufes, terraza, se admiten mascotas, opciones veganas, accesibilidad.",
+        "Mucha gente busca literalmente cafetería para trabajar o pet friendly; los atributos y la descripción te ponen en esas búsquedas."
+      ]
+    },
+    {
+      "titulo": "Carta y fotos",
+      "parrafos": [
+        "Vincula tu carta en texto, idealmente la misma página de tu sitio, con precios actualizados. Sube fotos de las bebidas, de los alimentos más pedidos, del espacio con luz natural, de la barra y de la fachada.",
+        "Las fotos del espacio son clave para quien busca un lugar para trabajar o para una cita: quiere saber si hay mesas cómodas, si es tranquilo, si hay luz. Muéstralo con honestidad."
+      ]
+    },
+    {
+      "titulo": "Reseñas constantes",
+      "parrafos": [
+        "Un código QR en la barra, en la servilleta o en la mesa que lleve directo a dejar reseña funciona muy bien en cafeterías, porque el cliente tiene unos minutos mientras espera o disfruta su café. También puedes invitar a quienes compran café en grano a contar su experiencia.",
+        "Responde todas las reseñas. Las críticas sobre el servicio o la espera, bien respondidas, muestran que te importa mejorar."
+      ]
+    },
+    {
+      "titulo": "Horario de verdad",
+      "parrafos": [
+        "Las cafeterías suelen tener horarios distintos entre semana y fines de semana, y cambios en días festivos. Mantén todo exacto en el perfil y en tu sitio. Si abres temprano, destácalo: es una ventaja frente a otros lugares.",
+        "Los horarios especiales de temporada se configuran con anticipación."
+      ]
+    },
+    {
+      "titulo": "Publicaciones y pedidos",
+      "parrafos": [
+        "Publica bebidas de temporada, nuevos granos, catas o eventos. Si haces pedidos para llevar o venta de café en línea, vincula el botón de pedido a tu sitio o tu WhatsApp.",
+        "Mide llamadas, rutas y clics al sitio para saber qué te funciona."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, lo alineamos con tu sitio y tu carta, preparamos el sistema de reseñas y medimos visitas y pedidos. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Conviene marcar wifi y enchufes?",
+      "respuesta": "Si los tienes, sí. Atraen a quien busca un lugar para trabajar, que suele quedarse y consumir más."
+    },
+    {
+      "pregunta": "¿Puedo vender café en grano desde el perfil?",
+      "respuesta": "Puedes listar productos y vincular a tu tienda en línea o a tu WhatsApp para pedidos."
+    },
+    {
+      "pregunta": "¿Qué fotos funcionan mejor?",
+      "respuesta": "Las bebidas con buena luz, el espacio lleno pero cómodo y la fachada para reconocer el lugar."
+    },
+    {
+      "pregunta": "¿Cada cuánto debo publicar?",
+      "respuesta": "Cada vez que tengas algo nuevo, como una bebida de temporada o un evento; una vez por semana es un buen ritmo."
+    },
+    {
+      "pregunta": "¿Sirve marcar que tengo opciones sin lácteos?",
+      "respuesta": "Sí. Cada vez más personas buscan leches vegetales u opciones veganas, y esos atributos y menciones en la descripción te ponen en sus búsquedas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-cafeterias",
+      "texto": "Página web para cafeterías"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:aef9170ba9ea27e78839b3c87eda5f3cb5aeb4a1ea9907ced7f1fef904261a8d",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:aef9170ba9ea27e78839b3c87eda5f3cb5aeb4a1ea9907ced7f1fef904261a8d"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 628,
+    "similitud_max": 0.023,
+    "parecida_a": "/aparecer-en-google-maps-veterinarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:89c3b74a28136eba8756f5f29a8018ea3a545788de45bec946ed76b9279750fd",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}

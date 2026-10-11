@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-notarias",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-notarias",
+  "tipo": "GIRO",
+  "servicio": "despachos",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Página web para notarías",
+  "descripcion": "Sitios para notarías: catálogo de trámites con requisitos, citas en línea, ubicación clara y respuestas a lo que la gente pregunta antes de ir.",
+  "h1": "Página web para notarías",
+  "respuesta_rapida": [
+    "La mayoría de los sitios notariales están desactualizados: quien tenga uno claro y rápido destaca de inmediato.",
+    "La gente busca trámites concretos: testamento, compraventa, poderes, sociedades. Cada uno merece su página.",
+    "Lo más útil es la lista de requisitos por trámite y la forma de pedir cita sin llamar diez veces.",
+    "La ubicación, el estacionamiento y el horario deben estar a la vista."
+  ],
+  "secciones": [
+    {
+      "titulo": "Un sector con sitios viejos",
+      "parrafos": [
+        "Basta buscar notaría y el nombre de cualquier ciudad para ver el panorama: páginas que no cargan en el celular, teléfonos sin enlace, requisitos en documentos escaneados y fotos de hace años. Para una notaría que se tome en serio su presencia digital, la oportunidad es enorme.",
+        "La persona que busca una notaría no compara precios como en otros giros; compara cercanía, rapidez de atención y claridad. Si encuentra los requisitos de su trámite y puede pedir cita en un minuto, ya eligió."
+      ]
+    },
+    {
+      "titulo": "Catálogo de trámites",
+      "parrafos": [
+        "Testamento, compraventa de inmuebles, donación, poderes, constitución de sociedades, actas de asamblea, fe de hechos, cancelación de hipoteca, adjudicación por herencia. Cada uno con una página propia que diga para qué sirve, quién debe acudir y qué documentos llevar.",
+        "Esa estructura tiene dos ventajas. A la persona le ahorra llamadas, y a la notaría le trae búsquedas específicas como requisitos para un testamento o qué se necesita para una compraventa, que son preguntas muy frecuentes en Google."
+      ]
+    },
+    {
+      "titulo": "Citas y documentos sin vueltas",
+      "parrafos": [
+        "Una agenda en línea o un asistente de WhatsApp que pregunte el trámite, explique los requisitos y proponga horarios reduce la carga del personal. También puede recibir fotografías de documentos para una revisión previa, siempre con un aviso de privacidad claro.",
+        "Recordatorios automáticos antes de la cita disminuyen las visitas en las que falta un papel y hay que reprogramar."
+      ]
+    },
+    {
+      "titulo": "Campañas que ya existen",
+      "parrafos": [
+        "Cada septiembre se promueve el mes del testamento en todo el país. Una notaría con una página clara sobre testamentos, requisitos y citas está lista para recibir esas búsquedas, que se disparan en esas semanas.",
+        "Lo mismo pasa con temporadas de compraventa o con cambios de ley que generan dudas: una nota breve y bien explicada atrae a quien está por hacer el trámite."
+      ]
+    },
+    {
+      "titulo": "Diseño a la altura de la función",
+      "parrafos": [
+        "Una notaría da fe pública, y su sitio debe transmitir esa seriedad sin parecer un trámite de gobierno. Funciona una paleta sobria, buena tipografía, fotografías reales de la oficina y del notario, y una navegación tan simple que un adulto mayor pueda encontrar los requisitos de su testamento sin ayuda.",
+        "Ese último punto es importante: buena parte de los clientes de una notaría son personas mayores que buscan con ayuda de un hijo o desde su propio teléfono. Letras de buen tamaño, buen contraste y botones grandes no son un detalle estético; son lo que hace que el sitio funcione."
+      ]
+    },
+    {
+      "titulo": "Cómo lo resolvemos",
+      "parrafos": [
+        "En Nexus diseñamos el sitio con la sobriedad que exige la función notarial, sin estridencias. Escribimos el catálogo de trámites, dejamos el contacto medible y dejamos la ficha de Google lista para mostrar horarios y ubicación.",
+        "El dominio y los accesos quedan a nombre de la notaría. La entrega toma entre dos y cuatro semanas desde que se aprueba la dirección visual."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo publicar aranceles o costos?",
+      "respuesta": "Depende de lo que permita su normativa local. Lo que sí ayuda es explicar de qué se componen los gastos de cada trámite y ofrecer una cotización previa."
+    },
+    {
+      "pregunta": "¿Un chatbot puede pedir documentos?",
+      "respuesta": "Sí, puede recibir fotografías para una revisión previa y avisar qué falta. Siempre con aviso de privacidad y con acceso restringido a esa información."
+    },
+    {
+      "pregunta": "¿Sirve tener página si casi todos llegan por recomendación?",
+      "respuesta": "Sí: la recomendación lleva a la gente a buscar su nombre en Google. Lo que encuentren ahí decide si llaman a usted o a la notaría de la esquina."
+    },
+    {
+      "pregunta": "¿Puedo mostrar el nombre del notario y su número de notaría?",
+      "respuesta": "Sí, y conviene hacerlo: es uno de los datos que más se buscan y el que permite a la gente confirmar que está en el lugar correcto."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/diseno-web-para-despachos-juridicos",
+      "texto": "Diseño web para despachos jurídicos"
+    },
+    {
+      "ruta": "/casos/cano-estrategia-penal",
+      "texto": "Caso: CANO Estrategia Penal"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-notarias",
+      "texto": "Chatbot de WhatsApp para notarías"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:44cd35acd5533646984f70159fe3d04dea342f07809cb21d73ff29ead9c7f6d0",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:44cd35acd5533646984f70159fe3d04dea342f07809cb21d73ff29ead9c7f6d0"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 678,
+    "similitud_max": 0.01,
+    "parecida_a": "/pagina-web-para-dentistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:2aab99730f1e79feb6a1602c6e02e42e44aff17f0f1872238858b4e86e0e787b",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

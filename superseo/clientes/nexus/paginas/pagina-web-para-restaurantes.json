@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-restaurantes",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-restaurantes",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comida",
+  "titulo": "Página web para restaurantes",
+  "descripcion": "Sitios para restaurantes: menú legible en celular, reservas, pedidos por WhatsApp, horarios y ubicación siempre correctos. Sin PDF del menú.",
+  "h1": "Página web para restaurantes",
+  "respuesta_rapida": [
+    "Lo que más se busca de un restaurante es el menú, el horario y cómo llegar: eso va primero.",
+    "El menú debe ser texto, no un PDF ni una foto borrosa, para que se lea en celular y Google lo entienda.",
+    "Reservas y pedidos en un toque, por WhatsApp o en línea.",
+    "Horario y datos idénticos en la página y en Google Maps."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué busca la gente antes de ir",
+      "parrafos": [
+        "Antes de elegir dónde comer, la mayoría revisa tres cosas: el menú con precios, si está abierto y cómo llegar. Si para ver el menú hay que descargar un PDF pesado o hacer zoom sobre una foto, muchos se van al siguiente resultado.",
+        "Un sitio de restaurante no necesita ser complejo. Necesita resolver esas tres preguntas en segundos, verse apetitoso y facilitar el siguiente paso: reservar, pedir o llegar."
+      ]
+    },
+    {
+      "titulo": "El menú como protagonista",
+      "parrafos": [
+        "Un menú en texto, organizado por secciones, con descripciones cortas y precios, se lee bien en cualquier teléfono y Google lo entiende. Las fotos de los platillos estrella, tomadas con buena luz, hacen el resto.",
+        "Actualizar precios debe ser sencillo. Un menú desactualizado genera discusiones en la mesa y reseñas negativas."
+      ]
+    },
+    {
+      "titulo": "Reservas, pedidos y grupos",
+      "parrafos": [
+        "Para restaurantes con servicio en mesa, un sistema de reservas o un asistente de WhatsApp que confirme fecha, hora y número de personas libera al personal del teléfono. Para los que venden para llevar o a domicilio, un pedido directo por WhatsApp evita las comisiones de las plataformas en los clientes que ya te conocen.",
+        "No se trata de dejar las plataformas de reparto, sino de tener un canal propio para los clientes recurrentes.",
+        "Cumpleaños, comidas de empresa, cenas de fin de año. Una página dedicada a grupos y eventos privados, con capacidad, menús especiales y forma de cotizar, atrae un tipo de cliente que gasta más y planea con anticipación.",
+        "Si el restaurante tiene terraza, música en vivo o un espacio privado, merece fotos y descripción propias."
+      ]
+    },
+    {
+      "titulo": "Google Maps primero",
+      "parrafos": [
+        "La mayoría de los comensales nuevos llegan desde el mapa. Horario exacto, incluidos días festivos, fotos recientes, menú vinculado, categoría correcta y reseñas respondidas. La página web refuerza ese perfil y le da a Google más contexto sobre tu cocina.",
+        "Responder las reseñas, también las negativas, con calma y sin pleito, muestra a los futuros clientes cómo trata el lugar a su gente."
+      ]
+    },
+    {
+      "titulo": "Identidad que se antoja",
+      "parrafos": [
+        "Cada restaurante tiene una historia: la receta de la abuela, la región de origen, el chef, el producto. Contarla con fotografía real y diseño propio diferencia a un restaurante de cualquier otro en la misma calle.",
+        "Las plantillas genéricas de restaurante se parecen todas; el comensal no recuerda ninguna."
+      ]
+    },
+    {
+      "titulo": "Turistas y visitantes",
+      "parrafos": [
+        "Si tu restaurante está en una zona con visitantes, una versión del menú en inglés y datos claros sobre formas de pago, propina y reservaciones ayudan mucho. El turista busca desde su teléfono, en otro idioma y con poco tiempo para decidir.",
+        "También conviene explicar los platillos regionales que no son obvios para alguien de fuera. Una buena descripción convierte la curiosidad en pedido y suele terminar en reseñas entusiastas."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios de restaurante con menú en texto fácil de actualizar, reservas o pedidos por WhatsApp medidos y fotografía de tu cocina. Desde $1,999 MXN; con asistente que toma reservas desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Necesito tienda en línea para vender a domicilio?",
+      "respuesta": "No siempre. Para muchos restaurantes basta un menú claro con pedido por WhatsApp y pago al recibir o por transferencia."
+    },
+    {
+      "pregunta": "¿El menú QR de las mesas puede ser la misma página?",
+      "respuesta": "Sí, y es lo ideal: un solo menú que se actualiza una vez y se ve igual en la mesa y en Google."
+    },
+    {
+      "pregunta": "¿Cuánto tarda?",
+      "respuesta": "Entre dos y cuatro semanas desde que apruebas la dirección visual. Depende sobre todo de tener las fotos de los platillos."
+    },
+    {
+      "pregunta": "¿Puedo mostrar promociones del día?",
+      "respuesta": "Sí. Una sección de promociones que puedas cambiar tú mismo mantiene la página viva y da una razón para volver a visitarla."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-restaurantes",
+      "texto": "Chatbot de WhatsApp para restaurantes"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-restaurantes",
+      "texto": "Cómo aparecer en Google Maps: restaurantes"
+    },
+    {
+      "ruta": "/reservas-en-linea-para-restaurantes",
+      "texto": "Reservas en línea para restaurantes"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:744ef0001b958f02e4613e772bc628db9bd4db5e3d4565164c653d9154c936e4",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:744ef0001b958f02e4613e772bc628db9bd4db5e3d4565164c653d9154c936e4"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 672,
+    "similitud_max": 0.012,
+    "parecida_a": "/pagina-web-para-bares"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:e0441b3eb61fabb0240e13cbdc2fedf9885937d9e35709025f931d27f5dbb4cf",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-bilingue",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-bilingue",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "Página web bilingüe: cuándo vale la pena",
+  "descripcion": "Cuándo conviene tener tu página en español e inglés, cómo hacerlo bien para que Google muestre cada idioma a quien corresponde y qué errores evitar.",
+  "h1": "Página web bilingüe: cuándo vale la pena",
+  "respuesta_rapida": [
+    "Vale la pena si atiendes turistas, extranjeros residentes, clientes de otros países o empresas internacionales.",
+    "Una traducción automática sin revisar resta seriedad; mejor una versión revisada.",
+    "Cada idioma necesita su propia dirección y las etiquetas que le dicen a Google cuál mostrar.",
+    "Traduce primero lo que importa: servicios, precios, contacto y preguntas frecuentes."
+  ],
+  "secciones": [
+    {
+      "titulo": "Quién lo necesita",
+      "parrafos": [
+        "Hoteles, rentas vacacionales, restaurantes en zonas turísticas, clínicas dentales que reciben pacientes de Estados Unidos y Canadá, despachos migratorios, inmobiliarias con compradores extranjeros, escuelas bilingües, empresas que venden fuera de México. Para estos negocios, una versión en inglés puede abrir un mercado de alto valor.",
+        "Si tus clientes son casi todos locales y de habla hispana, probablemente no es prioridad.",
+        "También conviene si recibes muchos mensajes en inglés o si tus clientes extranjeros te encuentran por recomendación y luego buscan tu nombre: llegar a una página en su idioma les da la confianza que necesitan para escribir."
+      ]
+    },
+    {
+      "titulo": "Traducir bien",
+      "parrafos": [
+        "Los traductores automáticos han mejorado mucho, pero un texto sin revisar se nota, sobre todo en servicios profesionales donde la precisión importa. Términos legales, médicos o técnicos mal traducidos restan credibilidad. Lo ideal es una traducción revisada por alguien que domine el idioma y el tema.",
+        "También conviene adaptar, no solo traducir: medidas, formas de pago, moneda y referencias que el visitante extranjero entienda."
+      ]
+    },
+    {
+      "titulo": "Una dirección por idioma",
+      "parrafos": [
+        "Para que Google muestre la versión correcta a cada persona, cada idioma debe tener su propia dirección, por ejemplo una carpeta para inglés, y cada página debe indicar cuál es su equivalente en el otro idioma con etiquetas especiales. Así, quien busca en inglés ve tu versión en inglés y quien busca en español, la española.",
+        "Los botones que solo cambian el idioma sin cambiar la dirección suelen impedir que Google indexe la segunda versión."
+      ]
+    },
+    {
+      "titulo": "Qué traducir primero",
+      "parrafos": [
+        "No hace falta traducir todo desde el inicio. Empieza por lo que más usa el visitante extranjero: la portada, los servicios principales, los precios, las preguntas frecuentes y el contacto. Después puedes sumar guías y contenido adicional.",
+        "Una versión en inglés pequeña pero impecable funciona mejor que una completa y descuidada.",
+        "Revisa también que tus datos de contacto funcionen para clientes de otros países: el número de WhatsApp con código de país, la dirección con referencias claras y formas de pago que puedan usar desde fuera."
+      ]
+    },
+    {
+      "titulo": "Atención en el otro idioma",
+      "parrafos": [
+        "Si tu página está en inglés, el cliente va a escribir en inglés. Asegúrate de poder responder: tú, alguien de tu equipo o un asistente de WhatsApp con inteligencia artificial que conteste en el idioma del cliente y pase a una persona cuando haga falta.",
+        "Aclara también el horario de atención según la zona horaria del cliente."
+      ]
+    },
+    {
+      "titulo": "Errores comunes",
+      "parrafos": [
+        "Traducir con un complemento automático que genera textos extraños. Mezclar idiomas en la misma página. Olvidar traducir botones, formularios o mensajes de confirmación. No indicar a Google la relación entre versiones. Y tener una versión en inglés que nadie actualiza mientras la española cambia.",
+        "Mantener ambas versiones sincronizadas es parte del trabajo."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Construimos sitios bilingües con direcciones separadas por idioma, etiquetas correctas para Google y asistentes que atienden en español e inglés. El propio sitio de Nexus tiene versión en inglés. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo tener más de dos idiomas?",
+      "respuesta": "Sí, con la misma estructura: una dirección por idioma y las etiquetas correspondientes."
+    },
+    {
+      "pregunta": "¿Afecta mi posición en español?",
+      "respuesta": "No, si está bien configurado; cada versión compite en su idioma."
+    },
+    {
+      "pregunta": "¿Debo traducir el blog?",
+      "respuesta": "Solo las guías que interesen al público extranjero."
+    },
+    {
+      "pregunta": "¿Puedo usar inteligencia artificial para traducir?",
+      "respuesta": "Como apoyo, sí, siempre con revisión de alguien que domine el idioma."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/pagina-web-para-hoteles-boutique",
+      "texto": "Página web para hoteles boutique"
+    },
+    {
+      "ruta": "/pagina-web-para-rentas-vacacionales",
+      "texto": "Página web para rentas vacacionales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:8c185f52543d08f42c72e3e0c598826fd7742dfcd37b3b3d8e45c468fdb5fecf",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:8c185f52543d08f42c72e3e0c598826fd7742dfcd37b3b3d8e45c468fdb5fecf"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 612,
+    "similitud_max": 0.005,
+    "parecida_a": "/pagina-web-para-dentistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:6cd3b66a4be72ff87933f656e129cbc48704f1b5c1a605b85e3089b38b22fc22",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

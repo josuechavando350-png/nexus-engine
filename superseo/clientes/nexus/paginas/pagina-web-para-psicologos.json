@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-psicologos",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-psicologos",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Página web para psicólogos y terapeutas",
+  "descripcion": "Sitios para psicólogos: enfoque terapéutico explicado con calidez, sesiones en línea y presenciales, agenda discreta y confidencialidad desde el diseño.",
+  "h1": "Página web para psicólogos",
+  "respuesta_rapida": [
+    "Elegir terapeuta es una decisión personal: la página debe dejar ver quién eres y cómo trabajas.",
+    "Explica tu enfoque, los temas que atiendes y si das sesiones en línea, presenciales o ambas.",
+    "El contacto debe ser discreto y sencillo, con la opción de agendar sin dar detalles del motivo.",
+    "Incluye siempre qué hacer en una emergencia, porque una consulta no sustituye la atención de crisis."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo que busca alguien que quiere empezar terapia",
+      "parrafos": [
+        "Dar el paso de buscar terapia cuesta trabajo. Mucha gente pasa semanas leyendo perfiles antes de escribir a alguien. Busca señales de que esa persona la va a entender: su enfoque, los temas en los que tiene experiencia, su forma de escribir, incluso el tono de la foto.",
+        "Por eso la página de un psicólogo no se parece a la de un consultorio médico. Necesita calidez, claridad y respeto. La primera impresión debería ser esta persona me puede escuchar, no esta persona vende sesiones."
+      ]
+    },
+    {
+      "titulo": "Explicar tu enfoque sin tecnicismos",
+      "parrafos": [
+        "Terapia cognitivo conductual, humanista, sistémica, psicoanalítica: para el paciente son nombres difíciles. Conviene explicar en palabras simples cómo es una sesión contigo, cuánto dura, con qué frecuencia se suele trabajar y qué tipo de herramientas usas.",
+        "También ayuda una página por tema de consulta: ansiedad, duelo, terapia de pareja, adolescentes, estrés laboral. Cada una escrita con sensibilidad, sin prometer resultados ni tiempos, y explicando cuándo conviene buscar apoyo."
+      ]
+    },
+    {
+      "titulo": "Confidencialidad visible",
+      "parrafos": [
+        "Una persona que va a hablar de su vida privada necesita saber que su información está cuidada. El aviso de privacidad debe ser claro, el formulario o el asistente deben pedir lo mínimo para agendar y el botón de WhatsApp puede abrir un mensaje neutro, sin el motivo de consulta escrito.",
+        "Conviene aclarar cómo se resguardan los datos y qué plataforma se usa para las sesiones en línea."
+      ]
+    },
+    {
+      "titulo": "Lo que nunca debe faltar",
+      "parrafos": [
+        "Una nota visible de que la terapia no sustituye la atención de emergencias y una indicación de a dónde acudir o llamar si alguien está en crisis. Es una responsabilidad profesional y también una muestra de cuidado que el visitante nota.",
+        "También tu formación y cédula profesional, porque en un campo donde cualquiera puede llamarse terapeuta, lo verificable distingue."
+      ]
+    },
+    {
+      "titulo": "Agenda que respeta al paciente",
+      "parrafos": [
+        "Una agenda en línea permite que la persona elija horario sin tener que explicar por teléfono por qué quiere terapia. Los recordatorios automáticos reducen las ausencias, y una política de cancelación clara, publicada en la página, evita conversaciones incómodas después.",
+        "Si das sesiones en línea, la agenda puede mostrar horarios en el huso del paciente y enviar el enlace de la sesión automáticamente."
+      ]
+    },
+    {
+      "titulo": "Contenido que acompaña",
+      "parrafos": [
+        "Las notas breves sobre temas que tus pacientes suelen consultar ayudan a quien todavía no se decide: cómo saber si lo que siento es ansiedad, cómo acompañar a un adolescente que se aísla, qué esperar de la primera sesión. Escritas con calma, muestran tu manera de pensar y de acompañar.",
+        "Lo importante es no diagnosticar a distancia ni prometer cambios en un número de sesiones. Cada nota puede cerrar con una invitación amable a agendar y con la información de apoyo en caso de emergencia."
+      ]
+    },
+    {
+      "titulo": "Cómo te ayudamos",
+      "parrafos": [
+        "En Nexus diseñamos sitios sobrios y cálidos, con fotos reales y textos que escribimos a partir de una conversación contigo. Dejamos el sitio rápido en celular y con seguridad desde el primer día.",
+        "Los paquetes empiezan en $1,999 MXN y la agenda con asistente está incluida desde el de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Debo publicar el costo de la sesión?",
+      "respuesta": "Ayuda a quien está decidiendo y evita mensajes solo para preguntar. Si manejas tarifas diferenciadas, puedes explicarlo de forma general."
+    },
+    {
+      "pregunta": "¿Un chatbot no es demasiado impersonal para terapia?",
+      "respuesta": "El asistente solo agenda y responde dudas logísticas. Todo lo demás lo atiendes tú. Muchas personas prefieren agendar sin tener que hablar en ese primer momento."
+    },
+    {
+      "pregunta": "¿Puedo escribir artículos sobre salud mental?",
+      "respuesta": "Sí, y suelen atraer visitas. Conviene escribirlos con cuidado, sin diagnosticar a distancia y con información de apoyo en situaciones de crisis."
+    },
+    {
+      "pregunta": "¿Puedo atender pacientes de otras ciudades?",
+      "respuesta": "Si das sesiones en línea, sí. Conviene decirlo en la página y aclarar los horarios disponibles según la zona horaria."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/agenda-de-citas-en-linea-para-psicologos",
+      "texto": "Agenda de citas en línea para psicólogos"
+    },
+    {
+      "ruta": "/google-ads-para-psicologos",
+      "texto": "Google Ads para psicólogos"
+    },
+    {
+      "ruta": "/como-conseguir-pacientes-para-tu-consultorio",
+      "texto": "Cómo conseguir más pacientes para tu consultorio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:3a6e7539c144bad357750a158b2cc614b833b147aa264f9931cb27b9dc0c8bf5",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:3a6e7539c144bad357750a158b2cc614b833b147aa264f9931cb27b9dc0c8bf5"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 693,
+    "similitud_max": 0.009,
+    "parecida_a": "/agenda-de-citas-en-linea-para-psicologos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:8ce26213928b9a8a0789641e2a4cf7dba633f6b59cf6ef191bda8965c2018334",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "id": "rediseno-o-pagina-nueva",
+  "cliente": "nexus",
+  "ruta": "/rediseno-o-pagina-nueva",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "¿Rediseñar tu página o hacer una nueva?",
+  "descripcion": "Cómo decidir entre mejorar tu página actual o hacer una nueva: velocidad, tecnología, contenido, posicionamiento y costos. Sin perder lo que ya funciona.",
+  "h1": "¿Rediseñar tu página o hacer una nueva?",
+  "respuesta_rapida": [
+    "Si la base técnica es buena y solo se ve vieja, un rediseño puede bastar.",
+    "Si es lenta, insegura o difícil de mantener, suele convenir hacerla nueva.",
+    "En ambos casos, conserva las direcciones que ya traen visitas o redirígelas bien.",
+    "Revisa primero qué funciona hoy: páginas con visitas, búsquedas y contactos."
+  ],
+  "secciones": [
+    {
+      "titulo": "Primero, diagnóstico",
+      "parrafos": [
+        "Antes de decidir, conviene revisar cómo está tu página hoy: qué tan rápido carga en celular, en qué tecnología está hecha, si está actualizada y segura, qué páginas reciben visitas y desde qué búsquedas, y cuántos contactos genera. Con esa información la decisión se vuelve mucho más clara.",
+        "Puedes empezar con nuestro analizador gratuito y con los datos de Search Console si los tienes.",
+        "También ayuda preguntar a tus clientes cómo te encontraron y qué buscaban en tu página. Sus respuestas suelen revelar qué secciones sobran y qué información falta."
+      ]
+    },
+    {
+      "titulo": "Cuándo basta un rediseño",
+      "parrafos": [
+        "Si la página está construida sobre una base técnica sana, carga rápido y es segura, pero se ve anticuada o no refleja lo que hoy es tu negocio, un rediseño visual y una actualización de contenido pueden ser suficientes. Se conserva lo que funciona y se mejora lo que no.",
+        "Es la opción más económica cuando la base lo permite.",
+        "Un rediseño también puede incluir mejoras técnicas puntuales, como optimizar imágenes, quitar complementos innecesarios o mejorar los botones de contacto, sin tocar la estructura."
+      ]
+    },
+    {
+      "titulo": "Cuándo conviene una nueva",
+      "parrafos": [
+        "Si la página es lenta por la tecnología con la que está hecha, depende de complementos abandonados, fue hackeada, no se puede editar o está atada a una plataforma que ya no te conviene, rehacerla suele salir mejor que seguir parchando. Lo mismo si tu negocio cambió tanto que la estructura ya no tiene sentido.",
+        "Una base nueva bien hecha reduce problemas durante años."
+      ]
+    },
+    {
+      "titulo": "No perder lo que ya funciona",
+      "parrafos": [
+        "El mayor riesgo de rehacer una página es perder posiciones en Google. Si tu página actual tiene direcciones que reciben visitas, deben conservarse o redirigirse a la página equivalente del sitio nuevo. También hay que conservar la medición, como las etiquetas de Google Ads o Analytics.",
+        "Con CANO Estrategia Penal construimos el sitio nuevo sin tocar el anterior y solo cambiamos el dominio cuando el nuevo estuvo validado, conservando el correo y la medición de anuncios."
+      ]
+    },
+    {
+      "titulo": "El contenido es lo más valioso",
+      "parrafos": [
+        "Los textos y páginas que ya posicionan son un activo. Antes de reescribir todo, identifica qué páginas traen visitas y contactos, y mejóralas sin perder lo que las hace útiles. El contenido nuevo puede sumarse alrededor.",
+        "Tirar todo el contenido para empezar de cero suele ser un error caro."
+      ]
+    },
+    {
+      "titulo": "Costo y tiempo",
+      "parrafos": [
+        "Un rediseño sobre una buena base suele ser más rápido y económico. Una página nueva cuesta más al inicio, pero puede ahorrar mantenimiento y problemas después. Compara ambas opciones con el costo de seguir con una página que no trae clientes.",
+        "A veces lo más caro es no hacer nada."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Revisamos tu página actual y te decimos con franqueza si conviene optimizarla o rehacerla. Si se rehace, cuidamos dominio, correo, direcciones y medición. Los paquetes van de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Pierdo mi posición en Google si cambio de página?",
+      "respuesta": "No, si se conservan o redirigen bien las direcciones importantes y el contenido valioso."
+    },
+    {
+      "pregunta": "¿Cuánto tarda una migración?",
+      "respuesta": "Lo mismo que un sitio nuevo, más el tiempo de planear redirecciones y validar antes de cambiar el dominio."
+    },
+    {
+      "pregunta": "¿Puedo conservar mi diseño y cambiar la tecnología?",
+      "respuesta": "Sí, se puede reconstruir el mismo diseño sobre una base más rápida y segura."
+    },
+    {
+      "pregunta": "¿Qué pasa con mi correo?",
+      "respuesta": "Se cuida su configuración para que siga funcionando durante y después del cambio."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/senales-de-que-tu-pagina-web-es-vieja",
+      "texto": "Señales de que tu página web ya es vieja"
+    },
+    {
+      "ruta": "/migrar-de-wix-sin-perder-el-dominio",
+      "texto": "Migrar de Wix sin perder dominio ni correo"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:4545a77eccab7f00ca1cfa69e8f04af7d62423a9871b341140746623ab69b944",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:4545a77eccab7f00ca1cfa69e8f04af7d62423a9871b341140746623ab69b944"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 615,
+    "similitud_max": 0.015,
+    "parecida_a": "/wix-vs-pagina-a-medida"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:1b2f05d52da86ab7f10ec8e9272ceab2d959252e7ecfed9474b29b582f25a3bd",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

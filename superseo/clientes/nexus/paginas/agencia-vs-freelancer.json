@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "id": "agencia-vs-freelancer",
+  "cliente": "nexus",
+  "ruta": "/agencia-vs-freelancer",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "¿Agencia o freelancer para tu página web?",
+  "descripcion": "Ventajas y riesgos de contratar a un freelancer o a una agencia para tu página web: costo, continuidad, especialización y cómo protegerte en ambos casos.",
+  "h1": "¿Agencia o freelancer para tu página web?",
+  "respuesta_rapida": [
+    "Un freelancer suele ser más económico y cercano; una agencia, más amplia y con más respaldo.",
+    "El riesgo del freelancer es la continuidad; el de la agencia, el trato impersonal y el costo.",
+    "Lo que más importa es el método, los trabajos previos y que el dominio quede a tu nombre.",
+    "Hay opciones intermedias: estudios pequeños con proceso y tecnología propia."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo que ofrece un freelancer",
+      "parrafos": [
+        "Un profesional independiente suele cobrar menos, tiene trato directo y puede ser muy flexible. Muchos freelancers hacen trabajos excelentes y se especializan en un tipo de sitio. Para proyectos acotados, como una página de presentación, puede ser una muy buena opción.",
+        "Hablas con la misma persona que hace el trabajo, lo que evita malentendidos.",
+        "Además, un buen freelancer suele estar muy involucrado en cada proyecto porque su reputación depende directamente de cada trabajo que entrega."
+      ]
+    },
+    {
+      "titulo": "Los riesgos del freelancer",
+      "parrafos": [
+        "El principal es la continuidad: si se enferma, cambia de trabajo o deja de responder, tu proyecto se detiene. Otro riesgo es que una sola persona difícilmente domina diseño, desarrollo, textos, seguridad y posicionamiento al mismo nivel. Y si el dominio y los accesos quedaron a su nombre, recuperar el control puede ser difícil.",
+        "Ninguno de estos riesgos es inevitable, pero hay que cubrirlos desde el inicio."
+      ]
+    },
+    {
+      "titulo": "Lo que ofrece una agencia",
+      "parrafos": [
+        "Una agencia tiene equipo: diseñadores, desarrolladores, redactores, especialistas en anuncios. Puede atender proyectos grandes, dar continuidad aunque alguien se vaya y ofrecer servicios integrados. Suele tener procesos más formales y contratos claros.",
+        "Para proyectos complejos o negocios que necesitan varios servicios coordinados, puede ser la opción más segura.",
+        "También suele tener herramientas, licencias y procesos que un independiente no siempre puede costear, como software de diseño, pruebas en varios dispositivos o monitoreo de seguridad."
+      ]
+    },
+    {
+      "titulo": "Los riesgos de la agencia",
+      "parrafos": [
+        "El costo suele ser mayor, porque incluye estructura y márgenes. Algunas agencias venden con el director y luego asignan el proyecto a alguien sin experiencia. Otras usan la misma plantilla para todos sus clientes. Y en agencias grandes, un negocio pequeño puede sentirse como un cliente más.",
+        "Pregunta quién va a hacer tu proyecto y pide ver trabajos de esa persona."
+      ]
+    },
+    {
+      "titulo": "Lo que importa más que el tamaño",
+      "parrafos": [
+        "Trabajos reales que puedas abrir en tu celular. Un proceso claro con etapas y tiempos. Cotización detallada por escrito. Dominio, hosting y accesos a tu nombre. Forma de pedir cambios después de publicar. Y una conversación en la que sientas que entendieron tu negocio.",
+        "Un freelancer con estas cinco cosas es mejor opción que una agencia sin ellas, y viceversa."
+      ]
+    },
+    {
+      "titulo": "La opción intermedia",
+      "parrafos": [
+        "Existen estudios pequeños que combinan el trato directo de un freelancer con proceso, tecnología propia y especialización. Nexus Bot Studio es eso: no es una agencia de decenas de personas, sino un estudio con un fundador en la Ciudad de México y un motor propio que reúne arquitectura, seguridad y tecnología.",
+        "Esa base permite entregar rápido sin empezar desde cero cada proyecto."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Trabajamos con trato directo, cotización por escrito y dominio a tu nombre. Los paquetes van de $1,999 a $44,800 MXN, y el primer diagnóstico es gratuito."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cómo me protejo si contrato a un freelancer?",
+      "respuesta": "Exige que el dominio y los accesos queden a tu nombre, guarda copia del código y pide una cotización por escrito."
+    },
+    {
+      "pregunta": "¿Las agencias siempre son más caras?",
+      "respuesta": "Generalmente sí, por su estructura. Lo que importa es si el valor que recibes lo justifica."
+    },
+    {
+      "pregunta": "¿Puedo cambiar de proveedor después?",
+      "respuesta": "Sí, si tienes los accesos y el dominio a tu nombre. Por eso es tan importante ese punto."
+    },
+    {
+      "pregunta": "¿Qué pregunto en la primera reunión?",
+      "respuesta": "Quién hará el trabajo, cuánto tarda, qué incluye, cómo se piden cambios y a nombre de quién queda todo."
+    },
+    {
+      "pregunta": "¿Qué pasa si el proyecto se retrasa?",
+      "respuesta": "Por eso conviene una cotización con tiempos y responsabilidades de cada parte; así queda claro qué hacer si alguien se retrasa."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/nosotros",
+      "texto": "Quién está detrás de Nexus"
+    },
+    {
+      "ruta": "/como-elegir-agencia-de-diseno-web",
+      "texto": "Cómo elegir una agencia de diseño web"
+    },
+    {
+      "ruta": "/preguntas-antes-de-contratar-una-pagina-web",
+      "texto": "Preguntas antes de contratar una página web"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:316914ea305a4dd3dd29a40b7996a374ca621dc78496daee1916c28b75d745f5",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:316914ea305a4dd3dd29a40b7996a374ca621dc78496daee1916c28b75d745f5"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 651,
+    "similitud_max": 0.021,
+    "parecida_a": "/como-elegir-agencia-de-diseno-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:08c35e2c65f492694e9e30bd46894bcd0a84bcf8b81140b9e4a912d8cb165861",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

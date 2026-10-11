@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "preguntas-antes-de-contratar-una-pagina-web",
+  "cliente": "nexus",
+  "ruta": "/preguntas-antes-de-contratar-una-pagina-web",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "Preguntas antes de contratar una página web",
+  "descripcion": "Las preguntas que conviene hacer antes de contratar una página web: alcance, tiempos, textos, dominio, medición, seguridad, cambios y costos recurrentes.",
+  "h1": "Preguntas antes de contratar una página web",
+  "respuesta_rapida": [
+    "Pregunta qué incluye exactamente, cuánto tarda y cuántos cambios están incluidos.",
+    "Pregunta a nombre de quién queda el dominio y si tendrás todos los accesos.",
+    "Pregunta cómo se mide si la página trae clientes.",
+    "Pregunta cuánto cuesta mantenerla y hacer cambios después."
+  ],
+  "secciones": [
+    {
+      "titulo": "Sobre el alcance",
+      "parrafos": [
+        "¿Cuántas páginas o secciones incluye? ¿Qué funciones tiene: botón de WhatsApp, formulario, agenda, catálogo, tienda, asistente? ¿Es un diseño propio o una plantilla? ¿En qué tecnología se construye? ¿Se ve bien en celular?",
+        "Estas preguntas evitan la sorpresa más común: esperar algo distinto de lo que se entregó.",
+        "Pregunta también si la página va a estar preparada para crecer: agregar servicios, una tienda o un asistente más adelante sin tener que rehacerla. Un sitio que no puede crecer obliga a gastar de nuevo en uno o dos años."
+      ]
+    },
+    {
+      "titulo": "Sobre los tiempos",
+      "parrafos": [
+        "¿Cuánto tarda desde que pago el anticipo? ¿Qué etapas hay y cuándo apruebo cada una? ¿Qué necesitan de mí y para cuándo? ¿Qué pasa si me tardo en enviar contenido?",
+        "Saber esto desde el principio ayuda a planear, sobre todo si necesitas la página para una fecha concreta.",
+        "Y pregunta qué pasa si el proveedor se retrasa: si hay alguna compensación o, al menos, un compromiso de comunicación clara sobre los avances."
+      ]
+    },
+    {
+      "titulo": "Sobre el contenido",
+      "parrafos": [
+        "¿Quién escribe los textos? ¿Están pensados para que Google entienda qué hago? ¿Quién toma o consigue las fotos? ¿Puedo cambiar textos y fotos yo mismo después?",
+        "El contenido es lo que convence al cliente; no debería ser un tema secundario en la cotización.",
+        "Si el proveedor escribe los textos, pide que te los muestre antes de publicar para revisar que todo lo que dicen sea cierto: servicios, horarios, años de experiencia, zonas. Un texto bonito con datos equivocados genera desconfianza."
+      ]
+    },
+    {
+      "titulo": "Sobre la propiedad",
+      "parrafos": [
+        "¿El dominio queda a mi nombre? ¿Tendré acceso al hosting y al panel? ¿Me entregan el código o los archivos si me voy? ¿Qué pasa con mi página si dejo de trabajar con ustedes?",
+        "Si alguna respuesta es ambigua, pide que se aclare por escrito antes de pagar.",
+        "Pide también que te expliquen cómo entrar a cada cuenta y que te den las contraseñas en un formato seguro, para que puedas guardarlas tú."
+      ]
+    },
+    {
+      "titulo": "Sobre los resultados",
+      "parrafos": [
+        "¿Cómo voy a saber si la página trae clientes? ¿Se miden los clics a WhatsApp, las llamadas y los formularios? ¿La página queda lista para conectarse con Search Console y con Google Ads?",
+        "Una página que no se mide es una página de la que no se puede aprender."
+      ]
+    },
+    {
+      "titulo": "Sobre el después",
+      "parrafos": [
+        "¿Cuánto cuesta el dominio y el hospedaje al año? ¿Hay mantenimiento incluido? ¿Cómo pido cambios y cuánto cuestan? ¿Qué pasa si algo deja de funcionar? ¿Cómo se maneja la seguridad?",
+        "Los costos recurrentes deben conocerse desde el principio, no al recibir la primera factura de renovación."
+      ]
+    },
+    {
+      "titulo": "Nuestras respuestas",
+      "parrafos": [
+        "En Nexus respondemos todo esto por escrito: alcance claro, entrega de dos a cuatro semanas desde la dirección aprobada, textos a partir de una conversación contigo, dominio y accesos a tu nombre, WhatsApp medido y seguridad desde el primer día. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Y si el proveedor no quiere responder por escrito?",
+      "respuesta": "Es una señal de alerta. Una cotización seria no tiene nada que ocultar."
+    },
+    {
+      "pregunta": "¿Debo pedir referencias?",
+      "respuesta": "Sí, y revisar los sitios que hicieron. Si puedes hablar con algún cliente, mejor."
+    },
+    {
+      "pregunta": "¿Qué pregunta es la más importante?",
+      "respuesta": "A nombre de quién queda el dominio. Es la que más problemas evita."
+    },
+    {
+      "pregunta": "¿Hay una lista para imprimir?",
+      "respuesta": "Puedes usar nuestra herramienta gratuita de checklist de página web por giro."
+    },
+    {
+      "pregunta": "¿Debo preguntar por la seguridad de la página?",
+      "respuesta": "Sí: si usa HTTPS, cómo se protege contra ataques y quién se encarga de las actualizaciones."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/que-incluye-una-cotizacion-de-pagina-web",
+      "texto": "Qué debe incluir una cotización de página web"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:4be9cf2360e67615c74621b31ca3b14ba43af15d36d306f780f24dc8028c5326",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:4be9cf2360e67615c74621b31ca3b14ba43af15d36d306f780f24dc8028c5326"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 622,
+    "similitud_max": 0.008,
+    "parecida_a": "/que-incluye-una-cotizacion-de-pagina-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:836e3c32c19d7bdf0e840b9600b64eeed983aa6b501764e2f1cb513982d0d664",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

@@ -37,6 +37,7 @@ const PROHIBIDAS = [
   [/sin riesgo/i, "promete ausencia de riesgo"],
   [/libertad (asegurada|garantizada|segura)/i, "promete la libertad"],
   [/resultados? asegurad/i, "promete resultados"],
+  [/primer lugar (en|de) google|primera posici[oó]n (en|de) google|top ?1 (en|de) google/i, "promete una posición en Google"],
   [/éxito asegurado|exito asegurado/i, "promete resultados"],
 ];
 
@@ -46,9 +47,15 @@ function sustituirZona(t, zona) {
 
 function enlacesSugeridos(candidato, perfil, existentes) {
   const out = [];
+  // Un portafolio curado declara sus enlaces página por página: van primero.
+  for (const ruta of candidato.enlaces ?? []) {
+    if (out.some((o) => o.ruta === ruta)) continue;
+    const s = perfil.servicios.find((x) => x.ruta === ruta);
+    out.push({ ruta, texto: s?.nombre ?? candidato.textos_enlaces?.[ruta] ?? ruta });
+  }
   const servicio = perfil.servicios.find((s) => s.slug === candidato.servicio);
-  if (servicio) out.push({ ruta: servicio.ruta, texto: servicio.nombre });
-  const situacion = SITUACIONES[perfil.rubro].find((s) => s.slug === candidato.situacion);
+  if (servicio && !out.some((o) => o.ruta === servicio.ruta)) out.push({ ruta: servicio.ruta, texto: servicio.nombre });
+  const situacion = (SITUACIONES[perfil.rubro] ?? []).find((s) => s.slug === candidato.situacion);
   for (const sv of situacion?.servicios ?? []) {
     const s = perfil.servicios.find((x) => x.slug === sv);
     if (s && !out.some((o) => o.ruta === s.ruta)) out.push({ ruta: s.ruta, texto: s.nombre });
@@ -166,6 +173,8 @@ export async function forjarPagina(candidato, perfil, { redactor, conocimiento =
     servicio: candidato.servicio,
     zona: candidato.zona,
     situacion: candidato.situacion,
+    // Un portafolio curado agrupa sus páginas para los índices del sitio.
+    grupo: candidato.grupo ?? null,
     ...contenido,
     enlaces: brief.enlaces,
     datos_locales: datosLocales,

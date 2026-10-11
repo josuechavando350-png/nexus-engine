@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-marcas-de-mezcal",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-marcas-de-mezcal",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Página web para marcas de mezcal",
+  "descripcion": "Sitios para marcas de mezcal y destilados: historia del maestro mezcalero, fichas por agave, venta con verificación de edad, distribuidores y exportación.",
+  "h1": "Página web para marcas de mezcal",
+  "respuesta_rapida": [
+    "Una marca de mezcal vende origen: el maestro mezcalero, el agave, la región y el proceso.",
+    "Cada expresión necesita su ficha: agave, edad, graduación, proceso y notas de cata.",
+    "La venta de alcohol en línea requiere verificación de edad y avisos de consumo responsable.",
+    "Una sección para bares, tiendas y distribuidores abre el canal de mayoreo y exportación."
+  ],
+  "secciones": [
+    {
+      "titulo": "El origen es la marca",
+      "parrafos": [
+        "En un mercado lleno de etiquetas, lo que distingue a un mezcal es su historia verdadera: quién lo produce, en qué palenque, con qué agaves, cómo se cuece, se muele y se destila. El consumidor que busca mezcal artesanal o ancestral quiere sentir que conoce el lugar. Una página que cuenta eso con fotografía real del proceso vale más que cualquier campaña.",
+        "La historia debe ser honesta y verificable. Exagerar el origen o el proceso es un riesgo para la reputación en una comunidad de consumidores muy informada."
+      ]
+    },
+    {
+      "titulo": "Fichas por expresión",
+      "parrafos": [
+        "Espadín, tobalá, cuishe, tepeztate, ensambles. Cada expresión con su ficha: tipo de agave, edad de la planta, región, maestro mezcalero, proceso de cocción y molienda, tipo de destilación, graduación, categoría según la norma y notas de cata. Esa información la buscan bartenders, coleccionistas y compradores de tiendas especializadas.",
+        "Una ficha completa, escrita por la marca, también ayuda a que Google entienda tu catálogo y te muestre en búsquedas específicas."
+      ]
+    },
+    {
+      "titulo": "Venta en línea responsable",
+      "parrafos": [
+        "Vender alcohol en línea exige verificar la mayoría de edad al entrar al sitio y en la compra, incluir mensajes de consumo responsable y respetar las restricciones de envío. Las paqueterías tienen reglas propias para bebidas alcohólicas, y conviene explicarlas al comprador junto con costos y tiempos.",
+        "Si no vendes directo al consumidor, la página puede mostrar dónde comprar: tiendas, bares y restaurantes que tienen tu mezcal."
+      ]
+    },
+    {
+      "titulo": "Canal de mayoreo y exportación",
+      "parrafos": [
+        "Una sección para bares, restaurantes, tiendas y distribuidores, con condiciones generales, formatos disponibles y un formulario de contacto comercial, atrae pedidos grandes. Si exportas o buscas hacerlo, una versión en inglés con información sobre certificaciones y capacidad de producción abre conversaciones con importadores.",
+        "Para estos compradores, una ficha técnica descargable de cada producto es una gran ayuda."
+      ]
+    },
+    {
+      "titulo": "Visitas y experiencias",
+      "parrafos": [
+        "Muchas marcas reciben visitas al palenque o organizan catas. Una página con fechas, cupo, precio y forma de reservar convierte ese interés en ingresos y en embajadores de la marca. Las fotos de visitantes en el palenque, con su permiso, son contenido valioso.",
+        "Las catas para empresas o eventos privados son otra línea que merece su espacio."
+      ]
+    },
+    {
+      "titulo": "Diseño con identidad",
+      "parrafos": [
+        "La estética de la página debe continuar la de la botella: tipografía, colores, texturas, tono de los textos. Una marca de mezcal con un sitio genérico pierde lo que construyó en su etiqueta. Al mismo tiempo, la velocidad y la claridad no se negocian: el comprador necesita encontrar el producto y comprar sin perderse.",
+        "Fotografía real del agave, del horno, de la tahona y de las manos del maestro mezcalero es irremplazable."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para marcas de mezcal con fichas por expresión, verificación de edad, venta en línea y sección de mayoreo. Los paquetes van de $1,999 a $44,800 MXN según si incluyes tienda, versión en inglés y asistente."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo vender mezcal en línea en todo México?",
+      "respuesta": "Sí, cumpliendo verificación de edad y las reglas de las paqueterías. Algunas zonas tienen restricciones; conviene revisarlas y explicarlas en la página."
+    },
+    {
+      "pregunta": "¿Conviene tener versión en inglés?",
+      "respuesta": "Si buscas compradores internacionales o turistas, sí. El mezcal tiene un público grande fuera de México."
+    },
+    {
+      "pregunta": "¿Cómo muestro dónde se vende mi mezcal?",
+      "respuesta": "Con un mapa o una lista de puntos de venta que puedas actualizar, útil para quien no quiere comprar en línea."
+    },
+    {
+      "pregunta": "¿Qué incluye una ficha técnica?",
+      "respuesta": "Agave, edad, región, proceso, graduación, categoría, presentaciones y notas de cata, lista para descargar."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-tienda-en-linea",
+      "texto": "¿Cuánto cuesta una tienda en línea?"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:d567205c42ab274b77e48c272b8e29a9f35cd251647f081e131b2883a10fc551",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:d567205c42ab274b77e48c272b8e29a9f35cd251647f081e131b2883a10fc551"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 634,
+    "similitud_max": 0.007,
+    "parecida_a": "/pagina-web-para-joyerias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:559567b55befb01bf69a151c2b03f95299e25f1daa735f039c8c7ef980079f4e",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "id": "landing-page-para-anuncios",
+  "cliente": "nexus",
+  "ruta": "/landing-page-para-anuncios",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "Landing page para anuncios: qué debe tener",
+  "descripcion": "Qué debe tener una landing page para anuncios de Google o redes: titular alineado al anuncio, prueba de confianza, una acción clara, velocidad y medición.",
+  "h1": "Landing page para anuncios: qué debe tener",
+  "respuesta_rapida": [
+    "Un titular que repita lo que el visitante buscó o vio en el anuncio.",
+    "Una sola acción clara, repetida: WhatsApp, llamada, cita o compra.",
+    "Pruebas de confianza reales: fotos, reseñas, casos.",
+    "Rápida en celular y con cada conversión medida."
+  ],
+  "secciones": [
+    {
+      "titulo": "El anuncio promete, la landing cumple",
+      "parrafos": [
+        "Cuando alguien hace clic en un anuncio, ya te dijo qué quiere. Si el anuncio hablaba de implantes dentales y lo llevas a la portada general de la clínica, tiene que buscar de nuevo lo que le interesaba, y muchos no lo hacen. Una landing page es la página que continúa exactamente la conversación que empezó el anuncio.",
+        "Cada peso invertido en anuncios rinde más cuando la página de destino cumple lo que el anuncio prometió."
+      ]
+    },
+    {
+      "titulo": "El titular",
+      "parrafos": [
+        "El titular debe repetir, con otras palabras, lo que la persona buscó o vio. Si buscó abogado laboral para despido, el titular habla de despidos. Si vio un anuncio de una promoción, la promoción está arriba. Esa coincidencia le confirma al visitante que llegó al lugar correcto en el primer segundo.",
+        "Debajo, una frase que explique el beneficio principal y un botón con la acción.",
+        "Si el anuncio mencionaba un precio, una promoción o una zona, la landing debe repetirlo arriba. Cuando el visitante no encuentra lo que el anuncio prometió, siente que lo engañaron y se va."
+      ]
+    },
+    {
+      "titulo": "Una sola acción",
+      "parrafos": [
+        "La landing tiene un objetivo: que la persona escriba, llame, agende o compre. Todo en la página empuja hacia esa acción, que se repite en varios puntos. Se quitan menús, enlaces a otras secciones y distracciones que alejan del objetivo.",
+        "En México, para servicios locales, la acción que más convierte suele ser WhatsApp."
+      ]
+    },
+    {
+      "titulo": "Confianza y dudas",
+      "parrafos": [
+        "Después del titular, el visitante necesita razones para confiar: fotos reales, reseñas, casos, credenciales, garantías verdaderas. Y respuestas a las dudas que lo frenan: cuánto cuesta, cuánto tarda, cómo funciona, qué pasa si no le convence.",
+        "Cada duda sin responder es un motivo para irse.",
+        "En servicios donde el cliente teme equivocarse, como reparaciones, salud o asuntos legales, explicar paso a paso qué pasa después de escribir reduce mucho la ansiedad y aumenta los contactos."
+      ]
+    },
+    {
+      "titulo": "Velocidad y medición",
+      "parrafos": [
+        "Una landing lenta desperdicia el clic que ya pagaste. Debe cargar en segundos en celular, con imágenes optimizadas y sin elementos pesados. Y cada conversión, sea un clic a WhatsApp, una llamada o un formulario, debe medirse y enviarse a la plataforma de anuncios para que optimice hacia lo que funciona.",
+        "Sin medición, la campaña aprende a conseguir clics, no clientes."
+      ]
+    },
+    {
+      "titulo": "Una landing por oferta",
+      "parrafos": [
+        "Si anuncias varios servicios, cada uno necesita su landing. Una sola página genérica para todos los anuncios convierte peor. Las landings pueden vivir dentro de tu dominio, compartir diseño y cambiar solo el contenido, lo que facilita mantenerlas.",
+        "Con el tiempo, comparar las conversiones de cada landing te dice qué servicios y mensajes funcionan mejor."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Con Nexus Cortex diseñamos landings alineadas a cada campaña, medidas y conectadas a Google Ads para invertir donde existe mayor probabilidad de convertir. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿La landing debe tener menú?",
+      "respuesta": "Generalmente no, para no distraer. Puede tener un enlace discreto al sitio principal."
+    },
+    {
+      "pregunta": "¿Formulario o WhatsApp en la landing?",
+      "respuesta": "Para servicios locales en México, WhatsApp suele convertir más; para empresas, a veces el formulario."
+    },
+    {
+      "pregunta": "¿Cuánto texto debe tener?",
+      "respuesta": "El suficiente para resolver las dudas que frenan la decisión, ordenado de lo más importante a lo menos."
+    },
+    {
+      "pregunta": "¿Sirve para anuncios de redes?",
+      "respuesta": "Sí, con el mismo principio: continuar exactamente lo que prometió el anuncio."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/landing-page-vs-sitio-completo",
+      "texto": "Landing page vs. sitio completo: qué necesitas"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:ffaf55531077e472ff254f7289b777f3c499660caf3de327a2c18514964bd529",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:ffaf55531077e472ff254f7289b777f3c499660caf3de327a2c18514964bd529"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 602,
+    "similitud_max": 0.018,
+    "parecida_a": "/cuanto-invertir-en-google-ads-negocio-local"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:e06bec3979bdee81a2ca5cf8cfc9a6f9220ae7c931e29b96928e42e274b70415",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

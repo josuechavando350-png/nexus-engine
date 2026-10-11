@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "diseno-de-paginas-web-en-cdmx",
+  "cliente": "nexus",
+  "ruta": "/diseno-de-paginas-web-en-cdmx",
+  "tipo": "CIUDAD",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Ciudades",
+  "titulo": "Diseño de páginas web en CDMX",
+  "descripcion": "Diseño de páginas web para negocios en la Ciudad de México: rápidas en celular, pensadas para búsquedas por zona, con WhatsApp medible y dominio a tu nombre.",
+  "h1": "Diseño de páginas web para negocios en la CDMX",
+  "respuesta_rapida": [
+    "En la Ciudad de México compites con muchos negocios: tu página tiene que distinguirse y cargar rápido.",
+    "Las búsquedas son por zona: alcaldía, colonia o cerca de mí.",
+    "Una página clara, una ficha de Google cuidada y WhatsApp medible trabajan juntas.",
+    "Nexus Bot Studio está en la CDMX; los paquetes de sitio van desde $1,999 MXN."
+  ],
+  "secciones": [
+    {
+      "titulo": "Competir en una ciudad enorme",
+      "parrafos": [
+        "En la Ciudad de México, casi cualquier búsqueda tiene decenas de negocios compitiendo. Tu cliente abre varias páginas, compara en segundos y escribe al que le transmite confianza más rápido. Una página genérica, lenta o confusa queda fuera antes de que alguien lea lo que haces.",
+        "Por eso aquí el diseño no es decoración: es la diferencia entre que tu negocio se vea como una opción seria o como uno más de la lista."
+      ]
+    },
+    {
+      "titulo": "Búsquedas por zona",
+      "parrafos": [
+        "En una ciudad tan grande, la gente busca cerca: por alcaldía, por colonia o con frases como cerca de mí. Nadie cruza la ciudad por un servicio que encuentra a diez minutos. Tu página y tu ficha de Google deben dejar claro dónde estás y qué zonas atiendes.",
+        "Si atiendes varias zonas, explica de verdad cómo las atiendes: a domicilio, en sucursales o en línea. Crear páginas idénticas cambiando solo el nombre de la colonia no ayuda y puede perjudicarte; lo que sirve es contenido útil y real para cada lugar donde trabajas."
+      ]
+    },
+    {
+      "titulo": "Ficha de Google y página trabajando juntas",
+      "parrafos": [
+        "Para muchas búsquedas locales, lo primero que aparece es el mapa. Una ficha de Google bien cuidada, con datos correctos, fotos reales y reseñas que pides a todos tus clientes, te pone en la conversación. Tu página es la que termina de convencer.",
+        "Cuando la ficha y la página dicen lo mismo, con el mismo nombre, dirección y teléfono, Google entiende mejor quién eres y tu cliente también."
+      ]
+    },
+    {
+      "titulo": "Rápida en celular",
+      "parrafos": [
+        "Buena parte de las visitas en la ciudad llegan desde el celular, muchas veces en movimiento y con datos móviles. Una página que tarda en cargar pierde a esa persona en el semáforo. La velocidad, los botones grandes y un acceso directo a WhatsApp o a la llamada hacen que el contacto ocurra.",
+        "Google recomienda que el elemento principal de la página se muestre en 2.5 segundos o menos. Es una meta alcanzable con una página bien construida."
+      ]
+    },
+    {
+      "titulo": "Un caso en la Ciudad de México",
+      "parrafos": [
+        "CANO Estrategia Penal, despacho de defensa penal del Lic. Eduardo Cano en la Ciudad de México, tenía su sitio en Wix. Construimos uno nuevo a medida, conservando su dominio, sin tumbar el correo del despacho y manteniendo la medición de Google Ads. Su PageSpeed móvil quedó en 99 de rendimiento, 99 de accesibilidad, 100 de buenas prácticas y 100 de SEO.",
+        "Su testimonio: Josué, te quedó perfecto, me encantó, muchas gracias por tan buen trabajo."
+      ]
+    },
+    {
+      "titulo": "Cómo trabajamos y cuánto cuesta",
+      "parrafos": [
+        "Nexus Bot Studio es el proyecto de un fundador en la Ciudad de México, con enfoque en ciberseguridad. El primer contacto es por WhatsApp, con pocas preguntas. Presentamos una dirección visual pensada para tu negocio y, con ella aprobada, construimos en un plazo de dos a cuatro semanas según alcance y contenido.",
+        "Los paquetes de sitio cuestan $1,999, $3,499, $9,999, $19,999 y $44,800 MXN. Desde $9,999 incluyen chatbot con inteligencia artificial. Dominio, hosting y accesos quedan a tu nombre."
+      ]
+    },
+    {
+      "titulo": "Diagnóstico gratuito",
+      "parrafos": [
+        "Si ya tienes página, la revisamos y te decimos con franqueza si conviene optimizarla o rehacerla. Si no tienes, te recomendamos el paquete que tiene sentido para tu negocio. Sin presión y sin paquetes genéricos. No prometemos posiciones en Google: construimos la base para competir bien."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Tienen oficina en la CDMX?",
+      "respuesta": "Nexus Bot Studio es un proyecto de un fundador en la Ciudad de México que trabaja de forma remota, con contacto directo por WhatsApp."
+    },
+    {
+      "pregunta": "¿Cuánto tarda mi página?",
+      "respuesta": "Entre dos y cuatro semanas desde que se aprueba la dirección visual, según alcance y contenido disponible."
+    },
+    {
+      "pregunta": "¿Me ayudan a aparecer en Google Maps?",
+      "respuesta": "Sí. Revisamos tu ficha y la conectamos con tu página para que ambas digan lo mismo."
+    },
+    {
+      "pregunta": "¿El dominio queda a mi nombre?",
+      "respuesta": "Sí. Dominio, hosting y accesos quedan bajo tu control, aunque dejes de trabajar con nosotros."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/casos/cano-estrategia-penal",
+      "texto": "Caso: CANO Estrategia Penal"
+    },
+    {
+      "ruta": "/industrias",
+      "texto": "Páginas y sistemas por industria"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-pagina-web-en-mexico",
+      "texto": "¿Cuánto cuesta una página web en México?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:4bbec4da0ac490dd10b51b94048ec84cbec401569cfbbac0f5b00a3d8d90bd22",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:4bbec4da0ac490dd10b51b94048ec84cbec401569cfbbac0f5b00a3d8d90bd22"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 704,
+    "similitud_max": 0.092,
+    "parecida_a": "/diseno-de-paginas-web-en-colima"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:5f0e6faaf36461e854198bedccac737af5b707303153e742080cce71ac1f1eaa",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

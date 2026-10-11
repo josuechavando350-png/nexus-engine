@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "dominio-com-o-com-mx",
+  "cliente": "nexus",
+  "ruta": "/dominio-com-o-com-mx",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "¿Dominio .com o .com.mx para tu negocio?",
+  "descripcion": "Diferencias entre un dominio .com, .mx y .com.mx para negocios en México: confianza, disponibilidad, posicionamiento local y cómo proteger tu marca.",
+  "h1": "¿Dominio .com o .com.mx para tu negocio?",
+  "respuesta_rapida": [
+    "Si tu negocio atiende solo en México, un .mx o .com.mx comunica cercanía local.",
+    "Si vendes fuera de México o quieres una marca más global, el .com es la opción más reconocida.",
+    "Lo más importante es que sea corto, fácil de dictar por teléfono y que esté a tu nombre.",
+    "Si puedes, registra las variantes principales y redirígelas a tu dominio principal."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo que comunica cada terminación",
+      "parrafos": [
+        "La terminación del dominio es lo que va después del punto. El punto com es la más conocida en el mundo y la que la gente escribe por costumbre. Las terminaciones de México, punto mx y punto com punto mx, le dicen al visitante que el negocio es mexicano y atiende aquí.",
+        "Para un negocio local, cualquiera de las dos funciona. Lo que más importa es la claridad del nombre que va antes del punto."
+      ]
+    },
+    {
+      "titulo": "Posicionamiento en Google",
+      "parrafos": [
+        "Google usa varias señales para entender a qué país está dirigido un sitio. Una terminación de México es una de ellas, pero no la única ni la decisiva: el idioma, la dirección, el perfil de empresa y el contenido local pesan mucho. Un punto com con contenido local bien trabajado puede posicionar perfectamente en México.",
+        "Si piensas expandirte a otros países, el punto com te da más flexibilidad."
+      ]
+    },
+    {
+      "titulo": "Disponibilidad",
+      "parrafos": [
+        "Muchos nombres cortos en punto com ya están ocupados. A veces el mismo nombre está libre en punto mx o punto com punto mx, lo que permite tener un dominio corto en lugar de uno largo con guiones o palabras extra. Un dominio corto y claro en terminación mexicana suele ser mejor que uno largo y confuso en punto com.",
+        "Antes de decidir el nombre de tu negocio, revisa qué dominios están disponibles."
+      ]
+    },
+    {
+      "titulo": "Fácil de dictar",
+      "parrafos": [
+        "Una prueba útil: díctale tu dominio a alguien por teléfono. Si tienes que deletrear, explicar guiones o aclarar si es con s o con z, el dominio va a generar errores. Evita guiones, números y palabras con ortografía dudosa.",
+        "También piensa en tu correo: un dominio largo hace largas todas las direcciones de correo del negocio."
+      ]
+    },
+    {
+      "titulo": "Proteger tu marca",
+      "parrafos": [
+        "Si tu marca es importante, conviene registrar las variantes principales, como punto com y punto mx, y redirigirlas a tu dominio principal. Así evitas que alguien registre la variante para aprovecharse de tu nombre o para confundir a tus clientes.",
+        "El costo de registrar algunas variantes es bajo comparado con el riesgo."
+      ]
+    },
+    {
+      "titulo": "A nombre de quién",
+      "parrafos": [
+        "Sea cual sea la terminación, el dominio debe estar registrado a tu nombre o al de tu empresa, con un correo que revises y con la renovación automática activada. Muchos negocios han perdido su dominio porque lo registró un proveedor a su propio nombre o porque se venció sin que se dieran cuenta.",
+        "Guarda los accesos del registrador en un lugar seguro."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Te ayudamos a elegir y registrar tu dominio, siempre a tu nombre, y configuramos las variantes y el correo si lo necesitas. Los paquetes van de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Un punto mx es menos confiable?",
+      "respuesta": "No. Para clientes en México comunica cercanía; lo que genera confianza es el sitio y el negocio detrás."
+    },
+    {
+      "pregunta": "¿Puedo cambiar de dominio después?",
+      "respuesta": "Sí, con redirecciones bien hechas para no perder posicionamiento, pero es mejor elegir bien desde el principio."
+    },
+    {
+      "pregunta": "¿Sirven las terminaciones nuevas como punto tienda o punto online?",
+      "respuesta": "Funcionan técnicamente, pero son menos conocidas y la gente puede confundirse al escribirlas."
+    },
+    {
+      "pregunta": "¿Cuánto cuesta registrar un dominio?",
+      "respuesta": "Depende de la terminación y del proveedor; revisa también el precio de renovación, no solo el del primer año."
+    },
+    {
+      "pregunta": "¿El dominio influye en cómo me ven los clientes?",
+      "respuesta": "Sí, un dominio claro y profesional transmite seriedad, sobre todo cuando aparece en tu correo y en tus tarjetas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/cuanto-cuesta-un-dominio-y-hosting",
+      "texto": "Dominio y hosting: qué son y cuánto cuestan"
+    },
+    {
+      "ruta": "/correo-con-dominio-propio",
+      "texto": "Correo con dominio propio para tu negocio"
+    },
+    {
+      "ruta": "/quien-es-dueno-de-mi-pagina-web",
+      "texto": "¿Quién es dueño de tu página web y tu dominio?"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:ece43235f03aa9039719f56b87ef657214f31e974f6e2a54a5527c5191f2ee52",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:ece43235f03aa9039719f56b87ef657214f31e974f6e2a54a5527c5191f2ee52"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 627,
+    "similitud_max": 0.01,
+    "parecida_a": "/quien-es-dueno-de-mi-pagina-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:6c520098296911bea8554eb2ba80816d59e059eead006c95b5f0c3b6e38b2fd8",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

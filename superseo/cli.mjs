@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { SuperSeoError } from "./core/canonical.mjs";
 import { PLANES, RUBROS } from "./core/catalogo.mjs";
 import { buscarCliente, cargarCartera, guardarPerfil } from "./core/cartera.mjs";
-import { cargarConocimiento, cargarPaginas, cargarSitio, dirCliente, guardarPagina } from "./core/almacen.mjs";
+import { cargarConocimiento, cargarPaginas, cargarPortafolio, cargarSitio, dirCliente, guardarPagina } from "./core/almacen.mjs";
 import { construirEstrategia } from "./core/estratega.mjs";
 import { cambiarEstado, cambiarInsumo, cambiarPlan, resolverExposicion } from "./core/interruptor.mjs";
 import { mapaDeConflictos } from "./core/territorio.mjs";
@@ -19,7 +19,7 @@ import { construirSolicitud, ejecutarAvengers, resumirRecibos } from "./cerebro/
 import { CAPACIDAD_POR_PLAN, priorizarLote } from "./cerebro/priorizar.mjs";
 import { forjarPagina, revalidar } from "./manos/forja.mjs";
 import { aprobar } from "./manos/pagina.mjs";
-import { redactorAnthropic, redactorManual } from "./manos/redactores.mjs";
+import { idsDelArchivoManual, redactorAnthropic, redactorManual } from "./manos/redactores.mjs";
 import { construirPaquete, escribirPaquete } from "./manos/publicar.mjs";
 import { entradasSitemap, enviarIndexNow, planEnlacesInternos } from "./manos/indexacion.mjs";
 import { compararResumenes, resumirSitio } from "./tercer-ojo/vigia.mjs";
@@ -96,7 +96,21 @@ function cargarObservatorio() {
 function demandaDe(perfil, args, { snapshot = null, searchConsole = [] } = {}) {
   const archivoVol = opcion(args, "--volumenes");
   const volumenes = archivoVol ? leerKeywordPlanner(readFileSync(resolve(archivoVol), "utf8")) : [];
-  return minarDemanda(perfil, { snapshot, volumenes, searchConsole });
+  return minarDemanda(perfil, { snapshot, volumenes, searchConsole, portafolio: cargarPortafolio(perfil.id) });
+}
+
+// Rutas que existen en el sitio: servicios, rastreo y, en entrega ZIP, las declaradas en sitio.json.
+function rutasDelSitio(perfil, snapshot) {
+  const sitio = cargarSitio(perfil.id);
+  return [...new Set([...rutasExistentes({ snapshot, perfil }), ...Object.keys(sitio?.rutas ?? {})])];
+}
+
+// Texto visible de cada enlace: nombre del servicio, de la ruta declarada o título de la página.
+function textosDeEnlaces(perfil) {
+  const sitio = cargarSitio(perfil.id);
+  const textos = { ...(sitio?.rutas ?? {}) };
+  for (const p of cargarPortafolio(perfil.id)) textos[`/${p.id}`] = p.titulo;
+  return textos;
 }
 
 function textosDelSitio(snapshot) {
@@ -211,12 +225,18 @@ async function main(argv) {
     const existentesPaginas = cargarPaginas(id);
     const demanda = demandaDe(perfil, args, { snapshot: snapshotDado });
     const paginaPedida = opcion(args, "--pagina");
-    const candidatos = paginaPedida
+    const delArchivo = tipo === "manual" ? idsDelArchivoManual(resolve(opcion(args, "--archivo"))) : null;
+    const textos = textosDeEnlaces(perfil);
+    const candidatos = (paginaPedida
       ? demanda.candidatos.filter((c) => c.id === paginaPedida)
-      : priorizarLote(demanda, { plan: perfil.plan, hayDatosLocales: Boolean(obs?.verificacion?.ok), excluir: existentesPaginas.map((p) => p.id) }).seleccion.slice(0, entero(args, "--n", 5, 1, 20));
+      : delArchivo
+        ? delArchivo.map((pid) => demanda.candidatos.find((c) => c.id === pid) ?? (() => { throw new SuperSeoError("SIN_CANDIDATO", `${pid} no está en la demanda ni en el portafolio`); })())
+        : priorizarLote(demanda, { plan: perfil.plan, hayDatosLocales: Boolean(obs?.verificacion?.ok), excluir: existentesPaginas.map((p) => p.id) }).seleccion.slice(0, entero(args, "--n", 5, 1, 20))).map((c) => ({ ...c, textos_enlaces: textos }));
     if (!candidatos.length) throw new SuperSeoError("SIN_CANDIDATOS", paginaPedida ? `${paginaPedida} no está entre los candidatos` : "no hay candidatos nuevos");
     const conocimiento = cargarConocimiento(id);
-    const rutas = [...rutasExistentes({ snapshot: snapshotDado, perfil }), ...existentesPaginas.map((p) => p.ruta)];
+    // Las páginas del portafolio cuentan como rutas válidas para enlazar entre sí; al publicar,
+    // un enlace a una página que no salió publicada se omite.
+    const rutas = [...rutasDelSitio(perfil, snapshotDado), ...existentesPaginas.map((p) => p.ruta), ...cargarPortafolio(id).map((p) => `/${p.id}`)];
     const hermanas = [...existentesPaginas];
     for (const c of candidatos) {
       const pagina = await forjarPagina(c, perfil, {
@@ -245,7 +265,7 @@ async function main(argv) {
     const paginas = cargarPaginas(id).filter((p) => !solo || p.id === solo);
     if (solo && !paginas.length) throw new SuperSeoError("PAGINA_NO_EXISTE", solo);
     const todas = cargarPaginas(id);
-    const rutas = [...rutasExistentes({ snapshot: snapshotDado, perfil }), ...todas.map((p) => p.ruta)];
+    const rutas = [...rutasDelSitio(perfil, snapshotDado), ...todas.map((p) => p.ruta), ...cargarPortafolio(id).map((x) => `/${x.id}`)];
     for (const p of paginas) {
       const r = guardarPagina(id, revalidar(p, perfil, { conocimiento: cargarConocimiento(id), existentes: rutas, textosExistentes: textosDelSitio(snapshotDado), hermanas: todas.filter((h) => h.id !== p.id) }));
       process.stdout.write(`${r.estado.padEnd(9)} ${r.ruta}${r.candados.ok ? "" : `  ${r.candados.motivos.join(" | ")}`}\n`);

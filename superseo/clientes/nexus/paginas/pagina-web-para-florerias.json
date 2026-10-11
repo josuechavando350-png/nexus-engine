@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-florerias",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-florerias",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Página web para florerías",
+  "descripcion": "Sitios para florerías: arreglos con precio y foto real, pedidos con fecha y dedicatoria, envíos el mismo día, temporadas altas y eventos.",
+  "h1": "Página web para florerías",
+  "respuesta_rapida": [
+    "La mayoría de los pedidos de flores son urgentes: precio, foto y entrega el mismo día deben verse al instante.",
+    "El pedido debe pedir fecha, dirección, dedicatoria y datos de quien recibe sin complicarse.",
+    "Las temporadas altas concentran ventas: prepara páginas especiales con tiempo.",
+    "Bodas, eventos y funerales son líneas distintas que merecen su propia sección."
+  ],
+  "secciones": [
+    {
+      "titulo": "Un cliente con prisa",
+      "parrafos": [
+        "Quien busca flores casi siempre tiene un motivo con fecha: un cumpleaños que se le olvidó, un aniversario, una disculpa, un pésame. Busca florería a domicilio o envío de flores hoy y elige a quien le muestre rápido arreglos con precio, foto real y la promesa clara de entrega. Si la florería pide escribir para preguntar todo, pierde la venta.",
+        "La página de una florería es casi una tienda de impulso: debe convertir en minutos, desde el celular, con el menor número de pasos posible."
+      ]
+    },
+    {
+      "titulo": "Catálogo con fotos reales",
+      "parrafos": [
+        "Arreglos por ocasión y por precio, con fotos de arreglos que tú hiciste, no de catálogos de internet. El cliente que recibe algo distinto a la foto deja una mala reseña, y en este giro las reseñas pesan mucho. Indicar qué flores lleva cada arreglo y que pueden variar según temporada es honesto y evita reclamos.",
+        "Organizar por ocasión, como amor, cumpleaños, nacimiento, condolencias y agradecimiento, ayuda a decidir rápido."
+      ]
+    },
+    {
+      "titulo": "Pedidos completos en un paso",
+      "parrafos": [
+        "El pedido debe recoger fecha y horario de entrega, dirección, nombre y teléfono de quien recibe, dedicatoria y si es sorpresa. Un asistente de WhatsApp puede pedir estos datos en orden, confirmar el total con el envío y recibir el comprobante de pago, a cualquier hora.",
+        "La confirmación de entrega con una foto del arreglo antes de salir es un detalle que los clientes valoran mucho."
+      ]
+    },
+    {
+      "titulo": "Temporadas altas",
+      "parrafos": [
+        "San Valentín, Día de las Madres y fin de año concentran buena parte de las ventas del año en pocos días. Una página especial para cada temporada, publicada con semanas de anticipación, con preventa y fechas de entrega confirmadas por zona, te pone en la lista de quien planea y reduce el caos del último día.",
+        "Cerrar pedidos a tiempo cuando la capacidad se llena, de forma automática, protege la calidad y tu reputación."
+      ]
+    },
+    {
+      "titulo": "Eventos y funerales",
+      "parrafos": [
+        "Las bodas, los eventos corporativos y las coronas fúnebres son servicios distintos, con clientes y tiempos distintos. Cada uno merece su sección: para bodas, galería de montajes y cita para cotizar; para funerales, envío rápido a capillas y un trato sobrio y respetuoso.",
+        "Las empresas que envían flores con frecuencia pueden tener un canal propio con facturación."
+      ]
+    },
+    {
+      "titulo": "Zonas y costos de envío",
+      "parrafos": [
+        "Una tabla clara de zonas de entrega con su costo y horario evita la pregunta más repetida. Si cubres hospitales, funerarias o zonas de oficinas, mencionarlos ayuda a quien busca enviar a un lugar específico.",
+        "Mantener esos datos idénticos en la página y en Google Maps refuerza la confianza."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios de florería con catálogo, pedidos completos por WhatsApp o en línea, y páginas de temporada. Desde $1,999 MXN; con asistente que toma pedidos desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo cobrar en línea antes de entregar?",
+      "respuesta": "Sí. Se integra pago con tarjeta o transferencia, y el pedido se confirma automáticamente al recibir el pago."
+    },
+    {
+      "pregunta": "¿Cómo manejo los pedidos de último minuto?",
+      "respuesta": "Con un horario límite de pedidos para entrega el mismo día, visible en la página, y el cierre automático cuando se llena la capacidad."
+    },
+    {
+      "pregunta": "¿Puedo vender complementos como globos o chocolates?",
+      "respuesta": "Sí, como opciones dentro del pedido, lo que suele aumentar el valor de cada venta."
+    },
+    {
+      "pregunta": "¿Sirve si solo atiendo en mi colonia?",
+      "respuesta": "Sí. Una florería de barrio con página y perfil de Google bien hechos aparece para quien busca flores cerca."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-florerias",
+      "texto": "Chatbot de WhatsApp para florerías"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-florerias",
+      "texto": "Cómo aparecer en Google Maps: florerías"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-tienda-en-linea",
+      "texto": "¿Cuánto cuesta una tienda en línea?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:c6c6c03cf8b4cdb577c45fddc435a173f08283bed3b8c683b4be0df4cda38550",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:c6c6c03cf8b4cdb577c45fddc435a173f08283bed3b8c683b4be0df4cda38550"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 621,
+    "similitud_max": 0.019,
+    "parecida_a": "/google-ads-para-florerias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:1161efb3dddce35d6acdf074b56fe09925bb72c2b92ac35c9c0c006556b652fd",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

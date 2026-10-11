@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "id": "agenda-de-citas-en-linea-para-spas",
+  "cliente": "nexus",
+  "ruta": "/agenda-de-citas-en-linea-para-spas",
+  "tipo": "AGENTE_IA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Agenda de citas en línea para spas",
+  "descripcion": "Reservas en línea para spas: tratamientos por cabina y terapeuta, paquetes para parejas, certificados de regalo canjeables y recordatorios con indicaciones.",
+  "h1": "Agenda de citas en línea para spas",
+  "respuesta_rapida": [
+    "Las reservas consideran tratamiento, terapeuta y cabina disponible al mismo tiempo.",
+    "Paquetes y experiencias para parejas se reservan con dos terapeutas a la vez.",
+    "Los certificados de regalo se canjean directamente en la agenda.",
+    "Recordatorios con indicaciones para llegar relajado y a tiempo."
+  ],
+  "secciones": [
+    {
+      "titulo": "Agendar en un spa es un rompecabezas",
+      "parrafos": [
+        "Un spa tiene recursos limitados que se combinan: terapeutas con distintas especialidades, cabinas individuales y dobles, áreas de agua, tiempos de preparación entre tratamientos. Agendar a mano es fácil de equivocar, y un error significa una pareja esperando una cabina doble que no está libre o una terapeuta con dos clientes al mismo tiempo.",
+        "Una agenda en línea bien configurada resuelve ese rompecabezas sola y solo ofrece lo que realmente se puede cumplir.",
+        "A eso se suma que muchas reservas llegan fuera de horario, cuando alguien decide regalarse un masaje o planear un día especial con su pareja. Si en ese momento no puede reservar, lo deja para después y muchas veces no vuelve."
+      ]
+    },
+    {
+      "titulo": "Cómo reserva el cliente",
+      "parrafos": [
+        "Desde tu página elige el tratamiento o el paquete, la fecha y, si quiere, la terapeuta. La agenda le muestra los horarios en que hay terapeuta y cabina disponibles para esa duración. Para experiencias de pareja, solo muestra horarios con cabina doble y dos terapeutas libres.",
+        "La reserva puede incluir preguntas importantes, como embarazo, lesiones o alergias, para que el equipo prepare el tratamiento adecuado."
+      ]
+    },
+    {
+      "titulo": "Certificados de regalo integrados",
+      "parrafos": [
+        "Quien recibe un certificado de regalo puede canjearlo directamente en la agenda con su código, eligiendo fecha y hora sin llamar. El sistema descuenta el certificado y evita que se use dos veces. Para el spa, eso significa menos trabajo de recepción en temporadas altas, cuando se venden más certificados.",
+        "También permite ver cuántos certificados vendidos siguen sin canjear."
+      ]
+    },
+    {
+      "titulo": "Recordatorios que ya son parte de la experiencia",
+      "parrafos": [
+        "El recordatorio antes de la cita puede incluir indicaciones útiles: llegar unos minutos antes, qué traer, dónde estacionarse y qué esperar del tratamiento. Es el primer contacto con la experiencia del spa, así que se redacta con el mismo tono pausado de la marca.",
+        "Después de la visita, un mensaje de agradecimiento con el enlace para reseña y una sugerencia para la siguiente visita."
+      ]
+    },
+    {
+      "titulo": "Anticipos y cancelaciones",
+      "parrafos": [
+        "Para tratamientos largos, paquetes de día de spa o reservas en fines de semana, un anticipo en línea reduce las ausencias. La política de cancelación queda escrita en la confirmación y se aplica de forma automática.",
+        "Las reservas de hotel o de grupos pueden tener reglas especiales."
+      ]
+    },
+    {
+      "titulo": "Datos para llenar la agenda",
+      "parrafos": [
+        "La agenda muestra qué tratamientos se piden más, qué horarios se llenan y cuáles quedan vacíos, qué terapeutas tienen más demanda y cuántos clientes regresan. Con esos datos se diseñan promociones para horarios bajos y paquetes que realmente se venden.",
+        "También permite enviar mensajes a clientes que no han vuelto en un tiempo."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos la agenda con tratamientos, terapeutas, cabinas, paquetes y certificados, integrada a tu página. Incluida desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Funciona para spas de hotel?",
+      "respuesta": "Sí, con reglas para huéspedes y para visitantes externos, y cargo a la habitación si el hotel lo permite."
+    },
+    {
+      "pregunta": "¿Puede manejar áreas de agua con cupo?",
+      "respuesta": "Sí, como un recurso con capacidad por horario."
+    },
+    {
+      "pregunta": "¿Las terapeutas ven su agenda?",
+      "respuesta": "Sí, cada una desde su celular."
+    },
+    {
+      "pregunta": "¿Puedo vender membresías?",
+      "respuesta": "Sí, con control de tratamientos incluidos cada mes."
+    },
+    {
+      "pregunta": "¿Puedo tener precios distintos entre semana y fin de semana?",
+      "respuesta": "Sí. La agenda puede mostrar tarifas por día u horario, lo que ayuda a llenar los horarios de menor demanda."
+    },
+    {
+      "pregunta": "¿El cliente puede elegir terapeuta?",
+      "respuesta": "Sí, o dejar que la agenda asigne a la primera disponible con la especialidad adecuada para ese tratamiento."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-spas",
+      "texto": "Página web para spas"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:c61171e03966d991358f5a58f3c3f04697de27a2731b119e03d01455db1ae681",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:c61171e03966d991358f5a58f3c3f04697de27a2731b119e03d01455db1ae681"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 620,
+    "similitud_max": 0.014,
+    "parecida_a": "/agenda-de-citas-en-linea-para-psicologos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:7316472f125200e2674fb9ba1bd411e490360553c54f0516fcba69b2284bf471",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

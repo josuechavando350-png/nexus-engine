@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-notarias",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-notarias",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Chatbot de WhatsApp para notarías",
+  "descripcion": "Asistente de IA para notarías: explica requisitos por trámite, recibe documentos para revisión previa, agenda citas y avisa qué falta antes de la firma.",
+  "h1": "Chatbot de WhatsApp para notarías",
+  "respuesta_rapida": [
+    "La mayoría de las preguntas que recibe una notaría son las mismas: requisitos, horarios, costos y citas.",
+    "El asistente responde esas dudas por trámite y a cualquier hora, con la información de la propia notaría.",
+    "Recibe fotografías de documentos para una revisión previa y avisa qué falta.",
+    "Agenda la cita y manda recordatorios para que nadie llegue sin un papel."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo que satura el teléfono de una notaría",
+      "parrafos": [
+        "¿Qué necesito para hacer mi testamento? ¿Cuánto cuesta un poder? ¿A qué hora abren? ¿Puedo ir sin cita? Son preguntas razonables, pero repetidas decenas de veces al día ocupan a personal que podría estar preparando escrituras. Y fuera de horario quedan sin respuesta, aunque la persona esté lista para agendar.",
+        "Además, una parte de las citas se pierde porque la persona llega sin algún documento y hay que reprogramar. Cada reprogramación es tiempo perdido para la notaría y una mala experiencia para el cliente."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Pregunta qué trámite necesita la persona y responde con los requisitos que la notaría definió para ese trámite: testamento, compraventa, poder, sociedad, sucesión. Explica de qué depende el costo y, si la notaría lo autoriza, da una estimación general o pide los datos para una cotización formal.",
+        "Puede recibir fotografías de identificaciones, actas o escrituras para que el personal haga una revisión previa, y avisar qué falta antes de la cita. Después agenda según la disponibilidad real y envía recordatorios con la lista de documentos.",
+        "Todo lo que requiere criterio notarial, como una situación patrimonial compleja, lo canaliza al personal indicado con un resumen claro."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Una señora escribe un domingo: quiero hacer mi testamento, ¿qué necesito? El asistente le pregunta si es para ella, le explica los documentos que la notaría pide, como identificación oficial y acta de nacimiento, y le ofrece horarios de la semana. Ella elige el martes y recibe la confirmación con la dirección, el estacionamiento y la lista de documentos.",
+        "El lunes, el día anterior a la cita, recibe un recordatorio. Llega con todo y la firma ocurre sin contratiempos."
+      ]
+    },
+    {
+      "titulo": "Sobriedad y límites",
+      "parrafos": [
+        "La función notarial exige seriedad. El asistente se configura con un tono formal y respetuoso, sin emojis ni frases comerciales, y con límites claros: no interpreta situaciones jurídicas ni sustituye la asesoría del notario.",
+        "También se adapta a personas mayores, que son buena parte de los clientes de una notaría: mensajes cortos, lenguaje sencillo y la opción de pedir que alguien les llame."
+      ]
+    },
+    {
+      "titulo": "Documentos y privacidad",
+      "parrafos": [
+        "Los documentos que se reciben por el asistente son sensibles. Se guardan con acceso restringido al personal autorizado, se usan solo para la revisión previa y están cubiertos por el aviso de privacidad de la notaría. El asistente no comparte esa información con nadie más.",
+        "En Nexus diseñamos cada integración con criterio de ciberseguridad: validación de lo que entra, acceso mínimo y registro de actividad."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "El asistente está incluido en los paquetes de sitio desde $9,999 MXN. Para notarías que ya tienen sitio y solo quieren el asistente, se cotiza aparte según volumen e integraciones con su agenda."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede dar el costo exacto de un trámite?",
+      "respuesta": "Solo si la notaría lo autoriza y lo configura así. Lo habitual es explicar de qué depende y pedir los datos para una cotización formal."
+    },
+    {
+      "pregunta": "¿El personal puede intervenir en una conversación?",
+      "respuesta": "Sí. Cualquier persona autorizada puede tomar la conversación en cualquier momento y continuarla."
+    },
+    {
+      "pregunta": "¿Sirve en temporada del mes del testamento?",
+      "respuesta": "Es justo cuando más ayuda: atiende el aumento de consultas sin saturar al personal y llena la agenda de forma ordenada."
+    },
+    {
+      "pregunta": "¿Funciona con el número actual?",
+      "respuesta": "En la mayoría de los casos sí. Lo revisamos en un diagnóstico gratuito."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-notarias",
+      "texto": "Página web para notarías"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:115a6c611cc82f0d164219b2a88e8d65cd6d922bbf49bc88905d9c7b013af5bc",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:115a6c611cc82f0d164219b2a88e8d65cd6d922bbf49bc88905d9c7b013af5bc"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 614,
+    "similitud_max": 0.034,
+    "parecida_a": "/recepcionista-de-voz-con-ia-para-notarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:fa48af3d33d6b9c8e85bdbae0488affcab41b6f95b28e83d0237b76dad7fa7d5",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

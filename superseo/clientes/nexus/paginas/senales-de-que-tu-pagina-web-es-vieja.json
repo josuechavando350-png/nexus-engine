@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "id": "senales-de-que-tu-pagina-web-es-vieja",
+  "cliente": "nexus",
+  "ruta": "/senales-de-que-tu-pagina-web-es-vieja",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "Señales de que tu página web ya es vieja",
+  "descripcion": "Las señales de que tu página web envejeció: se ve mal en celular, es lenta, tiene información desactualizada, no es segura o ya no trae clientes.",
+  "h1": "Señales de que tu página web ya es vieja",
+  "respuesta_rapida": [
+    "Se ve mal o es difícil de usar en el celular.",
+    "Tarda en cargar o muestra avisos de sitio no seguro.",
+    "Tiene precios, servicios, fotos o datos de contacto desactualizados.",
+    "Ya no trae mensajes ni llamadas, o no sabes si los trae."
+  ],
+  "secciones": [
+    {
+      "titulo": "Las páginas también envejecen",
+      "parrafos": [
+        "Una página que se veía moderna hace unos años hoy puede parecer descuidada. Cambian los dispositivos, las expectativas de los clientes, las reglas de Google y tu propio negocio. Una página vieja no solo se ve mal: transmite que el negocio también está desactualizado, aunque no sea cierto.",
+        "Estas son las señales más claras de que conviene renovarla.",
+        "La buena noticia es que no siempre hay que empezar de cero. A veces basta con resolver la versión para celular, la velocidad y el contacto; otras veces conviene una página nueva. Lo importante es reconocer las señales a tiempo."
+      ]
+    },
+    {
+      "titulo": "Se ve mal en el celular",
+      "parrafos": [
+        "Textos que obligan a hacer zoom, menús que no abren, imágenes cortadas, botones diminutos. Si tu página fue diseñada para computadora y adaptada después, o no fue adaptada, la mayoría de tus visitantes la está viendo mal. Es la señal más urgente, porque afecta a casi todos tus clientes potenciales.",
+        "Ábrela en tu propio teléfono y navega como si fueras un cliente nuevo."
+      ]
+    },
+    {
+      "titulo": "Es lenta o insegura",
+      "parrafos": [
+        "Si tarda en cargar, la gente se va. Si el navegador muestra un aviso de no seguro, la confianza se derrumba. Las páginas hechas con sistemas sin actualizar, además, son blanco de ataques que pueden convertir tu dominio en vitrina de contenido ajeno.",
+        "Mide la velocidad con PageSpeed Insights o con nuestro analizador gratuito."
+      ]
+    },
+    {
+      "titulo": "La información ya no es cierta",
+      "parrafos": [
+        "Precios de hace años, servicios que ya no das, fotos de un local que remodelaste, un teléfono que cambió, un equipo que ya no está. Cada dato viejo genera una llamada confusa o una mala experiencia. Y si no puedes cambiarlo tú mismo o tu proveedor ya no responde, el problema es doble.",
+        "Una página debería poder actualizarse en minutos."
+      ]
+    },
+    {
+      "titulo": "No sabes si trae clientes",
+      "parrafos": [
+        "Si no sabes cuántas personas te escriben o llaman desde tu página, no puedes saber si funciona. Muchas páginas viejas no tienen medición, el botón de WhatsApp está escondido o el formulario lleva a un correo que nadie revisa.",
+        "Una página moderna mide cada contacto y te dice qué secciones generan clientes.",
+        "Una forma rápida de saberlo es preguntar a tus últimos diez clientes cómo te encontraron. Si ninguno menciona tu página, algo no está funcionando."
+      ]
+    },
+    {
+      "titulo": "Tu negocio cambió",
+      "parrafos": [
+        "Creciste, cambiaste de enfoque, subiste tus precios, atiendes a otro tipo de cliente. Si la página sigue contando la historia de hace años, está atrayendo al cliente equivocado o espantando al correcto. Por ejemplo, un despacho que hoy atiende empresarios con una página que parece de principiante pierde credibilidad justo con quien más paga.",
+        "Tu página debería verse como tu negocio es hoy.",
+        "También cambia lo que tus clientes esperan: hoy dan por hecho que podrán escribirte por WhatsApp, ver precios aproximados y agendar sin llamar. Una página que no lo permite se siente antigua aunque tenga buen diseño."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Revisamos tu página y te decimos con franqueza si conviene optimizarla o rehacerla, cuidando dominio, correo y posiciones. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cada cuánto debería renovar mi página?",
+      "respuesta": "No hay plazo fijo; cuando aparecen varias de estas señales, es momento."
+    },
+    {
+      "pregunta": "¿Puedo renovar sin perder mi posición en Google?",
+      "respuesta": "Sí, conservando o redirigiendo bien las direcciones importantes."
+    },
+    {
+      "pregunta": "¿Cuánto cuesta renovarla?",
+      "respuesta": "Depende de si basta un rediseño o conviene una página nueva; en Nexus los paquetes van de $1,999 a $44,800 MXN."
+    },
+    {
+      "pregunta": "¿Qué renuevo primero si tengo poco presupuesto?",
+      "respuesta": "La versión para celular, la velocidad y el contacto visible: es lo que más impacto tiene."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/rediseno-o-pagina-nueva",
+      "texto": "¿Rediseñar tu página o hacer una nueva?"
+    },
+    {
+      "ruta": "/herramientas/analizador-web",
+      "texto": "Analizador gratis de páginas web"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:fb3064aaf144370165a0984f5bc4fa35e3db6fca3b4a984d62f0bd29bac97c44",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:fb3064aaf144370165a0984f5bc4fa35e3db6fca3b4a984d62f0bd29bac97c44"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 636,
+    "similitud_max": 0.011,
+    "parecida_a": "/rediseno-o-pagina-nueva"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:fe34b5f6d8961ded6c17a05613bb7728f3a5e2cb8fb6907b2987fe791b2cde1a",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

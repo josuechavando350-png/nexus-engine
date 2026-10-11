@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-tiendas-en-linea",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-tiendas-en-linea",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Google Ads para tiendas en línea",
+  "descripcion": "Google Ads para tiendas en línea: campañas de shopping con tu catálogo, búsqueda por categoría, remarketing de carritos y medición de ventas con su valor.",
+  "h1": "Google Ads para tiendas en línea",
+  "respuesta_rapida": [
+    "Para una tienda, la medida es simple: cuánto vendiste por cada peso invertido.",
+    "Las campañas de shopping muestran tus productos con foto y precio a quien ya quiere comprar.",
+    "La búsqueda por categoría y marca complementa a shopping.",
+    "El remarketing recupera a quien visitó o dejó productos en el carrito."
+  ],
+  "secciones": [
+    {
+      "titulo": "Vender, no solo atraer visitas",
+      "parrafos": [
+        "Una tienda en línea puede medir algo que otros negocios no: el valor exacto de cada venta que llega por anuncios. Con esa medición, la pregunta deja de ser cuántos clics tuve y pasa a ser cuánto vendí por cada peso invertido. Es el único número que importa para decidir si escalar o ajustar.",
+        "Sin esa medición configurada, la plataforma optimiza a ciegas y la tienda no sabe qué productos o campañas le dejan dinero."
+      ]
+    },
+    {
+      "titulo": "Shopping: tu catálogo en Google",
+      "parrafos": [
+        "Las campañas de shopping toman tu catálogo, con fotos, precios y disponibilidad, y muestran los productos directamente en los resultados a quien busca algo similar. Para el comprador, ver la foto y el precio antes del clic hace que los clics sean más calificados.",
+        "Requieren un catálogo bien preparado: títulos descriptivos, buenas fotos, precios correctos, disponibilidad actualizada y políticas de envío y devolución claras en la tienda. Ese trabajo previo es lo que separa una campaña rentable de una que gasta sin vender."
+      ]
+    },
+    {
+      "titulo": "Búsqueda y remarketing",
+      "parrafos": [
+        "Las campañas de búsqueda por categoría, marca o producto estrella complementan a shopping, sobre todo para productos con nombre conocido o búsquedas muy específicas. Las palabras negativas evitan pagar por búsquedas de segunda mano, gratis, mayoreo si no lo manejas o reparaciones.",
+        "El remarketing muestra anuncios a quien visitó la tienda o dejó productos en el carrito, recordándole lo que vio. Combinado con mensajes de recuperación de carrito, recupera ventas que parecían perdidas."
+      ]
+    },
+    {
+      "titulo": "Margen y no solo ventas",
+      "parrafos": [
+        "No todos los productos dejan el mismo margen. Una campaña que vende mucho de un producto con margen bajo puede perder dinero aunque los números de venta se vean bien. Separar los productos por margen y asignar más presupuesto a los que más dejan es una de las optimizaciones más rentables.",
+        "Los productos agotados deben salir de las campañas automáticamente para no pagar por clics que no pueden convertirse."
+      ]
+    },
+    {
+      "titulo": "La tienda tiene que convertir",
+      "parrafos": [
+        "Ninguna campaña rescata a una tienda lenta, con fotos pobres o con un proceso de pago complicado. Antes de invertir fuerte en anuncios conviene revisar la velocidad en celular, las fichas de producto, las formas de pago y el costo de envío visible. Cada mejora en la tienda hace rendir más cada peso de publicidad.",
+        "Por eso trabajamos los anuncios y la tienda juntos."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Catálogos con títulos genéricos que Google no entiende. Campañas que juntan todos los productos sin distinguir margen. Medición que solo cuenta visitas o que cuenta dos veces la misma venta. Anuncios activos de productos agotados. Y tiendas que invierten en anuncios antes de resolver por qué los visitantes abandonan el carrito, que suele ser el costo de envío sorpresa."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Preparamos el catálogo, configuramos la medición de ventas con su valor, armamos campañas de shopping, búsqueda y remarketing, y reportamos ventas por peso invertido. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Funciona con cualquier plataforma de tienda?",
+      "respuesta": "Con la mayoría de las plataformas conocidas y con tiendas propias, siempre que se pueda generar el catálogo y medir ventas."
+    },
+    {
+      "pregunta": "¿Cuánto debo invertir para empezar?",
+      "respuesta": "Lo suficiente para obtener datos durante unas semanas en tus productos principales. Después se escala lo que demuestra rentabilidad."
+    },
+    {
+      "pregunta": "¿Puedo anunciar solo algunos productos?",
+      "respuesta": "Sí, y suele ser lo mejor al inicio: los productos con mejor margen y más demanda."
+    },
+    {
+      "pregunta": "¿Y si vendo también por WhatsApp?",
+      "respuesta": "Se pueden medir los clics a WhatsApp como conversión y registrar las ventas cerradas por ese canal."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-tiendas-en-linea",
+      "texto": "Página web para tiendas en línea"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:1520d3d22fc1ade0c59637da75ed07d30f94445ca1444d2b4bda10c6f42ecbb8",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:1520d3d22fc1ade0c59637da75ed07d30f94445ca1444d2b4bda10c6f42ecbb8"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 647,
+    "similitud_max": 0.017,
+    "parecida_a": "/google-ads-para-inmobiliarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:086e9c6971b787199684924009580c3d8de2729695c1451412ccda9950fa43e6",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-gimnasios",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-gimnasios",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Google Ads para gimnasios",
+  "descripcion": "Google Ads para gimnasios y estudios: radio cercano, campañas por tipo de entrenamiento, pase de prueba como conversión y temporadas de inscripción.",
+  "h1": "Google Ads para gimnasios",
+  "respuesta_rapida": [
+    "La gente entrena cerca de casa o del trabajo: el radio de los anuncios debe ser corto.",
+    "Campañas por tipo de entrenamiento atraen al socio que busca justo lo que ofreces.",
+    "La conversión es el pase de prueba solicitado, no el clic.",
+    "La inversión se concentra en las temporadas de inscripción."
+  ],
+  "secciones": [
+    {
+      "titulo": "Un mercado muy local",
+      "parrafos": [
+        "Casi nadie cruza la ciudad para ir al gimnasio. La mayoría entrena a pocos minutos de su casa o de su oficina, así que mostrar anuncios lejos del gimnasio es desperdiciar presupuesto. Un radio corto, ajustado a las colonias de donde vienen tus socios, concentra la inversión donde realmente hay clientes posibles.",
+        "Dentro de ese radio, el anuncio compite con otros gimnasios cercanos; lo que decide es la oferta, la claridad y lo que la persona encuentra al hacer clic.",
+        "Además, conviene revisar en qué horarios busca la gente: muchos buscan gimnasio temprano en la mañana o en la noche, cuando piensan en su rutina. Concentrar los anuncios en esos horarios, y bajar la inversión cuando casi nadie busca, hace rendir el presupuesto sin perder oportunidades."
+      ]
+    },
+    {
+      "titulo": "Por tipo de entrenamiento",
+      "parrafos": [
+        "Quien busca crossfit, box, yoga, pilates, pesas o clases para principiantes tiene una intención clara. Campañas o grupos de anuncios por tipo de entrenamiento, que lleven a la página de esas clases con horarios y fotos, convierten mucho mejor que un anuncio genérico de gimnasio.",
+        "Si tu gimnasio tiene algo distintivo, como horario de madrugada, guardería, alberca o estacionamiento, eso va en el anuncio."
+      ]
+    },
+    {
+      "titulo": "El pase de prueba como meta",
+      "parrafos": [
+        "El objetivo del anuncio es que la persona pida su pase de prueba o su primera clase, porque es en la visita donde decide. La conversión que se mide es esa solicitud, más llamadas y mensajes. Después, el seguimiento automático convierte las visitas en inscripciones.",
+        "Con esa medición se sabe cuánto cuesta cada visita y, con el registro de inscripciones, cuánto cuesta cada socio nuevo."
+      ]
+    },
+    {
+      "titulo": "Temporadas de inscripción",
+      "parrafos": [
+        "Las inscripciones se concentran en momentos conocidos: inicio de año, después de vacaciones, antes del verano. Concentrar la inversión en esas semanas, con una oferta clara, rinde mucho más que repartirla parejo. En meses bajos se mantiene una presencia mínima.",
+        "Las promociones deben ser honestas, sin letra chica en inscripción o permanencia."
+      ]
+    },
+    {
+      "titulo": "Lo que pasa después del clic",
+      "parrafos": [
+        "La página de destino debe mostrar precios, horarios, fotos reales y un botón para pedir el pase de prueba en segundos. Si la persona tiene que llamar para saber el precio, buena parte se pierde. Un asistente de WhatsApp que conteste al momento completa la experiencia.",
+        "Las reseñas reales en el perfil de Google refuerzan el anuncio."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Radios demasiado amplios que atraen a personas que nunca vendrían. Anuncios genéricos sin precio ni oferta. Medir clics en lugar de pases de prueba. Invertir igual en enero que en noviembre. Y no dar seguimiento a quien pidió el pase, que es donde se pierde la mayoría de los socios potenciales que ya pagaste por atraer."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Configuramos campañas locales por tipo de entrenamiento, medición de pases de prueba y seguimiento automático. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Conviene anunciar el precio de la membresía?",
+      "respuesta": "Suele mejorar la calidad de los clics, sobre todo si tu precio es competitivo o tu oferta es clara."
+    },
+    {
+      "pregunta": "¿Funciona para estudios boutique?",
+      "respuesta": "Sí, con campañas por disciplina y una oferta de primera clase."
+    },
+    {
+      "pregunta": "¿Cuántos días de pase de prueba conviene ofrecer?",
+      "respuesta": "Lo que permita a la persona conocer el ambiente sin regalar demasiado. Se puede probar y medir."
+    },
+    {
+      "pregunta": "¿Puedo anunciarme para empresas?",
+      "respuesta": "Sí, con una campaña de convenios corporativos y una página específica."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-gimnasios",
+      "texto": "Página web para gimnasios"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:9eb20487790683557d19f9f4f18c8a52a6baa828e3d50b79cda4d7f466393444",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:9eb20487790683557d19f9f4f18c8a52a6baa828e3d50b79cda4d7f466393444"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 620,
+    "similitud_max": 0.023,
+    "parecida_a": "/google-ads-para-escuelas-particulares"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:7fcf22a1b67a95131636deca86e0add4e83fb87218bc261fb25904eddc9f9ecd",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

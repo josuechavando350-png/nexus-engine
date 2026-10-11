@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "aviso-de-privacidad-para-pagina-web",
+  "cliente": "nexus",
+  "ruta": "/aviso-de-privacidad-para-pagina-web",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Seguridad y propiedad",
+  "titulo": "Aviso de privacidad para tu página web",
+  "descripcion": "Qué es el aviso de privacidad, cuándo lo necesita tu página web en México, qué debe incluir y cómo integrarlo con formularios, WhatsApp y asistentes de IA.",
+  "h1": "Aviso de privacidad para tu página web",
+  "respuesta_rapida": [
+    "Si tu página recaba datos personales, como nombre, teléfono o correo, necesitas un aviso de privacidad.",
+    "Debe decir quién trata los datos, para qué, cómo ejercer los derechos de acceso, rectificación, cancelación y oposición, y si hay transferencias.",
+    "Debe estar visible antes de que la persona entregue sus datos, por ejemplo junto al formulario.",
+    "Esta guía es orientación general; para tu caso concreto conviene revisarlo con un abogado."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué es y quién lo necesita",
+      "parrafos": [
+        "El aviso de privacidad es el documento con el que un negocio informa a las personas qué datos personales recaba, para qué los usa y cómo pueden ejercer sus derechos. En México, la Ley Federal de Protección de Datos Personales en Posesión de los Particulares obliga a quien trata datos personales a ponerlo a disposición de los titulares.",
+        "Si tu página tiene un formulario, una agenda, un chat, una tienda o cualquier forma de recabar nombre, teléfono, correo u otros datos, necesitas uno."
+      ]
+    },
+    {
+      "titulo": "Lo que debe incluir",
+      "parrafos": [
+        "La identidad y domicilio de quien trata los datos. Qué datos se recaban y, si hay datos sensibles, como de salud, señalarlo expresamente. Las finalidades, distinguiendo las necesarias para el servicio de las secundarias, como enviar promociones. Si los datos se comparten con terceros y para qué. Cómo ejercer los derechos de acceso, rectificación, cancelación y oposición, conocidos como derechos ARCO, y cómo revocar el consentimiento. El uso de cookies o tecnologías de rastreo. Y cómo se avisará de cambios.",
+        "La ley contempla distintas modalidades de aviso, como integral y simplificado, según el medio y el momento."
+      ]
+    },
+    {
+      "titulo": "Dónde ponerlo",
+      "parrafos": [
+        "El aviso debe estar disponible antes de que la persona entregue sus datos. En una página web, lo habitual es un enlace en el pie de página a una página con el aviso completo, y un enlace junto a cada formulario o punto donde se recaban datos. Si usas WhatsApp o un asistente, el primer mensaje puede incluir el enlace al aviso.",
+        "Esconderlo o publicarlo solo después de recabar los datos no cumple su propósito."
+      ]
+    },
+    {
+      "titulo": "Datos sensibles",
+      "parrafos": [
+        "Los datos de salud, origen étnico, creencias, preferencias o información financiera tienen una protección reforzada. Si tu negocio es una clínica, un consultorio, un despacho o una aseguradora, probablemente los manejas, y la ley exige un consentimiento expreso para su tratamiento.",
+        "En la práctica, conviene recabar por formulario o chat solo lo mínimo para agendar, y tratar la información sensible en persona o por canales más protegidos."
+      ]
+    },
+    {
+      "titulo": "Asistentes de IA y datos",
+      "parrafos": [
+        "Si usas un chatbot o un asistente de voz, también trata datos personales: nombres, teléfonos, mensajes. El aviso debe contemplarlo, y conviene saber dónde se guardan las conversaciones, quién tiene acceso y si el proveedor usa esos datos para otros fines.",
+        "Estas preguntas deben responderse por escrito antes de contratar cualquier asistente."
+      ]
+    },
+    {
+      "titulo": "Errores comunes",
+      "parrafos": [
+        "Copiar el aviso de otra empresa con su nombre todavía adentro. Usar un formato genérico que menciona finalidades que no aplican. No incluir un medio real para ejercer los derechos ARCO. No actualizarlo cuando cambian los servicios o los proveedores. Y no tener ninguno, que es el más común en negocios pequeños.",
+        "Un aviso hecho a la medida de tu negocio es más claro y más útil."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nuestros sitios incluyen la página de aviso de privacidad y su enlace en cada punto donde se recaban datos. El contenido debe adaptarse a tu negocio, idealmente con la revisión de tu abogado. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Si solo tengo botón de WhatsApp necesito aviso?",
+      "respuesta": "Si recabas y guardas datos de las personas que te escriben, es recomendable tenerlo y compartirlo."
+    },
+    {
+      "pregunta": "¿Puedo usar un generador de avisos en línea?",
+      "respuesta": "Como punto de partida, sí, siempre adaptándolo a lo que realmente haces con los datos."
+    },
+    {
+      "pregunta": "¿Qué son los derechos ARCO?",
+      "respuesta": "Acceso, rectificación, cancelación y oposición: los derechos de las personas sobre sus datos personales."
+    },
+    {
+      "pregunta": "¿Las cookies van en el aviso?",
+      "respuesta": "Sí, si usas cookies o herramientas de rastreo, el aviso debe mencionarlas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/datos-de-clientes-y-privacidad-con-ia",
+      "texto": "Datos de tus clientes y privacidad al usar IA"
+    },
+    {
+      "ruta": "/formulario-o-whatsapp",
+      "texto": "¿Formulario o WhatsApp en tu página?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:6325cebfae0f8cf2161e07c255049a037321526e44448efa4fc2bde033870964",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:6325cebfae0f8cf2161e07c255049a037321526e44448efa4fc2bde033870964"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 662,
+    "similitud_max": 0.004,
+    "parecida_a": "/que-paginas-debe-tener-un-sitio-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:430b5e7b645374316c76add8560569ffc67107852f836551a6070acf7a3eebaf",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "id": "cuanto-cuesta-mantener-una-pagina-web",
+  "cliente": "nexus",
+  "ruta": "/cuanto-cuesta-mantener-una-pagina-web",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Costos y tiempos",
+  "titulo": "¿Cuánto cuesta mantener una página web al año?",
+  "descripcion": "Los costos recurrentes de una página web: dominio, hospedaje, mantenimiento, seguridad, cambios y servicios conectados. Qué conviene preguntar antes de contratar.",
+  "h1": "¿Cuánto cuesta mantener una página web al año?",
+  "respuesta_rapida": [
+    "Una página tiene costos recurrentes: dominio, hospedaje, mantenimiento técnico y cambios de contenido.",
+    "Si tiene tienda, asistente de IA o servicios conectados, también hay costos de operación mensual.",
+    "El mantenimiento incluye actualizaciones, respaldos y vigilancia de seguridad.",
+    "Pregunta desde el principio qué está incluido y qué se cobra aparte."
+  ],
+  "secciones": [
+    {
+      "titulo": "El costo que nadie menciona",
+      "parrafos": [
+        "Muchos negocios contratan una página pensando en un solo pago, y al año siguiente se encuentran con renovaciones de dominio, cobros de hospedaje o una página que dejó de funcionar porque nadie la actualizó. Una página web es como un local: además de construirlo, hay que mantenerlo.",
+        "Conocer esos costos desde el principio permite comparar propuestas de forma justa y evitar sorpresas.",
+        "También es frecuente que el proveedor original ya no responda y el negocio no tenga ni las contraseñas. Recuperar el control en esos casos lleva tiempo y a veces dinero. Tener los accesos a tu nombre desde el inicio es la forma más barata de evitarlo."
+      ]
+    },
+    {
+      "titulo": "Dominio y hospedaje",
+      "parrafos": [
+        "El dominio, tu dirección en internet, se renueva cada año. Su costo depende de la terminación y del proveedor. El hospedaje es el servidor donde vive la página; su costo depende de la tecnología, el tráfico y el nivel de servicio. Algunas propuestas incluyen el primer año o varios años de ambos.",
+        "Lo esencial: que el dominio esté a tu nombre y que tengas acceso a la cuenta. Si se vence sin que te enteres, puedes perderlo."
+      ]
+    },
+    {
+      "titulo": "Mantenimiento técnico y seguridad",
+      "parrafos": [
+        "Las páginas hechas con gestores de contenido populares necesitan actualizaciones frecuentes de su sistema y de sus complementos; si no se hacen, se vuelven vulnerables. Las páginas construidas a medida con tecnología moderna requieren menos mantenimiento, pero también necesitan revisiones de seguridad, renovación de certificados y monitoreo.",
+        "Los respaldos periódicos son indispensables: si algo falla, permiten recuperar la página en minutos."
+      ]
+    },
+    {
+      "titulo": "Cambios y contenido",
+      "parrafos": [
+        "Con el tiempo querrás cambiar precios, agregar servicios, actualizar fotos o publicar novedades. Algunos sitios te permiten hacerlo tú mismo con un panel; otros requieren pedir cada cambio al proveedor. Conviene saber desde el principio cómo será y cuánto cuesta.",
+        "Una página que no se actualiza envejece rápido y pierde la confianza de los clientes."
+      ]
+    },
+    {
+      "titulo": "Servicios conectados",
+      "parrafos": [
+        "Si la página tiene tienda en línea, asistente de IA, agenda, correo con dominio propio o herramientas de medición, cada una puede tener su costo mensual. Sumarlos da una idea real de lo que cuesta operar el sitio cada mes.",
+        "Esos costos suelen justificarse cuando el servicio trae clientes o ahorra horas de trabajo; lo importante es que sean claros.",
+        "Un buen ejercicio es hacer una lista de todos los servicios que usa tu página y cuánto pagas por cada uno al año. Muchas veces aparecen suscripciones olvidadas o servicios duplicados que se pueden cancelar."
+      ]
+    },
+    {
+      "titulo": "Cómo lo manejamos en Nexus",
+      "parrafos": [
+        "Nuestros sitios se construyen con tecnología moderna y seguridad desde el primer día, lo que reduce el mantenimiento. El dominio y los accesos siempre quedan a tu nombre. En la cotización se aclara qué incluye cada paquete y qué costos recurrentes existen.",
+        "Los paquetes van de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo dejar de pagar mantenimiento?",
+      "respuesta": "Puedes, pero asumes el riesgo de fallas o vulnerabilidades. Como mínimo, el dominio y el hospedaje deben renovarse."
+    },
+    {
+      "pregunta": "¿Qué pasa si mi proveedor desaparece?",
+      "respuesta": "Si el dominio y los accesos están a tu nombre, puedes mover la página a otro proveedor. Si no, recuperarla puede ser difícil."
+    },
+    {
+      "pregunta": "¿Necesito un panel para editar?",
+      "respuesta": "Si haces cambios frecuentes, sí. Si casi no cambias nada, puede bastar con pedir cambios ocasionales."
+    },
+    {
+      "pregunta": "¿Cada cuánto conviene renovar el diseño?",
+      "respuesta": "Cuando la página deja de representar al negocio o se ve vieja frente a la competencia; no hay un plazo fijo."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/cuanto-cuesta-un-dominio-y-hosting",
+      "texto": "Dominio y hosting: qué son y cuánto cuestan"
+    },
+    {
+      "ruta": "/seguridad-de-pagina-web-para-negocios",
+      "texto": "Seguridad de tu página web: lo básico"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:467f5026231de9f3635fb1652f3c0b9117b46084ba505440d9f643e0efbfc5f8",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:467f5026231de9f3635fb1652f3c0b9117b46084ba505440d9f643e0efbfc5f8"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 625,
+    "similitud_max": 0.01,
+    "parecida_a": "/cuanto-cuesta-un-dominio-y-hosting"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:a5baae002381f584d704e4790fc1da1a81c6c7d782170fedbc45df3aed24ce63",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

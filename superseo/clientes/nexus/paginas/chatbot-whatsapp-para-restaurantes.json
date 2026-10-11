@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-restaurantes",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-restaurantes",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comida",
+  "titulo": "Chatbot de WhatsApp para restaurantes",
+  "descripcion": "Asistente de IA para restaurantes: toma reservas y pedidos para llevar, comparte el menú, responde horarios y cotiza eventos, sin descuidar la cocina.",
+  "h1": "Chatbot de WhatsApp para restaurantes",
+  "respuesta_rapida": [
+    "Toma reservas con fecha, hora y número de personas, y confirma al momento.",
+    "Recibe pedidos para llevar o a domicilio con el menú vigente, sin comisiones de plataformas.",
+    "Responde horarios, ubicación, estacionamiento y opciones del menú a cualquier hora.",
+    "Cotiza eventos y grupos y pasa la conversación al gerente cuando hace falta."
+  ],
+  "secciones": [
+    {
+      "titulo": "El teléfono suena en la hora pico",
+      "parrafos": [
+        "En un restaurante, los mensajes y llamadas llegan justo cuando el equipo está más ocupado: a la hora de la comida y en la cena. Nadie puede dejar la cocina o las mesas para contestar si hay lugar a las nueve o para tomar un pedido de seis platillos. El resultado son reservas perdidas, pedidos mal tomados y clientes que eligen otro lugar.",
+        "Fuera de horario pasa lo mismo: alguien quiere reservar para mañana y nadie le contesta hasta el día siguiente."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Para reservas, pregunta fecha, hora, número de personas, nombre y alguna preferencia, como terraza o silla para bebé, consulta la disponibilidad que el restaurante definió y confirma. Un día antes, o unas horas antes, envía un recordatorio con opción de cancelar, lo que libera mesas que de otro modo quedarían vacías.",
+        "Para pedidos, comparte el menú vigente con precios, toma el pedido platillo por platillo, confirma dirección o hora de recolección, calcula el total con envío y recibe el comprobante si el pago es por transferencia. El pedido llega ordenado a la cocina o a la caja.",
+        "Para eventos y grupos grandes, recoge los datos y pasa la conversación al gerente con un resumen."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un jueves a las ocho de la noche, con el restaurante lleno, alguien escribe: ¿tienen mesa para ocho el sábado a las dos? El asistente revisa la disponibilidad, ofrece la mesa de la terraza, toma el nombre y confirma. Nadie del equipo tuvo que dejar lo que estaba haciendo.",
+        "Al mismo tiempo, otro cliente frecuente pide su comida para recoger en media hora, sin pasar por ninguna plataforma."
+      ]
+    },
+    {
+      "titulo": "El menú siempre al día",
+      "parrafos": [
+        "El asistente trabaja con el menú que el restaurante mantiene actualizado: si un platillo se agota, se marca como no disponible y el asistente deja de ofrecerlo. Puede responder preguntas frecuentes sobre ingredientes, opciones vegetarianas o picante, con la información que el chef aprobó.",
+        "Para alergias, siempre recomienda confirmar con el personal, porque ahí no hay margen de error."
+      ]
+    },
+    {
+      "titulo": "Lo que gana el restaurante",
+      "parrafos": [
+        "Más reservas tomadas, menos mesas vacías por ausencias, pedidos directos sin comisión de plataformas en los clientes recurrentes y un equipo que se concentra en atender a quien está en el local. Además, un registro de clientes y preferencias que sirve para invitarlos a eventos o promociones, con su permiso.",
+        "Todas las conversaciones quedan registradas y el gerente puede intervenir cuando quiera."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Cargamos el menú con precios, horarios, zonas de entrega y reglas de reservación, como capacidad por horario y tolerancia de llegada. El gerente aprueba las respuestas y el tono. Probamos pedidos y reservas con el equipo para que lleguen a la cocina o a la caja en el formato que les sirve. Después basta con mantener el menú actualizado; el asistente se ajusta solo a lo que esté disponible ese día."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN. Para restaurantes con sitio propio, se cotiza aparte según volumen de pedidos y reservas."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede cobrar el pedido en línea?",
+      "respuesta": "Sí, puede enviar un enlace de pago con tarjeta, o recibir comprobantes de transferencia."
+    },
+    {
+      "pregunta": "¿Funciona con varias sucursales?",
+      "respuesta": "Sí. Pregunta a qué sucursal quiere ir o pedir el cliente y usa su menú y horario."
+    },
+    {
+      "pregunta": "¿Puede manejar lista de espera?",
+      "respuesta": "Sí. Si no hay mesa, ofrece lista de espera y avisa si se libera un lugar."
+    },
+    {
+      "pregunta": "¿Sustituye a las plataformas de reparto?",
+      "respuesta": "No necesariamente. Las plataformas traen clientes nuevos; el asistente atiende sin comisión a los que ya te conocen."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-restaurantes",
+      "texto": "Página web para restaurantes"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:6b984c418ef0bd374d6dfd2f68fb299e9dcb668cd1c412cb3080ddc340db2379",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:6b984c418ef0bd374d6dfd2f68fb299e9dcb668cd1c412cb3080ddc340db2379"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 651,
+    "similitud_max": 0.038,
+    "parecida_a": "/recepcionista-de-voz-con-ia-para-restaurantes"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:028a456a6a53d76b1f1b01058607245b3f3a742f5e5a25b49ceddb50a4cbbdf4",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

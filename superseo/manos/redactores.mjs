@@ -114,6 +114,21 @@ export function redactorAnthropic({ apiKey = process.env.ANTHROPIC_API_KEY, mode
 }
 
 // Redactor manual: contenido escrito por una persona en un JSON con la misma forma.
+// El archivo puede traer una sola página o varias: { "paginas": { "<id>": contenido } }.
 export function redactorManual(archivo) {
-  return async () => ({ ...JSON.parse(readFileSync(archivo, "utf8")), _redactor: "manual" });
+  const datos = JSON.parse(readFileSync(archivo, "utf8"));
+  return async (brief) => {
+    if (datos && typeof datos.paginas === "object" && !Array.isArray(datos.paginas)) {
+      const contenido = datos.paginas[brief.id];
+      if (!contenido) throw new SuperSeoError("SIN_CONTENIDO", `${archivo} no trae ${brief.id}`);
+      return { ...contenido, _redactor: "manual" };
+    }
+    return { ...datos, _redactor: "manual" };
+  };
+}
+
+// Ids de las páginas que trae un archivo manual con varias páginas (o null si es una sola).
+export function idsDelArchivoManual(archivo) {
+  const datos = JSON.parse(readFileSync(archivo, "utf8"));
+  return datos && typeof datos.paginas === "object" && !Array.isArray(datos.paginas) ? Object.keys(datos.paginas) : null;
 }

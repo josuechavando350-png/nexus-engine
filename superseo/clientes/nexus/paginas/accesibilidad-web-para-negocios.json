@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "accesibilidad-web-para-negocios",
+  "cliente": "nexus",
+  "ruta": "/accesibilidad-web-para-negocios",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "Accesibilidad web: que todos puedan usar tu página",
+  "descripcion": "Qué es la accesibilidad web, por qué importa para tu negocio y cómo lograr que personas mayores o con discapacidad usen tu página sin barreras.",
+  "h1": "Accesibilidad web: que todos puedan usar tu página",
+  "respuesta_rapida": [
+    "Una página accesible la pueden usar personas mayores, con baja visión, con lectores de pantalla o que navegan con teclado.",
+    "Buen contraste, textos legibles, imágenes con descripción y botones claros son la base.",
+    "La accesibilidad también mejora la experiencia de todos y ayuda a que Google entienda tu sitio.",
+    "Se mide con herramientas como PageSpeed Insights y con pruebas reales."
+  ],
+  "secciones": [
+    {
+      "titulo": "Más clientes de los que crees",
+      "parrafos": [
+        "Muchas personas navegan con alguna dificultad: adultos mayores que ven con dificultad la letra pequeña, personas con daltonismo, con discapacidad visual que usan lectores de pantalla, con temblor en las manos o que solo pueden usar el teclado. Para muchos negocios, como notarías, clínicas o farmacias, estas personas son una parte importante de los clientes.",
+        "Una página que no pueden usar es una puerta cerrada para ellos y para sus familias.",
+        "Además, la accesibilidad beneficia a todos: el buen contraste ayuda a quien lee al sol, los botones grandes a quien va en el transporte y los textos claros a cualquiera con prisa."
+      ]
+    },
+    {
+      "titulo": "Contraste y legibilidad",
+      "parrafos": [
+        "El texto debe distinguirse bien del fondo. Las pautas internacionales de accesibilidad del W3C piden un contraste mínimo de 4.5 a 1 para texto normal en su nivel AA, y de 3 a 1 para texto grande. Texto gris claro sobre blanco, tan de moda, muchas veces no cumple.",
+        "Letra de buen tamaño, párrafos cortos y espacio entre líneas ayudan a todos."
+      ]
+    },
+    {
+      "titulo": "Imágenes y botones con sentido",
+      "parrafos": [
+        "Cada imagen informativa debe tener una descripción alternativa que explique lo que muestra, para quien usa un lector de pantalla. Los botones y enlaces deben decir a dónde llevan, no solo haz clic aquí. Los iconos sin texto, como el de WhatsApp, deben tener una etiqueta que los describa.",
+        "Esa misma información ayuda a Google a entender tu página."
+      ]
+    },
+    {
+      "titulo": "Navegar con teclado",
+      "parrafos": [
+        "Algunas personas no pueden usar el ratón o la pantalla táctil y navegan con el teclado. La página debe permitir recorrer todos los enlaces y botones en orden lógico, y mostrar claramente cuál está seleccionado. Un enlace para saltar directo al contenido principal evita recorrer todo el menú en cada página.",
+        "Pruébalo tú mismo: intenta usar tu página solo con la tecla de tabulación."
+      ]
+    },
+    {
+      "titulo": "Movimiento y formularios",
+      "parrafos": [
+        "Las animaciones fuertes pueden marear a algunas personas; una página bien hecha respeta la preferencia del sistema de reducir el movimiento. Los formularios deben tener etiquetas visibles, mensajes de error claros y no depender solo del color para indicar un problema.",
+        "Son detalles pequeños que hacen una gran diferencia para quien los necesita."
+      ]
+    },
+    {
+      "titulo": "Cómo medir",
+      "parrafos": [
+        "PageSpeed Insights incluye una puntuación de accesibilidad con una lista de problemas detectados automáticamente. No cubre todo, pero es un buen inicio. Lo ideal es complementar con una prueba real: navegar con lector de pantalla, con teclado y en un celular con letra grande.",
+        "El sitio de CANO Estrategia Penal marca 99 en accesibilidad en PageSpeed móvil."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Construimos sitios con contraste adecuado, descripciones en imágenes, navegación con teclado, enlace para saltar al contenido y respeto a la preferencia de movimiento reducido. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿La accesibilidad es obligatoria?",
+      "respuesta": "Depende del tipo de organización y del país; más allá de la ley, es una forma de no perder clientes."
+    },
+    {
+      "pregunta": "¿Hace más fea la página?",
+      "respuesta": "No. Un buen diseño puede ser elegante y accesible al mismo tiempo."
+    },
+    {
+      "pregunta": "¿Los complementos de accesibilidad sirven?",
+      "respuesta": "Las barras automáticas no sustituyen un sitio bien construido; lo correcto es diseñarlo accesible desde el inicio."
+    },
+    {
+      "pregunta": "¿Ayuda al SEO?",
+      "respuesta": "De forma indirecta: muchas buenas prácticas de accesibilidad también ayudan a Google a entender tu página."
+    },
+    {
+      "pregunta": "¿Por dónde empiezo si mi página no es accesible?",
+      "respuesta": "Por el contraste del texto, las descripciones de imágenes y los nombres de botones: son cambios sencillos con mucho impacto."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/pagina-web-rapida-en-celular",
+      "texto": "Página web rápida en celular: qué la hace lenta"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:5c53d150903b612ddc16b6163b6a5ec2c4f81cacec222f3812997b69abb34133",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:5c53d150903b612ddc16b6163b6a5ec2c4f81cacec222f3812997b69abb34133"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 631,
+    "similitud_max": 0.007,
+    "parecida_a": "/pagina-web-rapida-en-celular"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:37e1640d7c28b4e35637fcb1cbf55dc6e3a2b284c451319f43716ec24c484d24",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-dentistas",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-dentistas",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Chatbot de WhatsApp para dentistas",
+  "descripcion": "Asistente de IA para consultorios dentales: agenda valoraciones, confirma citas, responde dudas de tratamientos y canaliza urgencias por dolor.",
+  "h1": "Chatbot de WhatsApp para consultorios dentales",
+  "respuesta_rapida": [
+    "Responde al instante a quien pregunta por limpieza, ortodoncia, implantes o una urgencia.",
+    "Agenda la valoración con los horarios reales del consultorio y confirma la cita un día antes.",
+    "Ante dolor fuerte, inflamación o sangrado, indica contactar al consultorio de inmediato.",
+    "Libera a la recepción de las mismas preguntas todo el día."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo que pasa hoy en la recepción",
+      "parrafos": [
+        "La recepción de un consultorio dental contesta las mismas preguntas una y otra vez: ¿cuánto cuesta una limpieza?, ¿atienden niños?, ¿tienen lugar el sábado?, ¿aceptan tarjeta? Mientras tanto, atiende al paciente que está en la sala y al que llama por teléfono. Los mensajes de WhatsApp se acumulan, y el que no recibe respuesta en una hora suele agendar en otro lado.",
+        "Por la noche y los fines de semana el problema crece: es justo cuando mucha gente tiene tiempo de buscar dentista y escribir."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Saluda con el nombre del consultorio, pregunta el motivo de la consulta y responde con la información que el doctor aprobó: qué incluye una valoración, cuánto cuesta, cómo es un tratamiento en términos generales, formas de pago y ubicación. Luego ofrece horarios disponibles y agenda.",
+        "Un día antes, envía un recordatorio con la opción de confirmar o reprogramar. Si el paciente reprograma, el espacio se libera para otro. Después de la cita, puede enviar las indicaciones de cuidado que el doctor definió y, si corresponde, invitar a dejar una reseña.",
+        "Cuando alguien escribe por dolor intenso, inflamación o un golpe, el asistente no intenta resolverlo: indica llamar o acudir de inmediato y avisa al equipo."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un sábado por la noche alguien escribe: me interesa ponerme brackets, ¿cuánto cuesta? El asistente explica que primero se hace una valoración con radiografías, menciona su costo y que el doctor presenta las opciones de tratamiento en esa cita. Ofrece tres horarios de la semana siguiente y confirma el que elige el paciente.",
+        "El lunes la recepción encuentra la cita ya agendada, con nombre, teléfono y motivo."
+      ]
+    },
+    {
+      "titulo": "Límites clínicos claros",
+      "parrafos": [
+        "El asistente no diagnostica, no recomienda medicamentos y no opina sobre radiografías. Su trabajo es informar, agendar y canalizar. Todo lo clínico lo resuelve el dentista, y el asistente está configurado para reconocer cuándo debe pasar la conversación a una persona.",
+        "Esa frontera protege al paciente y al consultorio, y es parte de un uso responsable de la inteligencia artificial en salud."
+      ]
+    },
+    {
+      "titulo": "Datos de pacientes",
+      "parrafos": [
+        "El asistente pide solo lo necesario para agendar y está cubierto por el aviso de privacidad del consultorio. La información se guarda con acceso restringido y no se comparte. En Nexus construimos cada integración con criterio de ciberseguridad, porque un asistente conectado a la agenda de un consultorio maneja datos sensibles.",
+        "El consultorio es dueño de sus datos y puede revisar todas las conversaciones."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Empezamos con un diagnóstico gratuito: revisamos qué preguntas recibe el consultorio, cómo maneja hoy la agenda y qué tratamientos quiere impulsar. Con eso escribimos las respuestas, que el doctor revisa y aprueba antes de activar nada. Después conectamos la agenda, probamos conversaciones reales con el equipo y ajustamos el tono hasta que suene al consultorio. Durante las primeras semanas revisamos las conversaciones para afinar lo que haga falta."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "El asistente está incluido en los paquetes de sitio desde $9,999 MXN. Si el consultorio ya tiene página, se cotiza aparte según volumen de conversaciones y la integración con su agenda."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Funciona si tengo varios doctores?",
+      "respuesta": "Sí. El asistente puede agendar con cada especialista según su horario y tipo de tratamiento."
+    },
+    {
+      "pregunta": "¿Puede cobrar un anticipo?",
+      "respuesta": "Sí, si quieres pedir anticipo para ciertas citas, el asistente envía el enlace de pago antes de confirmar."
+    },
+    {
+      "pregunta": "¿Se conecta con mi software de agenda?",
+      "respuesta": "Depende del sistema. Muchos permiten integración; si no, el asistente puede usar un calendario compartido."
+    },
+    {
+      "pregunta": "¿Contesta en inglés?",
+      "respuesta": "Sí, útil si recibes pacientes de otros países."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-dentistas",
+      "texto": "Página web para dentistas"
+    },
+    {
+      "ruta": "/soluciones/clinicas",
+      "texto": "Agentes de IA para clínicas y consultorios"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:2ddbad2b2c02ba612f82b86218cc37a0637c4632e85090bc1863236c37a1708c",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:2ddbad2b2c02ba612f82b86218cc37a0637c4632e85090bc1863236c37a1708c"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 650,
+    "similitud_max": 0.022,
+    "parecida_a": "/chatbot-whatsapp-para-consultorios-medicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:f514a85b1ad37586f39cf56c200b14d5b13fcbde604b3bceaf69e382f6e32646",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

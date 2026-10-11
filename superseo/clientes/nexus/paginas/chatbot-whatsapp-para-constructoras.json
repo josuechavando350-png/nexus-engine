@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-constructoras",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-constructoras",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Chatbot de WhatsApp para constructoras",
+  "descripcion": "Asistente de IA para constructoras: recibe solicitudes de obra, pregunta lo necesario para cotizar, agenda visitas al terreno y da seguimiento a prospectos.",
+  "h1": "Chatbot de WhatsApp para constructoras",
+  "respuesta_rapida": [
+    "Recibe solicitudes de obra a cualquier hora y pregunta lo que el equipo necesita para cotizar.",
+    "Separa a quien está explorando de quien tiene terreno, proyecto y fecha para construir.",
+    "Agenda visitas al terreno con el responsable técnico.",
+    "Da seguimiento a cotizaciones enviadas para que ningún prospecto se enfríe."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cotizaciones que nunca se cierran",
+      "parrafos": [
+        "Una constructora recibe solicitudes muy distintas: alguien que quiere saber cuánto cuesta construir una casa en general, alguien con terreno y planos listo para empezar, una empresa que necesita una bodega. Atender a todos igual consume tiempo del equipo técnico, que es el más caro. Y las cotizaciones enviadas muchas veces quedan sin seguimiento porque el equipo está en obra.",
+        "El resultado es tiempo invertido en prospectos que no iban a construir y oportunidades reales que se pierden por falta de seguimiento."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Saluda y pregunta lo esencial: tipo de obra, ubicación, superficie aproximada, si ya tiene terreno, si ya tiene proyecto arquitectónico o necesita uno, y en qué plazo quiere empezar. Con esas respuestas clasifica la solicitud y la entrega al equipo con un resumen ordenado.",
+        "Si el prospecto está listo, agenda una visita al terreno con el responsable técnico. Si está explorando, le comparte información útil sobre el proceso, como etapas, permisos y cómo se arma un presupuesto, y lo deja registrado para seguimiento.",
+        "Después de enviar una cotización, el asistente puede escribir unos días más tarde para resolver dudas y saber si el cliente quiere avanzar."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un sábado escribe alguien: tengo un terreno en las afueras de la ciudad y quiero construir una casa de dos pisos. El asistente pregunta la superficie del terreno, si tiene planos y cuándo quiere empezar. Con las respuestas, ofrece una visita el miércoles con el arquitecto de la constructora y la agenda.",
+        "El lunes el equipo ve la solicitud con todos los datos y la visita confirmada."
+      ]
+    },
+    {
+      "titulo": "Sin presupuestos al aire",
+      "parrafos": [
+        "El asistente no da presupuestos de obra: cada proyecto depende del terreno, el diseño y los acabados. Lo que sí puede hacer, si la constructora lo autoriza, es compartir rangos generales por tipo de obra, aclarando que la cifra real sale de la visita y el proyecto.",
+        "Así el prospecto se lleva una idea honesta sin que la empresa se comprometa a un número sin información."
+      ]
+    },
+    {
+      "titulo": "Lo que gana la constructora",
+      "parrafos": [
+        "Un equipo técnico que dedica su tiempo a visitas que valen la pena, solicitudes ordenadas con todos los datos, cotizaciones con seguimiento y un registro de prospectos que se puede retomar cuando el cliente esté listo. En un negocio de tickets altos, una sola obra recuperada justifica la inversión.",
+        "También permite medir cuántas solicitudes llegan por cada canal y de qué tipo de obra."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Definimos con la constructora las preguntas de calificación, los tipos de obra que atiende, las zonas y la agenda del equipo técnico. Escribimos las respuestas con el tono de la empresa, las aprueban y conectamos la agenda. Probamos con solicitudes reales antes de activarlo."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN; con tecnología para Google Ads y captación en los de $19,999 y $44,800. Como servicio aparte se cotiza según volumen."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede recibir planos o fotos del terreno?",
+      "respuesta": "Sí, recibe archivos e imágenes y los adjunta a la solicitud para el equipo."
+    },
+    {
+      "pregunta": "¿Puede atender licitaciones?",
+      "respuesta": "Puede recibir solicitudes de empresas y canalizarlas al área comercial con los datos necesarios."
+    },
+    {
+      "pregunta": "¿Sirve para remodelaciones?",
+      "respuesta": "Sí, con preguntas adaptadas a remodelación, como tipo de espacio, medidas y fotos."
+    },
+    {
+      "pregunta": "¿Puede dar seguimiento durante la obra?",
+      "respuesta": "Sí. Puede enviar al cliente reportes de avance con fotos que el residente de obra comparte, y recibir sus dudas para el equipo."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-constructoras",
+      "texto": "Página web para constructoras"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:2d1d699a3df30c123d94f5b80d4353221e761ba4055f9cf976be9a3638bf27de",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:2d1d699a3df30c123d94f5b80d4353221e761ba4055f9cf976be9a3638bf27de"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 621,
+    "similitud_max": 0.025,
+    "parecida_a": "/chatbot-whatsapp-para-agencias-de-viajes"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:2c7f30cf9dbac35a0fd7f7f9afd85b4894efcedf41dfb8df8f608c60e4664068",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-spas",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-spas",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Página web para spas y centros de bienestar",
+  "descripcion": "Sitios para spas: experiencias descritas con calma, paquetes y certificados de regalo, reservas en línea y una estética que transmite descanso.",
+  "h1": "Página web para spas",
+  "respuesta_rapida": [
+    "Un spa vende una experiencia, no un servicio: la página debe transmitir calma desde el primer segundo.",
+    "Describe cada tratamiento con lo que la persona va a sentir, cuánto dura y qué incluye.",
+    "Los certificados de regalo son una línea de ingreso enorme: véndelos en línea.",
+    "Reserva fácil, con horarios disponibles y confirmación inmediata."
+  ],
+  "secciones": [
+    {
+      "titulo": "La página como primer tratamiento",
+      "parrafos": [
+        "Antes de reservar un masaje, la persona ya está buscando un respiro. Si la página es ruidosa, lenta o está llena de botones, rompe justo lo que el spa promete. El diseño de un spa debe sentirse amplio, con buena tipografía, fotografía cálida y un ritmo pausado.",
+        "Eso no significa sacrificar claridad. La calma visual y la facilidad para reservar conviven perfectamente cuando el sitio está bien pensado."
+      ]
+    },
+    {
+      "titulo": "Tratamientos y ocasiones que se antojan",
+      "parrafos": [
+        "Masaje relajante, descontracturante, piedras calientes, faciales, envolturas, rituales de pareja, circuitos de agua. Cada uno con una descripción que hable de la experiencia, la duración, qué incluye y si requiere alguna preparación. Las listas secas con nombre y precio no transmiten lo que vale el servicio.",
+        "Los paquetes, como día de spa o experiencias para dos, merecen su propia página porque se buscan como regalo y como celebración.",
+        "Las notas breves sobre bienestar atraen a quien todavía no decide: qué masaje elegir para la tensión del cuello, cómo prepararse para un facial, qué hacer después de un tratamiento con piedras calientes. Escritas con el mismo tono pausado del spa, muestran el conocimiento del equipo y llevan con naturalidad a la reserva.",
+        "También funcionan las páginas para ocasiones: despedidas de soltera, celebraciones de cumpleaños, días de descanso para empresas. Son búsquedas con intención clara y suelen traer grupos."
+      ]
+    },
+    {
+      "titulo": "Certificados de regalo",
+      "parrafos": [
+        "En fechas como el Día de las Madres, San Valentín o fin de año, los certificados de regalo pueden representar buena parte de las ventas. Venderlos en línea, con pago y envío inmediato por correo o WhatsApp, captura a quien decide a última hora y no puede pasar por el spa.",
+        "El certificado digital puede llevar el nombre de quien lo recibe y un mensaje personal, lo que lo convierte en un regalo listo sin papel ni traslados."
+      ]
+    },
+    {
+      "titulo": "Reservas sin fricción",
+      "parrafos": [
+        "Una agenda que muestre horarios disponibles por cabina y terapeuta, con confirmación inmediata, evita la conversación de ida y vuelta. Para tratamientos largos o reservas de pareja, un anticipo en línea reduce cancelaciones.",
+        "Los recordatorios automáticos pueden incluir instrucciones útiles: llegar unos minutos antes, qué traer, dónde estacionarse."
+      ]
+    },
+    {
+      "titulo": "Si el spa está en un hotel o es destino",
+      "parrafos": [
+        "Los spas de hotel o en zonas turísticas reciben visitantes de fuera que buscan en inglés. Una versión bilingüe revisada y la posibilidad de reservar antes de llegar a la ciudad amplían mucho el alcance.",
+        "También ayuda explicar el entorno: qué hay cerca, cómo llegar, si hay opciones de comida saludable o alojamiento."
+      ]
+    },
+    {
+      "titulo": "Confianza y cuidado",
+      "parrafos": [
+        "Presentar al equipo con su formación, hablar de los productos que usan y explicar las medidas de higiene genera tranquilidad. Si hay tratamientos con alguna contraindicación, como en el embarazo, decirlo muestra profesionalismo.",
+        "Las reseñas reales en Google y en la página pesan mucho en este giro: pídelas al final de cada visita."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios de spa con fotografía real y una experiencia tranquila, rápida en celular. Integramos reservas, certificados de regalo y WhatsApp medido. Los paquetes van de $1,999 a $44,800 MXN, según si incluyes venta en línea y asistente."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo vender certificados sin tener tienda en línea completa?",
+      "respuesta": "Sí. Basta un módulo de pago con generación automática del certificado; no hace falta un catálogo de productos."
+    },
+    {
+      "pregunta": "¿Conviene publicar precios?",
+      "respuesta": "En spa sí: la persona que regala quiere saber cuánto va a gastar. Puedes mostrar precio por tratamiento y por paquete."
+    },
+    {
+      "pregunta": "¿El asistente puede recomendar tratamientos?",
+      "respuesta": "Puede orientar con preguntas sencillas, como si busca relajarse o aliviar tensión, y sugerir opciones del menú. Lo delicado lo resuelve tu equipo."
+    },
+    {
+      "pregunta": "¿Puedo vender membresías mensuales?",
+      "respuesta": "Sí. Una membresía con un tratamiento al mes y beneficios adicionales se puede vender y cobrar desde la página, con control automático de los servicios usados."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/agenda-de-citas-en-linea-para-spas",
+      "texto": "Agenda de citas en línea para spas"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:923f03d8e2de4fb94c22fab9086dc93a4c719928f2a626fa6c7d2885797e7f5c",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:923f03d8e2de4fb94c22fab9086dc93a4c719928f2a626fa6c7d2885797e7f5c"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 684,
+    "similitud_max": 0.012,
+    "parecida_a": "/pagina-web-para-joyerias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:eaafb262e9cbec878410abfe6cd66c1fe0f932c0df9bce45a1999694f6bf9f2f",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

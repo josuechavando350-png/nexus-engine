@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "migrar-de-wix-sin-perder-el-dominio",
+  "cliente": "nexus",
+  "ruta": "/migrar-de-wix-sin-perder-el-dominio",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Seguridad y propiedad",
+  "titulo": "Migrar de Wix sin perder dominio ni correo",
+  "descripcion": "Cómo migrar tu sitio de Wix a una página a medida conservando el dominio, el correo y la medición de anuncios. El proceso que seguimos con CANO Estrategia Penal.",
+  "h1": "Migrar de Wix sin perder dominio ni correo",
+  "respuesta_rapida": [
+    "Antes de tocar nada, revisa dónde está registrado tu dominio y quién maneja tu correo.",
+    "Construye el sitio nuevo sin apagar el anterior y valida todo antes de cambiar.",
+    "Cambia solo los registros del dominio que apuntan a la página, sin tocar los del correo.",
+    "Conserva la medición de Google Ads y Analytics, y redirige las direcciones importantes."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué da miedo migrar",
+      "parrafos": [
+        "Muchos negocios en Wix quieren un sitio más rápido o más propio, pero temen perder lo que tienen: el dominio, el correo del negocio, las posiciones en Google o la medición de sus anuncios. El miedo tiene fundamento: una migración mal hecha puede tumbar el correo durante días o borrar el historial de conversiones.",
+        "Bien planeada, en cambio, el cliente casi no nota el cambio, salvo porque la página nueva es mejor."
+      ]
+    },
+    {
+      "titulo": "El caso de CANO Estrategia Penal",
+      "parrafos": [
+        "El despacho del Lic. Eduardo Cano tenía su sitio en Wix, con el dominio y el correo del despacho registrados ahí, y campañas de Google Ads activas. Nos pidió conservar el dominio, no perder el correo y mantener la medición de los anuncios. Construimos el sitio nuevo a medida sin tocar el anterior, y solo cuando estuvo validado se hizo el cambio.",
+        "El sitio nuevo marca 99 en rendimiento y 100 en SEO en PageSpeed móvil, y el correo del despacho siguió funcionando."
+      ]
+    },
+    {
+      "titulo": "Paso uno: inventario",
+      "parrafos": [
+        "Antes de construir, revisa dónde está registrado el dominio, si en Wix o en otro registrador; quién maneja el correo y cómo está configurado; qué etiquetas de medición tiene el sitio, como Google Ads o Analytics; y qué páginas reciben visitas desde Google, para conservarlas o redirigirlas.",
+        "Este inventario evita la mayoría de los problemas."
+      ]
+    },
+    {
+      "titulo": "Paso dos: construir en paralelo",
+      "parrafos": [
+        "El sitio nuevo se construye y se publica en una dirección de prueba, mientras el sitio de Wix sigue funcionando. Ahí se revisa todo: diseño, textos, velocidad, formularios, botones de WhatsApp, etiquetas de medición. El cliente aprueba antes de cualquier cambio en el dominio.",
+        "Así, si algo no está listo, nadie lo ve."
+      ]
+    },
+    {
+      "titulo": "Paso tres: cambiar solo lo necesario",
+      "parrafos": [
+        "Cuando el dominio está registrado en Wix, Wix permite apuntarlo a un sitio externo cambiando los registros que dirigen la página, sin cambiar los que dirigen el correo. Esa es la clave: si se tocan los registros del correo, el correo deja de funcionar. Hay que cuidar también la versión con www y sin www.",
+        "Un detalle importante: si después cancelas la suscripción de Wix para ahorrar, puedes perder también el correo y el dominio si dependen de ella. Hay que revisarlo antes."
+      ]
+    },
+    {
+      "titulo": "Paso cuatro: después del cambio",
+      "parrafos": [
+        "Verifica que la página nueva cargue en todas sus variantes, que el correo envíe y reciba, que las conversiones de anuncios se registren y que las direcciones antiguas importantes redirijan a sus equivalentes. Da de alta el sitio en Search Console y envía el sitemap.",
+        "Las primeras semanas conviene vigilar la indexación y las conversiones."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Hacemos migraciones desde Wix y otras plataformas con este método: inventario, construcción en paralelo, cambio quirúrgico del dominio y verificación posterior. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo sacar mi dominio de Wix?",
+      "respuesta": "Sí, se puede transferir a otro registrador, o dejarlo en Wix y apuntarlo al sitio nuevo."
+    },
+    {
+      "pregunta": "¿Pierdo mis posiciones en Google?",
+      "respuesta": "No, si se conservan o redirigen las direcciones importantes; muchas veces mejoran por la velocidad."
+    },
+    {
+      "pregunta": "¿Cuánto tiempo está caída la página?",
+      "respuesta": "Con este método, prácticamente nada: el cambio de dominio se propaga en horas mientras ambos sitios existen."
+    },
+    {
+      "pregunta": "¿Qué pasa con mis formularios de Wix?",
+      "respuesta": "Se reemplazan por los del sitio nuevo; conviene exportar los mensajes que tengas guardados."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/casos/cano-estrategia-penal",
+      "texto": "Caso: CANO Estrategia Penal"
+    },
+    {
+      "ruta": "/wix-vs-pagina-a-medida",
+      "texto": "Wix vs. página a medida: cuándo conviene cada una"
+    },
+    {
+      "ruta": "/correo-con-dominio-propio",
+      "texto": "Correo con dominio propio para tu negocio"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:45de896c499098db2a7b538393c0aeaee13a28fa58da1266e2ae0f1984e132fb",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:45de896c499098db2a7b538393c0aeaee13a28fa58da1266e2ae0f1984e132fb"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 612,
+    "similitud_max": 0.03,
+    "parecida_a": "/wix-vs-pagina-a-medida"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:8cad2fa80352e52493f121f75ec7a12c3a7f02e5204f55f6786ea37d6fe2846e",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

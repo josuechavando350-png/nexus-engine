@@ -75,6 +75,17 @@ export const RUBROS = deepFreeze({
     comerciales: ["comprar", "precio", "tienda", "envio", "original"],
     urgencia: ["hoy", "envio rapido"],
   },
+  // Agencias (Nexus Bot Studio). Sin Torres por alcaldía: una agencia no tiene datos
+  // locales propios por zona, así que esas páginas serían clones con otro nombre.
+  // Sus páginas salen de un portafolio curado (clientes/<id>/portafolio.json).
+  agencia_web: {
+    nombre: "Agencias web y tecnología",
+    torre: false,
+    ymyl: false,
+    arma: "analizador-web",
+    comerciales: ["pagina web", "diseno web", "chatbot", "google ads", "agencia", "cotizacion"],
+    urgencia: ["rapido", "urgente", "esta semana"],
+  },
 });
 
 export const PLANES = deepFreeze({

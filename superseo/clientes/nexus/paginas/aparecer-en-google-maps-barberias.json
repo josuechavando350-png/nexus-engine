@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-barberias",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-barberias",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Cómo aparecer en Google Maps: barberías",
+  "descripcion": "Guía para que tu barbería aparezca en Google Maps: categoría, servicios con precio, fotos de cortes reales, botón de reservar y una estrategia constante de reseñas.",
+  "h1": "Cómo hacer que tu barbería aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal: barbería. Agrega servicios con precio dentro del perfil.",
+    "Sube fotos de cortes reales, del local y de la fachada con regularidad.",
+    "Vincula el botón de reservar a tu agenda en línea o a tu WhatsApp.",
+    "Un código QR en el espejo para pedir reseñas funciona mejor que pedirlas de palabra."
+  ],
+  "secciones": [
+    {
+      "titulo": "La competencia está a una cuadra",
+      "parrafos": [
+        "En muchas colonias hay varias barberías en pocas calles. Cuando alguien busca barbería cerca, Google muestra unas cuantas en el mapa y el cliente elige por estrellas, número de reseñas, fotos y si puede reservar. La barbería con el perfil más completo y activo gana clientes que caminarían por enfrente de la competencia.",
+        "La buena noticia es que mejorar el perfil no cuesta dinero, solo constancia."
+      ]
+    },
+    {
+      "titulo": "Servicios y precios",
+      "parrafos": [
+        "La categoría principal es barbería. En la sección de servicios lista corte, barba, corte y barba, diseño, afeitado con toalla caliente, tinte y lo que ofrezcas, con precio. El cliente compara precios en el mapa sin abrir tu perfil completo, y saber el precio desde antes hace que llegue decidido.",
+        "Los atributos, como acepta tarjeta, atención sin cita o estacionamiento, también ayudan."
+      ]
+    },
+    {
+      "titulo": "Fotos que venden cortes",
+      "parrafos": [
+        "Fotos de cortes terminados, con buena luz y desde varios ángulos, son tu mejor argumento. Súbelas con frecuencia, por ejemplo cada semana, para mostrar que el perfil está vivo. Agrega fotos del local, de las sillas, del ambiente y de la fachada para que el cliente reconozca el lugar al llegar.",
+        "Las fotos de tus barberos trabajando ayudan a que el cliente nuevo los elija por nombre."
+      ]
+    },
+    {
+      "titulo": "Reservar desde el mapa",
+      "parrafos": [
+        "El perfil puede tener un botón de reservar que lleve a tu agenda en línea, o un enlace a tu WhatsApp. Quien te encuentra en el mapa a las once de la noche puede apartar su lugar para el día siguiente sin esperar respuesta. Algunos sistemas de agenda permiten reservar sin salir de Google.",
+        "Medir cuántas reservas llegan desde el perfil te dice cuánto vale cada mejora."
+      ]
+    },
+    {
+      "titulo": "Reseñas todos los días",
+      "parrafos": [
+        "Una barbería atiende a muchos clientes por semana, lo que es una gran oportunidad para acumular reseñas recientes. Un código QR en el espejo o en el mostrador que lleve directo a dejar reseña, y un mensaje después de la cita para quien reservó en línea, mantienen un flujo constante.",
+        "Responde cada reseña con el estilo de tu barbería. Nunca regales cortes a cambio de cinco estrellas: Google lo prohíbe y puede borrar reseñas."
+      ]
+    },
+    {
+      "titulo": "Horario y publicaciones",
+      "parrafos": [
+        "Horario exacto, con días festivos configurados. Si atiendes sin cita, aclara en qué horarios hay menos espera. Las publicaciones del perfil sirven para anunciar promociones, productos nuevos o eventos.",
+        "Una barbería que publica seguido le da a Google señales de actividad."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, lo conectamos con tu agenda, preparamos el sistema de reseñas con QR y mensajes, y medimos reservas y llamadas. Usa gratis nuestra herramienta para generar el mensaje de reseñas. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuántas reseñas necesito?",
+      "respuesta": "No hay número mágico; importa tener más y más recientes que las barberías cercanas, con buena calificación."
+    },
+    {
+      "pregunta": "¿Puedo poner mi barbería si está dentro de otro negocio?",
+      "respuesta": "Sí, si atiendes clientes en esa dirección y tienes señalización. Indica la ubicación exacta dentro del lugar."
+    },
+    {
+      "pregunta": "¿Qué hago si me copian el nombre?",
+      "respuesta": "Asegúrate de que tu perfil esté verificado y completo; si hay perfiles falsos, se pueden reportar a Google."
+    },
+    {
+      "pregunta": "¿Sirve publicar en el perfil?",
+      "respuesta": "Sí, como señal de actividad y para mostrar promociones a quien ya está viendo tu perfil."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-barberias",
+      "texto": "Página web para barberías"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:a1a3ea220e69eac53676df7561d222fe102a08ec99091f8c51dab76afd02a690",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:a1a3ea220e69eac53676df7561d222fe102a08ec99091f8c51dab76afd02a690"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 601,
+    "similitud_max": 0.039,
+    "parecida_a": "/aparecer-en-google-maps-salones-de-belleza"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:54a5e21a05d2d9043eb1bc925b9c58c817e14ad883992b0da004f8f4c1514d98",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}

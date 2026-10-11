@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "recepcionista-de-voz-con-ia-para-talleres-mecanicos",
+  "cliente": "nexus",
+  "ruta": "/recepcionista-de-voz-con-ia-para-talleres-mecanicos",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Recepcionista de voz con IA para talleres",
+  "descripcion": "Recepcionista con inteligencia artificial para talleres mecánicos: contesta llamadas, da precios orientativos, agenda servicio e informa si el auto ya está listo.",
+  "h1": "Recepcionista de voz con IA para talleres mecánicos",
+  "respuesta_rapida": [
+    "Contesta el teléfono del taller aunque todos estén bajo un auto.",
+    "Da precios orientativos de servicios comunes y agenda diagnóstico o servicio.",
+    "Responde si el auto de un cliente ya está listo, consultando el estado registrado.",
+    "Toma recados ordenados para el jefe de taller cuando la llamada requiere a una persona."
+  ],
+  "secciones": [
+    {
+      "titulo": "El teléfono que suena con las manos ocupadas",
+      "parrafos": [
+        "En un taller, contestar el teléfono significa soltar la llave, limpiarse las manos y caminar a la oficina. Muchas llamadas se dejan sonar, y quien llama para pedir un servicio termina en otro taller. Además, buena parte de las llamadas son de clientes preguntando si su auto ya está listo, una pregunta que interrumpe el trabajo una y otra vez.",
+        "Una recepcionista con inteligencia artificial contesta todas esas llamadas sin que nadie deje lo que está haciendo."
+      ]
+    },
+    {
+      "titulo": "Qué hace en una llamada",
+      "parrafos": [
+        "Contesta con el nombre del taller y pregunta qué necesita el cliente. Si busca un servicio, pregunta marca, modelo y año, y qué le pasa al auto. Para servicios comunes, como afinación, frenos o cambio de aceite, da el precio orientativo que el taller definió; para fallas, explica que se requiere diagnóstico y su costo. Luego ofrece horarios y agenda.",
+        "Si el cliente pregunta por su auto, consulta el estado registrado por el taller, como en diagnóstico, esperando refacción o listo para entregar, y se lo informa. Si requiere hablar con el mecánico, toma el recado con el detalle y lo envía al jefe de taller.",
+        "Después de agendar, envía un mensaje de confirmación con la dirección y el horario."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un lunes a las nueve, mientras todo el equipo recibe autos, una clienta llama: mi coche se calienta, ¿cuándo me lo pueden revisar? La recepcionista pregunta el modelo y desde cuándo pasa, explica que se necesita diagnóstico del sistema de enfriamiento, da el costo del diagnóstico y le ofrece traerlo esa misma tarde. La clienta acepta y recibe la confirmación por mensaje.",
+        "A la misma hora, otro cliente llama para saber si su camioneta está lista, y recibe la respuesta sin que nadie se mueva."
+      ]
+    },
+    {
+      "titulo": "Lo que no hace",
+      "parrafos": [
+        "No diagnostica por teléfono ni promete reparaciones. Para cualquier pregunta técnica que vaya más allá de lo que el taller aprobó, toma el recado y lo pasa al jefe de taller. Tampoco autoriza trabajos: esa autorización la da el cliente por escrito cuando el taller presenta el presupuesto.",
+        "Con esos límites, el cliente recibe información honesta y el taller no se compromete de más."
+      ]
+    },
+    {
+      "titulo": "Lo que gana el taller",
+      "parrafos": [
+        "Ninguna llamada perdida, más servicios agendados, menos interrupciones para preguntar por autos en proceso y recados ordenados en lugar de papelitos. Todas las llamadas quedan registradas con un resumen, útil para saber qué servicios se piden más y en qué horarios llama la gente.",
+        "Para talleres que atienden flotillas, la recepcionista también puede tomar solicitudes de servicio de empresas."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Definimos con el taller los servicios con precio orientativo, el costo del diagnóstico, los horarios y cómo se registra el estado de cada auto, que puede ser tan sencillo como un mensaje del jefe de taller. Escribimos el guion con el lenguaje del taller, lo aprueban y configuramos el desvío del número actual. Probamos llamadas antes de activarla."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Se cotiza aparte según volumen de llamadas. Se combina con el asistente de WhatsApp para talleres, incluido en los paquetes de sitio desde $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Tengo que cambiar de número?",
+      "respuesta": "No. Las llamadas se desvían a la recepcionista cuando nadie contesta, fuera de horario o siempre, según prefieras."
+    },
+    {
+      "pregunta": "¿Cómo sabe si un auto está listo?",
+      "respuesta": "Consulta el estado que el taller registra. Puede ser desde un sistema o desde un mensaje que el jefe de taller envía al cambiar el estado."
+    },
+    {
+      "pregunta": "¿Puede llamar a los clientes cuando su auto esté listo?",
+      "respuesta": "Sí, puede hacer la llamada o enviar el mensaje en cuanto el taller marque el auto como listo."
+    },
+    {
+      "pregunta": "¿Entiende términos de mecánica?",
+      "respuesta": "Sí, se configura con el vocabulario de tu taller y de tus clientes."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-talleres-mecanicos",
+      "texto": "Página web para talleres mecánicos"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-talleres-mecanicos",
+      "texto": "Chatbot de WhatsApp para talleres mecánicos"
+    },
+    {
+      "ruta": "/chatbot-vs-recepcionista-humana",
+      "texto": "Chatbot vs. recepcionista: qué hace mejor cada uno"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:db4bb295fe69a50ee1144e675e47e9d4404b96fd654c96791be17e51921489dc",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:db4bb295fe69a50ee1144e675e47e9d4404b96fd654c96791be17e51921489dc"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 678,
+    "similitud_max": 0.037,
+    "parecida_a": "/chatbot-whatsapp-para-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:107712c3b3466bfb6352ce0ca78971efe64c6b42b7637d25e852ed1314f1e140",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}

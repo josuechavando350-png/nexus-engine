@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-consultorios-medicos",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-consultorios-medicos",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Página web para consultorios médicos",
+  "descripcion": "Sitios para médicos especialistas y consultorios: especialidad clara, ubicación en el hospital, seguros aceptados, citas por WhatsApp y cédula visible.",
+  "h1": "Página web para consultorios médicos",
+  "respuesta_rapida": [
+    "El paciente busca por especialidad y por síntoma: tu página debe explicar qué atiendes con palabras que él usa.",
+    "Lo práctico decide: torre y consultorio dentro del hospital, estacionamiento, horarios y aseguradoras.",
+    "Muestra cédula profesional y de especialidad, formación y certificación del consejo correspondiente.",
+    "Agendar debe tomar un minuto, por WhatsApp o en línea, con recordatorio automático."
+  ],
+  "secciones": [
+    {
+      "titulo": "Más allá del directorio médico",
+      "parrafos": [
+        "Muchos especialistas tienen un perfil en directorios de médicos y sienten que con eso basta. El problema es que ahí el paciente ve a tu competencia en la misma pantalla, el perfil no es tuyo y no puedes explicar tu forma de trabajar. Tu propio sitio te da un espacio donde el paciente solo te ve a ti.",
+        "También es lo que aparece cuando un paciente recomendado busca tu nombre. Si encuentra una página clara, con tu foto, tu especialidad y una forma fácil de agendar, la recomendación se convierte en cita."
+      ]
+    },
+    {
+      "titulo": "Escribir para el paciente, no para el colega",
+      "parrafos": [
+        "Un error común es describir la especialidad con lenguaje técnico. El paciente no busca gastroenterología; busca dolor de estómago frecuente o especialista en colitis. Las páginas por padecimiento o por procedimiento, escritas en lenguaje claro, son las que atraen búsquedas y generan confianza.",
+        "Cada una puede explicar cuándo conviene consultar, qué ocurre en la primera cita y qué estudios suele pedir el médico, sin ofrecer diagnósticos ni sustituir la consulta."
+      ]
+    },
+    {
+      "titulo": "Datos prácticos que sí importan",
+      "parrafos": [
+        "Ubicación exacta: hospital, torre, piso y número de consultorio, con mapa. Estacionamiento y accesos. Horarios de consulta. Aseguradoras con las que trabajas y si emites facturas. Si atiendes consulta en línea, cómo funciona y cómo se paga.",
+        "Estos detalles parecen menores, pero son la causa de muchas llamadas a la recepción. Tenerlos en la página ahorra tiempo al consultorio y le quita fricción al paciente."
+      ]
+    },
+    {
+      "titulo": "Confianza y cumplimiento",
+      "parrafos": [
+        "La publicidad médica en México está regulada. Lo más seguro es mostrar lo que el paciente puede verificar: cédula profesional y de especialidad, certificación del consejo, hospitales donde operas, y evitar promesas de curación o de resultados.",
+        "Los testimonios deben ser reales y con consentimiento. Las reseñas en tu perfil de Google suelen ser la prueba social más creíble."
+      ]
+    },
+    {
+      "titulo": "Citas sin perseguir pacientes",
+      "parrafos": [
+        "Un asistente de WhatsApp puede atender a cualquier hora: responde ubicación, costo de consulta y aseguradoras, ofrece horarios disponibles y agenda. Un día antes manda un recordatorio con la opción de confirmar o reprogramar, lo que libera el espacio si el paciente no puede llegar.",
+        "Todo lo clínico se deriva al médico o a la asistente. El objetivo no es reemplazar la atención humana, sino que la recepción deje de contestar lo mismo una y otra vez."
+      ]
+    },
+    {
+      "titulo": "Contenido que atrae al paciente correcto",
+      "parrafos": [
+        "Las notas breves sobre preguntas frecuentes de tu especialidad funcionan muy bien: cuándo preocuparse por un síntoma, cómo prepararse para un estudio, qué esperar después de un procedimiento. Escritas por ti o revisadas por ti, atraen a pacientes que ya tienen la duda y les muestran tu forma de explicar.",
+        "Cada nota debe terminar con una invitación clara a agendar y con la advertencia de que la información es general. Esa combinación de utilidad y prudencia es la que construye autoridad, tanto frente al paciente como frente a Google."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Hacemos sitios a medida para especialistas, con fotografía real, textos escritos contigo y una versión rápida en celular. El dominio y los accesos quedan a tu nombre.",
+        "Si además quieres el asistente de citas, está incluido desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo publicar el costo de la consulta?",
+      "respuesta": "Sí, y suele ayudar. Evita llamadas solo para preguntar el precio y filtra a quien no está listo para agendar."
+    },
+    {
+      "pregunta": "¿Sirve si opero en varios hospitales?",
+      "respuesta": "Sí. Se puede tener una sección por sede con su ubicación, horarios y forma de agendar."
+    },
+    {
+      "pregunta": "¿Qué pasa con los datos de mis pacientes?",
+      "respuesta": "El sitio y el asistente deben pedir solo lo necesario para agendar y estar cubiertos por un aviso de privacidad. Los datos clínicos no se tratan por chat."
+    },
+    {
+      "pregunta": "¿Cómo aparezco cuando buscan mi especialidad en mi zona?",
+      "respuesta": "Con un perfil de Google completo con la categoría correcta, reseñas reales y páginas que mencionen de forma natural el hospital y la zona donde atiendes."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-consultorios-medicos",
+      "texto": "Chatbot de WhatsApp para consultorios médicos"
+    },
+    {
+      "ruta": "/google-ads-para-consultorios-medicos",
+      "texto": "Google Ads para consultorios médicos"
+    },
+    {
+      "ruta": "/como-conseguir-pacientes-para-tu-consultorio",
+      "texto": "Cómo conseguir más pacientes para tu consultorio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:7c68656a9c603750185a9922517c260d98f0ccac2811bce1a6281694e84974ca",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:7c68656a9c603750185a9922517c260d98f0ccac2811bce1a6281694e84974ca"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 709,
+    "similitud_max": 0.009,
+    "parecida_a": "/chatbot-whatsapp-para-consultorios-medicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:85ccde570cbefa532c2607b90ee3fff7b1e3e932694fb1ee5da7e26bcbbf047f",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

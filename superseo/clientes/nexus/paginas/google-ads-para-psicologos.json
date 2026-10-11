@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-psicologos",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-psicologos",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Google Ads para psicólogos",
+  "descripcion": "Google Ads para psicólogos: anuncios por tema de consulta, terapia en línea y presencial, mensajes cuidadosos dentro de las políticas de salud y medición de citas.",
+  "h1": "Google Ads para psicólogos",
+  "respuesta_rapida": [
+    "Las personas buscan por lo que viven: ansiedad, duelo, terapia de pareja, no por el enfoque terapéutico.",
+    "La terapia en línea amplía el alcance más allá de tu ciudad.",
+    "Los anuncios deben ser cuidadosos: sin promesas, sin dramatismo y respetando las políticas de salud.",
+    "La conversión es la primera sesión agendada."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cómo busca alguien que necesita terapia",
+      "parrafos": [
+        "Quien busca terapia rara vez escribe el nombre de un enfoque. Busca psicólogo para ansiedad, terapia de pareja, psicólogo para adolescentes, ayuda para el duelo o terapia en línea. Los anuncios que funcionan usan esas mismas palabras y llevan a una página que habla de ese tema con calidez y claridad.",
+        "Muchas de esas búsquedas ocurren de noche, cuando la persona por fin tiene un momento a solas para pensar en sí misma."
+      ]
+    },
+    {
+      "titulo": "Estructura por tema",
+      "parrafos": [
+        "Grupos de anuncios por los temas que el terapeuta atiende, cada uno con su página de destino. Si da terapia en línea, una campaña aparte con alcance en todo el país o donde esté autorizado a ejercer, y otra presencial con radio cercano al consultorio.",
+        "Las palabras negativas excluyen búsquedas de empleo, estudios de psicología, pruebas gratuitas en línea y temas que el terapeuta no atiende."
+      ]
+    },
+    {
+      "titulo": "Mensajes con cuidado",
+      "parrafos": [
+        "Los anuncios de salud mental exigen especial cuidado. Nada de promesas de resultados, de tiempos de curación o de mensajes que exploten el malestar de quien busca. Un anuncio sereno, que diga qué atiende el terapeuta, cómo es la primera sesión y cómo agendarla, respeta a la persona y cumple las políticas de Google.",
+        "La página de destino debe incluir qué hacer en una emergencia, porque la terapia no sustituye la atención de crisis."
+      ]
+    },
+    {
+      "titulo": "Medir primeras sesiones",
+      "parrafos": [
+        "La conversión que importa es la primera sesión agendada, en línea o por mensaje. Con esa medición se sabe cuánto cuesta cada paciente nuevo, y con el registro de continuidad, cuánto vale. En terapia, un paciente que continúa su proceso representa muchas sesiones.",
+        "La privacidad se cuida también en la medición: no se registra información sensible del paciente."
+      ]
+    },
+    {
+      "titulo": "Presupuesto modesto, bien enfocado",
+      "parrafos": [
+        "Un terapeuta independiente no necesita grandes presupuestos. Con pocas búsquedas bien elegidas, horarios en que la gente busca y una página clara, se puede llenar la agenda de forma constante. El ajuste semanal de términos de búsqueda es lo que hace rendir el presupuesto.",
+        "Las reseñas reales en el perfil, cuando los pacientes se sienten cómodos dejándolas, refuerzan los anuncios."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Anuncios con el nombre técnico del enfoque que nadie busca. Mensajes alarmistas o promesas de mejoría rápida. Llevar a una portada sin agenda. Mostrar anuncios presenciales en toda la ciudad. Y no medir las primeras sesiones, lo que impide saber qué temas traen pacientes y cuáles solo consumen presupuesto sin convertirse en consultas."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Configuramos campañas por tema, presenciales y en línea, con mensajes cuidadosos, páginas de destino y medición de primeras sesiones. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Google permite anuncios de terapia?",
+      "respuesta": "Sí, dentro de sus políticas de salud. Hay restricciones en ciertos temas y formas de segmentación que respetamos desde el diseño."
+    },
+    {
+      "pregunta": "¿Puedo anunciar el costo de la sesión?",
+      "respuesta": "Sí, y suele ayudar a que lleguen pacientes que pueden sostener el proceso."
+    },
+    {
+      "pregunta": "¿Funciona para terapia en línea en todo el país?",
+      "respuesta": "Sí, con campañas nacionales y horarios adaptados."
+    },
+    {
+      "pregunta": "¿Cuánto debo invertir?",
+      "respuesta": "Con un presupuesto modesto bien enfocado se pueden obtener datos en pocas semanas y ajustar."
+    },
+    {
+      "pregunta": "¿Puedo anunciar talleres o grupos?",
+      "respuesta": "Sí, con campañas temporales para talleres de manejo de estrés, duelo o crianza, que además atraen a personas que luego toman terapia individual."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-psicologos",
+      "texto": "Página web para psicólogos"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:a98c909944b30683d8a2d66e5124a53f380a2828763d3e65d8255803feec3ed7",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:a98c909944b30683d8a2d66e5124a53f380a2828763d3e65d8255803feec3ed7"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 611,
+    "similitud_max": 0.023,
+    "parecida_a": "/google-ads-para-escuelas-particulares"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:2aa557412d055b40b72bc5a39363db186fc83ff64cfc5523005020df8cc2c25c",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-agencias-de-viajes",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-agencias-de-viajes",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Chatbot de WhatsApp para agencias de viajes",
+  "descripcion": "Asistente de IA para agencias de viajes: perfila al viajero, propone paquetes, cotiza con fechas y presupuesto, cobra anticipos y acompaña el viaje.",
+  "h1": "Chatbot de WhatsApp para agencias de viajes",
+  "respuesta_rapida": [
+    "Perfila al viajero: destino, fechas, número de personas, presupuesto y tipo de viaje.",
+    "Propone paquetes del catálogo de la agencia y prepara la cotización para el asesor.",
+    "Cobra el anticipo con enlace de pago y confirma por escrito.",
+    "Antes del viaje envía documentos, horarios y recordatorios; durante el viaje, atiende dudas."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cotizaciones que no se cierran a tiempo",
+      "parrafos": [
+        "Las agencias de viajes reciben muchas consultas abiertas: quiero ir a la playa en diciembre, ¿cuánto cuesta? Para cotizar, el asesor necesita fechas, número de personas, edades, presupuesto, tipo de hotel y ciudad de salida, y obtener esos datos toma varios mensajes. Mientras tanto, el viajero también está preguntando a otras agencias y a las plataformas en línea.",
+        "La agencia que responde primero con una propuesta concreta suele quedarse con la venta."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Pregunta destino o tipo de viaje, fechas aproximadas, cuántas personas y de qué edades, presupuesto, ciudad de salida y preferencias como todo incluido o tours. Con eso propone opciones del catálogo de la agencia que encajan, o prepara la solicitud completa para que el asesor arme una cotización a la medida.",
+        "Cuando el viajero decide, envía el enlace para el anticipo y confirma por escrito lo contratado. Antes del viaje, comparte vouchers, horarios, requisitos de documentos y recordatorios. Durante el viaje, responde dudas frecuentes y pasa cualquier problema a un asesor de inmediato.",
+        "También puede mantener informados a los viajeros sobre promociones de los destinos que les interesan, con su permiso."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Una familia escribe un miércoles en la noche: queremos ir a la playa en vacaciones de invierno, somos dos adultos y dos niños. El asistente pregunta fechas, ciudad de salida y presupuesto, propone dos paquetes del catálogo con hotel familiar y ofrece que un asesor ajuste los detalles. El jueves la familia aprueba y paga el anticipo.",
+        "El asesor solo intervino para afinar la propuesta, no para recopilar datos."
+      ]
+    },
+    {
+      "titulo": "Confianza en una compra grande",
+      "parrafos": [
+        "Un viaje es una compra importante, y el viajero teme a las estafas. El asistente se presenta con el nombre y los datos de la agencia, envía confirmaciones claras y usa un procesador de pagos reconocido. Si la agencia está registrada ante las autoridades de turismo o pertenece a asociaciones del sector, el asistente puede mencionarlo.",
+        "La atención durante el viaje es la que convierte a un cliente en recomendación."
+      ]
+    },
+    {
+      "titulo": "Lo que gana la agencia",
+      "parrafos": [
+        "Respuestas inmediatas que ganan la venta, asesores que se enfocan en armar buenas propuestas, cobros ordenados y viajeros atendidos de principio a fin. Además, un registro de preferencias que permite ofrecer el siguiente viaje en el momento adecuado.",
+        "Todas las conversaciones quedan registradas para la agencia."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Cargamos el catálogo de paquetes, las preguntas de perfil, las políticas de pago y cancelación y el tono de la agencia. Los asesores aprueban las respuestas, conectamos los pagos y probamos cotizaciones reales antes de activarlo."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN; con tecnología para Google Ads en los de $19,999 y $44,800. Como servicio aparte se cotiza según volumen."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede reservar vuelos y hoteles por sí solo?",
+      "respuesta": "Depende de las conexiones de la agencia con sus proveedores. Lo habitual es que prepare la solicitud y el asesor confirme."
+    },
+    {
+      "pregunta": "¿Funciona para grupos y viajes de empresa?",
+      "respuesta": "Sí, con preguntas adaptadas a grupos, fechas y facturación."
+    },
+    {
+      "pregunta": "¿Habla inglés?",
+      "respuesta": "Sí, útil para agencias que atienden turistas extranjeros."
+    },
+    {
+      "pregunta": "¿Puede recordar pagos pendientes antes del viaje?",
+      "respuesta": "Sí. Envía recordatorios de cada pago según el plan acordado, con el enlace para pagar y la confirmación al recibirlo."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:f84528046d13de3e15e2c736cc5882cede1a114ac46bf88913f094897131f7b3",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:f84528046d13de3e15e2c736cc5882cede1a114ac46bf88913f094897131f7b3"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 600,
+    "similitud_max": 0.025,
+    "parecida_a": "/chatbot-whatsapp-para-constructoras"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:bba07d05c265eb2ed8d39f60e53cf991be6bd2e32068b5a36e8c8f6bca508050",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}

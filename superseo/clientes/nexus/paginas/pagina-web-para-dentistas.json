@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-dentistas",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-dentistas",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Página web para dentistas y clínicas dentales",
+  "descripcion": "Sitios para dentistas: tratamientos explicados, urgencias, citas por WhatsApp, fotografías reales del consultorio y cédula visible. Hechos para el celular.",
+  "h1": "Página web para dentistas",
+  "respuesta_rapida": [
+    "Un paciente dental compara dos cosas antes de escribir: confianza en el doctor y facilidad para agendar.",
+    "Cada tratamiento importante merece su página: limpieza, resinas, endodoncia, ortodoncia, implantes, blanqueamiento.",
+    "La urgencia dental existe: un botón para dolor o infección que lleve directo a WhatsApp o llamada.",
+    "Fotos reales del consultorio y del equipo, cédula profesional visible y nada de promesas de resultados."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cómo elige dentista la gente",
+      "parrafos": [
+        "Hay dos tipos de paciente dental en Google. El primero tiene dolor y busca dentista cerca de mí o dentista urgente: quiere saber si lo atienden hoy y cómo llegar. El segundo está planeando un tratamiento grande, como ortodoncia o implantes, y compara con calma: revisa fotos, lee reseñas, busca quién es el especialista y cuánto podría invertir.",
+        "Un buen sitio dental atiende a los dos sin confundirlos. Para el primero, contacto inmediato, horario y mapa. Para el segundo, páginas de tratamiento que expliquen el proceso, cuánto tiempo suele tomar y por qué el consultorio es una buena opción."
+      ]
+    },
+    {
+      "titulo": "Páginas por tratamiento",
+      "parrafos": [
+        "Ortodoncia con brackets o alineadores, implantes, endodoncia, coronas, carillas, odontopediatría, periodoncia, blanqueamiento. Cada uno se busca por separado y cada paciente quiere leer sobre su caso, no una lista genérica. En cada página conviene explicar en qué consiste, quién lo realiza dentro del equipo y qué esperar en la primera valoración.",
+        "Si el consultorio ofrece planes de pago o financiamiento, decirlo en la página del tratamiento ayuda a quien está dudando por el costo. Si publica precios orientativos, debe dejar claro que se confirman después de la valoración."
+      ]
+    },
+    {
+      "titulo": "Confianza que se puede verificar",
+      "parrafos": [
+        "La publicidad de servicios de salud en México está regulada, y la forma más sencilla de transmitir seriedad es mostrar lo verificable: nombre del dentista responsable, cédula profesional y de especialidad, institución donde estudió, dirección del consultorio. Las reseñas de pacientes reales en Google pesan más que cualquier frase de la página.",
+        "Las fotografías de antes y después atraen, pero requieren consentimiento por escrito del paciente y deben mostrar casos reales, sin retoques. Mejor pocas y auténticas que muchas de banco de imágenes."
+      ]
+    },
+    {
+      "titulo": "Agenda y recordatorios",
+      "parrafos": [
+        "El hueco en la agenda por un paciente que no llegó es dinero perdido. Una agenda en línea o un asistente de WhatsApp que confirme la cita y mande un recordatorio el día anterior reduce mucho ese problema, y libera a la recepción de contestar la misma pregunta todo el día.",
+        "El asistente también puede responder lo básico a cualquier hora: ubicación, estacionamiento, si atienden niños, qué hacer mientras llega la cita por un dolor. Lo clínico siempre lo pasa al doctor."
+      ]
+    },
+    {
+      "titulo": "Si atiendes pacientes de otros países",
+      "parrafos": [
+        "Algunas clínicas reciben pacientes de Estados Unidos y Canadá que viajan para tratarse. Si es tu caso, conviene una versión en inglés revisada, información de hospedaje cercano y una forma clara de enviar radiografías antes del viaje. Ese público compara mucho y valora la claridad sobre el proceso completo.",
+        "Para ese visitante la velocidad del sitio y la seguridad también cuentan: va a compartir datos médicos y espera que la página se vea profesional y cargue rápido desde cualquier conexión."
+      ]
+    },
+    {
+      "titulo": "Cómo lo hacemos en Nexus",
+      "parrafos": [
+        "Diseñamos sitios propios para cada consultorio, con fotos reales y textos escritos a partir de una conversación con el doctor. Dejamos medido cada clic a WhatsApp y cada llamada, para saber qué tratamientos generan citas.",
+        "Los paquetes van de $1,999 a $44,800 MXN. Desde el de $9,999 incluyen asistente de IA para citas y preguntas frecuentes."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Debo publicar precios de mis tratamientos?",
+      "respuesta": "No es obligatorio. Publicar desde cuánto cuesta una limpieza o una valoración ayuda a quien está comparando, siempre que se aclare que el costo final depende de la revisión."
+    },
+    {
+      "pregunta": "¿Sirve la página si ya estoy en directorios médicos?",
+      "respuesta": "Sí. Los directorios ayudan, pero el perfil es de ellos y ahí apareces junto a tu competencia. Tu sitio es tuyo y te permite explicar tus tratamientos a tu manera."
+    },
+    {
+      "pregunta": "¿El asistente puede dar diagnósticos?",
+      "respuesta": "No, y no debe. Responde dudas generales, agenda y en caso de dolor fuerte o inflamación indica contactar al consultorio de inmediato."
+    },
+    {
+      "pregunta": "¿Cuánto tarda el sitio?",
+      "respuesta": "Entre dos y cuatro semanas desde que se aprueba la dirección visual, dependiendo de las fotografías y los tratamientos que se incluyan."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/agenda-de-citas-en-linea-para-dentistas",
+      "texto": "Agenda de citas en línea para dentistas"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-dentistas",
+      "texto": "Cómo aparecer en Google Maps: dentistas"
+    },
+    {
+      "ruta": "/como-conseguir-pacientes-para-tu-consultorio",
+      "texto": "Cómo conseguir más pacientes para tu consultorio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:64082f051ce4f19517446ec1ebe1081fe0f3ff837932f6bb82ad1465e25e2d46",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:64082f051ce4f19517446ec1ebe1081fe0f3ff837932f6bb82ad1465e25e2d46"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 708,
+    "similitud_max": 0.01,
+    "parecida_a": "/pagina-web-para-notarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:aeb1941d0633f2eb4c3e1adab795777dff0b05d6ba57ebd723d18c053bddfcb9",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-talleres-mecanicos",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-talleres-mecanicos",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Chatbot de WhatsApp para talleres mecánicos",
+  "descripcion": "Asistente de IA para talleres: recibe síntomas, fotos y videos del problema, agenda servicio, informa avances y recuerda el próximo mantenimiento.",
+  "h1": "Chatbot de WhatsApp para talleres mecánicos",
+  "respuesta_rapida": [
+    "Recibe marca, modelo, año y descripción del problema, con fotos o video del ruido.",
+    "Da precios orientativos de servicios comunes y agenda diagnóstico o servicio.",
+    "Informa al cliente el avance de su auto sin que tenga que llamar.",
+    "Recuerda el próximo mantenimiento por tiempo o kilometraje."
+  ],
+  "secciones": [
+    {
+      "titulo": "Mensajes mientras se trabaja bajo el cofre",
+      "parrafos": [
+        "En un taller, quien sabe responder está con las manos llenas de grasa. Los mensajes de ¿cuánto cuesta una afinación?, ¿pueden revisar un ruido? o ¿ya está mi carro? llegan todo el día y se contestan cuando hay tiempo. El cliente que pregunta por un servicio y no recibe respuesta lleva su auto a otro lado; el que espera noticias de su reparación se desespera y llama.",
+        "Un asistente ordena esas conversaciones sin quitarle tiempo al mecánico."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Pregunta marca, modelo, año y qué le pasa al auto, y pide fotos del tablero o un video del ruido si ayuda. Para servicios comunes, como afinación, frenos o cambio de aceite, comparte el precio orientativo que el taller definió. Para fallas, explica que se requiere diagnóstico, su costo y ofrece horarios.",
+        "Mientras el auto está en el taller, el mecánico puede mandar una foto o una nota corta y el asistente se la hace llegar al cliente con contexto. Si aparece un trabajo adicional, el asistente pide la autorización del cliente por escrito antes de hacerlo.",
+        "Al entregar, registra el servicio y programa un recordatorio para el próximo mantenimiento."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un cliente escribe el domingo: mi camioneta hace un chillido al frenar. El asistente pide marca, modelo y año, explica que suele ser revisión de frenos, comparte el precio orientativo de la revisión y agenda para el lunes a las nueve. El martes, el cliente recibe una foto de sus balatas gastadas con el presupuesto y responde autorizo.",
+        "Nadie tuvo que llamar a nadie y quedó registro de todo."
+      ]
+    },
+    {
+      "titulo": "Transparencia que fideliza",
+      "parrafos": [
+        "La confianza es el gran problema de los talleres. Un asistente que informa avances, muestra fotos de las piezas cambiadas y pide autorización por escrito para cada trabajo extra convierte esa desconfianza en lealtad. El cliente siente que sabe qué está pasando con su auto.",
+        "Ese registro también protege al taller en caso de cualquier desacuerdo al cobrar."
+      ]
+    },
+    {
+      "titulo": "Flotillas",
+      "parrafos": [
+        "Para empresas con vehículos de trabajo, el asistente puede llevar el control de mantenimiento por unidad, recordar servicios programados y enviar reportes. Es una forma de ganar contratos recurrentes con un servicio ordenado que pocos talleres ofrecen.",
+        "Las empresas valoran poder pedir servicio y recibir factura sin complicaciones."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Definimos con el taller la lista de servicios con precio orientativo, el costo del diagnóstico, los horarios y la forma de autorizar trabajos extra. Escribimos las respuestas con el lenguaje del taller, conectamos la agenda y probamos con el equipo. Después solo hay que mantener actualizados los precios."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN. Para talleres que ya tienen sitio, se cotiza aparte según volumen."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede dar un diagnóstico por chat?",
+      "respuesta": "No. Puede orientar sobre qué tipo de revisión conviene, pero el diagnóstico lo hace el mecánico con el auto en el taller."
+    },
+    {
+      "pregunta": "¿Los mecánicos tienen que usar el sistema?",
+      "respuesta": "Solo para mandar una foto o una nota corta desde su teléfono. El asistente hace el resto."
+    },
+    {
+      "pregunta": "¿Puede recordar la verificación?",
+      "respuesta": "Sí, si el taller la ofrece y registra la fecha correspondiente de cada auto."
+    },
+    {
+      "pregunta": "¿Puede cotizar refacciones?",
+      "respuesta": "Si el taller tiene una lista de precios de refacciones comunes, puede compartirla como referencia. Las piezas específicas se cotizan después del diagnóstico."
+    },
+    {
+      "pregunta": "¿Qué pasa si el cliente quiere hablar con el mecánico?",
+      "respuesta": "El asistente pasa la conversación al equipo con todo el contexto, para que nadie tenga que repetir la historia."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-talleres-mecanicos",
+      "texto": "Página web para talleres mecánicos"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:a9bd22f3083838110f6e6fe8e5528cb6492d9dd150edcdedd3827c56a781d2c5",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:a9bd22f3083838110f6e6fe8e5528cb6492d9dd150edcdedd3827c56a781d2c5"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 630,
+    "similitud_max": 0.037,
+    "parecida_a": "/recepcionista-de-voz-con-ia-para-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:dde64f126c58f4e0e22207e4cd697c0dc3d00d7c348794b42e75b70b239b481e",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

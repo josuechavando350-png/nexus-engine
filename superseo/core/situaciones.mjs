@@ -32,6 +32,8 @@ export const SITUACIONES = deepFreeze({
   restaurante: GENERICAS,
   construccion: GENERICAS,
   comercio: GENERICAS,
+  // Las agencias no cruzan situaciones: su demanda viene del portafolio curado.
+  agencia_web: [],
 });
 
 export const PESO_INTENCION = deepFreeze({ URGENTE: 10, COMERCIAL: 7, INFORMATIVA: 4 });

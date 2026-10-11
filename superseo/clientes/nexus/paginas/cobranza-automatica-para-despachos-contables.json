@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "id": "cobranza-automatica-para-despachos-contables",
+  "cliente": "nexus",
+  "ruta": "/cobranza-automatica-para-despachos-contables",
+  "tipo": "AGENTE_IA",
+  "servicio": "cobranza",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Cobranza automática para despachos contables",
+  "descripcion": "Cobranza automática de igualas para despachos contables: recordatorios mensuales, facturación, enlace de pago y seguimiento antes de que se acumulen meses.",
+  "h1": "Cobranza automática para despachos contables",
+  "respuesta_rapida": [
+    "Cada cliente recibe su recordatorio de iguala con la factura y el enlace de pago.",
+    "Los atrasos se detectan el primer mes, no cuando ya se acumularon varios.",
+    "Las promesas de pago quedan registradas y se recuerdan solas.",
+    "El contador deja de cobrar en persona a clientes con los que trabaja todos los meses."
+  ],
+  "secciones": [
+    {
+      "titulo": "El zapatero con los zapatos rotos",
+      "parrafos": [
+        "Los despachos contables cuidan las finanzas de sus clientes, pero muchas veces descuidan su propia cobranza. Cobrarle a un cliente con el que hablas cada semana es incómodo, y las igualas se van acumulando: un mes, dos meses, a veces más. Cuando por fin se aborda el tema, el monto ya es grande y la conversación, difícil.",
+        "Una cobranza automática y constante evita llegar a ese punto, sin que el contador tenga que hacer el papel de cobrador."
+      ]
+    },
+    {
+      "titulo": "Cómo funciona",
+      "parrafos": [
+        "Cada mes, al emitirse la factura de la iguala, el cliente recibe un mensaje con la factura, el monto, la fecha límite y un enlace para pagar o los datos para transferencia. Al pagar, recibe su comprobante y el despacho lo ve registrado.",
+        "Si la fecha pasa, el cliente recibe un recordatorio amable y profesional. Si responde con una fecha de pago, el sistema la registra y le recuerda ese día. Si el atraso se repite, el despacho recibe una alerta para decidir si conviene una conversación.",
+        "Servicios extraordinarios, como declaraciones anuales, regularizaciones o trámites, se cobran con el mismo flujo."
+      ]
+    },
+    {
+      "titulo": "Separar la cobranza de la relación",
+      "parrafos": [
+        "Cuando los recordatorios llegan de forma automática y con el mismo tono para todos, el cobro deja de ser personal. El cliente lo percibe como un proceso ordenado del despacho, igual que el resto de su servicio, y el contador conserva la relación de confianza para lo que importa.",
+        "Esa misma constancia suele mejorar la puntualidad de los clientes en pocos meses."
+      ]
+    },
+    {
+      "titulo": "Visibilidad de ingresos",
+      "parrafos": [
+        "El despacho ve en un reporte cuánto se facturó, cuánto se cobró, quién está al corriente y quién tiene saldo pendiente, por cliente y por mes. Con esa información puede planear su flujo de efectivo y detectar clientes que quizá necesitan otro esquema de pago.",
+        "El reporte se consulta desde el celular."
+      ]
+    },
+    {
+      "titulo": "Conexión con la facturación",
+      "parrafos": [
+        "El sistema puede tomar la información de las facturas emitidas para generar los recordatorios con el monto y el documento correctos. Así no hay que capturar dos veces ni revisar a mano qué factura corresponde a cada cliente.",
+        "Los complementos de pago se pueden recordar al registrarse cada abono."
+      ]
+    },
+    {
+      "titulo": "Confidencialidad",
+      "parrafos": [
+        "La información financiera de los clientes de un despacho es altamente sensible. Todo funciona con acceso restringido, bajo el aviso de privacidad del despacho y con pagos procesados por un proveedor reconocido. En Nexus aplicamos criterio de ciberseguridad en cada integración.",
+        "Nadie fuera del despacho ve la información de cobranza."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos la cobranza con tus clientes, igualas, fechas y mensajes, conectada a WhatsApp, correo y pagos en línea. Incluida desde el paquete de $9,999 MXN o como servicio aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede cobrar por domiciliación?",
+      "respuesta": "Sí, si el cliente lo autoriza, con aviso previo a cada cargo."
+    },
+    {
+      "pregunta": "¿Qué pasa si un cliente paga una parte?",
+      "respuesta": "Se registra el abono, se actualiza el saldo y el recordatorio siguiente muestra lo pendiente."
+    },
+    {
+      "pregunta": "¿Puedo pausar los recordatorios a un cliente?",
+      "respuesta": "Sí, en cualquier momento, por ejemplo si acordaron un plan especial."
+    },
+    {
+      "pregunta": "¿Se envía por correo también?",
+      "respuesta": "Sí, por WhatsApp, correo o ambos, según prefiera cada cliente."
+    },
+    {
+      "pregunta": "¿Puedo cobrar servicios por única vez, como la declaración anual?",
+      "respuesta": "Sí. Se genera un cobro por el servicio con su propio recordatorio, independiente de la iguala mensual."
+    },
+    {
+      "pregunta": "¿El cliente puede consultar su saldo?",
+      "respuesta": "Sí, puede pedir su estado de cuenta por WhatsApp y recibirlo al momento."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/soluciones/cobranza",
+      "texto": "Cobranza y recordatorios automáticos"
+    },
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-contadores",
+      "texto": "Página web para contadores"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:a71d8697301ae498b3ef9bc786b73b218dac6c82f2107c10211a7c46427e3216",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:a71d8697301ae498b3ef9bc786b73b218dac6c82f2107c10211a7c46427e3216"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 622,
+    "similitud_max": 0.021,
+    "parecida_a": "/cobranza-automatica-para-academias-y-cursos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:cd6e105c108db88ea8678050c0ffc99deb2baa8bc06c58429a488bf9f73d1c32",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

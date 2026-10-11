@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-escuelas-particulares",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-escuelas-particulares",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Chatbot de WhatsApp para escuelas particulares",
+  "descripcion": "Asistente de IA para escuelas: atiende a familias interesadas, agenda visitas guiadas, explica admisiones y responde dudas de padres inscritos.",
+  "h1": "Chatbot de WhatsApp para escuelas particulares",
+  "respuesta_rapida": [
+    "Atiende a familias interesadas a cualquier hora con información de niveles, horarios y admisiones.",
+    "Agenda visitas guiadas y manda recordatorios para que las familias no falten.",
+    "Responde a padres inscritos dudas de calendario, uniformes, transporte y pagos.",
+    "Libera al área de admisiones y a la recepción de preguntas repetidas."
+  ],
+  "secciones": [
+    {
+      "titulo": "Temporada de admisiones, teléfono saturado",
+      "parrafos": [
+        "En los meses de admisiones, una escuela recibe decenas de mensajes al día: ¿qué niveles tienen?, ¿cuál es el horario?, ¿cuánto es la colegiatura?, ¿puedo visitar la escuela? Las familias comparan varias opciones a la vez, y la que responde rápido y con claridad tiene ventaja. La que tarda días, se queda fuera de la lista.",
+        "Durante el ciclo, el problema cambia de forma: los padres inscritos preguntan por fechas, circulares, uniformes o pagos, y esas preguntas llegan a la misma recepción."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Para familias interesadas, pregunta la edad o el grado del alumno y responde con la información del nivel correspondiente: horario, modelo educativo en términos generales, actividades, proceso de admisión y, si la escuela lo autoriza, cuotas. Luego ofrece fechas de visita guiada y la agenda, con recordatorio el día anterior.",
+        "Para padres inscritos, responde dudas frecuentes con la información vigente del ciclo: calendario, suspensiones, listas de útiles, uniformes, rutas de transporte y fechas de pago, con enlace para pagar si la escuela lo integra.",
+        "Todo lo que tenga que ver con un alumno en particular, como calificaciones o conducta, lo canaliza al área responsable."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Una madre escribe un sábado: busco escuela para mi hija que entra a primero de primaria, ¿tienen lugares? El asistente comparte el horario de primaria, el proceso de admisión y las fechas de visita guiada del mes. La madre agenda para el jueves y recibe la confirmación con la dirección y el nombre de quien la va a recibir.",
+        "El lunes, admisiones tiene la visita en su agenda, con el grado y el nombre de la familia."
+      ]
+    },
+    {
+      "titulo": "Cuidado con la información de menores",
+      "parrafos": [
+        "Una escuela maneja datos de niños y adolescentes. El asistente pide solo lo necesario para la visita o la duda, no solicita información personal de los alumnos por chat y está cubierto por el aviso de privacidad de la escuela. La información se guarda con acceso restringido.",
+        "En Nexus construimos estas integraciones con criterio de ciberseguridad y con límites estrictos sobre lo que el asistente puede consultar."
+      ]
+    },
+    {
+      "titulo": "Lo que gana la escuela",
+      "parrafos": [
+        "Más visitas agendadas en temporada de admisiones, menos visitas perdidas gracias a los recordatorios, padres mejor informados y un personal que dedica su tiempo a lo que requiere atención humana. También datos útiles: qué niveles tienen más demanda y qué preguntas se repiten.",
+        "Las conversaciones quedan registradas para la escuela."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Reunimos la información por nivel, el calendario del ciclo, las reglas de admisión y las preguntas frecuentes de los padres. La dirección aprueba todas las respuestas antes de activar. Conectamos la agenda de visitas y, si la escuela quiere, los pagos de colegiatura. Cada inicio de ciclo actualizamos el calendario y las cuotas."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN. Para escuelas que ya tienen sitio, se cotiza aparte según volumen y niveles."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede enviar avisos a todos los padres?",
+      "respuesta": "Puede enviar avisos a quienes aceptaron recibirlos, respetando las reglas de WhatsApp para mensajes masivos."
+    },
+    {
+      "pregunta": "¿Puede cobrar colegiaturas?",
+      "respuesta": "Puede enviar recordatorios con enlace de pago y confirmar la recepción, si la escuela integra su sistema de cobro."
+    },
+    {
+      "pregunta": "¿Contesta en inglés?",
+      "respuesta": "Sí, útil en escuelas bilingües con familias extranjeras."
+    },
+    {
+      "pregunta": "¿Puede atender en temporada de inscripciones sin saturarse?",
+      "respuesta": "Sí. Atiende a todas las familias al mismo tiempo, a cualquier hora, y solo pasa a admisiones las visitas agendadas y los casos especiales."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-escuelas-particulares",
+      "texto": "Página web para escuelas particulares"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:228d4ff8c38bc0a1abb906619f8220f85a384ba707111ba86734a2113971cf86",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:228d4ff8c38bc0a1abb906619f8220f85a384ba707111ba86734a2113971cf86"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 625,
+    "similitud_max": 0.016,
+    "parecida_a": "/chatbot-whatsapp-para-dentistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:7d2f8f4ed4bce15cfdf0dfde1a78884f4d1f5997c2db9f47c53694cf3c97de54",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

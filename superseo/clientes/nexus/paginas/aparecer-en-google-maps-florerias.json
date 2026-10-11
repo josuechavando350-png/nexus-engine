@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-florerias",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-florerias",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Cómo aparecer en Google Maps: florerías",
+  "descripcion": "Guía para que tu florería aparezca en Google Maps: categoría, área de entrega, catálogo con precios, fotos de arreglos reales y reseñas en temporada alta.",
+  "h1": "Cómo hacer que tu florería aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal: florería; agrega servicio de entrega y área que cubres.",
+    "Productos con foto y precio dentro del perfil: arreglos por ocasión.",
+    "Horarios especiales en San Valentín y Día de las Madres, configurados con tiempo.",
+    "Reseñas de clientes, sobre todo después de entregas importantes."
+  ],
+  "secciones": [
+    {
+      "titulo": "Flores cerca y con entrega hoy",
+      "parrafos": [
+        "Florería cerca, envío de flores hoy, arreglo de cumpleaños a domicilio. La mayoría de estas búsquedas tiene prisa y se resuelve en el mapa. El cliente quiere ver que la florería existe, que tiene arreglos bonitos, precios razonables y entrega rápida. Un perfil con todo eso a la vista gana el pedido.",
+        "En temporada alta, las búsquedas se multiplican y el mapa se vuelve todavía más decisivo, porque el cliente no tiene tiempo de comparar demasiado.",
+        "Por eso el perfil de una florería debe estar listo antes de cada temporada, no durante."
+      ]
+    },
+    {
+      "titulo": "Categoría, entrega y área",
+      "parrafos": [
+        "La categoría principal es florería. Configura los atributos de entrega y, si haces envíos, el área de servicio que cubres. En la descripción, explica tu horario límite para entregas el mismo día y las zonas principales, como hospitales o funerarias cercanas.",
+        "Si tienes local abierto al público, muéstralo con su dirección; si solo haces envíos, configura el área de servicio.",
+        "Es importante que el área de servicio corresponda a donde realmente entregas. Marcar zonas a las que no llegas genera pedidos que luego hay que rechazar, y eso termina en reseñas negativas que afectan a todo el perfil."
+      ]
+    },
+    {
+      "titulo": "Productos con foto y precio",
+      "parrafos": [
+        "La sección de productos permite mostrar arreglos con foto, nombre, descripción y precio. Organízalos por ocasión: amor, cumpleaños, nacimiento, condolencias. El cliente que ve el arreglo y el precio en el mapa llega decidido a tu sitio o a tu WhatsApp.",
+        "Usa fotos de arreglos que tú hiciste. Las fotos de catálogo ajeno generan reclamos cuando el arreglo real no se parece."
+      ]
+    },
+    {
+      "titulo": "Temporadas sin sorpresas",
+      "parrafos": [
+        "Configura con tiempo los horarios especiales de San Valentín, Día de las Madres y fin de año, que suelen ser extendidos. Publica en el perfil la preventa de temporada con fechas límite de pedido.",
+        "Un horario equivocado en el día más importante del año cuesta ventas y reseñas."
+      ]
+    },
+    {
+      "titulo": "Reseñas que hablan de entregas",
+      "parrafos": [
+        "Después de entregas importantes, envía un mensaje al cliente agradeciendo y pidiendo una reseña. Las reseñas que mencionan puntualidad y que el arreglo llegó como en la foto son las más valiosas para futuros compradores.",
+        "Responde todas, y ante una queja de entrega, explica y ofrece una solución. La forma de resolver un error convence más que no tenerlo nunca."
+      ]
+    },
+    {
+      "titulo": "Botones que venden",
+      "parrafos": [
+        "Vincula el botón de pedido o de sitio web a tu catálogo en línea, y el de mensaje a tu WhatsApp. Así, quien te encuentra en el mapa puede comprar sin salir a buscarte.",
+        "Mide cuántos pedidos, llamadas y mensajes llegan desde el perfil para saber cuánto vale."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, cargamos productos con precio, configuramos temporadas y medimos pedidos. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo aparecer si solo vendo en línea?",
+      "respuesta": "Sí, como negocio con área de servicio, sin mostrar dirección, si haces entregas en esa zona."
+    },
+    {
+      "pregunta": "¿Cómo manejo los precios de temporada?",
+      "respuesta": "Actualizando los productos del perfil antes de la temporada y publicando la preventa."
+    },
+    {
+      "pregunta": "¿Sirven las reseñas de condolencias?",
+      "respuesta": "Sí, aunque muchas personas prefieren no dejarlas. Respeta esa decisión y agradece cuando lo hagan."
+    },
+    {
+      "pregunta": "¿Cuántos productos debo cargar?",
+      "respuesta": "Tus arreglos más vendidos por ocasión, con buenas fotos. No hace falta el catálogo completo."
+    },
+    {
+      "pregunta": "¿Puedo publicar arreglos nuevos cada semana?",
+      "respuesta": "Sí, y es buena idea: las publicaciones con arreglos nuevos mantienen el perfil activo y le dan al cliente razones para escribirte."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-florerias",
+      "texto": "Página web para florerías"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:ded191b71b8a9e2a6ac5eff7c3d4651f7542526668632a697200f623ea6a0db9",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:ded191b71b8a9e2a6ac5eff7c3d4651f7542526668632a697200f623ea6a0db9"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 622,
+    "similitud_max": 0.019,
+    "parecida_a": "/aparecer-en-google-maps-contadores"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:fe8e5bfd51c33e8a27e6801cf156103095134941699146139be972b1e3ed26bd",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}
