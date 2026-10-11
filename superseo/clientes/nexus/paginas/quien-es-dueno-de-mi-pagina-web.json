@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "quien-es-dueno-de-mi-pagina-web",
+  "cliente": "nexus",
+  "ruta": "/quien-es-dueno-de-mi-pagina-web",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Seguridad y propiedad",
+  "titulo": "¿Quién es dueño de tu página web y tu dominio?",
+  "descripcion": "Cómo saber si tu dominio, tu hosting y tu página están realmente a tu nombre, por qué importa y qué hacer si los tiene tu proveedor.",
+  "h1": "¿Quién es dueño de tu página web y tu dominio?",
+  "respuesta_rapida": [
+    "Tu dominio, tu hosting y tus accesos deben estar a tu nombre, con tu correo.",
+    "Si están a nombre del proveedor, dependes de él para cualquier cambio o para irte.",
+    "Revisa a nombre de quién está el dominio y pide los accesos por escrito.",
+    "Antes de contratar, exige que la propiedad quede clara en la cotización."
+  ],
+  "secciones": [
+    {
+      "titulo": "Un problema más común de lo que parece",
+      "parrafos": [
+        "Muchos negocios descubren, cuando quieren cambiar de proveedor o el proveedor desaparece, que su dominio está registrado a nombre de otra persona, que no tienen la contraseña del hosting o que el diseño pertenece a la plataforma. En ese momento, recuperar el control puede costar tiempo, dinero o incluso el dominio.",
+        "Todo se evita dejando claro desde el principio que todo es tuyo."
+      ]
+    },
+    {
+      "titulo": "Las piezas que debes controlar",
+      "parrafos": [
+        "El dominio: la cuenta del registrador debe estar a tu nombre o al de tu empresa, con un correo que revises. El hosting: debes tener acceso a la cuenta o, como mínimo, un acuerdo claro de entrega. El código o los archivos del sitio: si se construyó a medida, debes poder obtener una copia. Las cuentas conectadas: Search Console, Analytics, Perfil de Empresa en Google, que deben estar con tu correo como propietario.",
+        "Si alguna de estas piezas está solo en manos del proveedor, estás en riesgo."
+      ]
+    },
+    {
+      "titulo": "Cómo revisar tu dominio",
+      "parrafos": [
+        "Pregunta a tu proveedor en qué registrador está tu dominio y pide acceso a la cuenta. También puedes consultar la información pública del dominio en herramientas de consulta de registros, aunque muchos datos hoy aparecen ocultos por privacidad. Si no tienes acceso y nadie te lo da, es una señal de alerta.",
+        "Revisa también la fecha de vencimiento y que la renovación esté activa."
+      ]
+    },
+    {
+      "titulo": "Si todo está a nombre del proveedor",
+      "parrafos": [
+        "Pide por escrito la transferencia del dominio a tu nombre y los accesos a las demás cuentas. La mayoría de los proveedores serios lo hacen sin problema. Si no responde, guarda pruebas de que el negocio es tuyo y de los pagos realizados, y consulta con el registrador el proceso para reclamar el dominio.",
+        "Mientras tanto, no dejes que el dominio se venza."
+      ]
+    },
+    {
+      "titulo": "Plataformas y propiedad",
+      "parrafos": [
+        "En plataformas como constructores de sitios por suscripción, el diseño y el contenido viven dentro de la plataforma: puedes exportar parte del contenido, pero no el sitio tal cual. El dominio, en cambio, sí puede ser tuyo y moverse. Conviene saberlo antes de invertir mucho tiempo en una plataforma.",
+        "Si en algún momento quieres migrar, el dominio es lo que conserva tu posición y tu correo."
+      ]
+    },
+    {
+      "titulo": "Antes de contratar",
+      "parrafos": [
+        "Pide que la cotización diga expresamente que el dominio se registrará a tu nombre, que tendrás acceso al hosting y a los paneles, que las cuentas de Google estarán con tu correo y que podrás obtener una copia del sitio al terminar de pagar. Un proveedor que se niega a esto no es el adecuado.",
+        "Guarda las contraseñas en un gestor seguro, no en un chat."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "En todos nuestros proyectos, el dominio, el hosting y los accesos quedan bajo control del cliente. Si algún día dejas de trabajar con nosotros, conservas tus activos. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo transferir mi dominio a otro registrador?",
+      "respuesta": "Sí, con el código de autorización que te da el registrador actual, una vez que la cuenta esté a tu nombre."
+    },
+    {
+      "pregunta": "¿Mi proveedor puede quedarse con mi dominio?",
+      "respuesta": "Si lo registró a su nombre, técnicamente lo controla; por eso es clave que esté a tu nombre desde el inicio."
+    },
+    {
+      "pregunta": "¿El diseño es mío si lo pagué?",
+      "respuesta": "Depende de lo acordado; conviene que la cotización lo diga expresamente."
+    },
+    {
+      "pregunta": "¿Qué pasa con mi correo si cambio de proveedor?",
+      "respuesta": "Si el dominio es tuyo, el correo se puede conservar configurándolo con cuidado."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/como-recuperar-un-dominio-vencido",
+      "texto": "Cómo recuperar un dominio vencido"
+    },
+    {
+      "ruta": "/como-elegir-agencia-de-diseno-web",
+      "texto": "Cómo elegir una agencia de diseño web"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:cb9aba46cc09853a6961cf4298aff6d6ee042cc860f334cb0953d78bec886d83",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:cb9aba46cc09853a6961cf4298aff6d6ee042cc860f334cb0953d78bec886d83"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 636,
+    "similitud_max": 0.019,
+    "parecida_a": "/cuanto-cuesta-un-dominio-y-hosting"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:0f303d5dcb7f020ea217da7e0d28a771f10019d3ed529dcdac21065feb54a942",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

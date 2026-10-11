@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "portafolio-en-linea-para-arquitectos",
+  "cliente": "nexus",
+  "ruta": "/portafolio-en-linea-para-arquitectos",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Por industria",
+  "titulo": "Portafolio en línea para arquitectos e interioristas",
+  "descripcion": "Cómo armar un portafolio en línea de arquitectura o interiorismo que consiga proyectos: qué obras mostrar, cómo contarlas, fotos, velocidad y contacto.",
+  "h1": "Portafolio en línea para arquitectos e interioristas",
+  "respuesta_rapida": [
+    "Muestra pocos proyectos, bien elegidos y bien contados, en lugar de todo lo que has hecho.",
+    "Cuenta cada proyecto: el reto, la solución y el resultado, con fotos de calidad.",
+    "Optimiza las imágenes para que el portafolio cargue rápido en celular.",
+    "Haz fácil el contacto desde cada proyecto."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué un portafolio propio",
+      "parrafos": [
+        "Las redes sociales sirven para mostrar avances y generar conversación, pero ordenan todo por fecha y no te dejan contar un proyecto completo. Un portafolio propio te permite presentar cada obra como tú quieres, con contexto, planos, fotos y la historia detrás de las decisiones.",
+        "Además, cuando un cliente potencial busca tu nombre o tu despacho en Google, el portafolio es lo que confirma que eres el profesional que necesita. Es tu carta de presentación permanente."
+      ]
+    },
+    {
+      "titulo": "Elegir qué mostrar",
+      "parrafos": [
+        "Muestra los proyectos que representan el tipo de trabajo que quieres hacer más, no necesariamente todos los que has hecho. Si quieres más residencias, prioriza residencias; si quieres comercios, muéstralos primero. El portafolio atrae lo que exhibe.",
+        "Es mejor tener seis u ocho proyectos bien documentados que treinta con una sola foto cada uno. La profundidad transmite oficio."
+      ]
+    },
+    {
+      "titulo": "Contar cada proyecto",
+      "parrafos": [
+        "Cada proyecto merece su propia página con una estructura sencilla: el encargo y el reto, las decisiones de diseño, los materiales y el resultado. Agrega datos útiles como ubicación general, tipo de proyecto y superficie, siempre que el cliente lo permita.",
+        "Esa narrativa ayuda a que un cliente potencial entienda cómo piensas, no solo cómo se ve el resultado. Y cada página por proyecto es una oportunidad más de aparecer en búsquedas relacionadas."
+      ]
+    },
+    {
+      "titulo": "Fotos, planos y permisos",
+      "parrafos": [
+        "Las fotos hacen la mayor parte del trabajo. Si puedes, contrata fotografía profesional de arquitectura y aclara desde el contrato que podrás usarlas en tu portafolio. Complementa con planos, bocetos o renders que expliquen el proceso.",
+        "Pide permiso a tus clientes antes de publicar su casa o su negocio, y evita mostrar datos que permitan ubicar con exactitud una residencia privada."
+      ]
+    },
+    {
+      "titulo": "Rápido aunque tenga muchas imágenes",
+      "parrafos": [
+        "Un portafolio lleno de fotos pesadas puede tardar mucho en cargar en celular, justo donde llega gran parte de las visitas. Usa formatos modernos de imagen, tamaños adecuados para cada pantalla y carga diferida para las fotos que están más abajo.",
+        "Google considera buena experiencia que el elemento principal de la página se muestre en 2.5 segundos o menos. Cumplirlo con fotos grandes es posible si se prepara bien cada imagen."
+      ]
+    },
+    {
+      "titulo": "De la admiración al contacto",
+      "parrafos": [
+        "Muchos portafolios son bonitos pero no generan contactos porque no dicen qué hacer después. Agrega en cada proyecto una invitación clara a platicar sobre un proyecto similar, con botón a WhatsApp o formulario breve.",
+        "Explica también tu proceso de trabajo y cómo es la primera reunión. Un cliente que entiende qué sigue se anima más a escribir."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "En Nexus Bot Studio diseñamos portafolios con dirección visual propia para cada despacho, no plantillas con el logo encima: rápidos en celular, con una página por proyecto, contacto medible y estructura técnica lista para Google. El primer diagnóstico es gratuito."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuántos proyectos debo mostrar?",
+      "respuesta": "Los suficientes para mostrar tu estilo y tu especialidad. Para muchos despachos, entre seis y doce proyectos bien documentados es un buen inicio."
+    },
+    {
+      "pregunta": "¿Puedo usar renders si el proyecto no está construido?",
+      "respuesta": "Sí, indicando con claridad que son renders o proyectos en desarrollo."
+    },
+    {
+      "pregunta": "¿Instagram no es suficiente?",
+      "respuesta": "Es útil para mostrar avances, pero un portafolio propio cuenta proyectos completos y te ayuda a aparecer en Google."
+    },
+    {
+      "pregunta": "¿Cómo protejo la privacidad de mis clientes?",
+      "respuesta": "Pide permiso antes de publicar y evita datos que permitan ubicar con exactitud una residencia."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/pagina-web-para-arquitectos",
+      "texto": "Página web para arquitectos"
+    },
+    {
+      "ruta": "/pagina-web-para-disenadores-de-interiores",
+      "texto": "Página web para diseñadores de interiores"
+    },
+    {
+      "ruta": "/fotos-para-pagina-web-de-negocio",
+      "texto": "Fotos para la página web de tu negocio"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:8a1ceecf187380c9bb5ed077e61a3ae78a4f5b92c2f8e165b6501d1a5431c1d2",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:8a1ceecf187380c9bb5ed077e61a3ae78a4f5b92c2f8e165b6501d1a5431c1d2"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 610,
+    "similitud_max": 0.009,
+    "parecida_a": "/diseno-de-paginas-web-en-cdmx"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:1eecc5baf5c563cc8ae4b85e18b805a4a7e36e59da2a39b431ab9d25462764fd",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

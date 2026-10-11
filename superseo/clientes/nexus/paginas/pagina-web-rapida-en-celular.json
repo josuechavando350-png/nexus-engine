@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-rapida-en-celular",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-rapida-en-celular",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "Página web rápida en celular: qué la hace lenta",
+  "descripcion": "Qué hace que una página web sea rápida y cómoda en el celular: imágenes, diseño, botones, textos y estabilidad. Una guía práctica para negocios.",
+  "h1": "Página web rápida y cómoda en el celular",
+  "respuesta_rapida": [
+    "Diseña primero para el celular: es donde está la mayoría de tus clientes.",
+    "Optimiza imágenes y elimina lo que no aporta: cada archivo cuenta.",
+    "Botones grandes, texto legible y contacto a un toque.",
+    "Evita que el contenido salte mientras carga y que aparezcan ventanas que estorben."
+  ],
+  "secciones": [
+    {
+      "titulo": "Primero el celular",
+      "parrafos": [
+        "Muchas páginas se diseñan en una pantalla grande y luego se adaptan al celular como se puede. El resultado son textos cortados, botones diminutos, imágenes que no caben y menús imposibles. Lo correcto es pensar primero en la pantalla pequeña, donde está la mayoría de tus visitantes, y después ampliar para escritorio.",
+        "Google también evalúa principalmente la versión para celular de tu sitio."
+      ]
+    },
+    {
+      "titulo": "Imágenes que no pesen",
+      "parrafos": [
+        "Las imágenes son la causa más frecuente de lentitud. Una foto tomada con un celular moderno puede pesar varias veces más de lo que la página necesita. La solución es redimensionarlas, usar formatos modernos y servir a cada pantalla el tamaño que necesita, además de cargar las imágenes de abajo solo cuando el usuario se acerca a ellas.",
+        "Bien hecho, se ven igual de nítidas y cargan en una fracción del tiempo."
+      ]
+    },
+    {
+      "titulo": "Menos es más",
+      "parrafos": [
+        "Cada elemento que agregas, como un carrusel, un video de fondo, un chat de terceros, un contador de visitas o una animación, suma archivos y tiempo. Pregúntate si cada uno ayuda a que el cliente te contacte o compre. Si no, probablemente sobra.",
+        "Los sitios más rápidos suelen ser también los más claros."
+      ]
+    },
+    {
+      "titulo": "Tocar sin errores",
+      "parrafos": [
+        "En el celular se navega con el dedo. Los botones deben ser grandes y estar separados, para que nadie toque el equivocado. El botón de WhatsApp y el de llamada deben estar siempre a la vista, idealmente fijos al bajar. Los formularios, si los hay, deben ser cortos y usar el teclado adecuado para teléfono o correo.",
+        "Una página cómoda de usar se siente rápida aunque tenga mucho contenido."
+      ]
+    },
+    {
+      "titulo": "Que no salte",
+      "parrafos": [
+        "Pocas cosas molestan más que intentar tocar un botón y que el contenido se mueva justo en ese momento porque terminó de cargar una imagen o un anuncio. Eso se mide con la métrica CLS, que es buena si es de 0.1 o menos. Se evita reservando el espacio de imágenes y elementos antes de que carguen.",
+        "Las ventanas emergentes que tapan todo al entrar también dañan la experiencia, y Google las ve con malos ojos en celular."
+      ]
+    },
+    {
+      "titulo": "Texto legible",
+      "parrafos": [
+        "Letra de buen tamaño, líneas no demasiado largas, buen contraste entre texto y fondo y párrafos cortos. Mucha gente lee de pie, en el transporte o con el sol encima. Si tiene que hacer zoom para leer, se va.",
+        "La legibilidad también es accesibilidad: ayuda a personas mayores o con baja visión."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Diseñamos cada sitio primero para el celular, con imágenes optimizadas, código mínimo y contacto a un toque. El sitio de CANO Estrategia Penal marca 99 en rendimiento en PageSpeed móvil. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cómo pruebo mi página en celular?",
+      "respuesta": "Ábrela en tu propio teléfono con datos móviles, no con el wifi de la oficina, y mídela con PageSpeed Insights."
+    },
+    {
+      "pregunta": "¿Las animaciones hacen lenta la página?",
+      "respuesta": "Las pesadas, sí. Las sutiles y bien hechas casi no afectan."
+    },
+    {
+      "pregunta": "¿Necesito una app en lugar de página?",
+      "respuesta": "Para la mayoría de los negocios, no. Una página rápida en celular cumple la misma función sin que el cliente instale nada."
+    },
+    {
+      "pregunta": "¿Qué hago con un video de portada?",
+      "respuesta": "Optimizarlo, mostrar una imagen mientras carga o usarlo solo en pantallas grandes."
+    },
+    {
+      "pregunta": "¿Importa la velocidad si mi página tiene pocas visitas?",
+      "respuesta": "Sí. Cada visita perdida por lentitud es un cliente potencial perdido, sin importar cuántas visitas tengas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/como-saber-si-mi-pagina-es-lenta",
+      "texto": "Cómo saber si tu página web es lenta"
+    },
+    {
+      "ruta": "/fotos-para-pagina-web-de-negocio",
+      "texto": "Fotos para la página web de tu negocio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:2f142095a105a3aa308a789e633d124bfba035ba9632df4781f5dd60f75b4923",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:2f142095a105a3aa308a789e633d124bfba035ba9632df4781f5dd60f75b4923"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 613,
+    "similitud_max": 0.012,
+    "parecida_a": "/fotos-para-pagina-web-de-negocio"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:66ffdeea59e6941f5122fdc92b17c3a46a6ef99bdb2169cef1c8ec8c1490cf80",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-florerias",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-florerias",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Google Ads para florerías",
+  "descripcion": "Google Ads para florerías: campañas de temporada, envío el mismo día, radio de entrega, pedidos medidos con su valor y anuncios de condolencias con tono sobrio.",
+  "h1": "Google Ads para florerías",
+  "respuesta_rapida": [
+    "Las búsquedas de flores son urgentes y locales: envío hoy, cerca, con precio a la vista.",
+    "San Valentín y Día de las Madres se preparan con semanas de anticipación.",
+    "El radio de los anuncios coincide con tu zona real de entrega.",
+    "Cada pedido se mide con su valor para saber qué campaña deja dinero."
+  ],
+  "secciones": [
+    {
+      "titulo": "El comprador de flores tiene prisa",
+      "parrafos": [
+        "Envío de flores hoy, florería a domicilio, arreglo de cumpleaños cerca. Las búsquedas de flores casi siempre tienen fecha y prisa. El comprador elige rápido, entre las opciones que le muestran precio, foto y la promesa clara de entrega. Un anuncio que responde eso en el mismo texto tiene ventaja sobre uno genérico.",
+        "Por eso los anuncios de florería deben mencionar la entrega el mismo día, la zona y un precio desde."
+      ]
+    },
+    {
+      "titulo": "Temporadas que lo cambian todo",
+      "parrafos": [
+        "San Valentín, Día de las Madres y fin de año concentran buena parte de las ventas del año en pocos días, y la competencia en anuncios se dispara. La campaña de temporada se prepara con semanas de anticipación, con preventa, catálogo especial y página de destino lista, para captar a quien planea antes del último día.",
+        "Cuando la capacidad de producción se llena, la campaña se ajusta o se pausa para no vender lo que no se puede entregar bien."
+      ]
+    },
+    {
+      "titulo": "Por ocasión",
+      "parrafos": [
+        "Cumpleaños, aniversarios, nacimientos, agradecimientos y condolencias tienen búsquedas propias. Los anuncios de condolencias requieren un tono sobrio y una página con arreglos fúnebres y envío rápido a capillas y funerarias. Las bodas y eventos, que se planean con meses de anticipación, merecen su propia campaña.",
+        "Cada ocasión con su página de destino convierte mejor que el catálogo completo."
+      ]
+    },
+    {
+      "titulo": "Medir pedidos con su valor",
+      "parrafos": [
+        "Las conversiones son pedidos completados en línea con su valor, pedidos por WhatsApp y llamadas. Con esa medición se sabe qué campañas y qué ocasiones dejan más dinero. En temporada alta, esa información permite decidir en tiempo real dónde poner el presupuesto.",
+        "Los complementos, como globos o chocolates, aumentan el valor de cada pedido y también se reflejan en la medición."
+      ]
+    },
+    {
+      "titulo": "Radio de entrega",
+      "parrafos": [
+        "Los anuncios deben mostrarse donde la florería realmente entrega, con el costo de envío claro en la página. Si hay zonas con entrega más cara o más lenta, conviene reflejarlo para evitar reclamos. Mostrar anuncios fuera de la zona de entrega solo genera clics que no pueden convertirse.",
+        "La ubicación de hospitales y funerarias cercanas puede usarse en anuncios específicos."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Empezar la campaña de San Valentín la misma semana. Anuncios sin precio ni promesa de entrega. Radios más grandes que la zona de entrega. Llevar a un catálogo general en lugar de la ocasión buscada. Y no medir el valor de los pedidos, lo que impide saber si la temporada fue rentable o solo muy ocupada."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Preparamos campañas por ocasión y temporada, con radio de entrega, medición de pedidos con valor y páginas de destino listas. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuándo empiezo la campaña de Día de las Madres?",
+      "respuesta": "Algunas semanas antes, con preventa. Quien planea con tiempo suele comprar arreglos de mayor valor."
+    },
+    {
+      "pregunta": "¿Puedo anunciar solo en temporadas?",
+      "respuesta": "Sí, aunque mantener una campaña básica todo el año sostiene ventas de cumpleaños y condolencias."
+    },
+    {
+      "pregunta": "¿Conviene anunciar precios?",
+      "respuesta": "Sí, en este giro el precio desde en el anuncio mejora mucho la calidad de los clics."
+    },
+    {
+      "pregunta": "¿Funciona para empresas?",
+      "respuesta": "Sí, con una campaña de arreglos corporativos y facturación."
+    },
+    {
+      "pregunta": "¿Funcionan los anuncios de shopping para flores?",
+      "respuesta": "Sí, si tienes tienda en línea con catálogo: muestran el arreglo con foto y precio, lo que suele mejorar la calidad de los clics."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-florerias",
+      "texto": "Página web para florerías"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:8e73906bcd3d2769006a494065c7247e8c025d96650d39afd53e8097a9361085",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:8e73906bcd3d2769006a494065c7247e8c025d96650d39afd53e8097a9361085"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 619,
+    "similitud_max": 0.021,
+    "parecida_a": "/google-ads-para-gimnasios"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:be080d017f48ca4d6718ee1141bfe7b91f8223736abbdb3c33c1cbf80a25d753",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

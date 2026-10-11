@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-barberias",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-barberias",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Página web para barberías",
+  "descripcion": "Sitios para barberías: reserva por barbero, cortes y precios claros, galería de estilos, membresías y recordatorios automáticos por WhatsApp.",
+  "h1": "Página web para barberías",
+  "respuesta_rapida": [
+    "El cliente de barbería quiere dos cosas: saber si hay lugar y reservar con su barbero sin esperar.",
+    "Muestra los cortes con foto, precio y duración; la galería es tu mejor argumento.",
+    "La reserva por barbero evita filas, mensajes perdidos y clientes molestos.",
+    "Los recordatorios y las membresías hacen que el cliente vuelva cada pocas semanas."
+  ],
+  "secciones": [
+    {
+      "titulo": "El cliente que no quiere esperar",
+      "parrafos": [
+        "La barbería tiene una ventaja: el cliente regresa cada pocas semanas. También tiene un problema: si un sábado llega y hay fila, se va a la de enfrente. Una página con reservas en línea resuelve las dos cosas. El cliente elige horario y barbero desde el celular, y tú sabes cómo viene tu día.",
+        "Muchos clientes jóvenes prefieren reservar sin hablar con nadie. Para ellos, un botón de reservar ahora es más cómodo que cualquier mensaje."
+      ]
+    },
+    {
+      "titulo": "Cortes con nombre y foto",
+      "parrafos": [
+        "Fade, taper, corte clásico, diseño, arreglo de barba, afeitado con toalla caliente, tinte, cejas. Cada servicio con su foto real, duración y precio. Así el cliente llega sabiendo qué pedir y el barbero no tiene que adivinar.",
+        "La galería por barbero también funciona: cada uno tiene su estilo y sus clientes fieles, y mostrar su trabajo ayuda a que los nuevos lo elijan."
+      ]
+    },
+    {
+      "titulo": "Reservas por barbero",
+      "parrafos": [
+        "Cada barbero con su propio horario, días de descanso y servicios. El cliente reserva con quien prefiere y recibe confirmación al instante. Si alguien cancela, el espacio se libera para otro.",
+        "Para horarios de alta demanda se puede pedir un pequeño anticipo, que reduce mucho las ausencias."
+      ]
+    },
+    {
+      "titulo": "Membresías, productos y regreso",
+      "parrafos": [
+        "Una membresía mensual con cortes incluidos asegura ingresos y fideliza. La página puede explicarla, venderla y llevar el control de cuántos servicios lleva cada miembro.",
+        "Un recordatorio automático cuando han pasado las semanas habituales desde el último corte trae de vuelta al cliente antes de que se le ocurra probar otro lugar.",
+        "Ceras, aceites para barba, shampoo. Muchas barberías venden productos en mostrador; un catálogo en la página con apartado por WhatsApp o compra en línea agrega ingresos sin mucho esfuerzo.",
+        "No hace falta una tienda en línea completa: un catálogo bien fotografiado y un botón para pedir suele bastar."
+      ]
+    },
+    {
+      "titulo": "El mapa es tu fila de enfrente",
+      "parrafos": [
+        "La mayoría de los clientes nuevos llegan buscando barbería cerca. El perfil de Google con fotos recientes, horarios correctos y muchas reseñas reales es lo que te pone en esa lista. Un código QR en el espejo que lleve a dejar reseña funciona muy bien.",
+        "La página refuerza ese perfil y le da a Google más información sobre tus servicios."
+      ]
+    },
+    {
+      "titulo": "Una marca que se reconoce",
+      "parrafos": [
+        "Las barberías con identidad clara, ya sea clásica, urbana o de lujo, construyen clientela fiel. La página debe reflejar esa identidad en la tipografía, los colores, la música que suena en el video de portada si lo hay y el tono de los textos. Una plantilla genérica no se parece a tu barbería.",
+        "Contar la historia del lugar, presentar a los barberos con su experiencia y mostrar el ambiente del local ayuda a que el cliente nuevo sienta que ya conoce el sitio antes de llegar."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios de barbería con la identidad de tu marca, reservas por barbero y WhatsApp medido. Desde $1,999 MXN; las reservas con recordatorios automáticos están incluidas desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo seguir atendiendo sin cita?",
+      "respuesta": "Sí. Muchas barberías combinan reservas con turnos sin cita. La página puede mostrar ambas opciones y los horarios con más espacio."
+    },
+    {
+      "pregunta": "¿Funciona si tengo dos sucursales?",
+      "respuesta": "Sí. Cada sucursal puede tener su ubicación, barberos y agenda, y el cliente elige dónde reservar."
+    },
+    {
+      "pregunta": "¿Cómo cobro la membresía?",
+      "respuesta": "Con un pago recurrente en línea o en mostrador, y el sistema lleva el registro de los servicios usados."
+    },
+    {
+      "pregunta": "¿Puedo mostrar cuántos lugares quedan hoy?",
+      "respuesta": "Sí. La agenda en línea muestra en tiempo real los horarios libres de cada barbero, lo que motiva a reservar antes de que se llenen."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/agenda-de-citas-en-linea-para-barberias",
+      "texto": "Agenda de citas en línea para barberías"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-barberias",
+      "texto": "Cómo aparecer en Google Maps: barberías"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:d82a9f3dde843d1b47ca99f4170c211fb1bec1ac5ca964f8de2979f43091a9a9",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:d82a9f3dde843d1b47ca99f4170c211fb1bec1ac5ca964f8de2979f43091a9a9"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 657,
+    "similitud_max": 0.012,
+    "parecida_a": "/pagina-web-para-estudios-de-unas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:da9df3a72bb3156e173e10f254390436b510d04f63fd11be4cf8c913e4b0014d",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-vs-facebook-ads",
+  "cliente": "nexus",
+  "ruta": "/google-ads-vs-facebook-ads",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "Google Ads vs. Facebook Ads para negocio local",
+  "descripcion": "Diferencias entre Google Ads y Facebook e Instagram Ads para negocios locales: intención, costo, formato y cuándo conviene cada uno o los dos.",
+  "h1": "Google Ads vs. Facebook Ads para negocio local",
+  "respuesta_rapida": [
+    "Google Ads aparece cuando alguien busca lo que vendes: captura demanda que ya existe.",
+    "Facebook e Instagram Ads aparecen mientras la gente navega: crean demanda y dan a conocer tu negocio.",
+    "Para servicios que se buscan con urgencia, Google suele convertir mejor.",
+    "Para productos visuales o promociones, las redes pueden funcionar muy bien."
+  ],
+  "secciones": [
+    {
+      "titulo": "Intención frente a interrupción",
+      "parrafos": [
+        "La diferencia de fondo es el momento. En Google, la persona está buscando algo concreto, como taller de frenos cerca o abogado laboral, y tu anuncio le responde. En Facebook e Instagram, la persona está viendo fotos de amigos o videos, y tu anuncio la interrumpe con algo que quizá no estaba buscando.",
+        "Por eso Google captura demanda que ya existe y las redes ayudan a crear demanda nueva."
+      ]
+    },
+    {
+      "titulo": "Cuándo conviene Google",
+      "parrafos": [
+        "Servicios que la gente busca cuando los necesita: salud, legal, reparaciones, talleres, cerrajeros, contadores. Productos que se buscan por nombre. Negocios locales donde la cercanía decide. En estos casos, aparecer en el momento de la búsqueda suele traer clientes con más intención de comprar.",
+        "Los clics pueden ser más caros, pero suelen convertir mejor.",
+        "También conviene cuando tu cliente compara opciones antes de decidir, porque en Google puedes aparecer justo en ese momento con un anuncio que responde a su duda concreta."
+      ]
+    },
+    {
+      "titulo": "Cuándo conviene Facebook e Instagram",
+      "parrafos": [
+        "Productos muy visuales, como ropa, comida, decoración o belleza. Promociones y eventos. Negocios nuevos que necesitan darse a conocer en su zona. Ofertas que la gente no sabía que quería hasta que las vio. Las redes permiten segmentar por zona e intereses y mostrar fotos y videos atractivos.",
+        "El costo por clic suele ser menor, pero la intención también.",
+        "Los videos cortos que muestran el producto en uso o el ambiente del negocio suelen funcionar mejor que las imágenes fijas en estas plataformas."
+      ]
+    },
+    {
+      "titulo": "Usar los dos",
+      "parrafos": [
+        "Muchos negocios combinan ambos: las redes dan a conocer el negocio y generan recuerdo, y Google captura a quien después busca. También se usan las redes para mostrar anuncios a quien ya visitó tu sitio, recordándole que vuelva.",
+        "La clave es medir cada canal por separado para saber cuánto cuesta un cliente en cada uno."
+      ]
+    },
+    {
+      "titulo": "Medir lo que importa",
+      "parrafos": [
+        "En ambos casos, lo que importa son los contactos y las ventas, no los me gusta ni los clics. Configura la medición de mensajes de WhatsApp, llamadas, formularios y compras, y compara el costo por cliente de cada canal.",
+        "Sin medición, la decisión entre Google y redes se toma por intuición, y la intuición suele equivocarse."
+      ]
+    },
+    {
+      "titulo": "Errores comunes",
+      "parrafos": [
+        "Usar los mismos anuncios en ambos canales, cuando el formato y el momento son distintos. Mandar todo el tráfico a la portada del sitio. Juzgar las redes por interacciones en lugar de contactos. Y apagar una campaña a los pocos días sin darle tiempo de aprender.",
+        "Cada canal necesita su propia estrategia, sus propios anuncios y su propia página de destino."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Con Nexus Cortex trabajamos Google Ads conectado a ventas reales, con medición de llamadas, WhatsApp y formularios. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Con poco presupuesto, cuál elijo?",
+      "respuesta": "Si tu servicio se busca activamente en tu zona, empieza por Google; si tu producto es visual y nuevo, prueba redes."
+    },
+    {
+      "pregunta": "¿Puedo anunciar en Instagram sin página web?",
+      "respuesta": "Sí, llevando a tu perfil o a WhatsApp, pero una página bien hecha suele convertir mejor."
+    },
+    {
+      "pregunta": "¿Cuál es más barato?",
+      "respuesta": "El clic en redes suele ser más barato, pero lo que importa es el costo por cliente, que hay que medir."
+    },
+    {
+      "pregunta": "¿Necesito una agencia para cada canal?",
+      "respuesta": "No necesariamente; lo importante es que alguien mida ambos con el mismo criterio."
+    },
+    {
+      "pregunta": "¿Puedo medir las ventas que vienen de redes?",
+      "respuesta": "Sí, con enlaces medidos hacia tu página o tu WhatsApp, y registrando de dónde llega cada cliente."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/cuanto-invertir-en-google-ads-negocio-local",
+      "texto": "¿Cuánto invertir en Google Ads siendo negocio local?"
+    },
+    {
+      "ruta": "/landing-page-para-anuncios",
+      "texto": "Landing page para anuncios: qué debe tener"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:042d05ff4cb7a617b85a3c60f557f85bb3d5600cf8b52100eec27ea07ae7a4d5",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:042d05ff4cb7a617b85a3c60f557f85bb3d5600cf8b52100eec27ea07ae7a4d5"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 644,
+    "similitud_max": 0.014,
+    "parecida_a": "/google-ads-para-psicologos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:440e07db3cc65e822032d5303f8cf2493e43340861c8b421aa77241edc4641a1",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

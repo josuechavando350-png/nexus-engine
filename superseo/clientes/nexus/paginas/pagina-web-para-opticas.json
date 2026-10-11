@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-opticas",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-opticas",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Página web para ópticas",
+  "descripcion": "Sitios para ópticas: examen de la vista con cita, catálogo de armazones, lentes de contacto, convenios y ubicación clara. Pensados para vender en tienda.",
+  "h1": "Página web para ópticas",
+  "respuesta_rapida": [
+    "La gente busca óptica por dos razones: un examen de la vista o lentes nuevos. La página debe resolver ambas.",
+    "Un catálogo de armazones con marcas y estilos ayuda a decidir antes de ir a la tienda.",
+    "El examen de la vista con cita en línea reduce las esperas y atrae clientes nuevos.",
+    "Convenios con empresas, garantías y tiempos de entrega deben estar a la vista."
+  ],
+  "secciones": [
+    {
+      "titulo": "Competir con las cadenas",
+      "parrafos": [
+        "Las cadenas grandes tienen presupuesto para publicidad, pero suelen ofrecer una experiencia impersonal. Una óptica independiente puede ganar con atención cercana, examen cuidadoso y asesoría real para elegir armazón. La página es el lugar para contar esa diferencia.",
+        "Quien busca óptica cerca de mí quiere saber si lo atienden hoy, si el examen tiene costo y si encontrará armazones de su estilo. Responder esas tres preguntas en la portada ya te pone por delante."
+      ]
+    },
+    {
+      "titulo": "Catálogo que vende en tienda",
+      "parrafos": [
+        "No hace falta vender lentes en línea para que el catálogo funcione. Mostrar armazones por estilo, por marca y por rango de precio permite que el cliente llegue a la tienda con una idea clara. Muchas personas prefieren ver opciones con calma desde su casa.",
+        "Las fotografías propias de los armazones, en un fondo limpio y con buena luz, venden más que las imágenes genéricas del proveedor."
+      ]
+    },
+    {
+      "titulo": "El examen de la vista como puerta",
+      "parrafos": [
+        "El examen es el servicio que más atrae clientes nuevos. Una página que explique en qué consiste, cuánto dura, quién lo realiza y cómo agendarlo, con una agenda en línea, convierte búsquedas en visitas.",
+        "Un recordatorio automático cuando se acerca la fecha del siguiente examen mantiene al cliente vinculado a tu óptica y no a la que le queda de paso."
+      ]
+    },
+    {
+      "titulo": "Lentes de contacto y especialidades",
+      "parrafos": [
+        "Lentes de contacto, lentes para computadora, progresivos, graduaciones altas, lentes para niños, lentes deportivos o de seguridad. Si tienes experiencia en alguno, una página dedicada atrae justo a quien lo necesita y suele estar dispuesto a pagar por asesoría.",
+        "También funciona una página de convenios para empresas y escuelas, explicando cómo atiendes grupos."
+      ]
+    },
+    {
+      "titulo": "Datos que generan confianza",
+      "parrafos": [
+        "Garantía de los armazones y las micas, tiempo de entrega, formas de pago, si aceptas recetas externas y si haces ajustes gratuitos. Son las dudas típicas antes de comprar y responderlas en la página reduce mensajes repetidos.",
+        "Las reseñas en Google son decisivas en este giro: pide una al entregar cada par de lentes."
+      ]
+    },
+    {
+      "titulo": "Contenido que trae visitas",
+      "parrafos": [
+        "Las dudas sobre la vista se buscan todo el tiempo: cada cuánto revisarse, cómo saber si un niño necesita lentes, qué son los lentes con filtro de luz azul, cuál es la diferencia entre micas antirreflejantes y fotocromáticas. Una óptica que responde con claridad atrae a quien está a punto de comprar.",
+        "Cada nota puede cerrar con una invitación al examen de la vista. Con el tiempo, esas páginas atraen clientes de toda la zona que no conocían la tienda."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para ópticas con catálogo, agenda de examen y contacto por WhatsApp medido. El sitio carga rápido en celular, que es donde la mayoría busca.",
+        "Los paquetes van de $1,999 a $44,800 MXN, según si necesitas catálogo, agenda o asistente."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Conviene vender lentes en línea?",
+      "respuesta": "Para armazones sin graduación o lentes de contacto con receta vigente puede funcionar. Para graduados, la mayoría prefiere probarse el armazón; un catálogo con apartado suele ser suficiente."
+    },
+    {
+      "pregunta": "¿Publico el costo del examen?",
+      "respuesta": "Sí, sobre todo si es gratuito con la compra de lentes. Es una de las preguntas más frecuentes."
+    },
+    {
+      "pregunta": "¿Cómo aparezco cuando buscan óptica cerca?",
+      "respuesta": "Con tu perfil de Google completo, fotos de la tienda, horarios correctos y reseñas reales. La página refuerza lo que dice ese perfil."
+    },
+    {
+      "pregunta": "¿Sirve tener la página si mi local está en una plaza?",
+      "respuesta": "Sí. Indica la plaza, el piso o la ubicación del local dentro de ella, y los horarios de la plaza. Es una de las dudas más comunes."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-opticas",
+      "texto": "Cómo aparecer en Google Maps: ópticas"
+    },
+    {
+      "ruta": "/como-conseguir-pacientes-para-tu-consultorio",
+      "texto": "Cómo conseguir más pacientes para tu consultorio"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:95120c16be40b41ceffa2686f5b95e657f71b1dd6bd6d016a5723cda1d610710",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:95120c16be40b41ceffa2686f5b95e657f71b1dd6bd6d016a5723cda1d610710"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 654,
+    "similitud_max": 0.008,
+    "parecida_a": "/aparecer-en-google-maps-opticas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:4d9c5bf62e7c45c440dce760a58e605e7719024456abce5c6f32f558213e6e29",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

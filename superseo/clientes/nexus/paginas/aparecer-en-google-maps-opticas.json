@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-opticas",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-opticas",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Cómo aparecer en Google Maps: ópticas",
+  "descripcion": "Guía para que tu óptica aparezca en Google Maps: categoría, examen de la vista como servicio, marcas de armazones, citas en línea y reseñas de clientes.",
+  "h1": "Cómo hacer que tu óptica aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal: óptica; agrega optometrista si haces exámenes de la vista.",
+    "Lista servicios como examen, lentes de contacto y reparaciones, con precio desde.",
+    "Fotos de la tienda, de los armazones y del consultorio de examen.",
+    "Reseñas al entregar lentes, cuando el cliente ya ve bien."
+  ],
+  "secciones": [
+    {
+      "titulo": "Óptica cerca y examen de la vista",
+      "parrafos": [
+        "Óptica cerca, examen de la vista, lentes graduados en una zona. Son búsquedas frecuentes que se resuelven en el mapa, donde las cadenas grandes compiten con ópticas independientes. Ahí, la calidad del perfil y las reseñas pueden pesar más que el tamaño de la marca.",
+        "El examen de la vista es la puerta de entrada de muchos clientes nuevos, así que conviene destacarlo en el perfil.",
+        "Las ópticas dentro de plazas comerciales tienen un reto extra: el cliente necesita saber exactamente en qué parte de la plaza está el local."
+      ]
+    },
+    {
+      "titulo": "Categorías y servicios",
+      "parrafos": [
+        "La categoría principal es óptica. Si hay optometrista que hace exámenes, agrega esa categoría secundaria. En servicios, lista examen de la vista, adaptación de lentes de contacto, lentes progresivos, lentes para computadora, reparación y ajuste de armazones, con precio desde si lo manejas.",
+        "En la descripción, menciona las marcas de armazones que manejas: muchas personas buscan una marca específica.",
+        "Si atiendes convenios con empresas o escuelas, o aceptas seguros, menciónalo también: son búsquedas que pocas ópticas aprovechan y que traen clientes en grupo."
+      ]
+    },
+    {
+      "titulo": "Fotos de la tienda y del examen",
+      "parrafos": [
+        "Fotos de la tienda, de los exhibidores, de armazones destacados y del consultorio de examen con su equipo. El cliente quiere ver variedad y profesionalismo. Si estás en una plaza, una foto de la entrada del local y de la ubicación dentro de la plaza ayuda mucho.",
+        "Actualiza las fotos cuando lleguen colecciones nuevas."
+      ]
+    },
+    {
+      "titulo": "Citas en línea",
+      "parrafos": [
+        "Vincula el botón de cita a tu agenda en línea para exámenes de la vista. Quien busca en la noche puede agendar para el día siguiente sin llamar. Si trabajas sin cita, aclara en qué horarios hay menos espera.",
+        "Mide cuántas citas llegan desde el perfil para saber cuánto aporta."
+      ]
+    },
+    {
+      "titulo": "Reseñas en el momento justo",
+      "parrafos": [
+        "El mejor momento para pedir una reseña es al entregar los lentes, cuando el cliente se los pone y nota la diferencia. Un mensaje con el enlace directo ese mismo día funciona bien. Las reseñas que mencionan atención paciente y buena asesoría son muy valiosas.",
+        "Responde todas, también las de demoras en entrega, explicando qué pasó.",
+        "También conviene pedir reseña después de cada examen de la vista, aunque la persona todavía no haya comprado lentes, porque esas reseñas hablan de la parte profesional del servicio."
+      ]
+    },
+    {
+      "titulo": "Horario y datos",
+      "parrafos": [
+        "Si estás en una plaza, tu horario debe coincidir con el de la plaza, incluidos días festivos. Nombre, dirección y teléfono deben ser idénticos en el perfil, tu sitio y los directorios.",
+        "Publica en el perfil promociones de temporada, como regreso a clases."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, lo conectamos con tu agenda de exámenes y tu sitio, preparamos el sistema de reseñas y medimos citas. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo listar armazones como productos?",
+      "respuesta": "Sí, con foto y precio desde. Ayuda a quien busca un estilo o una marca."
+    },
+    {
+      "pregunta": "¿Conviene decir si el examen es gratuito?",
+      "respuesta": "Sí, si lo es con la compra de lentes. Es una de las preguntas más frecuentes."
+    },
+    {
+      "pregunta": "¿Tengo dos sucursales, necesito dos perfiles?",
+      "respuesta": "Sí, cada ubicación con su propio perfil."
+    },
+    {
+      "pregunta": "¿Qué hago si mi plaza cambia de horario?",
+      "respuesta": "Actualízalo de inmediato en el perfil y en el sitio."
+    },
+    {
+      "pregunta": "¿Puedo anunciar promociones en el perfil?",
+      "respuesta": "Sí, con publicaciones que tengan fecha de vigencia, por ejemplo examen gratuito con la compra de lentes durante el regreso a clases."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-opticas",
+      "texto": "Página web para ópticas"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:01c5527817807fb871784c9ee403aab0ce246a031c5be3fa485b3c3827748280",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:01c5527817807fb871784c9ee403aab0ce246a031c5be3fa485b3c3827748280"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 624,
+    "similitud_max": 0.033,
+    "parecida_a": "/aparecer-en-google-maps-fisioterapeutas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:7146dd68bf6e611d4572a1dfdecefd5e94f33c5d461c1c7cb2f74997e3e0ecc1",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}

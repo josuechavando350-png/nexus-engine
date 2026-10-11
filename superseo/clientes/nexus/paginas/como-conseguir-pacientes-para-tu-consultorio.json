@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "como-conseguir-pacientes-para-tu-consultorio",
+  "cliente": "nexus",
+  "ruta": "/como-conseguir-pacientes-para-tu-consultorio",
+  "tipo": "GUIA",
+  "servicio": "clinicas",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Por industria",
+  "titulo": "Cómo conseguir más pacientes para tu consultorio",
+  "descripcion": "Cómo atraer más pacientes a tu consultorio con una ficha de Google cuidada, una página clara, reseñas honestas, respuesta rápida y agenda fácil.",
+  "h1": "Cómo conseguir más pacientes para tu consultorio",
+  "respuesta_rapida": [
+    "Cuida tu ficha de Google: es lo primero que ven los pacientes de tu zona.",
+    "Ten una página que explique tus servicios, tu formación y cómo agendar.",
+    "Pide reseña a todos tus pacientes, sin incentivos, y respóndelas con discreción.",
+    "Responde rápido y facilita agendar: muchos pacientes eligen al primero que contesta."
+  ],
+  "secciones": [
+    {
+      "titulo": "Dónde buscan los pacientes hoy",
+      "parrafos": [
+        "La recomendación sigue siendo muy importante, pero casi todos los pacientes revisan en Google antes de agendar, incluso cuando alguien les dio tu nombre. Buscan tu especialidad cerca de donde viven o trabajan, comparan fichas, leen reseñas y abren la página de los consultorios que les dan confianza.",
+        "Eso significa que tu presencia en línea trabaja todo el tiempo: confirma la recomendación que recibió el paciente o lo hace dudar. Un consultorio sin página o con una ficha descuidada pierde pacientes que ya estaban casi decididos."
+      ]
+    },
+    {
+      "titulo": "Tu ficha de Google",
+      "parrafos": [
+        "El Perfil de Empresa en Google es la base para aparecer en el mapa. Verifica que tu nombre, especialidad, dirección, horarios y teléfono sean correctos y coincidan con tu página. Agrega fotos reales del consultorio, de la entrada y de la sala de espera, para que el paciente reconozca el lugar al llegar.",
+        "Elige bien la categoría principal y describe tus servicios con las palabras que usan tus pacientes, no solo con términos técnicos. Si atiendes en más de un lugar, cada consultorio necesita su propia ficha con su dirección real."
+      ]
+    },
+    {
+      "titulo": "Una página que responda lo que preguntan",
+      "parrafos": [
+        "Tu página debe contestar en pocos segundos quién eres, qué atiendes, dónde estás y cómo agendar. Incluye tu formación y tu cédula profesional, los padecimientos o tratamientos que atiendes, la ubicación con mapa y un botón visible para WhatsApp o para agendar en línea.",
+        "Una página por servicio importante ayuda a que te encuentren quienes buscan algo específico, y a que lleguen con la información que necesitan. Escribe en lenguaje claro, sin prometer resultados médicos: la confianza viene de explicar bien, no de exagerar."
+      ]
+    },
+    {
+      "titulo": "Reseñas honestas",
+      "parrafos": [
+        "Las reseñas pesan mucho en la decisión de un paciente nuevo. La forma correcta de conseguirlas es pedirlas a todos tus pacientes, no solo a los que crees que quedaron contentos, y sin ofrecer descuentos ni regalos a cambio. Google prohíbe pedir reseñas de forma selectiva o con incentivos.",
+        "Al responder, agradece y nunca confirmes datos de salud del paciente, aunque él los haya mencionado. Una respuesta amable y discreta a una reseña negativa muestra profesionalismo a quienes la leen después."
+      ]
+    },
+    {
+      "titulo": "Responder rápido y agendar fácil",
+      "parrafos": [
+        "Muchos pacientes escriben a varios consultorios al mismo tiempo y agendan con el primero que responde con claridad. Si tu asistente no puede contestar de inmediato, un mensaje automático o un asistente que responda dudas de horarios, ubicación y preparación evita perder a esa persona.",
+        "Agendar debe tomar pocos pasos. Una agenda en línea o un asistente que ofrezca horarios disponibles por WhatsApp, con confirmación y recordatorio, reduce llamadas, olvidos y citas perdidas."
+      ]
+    },
+    {
+      "titulo": "Publicidad con cuidado",
+      "parrafos": [
+        "Los anuncios en Google pueden traer pacientes que buscan tu especialidad en tu zona, siempre que midas qué anuncios generan citas y no solo clics. Empieza con pocas búsquedas muy específicas y una página de destino clara para cada servicio.",
+        "La publicidad de servicios de salud en México tiene reglas propias, y Google también tiene políticas para anuncios médicos. Revisa qué te aplica antes de anunciar tratamientos y evita frases que prometan resultados."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "En Nexus Bot Studio construimos páginas para consultorios rápidas en celular, con botón de WhatsApp medible y estructura para que Google entienda qué atiendes y dónde. Nuestros asistentes confirman y recuerdan citas, responden dudas frecuentes a cualquier hora y derivan lo clínico al personal adecuado."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Qué es más importante, la página o la ficha de Google?",
+      "respuesta": "Las dos se complementan. La ficha te hace visible en el mapa; la página convence y explica. Juntas generan más confianza."
+    },
+    {
+      "pregunta": "¿Puedo pedir reseñas solo a pacientes satisfechos?",
+      "respuesta": "No. Google prohíbe pedirlas de forma selectiva. Pídelas a todos tus pacientes, sin incentivos."
+    },
+    {
+      "pregunta": "¿Debo publicar precios de consulta?",
+      "respuesta": "Ayuda a filtrar y a generar confianza. Si varían, puedes publicar un precio desde y explicar de qué depende."
+    },
+    {
+      "pregunta": "¿Un asistente puede responder preguntas médicas?",
+      "respuesta": "No debe. Puede resolver dudas de agenda, ubicación y preparación, y pasar cualquier pregunta clínica a tu equipo."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/pagina-web-para-consultorios-medicos",
+      "texto": "Página web para consultorios médicos"
+    },
+    {
+      "ruta": "/soluciones/clinicas",
+      "texto": "Agentes de IA para clínicas y consultorios"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-dentistas",
+      "texto": "Cómo aparecer en Google Maps: dentistas"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:184bad7650daa0989f4649d3cddfd2ebb31c7561e396278b40fb206b4d4e8f5d",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:184bad7650daa0989f4649d3cddfd2ebb31c7561e396278b40fb206b4d4e8f5d"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 720,
+    "similitud_max": 0.005,
+    "parecida_a": "/pagina-web-para-dentistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:d6347886e322768be6ea3050d7d77841ca34cebadaa9090b7f62a85d41fd9585",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

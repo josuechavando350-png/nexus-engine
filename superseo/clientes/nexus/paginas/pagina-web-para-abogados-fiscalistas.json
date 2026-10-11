@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-abogados-fiscalistas",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-abogados-fiscalistas",
+  "tipo": "GIRO",
+  "servicio": "despachos",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Página web para abogados fiscalistas",
+  "descripcion": "Sitios para despachos fiscales: auditorías del SAT, créditos fiscales y defensa explicados para empresarios, con una imagen premium y contacto filtrado.",
+  "h1": "Página web para abogados fiscalistas",
+  "respuesta_rapida": [
+    "El cliente fiscal es empresario o profesionista con patrimonio: valora la discreción y la precisión más que la cercanía.",
+    "Busca cuando recibe algo del SAT: una carta invitación, una revisión, un crédito fiscal o un embargo.",
+    "La página debe separar la defensa urgente de la planeación preventiva.",
+    "Una asesoría inicial con costo filtra bien y comunica que el despacho trabaja en serio."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo que detona la búsqueda",
+      "parrafos": [
+        "Casi nadie busca un abogado fiscalista por curiosidad. Lo busca cuando abre el buzón tributario y encuentra una carta invitación, una orden de revisión, una determinación de crédito fiscal o la noticia de una cuenta inmovilizada. En ese momento compara despachos y quiere entender qué tan grave es lo que tiene en las manos.",
+        "Otro grupo busca antes del problema: empresarios que quieren ordenar su estructura, proteger su patrimonio o entender los riesgos penales de una decisión fiscal. Ese cliente vale mucho y llega por contenido serio, no por anuncios agresivos."
+      ]
+    },
+    {
+      "titulo": "Una estructura en dos tiempos",
+      "parrafos": [
+        "Funciona dividir los servicios en antes y durante la contingencia. Antes: planeación, revisión preventiva, cumplimiento, estructura patrimonial. Durante: atención de revisiones, recursos, juicios de nulidad, amparo, defensa penal fiscal cuando existe ese riesgo.",
+        "Cada servicio con su propia página, explicando el tipo de situación que atiende y qué hace el despacho en ella, sin entrar en promesas sobre el resultado."
+      ]
+    },
+    {
+      "titulo": "El caso del Mtro. Eric Ramírez",
+      "parrafos": [
+        "Estamos desarrollando el sitio de marca personal del Mtro. Eric Ramírez, abogado de defensa penal, fiscal e inmobiliaria, con base en Colima y alcance en la Ciudad de México. Su cliente es selecto: empresarios y personas con patrimonio que cuidar.",
+        "La dirección es editorial: tipografía serif con títulos en itálica, retrato en blanco y negro que pasa a color al tocarlo y un catálogo de servicios con números romanos. El contacto se filtra con una asesoría inicial pagada, y el sitio incluye un panel para que el licenciado publique contenido sin depender de nadie."
+      ]
+    },
+    {
+      "titulo": "Contenido que atrae al cliente correcto",
+      "parrafos": [
+        "Notas breves que expliquen qué hacer al recibir una carta invitación, qué significa una revisión electrónica o qué riesgos tiene una operación simulada. Escritas con rigor y revisadas por el abogado, estas páginas atraen exactamente al empresario preocupado que necesita asesoría.",
+        "Evite las promesas de cero impuestos o de desaparecer créditos: atraen al cliente equivocado y dañan la reputación."
+      ]
+    },
+    {
+      "titulo": "Medición y seguimiento",
+      "parrafos": [
+        "En un despacho fiscal cada consulta tiene un valor alto, así que vale la pena saber de dónde viene. Medimos cuántas solicitudes de asesoría llegan desde cada página y desde cada canal, para que el despacho sepa si sus clientes llegan por una carta invitación, por una revisión o por planeación.",
+        "Si además invierte en Google Ads, conectamos esas solicitudes con la campaña para que cada peso se mida contra consultas reales y no solo contra clics. Es la lógica de Nexus Cortex: anuncios conectados a ventas, no a vanidad."
+      ]
+    },
+    {
+      "titulo": "Lo que aporta Nexus",
+      "parrafos": [
+        "Diseño propio para cada despacho, seguridad desde el primer día y medición de cada contacto. Para despachos que quieren recibir solicitudes a cualquier hora, un asistente puede hacer las preguntas iniciales y agendar la asesoría pagada.",
+        "Los paquetes con asistente de IA empiezan en $9,999 MXN, y los de $19,999 y $44,800 suman tecnología para Google Ads y captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Debo cobrar la primera asesoría?",
+      "respuesta": "En materia fiscal suele convenir: filtra consultas sin intención real y valora el tiempo del abogado. Lo importante es explicarlo con claridad en la página."
+    },
+    {
+      "pregunta": "¿Puedo publicar contenido sobre reformas?",
+      "respuesta": "Sí, y es de lo que más atrae empresarios. Conviene fechar cada nota y revisarla cuando cambia la ley."
+    },
+    {
+      "pregunta": "¿Cómo transmito discreción en un sitio?",
+      "respuesta": "Con un diseño sobrio, sin nombres de clientes, con un aviso de privacidad serio y con canales de contacto directos con el abogado."
+    },
+    {
+      "pregunta": "¿Puedo atender clientes de otros estados?",
+      "respuesta": "Sí. Muchos asuntos fiscales se atienden a distancia, y decirlo en la página amplía su mercado sin perder seriedad."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/diseno-web-para-despachos-juridicos",
+      "texto": "Diseño web para despachos jurídicos"
+    },
+    {
+      "ruta": "/casos/eric-ramirez",
+      "texto": "Caso: Mtro. Eric Ramírez"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-despachos-de-abogados",
+      "texto": "Chatbot de WhatsApp para despachos de abogados"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:2634e4601e95f179d62432b38de5e24664f6abe4f9248f47f8e635ca71921cd0",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:2634e4601e95f179d62432b38de5e24664f6abe4f9248f47f8e635ca71921cd0"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 657,
+    "similitud_max": 0.024,
+    "parecida_a": "/diseno-de-paginas-web-en-colima"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:40f732dea29f40ee076585b6d3d892990970298acb76d3fd0d251724fb2f104d",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

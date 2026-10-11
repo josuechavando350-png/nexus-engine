@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-tiendas-en-linea",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-tiendas-en-linea",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Chatbot de WhatsApp para tiendas en línea",
+  "descripcion": "Asistente de IA para tiendas en línea: responde dudas de producto y talla, recupera carritos, informa el estado del envío y gestiona cambios.",
+  "h1": "Chatbot de WhatsApp para tiendas en línea",
+  "respuesta_rapida": [
+    "Resuelve dudas de producto, talla, disponibilidad y envío justo cuando el cliente está por comprar.",
+    "Recupera carritos abandonados con un mensaje oportuno y útil.",
+    "Informa el estado del pedido sin que el cliente tenga que preguntar.",
+    "Gestiona cambios y devoluciones con la política de la tienda."
+  ],
+  "secciones": [
+    {
+      "titulo": "La duda que mata la venta",
+      "parrafos": [
+        "En una tienda en línea, muchas compras se caen por una pregunta sin respuesta: ¿esta talla me queda?, ¿llega antes del viernes?, ¿tienen el color negro?, ¿puedo pagar en efectivo? Si el cliente tiene que mandar un correo y esperar, lo más probable es que cierre la pestaña y compre en otro lado.",
+        "Después de la compra, la pregunta cambia a ¿dónde está mi pedido?, y responderla una y otra vez consume horas del equipo."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Responde con la información del catálogo: medidas, materiales, existencias, colores, tiempos y costos de envío por zona, formas de pago. Si el cliente duda entre dos tallas, le pregunta sus medidas y le sugiere con base en la guía de la tienda. Si un producto está agotado, ofrece alternativas o le avisa cuando vuelva.",
+        "Cuando alguien deja productos en el carrito, puede enviarle un recordatorio útil, por ejemplo resolviendo una duda frecuente de ese producto, con el enlace para terminar la compra, siempre que el cliente haya aceptado recibir mensajes.",
+        "Después de la compra, informa los cambios de estado del pedido y comparte la guía de rastreo, y gestiona cambios según la política de la tienda."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Una clienta escribe desde la ficha de un vestido: mido un metro sesenta y normalmente uso mediana, ¿cuál me recomiendas? El asistente revisa la guía de tallas de ese modelo, le sugiere la talla adecuada, le confirma que hay existencia y que el envío a su ciudad llega en tres días hábiles según la paquetería. Ella compra.",
+        "Al día siguiente recibe automáticamente la guía de rastreo."
+      ]
+    },
+    {
+      "titulo": "Ventas que no dependen de más tráfico",
+      "parrafos": [
+        "Resolver dudas en el momento de compra y recuperar carritos suele aumentar las ventas con las mismas visitas, que es la forma más barata de crecer. A eso se suma la venta cruzada: sugerir el producto que suele comprarse junto, con criterio y sin insistir.",
+        "Las conversaciones también revelan qué dudas tienen los clientes, información valiosa para mejorar las fichas de producto."
+      ]
+    },
+    {
+      "titulo": "Datos y permisos",
+      "parrafos": [
+        "El asistente solo envía mensajes proactivos a clientes que aceptaron recibirlos y respeta las reglas de WhatsApp para comunicaciones comerciales. Los datos de pedidos se consultan con verificación, para que nadie vea información de otro cliente.",
+        "En Nexus construimos estas integraciones con criterio de ciberseguridad desde el inicio."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Conectamos el asistente con el catálogo, el inventario y el sistema de pedidos de la tienda. Cargamos guías de tallas, políticas de envío y devolución, y el tono de la marca. El equipo aprueba las respuestas y probamos compras reales antes de activarlo."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de tienda desde $9,999 MXN; los de $19,999 y $44,800 suman tecnología para Google Ads y captación. Como servicio aparte se cotiza según volumen e integraciones."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Funciona con mi plataforma de tienda?",
+      "respuesta": "Con la mayoría de las plataformas conocidas y con tiendas propias, mediante su conexión de datos. Lo revisamos en el diagnóstico gratuito."
+    },
+    {
+      "pregunta": "¿Puede vender directamente por WhatsApp?",
+      "respuesta": "Sí, puede armar el pedido y enviar el enlace de pago sin que el cliente pase por el carrito."
+    },
+    {
+      "pregunta": "¿Atiende devoluciones?",
+      "respuesta": "Sí, según la política de la tienda, y pasa a una persona los casos que requieren revisión."
+    },
+    {
+      "pregunta": "¿Puede atender a mayoristas?",
+      "respuesta": "Sí. Identifica pedidos de mayoreo y los canaliza al área comercial con las cantidades y productos de interés."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-tiendas-en-linea",
+      "texto": "Página web para tiendas en línea"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:271a35f4269a3715ed066ef95dbc7bf16e16e34fe94c922e763af601766c6822",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:271a35f4269a3715ed066ef95dbc7bf16e16e34fe94c922e763af601766c6822"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 614,
+    "similitud_max": 0.035,
+    "parecida_a": "/chatbot-whatsapp-para-inmobiliarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:517342adcb2f68770ea4aa28c9c920ff8a9ae4a4fcfac39ff4354b29f694422a",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "recepcionista-de-voz-con-ia-para-restaurantes",
+  "cliente": "nexus",
+  "ruta": "/recepcionista-de-voz-con-ia-para-restaurantes",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comida",
+  "titulo": "Recepcionista de voz con IA para restaurantes",
+  "descripcion": "Recepcionista con inteligencia artificial para restaurantes: contesta llamadas en hora pico, toma reservas y pedidos para llevar, y responde horarios y menú.",
+  "h1": "Recepcionista de voz con IA para restaurantes",
+  "respuesta_rapida": [
+    "Contesta cada llamada, incluso en la hora pico cuando nadie puede acercarse al teléfono.",
+    "Toma reservas con fecha, hora y número de personas, y confirma por mensaje.",
+    "Toma pedidos para llevar platillo por platillo y los pasa ordenados a la cocina.",
+    "Responde horarios, ubicación, estacionamiento y dudas del menú."
+  ],
+  "secciones": [
+    {
+      "titulo": "El teléfono en plena hora de la comida",
+      "parrafos": [
+        "En un restaurante lleno, el teléfono es un problema: el capitán está acomodando mesas, los meseros sirviendo y en la cocina nadie puede contestar. Las llamadas para reservar o pedir para llevar se quedan sonando, o se contestan con prisa y se toman mal. Una reserva perdida es una mesa vacía; un pedido mal tomado es un cliente molesto.",
+        "Muchos clientes, sobre todo los habituales y los mayores, prefieren llamar a escribir. Para ellos, que alguien conteste siempre es parte del servicio."
+      ]
+    },
+    {
+      "titulo": "Qué hace en una llamada",
+      "parrafos": [
+        "Para reservas, pregunta fecha, hora, número de personas y nombre, consulta la disponibilidad que el restaurante definió y confirma, enviando un mensaje con los detalles. Puede registrar preferencias como terraza, silla para bebé o celebración.",
+        "Para pedidos, recorre el menú vigente con el cliente, toma cada platillo con sus modificaciones, confirma el total y la hora de recolección o la dirección de entrega, y envía el pedido ordenado a la cocina o a la caja. Si un platillo está agotado, lo dice y sugiere una alternativa.",
+        "Para dudas, responde horarios, ubicación, estacionamiento y opciones del menú con la información aprobada por el restaurante."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Viernes, ocho y media de la noche, el restaurante lleno. Un cliente habitual llama para pedir su orden de siempre para llevar. La recepcionista toma el pedido, confirma el total y le dice que estará listo en el tiempo que la cocina definió. Al mismo tiempo, otra llamada reserva una mesa para seis el domingo.",
+        "Nadie del equipo tuvo que dejar una mesa para contestar."
+      ]
+    },
+    {
+      "titulo": "Alergias y casos delicados",
+      "parrafos": [
+        "Ante preguntas sobre alergias, la recepcionista no improvisa: recomienda confirmarlo con el personal y puede registrar la alergia en la reserva o el pedido para que la cocina la vea. Para quejas o situaciones especiales, transfiere la llamada al gerente.",
+        "Esos límites protegen al cliente y al restaurante."
+      ]
+    },
+    {
+      "titulo": "Lo que gana el restaurante",
+      "parrafos": [
+        "Más reservas tomadas, pedidos sin errores, menos llamadas perdidas en la hora pico y un equipo concentrado en las mesas. También información: a qué horas llama la gente, qué platillos se piden más para llevar y cuántas reservas se toman por teléfono frente a las que llegan por mensaje.",
+        "Las llamadas se registran con resumen, útil para resolver cualquier aclaración."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Cargamos el menú con precios y modificaciones posibles, las reglas de reservación y los horarios. Configuramos el desvío de llamadas del número del restaurante y la forma en que los pedidos llegan a la cocina. El equipo prueba pedidos y reservas antes de activarla."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Se cotiza aparte según volumen de llamadas. Se combina con el asistente de WhatsApp para restaurantes, incluido en los paquetes de sitio desde $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede cobrar el pedido?",
+      "respuesta": "Puede enviar un enlace de pago por mensaje o registrar que se paga al recoger o al entregar."
+    },
+    {
+      "pregunta": "¿Qué pasa si el menú cambia?",
+      "respuesta": "Se actualiza el menú y la recepcionista deja de ofrecer lo que ya no está disponible."
+    },
+    {
+      "pregunta": "¿Puede atender varias sucursales?",
+      "respuesta": "Sí, pregunta la sucursal y usa su menú, horario y disponibilidad."
+    },
+    {
+      "pregunta": "¿Suena como una grabación?",
+      "respuesta": "No. Conversa de forma natural, entiende interrupciones y confirma los datos con el cliente."
+    },
+    {
+      "pregunta": "¿Puede tomar reservas para eventos privados?",
+      "respuesta": "Puede recoger la fecha, el número de personas y el tipo de evento, y pasar la solicitud al gerente para preparar la propuesta."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-restaurantes",
+      "texto": "Página web para restaurantes"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-restaurantes",
+      "texto": "Chatbot de WhatsApp para restaurantes"
+    },
+    {
+      "ruta": "/chatbot-vs-recepcionista-humana",
+      "texto": "Chatbot vs. recepcionista: qué hace mejor cada uno"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:a33543ec5a2add372761d7472e3d700b50f24ab058105f82a9f7c3bee9144b0d",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:a33543ec5a2add372761d7472e3d700b50f24ab058105f82a9f7c3bee9144b0d"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 619,
+    "similitud_max": 0.038,
+    "parecida_a": "/chatbot-whatsapp-para-restaurantes"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:d819a57eb886e18ab666457fe038c061efb832ff4f681f75086996ffd79009d6",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}

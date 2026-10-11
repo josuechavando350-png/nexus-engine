@@ -1,0 +1,28 @@
+{
+  "app": null,
+  "entrega": "ZIP",
+  "indexnow_key": "817df2ed3a3e148e10fb834b391d1f77",
+  "rutas": {
+    "/": "Nexus Boutique by Nexus Bot Studio",
+    "/web": "Nexus Web: páginas web para negocios",
+    "/growth": "Nexus Growth: presencia en Google",
+    "/sales": "Nexus Sales: atención y ventas con IA",
+    "/automation": "Nexus Automation: automatización de procesos",
+    "/diseno-web-para-despachos-juridicos": "Diseño web para despachos jurídicos",
+    "/casos/cano-estrategia-penal": "Caso: CANO Estrategia Penal",
+    "/casos/eric-ramirez": "Caso: Mtro. Eric Ramírez",
+    "/soluciones/ventas-whatsapp": "Ventas por WhatsApp con agentes de IA",
+    "/soluciones/clinicas": "Agentes de IA para clínicas y consultorios",
+    "/soluciones/cobranza": "Cobranza y recordatorios automáticos",
+    "/contacto": "Contacto",
+    "/nosotros": "Quién está detrás de Nexus",
+    "/industrias": "Páginas y sistemas por industria",
+    "/guias": "Guías para dueños de negocio",
+    "/herramientas": "Herramientas gratis",
+    "/herramientas/analizador-web": "Analizador gratis de páginas web",
+    "/herramientas/enlace-whatsapp": "Generador de enlace de WhatsApp",
+    "/herramientas/mensaje-resenas": "Mensaje para pedir reseñas en Google",
+    "/herramientas/calculadora-whatsapp": "Calculadora de clientes perdidos en WhatsApp",
+    "/herramientas/checklist-pagina-web": "Checklist de página web por giro"
+  }
+}

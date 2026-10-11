@@ -1,6 +1,7 @@
 import { Link } from "@nexus/core";
 import { nav, site } from "./content";
 import { ClientInteractions } from "./ClientInteractions";
+import { superseoPaginas } from "../superseo/paquete";
 
 function Logo({ placement }: { placement: "header" | "footer" }) {
   return <img className={`cp-logo cp-logo-${placement}`} src="/media/logo-cano.png" alt="CANO Estrategia Penal" />;
@@ -35,6 +36,7 @@ export function SiteFooter() {
           <div><Logo placement="footer" /><div className="cp-footer-name">EDUARDO CANO</div></div>
           <nav className="cp-footer-links" aria-label="Navegación del pie de página">
             {nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
+            {superseoPaginas().length > 0 && <Link href="/orientacion-penal">Orientación penal</Link>}
           </nav>
           <div className="cp-footer-social">
             <a href={site.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 8h3V4h-3c-3 0-5 2-5 5v2H6v4h3v7h4v-7h3l1-4h-4V9c0-.7.3-1 1-1Z" /></svg></a>

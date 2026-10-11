@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "automatizar-cotizaciones",
+  "cliente": "nexus",
+  "ruta": "/automatizar-cotizaciones",
+  "tipo": "GUIA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "IA y automatización",
+  "titulo": "Cómo automatizar cotizaciones sin perder clientes",
+  "descripcion": "Cómo automatizar cotizaciones para responder más rápido: qué datos pedir, qué se puede calcular solo, cuándo debe intervenir una persona y cómo dar seguimiento.",
+  "h1": "Cómo automatizar cotizaciones sin perder clientes",
+  "respuesta_rapida": [
+    "Las cotizaciones lentas pierden clientes: quien responde primero suele ganar la conversación.",
+    "Automatiza la recolección de datos y los cálculos que siguen reglas claras.",
+    "Deja a una persona los casos especiales, grandes o con condiciones fuera de lo común.",
+    "Da seguimiento automático, pero con respeto y en el momento adecuado."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué se pierden clientes al cotizar",
+      "parrafos": [
+        "En muchos negocios, pedir una cotización es el momento en que el cliente está más interesado. Si la respuesta tarda días, ese interés se enfría o lo aprovecha la competencia. Las cotizaciones se retrasan porque falta información, porque alguien tiene que hacer cálculos a mano o porque la persona que cotiza también atiende todo lo demás.",
+        "Automatizar no significa responder con un precio genérico. Significa reunir más rápido lo necesario y entregar una propuesta clara cuando todavía importa."
+      ]
+    },
+    {
+      "titulo": "Qué se puede automatizar y qué no",
+      "parrafos": [
+        "Se puede automatizar lo que sigue reglas: tomar los datos del cliente, calcular precios por cantidad, medida o zona, aplicar descuentos definidos, generar el documento con tu formato y enviarlo por WhatsApp o correo. También el seguimiento posterior.",
+        "Lo que requiere visita, diagnóstico o criterio, como una obra con condiciones especiales o un caso legal, debe pasar por una persona. La automatización puede preparar todo para que esa persona solo revise y apruebe."
+      ]
+    },
+    {
+      "titulo": "Reunir los datos correctos",
+      "parrafos": [
+        "La mayoría de las idas y vueltas al cotizar vienen de datos incompletos. Define qué necesitas saber siempre: servicio o producto, cantidades o medidas, ubicación, fecha deseada y forma de contacto. Un formulario en tu página o un asistente en WhatsApp puede pedir esos datos en orden.",
+        "Pide solo lo necesario. Cada pregunta extra hace que alguien abandone. Si una información solo aplica a ciertos casos, que se pregunte solo en esos casos."
+      ]
+    },
+    {
+      "titulo": "Plantillas y reglas de precio",
+      "parrafos": [
+        "Para que una cotización salga sola, tus precios deben estar escritos como reglas: precio base, costo por unidad o por metro, cargos por distancia, mínimos y descuentos. Muchos negocios descubren en este paso que cada vendedor cotizaba distinto, y ordenarlo ya es una mejora.",
+        "La plantilla debe verse profesional y decir con claridad qué incluye, qué no, la vigencia, la forma de pago y el siguiente paso. Una cotización clara se decide más rápido."
+      ]
+    },
+    {
+      "titulo": "Enviar y dar seguimiento",
+      "parrafos": [
+        "Envía la cotización por el canal donde el cliente la pidió y acompáñala de un resumen breve en el mensaje. Luego programa un seguimiento amable a los pocos días si no hay respuesta, preguntando si tiene dudas o si necesita ajustar algo.",
+        "Registra en tu CRM o en una hoja cada cotización enviada, su estado y su resultado. Con el tiempo sabrás qué porcentaje cierras y qué tipo de cotizaciones se te escapan."
+      ]
+    },
+    {
+      "titulo": "Cuándo debe intervenir una persona",
+      "parrafos": [
+        "Define reglas claras para pasar el caso a tu equipo: montos altos, clientes recurrentes importantes, pedidos fuera de catálogo, solicitudes de descuento especial o cualquier queja. El asistente debe avisar con un resumen para que nadie tenga que volver a preguntar.",
+        "Así combinas lo mejor de ambos: velocidad en lo repetitivo y criterio humano donde de verdad importa."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nexus Automation diseña cotizadores alrededor del proceso real de tu negocio: captura de datos por WhatsApp o en tu página, cálculo con tus reglas, envío con tu formato y seguimiento, conectado a tu CRM y correo. Te decimos con franqueza qué conviene automatizar y qué no."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo automatizar cotizaciones si cada trabajo es distinto?",
+      "respuesta": "Puedes automatizar la recolección de datos y una estimación inicial, y dejar el precio final a una persona."
+    },
+    {
+      "pregunta": "¿Necesito un software especial?",
+      "respuesta": "No siempre. A veces basta con un formulario, una hoja de cálculo y una automatización que genere el documento."
+    },
+    {
+      "pregunta": "¿El cliente sabrá que es automático?",
+      "respuesta": "Conviene ser transparente. Lo que el cliente valora es recibir una propuesta clara y rápida."
+    },
+    {
+      "pregunta": "¿Qué pasa si los precios cambian?",
+      "respuesta": "Se actualizan las reglas en un solo lugar y todas las cotizaciones nuevas salen con el precio correcto."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-constructoras",
+      "texto": "Página web para constructoras"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-constructoras",
+      "texto": "Chatbot de WhatsApp para constructoras"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:e976590aeee83d67845781625a5b61010c1063e22afb7fbcbd945c9bc308c730",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:e976590aeee83d67845781625a5b61010c1063e22afb7fbcbd945c9bc308c730"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 659,
+    "similitud_max": 0.008,
+    "parecida_a": "/que-puede-hacer-un-agente-de-ia-en-un-negocio"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:0038397d1d3cd72cf5d078edebcc6b2a955fa3c9cbbff18700cadb6ebc118674",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

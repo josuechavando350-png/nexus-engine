@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "como-reducir-inasistencias-a-citas",
+  "cliente": "nexus",
+  "ruta": "/como-reducir-inasistencias-a-citas",
+  "tipo": "GUIA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "IA y automatización",
+  "titulo": "Cómo reducir las citas a las que nadie llega",
+  "descripcion": "Por qué tus clientes o pacientes faltan a sus citas y cómo reducir las inasistencias: recordatorios, reagendado fácil, políticas claras y lista de espera.",
+  "h1": "Cómo reducir las citas a las que nadie llega",
+  "respuesta_rapida": [
+    "La mayoría de las inasistencias vienen de olvidos o de cambios que no se avisaron.",
+    "Recordatorios a tiempo y una forma fácil de reagendar resuelven gran parte del problema.",
+    "Una política de cancelación clara y, si aplica, un anticipo, ayudan a comprometer.",
+    "Una lista de espera aprovecha los espacios que se liberan."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué la gente falta",
+      "parrafos": [
+        "Las razones más comunes son simples: la persona olvidó la cita, tuvo un imprevisto y no supo cómo avisar, o agendó por impulso y luego cambió de opinión. También influye el tiempo entre que agenda y la fecha: mientras más lejos esté la cita, más fácil es que se olvide.",
+        "Entender esto cambia el enfoque. No se trata de castigar a quien falta, sino de facilitar que la gente recuerde, confirme o avise a tiempo."
+      ]
+    },
+    {
+      "titulo": "Agendar fácil y con datos claros",
+      "parrafos": [
+        "Una cita bien agendada tiene menos probabilidad de perderse. Confirma por escrito la fecha, la hora, la dirección con un enlace de mapa y cualquier preparación necesaria. Si la persona agenda en línea, que reciba esa confirmación al momento en WhatsApp o por correo.",
+        "Pide también un número de contacto correcto y el permiso para enviarle recordatorios. Sin eso, el resto de las estrategias no funciona."
+      ]
+    },
+    {
+      "titulo": "Recordar y confirmar",
+      "parrafos": [
+        "Los recordatorios son la herramienta más efectiva y más sencilla. Uno el día anterior y otro unas horas antes, con opción de confirmar, cancelar o cambiar, ayudan a que la agenda refleje lo que de verdad va a pasar.",
+        "Las confirmaciones también le dan información a tu equipo: si una cita no se confirma, se puede llamar a esa persona o preparar un plan por si no llega."
+      ]
+    },
+    {
+      "titulo": "Facilitar el reagendado",
+      "parrafos": [
+        "Mucha gente falta porque cambiar la cita le parece complicado: hay que llamar en horario de oficina, esperar en línea o escribir y no recibir respuesta. Si mover la cita toma un mensaje, la persona avisa en lugar de desaparecer.",
+        "Un asistente en WhatsApp puede ofrecer horarios disponibles y mover la cita al momento. Para tu negocio, una cita movida es mucho mejor que una cita perdida."
+      ]
+    },
+    {
+      "titulo": "Políticas de cancelación y anticipos",
+      "parrafos": [
+        "Una política clara, comunicada desde que se agenda, ayuda a que las personas tomen en serio su compromiso: cuánto tiempo antes deben avisar y qué pasa si no lo hacen. Debe ser razonable y aplicarse con criterio, sobre todo con clientes frecuentes.",
+        "En servicios con alta demanda o citas largas, un anticipo puede reducir mucho las ausencias. Explica bien cómo se aplica y en qué casos se devuelve para evitar malentendidos."
+      ]
+    },
+    {
+      "titulo": "Lista de espera",
+      "parrafos": [
+        "Cuando alguien cancela, ese espacio puede ser oro para otra persona que quería una cita antes. Una lista de espera, aunque sea sencilla, permite ofrecer los espacios liberados en minutos.",
+        "Automatizado, el proceso es todavía mejor: al cancelarse una cita, el asistente escribe a quien está en lista de espera y aparta el espacio si acepta. Así la agenda se llena sola."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nexus Automation conecta tu agenda con recordatorios por WhatsApp o voz, confirmación, cambios de horario y lista de espera. En clínicas, el asistente también resuelve dudas frecuentes las 24 horas y deriva lo clínico al personal. Te ayudamos a medir cuántas citas se recuperan antes y después."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cobrar anticipo ahuyenta clientes?",
+      "respuesta": "Puede, si no se explica bien. Aplicado a servicios con alta demanda y con reglas claras, suele aceptarse."
+    },
+    {
+      "pregunta": "¿Cuántos recordatorios debo enviar?",
+      "respuesta": "Para la mayoría de las citas, uno el día anterior y otro unas horas antes es suficiente."
+    },
+    {
+      "pregunta": "¿Qué hago con quien falta seguido?",
+      "respuesta": "Habla con esa persona, recuérdale la política y, si sigue pasando, puedes pedir anticipo para sus próximas citas."
+    },
+    {
+      "pregunta": "¿Sirve la agenda en línea?",
+      "respuesta": "Sí, sobre todo si envía confirmaciones y recordatorios automáticos y permite cambiar la cita fácilmente."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/agenda-de-citas-en-linea-para-dentistas",
+      "texto": "Agenda de citas en línea para dentistas"
+    },
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:973e761b0e9c6adb1110f515b35d6f412567f33d207d563acac43569aeba78d1",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:973e761b0e9c6adb1110f515b35d6f412567f33d207d563acac43569aeba78d1"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 631,
+    "similitud_max": 0.006,
+    "parecida_a": "/recordatorios-automaticos-de-citas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:a8fd4eebae3bda0efea0276bf255cf8adfb5f222ca1cff9d6e7e6a67854ef627",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

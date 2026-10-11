@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "id": "nexus",
+  "nombre": "Nexus Bot Studio",
+  "dominio": "https://nexusbotstudio.com",
+  "rubro": "agencia_web",
+  "plan": "TOTAL",
+  "estado": "ON",
+  "territorio": {
+    "especialidades": ["diseno-web", "agentes-ia", "chatbots-whatsapp", "google-ads", "seo-local", "automatizacion"],
+    "zonas": ["mx", "cdmx"],
+    "exclusivo": false
+  },
+  "servicios": [
+    { "slug": "web", "nombre": "Nexus Web: páginas web para negocios", "ruta": "/web" },
+    { "slug": "growth", "nombre": "Nexus Growth: presencia en Google", "ruta": "/growth" },
+    { "slug": "sales", "nombre": "Nexus Sales: atención y ventas con IA", "ruta": "/sales" },
+    { "slug": "automation", "nombre": "Nexus Automation: automatización de procesos", "ruta": "/automation" },
+    { "slug": "despachos", "nombre": "Diseño web para despachos jurídicos", "ruta": "/diseno-web-para-despachos-juridicos" },
+    { "slug": "whatsapp", "nombre": "Ventas por WhatsApp con agentes de IA", "ruta": "/soluciones/ventas-whatsapp" },
+    { "slug": "clinicas", "nombre": "Agentes de IA para clínicas y consultorios", "ruta": "/soluciones/clinicas" },
+    { "slug": "cobranza", "nombre": "Cobranza y recordatorios automáticos", "ruta": "/soluciones/cobranza" }
+  ],
+  "marca": { "terminos": ["Nexus Bot Studio", "Nexus Boutique", "nexusbotstudio"] },
+  "contacto": { "telefono": "+525636804020", "whatsapp": "https://wa.me/525636804020", "direccion": null },
+  "insumos": {
+    "search_console": false,
+    "notas_voz": false,
+    "perfil_google": false,
+    "videos": false,
+    "revisor": "NEXUS",
+    "terminos_ads": false
+  },
+  "historial": [
+    { "en": "2026-10-10T22:30:00Z", "accion": "ENCENDER", "detalle": "Josue: \"Primero al mío\" y \"Metamos 200 de una vez\" (portafolio para todos los giros, publicación el mismo día)." }
+  ]
+}

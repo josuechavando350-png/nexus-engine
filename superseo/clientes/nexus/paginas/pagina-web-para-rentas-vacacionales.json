@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-rentas-vacacionales",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-rentas-vacacionales",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Página web para rentas vacacionales",
+  "descripcion": "Sitios para rentas vacacionales y departamentos amueblados: reserva directa, fichas por propiedad, reglas claras, guía de llegada y atención por WhatsApp.",
+  "h1": "Página web para rentas vacacionales",
+  "respuesta_rapida": [
+    "Las plataformas traen huéspedes; tu sitio propio te deja recibir a los que regresan sin comisión.",
+    "Cada propiedad con su ficha: fotos reales, capacidad, camas, amenidades, ubicación y reglas.",
+    "La reserva directa necesita confianza: pago seguro, contrato o reglas claras y reseñas.",
+    "Una guía de llegada automática ahorra mensajes y mejora la experiencia del huésped."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué tener sitio propio",
+      "parrafos": [
+        "Quien administra departamentos o casas para estancias cortas depende casi siempre de las plataformas de renta. Funcionan, pero cobran comisión, cambian reglas sin aviso y no te dejan quedarte con el contacto del huésped. El sitio propio es el lugar donde el huésped que ya te conoce, o quien te encontró por recomendación, reserva directo contigo.",
+        "No se trata de dejar las plataformas, sino de construir un canal propio que con el tiempo represente una parte creciente de tus noches."
+      ]
+    },
+    {
+      "titulo": "Fichas honestas",
+      "parrafos": [
+        "Cada propiedad con fotos reales de todos los espacios, capacidad, número y tipo de camas, baños, cocina equipada, internet, estacionamiento, aire acondicionado, mascotas y ubicación aproximada. Las fotos deben mostrar lo que el huésped va a encontrar; una sorpresa negativa termina en mala reseña y en reclamo.",
+        "Las reglas de la casa, como horarios de llegada y salida, ruido, fiestas, visitas y fumar, deben estar visibles antes de reservar."
+      ]
+    },
+    {
+      "titulo": "Reserva directa con confianza",
+      "parrafos": [
+        "El huésped desconfía de pagar a un sitio que no conoce. Un calendario de disponibilidad, pago con un procesador reconocido, una política de cancelación clara, un depósito en garantía explicado y reseñas de estancias anteriores reducen esa desconfianza. Ofrecer un pequeño beneficio por reservar directo, como salida tardía, también ayuda.",
+        "Sincronizar el calendario con las plataformas evita reservas dobles, que son el peor error en este negocio."
+      ]
+    },
+    {
+      "titulo": "Llegada sin estrés",
+      "parrafos": [
+        "La llegada es el momento más delicado de la estancia: el huésped viene cansado, a veces de noche y en una ciudad que no conoce. Un mensaje automático con la dirección exacta, indicaciones de acceso, contraseña del internet y contacto de emergencia, enviado a tiempo, evita llamadas y empieza bien la estancia.",
+        "Un asistente que conteste dudas frecuentes en español e inglés a cualquier hora es un alivio para quien administra varias propiedades."
+      ]
+    },
+    {
+      "titulo": "Guía local y estancias largas",
+      "parrafos": [
+        "Una guía del barrio con supermercados, restaurantes, farmacias y transporte agrega valor y atrae búsquedas de viajeros. Si rentas por mes a personas que se mudan por trabajo, una página para estancias largas con tarifas y condiciones abre otro mercado, más estable.",
+        "Las empresas que hospedan personal también buscan este tipo de alojamiento y valoran poder facturar."
+      ]
+    },
+    {
+      "titulo": "Limpieza y mantenimiento",
+      "parrafos": [
+        "Detrás de cada estancia hay limpieza, lavandería, reposición de insumos y revisiones. Automatizar los avisos al equipo de limpieza con cada reserva y llevar un registro del estado de cada propiedad después de cada salida evita olvidos que terminan en reseñas negativas.",
+        "Ese orden operativo es lo que permite crecer de una propiedad a varias sin perder calidad."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para rentas vacacionales con fichas, reserva directa, guía de llegada automática y asistente bilingüe. Desde $1,999 MXN; con asistente desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo sincronizar con las plataformas de renta?",
+      "respuesta": "Sí, la mayoría permite sincronizar calendarios para evitar reservas dobles."
+    },
+    {
+      "pregunta": "¿Cómo cobro el depósito en garantía?",
+      "respuesta": "Con una preautorización en tarjeta o un depósito reembolsable, explicado en las reglas antes de reservar."
+    },
+    {
+      "pregunta": "¿Sirve si solo tengo una propiedad?",
+      "respuesta": "Sí. Una página bien hecha para una sola propiedad recibe recomendaciones y huéspedes recurrentes sin comisión."
+    },
+    {
+      "pregunta": "¿El sitio puede estar en inglés?",
+      "respuesta": "Sí, y en destinos turísticos es casi indispensable."
+    },
+    {
+      "pregunta": "¿Cómo manejo a los huéspedes que me escriben fuera de la plataforma?",
+      "respuesta": "Respeta las reglas de cada plataforma durante la estancia contratada ahí. Tu sitio es para huéspedes nuevos o recurrentes que deciden reservar directo contigo en su siguiente visita."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:ab4e87803e7074612798486c6234b429eb19d0557ffa15fe366c0cebccc30e5b",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:ab4e87803e7074612798486c6234b429eb19d0557ffa15fe366c0cebccc30e5b"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 630,
+    "similitud_max": 0.009,
+    "parecida_a": "/pagina-web-para-academias-y-cursos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:c89075d272d610292c41d5a2252ec0f0d9c92dc95c92326cddb46559c8729db4",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-abogados-familiares",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-abogados-familiares",
+  "tipo": "GIRO",
+  "servicio": "despachos",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Página web para abogados familiares",
+  "descripcion": "Sitios para despachos de derecho familiar: divorcio, pensión y custodia explicados con calma, contacto discreto y una primera consulta clara.",
+  "h1": "Página web para abogados de derecho familiar",
+  "respuesta_rapida": [
+    "Quien busca un abogado familiar suele estar atravesando un divorcio, una pensión o una custodia: necesita calma, no presión.",
+    "La página debe explicar cada trámite en lenguaje sencillo y decir qué documentos traer a la primera cita.",
+    "El contacto tiene que sentirse privado: WhatsApp directo y la opción de escribir sin dar detalles en público.",
+    "Un tono cálido y sereno convierte más que un tono agresivo de litigio."
+  ],
+  "secciones": [
+    {
+      "titulo": "Un cliente que llega cansado",
+      "parrafos": [
+        "El derecho familiar es la materia donde el cliente llega con más carga emocional. Una madre que no recibe la pensión, un padre que no puede ver a sus hijos, una pareja que ya decidió separarse y no sabe por dónde empezar. Muchas veces busca de madrugada, cuando por fin tiene un momento a solas.",
+        "Por eso la página de un despacho familiar no debería parecerse a la de un despacho penal. No necesita dramatismo; necesita orden. La persona quiere entender qué le espera, cuánto tiempo puede tardar el proceso en términos generales y si va a poder hablar con alguien que la escuche."
+      ]
+    },
+    {
+      "titulo": "Páginas que sí ayudan a decidir",
+      "parrafos": [
+        "Divorcio incausado y divorcio por mutuo acuerdo, explicados por separado. Pensión alimenticia: cómo se solicita, qué pasa si no se paga. Guarda y custodia, régimen de convivencias, reconocimiento de paternidad, sucesiones. Cada tema en su propia página, porque cada uno se busca por separado en Google.",
+        "En cada una, una lista de documentos para la primera cita: actas, comprobantes, lo que aplique. Esa lista sola reduce la ansiedad del prospecto y le da una razón concreta para escribir.",
+        "Una sección de preguntas frecuentes que conteste lo que la gente teme preguntar: si se puede iniciar sin la firma de la otra parte, si los hijos tienen que declarar, qué pasa con la casa."
+      ]
+    },
+    {
+      "titulo": "Privacidad desde el diseño",
+      "parrafos": [
+        "Mucha gente escribe al despacho desde un teléfono que comparte con la familia. Conviene que el botón de WhatsApp abra un mensaje neutro, sin el asunto escrito, y que el sitio no use titulares que alguien pueda ver por encima del hombro y malinterpretar.",
+        "El aviso de privacidad debe ser real y claro sobre cómo se usan los datos que la persona comparte. En una materia tan íntima, ese detalle se nota."
+      ]
+    },
+    {
+      "titulo": "Fotografía y tono",
+      "parrafos": [
+        "Funcionan mejor los retratos del abogado en un espacio luminoso, la sala donde atiende, detalles de la oficina. Las fotos de familias felices de banco de imágenes se sienten falsas para alguien que está pasando por lo contrario.",
+        "En los textos, hablar de acompañamiento y de soluciones posibles, sin prometer resultados en una sentencia. Un buen abogado familiar sabe que la mejor salida a veces es un convenio, y decirlo genera confianza."
+      ]
+    },
+    {
+      "titulo": "Lo que hacemos en Nexus",
+      "parrafos": [
+        "Diseñamos el sitio desde una conversación con usted, sin cuestionarios eternos. Escribimos los textos por trámite, construimos una versión rápida en celular y dejamos medido cada clic a WhatsApp para saber qué temas generan consultas.",
+        "Los paquetes van desde $1,999 MXN; el adecuado depende de cuántas páginas por trámite necesite y de si quiere un asistente que conteste fuera de horario."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Debo publicar mis honorarios por divorcio?",
+      "respuesta": "No es obligatorio. Lo que sí ayuda es explicar cómo se cobra: consulta inicial, honorarios por etapa o por asunto. La claridad evita malentendidos con personas que ya están estresadas."
+    },
+    {
+      "pregunta": "¿Puedo atender por videollamada a clientes de otros estados?",
+      "respuesta": "Si su práctica lo permite, conviene decirlo en la página. Muchos procesos familiares involucran a una parte que vive lejos y esa opción se busca."
+    },
+    {
+      "pregunta": "¿Un chatbot no se siente frío para esta materia?",
+      "respuesta": "Bien configurado, el asistente solo recibe, ordena la información y agenda. Lo delicado lo atiende usted. Para muchas personas es más fácil escribir a las once de la noche que llamar en horario de oficina."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/diseno-web-para-despachos-juridicos",
+      "texto": "Diseño web para despachos jurídicos"
+    },
+    {
+      "ruta": "/casos/cano-estrategia-penal",
+      "texto": "Caso: CANO Estrategia Penal"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-despachos-de-abogados",
+      "texto": "Chatbot de WhatsApp para despachos de abogados"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:9461621d74ad8c5b9551d49e2ac391e864a83d999b537a7c96a7887ee95c8f79",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:54Z",
+    "contenido_digest": "sha256:9461621d74ad8c5b9551d49e2ac391e864a83d999b537a7c96a7887ee95c8f79"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 634,
+    "similitud_max": 0.005,
+    "parecida_a": "/pagina-web-para-psicologos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:c99f8c7ad6cba2ef1b4bb9f6c1d23594f66df82c272ace478acda36af8239414",
+    "generado_en": "2026-10-11T02:03:54Z"
+  }
+}

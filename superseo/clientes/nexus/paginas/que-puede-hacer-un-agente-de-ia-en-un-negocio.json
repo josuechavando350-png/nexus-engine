@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "que-puede-hacer-un-agente-de-ia-en-un-negocio",
+  "cliente": "nexus",
+  "ruta": "/que-puede-hacer-un-agente-de-ia-en-un-negocio",
+  "tipo": "GUIA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "IA y automatización",
+  "titulo": "Qué puede hacer un agente de IA en tu negocio",
+  "descripcion": "Qué tareas puede hacer hoy un agente de inteligencia artificial en un negocio: atender, calificar, agendar y dar seguimiento, y qué conviene dejar a una persona.",
+  "h1": "¿Qué puede hacer un agente de IA en tu negocio?",
+  "respuesta_rapida": [
+    "Atender mensajes de inmediato, de día o de noche, con la información de tu negocio.",
+    "Hacer preguntas para calificar prospectos y pasar la conversación a la persona correcta.",
+    "Agendar citas o llamadas con reglas que tú defines y recordarlas después.",
+    "Dar seguimiento y cobrar con el tono de tu marca, dejando los casos delicados a tu equipo."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué es un agente de IA",
+      "parrafos": [
+        "Un agente de inteligencia artificial es un asistente que entiende lo que escribe o dice una persona, consulta la información de tu negocio y responde con lenguaje natural. A diferencia de los chatbots de botones, no obliga al cliente a elegir entre opciones fijas: puede entender una pregunta escrita a su manera.",
+        "Además de conversar, un agente puede hacer cosas: registrar un prospecto en tu CRM, revisar la disponibilidad de tu agenda o mandar un recordatorio. Eso es lo que lo vuelve útil para un negocio y no solo una curiosidad tecnológica."
+      ]
+    },
+    {
+      "titulo": "Atender y responder",
+      "parrafos": [
+        "La tarea más inmediata es contestar. Muchos negocios pierden clientes porque responden tarde, sobre todo de noche y en fines de semana. Un agente puede atender a cualquier hora las preguntas de siempre: horarios, ubicación, servicios, requisitos y formas de pago.",
+        "Para que lo haga bien, necesita una base de información clara y actualizada de tu negocio. Un agente no inventa lo que no sabe si está bien diseñado: cuando no tiene la respuesta, lo dice y ofrece pasar con una persona."
+      ]
+    },
+    {
+      "titulo": "Calificar y pasar a la persona correcta",
+      "parrafos": [
+        "Un buen agente hace pocas preguntas útiles para entender qué necesita cada persona: qué servicio busca, para cuándo, en qué zona y qué tan urgente es. Con esas respuestas puede separar a quien está listo para comprar de quien solo está explorando.",
+        "Después pasa la conversación a la persona adecuada de tu equipo con un resumen, para que nadie tenga que volver a preguntar lo mismo. En despachos, por ejemplo, puede hacer un triaje por materia y urgencia y filtrar asuntos fuera de la especialidad."
+      ]
+    },
+    {
+      "titulo": "Agendar y recordar",
+      "parrafos": [
+        "Si tu negocio trabaja con citas, el agente puede ofrecer horarios disponibles según tu agenda real, apartar el espacio y enviar la confirmación. Más tarde, puede recordar la cita por WhatsApp o por voz y permitir que la persona confirme, cancele o cambie de horario.",
+        "En clínicas, además, puede responder dudas de preparación y ubicación a cualquier hora y derivar al personal adecuado cualquier pregunta clínica, que nunca debe responder por su cuenta."
+      ]
+    },
+    {
+      "titulo": "Dar seguimiento y cobrar",
+      "parrafos": [
+        "Muchas ventas se pierden por falta de seguimiento. Un agente puede escribir a quien pidió una cotización y no respondió, con un mensaje amable y en el momento adecuado. También puede ayudar con la cobranza: recordatorios con el tono de tu marca, registro de promesas de pago y aviso a tu equipo de los casos que requieren a una persona.",
+        "Lo importante es que estas automatizaciones sigan reglas claras y respeten a tus clientes. Un seguimiento insistente o un cobro agresivo dañan la relación, aunque los haga una máquina."
+      ]
+    },
+    {
+      "titulo": "Lo que no debe hacer solo",
+      "parrafos": [
+        "Un agente no debe dar diagnósticos médicos, opiniones legales sobre un caso concreto ni decisiones que comprometan dinero o derechos de una persona. Tampoco debe negociar precios fuera de las reglas que definiste ni manejar quejas delicadas sin avisar a tu equipo.",
+        "Y debe estar protegido: un agente conectado a WhatsApp, a tu CRM y a datos internos es una superficie de ataque real. Necesita validación estricta, control de acceso y una salida segura cuando algo falla."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nexus Sales y Nexus Automation diseñan agentes alrededor del proceso real de tu negocio: atienden en WhatsApp y en la web, califican, agendan, dan seguimiento y escalan a una persona cuando hace falta. También hay agente de voz, una recepcionista inteligente que contesta llamadas. No usamos IA por moda: medimos si genera valor."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Un agente de IA reemplaza a mi equipo?",
+      "respuesta": "No. Le quita tareas repetitivas para que tu equipo se concentre en cerrar ventas y atender los casos que requieren criterio humano."
+    },
+    {
+      "pregunta": "¿Qué pasa si el agente no sabe una respuesta?",
+      "respuesta": "Bien diseñado, lo reconoce y ofrece pasar la conversación a una persona, en lugar de inventar."
+    },
+    {
+      "pregunta": "¿Funciona en WhatsApp?",
+      "respuesta": "Sí. Puede atender en WhatsApp Business y en el chat de tu página, y conectarse a tu agenda o CRM."
+    },
+    {
+      "pregunta": "¿Cuánto cuesta un agente de IA?",
+      "respuesta": "Desde el paquete de $9,999 los sitios incluyen chatbot con IA; los agentes fuera de paquete se cotizan según lo que deban hacer."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/chatbot-vs-recepcionista-humana",
+      "texto": "Chatbot vs. recepcionista: qué hace mejor cada uno"
+    },
+    {
+      "ruta": "/inteligencia-artificial-para-pymes",
+      "texto": "Inteligencia artificial para pymes: por dónde empezar"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:3c8144b29acf817b24cbcff7cf608032e7cfb79253af274a2fee976254525540",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:3c8144b29acf817b24cbcff7cf608032e7cfb79253af274a2fee976254525540"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 756,
+    "similitud_max": 0.012,
+    "parecida_a": "/datos-de-clientes-y-privacidad-con-ia"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:57e365f1b611d3c4f9b92ff45a12e042b2737870c4377d473bc8691fa455f26c",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

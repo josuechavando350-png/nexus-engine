@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-tiendas-de-ropa",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-tiendas-de-ropa",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Página web para tiendas de ropa",
+  "descripcion": "Sitios para tiendas de ropa: catálogo por categoría y talla, guía de tallas, pedidos por WhatsApp o compra en línea, envíos y cambios explicados.",
+  "h1": "Página web para tiendas de ropa",
+  "respuesta_rapida": [
+    "Vender ropa en línea depende de tres cosas: buenas fotos, guía de tallas clara y una política de cambios sin miedo.",
+    "Empieza con un catálogo y pedido por WhatsApp si tu volumen es bajo; crece a tienda con pago cuando lo justifique.",
+    "Organiza por categoría, talla, color y temporada para que la clienta encuentre rápido.",
+    "Si tienes local, la página también debe llevar gente a la tienda física."
+  ],
+  "secciones": [
+    {
+      "titulo": "Del Instagram a una tienda propia",
+      "parrafos": [
+        "Muchas tiendas de ropa empezaron vendiendo por Instagram y WhatsApp, respondiendo uno por uno precio, talla y disponibilidad. Funciona, pero tiene un techo: cuando los mensajes se multiplican, las ventas se pierden por respuestas tardías y el catálogo vive en publicaciones que se hunden en el perfil.",
+        "Una página con catálogo ordenado resuelve eso. La clienta ve precios, tallas y colores disponibles, y pide con un mensaje que ya trae toda la información, o compra directamente si tienes pago en línea."
+      ]
+    },
+    {
+      "titulo": "Fotos que venden",
+      "parrafos": [
+        "En ropa, la foto es el producto. Imágenes con fondo limpio, de frente, espalda y detalle de tela, y al menos una foto puesta en una persona real para ver la caída. Si puedes indicar la talla que usa la modelo y su estatura, reduces mucho las devoluciones.",
+        "Las fotos deben estar optimizadas: un catálogo de cien productos con imágenes pesadas hace lenta la tienda y espanta a la clienta del celular."
+      ]
+    },
+    {
+      "titulo": "Tallas y cambios",
+      "parrafos": [
+        "La duda más común en ropa en línea es la talla. Una guía con medidas en centímetros de cada prenda, no solo chica, mediana y grande, ayuda mucho. Si las tallas de una marca vienen grandes o chicas, dilo en la ficha.",
+        "La política de cambios debe ser clara y visible: cuántos días hay para cambiar, en qué condiciones y quién paga el envío. Una política justa quita el miedo a comprar."
+      ]
+    },
+    {
+      "titulo": "Catálogo con pedido o tienda con pago",
+      "parrafos": [
+        "Si vendes pocas piezas al día, un catálogo con botón de pedir por WhatsApp, que envíe el producto, talla y color seleccionados, es rápido de implementar y no requiere manejar inventario en línea. Cuando el volumen crece, una tienda con carrito, pago con tarjeta y control de existencias ahorra horas de trabajo.",
+        "La decisión depende de tu operación, no de lo que use la competencia; se puede empezar sencillo y crecer después."
+      ]
+    },
+    {
+      "titulo": "Envíos y confianza",
+      "parrafos": [
+        "Explica los tiempos y costos de envío por zona, las paqueterías que usas, si haces entregas locales y las formas de pago. Mostrar reseñas de clientas y fotos que ellas mismas comparten, con su permiso, es la prueba social más efectiva en este giro.",
+        "Si vendes ropa original de marca o importada, explicar de dónde viene y cómo se verifica genera la confianza que el comprador necesita."
+      ]
+    },
+    {
+      "titulo": "Si tienes tienda física",
+      "parrafos": [
+        "La página también lleva gente al local: ubicación, horario, fotos de la tienda y la opción de apartar en línea para recoger. Muchas clientas prefieren probarse la prenda, y saber que la tienen apartada las hace ir.",
+        "El perfil de Google con fotos del local y de los productos completa esa estrategia."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos tiendas de ropa con catálogo, guía de tallas y pedidos por WhatsApp o compra en línea, rápidas en celular. Desde $1,999 MXN para catálogo; con tienda y asistente según el paquete."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo empezar con catálogo y luego pasar a tienda?",
+      "respuesta": "Sí. Construimos el catálogo de forma que crezca a tienda con pago sin rehacer todo el sitio."
+    },
+    {
+      "pregunta": "¿Cómo manejo el inventario si vendo también en local?",
+      "respuesta": "Con una tienda en línea se puede llevar un inventario compartido. Con catálogo y WhatsApp, confirmas disponibilidad al recibir el pedido."
+    },
+    {
+      "pregunta": "¿Necesito fotos profesionales?",
+      "respuesta": "Ayudan, pero se puede empezar con buenas fotos de celular, luz natural y fondo limpio. Te damos una guía para tomarlas."
+    },
+    {
+      "pregunta": "¿Cuánto tarda?",
+      "respuesta": "Un catálogo sencillo puede estar listo en poco tiempo; una tienda completa toma entre dos y cuatro semanas desde que se aprueba el diseño."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-tienda-en-linea",
+      "texto": "¿Cuánto cuesta una tienda en línea?"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:ef0742ee0c9e3c22ad93a5e3c627503e34f37950a88c39f0c26e7b5bfa950cd8",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:ef0742ee0c9e3c22ad93a5e3c627503e34f37950a88c39f0c26e7b5bfa950cd8"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 656,
+    "similitud_max": 0.01,
+    "parecida_a": "/como-vender-ropa-en-linea-en-mexico"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:e89e777d012767fe726e68673e257a0895dcd6c277db223b466202aafc960865",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

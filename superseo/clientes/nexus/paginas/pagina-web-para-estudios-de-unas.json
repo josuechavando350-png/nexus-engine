@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-estudios-de-unas",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-estudios-de-unas",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Página web para estudios de uñas",
+  "descripcion": "Sitios para estudios de uñas y manicuristas: catálogo de diseños, técnicas y precios, reservas en línea con anticipo y recordatorios de retoque.",
+  "h1": "Página web para estudios de uñas",
+  "respuesta_rapida": [
+    "En uñas, la clienta elige por el diseño: un catálogo visual ordenado vale más que mil mensajes.",
+    "Explica técnicas y tiempos: acrílico, gel, rubber, soft gel, retiro, retoque.",
+    "La reserva con anticipo protege tu tiempo, porque un servicio de uñas ocupa horas.",
+    "El recordatorio de retoque trae a la clienta de vuelta en el momento justo."
+  ],
+  "secciones": [
+    {
+      "titulo": "Más que un perfil de Instagram",
+      "parrafos": [
+        "La mayoría de las manicuristas muestran su trabajo en redes, y ahí está su comunidad. Pero cuando una clienta nueva quiere saber cuánto cuesta un set de acrílico con diseño, cuánto tarda y si hay lugar el viernes, tiene que escribir y esperar. Muchas no esperan.",
+        "La página resuelve eso: muestra tus diseños ordenados, tus precios y tu agenda, y deja reservar sin conversación previa."
+      ]
+    },
+    {
+      "titulo": "Catálogo por técnica y estilo",
+      "parrafos": [
+        "Organizar la galería por técnica y por estilo ayuda mucho: francés, nude, encapsulado, efecto espejo, diseño a mano alzada, temporada. La clienta encuentra lo que busca y llega con una referencia clara, lo que ahorra tiempo en la cita.",
+        "Cada técnica puede tener una descripción breve con duración aproximada y cuidados, que responde dudas antes de que te escriban."
+      ]
+    },
+    {
+      "titulo": "Precios que no espantan",
+      "parrafos": [
+        "Publicar un precio desde para cada técnica y explicar qué incrementa el costo, como largo, diseño o piedras, evita la sorpresa al final de la cita. La transparencia genera confianza y filtra a quien busca solo el precio más bajo.",
+        "Si manejas promociones de temporada, la página es el lugar para mostrarlas sin que se pierdan en el historial de publicaciones."
+      ]
+    },
+    {
+      "titulo": "Anticipos y retoques",
+      "parrafos": [
+        "Un set completo puede tomar dos horas o más. Una clienta que no llega deja un hueco que difícilmente se llena. La reserva con un anticipo en línea, con una política de cancelación clara, es la forma más justa de proteger tu agenda.",
+        "El sistema confirma la cita al momento y manda un recordatorio el día anterior.",
+        "Las uñas de gel o acrílico necesitan retoque cada pocas semanas. Un mensaje automático cuando se acerca la fecha, con un enlace para reservar, mantiene tu agenda estable sin que tengas que escribir a cada clienta.",
+        "Si manejas tarjeta de lealtad, el sistema puede llevar la cuenta y avisarle a la clienta cuando le toca su beneficio."
+      ]
+    },
+    {
+      "titulo": "Si trabajas a domicilio o en casa",
+      "parrafos": [
+        "Muchas manicuristas trabajan desde casa o a domicilio. La página puede mostrar la zona de cobertura y la dirección solo después de reservar, lo que cuida tu privacidad y tu seguridad.",
+        "Es un detalle importante cuando el estudio está en tu propia casa."
+      ]
+    },
+    {
+      "titulo": "Contenido que atrae clientas nuevas",
+      "parrafos": [
+        "Las dudas sobre uñas se buscan mucho: cuánto dura el gel, qué daña menos la uña natural, cómo cuidar el acrílico, qué diseño va con una boda. Notas breves con tus respuestas, acompañadas de fotos de tu trabajo, atraen a clientas de tu zona que todavía no te conocen.",
+        "Las páginas de temporada también funcionan: diseños para fiestas patrias, para fin de año o para graduaciones, publicadas unas semanas antes de cada fecha."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos tu sitio con tu estilo, galería ordenada, precios claros y reservas con anticipo. Desde $1,999 MXN; las reservas con recordatorios automáticos están incluidas desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo conectar la galería con Instagram?",
+      "respuesta": "Sí, pero recomendamos una galería propia y curada, organizada por técnica. Instagram puede aparecer como complemento."
+    },
+    {
+      "pregunta": "¿Cómo manejo los diseños personalizados?",
+      "respuesta": "Con un campo en la reserva para subir una foto de referencia. Así puedes confirmar precio y tiempo antes de la cita."
+    },
+    {
+      "pregunta": "¿Me sirve si estoy empezando?",
+      "respuesta": "Sí. Un sitio sencillo con tus primeros trabajos, precios y reservas te da una imagen profesional desde el inicio."
+    },
+    {
+      "pregunta": "¿Puedo vender productos de cuidado?",
+      "respuesta": "Sí. Aceites, cremas o kits de cuidado se pueden mostrar en un catálogo con pedido por WhatsApp o pago en línea."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:230789714640430cd71150a48485d97a282e81f0632d2209b36fb88bd88376a7",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:230789714640430cd71150a48485d97a282e81f0632d2209b36fb88bd88376a7"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 638,
+    "similitud_max": 0.012,
+    "parecida_a": "/pagina-web-para-barberias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:c399ba96fc798643ca40da37b14bb0276945d08fcde035a7994df9d73de49b8a",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

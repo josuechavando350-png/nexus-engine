@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-abogados",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-abogados",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Cómo aparecer en Google Maps: abogados",
+  "descripcion": "Guía para que su despacho aparezca en Google Maps: categoría por materia, dirección real, reseñas con discreción y reglas contra oficinas virtuales.",
+  "h1": "Cómo hacer que su despacho aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal por materia: abogado penalista, abogado de familia, abogado laboral.",
+    "Dirección real donde se atiende a clientes; las oficinas virtuales pueden causar suspensión.",
+    "Reseñas de clientes con discreción, sin revelar detalles de los asuntos.",
+    "Nombre, dirección y teléfono idénticos en el perfil, el sitio y los directorios."
+  ],
+  "secciones": [
+    {
+      "titulo": "El mapa también decide en derecho",
+      "parrafos": [
+        "Búsquedas como abogado penalista cerca o abogado de divorcios en una zona se resuelven en buena parte en el mapa. La persona compara estrellas, reseñas, distancia y si el despacho parece serio. Para un despacho, aparecer ahí con un perfil completo es una fuente constante de consultas que no depende de anuncios.",
+        "Google combina relevancia, distancia y prominencia. La relevancia y la prominencia se trabajan con un perfil bien hecho y reseñas reales."
+      ]
+    },
+    {
+      "titulo": "Categoría por materia",
+      "parrafos": [
+        "Google ofrece categorías específicas para abogados por materia. La principal debe ser la que más representa al despacho, y las secundarias, otras materias reales. Un despacho penal con categoría de abogado penalista aparece mejor en búsquedas penales que uno con la categoría genérica de despacho de abogados.",
+        "En la descripción y en los servicios, liste las materias y tipos de asuntos que atiende, con lenguaje claro."
+      ]
+    },
+    {
+      "titulo": "Dirección real y reglas de Google",
+      "parrafos": [
+        "Google exige que el perfil corresponda a un lugar donde se atiende a clientes en persona durante el horario indicado. Las oficinas virtuales, domicilios de correspondencia o direcciones compartidas sin presencia real pueden causar la suspensión del perfil. Si el despacho atiende solo a distancia o en las oficinas del cliente, existe la opción de área de servicio sin mostrar dirección.",
+        "Respetar estas reglas evita suspensiones que cuestan semanas de visibilidad."
+      ]
+    },
+    {
+      "titulo": "Reseñas con discreción",
+      "parrafos": [
+        "En materia legal, muchos clientes prefieren no dejar reseña pública, y hay que respetarlo. A quienes sí quieran, se les puede enviar un enlace directo al cerrar un asunto. Al responder, agradezca sin mencionar el tipo de asunto ni ningún detalle, aunque el cliente lo haya mencionado.",
+        "Las reseñas negativas se responden con serenidad, sin revelar información del caso y ofreciendo hablar en privado. Recuerde que el secreto profesional también aplica en internet."
+      ]
+    },
+    {
+      "titulo": "Perfiles de abogados y consistencia",
+      "parrafos": [
+        "Los abogados que atienden al público pueden tener perfil propio además del perfil del despacho, en ciertos casos. Conviene revisarlo para no duplicar ni confundir. En todos los casos, nombre, dirección y teléfono deben coincidir con los del sitio web y los directorios jurídicos.",
+        "El nombre del perfil debe ser el nombre real del despacho, sin palabras clave añadidas."
+      ]
+    },
+    {
+      "titulo": "Horario, contacto y urgencias",
+      "parrafos": [
+        "Mantenga el horario real y, si el despacho atiende urgencias fuera de horario, indíquelo en la descripción con el canal de contacto. Vincule el botón de mensaje o de sitio web a la página adecuada, por ejemplo la de la materia principal o la de contacto urgente.",
+        "Medir llamadas y clics desde el perfil muestra cuántas consultas genera."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Revisamos y optimizamos el perfil del despacho dentro de las reglas de Google, lo alineamos con el sitio y medimos consultas. Ese mismo cuidado aplicamos en despachos como CANO Estrategia Penal. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo usar una oficina compartida?",
+      "respuesta": "Si atiende clientes ahí con presencia real, señalización y horario, sí. Si es solo domicilio de correspondencia, puede ser motivo de suspensión."
+    },
+    {
+      "pregunta": "¿Puedo poner palabras clave en el nombre del perfil?",
+      "respuesta": "No. Debe ser el nombre real del despacho; agregar palabras clave va contra las políticas."
+    },
+    {
+      "pregunta": "¿Cómo pido reseñas sin incomodar?",
+      "respuesta": "Al cerrar cada asunto, a todos los clientes por igual, con un mensaje breve y la libertad de no hacerlo."
+    },
+    {
+      "pregunta": "¿Qué hago si mi perfil fue suspendido?",
+      "respuesta": "Revisar qué regla se incumplió, corregirla y solicitar la revisión a Google con documentación."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-abogados-penalistas",
+      "texto": "Página web para abogados penalistas"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:1baa084f4cfc0c77730eef97d9ecfd81b8fb9889aa37784875bbb185370b0d35",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:1baa084f4cfc0c77730eef97d9ecfd81b8fb9889aa37784875bbb185370b0d35"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 626,
+    "similitud_max": 0.028,
+    "parecida_a": "/aparecer-en-google-maps-contadores"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:84f495f52c6e0f7beea3ec96ecf46a46c318bcad1826b2333c6ac1ba432aa483",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}

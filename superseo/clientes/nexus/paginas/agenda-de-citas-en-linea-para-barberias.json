@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "agenda-de-citas-en-linea-para-barberias",
+  "cliente": "nexus",
+  "ruta": "/agenda-de-citas-en-linea-para-barberias",
+  "tipo": "AGENTE_IA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Agenda de citas en línea para barberías",
+  "descripcion": "Sistema de reservas en línea para barberías: el cliente elige barbero, servicio y hora desde tu página o tu perfil de Google, con recordatorios y anticipo.",
+  "h1": "Agenda de citas en línea para barberías",
+  "respuesta_rapida": [
+    "Un botón de reservar en tu página y en tu perfil de Google, disponible las veinticuatro horas.",
+    "El cliente elige barbero, servicio y horario libre; la agenda calcula la duración sola.",
+    "Recordatorio automático y anticipo opcional para los horarios más pedidos.",
+    "Cada barbero ve su agenda en el celular y bloquea sus descansos."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué una agenda propia",
+      "parrafos": [
+        "Muchas barberías llevan las citas en una libreta o en los chats de cada barbero. Funciona mientras son pocas, pero en cuanto crece la clientela aparecen los empalmes, los olvidos y la discusión de quién tenía el lugar. Además, el cliente tiene que escribir y esperar a que alguien conteste para saber si hay espacio.",
+        "Una agenda en línea deja que el cliente vea los horarios libres y reserve solo, en el momento en que se acuerda de que necesita corte, aunque sea medianoche."
+      ]
+    },
+    {
+      "titulo": "Cómo funciona para el cliente",
+      "parrafos": [
+        "Entra a tu página o toca el botón de reservar, elige el servicio, como corte, barba, corte con barba o diseño, elige barbero o el primero disponible, y ve los horarios libres de ese día. Escoge uno, deja su nombre y teléfono y recibe la confirmación al instante.",
+        "Antes de la cita recibe un recordatorio con la opción de cancelar o mover el horario. Si cancela, el lugar se libera para otro cliente sin que nadie tenga que hacer nada."
+      ]
+    },
+    {
+      "titulo": "Cómo funciona para la barbería",
+      "parrafos": [
+        "Cada servicio tiene su duración y su precio, y la agenda solo ofrece huecos donde realmente cabe. Cada barbero tiene su horario, sus días de descanso y puede bloquear un rato desde su celular. El dueño ve la agenda completa de todos y sabe cómo viene el día antes de abrir.",
+        "Si quieres, la agenda puede dejar márgenes entre citas para limpiar la silla, o permitir que ciertos clientes reserven con más anticipación que otros."
+      ]
+    },
+    {
+      "titulo": "Anticipos que acaban con las ausencias",
+      "parrafos": [
+        "El cliente que reserva el sábado a las doce y no llega le cuesta a la barbería un lugar de los más valiosos. Pedir un anticipo pequeño solo en esos horarios, pagado en línea al reservar, reduce mucho las ausencias. El anticipo se descuenta del servicio, así que el cliente cumplido no paga de más.",
+        "La política de cancelación queda escrita en la reserva para que no haya discusiones."
+      ]
+    },
+    {
+      "titulo": "Aparecer con botón de reservar",
+      "parrafos": [
+        "Tu perfil de empresa en Google puede tener un enlace para reservar que lleve directo a tu agenda, y algunos sistemas de reservas permiten incluso que el cliente agende sin salir de Google. Esa facilidad hace que quien te encuentra en el mapa reserve en lugar de seguir buscando.",
+        "El mismo enlace funciona en tu biografía de Instagram y en tus estados de WhatsApp."
+      ]
+    },
+    {
+      "titulo": "Datos que sirven para crecer",
+      "parrafos": [
+        "Una agenda en línea te dice qué días y horas se llenan primero, qué barbero tiene más demanda, qué servicios se piden más y cada cuánto regresa cada cliente. Con eso decides horarios, contrataciones y promociones con datos y no con corazonadas.",
+        "También puedes mandar un mensaje automático a quien no ha vuelto en el tiempo habitual."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Instalamos la agenda en tu página con tus servicios, barberos y reglas, y la conectamos con WhatsApp y con tu perfil de Google. Está incluida desde el paquete de $9,999 MXN; en paquetes menores se puede sumar aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo seguir aceptando clientes sin cita?",
+      "respuesta": "Sí. La agenda puede dejar algunos lugares libres para quien llega sin cita, o mostrar solo parte del horario para reservas."
+    },
+    {
+      "pregunta": "¿Mis barberos necesitan computadora?",
+      "respuesta": "No. Todo se maneja desde el celular."
+    },
+    {
+      "pregunta": "¿Y si un cliente no tiene internet?",
+      "respuesta": "Puede seguir llamando o escribiendo, y el barbero o la recepción lo anota en la misma agenda."
+    },
+    {
+      "pregunta": "¿Funciona con varias sucursales?",
+      "respuesta": "Sí, cada sucursal con sus barberos y horarios."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-barberias",
+      "texto": "Página web para barberías"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:485b2253b7f178d32db79ed52eddb6e8ac1805b5fefb2eea31b5d94c83384b90",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:485b2253b7f178d32db79ed52eddb6e8ac1805b5fefb2eea31b5d94c83384b90"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 634,
+    "similitud_max": 0.012,
+    "parecida_a": "/agenda-de-citas-en-linea-para-dentistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:154848f5927c90add5b4fb7a405ac2b5035fd131ef79548804407927421ce45f",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

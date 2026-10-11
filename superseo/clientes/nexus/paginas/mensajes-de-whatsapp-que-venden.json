@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "mensajes-de-whatsapp-que-venden",
+  "cliente": "nexus",
+  "ruta": "/mensajes-de-whatsapp-que-venden",
+  "tipo": "GUIA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Medir y vender",
+  "titulo": "Mensajes de WhatsApp que convierten prospectos",
+  "descripcion": "Cómo escribir mensajes de WhatsApp que ayudan a vender: responder rápido, hacer las preguntas correctas, cotizar claro y dar seguimiento sin ser insistente.",
+  "h1": "Mensajes de WhatsApp que convierten prospectos en clientes",
+  "respuesta_rapida": [
+    "Responde rápido: el primer negocio que contesta suele llevarse la conversación.",
+    "Saluda, confirma qué necesita la persona y haz pocas preguntas útiles.",
+    "Cuando des precios, explica qué incluyen y cuál es el siguiente paso.",
+    "Da seguimiento con respeto: uno o dos mensajes, no una persecución."
+  ],
+  "secciones": [
+    {
+      "titulo": "La velocidad también es un mensaje",
+      "parrafos": [
+        "Quien escribe por WhatsApp a un negocio casi siempre escribió también a otros. El primero que responde con algo útil tiene ventaja, aunque no sea el más barato. Un mensaje que llega horas después, por muy bien redactado que esté, muchas veces llega cuando la persona ya decidió.",
+        "Si no puedes contestar al momento, al menos deja un mensaje automático que confirme que recibiste el chat y diga cuándo responderás. Mejor aún: un asistente que conteste las preguntas frecuentes y te pase la conversación cuando haga falta."
+      ]
+    },
+    {
+      "titulo": "El primer mensaje",
+      "parrafos": [
+        "Un buen primer mensaje saluda con el nombre del negocio, agradece el contacto y va directo a lo que la persona pidió. Si te escribió desde la página de un servicio, menciónalo: así sabe que leíste su mensaje y no recibió una respuesta genérica.",
+        "Evita los bloques enormes de texto con todos tus servicios y precios. La persona preguntó algo concreto; respóndelo y ofrece el siguiente paso. Si la respuesta depende de detalles, dilo y pregunta solo lo necesario."
+      ]
+    },
+    {
+      "titulo": "Preguntas que califican",
+      "parrafos": [
+        "Las mejores preguntas son pocas y te ayudan a dar una respuesta útil: qué necesita, para cuándo, en qué zona y, si aplica, qué presupuesto tiene en mente. Con eso puedes recomendar la opción correcta en lugar de mandar el catálogo completo.",
+        "Hazlas de una en una o en un solo mensaje corto. Un interrogatorio de diez preguntas antes de dar cualquier información hace que muchas personas abandonen la conversación."
+      ]
+    },
+    {
+      "titulo": "Precios y cotizaciones",
+      "parrafos": [
+        "Cuando des un precio, acompáñalo de lo que incluye y de lo que no. Un precio solo, sin contexto, invita a comparar con el más barato. Un precio con alcance claro, tiempos y forma de pago permite comparar con justicia y decidir más rápido.",
+        "Si la cotización es larga, envíala en un PDF o en un enlace limpio y escribe en el chat un resumen de tres líneas: qué es, cuánto cuesta y qué sigue. Cierra siempre con una pregunta concreta, como si prefiere agendar mañana o el jueves."
+      ]
+    },
+    {
+      "titulo": "Seguimiento sin presionar",
+      "parrafos": [
+        "Muchas ventas se pierden por no dar seguimiento, no por un mal precio. Si la persona no responde, un mensaje amable uno o dos días después, preguntando si tiene alguna duda, suele bastar. Si sigue sin responder, un último mensaje dejando la puerta abierta es suficiente.",
+        "Lo que no funciona es escribir todos los días ni usar urgencias falsas. Además de molestar, hace que la persona te bloquee o te reporte, y eso afecta la reputación de tu número."
+      ]
+    },
+    {
+      "titulo": "Lo que conviene evitar",
+      "parrafos": [
+        "No envíes mensajes masivos a personas que no te dieron permiso, ni agregues contactos a grupos sin preguntar. No respondas con audios largos a quien te escribió por texto: muchas personas no pueden escucharlos en el momento. Y no dejes conversaciones abiertas sin cierre.",
+        "Tampoco prometas lo que no controlas. Una respuesta honesta sobre tiempos o resultados genera más confianza que una promesa que después tienes que explicar."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nexus Sales pone a trabajar una IA que atiende mensajes, responde preguntas, califica prospectos, agenda y da seguimiento 24/7, con escalamiento a una persona cuando hace falta. Diseñamos los mensajes con el tono de tu marca, para que el asistente suene como tu negocio y no como un robot."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Uso WhatsApp Business o la API?",
+      "respuesta": "Para un negocio pequeño, WhatsApp Business suele bastar. La API conviene cuando necesitas varios agentes, automatización o integración con tu CRM."
+    },
+    {
+      "pregunta": "¿Las respuestas rápidas suenan robóticas?",
+      "respuesta": "Solo si se usan sin adaptar. Úsalas como base y personaliza el inicio con el nombre de la persona y lo que preguntó."
+    },
+    {
+      "pregunta": "¿Cuánto debo tardar en responder?",
+      "respuesta": "Lo menos posible. Si no puedes hacerlo al momento, deja un mensaje automático que diga cuándo responderás."
+    },
+    {
+      "pregunta": "¿Puedo enviar promociones por WhatsApp?",
+      "respuesta": "Solo a personas que aceptaron recibirlas y respetando las reglas de WhatsApp. Abusar de ellas puede bloquear tu número."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/catalogo-de-whatsapp-business",
+      "texto": "Catálogo y respuestas rápidas de WhatsApp Business"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:e30a4ba4232c9d9b61e8203a309c35905d8361cd96c984c855d29a2747adb5ff",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:e30a4ba4232c9d9b61e8203a309c35905d8361cd96c984c855d29a2747adb5ff"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 699,
+    "similitud_max": 0.01,
+    "parecida_a": "/catalogo-de-whatsapp-business"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:65beec578c0eaef363a45a991ad955c507610610b5e605b90d928caad2d194a1",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

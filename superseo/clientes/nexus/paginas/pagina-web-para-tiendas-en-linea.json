@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-tiendas-en-linea",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-tiendas-en-linea",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Página web para tiendas en línea",
+  "descripcion": "Tiendas en línea para negocios mexicanos: catálogo, carrito, pagos con tarjeta y transferencia, envíos, inventario y recuperación de carritos abandonados.",
+  "h1": "Tiendas en línea para negocios en México",
+  "respuesta_rapida": [
+    "Una tienda en línea vende cuando es rápida, confiable y fácil de pagar desde el celular.",
+    "Los pagos deben adaptarse a México: tarjeta, meses sin intereses si aplica, transferencia y pago en tiendas.",
+    "Envíos claros, con costos y tiempos por zona, y una política de devoluciones visible.",
+    "Recuperar carritos abandonados y dar seguimiento por WhatsApp aumenta las ventas sin más tráfico."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué necesita una tienda para vender",
+      "parrafos": [
+        "Montar una tienda en línea es fácil; que venda es otra cosa. El comprador mexicano desconfía con razón de tiendas que no conoce, y abandona si el sitio es lento, si no ve formas de pago conocidas o si no entiende cuánto le va a costar el envío. Cada uno de esos frenos se resuelve con diseño y con información clara.",
+        "Una tienda bien hecha se siente segura desde el primer vistazo: fotos de calidad, precios claros, datos de la empresa, políticas visibles y un proceso de pago sin sorpresas."
+      ]
+    },
+    {
+      "titulo": "Catálogo y fichas de producto",
+      "parrafos": [
+        "Cada producto con fotos desde varios ángulos, descripción útil, medidas o especificaciones, variantes como talla o color, disponibilidad y tiempo de envío. Las fichas escritas por ti, y no copiadas del proveedor, ayudan a que Google te muestre y te distinguen de otras tiendas que venden lo mismo.",
+        "Las categorías y filtros deben pensarse desde el comprador: cómo busca, qué compara, qué necesita saber antes de decidir."
+      ]
+    },
+    {
+      "titulo": "Pagos pensados para México",
+      "parrafos": [
+        "Tarjeta de crédito y débito, meses sin intereses en compras grandes si tu procesador lo permite, transferencia, pago en tiendas de conveniencia y, en algunos casos, pago contra entrega local. Cada forma de pago que agregas reduce los abandonos de quien no tiene la que ofreces.",
+        "La seguridad del pago se nota: HTTPS, un procesador reconocido y una página de confirmación clara."
+      ]
+    },
+    {
+      "titulo": "Envíos y devoluciones",
+      "parrafos": [
+        "Mostrar el costo de envío antes del último paso evita la frustración que más carritos abandona. Explicar tiempos por zona, paqueterías y si hay envío gratis a partir de cierto monto ayuda a decidir. Una política de devoluciones clara, con plazos y condiciones, reduce el miedo a comprar.",
+        "Las notificaciones automáticas de pedido recibido, enviado y entregado, por correo o WhatsApp, evitan que el cliente escriba preguntando dónde está su paquete."
+      ]
+    },
+    {
+      "titulo": "Vender más sin más visitas",
+      "parrafos": [
+        "Recordatorios a quien dejó productos en el carrito, sugerencias de productos relacionados, avisos cuando algo vuelve a estar disponible y mensajes de seguimiento después de la compra pidiendo una reseña. Son automatizaciones sencillas que suelen aumentar las ventas con el mismo tráfico.",
+        "Un asistente de WhatsApp que responda dudas de producto al momento también evita que el comprador se vaya a otra tienda."
+      ]
+    },
+    {
+      "titulo": "Tienda propia o plataforma",
+      "parrafos": [
+        "Las plataformas de comercio electrónico permiten empezar rápido, pero cobran mensualidades y comisiones, y te limitan en diseño. Una tienda propia te da control total y costos más predecibles, pero requiere un buen desarrollo. La mejor opción depende de tu volumen, tu catálogo y cuánto quieras personalizar.",
+        "Lo importante es que el dominio, los datos de tus clientes y tu catálogo sean tuyos, sea cual sea la tecnología."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos tiendas en línea rápidas, con pagos para México, envíos claros y automatizaciones de venta. Los paquetes con asistente de IA empiezan en $9,999 MXN y los de $19,999 y $44,800 suman tecnología para Google Ads y captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo facturar las ventas en línea?",
+      "respuesta": "Sí. Se puede integrar un formulario para que el cliente solicite su factura o conectar la tienda con tu sistema de facturación."
+    },
+    {
+      "pregunta": "¿Cómo atraigo visitas a una tienda nueva?",
+      "respuesta": "Con fichas bien escritas, contenido útil sobre tus productos, Google Ads bien medido y tus redes llevando tráfico a la tienda."
+    },
+    {
+      "pregunta": "¿Puedo vender también en marketplaces?",
+      "respuesta": "Sí. Muchas tiendas combinan su sitio propio con marketplaces; el sitio propio es donde construyes clientes recurrentes."
+    },
+    {
+      "pregunta": "¿Quién es dueño de los datos de mis clientes?",
+      "respuesta": "Tú. La tienda, el dominio y la base de clientes quedan a tu nombre."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-tiendas-en-linea",
+      "texto": "Chatbot de WhatsApp para tiendas en línea"
+    },
+    {
+      "ruta": "/google-ads-para-tiendas-en-linea",
+      "texto": "Google Ads para tiendas en línea"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-tienda-en-linea",
+      "texto": "¿Cuánto cuesta una tienda en línea?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:8085daaaed2cf39e057698c5ad827239af4b82072be9c554fa3e4762d0925995",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:8085daaaed2cf39e057698c5ad827239af4b82072be9c554fa3e4762d0925995"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 657,
+    "similitud_max": 0.022,
+    "parecida_a": "/cuanto-cuesta-una-tienda-en-linea"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:a98c77330abc8e9cb3672afb734ed9c7a4109598c2e988a21943a2ab70de868d",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

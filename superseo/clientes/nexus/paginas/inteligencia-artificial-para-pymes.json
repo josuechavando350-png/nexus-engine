@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "inteligencia-artificial-para-pymes",
+  "cliente": "nexus",
+  "ruta": "/inteligencia-artificial-para-pymes",
+  "tipo": "GUIA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "IA y automatización",
+  "titulo": "Inteligencia artificial para pymes: por dónde empezar",
+  "descripcion": "Cómo empezar a usar inteligencia artificial en una pyme: elegir el problema correcto, dónde suele ayudar primero, cómo medir si funciona y qué cuidar con tus datos.",
+  "h1": "Inteligencia artificial para pymes: por dónde empezar",
+  "respuesta_rapida": [
+    "Empieza por un problema concreto que te cueste tiempo o clientes, no por una herramienta.",
+    "La atención a clientes, la agenda y los recordatorios suelen ser buenos primeros pasos.",
+    "Mide antes y después: tiempo de respuesta, citas, ventas o horas ahorradas.",
+    "Cuida qué datos compartes y quién tiene acceso a ellos."
+  ],
+  "secciones": [
+    {
+      "titulo": "El problema antes que la herramienta",
+      "parrafos": [
+        "La pregunta útil no es qué inteligencia artificial debería usar, sino qué me está costando tiempo, dinero o clientes. Mensajes que se quedan sin respuesta, citas a las que nadie llega, cotizaciones que tardan días o reportes que alguien arma a mano cada semana son buenos candidatos.",
+        "Cuando el problema está claro, es más fácil elegir la herramienta y medir si funcionó. Cuando se empieza por la herramienta, es común terminar pagando una suscripción que nadie usa."
+      ]
+    },
+    {
+      "titulo": "Dónde suele ayudar primero",
+      "parrafos": [
+        "En la mayoría de las pymes, el primer impacto visible está en la atención: un asistente que contesta de inmediato las preguntas frecuentes por WhatsApp y en la página, y pasa a una persona lo que requiere criterio. Le siguen la agenda y los recordatorios de citas, y después la cobranza y el seguimiento de cotizaciones.",
+        "Hacia dentro del negocio, la IA ayuda a resumir conversaciones, redactar borradores de correos o propuestas y ordenar información que llega dispersa. Son mejoras menos vistosas, pero ahorran horas cada semana."
+      ]
+    },
+    {
+      "titulo": "Empieza pequeño",
+      "parrafos": [
+        "Elige un solo proceso, define cómo funciona hoy y qué quieres que cambie. Por ejemplo: hoy respondemos los mensajes nocturnos al día siguiente y queremos responderlos al momento. Implementa, observa unas semanas y ajusta antes de pasar al siguiente proceso.",
+        "Así tu equipo se acostumbra poco a poco, detectas errores cuando todavía son pequeños y puedes demostrar con datos si la inversión vale la pena."
+      ]
+    },
+    {
+      "titulo": "Cómo medir si funciona",
+      "parrafos": [
+        "Antes de empezar, anota tu punto de partida: cuánto tardas en responder, cuántas citas se pierden, cuántas cotizaciones se cierran o cuántas horas toma una tarea. Después de implementar, compara con los mismos indicadores.",
+        "Si no puedes medir una mejora, pregúntate si el problema era el correcto o si la herramienta necesita ajustes. La IA debe justificarse con resultados, no con lo moderna que suena."
+      ]
+    },
+    {
+      "titulo": "Tus datos y tu seguridad",
+      "parrafos": [
+        "Cualquier herramienta de IA que conectes a tu negocio va a tocar datos: nombres, teléfonos, conversaciones y, a veces, información delicada. Revisa qué datos necesita de verdad, dónde se guardan, quién tiene acceso y si el proveedor los usa para otros fines.",
+        "Actualiza tu aviso de privacidad para explicar el uso de asistentes automatizados y limita los accesos de cada integración a lo mínimo necesario. Un asistente mal protegido puede volverse una puerta de entrada a tu información."
+      ]
+    },
+    {
+      "titulo": "Errores al empezar",
+      "parrafos": [
+        "Los más comunes son querer automatizar todo de una vez, dejar al asistente sin información actualizada del negocio y no definir cuándo debe pasar la conversación a una persona. También es un error esconder que se trata de un asistente: tus clientes deben saber con quién hablan.",
+        "Otro error es pensar que la IA arregla un proceso desordenado. Si hoy nadie sabe qué hacer con un prospecto, automatizarlo solo hará más rápido el desorden."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "En Nexus Bot Studio empezamos por entender tu proceso real y te decimos con franqueza si la IA aporta valor en tu caso. Nexus Automation conecta cobros, recordatorios, reportes y procesos internos con tu CRM, correo y calendarios, con seguridad desde el diseño. El primer diagnóstico es gratuito."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿La IA es solo para empresas grandes?",
+      "respuesta": "No. Muchas herramientas son accesibles para negocios pequeños; la clave es aplicarlas a un problema concreto."
+    },
+    {
+      "pregunta": "¿Necesito un equipo técnico?",
+      "respuesta": "No necesariamente. Puedes apoyarte en un proveedor que configure y mantenga las integraciones, siempre con accesos a tu nombre."
+    },
+    {
+      "pregunta": "¿Qué hago primero?",
+      "respuesta": "Lista las tareas que más tiempo o clientes te cuestan y elige una sola para empezar."
+    },
+    {
+      "pregunta": "¿La IA se equivoca?",
+      "respuesta": "Sí puede equivocarse. Por eso se le dan límites claros, información verificada y una salida hacia una persona."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/que-puede-hacer-un-agente-de-ia-en-un-negocio",
+      "texto": "Qué puede hacer un agente de IA en tu negocio"
+    },
+    {
+      "ruta": "/automatizar-cotizaciones",
+      "texto": "Cómo automatizar cotizaciones sin perder clientes"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:c2d3404d9e54d6a4b4c0405eb84ea6af8ac9d79f9c6199356790c86c5dfd531e",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:c2d3404d9e54d6a4b4c0405eb84ea6af8ac9d79f9c6199356790c86c5dfd531e"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 665,
+    "similitud_max": 0.003,
+    "parecida_a": "/datos-de-clientes-y-privacidad-con-ia"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:a9349b0ad36803a823c4441b35a753bcdfdc83c7d8e5a494fc158f4ed2428189",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

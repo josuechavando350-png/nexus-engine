@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-gimnasios",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-gimnasios",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Cómo aparecer en Google Maps: gimnasios",
+  "descripcion": "Guía para que tu gimnasio aparezca en Google Maps: categoría por tipo de entrenamiento, horarios, precios, fotos de instalaciones, clases y reseñas de socios.",
+  "h1": "Cómo hacer que tu gimnasio aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal según tu tipo de entrenamiento: gimnasio, crossfit, yoga, box.",
+    "Horario exacto, incluidos fines de semana y horarios especiales.",
+    "Fotos de áreas, equipos, clases y regaderas: lo que el futuro socio quiere ver.",
+    "Reseñas de socios y respuesta a cada una, también a las críticas."
+  ],
+  "secciones": [
+    {
+      "titulo": "El gimnasio más cercano con buena pinta",
+      "parrafos": [
+        "Gimnasio cerca de mí es una búsqueda constante, y la decisión se toma en el mapa: el futuro socio compara distancia, estrellas, fotos y precios. Como casi nadie viaja lejos para entrenar, competir por tu zona es todo. Un perfil completo puede ganarle a un gimnasio más grande con un perfil abandonado.",
+        "Las búsquedas por disciplina, como crossfit, yoga o box, también se resuelven en el mapa y son más fáciles de ganar si tu categoría y servicios lo dicen.",
+        "También influye la temporada: al inicio del año y antes del verano las búsquedas aumentan mucho. Tener el perfil impecable antes de esas fechas, con fotos recientes, precios actualizados y reseñas nuevas, te pone en ventaja justo cuando más personas están eligiendo dónde entrenar."
+      ]
+    },
+    {
+      "titulo": "Categoría y atributos",
+      "parrafos": [
+        "Elige la categoría principal que mejor describa tu propuesta: gimnasio, box de crossfit, estudio de yoga, gimnasio de boxeo, estudio de pilates. Agrega secundarias solo si realmente las ofreces. Los atributos, como estacionamiento, accesibilidad, regaderas o abierto las veinticuatro horas si aplica, ayudan a aparecer con filtros.",
+        "En la descripción, explica tu enfoque y lo que te distingue, sin superlativos."
+      ]
+    },
+    {
+      "titulo": "Fotos que convencen",
+      "parrafos": [
+        "El futuro socio quiere ver el área de pesas, el cardio, los salones de clases, los vestidores y regaderas, y el ambiente real con gente entrenando. Fotos honestas, actualizadas y bien iluminadas generan visitas; las fotos de catálogo con modelos generan desconfianza.",
+        "Un video corto del ambiente en hora normal puede ser muy efectivo."
+      ]
+    },
+    {
+      "titulo": "Precios y clases",
+      "parrafos": [
+        "Puedes listar tus planes en la sección de servicios o productos, con precio. Muchos futuros socios descartan gimnasios que no muestran precio. Las publicaciones del perfil pueden mostrar el horario de clases, retos o promociones de temporada.",
+        "Vincula el botón de sitio web a la página de membresías o de pase de prueba."
+      ]
+    },
+    {
+      "titulo": "Reseñas de socios",
+      "parrafos": [
+        "Muchos socios están dispuestos a dejar reseña si se les pide en el momento adecuado, por ejemplo al cumplir un mes o al terminar un reto; pídela a todos por igual. Un código QR en recepción o en los vestidores ayuda.",
+        "Responde todas, también las quejas sobre limpieza o equipo descompuesto, explicando qué hiciste. Eso convence más que una lista de reseñas perfectas."
+      ]
+    },
+    {
+      "titulo": "Horarios especiales",
+      "parrafos": [
+        "Configura los horarios de días festivos y de vacaciones con anticipación. Pocas cosas generan peores reseñas que llegar a entrenar y encontrar cerrado. Si tienes horarios de baja afluencia, mencionarlos ayuda a quien prefiere entrenar tranquilo.",
+        "Mantén el horario igual en el perfil y en tu sitio."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, lo alineamos con tu sitio y tus membresías, preparamos el sistema de reseñas y medimos llamadas y pases de prueba. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo poner precios en el perfil?",
+      "respuesta": "Sí, en servicios o productos. Ayuda a filtrar y a atraer socios decididos."
+    },
+    {
+      "pregunta": "¿Cada sucursal necesita su perfil?",
+      "respuesta": "Sí, cada ubicación con su dirección, horario, fotos y reseñas."
+    },
+    {
+      "pregunta": "¿Cómo manejo reseñas de exsocios molestos?",
+      "respuesta": "Respondiendo con hechos y respeto, y ofreciendo resolver en privado."
+    },
+    {
+      "pregunta": "¿Las publicaciones ayudan?",
+      "respuesta": "Sí, como señal de actividad y para mostrar clases y promociones a quien ya te encontró."
+    },
+    {
+      "pregunta": "¿Conviene responder las preguntas del perfil?",
+      "respuesta": "Sí. Agrega y responde tú mismo las preguntas frecuentes, como si hay pase de prueba, estacionamiento o regaderas, para resolver dudas antes de la visita."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-gimnasios",
+      "texto": "Página web para gimnasios"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:06d63a80cebdeefa71307baf7e30fd701b9d625567611ebd83ec3e374eb26e45",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:06d63a80cebdeefa71307baf7e30fd701b9d625567611ebd83ec3e374eb26e45"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 614,
+    "similitud_max": 0.027,
+    "parecida_a": "/aparecer-en-google-maps-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:68c58dadc33e965e8d119d7fe729af3a4fb1b391779591247ec63a913d22b2b6",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}

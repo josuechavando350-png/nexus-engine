@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "boton-de-whatsapp-en-pagina-web",
+  "cliente": "nexus",
+  "ruta": "/boton-de-whatsapp-en-pagina-web",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "Botón de WhatsApp en tu página web",
+  "descripcion": "Cómo poner un botón de WhatsApp en tu página web que convierta: enlace con mensaje precargado, ubicación, diseño, medición y errores que hay que evitar.",
+  "h1": "Botón de WhatsApp en tu página web",
+  "respuesta_rapida": [
+    "Usa un enlace de WhatsApp con tu número en formato internacional y un mensaje precargado.",
+    "Ponlo visible en la primera pantalla y, en celular, fijo al bajar.",
+    "Usa mensajes distintos por página para saber de dónde viene cada contacto.",
+    "Mide cada clic como conversión y contesta rápido: el botón solo funciona si alguien responde."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué WhatsApp y no solo formulario",
+      "parrafos": [
+        "En México, WhatsApp es el canal donde la gente ya está. Escribir un mensaje es más natural que llenar un formulario y esperar un correo. Para muchos negocios, el botón de WhatsApp es la principal fuente de contactos de su página, por encima del teléfono y del formulario juntos.",
+        "Pero no basta con poner el icono: la forma en que se configura hace una gran diferencia."
+      ]
+    },
+    {
+      "titulo": "El enlace correcto",
+      "parrafos": [
+        "El botón debe llevar a un enlace de WhatsApp con tu número en formato internacional, con el código de país y sin espacios ni signos. Ese enlace abre la conversación directamente en la aplicación del celular o en WhatsApp Web en computadora. Puedes agregar un mensaje precargado para que el cliente solo tenga que tocar enviar.",
+        "Nuestra herramienta gratuita genera el enlace correcto con tu mensaje en segundos."
+      ]
+    },
+    {
+      "titulo": "El mensaje precargado",
+      "parrafos": [
+        "Un mensaje precargado hace dos cosas. Le quita al cliente el trabajo de pensar qué escribir, lo que aumenta los contactos. Y te dice desde qué página llegó, si usas mensajes distintos: hola, vengo de la página de implantes, o quiero cotizar una remodelación de baño.",
+        "En temas sensibles, como asuntos legales o de salud, conviene un mensaje neutro que no exponga el motivo si alguien ve el teléfono del cliente."
+      ]
+    },
+    {
+      "titulo": "Dónde ponerlo",
+      "parrafos": [
+        "En la primera pantalla, junto al mensaje principal. En celular, un botón flotante fijo en una esquina que acompañe al usuario mientras baja. Al final de cada sección de servicio, como siguiente paso natural. Debe verse claramente, con el color reconocible de WhatsApp o con buen contraste, y no tapar otros elementos importantes como el aviso de privacidad.",
+        "Si el botón flotante tapa el contenido o los enlaces del pie de página, hay que ajustarlo."
+      ]
+    },
+    {
+      "titulo": "Medir cada clic",
+      "parrafos": [
+        "Cada clic en el botón de WhatsApp debe registrarse como conversión en tu analítica y, si haces anuncios, en Google Ads. Así sabes qué páginas y qué campañas generan conversaciones. Sin esa medición, no puedes saber si tu página trae clientes.",
+        "Con mensajes precargados distintos por página, además, puedes comparar con lo que realmente llega a tu WhatsApp."
+      ]
+    },
+    {
+      "titulo": "El botón no sirve si nadie contesta",
+      "parrafos": [
+        "El mejor botón del mundo pierde su valor si el mensaje tarda horas en contestarse. Quien escribe a un negocio desde su página suele estar comparando varias opciones y elige al primero que responde. Un asistente con inteligencia artificial que conteste al instante, agende y pase a una persona lo importante resuelve justo ese problema.",
+        "Nuestra calculadora gratuita estima cuántos clientes podrías estar perdiendo por contestar tarde."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Todos nuestros sitios incluyen botones de WhatsApp y llamada medidos, con mensajes precargados por página. Desde el paquete de $9,999 MXN se incluye el asistente de IA que contesta al instante."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Funciona con WhatsApp Business?",
+      "respuesta": "Sí, el enlace funciona igual con la app normal, la de negocios o la API."
+    },
+    {
+      "pregunta": "¿Puedo poner varios números?",
+      "respuesta": "Sí, por ejemplo uno por sucursal o por área, cada uno con su botón."
+    },
+    {
+      "pregunta": "¿El botón afecta la velocidad?",
+      "respuesta": "Un enlace simple no. Algunos complementos de chat sí pesan; conviene evitarlos."
+    },
+    {
+      "pregunta": "¿Qué hago con los mensajes fuera de horario?",
+      "respuesta": "Configura un mensaje de ausencia o un asistente que responda y agende."
+    },
+    {
+      "pregunta": "¿Puedo ver cuántas personas tocaron el botón?",
+      "respuesta": "Sí, si el clic se mide como evento en tu analítica. Sin eso, solo ves los mensajes que llegan, sin saber de qué página vinieron."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/herramientas/enlace-whatsapp",
+      "texto": "Generador de enlace de WhatsApp"
+    },
+    {
+      "ruta": "/formulario-o-whatsapp",
+      "texto": "¿Formulario o WhatsApp en tu página?"
+    },
+    {
+      "ruta": "/como-medir-clics-de-whatsapp",
+      "texto": "Cómo medir los clics a WhatsApp de tu página"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:4f2bb7429bbca31dae1ef66700368b1c06d7c6b30b1600e2384f4b3c016fc2c4",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:4f2bb7429bbca31dae1ef66700368b1c06d7c6b30b1600e2384f4b3c016fc2c4"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 630,
+    "similitud_max": 0.006,
+    "parecida_a": "/cuanto-cuesta-un-chatbot-de-whatsapp"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:1f2b958f74a66ac58e013369e23e9a660d5caddefeac5549106d61131483a436",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

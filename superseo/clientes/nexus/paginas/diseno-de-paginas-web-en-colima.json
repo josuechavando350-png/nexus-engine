@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "diseno-de-paginas-web-en-colima",
+  "cliente": "nexus",
+  "ruta": "/diseno-de-paginas-web-en-colima",
+  "tipo": "CIUDAD",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Ciudades",
+  "titulo": "Diseño de páginas web en Colima",
+  "descripcion": "Diseño de páginas web para negocios de Colima, Villa de Álvarez y Manzanillo: rápidas en celular, con WhatsApp medible y dominio a tu nombre, trabajando a distancia.",
+  "h1": "Diseño de páginas web para negocios en Colima",
+  "respuesta_rapida": [
+    "En Colima la recomendación pesa mucho, y tu página es donde esa recomendación se confirma.",
+    "Las búsquedas locales distinguen entre Colima, Villa de Álvarez, Manzanillo y otros municipios.",
+    "Trabajamos a distancia con contacto directo por WhatsApp.",
+    "Los paquetes de sitio van desde $1,999 MXN; el diagnóstico es gratuito."
+  ],
+  "secciones": [
+    {
+      "titulo": "La recomendación y la página",
+      "parrafos": [
+        "En una ciudad como Colima, mucha gente llega a un negocio porque alguien se lo recomendó. Pero antes de llamar, casi todos buscan el nombre en Google para ver dónde está, qué hace y si se ve serio. Si no encuentran nada, o encuentran una página abandonada, la recomendación pierde fuerza.",
+        "Una página clara, rápida y bien diseñada confirma lo que le dijeron a esa persona y le da un camino directo para escribirte."
+      ]
+    },
+    {
+      "titulo": "Búsquedas locales en el estado",
+      "parrafos": [
+        "Quien busca un servicio en Colima suele especificar dónde: Colima, Villa de Álvarez, Manzanillo o Tecomán. Tu página y tu ficha de Google deben decir con claridad dónde estás y a qué zonas atiendes. Si das servicio en el puerto y en la capital, explica cómo lo haces en cada lugar.",
+        "En ciudades medianas, muchas búsquedas locales tienen pocos negocios con páginas bien hechas. Vale la pena revisar quién aparece hoy cuando alguien busca lo que tú haces: a veces la oportunidad es más grande de lo que parece."
+      ]
+    },
+    {
+      "titulo": "Turismo y clientes de fuera",
+      "parrafos": [
+        "Si tu negocio recibe visitantes, como restaurantes, hospedaje o servicios en la costa, tu página es lo que ven antes de llegar. Fotos reales, ubicación con mapa, horarios y un botón a WhatsApp ayudan a que te elijan desde otra ciudad.",
+        "Para quien viene de fuera, la confianza se construye en línea. Una ficha de Google cuidada y reseñas que pides a todos tus clientes hacen gran parte del trabajo."
+      ]
+    },
+    {
+      "titulo": "Trabajo a distancia, trato directo",
+      "parrafos": [
+        "Nexus Bot Studio opera de forma remota en todo México. El primer contacto es por WhatsApp, con pocas preguntas, y los textos se pueden desarrollar a partir de una conversación contigo. No necesitas cuestionarios interminables ni reuniones presenciales para empezar.",
+        "Presentamos una dirección visual pensada para tu negocio y, con ella aprobada, construimos el sitio en un plazo de dos a cuatro semanas según alcance y contenido."
+      ]
+    },
+    {
+      "titulo": "Un proyecto con base en Colima",
+      "parrafos": [
+        "Estamos desarrollando el sitio de marca personal del Mtro. Eric Ramírez, abogado con base en Colima y alcance en Ciudad de México, en defensa penal, fiscal e inmobiliaria. Su dirección es editorial de revista, con retrato en blanco y negro que pasa a color al tocarlo y un panel a la medida para que el licenciado publique sin entrar a herramientas técnicas.",
+        "El proyecto está en desarrollo; lo mostramos porque refleja cómo trabajamos con negocios de Colima: diseño propio, no plantillas."
+      ]
+    },
+    {
+      "titulo": "Paquetes y lo que incluyen",
+      "parrafos": [
+        "Los paquetes de sitio cuestan $1,999, $3,499, $9,999, $19,999 y $44,800 MXN. Desde $9,999 incluyen chatbot con inteligencia artificial, y los de $19,999 y $44,800 suman tecnología para Google Ads.",
+        "Todos incluyen diseño propio, versión rápida en celular, botón a WhatsApp y teléfono medibles, estructura técnica para Google, HTTPS con cabeceras de seguridad y dominio a tu nombre."
+      ]
+    },
+    {
+      "titulo": "Diagnóstico gratuito",
+      "parrafos": [
+        "Si ya tienes página, la revisamos y te decimos con franqueza si conviene optimizarla o rehacerla. Si no tienes, te recomendamos lo que tiene sentido para tu negocio en Colima. No prometemos posiciones en Google: construimos la base para que compitas bien."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Trabajan con negocios de Colima sin reunirnos en persona?",
+      "respuesta": "Sí. Trabajamos de forma remota en todo México, con contacto directo por WhatsApp y videollamada si hace falta."
+    },
+    {
+      "pregunta": "¿Sirve para negocios de Manzanillo?",
+      "respuesta": "Sí. Adaptamos la página a la zona y al tipo de cliente que atiendes, sea local o visitante."
+    },
+    {
+      "pregunta": "¿Cuánto tarda mi página?",
+      "respuesta": "Entre dos y cuatro semanas desde que se aprueba la dirección visual."
+    },
+    {
+      "pregunta": "¿El dominio queda a mi nombre?",
+      "respuesta": "Sí. Dominio, hosting y accesos quedan bajo tu control."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/casos/eric-ramirez",
+      "texto": "Caso: Mtro. Eric Ramírez"
+    },
+    {
+      "ruta": "/industrias",
+      "texto": "Páginas y sistemas por industria"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-pagina-web-en-mexico",
+      "texto": "¿Cuánto cuesta una página web en México?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:e2e7883219a1734d8bb536366e7921ffcae513d4c8766aefa656b3a6fddc457f",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:e2e7883219a1734d8bb536366e7921ffcae513d4c8766aefa656b3a6fddc457f"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 651,
+    "similitud_max": 0.092,
+    "parecida_a": "/diseno-de-paginas-web-en-cdmx"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:90b19f929873eb36c8492b41206dba9169ad56f95e53771362deee6cd4b3054c",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

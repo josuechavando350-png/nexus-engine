@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-academias-y-cursos",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-academias-y-cursos",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Página web para academias y cursos",
+  "descripcion": "Sitios para academias de idiomas, música, regularización o capacitación: cursos con fechas y precios, inscripción y pago en línea, y clases muestra.",
+  "h1": "Página web para academias y cursos",
+  "respuesta_rapida": [
+    "Quien busca un curso quiere saber qué aprenderá, cuándo empieza, cuánto cuesta y cómo inscribirse.",
+    "Cada curso necesita su página con temario, horarios, modalidad y perfil del instructor.",
+    "La inscripción y el pago en línea convierten el interés en lugar apartado.",
+    "Una clase muestra o un examen de colocación reducen la duda de quien empieza."
+  ],
+  "secciones": [
+    {
+      "titulo": "Un cliente que compara",
+      "parrafos": [
+        "Una academia de inglés, de música, de regularización, de programación o de cocina compite con muchas opciones, incluidas las plataformas en línea. El alumno potencial compara precio, horario, modalidad y, sobre todo, si confía en que va a aprender. La página tiene que responder esas cuatro cosas sin rodeos.",
+        "Lo que distingue a una academia local es el trato cercano y la experiencia presencial; contarlo con claridad es tu mejor argumento frente a lo genérico.",
+        "Además, muchas personas buscan cursos en momentos concretos del año: al inicio de enero con propósitos nuevos, antes del regreso a clases o en vacaciones para los niños. Una academia con su calendario publicado y fechas de inicio claras aprovecha esas temporadas en lugar de enterarse tarde."
+      ]
+    },
+    {
+      "titulo": "Una página por curso",
+      "parrafos": [
+        "Cada curso con su propia página: a quién va dirigido, qué aprenderá el alumno, temario general, duración, horarios, modalidad presencial o en línea, precio y fecha de inicio. Presentar al instructor con su experiencia y una foto real genera confianza.",
+        "Esas páginas atraen búsquedas concretas, como curso de inglés para adultos en una colonia o clases de guitarra para niños, que vienen de alumnos listos para inscribirse."
+      ]
+    },
+    {
+      "titulo": "Inscripción y pago en línea",
+      "parrafos": [
+        "El momento en que alguien decide inscribirse es frágil: si tiene que ir en persona o esperar respuesta, muchas veces pospone y no vuelve. Una inscripción en línea con pago, o al menos con apartado de lugar, asegura el compromiso. Los cupos que se llenan, mostrados con honestidad, motivan a decidir.",
+        "Las mensualidades pueden cobrarse con recordatorios automáticos, lo que reduce la cobranza manual."
+      ]
+    },
+    {
+      "titulo": "Clase muestra y colocación",
+      "parrafos": [
+        "Una clase muestra gratuita o un examen de colocación en línea son la mejor forma de convertir a quien duda. La página puede agendarlos directamente y, después, enviar un mensaje con la recomendación de curso y la invitación a inscribirse.",
+        "En idiomas, un examen de nivel automatizado es además una herramienta que atrae visitas por sí sola."
+      ]
+    },
+    {
+      "titulo": "Resultados y testimonios",
+      "parrafos": [
+        "Alumnos que aprobaron una certificación, que entraron a la universidad o que presentaron un recital. Con su permiso, esos testimonios son la prueba más fuerte. También funcionan fotos y videos de clases reales.",
+        "Evita prometer resultados en tiempos fijos; cada alumno avanza distinto y prometer de más genera reclamos.",
+        "Mostrar el avance típico de un alumno por nivel, explicado de forma general, también ayuda a que el interesado entienda qué tan largo es el camino y cuánto compromiso requiere, lo que reduce las bajas por expectativas equivocadas."
+      ]
+    },
+    {
+      "titulo": "Empresas y grupos",
+      "parrafos": [
+        "Muchas academias atienden también a empresas que capacitan a su personal. Una página para empresas, con modalidades, facturación y forma de cotizar, abre contratos más grandes y estables.",
+        "Lo mismo para escuelas que buscan talleres extracurriculares."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para academias con cursos, inscripción y pago en línea, agenda de clases muestra y cobranza automática. Desde $1,999 MXN; con asistente desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo vender cursos en línea grabados?",
+      "respuesta": "Sí. Se puede integrar acceso a contenido para alumnos inscritos, aunque muchas academias empiezan con clases en vivo."
+    },
+    {
+      "pregunta": "¿Cómo cobro mensualidades?",
+      "respuesta": "Con pago recurrente en línea o recordatorios automáticos con enlace de pago."
+    },
+    {
+      "pregunta": "¿Sirve para varias sedes?",
+      "respuesta": "Sí, cada sede con sus horarios y cursos."
+    },
+    {
+      "pregunta": "¿Debo publicar precios?",
+      "respuesta": "En cursos, sí: es una de las primeras cosas que se comparan."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:88124789390e93017c7259be0eaeb4092a35d15bd3b59bf294ef4ca6a0f6a7a5",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:88124789390e93017c7259be0eaeb4092a35d15bd3b59bf294ef4ca6a0f6a7a5"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 614,
+    "similitud_max": 0.009,
+    "parecida_a": "/pagina-web-para-rentas-vacacionales"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:ebee4490aca197777b0ac6a5c1285ce70dda83e0cb661b13baf6e199516b367d",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

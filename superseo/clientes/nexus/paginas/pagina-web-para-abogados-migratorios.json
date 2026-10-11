@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-abogados-migratorios",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-abogados-migratorios",
+  "tipo": "GIRO",
+  "servicio": "despachos",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Página web para abogados migratorios",
+  "descripcion": "Sitios para despachos migratorios: trámites explicados por tipo de visa y residencia, versión en inglés, atención a distancia y señales de confianza.",
+  "h1": "Página web para abogados migratorios",
+  "respuesta_rapida": [
+    "Los clientes migratorios suelen estar en otro país o recién llegados: la página debe funcionar en español y en inglés.",
+    "Cada trámite merece su propia página: residencia temporal, permanente, naturalización, regularización.",
+    "La confianza es lo primero, porque este giro está lleno de gestores fraudulentos: credenciales visibles y datos verificables.",
+    "La atención a distancia por WhatsApp y videollamada debe estar clara desde el inicio."
+  ],
+  "secciones": [
+    {
+      "titulo": "Un cliente que busca desde lejos",
+      "parrafos": [
+        "El despacho migratorio tiene un cliente distinto a casi cualquier otro: puede estar en Venezuela, en Estados Unidos o en un hotel de la ciudad con una cita pendiente en el Instituto Nacional de Migración. Busca en dos idiomas, compara mucho y desconfía con razón, porque ha escuchado historias de gestores que cobran y desaparecen.",
+        "Su pregunta no es solo quién me ayuda, sino si este despacho existe de verdad. La página tiene que responder eso antes que cualquier otra cosa."
+      ]
+    },
+    {
+      "titulo": "Señales de confianza que sí cuentan",
+      "parrafos": [
+        "Nombre completo del abogado responsable y su cédula profesional, que cualquiera puede consultar en el Registro Nacional de Profesionistas. Dirección física con mapa. Fotografías reales de la oficina y del equipo. Un aviso de privacidad serio, porque el cliente va a compartir pasaporte y documentos sensibles.",
+        "También ayuda explicar el proceso de trabajo: cómo se revisa el caso, en qué momento se paga y qué recibe el cliente por escrito. La transparencia es la mejor defensa contra la sospecha."
+      ]
+    },
+    {
+      "titulo": "Una página por trámite",
+      "parrafos": [
+        "Residencia temporal por trabajo, por unidad familiar o por inversión; residencia permanente; naturalización; cambio de condición; regularización; asesoría a empresas que contratan extranjeros. Cada tema se busca por separado y cada uno tiene requisitos distintos.",
+        "En cada página, lo esencial: para quién es el trámite, qué documentos suele pedir la autoridad y qué parte del proceso acompaña el despacho. Sin prometer tiempos de resolución que dependen de la autoridad, y aclarando que los requisitos pueden cambiar."
+      ]
+    },
+    {
+      "titulo": "Bilingüe de verdad",
+      "parrafos": [
+        "Una traducción automática se nota, y en un servicio legal resta seriedad. Conviene una versión en inglés revisada, con su propia dirección en el sitio para que Google la muestre a quien busca en inglés. Si el despacho atiende otros idiomas, se indica con claridad.",
+        "El botón de WhatsApp debe funcionar con números extranjeros y la página de contacto debe aclarar el huso horario de atención."
+      ]
+    },
+    {
+      "titulo": "Contenido que la gente sí busca",
+      "parrafos": [
+        "Además de las páginas por trámite, funcionan muy bien las guías prácticas: qué hacer si la tarjeta de residente está por vencer, cómo preparar una cita en la oficina de migración, qué pasa si alguien entró como turista y consiguió trabajo, cómo se tramita la residencia para un cónyuge o un hijo. Son dudas reales y frecuentes, y quien las busca es un cliente potencial.",
+        "Cada guía puede terminar con una invitación concreta: envíe su caso por WhatsApp y le decimos qué trámite le corresponde. Esa invitación, más que cualquier anuncio, es la que llena la agenda de un despacho migratorio."
+      ]
+    },
+    {
+      "titulo": "Cómo lo construimos",
+      "parrafos": [
+        "En Nexus diseñamos sitios bilingües con estructura técnica para que Google entienda qué trámites atiende el despacho y en qué ciudades. Dejamos el contacto medido por página, para saber qué trámites generan consultas.",
+        "Podemos sumar un asistente de WhatsApp que reciba documentos y preguntas básicas a cualquier hora, y que pase el caso al abogado cuando corresponde. Ese asistente viene incluido desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo publicar requisitos de cada trámite?",
+      "respuesta": "Sí, como orientación general y con una nota de que la autoridad puede pedir documentos adicionales. Esas páginas son de las que más búsquedas reciben."
+    },
+    {
+      "pregunta": "¿Cómo demuestro que no soy un gestor fraudulento?",
+      "respuesta": "Con datos verificables: cédula profesional, dirección, rostro del abogado responsable y un proceso de pago claro con comprobantes."
+    },
+    {
+      "pregunta": "¿El chatbot puede contestar en inglés?",
+      "respuesta": "Sí. El asistente responde en el idioma en que le escriben y pasa la conversación al despacho cuando se necesita criterio legal."
+    },
+    {
+      "pregunta": "¿Sirve una página por país de origen?",
+      "respuesta": "Solo si el despacho tiene experiencia real con ese país y algo distinto que decir. Una página por país con el mismo texto cambiando el nombre se ve como relleno y Google la trata igual."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/diseno-web-para-despachos-juridicos",
+      "texto": "Diseño web para despachos jurídicos"
+    },
+    {
+      "ruta": "/casos/cano-estrategia-penal",
+      "texto": "Caso: CANO Estrategia Penal"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-despachos-de-abogados",
+      "texto": "Chatbot de WhatsApp para despachos de abogados"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:2b9020d2d069d01a293e59287fab3f26176cb8541248a2fda95d164e06d9829f",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:54Z",
+    "contenido_digest": "sha256:2b9020d2d069d01a293e59287fab3f26176cb8541248a2fda95d164e06d9829f"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 693,
+    "similitud_max": 0.004,
+    "parecida_a": "/pagina-web-para-consultorios-medicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:ce8f730842f75ce50c5c3ad0d25b146377f42bd65c93d2055168ab48cf3e423c",
+    "generado_en": "2026-10-11T02:03:54Z"
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-coworking",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-coworking",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Página web para coworking y oficinas",
+  "descripcion": "Sitios para coworking y oficinas privadas: espacios con fotos y capacidad, planes por día o por mes, salas de juntas con reserva y visitas agendadas.",
+  "h1": "Página web para coworking y oficinas privadas",
+  "respuesta_rapida": [
+    "Quien busca oficina compara ubicación, precio, fotos reales y qué incluye cada plan.",
+    "Separa la oferta: escritorio flexible, oficina privada, sala de juntas por hora, domicilio fiscal.",
+    "Las salas de juntas se rentan mejor con reserva y pago en línea.",
+    "Agendar una visita en un minuto convierte la búsqueda en recorrido, y el recorrido en contrato."
+  ],
+  "secciones": [
+    {
+      "titulo": "Tres clientes, tres búsquedas",
+      "parrafos": [
+        "Al coworking llegan perfiles muy distintos. El trabajador independiente que necesita un escritorio unos días a la semana. La empresa pequeña que busca una oficina privada sin firmar un contrato largo. Y quien solo necesita una sala de juntas por dos horas para una reunión con un cliente. Cada uno busca con palabras distintas y quiere ver información distinta.",
+        "Una página que separe esas ofertas desde la portada, con precios y condiciones claras, ahorra muchas llamadas y lleva a cada cliente directo a lo que necesita."
+      ]
+    },
+    {
+      "titulo": "Espacios que se pueden imaginar",
+      "parrafos": [
+        "Fotos reales de cada tipo de espacio, con buena luz y sin gente posando: la zona abierta, las oficinas privadas por tamaño, las salas de juntas, la cocina, la recepción, la terraza si existe. Indicar la capacidad de cada oficina y sala, el mobiliario y el equipo incluido, como pantalla o pizarrón, evita preguntas repetidas.",
+        "Un recorrido en video o una vista de planta sencilla ayudan a quien compara varias opciones desde su escritorio actual."
+      ]
+    },
+    {
+      "titulo": "Planes y precios",
+      "parrafos": [
+        "Pase por día, membresía mensual, oficina privada, domicilio fiscal o comercial, sala de juntas por hora. Cada plan con lo que incluye: internet, café, impresiones, recepción de paquetes, acceso en horario extendido, estacionamiento. Publicar precios desde, aunque las oficinas privadas se coticen, filtra a quien no está en tu rango y acelera la decisión de quien sí.",
+        "Si tienes promociones para el primer mes o para contratos más largos, la página es el lugar para explicarlas sin letra chica."
+      ]
+    },
+    {
+      "titulo": "Salas de juntas con reserva",
+      "parrafos": [
+        "La renta de salas por hora es una búsqueda frecuente y una buena fuente de ingresos. Un calendario de disponibilidad con reserva y pago en línea permite que alguien reserve a las once de la noche para el día siguiente sin escribirle a nadie. El sistema puede mandar recordatorio y las instrucciones de acceso.",
+        "Quien renta una sala y tiene buena experiencia es el candidato perfecto para una membresía."
+      ]
+    },
+    {
+      "titulo": "Ubicación y acceso",
+      "parrafos": [
+        "La ubicación es la razón principal para elegir un coworking. Mapa, transporte cercano, estacionamiento, horario de acceso, seguridad del edificio y servicios alrededor, como restaurantes y bancos. Si tienes varias sedes, una página por sede con su propia información y fotos.",
+        "Para empresas que buscan domicilio fiscal, explicar qué documentos se entregan y cómo funciona la recepción de correspondencia resuelve la mayoría de sus dudas."
+      ]
+    },
+    {
+      "titulo": "Visitas que se agendan solas",
+      "parrafos": [
+        "El recorrido presencial es el momento en que se cierra la mayoría de los contratos. Un botón para agendar visita, con horarios disponibles, y un asistente de WhatsApp que responda precios y disponibilidad a cualquier hora, mantienen el flujo de prospectos sin depender de que alguien conteste el teléfono.",
+        "Después de la visita, un mensaje de seguimiento con la propuesta enviada mantiene viva la conversación."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para coworking con espacios, planes, reservas de salas y agenda de visitas, con el contacto medido. Desde $1,999 MXN; con asistente y reservas en línea desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo cobrar las salas de juntas en línea?",
+      "respuesta": "Sí. La reserva puede requerir pago con tarjeta y enviar automáticamente la confirmación y las indicaciones de acceso."
+    },
+    {
+      "pregunta": "¿Conviene publicar precios de oficinas privadas?",
+      "respuesta": "Un precio desde por tamaño ayuda a filtrar. El precio final puede depender del plazo y de los servicios adicionales."
+    },
+    {
+      "pregunta": "¿Funciona para varias sedes?",
+      "respuesta": "Sí. Cada sede con su página, fotos, planes y agenda propia."
+    },
+    {
+      "pregunta": "¿Cómo atraigo empresas y no solo independientes?",
+      "respuesta": "Con una página para equipos que hable de privacidad, escalabilidad, facturación y contratos flexibles."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:03484ae7e197e5c368b3788b20e4ee4cd86174a4eb5573c690fa8b4cdc51464f",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:03484ae7e197e5c368b3788b20e4ee4cd86174a4eb5573c690fa8b4cdc51464f"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 650,
+    "similitud_max": 0.024,
+    "parecida_a": "/pagina-web-para-salones-de-eventos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:cee8b9299225607c2527947dd123542f98fac7bb8e6773f571fded12a015effb",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

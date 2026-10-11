@@ -1,0 +1,3606 @@
+{
+ "schema_version": 1,
+ "cliente": "nexus",
+ "paginas": [
+  {
+   "id": "pagina-web-para-abogados-penalistas",
+   "tipo": "GIRO",
+   "grupo": "Legal",
+   "titulo": "Página web para abogados penalistas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para abogados penalistas",
+    "diseno web para abogados penalistas",
+    "sitio web para abogados penalistas"
+   ],
+   "servicio": "despachos",
+   "enlaces": [
+    "/web",
+    "/diseno-web-para-despachos-juridicos",
+    "/casos/cano-estrategia-penal",
+    "/chatbot-whatsapp-para-despachos-de-abogados"
+   ]
+  },
+  {
+   "id": "pagina-web-para-abogados-familiares",
+   "tipo": "GIRO",
+   "grupo": "Legal",
+   "titulo": "Página web para abogados familiares",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para abogados familiares",
+    "diseno web para abogados familiares",
+    "sitio web para abogados familiares"
+   ],
+   "servicio": "despachos",
+   "enlaces": [
+    "/web",
+    "/diseno-web-para-despachos-juridicos",
+    "/casos/cano-estrategia-penal",
+    "/chatbot-whatsapp-para-despachos-de-abogados"
+   ]
+  },
+  {
+   "id": "pagina-web-para-abogados-migratorios",
+   "tipo": "GIRO",
+   "grupo": "Legal",
+   "titulo": "Página web para abogados migratorios",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para abogados migratorios",
+    "diseno web para abogados migratorios",
+    "sitio web para abogados migratorios"
+   ],
+   "servicio": "despachos",
+   "enlaces": [
+    "/web",
+    "/diseno-web-para-despachos-juridicos",
+    "/casos/cano-estrategia-penal",
+    "/chatbot-whatsapp-para-despachos-de-abogados"
+   ]
+  },
+  {
+   "id": "pagina-web-para-abogados-corporativos",
+   "tipo": "GIRO",
+   "grupo": "Legal",
+   "titulo": "Página web para abogados corporativos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para abogados corporativos",
+    "diseno web para abogados corporativos",
+    "sitio web para abogados corporativos"
+   ],
+   "servicio": "despachos",
+   "enlaces": [
+    "/web",
+    "/diseno-web-para-despachos-juridicos",
+    "/casos/eric-ramirez",
+    "/chatbot-whatsapp-para-despachos-de-abogados"
+   ]
+  },
+  {
+   "id": "pagina-web-para-abogados-laborales",
+   "tipo": "GIRO",
+   "grupo": "Legal",
+   "titulo": "Página web para abogados laborales",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para abogados laborales",
+    "diseno web para abogados laborales",
+    "sitio web para abogados laborales"
+   ],
+   "servicio": "despachos",
+   "enlaces": [
+    "/web",
+    "/diseno-web-para-despachos-juridicos",
+    "/casos/cano-estrategia-penal",
+    "/chatbot-whatsapp-para-despachos-de-abogados"
+   ]
+  },
+  {
+   "id": "pagina-web-para-abogados-fiscalistas",
+   "tipo": "GIRO",
+   "grupo": "Legal",
+   "titulo": "Página web para abogados fiscalistas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para abogados fiscalistas",
+    "diseno web para abogados fiscalistas",
+    "sitio web para abogados fiscalistas"
+   ],
+   "servicio": "despachos",
+   "enlaces": [
+    "/web",
+    "/diseno-web-para-despachos-juridicos",
+    "/casos/eric-ramirez",
+    "/chatbot-whatsapp-para-despachos-de-abogados"
+   ]
+  },
+  {
+   "id": "pagina-web-para-notarias",
+   "tipo": "GIRO",
+   "grupo": "Legal",
+   "titulo": "Página web para notarías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para notarías",
+    "diseno web para notarías",
+    "sitio web para notarías"
+   ],
+   "servicio": "despachos",
+   "enlaces": [
+    "/web",
+    "/diseno-web-para-despachos-juridicos",
+    "/casos/cano-estrategia-penal",
+    "/chatbot-whatsapp-para-notarias"
+   ]
+  },
+  {
+   "id": "pagina-web-para-dentistas",
+   "tipo": "GIRO",
+   "grupo": "Salud",
+   "titulo": "Página web para dentistas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para dentistas",
+    "diseno web para dentistas",
+    "sitio web para dentistas"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/agenda-de-citas-en-linea-para-dentistas",
+    "/aparecer-en-google-maps-dentistas",
+    "/como-conseguir-pacientes-para-tu-consultorio"
+   ]
+  },
+  {
+   "id": "pagina-web-para-consultorios-medicos",
+   "tipo": "GIRO",
+   "grupo": "Salud",
+   "titulo": "Página web para consultorios médicos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para consultorios médicos",
+    "diseno web para consultorios médicos",
+    "sitio web para consultorios médicos"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-consultorios-medicos",
+    "/google-ads-para-consultorios-medicos",
+    "/como-conseguir-pacientes-para-tu-consultorio"
+   ]
+  },
+  {
+   "id": "pagina-web-para-psicologos",
+   "tipo": "GIRO",
+   "grupo": "Salud",
+   "titulo": "Página web para psicólogos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para psicólogos",
+    "diseno web para psicólogos",
+    "sitio web para psicólogos"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/agenda-de-citas-en-linea-para-psicologos",
+    "/google-ads-para-psicologos",
+    "/como-conseguir-pacientes-para-tu-consultorio"
+   ]
+  },
+  {
+   "id": "pagina-web-para-nutriologos",
+   "tipo": "GIRO",
+   "grupo": "Salud",
+   "titulo": "Página web para nutriólogos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para nutriólogos",
+    "diseno web para nutriólogos",
+    "sitio web para nutriólogos"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/agenda-de-citas-en-linea-para-nutriologos",
+    "/como-conseguir-pacientes-para-tu-consultorio",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-veterinarias",
+   "tipo": "GIRO",
+   "grupo": "Salud",
+   "titulo": "Página web para veterinarias",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para veterinarias",
+    "diseno web para veterinarias",
+    "sitio web para veterinarias"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-veterinarias",
+    "/aparecer-en-google-maps-veterinarias",
+    "/como-conseguir-pacientes-para-tu-consultorio"
+   ]
+  },
+  {
+   "id": "pagina-web-para-fisioterapeutas",
+   "tipo": "GIRO",
+   "grupo": "Salud",
+   "titulo": "Página web para fisioterapeutas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para fisioterapeutas",
+    "diseno web para fisioterapeutas",
+    "sitio web para fisioterapeutas"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/agenda-de-citas-en-linea-para-fisioterapeutas",
+    "/aparecer-en-google-maps-fisioterapeutas",
+    "/como-conseguir-pacientes-para-tu-consultorio"
+   ]
+  },
+  {
+   "id": "pagina-web-para-opticas",
+   "tipo": "GIRO",
+   "grupo": "Salud",
+   "titulo": "Página web para ópticas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para ópticas",
+    "diseno web para ópticas",
+    "sitio web para ópticas"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/aparecer-en-google-maps-opticas",
+    "/como-conseguir-pacientes-para-tu-consultorio",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-salones-de-belleza",
+   "tipo": "GIRO",
+   "grupo": "Belleza",
+   "titulo": "Página web para salones de belleza",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para salones de belleza",
+    "diseno web para salones de belleza",
+    "sitio web para salones de belleza"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/agenda-de-citas-en-linea-para-salones-de-belleza",
+    "/aparecer-en-google-maps-salones-de-belleza",
+    "/como-reducir-inasistencias-a-citas"
+   ]
+  },
+  {
+   "id": "pagina-web-para-spas",
+   "tipo": "GIRO",
+   "grupo": "Belleza",
+   "titulo": "Página web para spas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para spas",
+    "diseno web para spas",
+    "sitio web para spas"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/agenda-de-citas-en-linea-para-spas",
+    "/como-reducir-inasistencias-a-citas",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-barberias",
+   "tipo": "GIRO",
+   "grupo": "Belleza",
+   "titulo": "Página web para barberías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para barberías",
+    "diseno web para barberías",
+    "sitio web para barberías"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/agenda-de-citas-en-linea-para-barberias",
+    "/aparecer-en-google-maps-barberias",
+    "/como-reducir-inasistencias-a-citas"
+   ]
+  },
+  {
+   "id": "pagina-web-para-estudios-de-unas",
+   "tipo": "GIRO",
+   "grupo": "Belleza",
+   "titulo": "Página web para estudios de uñas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para estudios de uñas",
+    "diseno web para estudios de uñas",
+    "sitio web para estudios de uñas"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/como-reducir-inasistencias-a-citas",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-estudios-de-tatuajes",
+   "tipo": "GIRO",
+   "grupo": "Belleza",
+   "titulo": "Página web para estudios de tatuajes",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para estudios de tatuajes",
+    "diseno web para estudios de tatuajes",
+    "sitio web para estudios de tatuajes"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/agenda-de-citas-en-linea-para-estudios-de-tatuajes",
+    "/como-reducir-inasistencias-a-citas",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-restaurantes",
+   "tipo": "GIRO",
+   "grupo": "Comida",
+   "titulo": "Página web para restaurantes",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para restaurantes",
+    "diseno web para restaurantes",
+    "sitio web para restaurantes"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-restaurantes",
+    "/aparecer-en-google-maps-restaurantes",
+    "/reservas-en-linea-para-restaurantes"
+   ]
+  },
+  {
+   "id": "pagina-web-para-cafeterias",
+   "tipo": "GIRO",
+   "grupo": "Comida",
+   "titulo": "Página web para cafeterías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para cafeterías",
+    "diseno web para cafeterías",
+    "sitio web para cafeterías"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/aparecer-en-google-maps-cafeterias",
+    "/reservas-en-linea-para-restaurantes",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-taquerias",
+   "tipo": "GIRO",
+   "grupo": "Comida",
+   "titulo": "Página web para taquerías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para taquerías",
+    "diseno web para taquerías",
+    "sitio web para taquerías"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/reservas-en-linea-para-restaurantes",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-panaderias-y-pastelerias",
+   "tipo": "GIRO",
+   "grupo": "Comida",
+   "titulo": "Página web para panaderías y pastelerías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para panaderías y pastelerías",
+    "diseno web para panaderías y pastelerías",
+    "sitio web para panaderías y pastelerías"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/reservas-en-linea-para-restaurantes",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-bares",
+   "tipo": "GIRO",
+   "grupo": "Comida",
+   "titulo": "Página web para bares",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para bares",
+    "diseno web para bares",
+    "sitio web para bares"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/reservas-en-linea-para-restaurantes",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-banquetes-y-catering",
+   "tipo": "GIRO",
+   "grupo": "Comida",
+   "titulo": "Página web para banquetes y catering",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para banquetes y catering",
+    "diseno web para banquetes y catering",
+    "sitio web para banquetes y catering"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/reservas-en-linea-para-restaurantes",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-inmobiliarias",
+   "tipo": "GIRO",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Página web para inmobiliarias",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para inmobiliarias",
+    "diseno web para inmobiliarias",
+    "sitio web para inmobiliarias"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-inmobiliarias",
+    "/google-ads-para-inmobiliarias",
+    "/automatizar-cotizaciones"
+   ]
+  },
+  {
+   "id": "pagina-web-para-constructoras",
+   "tipo": "GIRO",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Página web para constructoras",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para constructoras",
+    "diseno web para constructoras",
+    "sitio web para constructoras"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-constructoras",
+    "/google-ads-para-constructoras",
+    "/automatizar-cotizaciones"
+   ]
+  },
+  {
+   "id": "pagina-web-para-remodelacion-y-acabados",
+   "tipo": "GIRO",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Página web para remodelación y acabados",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para remodelación y acabados",
+    "diseno web para remodelación y acabados",
+    "sitio web para remodelación y acabados"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/google-ads-para-remodelacion-y-acabados",
+    "/automatizar-cotizaciones",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-arquitectos",
+   "tipo": "GIRO",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Página web para arquitectos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para arquitectos",
+    "diseno web para arquitectos",
+    "sitio web para arquitectos"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/automatizar-cotizaciones",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-disenadores-de-interiores",
+   "tipo": "GIRO",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Página web para diseñadores de interiores",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para diseñadores de interiores",
+    "diseno web para diseñadores de interiores",
+    "sitio web para diseñadores de interiores"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/automatizar-cotizaciones",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-tiendas-de-ropa",
+   "tipo": "GIRO",
+   "grupo": "Comercio",
+   "titulo": "Página web para tiendas de ropa",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para tiendas de ropa",
+    "diseno web para tiendas de ropa",
+    "sitio web para tiendas de ropa"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/cuanto-cuesta-una-tienda-en-linea",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-tiendas-en-linea",
+   "tipo": "GIRO",
+   "grupo": "Comercio",
+   "titulo": "Página web para tiendas en línea",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para tiendas en línea",
+    "diseno web para tiendas en línea",
+    "sitio web para tiendas en línea"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-tiendas-en-linea",
+    "/google-ads-para-tiendas-en-linea",
+    "/cuanto-cuesta-una-tienda-en-linea"
+   ]
+  },
+  {
+   "id": "pagina-web-para-joyerias",
+   "tipo": "GIRO",
+   "grupo": "Comercio",
+   "titulo": "Página web para joyerías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para joyerías",
+    "diseno web para joyerías",
+    "sitio web para joyerías"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/cuanto-cuesta-una-tienda-en-linea",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-marcas-de-mezcal",
+   "tipo": "GIRO",
+   "grupo": "Comercio",
+   "titulo": "Página web para marcas de mezcal",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para marcas de mezcal",
+    "diseno web para marcas de mezcal",
+    "sitio web para marcas de mezcal"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/cuanto-cuesta-una-tienda-en-linea",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-florerias",
+   "tipo": "GIRO",
+   "grupo": "Comercio",
+   "titulo": "Página web para florerías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para florerías",
+    "diseno web para florerías",
+    "sitio web para florerías"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-florerias",
+    "/aparecer-en-google-maps-florerias",
+    "/cuanto-cuesta-una-tienda-en-linea"
+   ]
+  },
+  {
+   "id": "pagina-web-para-ferreterias",
+   "tipo": "GIRO",
+   "grupo": "Comercio",
+   "titulo": "Página web para ferreterías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para ferreterías",
+    "diseno web para ferreterías",
+    "sitio web para ferreterías"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/aparecer-en-google-maps-ferreterias",
+    "/cuanto-cuesta-una-tienda-en-linea",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-coworking",
+   "tipo": "GIRO",
+   "grupo": "Servicios",
+   "titulo": "Página web para coworking y oficinas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para coworking y oficinas",
+    "diseno web para coworking y oficinas",
+    "sitio web para coworking y oficinas"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/que-paginas-debe-tener-un-sitio-web",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-escuelas-particulares",
+   "tipo": "GIRO",
+   "grupo": "Servicios",
+   "titulo": "Página web para escuelas particulares",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para escuelas particulares",
+    "diseno web para escuelas particulares",
+    "sitio web para escuelas particulares"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-escuelas-particulares",
+    "/aparecer-en-google-maps-escuelas-particulares",
+    "/que-paginas-debe-tener-un-sitio-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-academias-y-cursos",
+   "tipo": "GIRO",
+   "grupo": "Servicios",
+   "titulo": "Página web para academias y cursos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para academias y cursos",
+    "diseno web para academias y cursos",
+    "sitio web para academias y cursos"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/que-paginas-debe-tener-un-sitio-web",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-gimnasios",
+   "tipo": "GIRO",
+   "grupo": "Servicios",
+   "titulo": "Página web para gimnasios",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para gimnasios",
+    "diseno web para gimnasios",
+    "sitio web para gimnasios"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-gimnasios",
+    "/aparecer-en-google-maps-gimnasios",
+    "/que-paginas-debe-tener-un-sitio-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-talleres-mecanicos",
+   "tipo": "GIRO",
+   "grupo": "Servicios",
+   "titulo": "Página web para talleres mecánicos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para talleres mecánicos",
+    "diseno web para talleres mecánicos",
+    "sitio web para talleres mecánicos"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-talleres-mecanicos",
+    "/aparecer-en-google-maps-talleres-mecanicos",
+    "/que-paginas-debe-tener-un-sitio-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-hoteles-boutique",
+   "tipo": "GIRO",
+   "grupo": "Servicios",
+   "titulo": "Página web para hoteles boutique",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para hoteles boutique",
+    "diseno web para hoteles boutique",
+    "sitio web para hoteles boutique"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-hoteles-boutique",
+    "/aparecer-en-google-maps-hoteles-boutique",
+    "/que-paginas-debe-tener-un-sitio-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-rentas-vacacionales",
+   "tipo": "GIRO",
+   "grupo": "Servicios",
+   "titulo": "Página web para rentas vacacionales",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para rentas vacacionales",
+    "diseno web para rentas vacacionales",
+    "sitio web para rentas vacacionales"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/que-paginas-debe-tener-un-sitio-web",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-salones-de-eventos",
+   "tipo": "GIRO",
+   "grupo": "Servicios",
+   "titulo": "Página web para salones de eventos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para salones de eventos",
+    "diseno web para salones de eventos",
+    "sitio web para salones de eventos"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/google-ads-para-salones-de-eventos",
+    "/que-paginas-debe-tener-un-sitio-web",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-fotografos",
+   "tipo": "GIRO",
+   "grupo": "Servicios",
+   "titulo": "Página web para fotógrafos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para fotógrafos",
+    "diseno web para fotógrafos",
+    "sitio web para fotógrafos"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/que-paginas-debe-tener-un-sitio-web",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-para-contadores",
+   "tipo": "GIRO",
+   "grupo": "Servicios",
+   "titulo": "Página web para contadores",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web para contadores",
+    "diseno web para contadores",
+    "sitio web para contadores"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/chatbot-whatsapp-para-contadores",
+    "/aparecer-en-google-maps-contadores",
+    "/que-paginas-debe-tener-un-sitio-web"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-despachos-de-abogados",
+   "tipo": "AGENTE_IA",
+   "grupo": "Legal",
+   "titulo": "Chatbot de WhatsApp para despachos de abogados",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para despachos de abogados",
+    "chatbot para despachos de abogados",
+    "bot de whatsapp despachos de abogados"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-abogados-penalistas",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-notarias",
+   "tipo": "AGENTE_IA",
+   "grupo": "Legal",
+   "titulo": "Chatbot de WhatsApp para notarías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para notarías",
+    "chatbot para notarías",
+    "bot de whatsapp notarías"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-notarias",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-dentistas",
+   "tipo": "AGENTE_IA",
+   "grupo": "Salud",
+   "titulo": "Chatbot de WhatsApp para dentistas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para dentistas",
+    "chatbot para dentistas",
+    "bot de whatsapp dentistas"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-dentistas",
+    "/soluciones/clinicas",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-consultorios-medicos",
+   "tipo": "AGENTE_IA",
+   "grupo": "Salud",
+   "titulo": "Chatbot de WhatsApp para consultorios médicos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para consultorios médicos",
+    "chatbot para consultorios médicos",
+    "bot de whatsapp consultorios médicos"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-consultorios-medicos",
+    "/soluciones/clinicas",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-veterinarias",
+   "tipo": "AGENTE_IA",
+   "grupo": "Salud",
+   "titulo": "Chatbot de WhatsApp para veterinarias",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para veterinarias",
+    "chatbot para veterinarias",
+    "bot de whatsapp veterinarias"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-veterinarias",
+    "/soluciones/clinicas",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-inmobiliarias",
+   "tipo": "AGENTE_IA",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Chatbot de WhatsApp para inmobiliarias",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para inmobiliarias",
+    "chatbot para inmobiliarias",
+    "bot de whatsapp inmobiliarias"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-inmobiliarias",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-restaurantes",
+   "tipo": "AGENTE_IA",
+   "grupo": "Comida",
+   "titulo": "Chatbot de WhatsApp para restaurantes",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para restaurantes",
+    "chatbot para restaurantes",
+    "bot de whatsapp restaurantes"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-restaurantes",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-salones-de-belleza",
+   "tipo": "AGENTE_IA",
+   "grupo": "Belleza",
+   "titulo": "Chatbot de WhatsApp para salones de belleza",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para salones de belleza",
+    "chatbot para salones de belleza",
+    "bot de whatsapp salones de belleza"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-salones-de-belleza",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-barberias",
+   "tipo": "AGENTE_IA",
+   "grupo": "Belleza",
+   "titulo": "Chatbot de WhatsApp para barberías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para barberías",
+    "chatbot para barberías",
+    "bot de whatsapp barberías"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-barberias",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-gimnasios",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Chatbot de WhatsApp para gimnasios",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para gimnasios",
+    "chatbot para gimnasios",
+    "bot de whatsapp gimnasios"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-gimnasios",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-escuelas-particulares",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Chatbot de WhatsApp para escuelas particulares",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para escuelas particulares",
+    "chatbot para escuelas particulares",
+    "bot de whatsapp escuelas particulares"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-escuelas-particulares",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-talleres-mecanicos",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Chatbot de WhatsApp para talleres mecánicos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para talleres mecánicos",
+    "chatbot para talleres mecánicos",
+    "bot de whatsapp talleres mecánicos"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-talleres-mecanicos",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-hoteles-boutique",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Chatbot de WhatsApp para hoteles boutique",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para hoteles boutique",
+    "chatbot para hoteles boutique",
+    "bot de whatsapp hoteles boutique"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-hoteles-boutique",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-tiendas-en-linea",
+   "tipo": "AGENTE_IA",
+   "grupo": "Comercio",
+   "titulo": "Chatbot de WhatsApp para tiendas en línea",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para tiendas en línea",
+    "chatbot para tiendas en línea",
+    "bot de whatsapp tiendas en línea"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-tiendas-en-linea",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-constructoras",
+   "tipo": "AGENTE_IA",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Chatbot de WhatsApp para constructoras",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para constructoras",
+    "chatbot para constructoras",
+    "bot de whatsapp constructoras"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-constructoras",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-florerias",
+   "tipo": "AGENTE_IA",
+   "grupo": "Comercio",
+   "titulo": "Chatbot de WhatsApp para florerías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para florerías",
+    "chatbot para florerías",
+    "bot de whatsapp florerías"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-florerias",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-contadores",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Chatbot de WhatsApp para contadores",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para contadores",
+    "chatbot para contadores",
+    "bot de whatsapp contadores"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-contadores",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "chatbot-whatsapp-para-agencias-de-viajes",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Chatbot de WhatsApp para agencias de viajes",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "chatbot whatsapp para agencias de viajes",
+    "chatbot para agencias de viajes",
+    "bot de whatsapp agencias de viajes"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/soluciones/ventas-whatsapp",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "recepcionista-de-voz-con-ia-para-consultorios-medicos",
+   "tipo": "AGENTE_IA",
+   "grupo": "Salud",
+   "titulo": "Recepcionista de voz con IA para consultorios médicos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "recepcionista virtual para consultorios médicos",
+    "contestadora con inteligencia artificial consultorios médicos",
+    "agente de voz ia consultorios médicos"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-consultorios-medicos",
+    "/chatbot-whatsapp-para-consultorios-medicos",
+    "/chatbot-vs-recepcionista-humana"
+   ]
+  },
+  {
+   "id": "recepcionista-de-voz-con-ia-para-despachos-de-abogados",
+   "tipo": "AGENTE_IA",
+   "grupo": "Legal",
+   "titulo": "Recepcionista de voz con IA para despachos de abogados",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "recepcionista virtual para despachos de abogados",
+    "contestadora con inteligencia artificial despachos de abogados",
+    "agente de voz ia despachos de abogados"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-abogados-penalistas",
+    "/chatbot-whatsapp-para-despachos-de-abogados",
+    "/chatbot-vs-recepcionista-humana"
+   ]
+  },
+  {
+   "id": "recepcionista-de-voz-con-ia-para-talleres-mecanicos",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Recepcionista de voz con IA para talleres mecánicos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "recepcionista virtual para talleres mecánicos",
+    "contestadora con inteligencia artificial talleres mecánicos",
+    "agente de voz ia talleres mecánicos"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-talleres-mecanicos",
+    "/chatbot-whatsapp-para-talleres-mecanicos",
+    "/chatbot-vs-recepcionista-humana"
+   ]
+  },
+  {
+   "id": "recepcionista-de-voz-con-ia-para-hoteles-boutique",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Recepcionista de voz con IA para hoteles boutique",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "recepcionista virtual para hoteles boutique",
+    "contestadora con inteligencia artificial hoteles boutique",
+    "agente de voz ia hoteles boutique"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-hoteles-boutique",
+    "/chatbot-whatsapp-para-hoteles-boutique",
+    "/chatbot-vs-recepcionista-humana"
+   ]
+  },
+  {
+   "id": "recepcionista-de-voz-con-ia-para-inmobiliarias",
+   "tipo": "AGENTE_IA",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Recepcionista de voz con IA para inmobiliarias",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "recepcionista virtual para inmobiliarias",
+    "contestadora con inteligencia artificial inmobiliarias",
+    "agente de voz ia inmobiliarias"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-inmobiliarias",
+    "/chatbot-whatsapp-para-inmobiliarias",
+    "/chatbot-vs-recepcionista-humana"
+   ]
+  },
+  {
+   "id": "recepcionista-de-voz-con-ia-para-restaurantes",
+   "tipo": "AGENTE_IA",
+   "grupo": "Comida",
+   "titulo": "Recepcionista de voz con IA para restaurantes",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "recepcionista virtual para restaurantes",
+    "contestadora con inteligencia artificial restaurantes",
+    "agente de voz ia restaurantes"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-restaurantes",
+    "/chatbot-whatsapp-para-restaurantes",
+    "/chatbot-vs-recepcionista-humana"
+   ]
+  },
+  {
+   "id": "recepcionista-de-voz-con-ia-para-veterinarias",
+   "tipo": "AGENTE_IA",
+   "grupo": "Salud",
+   "titulo": "Recepcionista de voz con IA para veterinarias",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "recepcionista virtual para veterinarias",
+    "contestadora con inteligencia artificial veterinarias",
+    "agente de voz ia veterinarias"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-veterinarias",
+    "/chatbot-whatsapp-para-veterinarias",
+    "/chatbot-vs-recepcionista-humana"
+   ]
+  },
+  {
+   "id": "recepcionista-de-voz-con-ia-para-notarias",
+   "tipo": "AGENTE_IA",
+   "grupo": "Legal",
+   "titulo": "Recepcionista de voz con IA para notarías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "recepcionista virtual para notarías",
+    "contestadora con inteligencia artificial notarías",
+    "agente de voz ia notarías"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/pagina-web-para-notarias",
+    "/chatbot-whatsapp-para-notarias",
+    "/chatbot-vs-recepcionista-humana"
+   ]
+  },
+  {
+   "id": "agenda-de-citas-en-linea-para-barberias",
+   "tipo": "AGENTE_IA",
+   "grupo": "Belleza",
+   "titulo": "Agenda de citas en línea para barberías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "agenda de citas en linea para barberías",
+    "sistema de citas barberías",
+    "reservar cita barberías en linea"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/automation",
+    "/pagina-web-para-barberias",
+    "/como-reducir-inasistencias-a-citas",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "agenda-de-citas-en-linea-para-salones-de-belleza",
+   "tipo": "AGENTE_IA",
+   "grupo": "Belleza",
+   "titulo": "Agenda de citas en línea para salones de belleza",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "agenda de citas en linea para salones de belleza",
+    "sistema de citas salones de belleza",
+    "reservar cita salones de belleza en linea"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/automation",
+    "/pagina-web-para-salones-de-belleza",
+    "/como-reducir-inasistencias-a-citas",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "agenda-de-citas-en-linea-para-dentistas",
+   "tipo": "AGENTE_IA",
+   "grupo": "Salud",
+   "titulo": "Agenda de citas en línea para dentistas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "agenda de citas en linea para dentistas",
+    "sistema de citas dentistas",
+    "reservar cita dentistas en linea"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/automation",
+    "/pagina-web-para-dentistas",
+    "/como-reducir-inasistencias-a-citas",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "agenda-de-citas-en-linea-para-psicologos",
+   "tipo": "AGENTE_IA",
+   "grupo": "Salud",
+   "titulo": "Agenda de citas en línea para psicólogos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "agenda de citas en linea para psicólogos",
+    "sistema de citas psicólogos",
+    "reservar cita psicólogos en linea"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/automation",
+    "/pagina-web-para-psicologos",
+    "/como-reducir-inasistencias-a-citas",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "agenda-de-citas-en-linea-para-fisioterapeutas",
+   "tipo": "AGENTE_IA",
+   "grupo": "Salud",
+   "titulo": "Agenda de citas en línea para fisioterapeutas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "agenda de citas en linea para fisioterapeutas",
+    "sistema de citas fisioterapeutas",
+    "reservar cita fisioterapeutas en linea"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/automation",
+    "/pagina-web-para-fisioterapeutas",
+    "/como-reducir-inasistencias-a-citas",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "agenda-de-citas-en-linea-para-nutriologos",
+   "tipo": "AGENTE_IA",
+   "grupo": "Salud",
+   "titulo": "Agenda de citas en línea para nutriólogos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "agenda de citas en linea para nutriólogos",
+    "sistema de citas nutriólogos",
+    "reservar cita nutriólogos en linea"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/automation",
+    "/pagina-web-para-nutriologos",
+    "/como-reducir-inasistencias-a-citas",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "agenda-de-citas-en-linea-para-estudios-de-tatuajes",
+   "tipo": "AGENTE_IA",
+   "grupo": "Belleza",
+   "titulo": "Agenda de citas en línea para estudios de tatuajes",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "agenda de citas en linea para estudios de tatuajes",
+    "sistema de citas estudios de tatuajes",
+    "reservar cita estudios de tatuajes en linea"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/automation",
+    "/pagina-web-para-estudios-de-tatuajes",
+    "/como-reducir-inasistencias-a-citas",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "agenda-de-citas-en-linea-para-spas",
+   "tipo": "AGENTE_IA",
+   "grupo": "Belleza",
+   "titulo": "Agenda de citas en línea para spas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "agenda de citas en linea para spas",
+    "sistema de citas spas",
+    "reservar cita spas en linea"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/automation",
+    "/pagina-web-para-spas",
+    "/como-reducir-inasistencias-a-citas",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "cobranza-automatica-para-escuelas-particulares",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Cobranza automática para escuelas particulares",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cobranza automatica para escuelas particulares",
+    "recordatorios de pago escuelas particulares",
+    "sistema de cobranza escuelas particulares"
+   ],
+   "servicio": "cobranza",
+   "enlaces": [
+    "/soluciones/cobranza",
+    "/automation",
+    "/pagina-web-para-escuelas-particulares",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "cobranza-automatica-para-gimnasios",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Cobranza automática para gimnasios",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cobranza automatica para gimnasios",
+    "recordatorios de pago gimnasios",
+    "sistema de cobranza gimnasios"
+   ],
+   "servicio": "cobranza",
+   "enlaces": [
+    "/soluciones/cobranza",
+    "/automation",
+    "/pagina-web-para-gimnasios",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "cobranza-automatica-para-condominios",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Cobranza automática para condominios",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cobranza automatica para condominios",
+    "recordatorios de pago condominios",
+    "sistema de cobranza condominios"
+   ],
+   "servicio": "cobranza",
+   "enlaces": [
+    "/soluciones/cobranza",
+    "/automation",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "cobranza-automatica-para-despachos-contables",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Cobranza automática para despachos contables",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cobranza automatica para despachos contables",
+    "recordatorios de pago despachos contables",
+    "sistema de cobranza despachos contables"
+   ],
+   "servicio": "cobranza",
+   "enlaces": [
+    "/soluciones/cobranza",
+    "/automation",
+    "/pagina-web-para-contadores",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "cobranza-automatica-para-arrendadores",
+   "tipo": "AGENTE_IA",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Cobranza automática para arrendadores",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cobranza automatica para arrendadores",
+    "recordatorios de pago arrendadores",
+    "sistema de cobranza arrendadores"
+   ],
+   "servicio": "cobranza",
+   "enlaces": [
+    "/soluciones/cobranza",
+    "/automation",
+    "/pagina-web-para-inmobiliarias",
+    "/automatizar-cotizaciones"
+   ]
+  },
+  {
+   "id": "cobranza-automatica-para-academias-y-cursos",
+   "tipo": "AGENTE_IA",
+   "grupo": "Servicios",
+   "titulo": "Cobranza automática para academias y cursos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cobranza automatica para academias y cursos",
+    "recordatorios de pago academias y cursos",
+    "sistema de cobranza academias y cursos"
+   ],
+   "servicio": "cobranza",
+   "enlaces": [
+    "/soluciones/cobranza",
+    "/automation",
+    "/pagina-web-para-academias-y-cursos",
+    "/recordatorios-automaticos-de-citas"
+   ]
+  },
+  {
+   "id": "google-ads-para-abogados",
+   "tipo": "ADS_MAPS",
+   "grupo": "Legal",
+   "titulo": "Google Ads para abogados",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para abogados",
+    "publicidad en google para abogados",
+    "anuncios en google abogados"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-abogados-penalistas",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-dentistas",
+   "tipo": "ADS_MAPS",
+   "grupo": "Salud",
+   "titulo": "Google Ads para dentistas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para dentistas",
+    "publicidad en google para dentistas",
+    "anuncios en google dentistas"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-dentistas",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-consultorios-medicos",
+   "tipo": "ADS_MAPS",
+   "grupo": "Salud",
+   "titulo": "Google Ads para consultorios médicos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para consultorios médicos",
+    "publicidad en google para consultorios médicos",
+    "anuncios en google consultorios médicos"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-consultorios-medicos",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-inmobiliarias",
+   "tipo": "ADS_MAPS",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Google Ads para inmobiliarias",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para inmobiliarias",
+    "publicidad en google para inmobiliarias",
+    "anuncios en google inmobiliarias"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-inmobiliarias",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-constructoras",
+   "tipo": "ADS_MAPS",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Google Ads para constructoras",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para constructoras",
+    "publicidad en google para constructoras",
+    "anuncios en google constructoras"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-constructoras",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-escuelas-particulares",
+   "tipo": "ADS_MAPS",
+   "grupo": "Servicios",
+   "titulo": "Google Ads para escuelas particulares",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para escuelas particulares",
+    "publicidad en google para escuelas particulares",
+    "anuncios en google escuelas particulares"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-escuelas-particulares",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-talleres-mecanicos",
+   "tipo": "ADS_MAPS",
+   "grupo": "Servicios",
+   "titulo": "Google Ads para talleres mecánicos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para talleres mecánicos",
+    "publicidad en google para talleres mecánicos",
+    "anuncios en google talleres mecánicos"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-talleres-mecanicos",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-hoteles-boutique",
+   "tipo": "ADS_MAPS",
+   "grupo": "Servicios",
+   "titulo": "Google Ads para hoteles boutique",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para hoteles boutique",
+    "publicidad en google para hoteles boutique",
+    "anuncios en google hoteles boutique"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-hoteles-boutique",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-tiendas-en-linea",
+   "tipo": "ADS_MAPS",
+   "grupo": "Comercio",
+   "titulo": "Google Ads para tiendas en línea",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para tiendas en línea",
+    "publicidad en google para tiendas en línea",
+    "anuncios en google tiendas en línea"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-tiendas-en-linea",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-gimnasios",
+   "tipo": "ADS_MAPS",
+   "grupo": "Servicios",
+   "titulo": "Google Ads para gimnasios",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para gimnasios",
+    "publicidad en google para gimnasios",
+    "anuncios en google gimnasios"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-gimnasios",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-veterinarias",
+   "tipo": "ADS_MAPS",
+   "grupo": "Salud",
+   "titulo": "Google Ads para veterinarias",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para veterinarias",
+    "publicidad en google para veterinarias",
+    "anuncios en google veterinarias"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-veterinarias",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-restaurantes",
+   "tipo": "ADS_MAPS",
+   "grupo": "Comida",
+   "titulo": "Google Ads para restaurantes",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para restaurantes",
+    "publicidad en google para restaurantes",
+    "anuncios en google restaurantes"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-restaurantes",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-salones-de-eventos",
+   "tipo": "ADS_MAPS",
+   "grupo": "Servicios",
+   "titulo": "Google Ads para salones de eventos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para salones de eventos",
+    "publicidad en google para salones de eventos",
+    "anuncios en google salones de eventos"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-salones-de-eventos",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-psicologos",
+   "tipo": "ADS_MAPS",
+   "grupo": "Salud",
+   "titulo": "Google Ads para psicólogos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para psicólogos",
+    "publicidad en google para psicólogos",
+    "anuncios en google psicólogos"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-psicologos",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-florerias",
+   "tipo": "ADS_MAPS",
+   "grupo": "Comercio",
+   "titulo": "Google Ads para florerías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para florerías",
+    "publicidad en google para florerías",
+    "anuncios en google florerías"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-florerias",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "google-ads-para-remodelacion-y-acabados",
+   "tipo": "ADS_MAPS",
+   "grupo": "Inmuebles y obra",
+   "titulo": "Google Ads para remodelación y acabados",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "google ads para remodelación y acabados",
+    "publicidad en google para remodelación y acabados",
+    "anuncios en google remodelación y acabados"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-remodelacion-y-acabados",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-restaurantes",
+   "tipo": "ADS_MAPS",
+   "grupo": "Comida",
+   "titulo": "Cómo aparecer en Google Maps: restaurantes",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps restaurantes",
+    "restaurantes cerca de mi",
+    "perfil de empresa en google restaurantes"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-restaurantes",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-dentistas",
+   "tipo": "ADS_MAPS",
+   "grupo": "Salud",
+   "titulo": "Cómo aparecer en Google Maps: dentistas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps dentistas",
+    "dentistas cerca de mi",
+    "perfil de empresa en google dentistas"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-dentistas",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-barberias",
+   "tipo": "ADS_MAPS",
+   "grupo": "Belleza",
+   "titulo": "Cómo aparecer en Google Maps: barberías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps barberías",
+    "barberías cerca de mi",
+    "perfil de empresa en google barberías"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-barberias",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-talleres-mecanicos",
+   "tipo": "ADS_MAPS",
+   "grupo": "Servicios",
+   "titulo": "Cómo aparecer en Google Maps: talleres mecánicos",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps talleres mecánicos",
+    "talleres mecánicos cerca de mi",
+    "perfil de empresa en google talleres mecánicos"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-talleres-mecanicos",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-abogados",
+   "tipo": "ADS_MAPS",
+   "grupo": "Legal",
+   "titulo": "Cómo aparecer en Google Maps: abogados",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps abogados",
+    "abogados cerca de mi",
+    "perfil de empresa en google abogados"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-abogados-penalistas",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-veterinarias",
+   "tipo": "ADS_MAPS",
+   "grupo": "Salud",
+   "titulo": "Cómo aparecer en Google Maps: veterinarias",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps veterinarias",
+    "veterinarias cerca de mi",
+    "perfil de empresa en google veterinarias"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-veterinarias",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-gimnasios",
+   "tipo": "ADS_MAPS",
+   "grupo": "Servicios",
+   "titulo": "Cómo aparecer en Google Maps: gimnasios",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps gimnasios",
+    "gimnasios cerca de mi",
+    "perfil de empresa en google gimnasios"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-gimnasios",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-salones-de-belleza",
+   "tipo": "ADS_MAPS",
+   "grupo": "Belleza",
+   "titulo": "Cómo aparecer en Google Maps: salones de belleza",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps salones de belleza",
+    "salones de belleza cerca de mi",
+    "perfil de empresa en google salones de belleza"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-salones-de-belleza",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-cafeterias",
+   "tipo": "ADS_MAPS",
+   "grupo": "Comida",
+   "titulo": "Cómo aparecer en Google Maps: cafeterías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps cafeterías",
+    "cafeterías cerca de mi",
+    "perfil de empresa en google cafeterías"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-cafeterias",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-florerias",
+   "tipo": "ADS_MAPS",
+   "grupo": "Comercio",
+   "titulo": "Cómo aparecer en Google Maps: florerías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps florerías",
+    "florerías cerca de mi",
+    "perfil de empresa en google florerías"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-florerias",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-hoteles-boutique",
+   "tipo": "ADS_MAPS",
+   "grupo": "Servicios",
+   "titulo": "Cómo aparecer en Google Maps: hoteles boutique",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps hoteles boutique",
+    "hoteles boutique cerca de mi",
+    "perfil de empresa en google hoteles boutique"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-hoteles-boutique",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-opticas",
+   "tipo": "ADS_MAPS",
+   "grupo": "Salud",
+   "titulo": "Cómo aparecer en Google Maps: ópticas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps ópticas",
+    "ópticas cerca de mi",
+    "perfil de empresa en google ópticas"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-opticas",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-fisioterapeutas",
+   "tipo": "ADS_MAPS",
+   "grupo": "Salud",
+   "titulo": "Cómo aparecer en Google Maps: fisioterapeutas",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps fisioterapeutas",
+    "fisioterapeutas cerca de mi",
+    "perfil de empresa en google fisioterapeutas"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-fisioterapeutas",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-contadores",
+   "tipo": "ADS_MAPS",
+   "grupo": "Servicios",
+   "titulo": "Cómo aparecer en Google Maps: contadores",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps contadores",
+    "contadores cerca de mi",
+    "perfil de empresa en google contadores"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-contadores",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-escuelas-particulares",
+   "tipo": "ADS_MAPS",
+   "grupo": "Servicios",
+   "titulo": "Cómo aparecer en Google Maps: escuelas particulares",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps escuelas particulares",
+    "escuelas particulares cerca de mi",
+    "perfil de empresa en google escuelas particulares"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-escuelas-particulares",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "aparecer-en-google-maps-ferreterias",
+   "tipo": "ADS_MAPS",
+   "grupo": "Comercio",
+   "titulo": "Cómo aparecer en Google Maps: ferreterías",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como aparecer en google maps ferreterías",
+    "ferreterías cerca de mi",
+    "perfil de empresa en google ferreterías"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/pagina-web-para-ferreterias",
+    "/como-pedir-resenas-en-google",
+    "/herramientas/mensaje-resenas"
+   ]
+  },
+  {
+   "id": "cuanto-cuesta-una-pagina-web-en-mexico",
+   "tipo": "GUIA",
+   "grupo": "Costos y tiempos",
+   "titulo": "¿Cuánto cuesta una página web en México?",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cuanto cuesta una pagina web en mexico",
+    "precio pagina web",
+    "cuanto cobran por una pagina web"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/que-incluye-una-cotizacion-de-pagina-web",
+    "/pagina-web-barata-vs-profesional",
+    "/cuanto-cuesta-mantener-una-pagina-web"
+   ]
+  },
+  {
+   "id": "cuanto-cuesta-una-tienda-en-linea",
+   "tipo": "GUIA",
+   "grupo": "Costos y tiempos",
+   "titulo": "¿Cuánto cuesta una tienda en línea?",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cuanto cuesta una tienda en linea",
+    "precio tienda online mexico",
+    "cuanto cuesta hacer un ecommerce"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/pagina-web-para-tiendas-en-linea",
+    "/shopify-vs-tienda-propia",
+    "/cuanto-cuesta-una-pagina-web-en-mexico"
+   ]
+  },
+  {
+   "id": "cuanto-cuesta-un-chatbot-de-whatsapp",
+   "tipo": "GUIA",
+   "grupo": "Costos y tiempos",
+   "titulo": "¿Cuánto cuesta un chatbot de WhatsApp?",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cuanto cuesta un chatbot de whatsapp",
+    "precio chatbot whatsapp",
+    "chatbot whatsapp costo mensual"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/whatsapp-business-vs-api",
+    "/que-puede-hacer-un-agente-de-ia-en-un-negocio",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "cuanto-invertir-en-google-ads-negocio-local",
+   "tipo": "GUIA",
+   "grupo": "Costos y tiempos",
+   "titulo": "¿Cuánto invertir en Google Ads siendo negocio local?",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cuanto invertir en google ads",
+    "presupuesto google ads negocio local",
+    "cuanto cuesta anunciarse en google"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/conversiones-en-google-ads",
+    "/errores-comunes-en-google-ads",
+    "/google-ads-vs-facebook-ads"
+   ]
+  },
+  {
+   "id": "cuanto-cuesta-el-seo-local",
+   "tipo": "GUIA",
+   "grupo": "Costos y tiempos",
+   "titulo": "¿Cuánto cuesta el SEO local y qué incluye?",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cuanto cuesta el seo",
+    "precio seo local mexico",
+    "cuanto cobran por posicionamiento web"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/que-es-el-seo-local",
+    "/por-que-mi-negocio-no-aparece-en-google"
+   ]
+  },
+  {
+   "id": "cuanto-cuesta-mantener-una-pagina-web",
+   "tipo": "GUIA",
+   "grupo": "Costos y tiempos",
+   "titulo": "¿Cuánto cuesta mantener una página web al año?",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "cuanto cuesta mantener una pagina web",
+    "mantenimiento pagina web precio",
+    "costo anual pagina web"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/cuanto-cuesta-un-dominio-y-hosting",
+    "/seguridad-de-pagina-web-para-negocios"
+   ]
+  },
+  {
+   "id": "cuanto-cuesta-un-dominio-y-hosting",
+   "tipo": "GUIA",
+   "grupo": "Costos y tiempos",
+   "titulo": "Dominio y hosting: qué son y cuánto cuestan",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "cuanto cuesta un dominio",
+    "que es hosting",
+    "dominio y hosting precio mexico"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/dominio-com-o-com-mx",
+    "/quien-es-dueno-de-mi-pagina-web"
+   ]
+  },
+  {
+   "id": "que-incluye-una-cotizacion-de-pagina-web",
+   "tipo": "GUIA",
+   "grupo": "Costos y tiempos",
+   "titulo": "Qué debe incluir una cotización de página web",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "que debe incluir una cotizacion de pagina web",
+    "cotizacion pagina web ejemplo",
+    "que pedir al cotizar una pagina web"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/preguntas-antes-de-contratar-una-pagina-web",
+    "/cuanto-cuesta-una-pagina-web-en-mexico"
+   ]
+  },
+  {
+   "id": "pagina-web-barata-vs-profesional",
+   "tipo": "GUIA",
+   "grupo": "Costos y tiempos",
+   "titulo": "Página web barata vs. profesional: qué cambia",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "pagina web barata",
+    "pagina web economica vs profesional",
+    "vale la pena una pagina web barata"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/cuanto-cuesta-una-pagina-web-en-mexico",
+    "/senales-de-que-tu-pagina-web-es-vieja"
+   ]
+  },
+  {
+   "id": "cuanto-tarda-hacer-una-pagina-web",
+   "tipo": "GUIA",
+   "grupo": "Costos y tiempos",
+   "titulo": "¿Cuánto tarda hacer una página web?",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "cuanto tarda hacer una pagina web",
+    "tiempo de entrega pagina web",
+    "en cuanto tiempo hacen una pagina web"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/casos/cano-estrategia-penal",
+    "/como-escribir-los-textos-de-tu-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-vs-redes-sociales",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "Página web vs. redes sociales: ¿necesito las dos?",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "pagina web o redes sociales",
+    "necesito pagina web si tengo facebook",
+    "instagram o pagina web"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/que-paginas-debe-tener-un-sitio-web",
+    "/cuanto-cuesta-una-pagina-web-en-mexico"
+   ]
+  },
+  {
+   "id": "wix-vs-pagina-a-medida",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "Wix vs. página a medida: cuándo conviene cada una",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "wix vs pagina a medida",
+    "wix o programador",
+    "desventajas de wix"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/migrar-de-wix-sin-perder-el-dominio",
+    "/casos/cano-estrategia-penal"
+   ]
+  },
+  {
+   "id": "wordpress-vs-pagina-a-medida",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "WordPress vs. página a medida para tu negocio",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "wordpress o pagina a medida",
+    "desventajas de wordpress",
+    "wordpress vs desarrollo propio"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/que-hacer-si-hackean-mi-pagina-web",
+    "/como-saber-si-mi-pagina-es-lenta"
+   ]
+  },
+  {
+   "id": "shopify-vs-tienda-propia",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "Shopify vs. tienda en línea propia",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "shopify o tienda propia",
+    "shopify vale la pena mexico",
+    "alternativas a shopify"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/pagina-web-para-tiendas-en-linea",
+    "/cuanto-cuesta-una-tienda-en-linea",
+    "/como-vender-ropa-en-linea-en-mexico"
+   ]
+  },
+  {
+   "id": "landing-page-vs-sitio-completo",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "Landing page vs. sitio completo: qué necesitas",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "landing page o sitio web",
+    "que es una landing page",
+    "landing page para anuncios"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/landing-page-para-anuncios",
+    "/que-paginas-debe-tener-un-sitio-web"
+   ]
+  },
+  {
+   "id": "dominio-com-o-com-mx",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "¿Dominio .com o .com.mx para tu negocio?",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "dominio com o com mx",
+    "que dominio elegir mexico",
+    "dominio .mx vale la pena"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/cuanto-cuesta-un-dominio-y-hosting",
+    "/correo-con-dominio-propio",
+    "/quien-es-dueno-de-mi-pagina-web"
+   ]
+  },
+  {
+   "id": "whatsapp-business-vs-api",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "WhatsApp Business app vs. API: diferencias reales",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "whatsapp business vs api",
+    "api de whatsapp para que sirve",
+    "diferencia whatsapp business y api"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/cuanto-cuesta-un-chatbot-de-whatsapp",
+    "/catalogo-de-whatsapp-business"
+   ]
+  },
+  {
+   "id": "chatbot-vs-recepcionista-humana",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "Chatbot vs. recepcionista: qué hace mejor cada uno",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "chatbot o recepcionista",
+    "chatbot reemplaza recepcionista",
+    "atencion automatica vs humana"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/que-puede-hacer-un-agente-de-ia-en-un-negocio",
+    "/recepcionista-de-voz-con-ia-para-consultorios-medicos"
+   ]
+  },
+  {
+   "id": "google-ads-vs-facebook-ads",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "Google Ads vs. Facebook Ads para negocio local",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "google ads o facebook ads",
+    "donde anunciarse negocio local",
+    "facebook ads vs google ads mexico"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/cuanto-invertir-en-google-ads-negocio-local",
+    "/landing-page-para-anuncios"
+   ]
+  },
+  {
+   "id": "agencia-vs-freelancer",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "¿Agencia o freelancer para tu página web?",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "agencia o freelancer pagina web",
+    "contratar freelancer para pagina web",
+    "agencia de diseno web vs freelance"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/nosotros",
+    "/como-elegir-agencia-de-diseno-web",
+    "/preguntas-antes-de-contratar-una-pagina-web"
+   ]
+  },
+  {
+   "id": "como-elegir-agencia-de-diseno-web",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "Cómo elegir una agencia de diseño web",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como elegir agencia de diseno web",
+    "agencia de paginas web confiable",
+    "como saber si una agencia web es buena"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/preguntas-antes-de-contratar-una-pagina-web",
+    "/quien-es-dueno-de-mi-pagina-web"
+   ]
+  },
+  {
+   "id": "preguntas-antes-de-contratar-una-pagina-web",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "Preguntas antes de contratar una página web",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "que preguntar antes de contratar una pagina web",
+    "preguntas para agencia web",
+    "checklist contratar pagina web"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/que-incluye-una-cotizacion-de-pagina-web",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-con-ia-vs-hecha-a-mano",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "Página hecha con IA vs. hecha a la medida",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "pagina web hecha con inteligencia artificial",
+    "crear pagina web con ia",
+    "generador de paginas web ia"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/wix-vs-pagina-a-medida",
+    "/como-escribir-los-textos-de-tu-pagina-web"
+   ]
+  },
+  {
+   "id": "rediseno-o-pagina-nueva",
+   "tipo": "GUIA",
+   "grupo": "Decidir bien",
+   "titulo": "¿Rediseñar tu página o hacer una nueva?",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "redisenar pagina web",
+    "cuando hacer una pagina nueva",
+    "rediseno web vale la pena"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/senales-de-que-tu-pagina-web-es-vieja",
+    "/migrar-de-wix-sin-perder-el-dominio"
+   ]
+  },
+  {
+   "id": "como-aparecer-en-google-maps",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "Cómo aparecer en Google Maps con tu negocio",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "como aparecer en google maps",
+    "como poner mi negocio en google maps",
+    "registrar negocio en google"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/como-verificar-perfil-de-empresa-en-google",
+    "/como-pedir-resenas-en-google",
+    "/fotos-para-perfil-de-google"
+   ]
+  },
+  {
+   "id": "como-pedir-resenas-en-google",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "Cómo pedir reseñas en Google sin incomodar",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "como pedir resenas en google",
+    "como conseguir resenas en google",
+    "mensaje para pedir resenas"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/herramientas/mensaje-resenas",
+    "/como-responder-resenas-negativas",
+    "/como-aparecer-en-google-maps"
+   ]
+  },
+  {
+   "id": "como-responder-resenas-negativas",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "Cómo responder una reseña negativa en Google",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "como responder una resena negativa",
+    "respuesta a mala resena ejemplo",
+    "borrar resena negativa google"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/como-pedir-resenas-en-google",
+    "/growth",
+    "/como-aparecer-en-google-maps"
+   ]
+  },
+  {
+   "id": "como-verificar-perfil-de-empresa-en-google",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "Cómo verificar tu Perfil de Empresa en Google",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "verificar perfil de empresa google",
+    "verificar negocio google maps",
+    "google business verificacion por video"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/como-aparecer-en-google-maps",
+    "/google-maps-ficha-suspendida",
+    "/growth"
+   ]
+  },
+  {
+   "id": "que-es-el-seo-local",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "Qué es el SEO local y cómo funciona",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "que es el seo local",
+    "seo local para negocios",
+    "posicionamiento local google"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/palabras-clave-para-negocio-local",
+    "/cuanto-cuesta-el-seo-local"
+   ]
+  },
+  {
+   "id": "como-hacer-que-google-indexe-mi-pagina",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "Cómo hacer que Google indexe tu página",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "como hacer que google indexe mi pagina",
+    "mi pagina no aparece en google",
+    "indexar pagina en google"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/search-console-para-principiantes",
+    "/por-que-mi-negocio-no-aparece-en-google",
+    "/growth"
+   ]
+  },
+  {
+   "id": "search-console-para-principiantes",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "Google Search Console para principiantes",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "search console tutorial",
+    "que es google search console",
+    "como usar search console"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/como-hacer-que-google-indexe-mi-pagina",
+    "/como-saber-cuantos-clientes-trae-mi-pagina"
+   ]
+  },
+  {
+   "id": "palabras-clave-para-negocio-local",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "Palabras clave para un negocio local",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "palabras clave para negocio local",
+    "como elegir palabras clave",
+    "keywords negocio local"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/que-es-el-seo-local",
+    "/growth",
+    "/como-escribir-los-textos-de-tu-pagina-web"
+   ]
+  },
+  {
+   "id": "por-que-mi-negocio-no-aparece-en-google",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "¿Por qué mi negocio no aparece en Google?",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "por que mi negocio no aparece en google",
+    "mi negocio no sale en google maps",
+    "no aparezco en google"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/herramientas/analizador-web",
+    "/como-hacer-que-google-indexe-mi-pagina",
+    "/como-aparecer-en-google-maps"
+   ]
+  },
+  {
+   "id": "google-maps-ficha-suspendida",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "Ficha de Google Maps suspendida: qué hacer",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "perfil de empresa suspendido",
+    "google maps suspendio mi negocio",
+    "reactivar ficha google"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/como-verificar-perfil-de-empresa-en-google",
+    "/como-aparecer-en-google-maps",
+    "/growth"
+   ]
+  },
+  {
+   "id": "fotos-para-perfil-de-google",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "Fotos para tu Perfil de Empresa en Google",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "fotos para google maps negocio",
+    "que fotos subir a google business",
+    "fotos perfil de empresa"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/como-aparecer-en-google-maps",
+    "/fotos-para-pagina-web-de-negocio",
+    "/growth"
+   ]
+  },
+  {
+   "id": "como-aparecer-en-chatgpt-y-respuestas-de-ia",
+   "tipo": "GUIA",
+   "grupo": "Salir en Google",
+   "titulo": "Cómo aparecer en ChatGPT y respuestas con IA",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "como aparecer en chatgpt",
+    "seo para inteligencia artificial",
+    "aparecer en respuestas de ia de google"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/que-es-el-seo-local",
+    "/como-escribir-los-textos-de-tu-pagina-web"
+   ]
+  },
+  {
+   "id": "como-saber-si-mi-pagina-es-lenta",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "Cómo saber si tu página web es lenta",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "como saber si mi pagina es lenta",
+    "pagespeed insights como usar",
+    "core web vitals que son"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/herramientas/analizador-web",
+    "/pagina-web-rapida-en-celular",
+    "/web"
+   ]
+  },
+  {
+   "id": "pagina-web-rapida-en-celular",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "Página web rápida en celular: qué la hace lenta",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "pagina web lenta en celular",
+    "optimizar pagina para movil",
+    "pagina web responsive"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/como-saber-si-mi-pagina-es-lenta",
+    "/fotos-para-pagina-web-de-negocio"
+   ]
+  },
+  {
+   "id": "senales-de-que-tu-pagina-web-es-vieja",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "Señales de que tu página web ya es vieja",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "mi pagina web es vieja",
+    "cuando renovar pagina web",
+    "pagina web anticuada"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/rediseno-o-pagina-nueva",
+    "/herramientas/analizador-web",
+    "/web"
+   ]
+  },
+  {
+   "id": "accesibilidad-web-para-negocios",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "Accesibilidad web: que todos puedan usar tu página",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "accesibilidad web",
+    "pagina web accesible",
+    "accesibilidad web mexico"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/pagina-web-rapida-en-celular",
+    "/herramientas/checklist-pagina-web"
+   ]
+  },
+  {
+   "id": "como-escribir-los-textos-de-tu-pagina-web",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "Cómo escribir los textos de tu página web",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "como escribir textos para pagina web",
+    "que poner en mi pagina web",
+    "redaccion pagina web negocio"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/que-paginas-debe-tener-un-sitio-web",
+    "/palabras-clave-para-negocio-local"
+   ]
+  },
+  {
+   "id": "fotos-para-pagina-web-de-negocio",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "Fotos para la página web de tu negocio",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "fotos para pagina web",
+    "fotos de stock o propias",
+    "como tomar fotos para mi negocio"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/fotos-para-perfil-de-google",
+    "/pagina-web-rapida-en-celular"
+   ]
+  },
+  {
+   "id": "boton-de-whatsapp-en-pagina-web",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "Botón de WhatsApp en tu página web",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "boton de whatsapp para pagina web",
+    "como poner whatsapp en mi pagina",
+    "enlace de whatsapp con mensaje"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/herramientas/enlace-whatsapp",
+    "/formulario-o-whatsapp",
+    "/como-medir-clics-de-whatsapp"
+   ]
+  },
+  {
+   "id": "formulario-o-whatsapp",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "¿Formulario o WhatsApp en tu página?",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "formulario o whatsapp",
+    "formulario de contacto vs whatsapp",
+    "que convierte mas formulario o whatsapp"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/boton-de-whatsapp-en-pagina-web",
+    "/como-medir-clics-de-whatsapp",
+    "/web"
+   ]
+  },
+  {
+   "id": "que-paginas-debe-tener-un-sitio-web",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "Qué páginas debe tener el sitio de un negocio",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "que paginas debe tener un sitio web",
+    "secciones de una pagina web",
+    "estructura pagina web negocio"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/herramientas/checklist-pagina-web",
+    "/como-escribir-los-textos-de-tu-pagina-web"
+   ]
+  },
+  {
+   "id": "pagina-web-bilingue",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "Página web bilingüe: cuándo vale la pena",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "pagina web en ingles y espanol",
+    "pagina bilingue negocio",
+    "traducir mi pagina web"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/pagina-web-para-hoteles-boutique",
+    "/pagina-web-para-rentas-vacacionales"
+   ]
+  },
+  {
+   "id": "menu-digital-con-codigo-qr",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "Menú digital con código QR para tu restaurante",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "menu digital qr",
+    "menu qr restaurante",
+    "como hacer un menu digital"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/pagina-web-para-restaurantes",
+    "/reservas-en-linea-para-restaurantes",
+    "/aparecer-en-google-maps-restaurantes"
+   ]
+  },
+  {
+   "id": "landing-page-para-anuncios",
+   "tipo": "GUIA",
+   "grupo": "Página que funciona",
+   "titulo": "Landing page para anuncios: qué debe tener",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "landing page para google ads",
+    "pagina de destino anuncios",
+    "landing page que convierte"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/conversiones-en-google-ads",
+    "/landing-page-vs-sitio-completo"
+   ]
+  },
+  {
+   "id": "aviso-de-privacidad-para-pagina-web",
+   "tipo": "GUIA",
+   "grupo": "Seguridad y propiedad",
+   "titulo": "Aviso de privacidad para tu página web",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "aviso de privacidad pagina web",
+    "aviso de privacidad obligatorio",
+    "aviso de privacidad formulario"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/datos-de-clientes-y-privacidad-con-ia",
+    "/formulario-o-whatsapp"
+   ]
+  },
+  {
+   "id": "seguridad-de-pagina-web-para-negocios",
+   "tipo": "GUIA",
+   "grupo": "Seguridad y propiedad",
+   "titulo": "Seguridad de tu página web: lo básico",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "seguridad pagina web",
+    "proteger pagina web",
+    "pagina web segura negocio"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/nosotros",
+    "/certificado-ssl-https",
+    "/que-hacer-si-hackean-mi-pagina-web"
+   ]
+  },
+  {
+   "id": "certificado-ssl-https",
+   "tipo": "GUIA",
+   "grupo": "Seguridad y propiedad",
+   "titulo": "Certificado SSL y HTTPS: qué son",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "que es certificado ssl",
+    "https pagina web",
+    "mi pagina dice no segura"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/seguridad-de-pagina-web-para-negocios",
+    "/herramientas/analizador-web",
+    "/web"
+   ]
+  },
+  {
+   "id": "que-hacer-si-hackean-mi-pagina-web",
+   "tipo": "GUIA",
+   "grupo": "Seguridad y propiedad",
+   "titulo": "Qué hacer si hackean tu página web",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "hackearon mi pagina web",
+    "pagina web hackeada que hacer",
+    "mi pagina redirige a otra"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/seguridad-de-pagina-web-para-negocios",
+    "/wordpress-vs-pagina-a-medida",
+    "/web"
+   ]
+  },
+  {
+   "id": "quien-es-dueno-de-mi-pagina-web",
+   "tipo": "GUIA",
+   "grupo": "Seguridad y propiedad",
+   "titulo": "¿Quién es dueño de tu página web y tu dominio?",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "quien es dueno de mi pagina web",
+    "mi dominio esta a nombre de otro",
+    "recuperar acceso pagina web"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/como-recuperar-un-dominio-vencido",
+    "/como-elegir-agencia-de-diseno-web",
+    "/web"
+   ]
+  },
+  {
+   "id": "como-recuperar-un-dominio-vencido",
+   "tipo": "GUIA",
+   "grupo": "Seguridad y propiedad",
+   "titulo": "Cómo recuperar un dominio vencido",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "recuperar dominio vencido",
+    "se vencio mi dominio",
+    "dominio expirado que hacer"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/quien-es-dueno-de-mi-pagina-web",
+    "/cuanto-cuesta-un-dominio-y-hosting",
+    "/correo-con-dominio-propio"
+   ]
+  },
+  {
+   "id": "migrar-de-wix-sin-perder-el-dominio",
+   "tipo": "GUIA",
+   "grupo": "Seguridad y propiedad",
+   "titulo": "Migrar de Wix sin perder dominio ni correo",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "migrar de wix",
+    "cambiar pagina de wix a otro hosting",
+    "dominio comprado en wix"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/casos/cano-estrategia-penal",
+    "/wix-vs-pagina-a-medida",
+    "/correo-con-dominio-propio"
+   ]
+  },
+  {
+   "id": "correo-con-dominio-propio",
+   "tipo": "GUIA",
+   "grupo": "Seguridad y propiedad",
+   "titulo": "Correo con dominio propio para tu negocio",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "correo con dominio propio",
+    "correo empresarial",
+    "email con mi dominio"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/dominio-com-o-com-mx",
+    "/migrar-de-wix-sin-perder-el-dominio",
+    "/web"
+   ]
+  },
+  {
+   "id": "como-medir-clics-de-whatsapp",
+   "tipo": "GUIA",
+   "grupo": "Medir y vender",
+   "titulo": "Cómo medir los clics a WhatsApp de tu página",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "medir clics whatsapp",
+    "conversiones whatsapp google analytics",
+    "cuantos mensajes llegan de mi pagina"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/conversiones-en-google-ads",
+    "/como-saber-cuantos-clientes-trae-mi-pagina"
+   ]
+  },
+  {
+   "id": "conversiones-en-google-ads",
+   "tipo": "GUIA",
+   "grupo": "Medir y vender",
+   "titulo": "Conversiones en Google Ads: medir lo que vende",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "conversiones google ads",
+    "como medir conversiones google ads",
+    "google ads sin conversiones"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/como-medir-clics-de-whatsapp",
+    "/errores-comunes-en-google-ads"
+   ]
+  },
+  {
+   "id": "errores-comunes-en-google-ads",
+   "tipo": "GUIA",
+   "grupo": "Medir y vender",
+   "titulo": "Errores comunes en Google Ads de negocios locales",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "errores google ads",
+    "google ads no funciona",
+    "google ads gasto sin clientes"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/conversiones-en-google-ads",
+    "/cuanto-invertir-en-google-ads-negocio-local"
+   ]
+  },
+  {
+   "id": "como-saber-cuantos-clientes-trae-mi-pagina",
+   "tipo": "GUIA",
+   "grupo": "Medir y vender",
+   "titulo": "Cuántos clientes trae tu página: cómo saberlo",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "cuantos clientes trae mi pagina web",
+    "medir resultados pagina web",
+    "google analytics 4 para negocios"
+   ],
+   "servicio": "growth",
+   "enlaces": [
+    "/growth",
+    "/como-medir-clics-de-whatsapp",
+    "/search-console-para-principiantes"
+   ]
+  },
+  {
+   "id": "mensajes-de-whatsapp-que-venden",
+   "tipo": "GUIA",
+   "grupo": "Medir y vender",
+   "titulo": "Mensajes de WhatsApp que convierten prospectos",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "como vender por whatsapp",
+    "mensajes para vender por whatsapp",
+    "guion de ventas whatsapp"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/catalogo-de-whatsapp-business",
+    "/herramientas/calculadora-whatsapp"
+   ]
+  },
+  {
+   "id": "como-vender-ropa-en-linea-en-mexico",
+   "tipo": "GUIA",
+   "grupo": "Medir y vender",
+   "titulo": "Cómo vender ropa en línea en México",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "como vender ropa por internet",
+    "vender ropa en linea mexico",
+    "tienda de ropa online"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/pagina-web-para-tiendas-de-ropa",
+    "/shopify-vs-tienda-propia",
+    "/catalogo-de-whatsapp-business"
+   ]
+  },
+  {
+   "id": "que-puede-hacer-un-agente-de-ia-en-un-negocio",
+   "tipo": "GUIA",
+   "grupo": "IA y automatización",
+   "titulo": "Qué puede hacer un agente de IA en tu negocio",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "que puede hacer un agente de ia",
+    "agente de inteligencia artificial para empresas",
+    "ia para atender clientes"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/sales",
+    "/chatbot-vs-recepcionista-humana",
+    "/inteligencia-artificial-para-pymes"
+   ]
+  },
+  {
+   "id": "inteligencia-artificial-para-pymes",
+   "tipo": "GUIA",
+   "grupo": "IA y automatización",
+   "titulo": "Inteligencia artificial para pymes: por dónde empezar",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "inteligencia artificial para pymes",
+    "ia para pequenos negocios",
+    "como usar ia en mi negocio"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/automation",
+    "/que-puede-hacer-un-agente-de-ia-en-un-negocio",
+    "/automatizar-cotizaciones"
+   ]
+  },
+  {
+   "id": "recordatorios-automaticos-de-citas",
+   "tipo": "GUIA",
+   "grupo": "IA y automatización",
+   "titulo": "Recordatorios automáticos de citas por WhatsApp",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "recordatorios de citas whatsapp",
+    "recordatorio automatico de cita",
+    "confirmar citas automaticamente"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/automation",
+    "/como-reducir-inasistencias-a-citas",
+    "/soluciones/clinicas"
+   ]
+  },
+  {
+   "id": "como-reducir-inasistencias-a-citas",
+   "tipo": "GUIA",
+   "grupo": "IA y automatización",
+   "titulo": "Cómo reducir las citas a las que nadie llega",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "como reducir inasistencias",
+    "pacientes que no llegan a su cita",
+    "clientes que cancelan cita"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/recordatorios-automaticos-de-citas",
+    "/agenda-de-citas-en-linea-para-dentistas",
+    "/automation"
+   ]
+  },
+  {
+   "id": "catalogo-de-whatsapp-business",
+   "tipo": "GUIA",
+   "grupo": "IA y automatización",
+   "titulo": "Catálogo y respuestas rápidas de WhatsApp Business",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "catalogo whatsapp business",
+    "como usar catalogo de whatsapp",
+    "respuestas rapidas whatsapp business"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/whatsapp-business-vs-api",
+    "/mensajes-de-whatsapp-que-venden",
+    "/sales"
+   ]
+  },
+  {
+   "id": "automatizar-cotizaciones",
+   "tipo": "GUIA",
+   "grupo": "IA y automatización",
+   "titulo": "Cómo automatizar cotizaciones sin perder clientes",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "automatizar cotizaciones",
+    "cotizador automatico",
+    "enviar cotizaciones por whatsapp"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/automation",
+    "/pagina-web-para-constructoras",
+    "/chatbot-whatsapp-para-constructoras"
+   ]
+  },
+  {
+   "id": "datos-de-clientes-y-privacidad-con-ia",
+   "tipo": "GUIA",
+   "grupo": "IA y automatización",
+   "titulo": "Datos de tus clientes y privacidad al usar IA",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "privacidad chatbot datos clientes",
+    "es seguro usar ia con datos de clientes",
+    "chatbot y proteccion de datos"
+   ],
+   "servicio": "sales",
+   "enlaces": [
+    "/aviso-de-privacidad-para-pagina-web",
+    "/seguridad-de-pagina-web-para-negocios",
+    "/sales"
+   ]
+  },
+  {
+   "id": "como-conseguir-pacientes-para-tu-consultorio",
+   "tipo": "GUIA",
+   "grupo": "Por industria",
+   "titulo": "Cómo conseguir más pacientes para tu consultorio",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como conseguir mas pacientes",
+    "marketing para consultorio",
+    "atraer pacientes consultorio"
+   ],
+   "servicio": "clinicas",
+   "enlaces": [
+    "/pagina-web-para-consultorios-medicos",
+    "/soluciones/clinicas",
+    "/aparecer-en-google-maps-dentistas"
+   ]
+  },
+  {
+   "id": "como-conseguir-clientes-para-tu-despacho",
+   "tipo": "GUIA",
+   "grupo": "Por industria",
+   "titulo": "Cómo conseguir clientes para tu despacho",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "como conseguir clientes abogado",
+    "marketing para abogados",
+    "como atraer clientes despacho"
+   ],
+   "servicio": "despachos",
+   "enlaces": [
+    "/diseno-web-para-despachos-juridicos",
+    "/casos/cano-estrategia-penal",
+    "/aparecer-en-google-maps-abogados"
+   ]
+  },
+  {
+   "id": "reservas-en-linea-para-restaurantes",
+   "tipo": "GUIA",
+   "grupo": "Por industria",
+   "titulo": "Reservas en línea para restaurantes",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "reservas en linea restaurante",
+    "sistema de reservaciones restaurante",
+    "reservar mesa por whatsapp"
+   ],
+   "servicio": "automation",
+   "enlaces": [
+    "/pagina-web-para-restaurantes",
+    "/menu-digital-con-codigo-qr",
+    "/chatbot-whatsapp-para-restaurantes"
+   ]
+  },
+  {
+   "id": "portafolio-en-linea-para-arquitectos",
+   "tipo": "GUIA",
+   "grupo": "Por industria",
+   "titulo": "Portafolio en línea para arquitectos e interioristas",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "portafolio arquitectura online",
+    "como mostrar proyectos de arquitectura",
+    "pagina portafolio arquitecto"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/pagina-web-para-arquitectos",
+    "/pagina-web-para-disenadores-de-interiores",
+    "/fotos-para-pagina-web-de-negocio"
+   ]
+  },
+  {
+   "id": "marca-personal-para-abogados",
+   "tipo": "GUIA",
+   "grupo": "Por industria",
+   "titulo": "Marca personal para abogados: cómo construirla",
+   "intencion": "INFORMATIVA",
+   "consultas": [
+    "marca personal abogado",
+    "pagina web personal abogado",
+    "como posicionarme como abogado"
+   ],
+   "servicio": "despachos",
+   "enlaces": [
+    "/casos/eric-ramirez",
+    "/diseno-web-para-despachos-juridicos",
+    "/pagina-web-para-abogados-fiscalistas"
+   ]
+  },
+  {
+   "id": "diseno-de-paginas-web-en-cdmx",
+   "tipo": "CIUDAD",
+   "grupo": "Ciudades",
+   "titulo": "Diseño de páginas web en CDMX",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "diseno de paginas web cdmx",
+    "agencia de paginas web cdmx",
+    "pagina web para negocio en cdmx"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/casos/cano-estrategia-penal",
+    "/industrias",
+    "/cuanto-cuesta-una-pagina-web-en-mexico"
+   ]
+  },
+  {
+   "id": "diseno-de-paginas-web-en-colima",
+   "tipo": "CIUDAD",
+   "grupo": "Ciudades",
+   "titulo": "Diseño de páginas web en Colima",
+   "intencion": "COMERCIAL",
+   "consultas": [
+    "diseno de paginas web colima",
+    "pagina web colima",
+    "agencia web colima"
+   ],
+   "servicio": "web",
+   "enlaces": [
+    "/web",
+    "/casos/eric-ramirez",
+    "/industrias",
+    "/cuanto-cuesta-una-pagina-web-en-mexico"
+   ]
+  }
+ ]
+}

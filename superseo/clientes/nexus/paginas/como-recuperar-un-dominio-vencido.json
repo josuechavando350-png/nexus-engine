@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "id": "como-recuperar-un-dominio-vencido",
+  "cliente": "nexus",
+  "ruta": "/como-recuperar-un-dominio-vencido",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Seguridad y propiedad",
+  "titulo": "Cómo recuperar un dominio vencido",
+  "descripcion": "Qué pasa cuando un dominio se vence, qué etapas tiene, cómo recuperarlo a tiempo y cómo evitar que tu negocio pierda su dirección en internet.",
+  "h1": "Cómo recuperar un dominio vencido",
+  "respuesta_rapida": [
+    "Actúa de inmediato: mientras más tiempo pasa, más difícil y caro es recuperarlo.",
+    "Contacta al registrador donde está el dominio y pide renovarlo.",
+    "Si ya está en periodo de recuperación, puede tener un cargo adicional.",
+    "Si se liberó y alguien más lo registró, recuperarlo puede ser muy difícil."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué pasa cuando vence",
+      "parrafos": [
+        "Cuando un dominio llega a su fecha de vencimiento sin renovarse, deja de funcionar: tu página no carga y, si tu correo usa ese dominio, también deja de recibir mensajes. Durante un tiempo, el dominio sigue reservado para ti, pero si no lo renuevas, termina liberándose y cualquiera puede registrarlo.",
+        "Los plazos exactos dependen de la terminación del dominio y del registrador, así que lo mejor es actuar en cuanto te des cuenta."
+      ]
+    },
+    {
+      "titulo": "Las etapas",
+      "parrafos": [
+        "Primero suele haber un periodo de gracia en el que puedes renovar al precio normal. Después, en muchas terminaciones, un periodo de recuperación en el que todavía puedes recuperarlo pagando un cargo adicional. Al final, el dominio se libera y queda disponible para cualquiera.",
+        "Algunas personas y empresas vigilan dominios que se liberan para registrarlos y revenderlos caro, sobre todo si tenían tráfico."
+      ]
+    },
+    {
+      "titulo": "Qué hacer ahora",
+      "parrafos": [
+        "Identifica en qué registrador está el dominio: quien te lo vendió, tu proveedor de páginas o el servicio donde lo compraste. Entra a la cuenta o contacta a su soporte y pide la renovación. Si el dominio estaba a nombre de otra persona, como un antiguo proveedor, necesitarás su colaboración o demostrar que el negocio es tuyo.",
+        "Renueva por varios años y activa la renovación automática.",
+        "Si no sabes en qué registrador está tu dominio, una consulta de WHOIS suele mostrar el nombre del registrador. Con eso puedes contactarlos directamente y pedir instrucciones para renovar."
+      ]
+    },
+    {
+      "titulo": "Si ya lo registró alguien más",
+      "parrafos": [
+        "Si el dominio se liberó y otra persona lo registró, las opciones se reducen: negociar la compra, iniciar una disputa si tienes derechos de marca y el nuevo dueño actúa de mala fe, o elegir un dominio nuevo. Las disputas existen, pero son procesos formales que requieren asesoría.",
+        "En la mayoría de los casos, prevenir es mucho más barato que recuperar."
+      ]
+    },
+    {
+      "titulo": "Si eliges un dominio nuevo",
+      "parrafos": [
+        "Si no puedes recuperarlo, registra uno nuevo cuanto antes, actualiza tu Perfil de Empresa en Google, tus redes, tus tarjetas y tu correo, y avisa a tus clientes. Lo que tu sitio había ganado en Google se perderá en buena parte, porque estaba ligado al dominio anterior.",
+        "Es otro motivo para cuidar tu dominio como un activo del negocio."
+      ]
+    },
+    {
+      "titulo": "Cómo evitarlo",
+      "parrafos": [
+        "Registra el dominio a tu nombre, con un correo que revises siempre. Activa la renovación automática con un método de pago vigente. Paga varios años por adelantado si puedes. Pon un recordatorio en tu calendario unas semanas antes del vencimiento. Y guarda los accesos del registrador en un lugar seguro.",
+        "Cinco minutos de prevención evitan perder años de trabajo.",
+        "Guarda en un lugar seguro los datos de acceso a tu registrador y anota la fecha de vencimiento en tu calendario. Si una agencia administra tu dominio, pide que el registro esté a nombre de tu negocio y que tú tengas acceso."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Registramos los dominios de nuestros clientes a su nombre, con renovación automática, y te ayudamos a recuperar el tuyo si está en riesgo. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuánto tiempo tengo para recuperarlo?",
+      "respuesta": "Depende de la terminación y del registrador; actúa de inmediato para no depender de los plazos."
+    },
+    {
+      "pregunta": "¿Mi correo también se pierde?",
+      "respuesta": "Deja de funcionar mientras el dominio esté vencido; se restablece al renovarlo."
+    },
+    {
+      "pregunta": "¿Puedo saber cuándo vence mi dominio?",
+      "respuesta": "Sí, en la cuenta del registrador o consultando la información pública del dominio."
+    },
+    {
+      "pregunta": "¿Por qué no me llegó el aviso de vencimiento?",
+      "respuesta": "Probablemente los avisos llegan a un correo que ya no revisas o a tu antiguo proveedor."
+    },
+    {
+      "pregunta": "¿Mi correo deja de funcionar si se vence el dominio?",
+      "respuesta": "Sí. Si el dominio deja de estar activo, los correos con tu dominio dejan de llegar. Por eso un vencimiento afecta mucho más que solo la página."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/quien-es-dueno-de-mi-pagina-web",
+      "texto": "¿Quién es dueño de tu página web y tu dominio?"
+    },
+    {
+      "ruta": "/cuanto-cuesta-un-dominio-y-hosting",
+      "texto": "Dominio y hosting: qué son y cuánto cuestan"
+    },
+    {
+      "ruta": "/correo-con-dominio-propio",
+      "texto": "Correo con dominio propio para tu negocio"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:7d101fa65c6d959533d0373836676836fd0cf5c5cfa6a0fc8c7e29a251b42891",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:7d101fa65c6d959533d0373836676836fd0cf5c5cfa6a0fc8c7e29a251b42891"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 677,
+    "similitud_max": 0.009,
+    "parecida_a": "/quien-es-dueno-de-mi-pagina-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:aa503272774c96fbb7a27b46753495150558f5e041aba57b044d2608ac6a5a36",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

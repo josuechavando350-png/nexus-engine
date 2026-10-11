@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "datos-de-clientes-y-privacidad-con-ia",
+  "cliente": "nexus",
+  "ruta": "/datos-de-clientes-y-privacidad-con-ia",
+  "tipo": "GUIA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "IA y automatización",
+  "titulo": "Datos de tus clientes y privacidad al usar IA",
+  "descripcion": "Qué cuidar con los datos de tus clientes al usar asistentes de inteligencia artificial: aviso de privacidad, datos mínimos, proveedores, accesos y datos sensibles.",
+  "h1": "Datos de tus clientes y privacidad al usar inteligencia artificial",
+  "respuesta_rapida": [
+    "Un asistente de IA maneja datos personales: tu aviso de privacidad debe explicarlo.",
+    "Pide y guarda solo los datos que de verdad necesitas.",
+    "Revisa qué hace tu proveedor con las conversaciones y dónde las guarda.",
+    "Limita los accesos de cada integración y protege los datos sensibles."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué datos toca un asistente",
+      "parrafos": [
+        "Un asistente de IA que atiende a tus clientes recibe nombres, teléfonos, correos y conversaciones completas. Según el giro, también puede recibir información de salud, situación legal, datos financieros o direcciones. Todo eso son datos personales, y algunos son especialmente delicados.",
+        "Antes de implementar un asistente, haz una lista sencilla de qué datos va a recibir, dónde se guardarán, quién podrá verlos y por cuánto tiempo. Esa lista es la base de todo lo demás."
+      ]
+    },
+    {
+      "titulo": "Tu aviso de privacidad",
+      "parrafos": [
+        "En México, quien recaba datos personales debe informar para qué los usa mediante un aviso de privacidad. Si incorporas un asistente automatizado, el aviso debe explicarlo: que hay un sistema que atiende conversaciones, qué datos recaba, para qué y con quién se comparten.",
+        "No copies un aviso de otra página. Debe describir lo que tu negocio realmente hace. Si manejas datos sensibles, revisa con un especialista las obligaciones adicionales que te aplican."
+      ]
+    },
+    {
+      "titulo": "Solo lo necesario",
+      "parrafos": [
+        "Un principio simple protege a tu negocio y a tus clientes: recaba solo lo que necesitas para dar el servicio. Si para agendar basta con nombre, teléfono y motivo general, no pidas más. Mientras menos datos guardes, menos riesgo tienes si algo falla.",
+        "Define también cuánto tiempo conservas las conversaciones. Guardarlas para siempre rara vez es necesario y aumenta la exposición."
+      ]
+    },
+    {
+      "titulo": "Qué hace tu proveedor con los datos",
+      "parrafos": [
+        "Pregunta a cualquier proveedor de IA o de chatbots dónde se guardan las conversaciones, quién puede verlas, si se usan para entrenar modelos, cuánto tiempo se conservan y cómo se eliminan. Las respuestas deben estar por escrito, en el contrato o en sus términos.",
+        "Desconfía de quien no sepa responder o diga que no importa. Tus clientes te confiaron sus datos a ti, no a la herramienta que elegiste."
+      ]
+    },
+    {
+      "titulo": "Accesos y seguridad",
+      "parrafos": [
+        "Un agente conectado a WhatsApp, a tu CRM y a datos internos es una superficie de ataque real. Cada integración debe tener solo los permisos que necesita, credenciales guardadas de forma segura y validación estricta de lo que recibe. Nunca debe exponer contraseñas ni datos de otros clientes en una conversación.",
+        "Revisa quién de tu equipo tiene acceso a las conversaciones y retira accesos cuando alguien se va. Muchos incidentes empiezan por una cuenta olvidada."
+      ]
+    },
+    {
+      "titulo": "Datos sensibles",
+      "parrafos": [
+        "En clínicas, despachos y servicios financieros, el asistente puede recibir información muy delicada. Diseña el flujo para que pida lo mínimo, no haga diagnósticos ni opiniones sobre casos concretos y pase a una persona cualquier tema clínico, legal o financiero específico.",
+        "Explica a tus clientes, en lenguaje claro, que no deben compartir información delicada por el chat si no es necesario, y ofrece un canal más privado cuando lo sea."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "En Nexus Bot Studio la ciberseguridad no es un extra: cada integración, cada agente y cada flujo se diseña con validación estricta, control de acceso y superficie de ataque mínima. El agente de nuestro propio sitio tiene una salida segura cuando no hay credenciales y nunca expone secretos."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Es legal usar un chatbot con datos de clientes?",
+      "respuesta": "Sí, siempre que informes en tu aviso de privacidad, recabes solo lo necesario y protejas los datos."
+    },
+    {
+      "pregunta": "¿El proveedor de IA puede usar mis conversaciones?",
+      "respuesta": "Depende de sus términos. Revisa si las usa para entrenar modelos y elige opciones que no lo hagan cuando manejas datos delicados."
+    },
+    {
+      "pregunta": "¿Debo decirle al cliente que habla con un asistente?",
+      "respuesta": "Sí. La transparencia genera confianza y evita malentendidos."
+    },
+    {
+      "pregunta": "¿Qué hago si hay una filtración?",
+      "respuesta": "Contén el problema, cambia accesos, evalúa qué datos se expusieron y revisa tus obligaciones de aviso con un especialista."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/aviso-de-privacidad-para-pagina-web",
+      "texto": "Aviso de privacidad para tu página web"
+    },
+    {
+      "ruta": "/seguridad-de-pagina-web-para-negocios",
+      "texto": "Seguridad de tu página web: lo básico"
+    },
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:0e0725d731c424a7a35cbb039073c2b16e894fbe50947ff33bfa1de232f6a637",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:0e0725d731c424a7a35cbb039073c2b16e894fbe50947ff33bfa1de232f6a637"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 650,
+    "similitud_max": 0.012,
+    "parecida_a": "/que-puede-hacer-un-agente-de-ia-en-un-negocio"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:131579cfecfffef1e8820a01035f26e3068a553abae1cf7bf15b531dc0c8c868",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

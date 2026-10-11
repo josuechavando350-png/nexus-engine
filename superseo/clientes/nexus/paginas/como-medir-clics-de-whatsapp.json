@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "id": "como-medir-clics-de-whatsapp",
+  "cliente": "nexus",
+  "ruta": "/como-medir-clics-de-whatsapp",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Medir y vender",
+  "titulo": "Cómo medir los clics a WhatsApp de tu página",
+  "descripcion": "Cómo contar cuántas personas tocan el botón de WhatsApp en tu página, de qué página vienen y cuántas de esas conversaciones terminan en venta.",
+  "h1": "Cómo medir los clics a WhatsApp de tu página web",
+  "respuesta_rapida": [
+    "Configura cada clic al botón de WhatsApp como un evento en tu analítica.",
+    "Marca ese evento como evento clave para verlo junto a tus visitas y tus anuncios.",
+    "Usa un mensaje prellenado distinto por página para saber de dónde viene cada chat.",
+    "Cruza los clics con las ventas reales: un clic todavía no es un cliente."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué importa medirlos",
+      "parrafos": [
+        "Para muchos negocios en México, WhatsApp es el canal principal de contacto. Si tu página manda a la gente a WhatsApp y no lo mides, sabes cuántas visitas tienes, pero no cuántas de ellas te escribieron. Es como tener un contador en la puerta de la tienda y ninguno en la caja.",
+        "Medir los clics te dice qué páginas generan conversaciones, qué anuncios traen gente que sí escribe y qué cambios en el diseño ayudan o estorban. Sin ese dato, las decisiones sobre tu página y tu inversión en publicidad se toman a ciegas, por intuición o por lo que dice el vendedor de turno."
+      ]
+    },
+    {
+      "titulo": "Qué es un evento de clic",
+      "parrafos": [
+        "Un evento es un registro que tu herramienta de analítica guarda cada vez que alguien hace algo concreto en tu página. En este caso, la acción es tocar un enlace que abre WhatsApp. El evento guarda en qué página ocurrió, desde qué dispositivo, de qué zona aproximada y de qué fuente llegó esa visita.",
+        "Lo que el evento no ve es lo que pasa dentro de WhatsApp. Sabes que alguien tocó el botón, pero no si de verdad envió el mensaje ni qué escribió. Por eso el clic es un primer indicador muy útil, pero no el resultado final que te interesa."
+      ]
+    },
+    {
+      "titulo": "Cómo configurarlo",
+      "parrafos": [
+        "La forma más ordenada es con Google Tag Manager y Google Analytics 4. En Tag Manager creas un activador que se dispara cuando alguien hace clic en un enlace que contiene wa.me o api.whatsapp.com, y una etiqueta que envía ese clic a Analytics como evento con un nombre claro, por ejemplo clic_whatsapp.",
+        "Después, en Analytics marcas ese evento como evento clave para que aparezca en tus reportes de conversión. Si usas Google Ads, puedes importar ese mismo evento como conversión para que la plataforma sepa qué campañas traen gente que escribe y no solo gente que entra.",
+        "Antes de darlo por bueno, haz una prueba: abre tu página, toca el botón y revisa en la vista de tiempo real o en el modo de vista previa que el evento llegó con el nombre correcto y desde la página correcta."
+      ]
+    },
+    {
+      "titulo": "Saber de qué página viene cada chat",
+      "parrafos": [
+        "Un truco sencillo es usar un mensaje prellenado distinto en cada página. Desde la página de un servicio, el chat puede abrir con un texto como: Hola, vi la página de limpieza dental y quiero informes. Así, cuando llega el mensaje, quien atiende ya sabe qué le interesa a esa persona y de dónde viene.",
+        "Esa referencia también sirve para contar, a mano o con tu equipo, cuántos chats llegaron de cada página en el mes. Es menos automático que un reporte, pero conecta el dato de la analítica con lo que realmente pasa en la conversación."
+      ]
+    },
+    {
+      "titulo": "Del clic a la venta",
+      "parrafos": [
+        "El número que importa no es cuántos clics hubo, sino cuántos se convirtieron en citas, pedidos o contratos. Para eso necesitas una forma sencilla de registrar de dónde llegó cada cliente: una etiqueta en WhatsApp Business, una columna en una hoja de cálculo o un campo en tu CRM.",
+        "Con esos datos puedes calcular cuántos clics necesitas, en promedio, para conseguir un cliente, y cuánto te cuesta cada uno si vienen de anuncios. Esa cuenta es la que te dice si una página o una campaña vale la pena, mucho más que cualquier número de visitas."
+      ]
+    },
+    {
+      "titulo": "Errores comunes",
+      "parrafos": [
+        "El más frecuente es contar dos veces: un botón flotante y un botón dentro de la página que disparan el mismo evento dos veces por un solo clic, o una etiqueta que se activa al cargar la página en lugar de al tocar el botón. Otro error es medir solo el botón principal y olvidar los enlaces de WhatsApp del pie de página o de las tarjetas de servicios.",
+        "También pasa que se cambia el diseño y el evento deja de funcionar sin que nadie lo note durante semanas. Revisa tus eventos después de cada cambio importante en la página y, como rutina, una vez al mes."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Las páginas que construye Nexus Bot Studio salen con la medición de clics a WhatsApp, llamadas y formularios configurada por página, para que sepas desde el primer día qué partes de tu sitio generan conversaciones. Si ya tienes página, en el diagnóstico gratuito revisamos si tu medición está contando bien."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo saber si la persona sí envió el mensaje?",
+      "respuesta": "No directamente desde la analítica. El clic se registra al abrir WhatsApp; el envío ocurre dentro de la aplicación. Por eso conviene cruzar los clics con los chats que realmente llegan."
+    },
+    {
+      "pregunta": "¿Necesito Google Tag Manager?",
+      "respuesta": "No es obligatorio, pero facilita mucho agregar y cambiar eventos sin tocar el código de la página cada vez."
+    },
+    {
+      "pregunta": "¿Sirve también para el botón de llamada?",
+      "respuesta": "Sí. Los enlaces de teléfono se miden igual, con un evento propio para distinguir llamadas de mensajes."
+    },
+    {
+      "pregunta": "¿Cada cuánto debo revisar estos números?",
+      "respuesta": "Una revisión mensual es suficiente para la mayoría de los negocios; si inviertes en anuncios, conviene revisarlos cada semana."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/como-saber-cuantos-clientes-trae-mi-pagina",
+      "texto": "Cuántos clientes trae tu página: cómo saberlo"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:1ddd05ff9f554f6a3e3a68d9e9daa436a93bd5c55a1e638d8da85769adcc625b",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:1ddd05ff9f554f6a3e3a68d9e9daa436a93bd5c55a1e638d8da85769adcc625b"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 902,
+    "similitud_max": 0.004,
+    "parecida_a": "/como-saber-cuantos-clientes-trae-mi-pagina"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:55d673e91d35089c766d61917b132d77445913c99186b6bc985609ad6bb616c5",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

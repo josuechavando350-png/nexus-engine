@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-remodelacion-y-acabados",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-remodelacion-y-acabados",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Página web para remodelación y acabados",
+  "descripcion": "Sitios para contratistas de remodelación: antes y después reales, servicios como tablaroca, pintura y pisos, zonas que cubres y cotización con fotos.",
+  "h1": "Página web para remodelación y acabados",
+  "respuesta_rapida": [
+    "Quien remodela quiere ver trabajos reales: el antes y después es tu mejor vendedor.",
+    "Lista tus servicios uno por uno: tablaroca, plafones, pintura, pisos, impermeabilización, fachadas.",
+    "Un formulario o WhatsApp que pida fotos del espacio y medidas permite cotizar sin ir a ciegas.",
+    "Indica las zonas que cubres y si das garantía por tu trabajo."
+  ],
+  "secciones": [
+    {
+      "titulo": "El miedo del cliente",
+      "parrafos": [
+        "Todo el que ha remodelado conoce las historias: el maestro que cobró el anticipo y no volvió, la obra que iba a tardar dos semanas y tardó dos meses, el acabado que quedó chueco. Por eso el cliente de remodelación busca señales de confianza antes que precio. Quiere ver trabajos reales, saber quién eres y entender cómo trabajas.",
+        "Una página clara, con fotos de tus obras y un proceso explicado, te separa de inmediato del contratista que solo tiene un número de teléfono en un anuncio."
+      ]
+    },
+    {
+      "titulo": "Antes y después",
+      "parrafos": [
+        "La galería de antes y después es la sección más vista en cualquier sitio de remodelación. Fotos tomadas desde el mismo ángulo, con buena luz, de cocinas, baños, plafones, fachadas, pisos. Si puedes agregar una línea con lo que se hizo y cuánto tiempo tomó, mejor todavía.",
+        "Muchos contratistas tienen cientos de fotos en el celular que nunca usan; ordenarlas por tipo de trabajo es la inversión más rentable que puedes hacer."
+      ]
+    },
+    {
+      "titulo": "Servicios claros",
+      "parrafos": [
+        "Tablaroca y muros divisorios, plafones, pintura interior y exterior, pisos y azulejo, impermeabilización, yeso, acabados de fachada, cocinas, baños, instalaciones eléctricas o hidráulicas si las haces. Cada servicio con una página o sección propia que diga qué incluye y qué tipo de trabajos has hecho.",
+        "Estas páginas atraen búsquedas muy concretas, como instalación de tablaroca o impermeabilización de azotea, que vienen de clientes con un trabajo definido."
+      ]
+    },
+    {
+      "titulo": "Cotizar con fotos",
+      "parrafos": [
+        "La mayoría de los clientes no sabe describir bien lo que necesita, pero sí puede mandar fotos. Un botón de WhatsApp con un mensaje que pida fotos del espacio, medidas aproximadas y la colonia te permite dar un rango de precio antes de visitar, y decidir qué visitas valen la pena.",
+        "Un asistente puede hacer esas preguntas a cualquier hora y dejarte la información ordenada para revisarla cuando termines la jornada."
+      ]
+    },
+    {
+      "titulo": "Zona de trabajo y garantía",
+      "parrafos": [
+        "Decir con claridad en qué zonas trabajas evita mensajes de lugares a los que no llegas. Y si das garantía por tu trabajo, por ejemplo en impermeabilización, ponlo por escrito en la página: es de las cosas que más tranquiliza al cliente.",
+        "También conviene explicar cómo cobras: anticipo, pagos por avance y pago final contra entrega."
+      ]
+    },
+    {
+      "titulo": "Reseñas y recomendaciones",
+      "parrafos": [
+        "En remodelación, la recomendación de un cliente satisfecho vale oro. Pide a cada cliente una reseña en Google al terminar, con un enlace directo, y muestra algunas en tu página con su permiso. Con el tiempo, esas reseñas te ponen arriba cuando alguien busca contratista cerca.",
+        "Responder cada reseña, incluso las críticas, con profesionalismo, también muestra cómo resuelves problemas."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para contratistas con galería de antes y después, servicios y cotización por WhatsApp medida. Desde $1,999 MXN, con asistente que recibe solicitudes desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Necesito tener empresa constituida?",
+      "respuesta": "No. Muchos contratistas trabajan como persona física. Lo importante es mostrar tu trabajo y tus datos de contacto con claridad."
+    },
+    {
+      "pregunta": "¿Debo publicar precios?",
+      "respuesta": "Un precio desde por metro cuadrado en servicios comunes ayuda a orientar. El precio final siempre depende de la visita."
+    },
+    {
+      "pregunta": "¿Y si mis fotos no son buenas?",
+      "respuesta": "Te damos recomendaciones sencillas para tomarlas con el celular y las optimizamos para la página."
+    },
+    {
+      "pregunta": "¿Puedo atender clientes que no están en mi ciudad?",
+      "respuesta": "Si viajas para obras grandes, dilo en la página con las condiciones: a partir de qué tamaño de obra y si el traslado tiene costo. Así evitas consultas que no te convienen y atraes las que sí."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/google-ads-para-remodelacion-y-acabados",
+      "texto": "Google Ads para remodelación y acabados"
+    },
+    {
+      "ruta": "/automatizar-cotizaciones",
+      "texto": "Cómo automatizar cotizaciones sin perder clientes"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:1d427ebe003c5d86e0aff67b37b2fbd3d8af8d2fc10d2700917b5e46b72e6fad",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:1d427ebe003c5d86e0aff67b37b2fbd3d8af8d2fc10d2700917b5e46b72e6fad"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 639,
+    "similitud_max": 0.015,
+    "parecida_a": "/pagina-web-para-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:fdff6f40b9563e632640ab884a9013f387254174818658110ece5f74a2d60f2d",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

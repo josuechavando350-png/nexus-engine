@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-dentistas",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-dentistas",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Google Ads para dentistas",
+  "descripcion": "Google Ads para consultorios dentales: campañas por tratamiento, urgencias con llamada directa, radio cercano, medición de citas y políticas de salud.",
+  "h1": "Google Ads para dentistas",
+  "respuesta_rapida": [
+    "Campañas por tratamiento: implantes, ortodoncia y urgencias no se anuncian igual.",
+    "Radio de anuncios acorde a qué tan lejos viaja un paciente para cada tratamiento.",
+    "Medición de citas agendadas, llamadas y WhatsApp, no solo de clics.",
+    "Anuncios que respetan las políticas de publicidad en salud."
+  ],
+  "secciones": [
+    {
+      "titulo": "Dos negocios distintos en una cuenta",
+      "parrafos": [
+        "En odontología conviven dos tipos de búsqueda. La urgencia, como dentista urgente o dolor de muela, es local, inmediata y con poca disposición a viajar: quien tiene dolor quiere al dentista más cercano que lo atienda hoy. Los tratamientos de alto valor, como implantes, carillas u ortodoncia invisible, se comparan con calma y el paciente puede cruzar la ciudad si confía en el especialista.",
+        "Mezclar ambos en una sola campaña es uno de los errores más comunes. Cada uno necesita su presupuesto, sus anuncios, su radio geográfico y su página de destino."
+      ]
+    },
+    {
+      "titulo": "Estructura recomendada",
+      "parrafos": [
+        "Una campaña de urgencias con radio corto, horario del consultorio y anuncios con extensión de llamada, que lleve a una página con teléfono y mapa. Campañas por tratamiento con radio más amplio, anuncios que expliquen el valor y lleven a la página de ese tratamiento con fotos reales y forma de agendar la valoración.",
+        "Palabras negativas como escuela de odontología, empleo, gratis o tratamientos que el consultorio no ofrece evitan pagar por clics inútiles. Los términos de búsqueda se revisan cada semana para afinar."
+      ]
+    },
+    {
+      "titulo": "Medir citas, no clics",
+      "parrafos": [
+        "Las conversiones que importan son citas agendadas en línea, llamadas y mensajes de WhatsApp. Configurarlas bien permite que Google aprenda qué búsquedas producen pacientes y que el consultorio sepa cuánto le cuesta cada valoración.",
+        "Si además el consultorio registra qué valoraciones se convierten en tratamiento, se puede medir el costo por paciente real, que es el número que decide si la inversión vale la pena."
+      ]
+    },
+    {
+      "titulo": "Políticas de salud",
+      "parrafos": [
+        "Google tiene reglas para anuncios de salud, y en México la publicidad de servicios de salud también está regulada. Los anuncios deben evitar promesas de resultados, comparaciones engañosas y fotos de antes y después que no cumplan las políticas. Una cuenta que respeta las reglas evita anuncios rechazados y suspensiones.",
+        "Mostrar en la página de destino la cédula del profesional responsable también suma confianza ante el paciente."
+      ]
+    },
+    {
+      "titulo": "Temporadas y presupuesto",
+      "parrafos": [
+        "Algunos tratamientos tienen temporadas: blanqueamiento antes de bodas y fiestas, ortodoncia antes del regreso a clases. Ajustar el presupuesto a esas temporadas, y bajarlo en semanas de menor demanda, hace rendir la inversión.",
+        "Los anuncios también pueden pausarse automáticamente cuando el consultorio está cerrado, si la campaña depende de llamadas."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Anunciar implantes y limpiezas con el mismo anuncio y la misma página. Dejar que la campaña corra los domingos cuando nadie contesta el teléfono. No excluir búsquedas de seguros públicos o clínicas universitarias cuando el consultorio es privado. Y, sobre todo, no medir qué clics se convirtieron en citas, lo que deja al consultorio decidiendo a ciegas si sube o baja la inversión."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Revisamos la cuenta actual, reorganizamos campañas por tratamiento y urgencia, configuramos la medición de citas, llamadas y WhatsApp, y alineamos las páginas de destino. Cada mes entregamos un reporte de costo por cita.",
+        "Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración mensual se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Conviene anunciar precios en los anuncios?",
+      "respuesta": "Para servicios simples, como limpieza o valoración, un precio desde puede mejorar la calidad de los clics. Para tratamientos complejos, mejor invitar a la valoración."
+    },
+    {
+      "pregunta": "¿Qué tan lejos deben mostrarse los anuncios?",
+      "respuesta": "Para urgencias, cerca del consultorio. Para tratamientos de alto valor, un radio más amplio según la ciudad y la competencia."
+    },
+    {
+      "pregunta": "¿Puedo anunciarme para pacientes extranjeros?",
+      "respuesta": "Sí, con campañas en inglés dirigidas a otros países y una página de destino bilingüe."
+    },
+    {
+      "pregunta": "¿Cuánto tarda en dar resultados?",
+      "respuesta": "Los primeros datos llegan en días; la optimización con datos suficientes toma algunas semanas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-dentistas",
+      "texto": "Página web para dentistas"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:03272c31f63113cb32513a109fc912dd15dfc80659c8775137066a0a9bb82096",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:03272c31f63113cb32513a109fc912dd15dfc80659c8775137066a0a9bb82096"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 645,
+    "similitud_max": 0.022,
+    "parecida_a": "/cuanto-invertir-en-google-ads-negocio-local"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:21ab67301ac6b8e9ab66d444e2604f0500e59b8504ed882fb22008e2c925c901",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

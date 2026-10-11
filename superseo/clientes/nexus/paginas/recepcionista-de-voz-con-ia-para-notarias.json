@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "recepcionista-de-voz-con-ia-para-notarias",
+  "cliente": "nexus",
+  "ruta": "/recepcionista-de-voz-con-ia-para-notarias",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Recepcionista de voz con IA para notarías",
+  "descripcion": "Recepcionista con inteligencia artificial para notarías: contesta llamadas, explica requisitos por trámite, agenda citas y atiende con paciencia a personas mayores.",
+  "h1": "Recepcionista de voz con IA para notarías",
+  "respuesta_rapida": [
+    "Contesta las llamadas de la notaría y explica requisitos por trámite con calma.",
+    "Agenda citas y envía por mensaje la lista de documentos que hay que traer.",
+    "Habla despacio y confirma cada dato, pensando en personas mayores.",
+    "Pasa al personal cualquier consulta que requiera criterio notarial."
+  ],
+  "secciones": [
+    {
+      "titulo": "Un público que prefiere llamar",
+      "parrafos": [
+        "Buena parte de los clientes de una notaría son personas mayores que prefieren llamar por teléfono. Preguntan qué necesitan para su testamento, cómo hacer un poder para un familiar o qué llevar para una compraventa. Son llamadas que requieren paciencia y que ocupan al personal que también prepara escrituras y atiende a quienes llegan a firmar.",
+        "Cuando el teléfono no se contesta, la persona vuelve a llamar varias veces o desiste, y la notaría pierde un trámite."
+      ]
+    },
+    {
+      "titulo": "Qué hace en una llamada",
+      "parrafos": [
+        "Pregunta qué trámite necesita la persona y explica, con lenguaje sencillo, los requisitos que la notaría definió para ese trámite. Si la persona no sabe cómo se llama el trámite, la recepcionista hace preguntas para entender qué quiere lograr y lo orienta.",
+        "Ofrece horarios de cita, agenda y envía por mensaje la confirmación con la dirección y la lista de documentos. Si la persona no usa mensajes, se los dicta con calma y puede llamarle un día antes para recordarle.",
+        "Cuando la consulta requiere criterio notarial, como una situación patrimonial complicada, toma el recado con el detalle para que el personal devuelva la llamada."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un señor de edad avanzada llama un martes: quiero dejar mi casa a mis hijos, ¿qué tengo que hacer? La recepcionista le explica, sin tecnicismos, que lo habitual es un testamento, le dice qué documentos llevar y le ofrece una cita. Como él prefiere que le recuerden, le llama el día anterior. Llega con todo y la firma se hace sin contratiempos.",
+        "El personal no tuvo que dedicar media hora a esa primera llamada."
+      ]
+    },
+    {
+      "titulo": "Formalidad y paciencia",
+      "parrafos": [
+        "La recepcionista se configura con un tono formal, respetuoso y paciente, adecuado a la función notarial. Habla despacio, repite cuando hace falta y confirma cada dato. No interpreta situaciones jurídicas ni sustituye la asesoría del notario; su papel es orientar sobre requisitos y agendar.",
+        "Si la persona prefiere hablar con alguien del personal, la transfiere o toma el recado."
+      ]
+    },
+    {
+      "titulo": "Lo que gana la notaría",
+      "parrafos": [
+        "Ninguna llamada sin respuesta, menos citas perdidas por documentos faltantes, personal concentrado en los trámites y clientes mayores bien atendidos. En temporadas de alta demanda, como el mes del testamento, atiende el aumento de llamadas sin saturar a nadie.",
+        "Todas las llamadas quedan registradas con resumen."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Reunimos los trámites con sus requisitos, los horarios, las reglas de cita y el tono de la notaría. El notario o el personal aprueban cada respuesta. Configuramos el desvío del número actual y probamos llamadas, incluidas las de personas mayores, antes de activarla."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Se cotiza aparte según volumen de llamadas. Se combina con el asistente de WhatsApp para notarías, incluido en los paquetes de sitio desde $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede dar costos de trámites?",
+      "respuesta": "Solo si la notaría lo autoriza. Lo habitual es explicar de qué depende y agendar una cotización."
+    },
+    {
+      "pregunta": "¿Funciona con la línea actual?",
+      "respuesta": "Sí, mediante desvío cuando nadie contesta o fuera de horario."
+    },
+    {
+      "pregunta": "¿Puede llamar para recordar citas?",
+      "respuesta": "Sí, un día antes, por llamada o por mensaje, según prefiera cada cliente."
+    },
+    {
+      "pregunta": "¿Qué pasa si la persona se confunde?",
+      "respuesta": "La recepcionista repite con calma y, si es necesario, ofrece que alguien del personal le devuelva la llamada."
+    },
+    {
+      "pregunta": "¿Puede atender en otro idioma?",
+      "respuesta": "Sí, si la notaría recibe extranjeros que necesitan trámites, puede atender en inglés y agendar con el personal que los asiste."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-notarias",
+      "texto": "Página web para notarías"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-notarias",
+      "texto": "Chatbot de WhatsApp para notarías"
+    },
+    {
+      "ruta": "/chatbot-vs-recepcionista-humana",
+      "texto": "Chatbot vs. recepcionista: qué hace mejor cada uno"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:6bc07e99821fd0572b5ce6bcbb4e76b55c7cd77366a83db40c5bdd6b3fb88f6f",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:6bc07e99821fd0572b5ce6bcbb4e76b55c7cd77366a83db40c5bdd6b3fb88f6f"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 613,
+    "similitud_max": 0.034,
+    "parecida_a": "/chatbot-whatsapp-para-notarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:87f44db86f973cf730d9118eaf87ec5713b92d25888331fca5bc0fccbd5b6f88",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}

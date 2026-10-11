@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-florerias",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-florerias",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Chatbot de WhatsApp para florerías",
+  "descripcion": "Asistente de IA para florerías: toma pedidos completos con fecha, dirección y dedicatoria, cobra en línea, confirma entregas y atiende temporadas altas.",
+  "h1": "Chatbot de WhatsApp para florerías",
+  "respuesta_rapida": [
+    "Toma el pedido completo: arreglo, fecha, horario, dirección, quién recibe y dedicatoria.",
+    "Calcula el total con envío por zona y envía el enlace de pago.",
+    "Confirma la entrega con foto del arreglo y aviso al cliente.",
+    "En temporada alta atiende cientos de pedidos sin que el equipo deje de armar."
+  ],
+  "secciones": [
+    {
+      "titulo": "Pedidos con prisa y con detalles",
+      "parrafos": [
+        "Un pedido de flores tiene muchos datos que no pueden fallar: el arreglo, la fecha, la hora, la dirección, el nombre y teléfono de quien recibe, la dedicatoria, si es sorpresa. Tomarlo por WhatsApp entre arreglo y arreglo es fácil de equivocar, y un error en la dirección o en la dedicatoria arruina un momento importante para el cliente.",
+        "En temporadas como San Valentín o Día de las Madres, el volumen de mensajes rebasa a cualquier equipo.",
+        "A eso se suma que muchos pedidos llegan de noche, cuando la florería ya cerró, de personas que necesitan las flores a primera hora del día siguiente. Sin alguien que conteste, esos pedidos se van a la florería que sí responde."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Muestra arreglos por ocasión y precio con fotos reales, y cuando el cliente elige, pide los datos en orden: fecha y horario de entrega, dirección, quién recibe, dedicatoria y si es sorpresa. Calcula el envío según la zona, confirma el total y envía el enlace de pago o recibe el comprobante de transferencia.",
+        "El pedido llega al equipo completo y ordenado. Antes de salir, el equipo puede tomar una foto del arreglo, y el asistente se la envía al cliente; al entregarse, le avisa.",
+        "Si la capacidad del día se llena, el asistente deja de ofrecer entrega para esa fecha y propone la siguiente disponible."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un hombre escribe a las once de la noche: necesito flores para mañana, es el cumpleaños de mi mamá. El asistente le muestra arreglos de cumpleaños, él elige uno, da la dirección y la dedicatoria, paga en línea y recibe la confirmación. Al día siguiente recibe la foto del arreglo antes de salir y el aviso de entregado.",
+        "Su mamá recibió las flores a tiempo y él no tuvo que llamar a nadie."
+      ]
+    },
+    {
+      "titulo": "Temporadas altas sin caos",
+      "parrafos": [
+        "En temporada alta, el asistente puede abrir una preventa con anticipación, limitar pedidos por horario según la capacidad de producción y de entrega, y cerrar fechas automáticamente cuando se llenan. Así la florería vende todo lo que puede producir bien, sin comprometerse de más.",
+        "Ese orden se nota en las reseñas, que en este giro pesan mucho."
+      ]
+    },
+    {
+      "titulo": "Empresas y funerales",
+      "parrafos": [
+        "Para clientes empresariales, el asistente puede tomar pedidos recurrentes y datos de facturación. Para coronas y arreglos fúnebres, se configura con un tono sobrio y prioriza la entrega rápida a capillas y funerarias.",
+        "Cada línea de negocio con su propio trato, en la misma conversación."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Cargamos el catálogo con fotos y precios, las zonas de entrega con su costo, la capacidad por día y las reglas de temporada. Escribimos las respuestas con el tono de la florería, conectamos los pagos y probamos pedidos completos con el equipo."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN. Para florerías que ya tienen sitio, se cotiza aparte según volumen."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede ofrecer complementos?",
+      "respuesta": "Sí, como globos, chocolates o tarjetas, como opciones dentro del pedido."
+    },
+    {
+      "pregunta": "¿Qué pasa si el destinatario no está?",
+      "respuesta": "El asistente avisa al cliente y sigue las instrucciones que la florería defina para esos casos."
+    },
+    {
+      "pregunta": "¿Puede manejar varias sucursales?",
+      "respuesta": "Sí, asignando el pedido a la sucursal más cercana a la dirección de entrega."
+    },
+    {
+      "pregunta": "¿Puede programar pedidos con semanas de anticipación?",
+      "respuesta": "Sí. Registra la fecha futura, cobra o aparta, y el pedido aparece en la producción del día correspondiente."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-florerias",
+      "texto": "Página web para florerías"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:b691109ec2c771e65d01578bfd3a61311855b1f4be986fbec0d8918d0d63a48b",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:b691109ec2c771e65d01578bfd3a61311855b1f4be986fbec0d8918d0d63a48b"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 620,
+    "similitud_max": 0.015,
+    "parecida_a": "/chatbot-whatsapp-para-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:b26766306a25e61b265343a8a921b9c187da6479df555bb908184958bf47e3fd",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}

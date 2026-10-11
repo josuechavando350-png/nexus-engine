@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "nombre": "SUPERSEO",
+  "producto": "NEXUS DOMINIO",
+  "estados": {
+    "CONECTADO": "Funciona dentro de SUPERSEO y tiene pruebas.",
+    "DISPONIBLE": "Ya existe en el repo y tiene pruebas propias; falta conectarlo a SUPERSEO.",
+    "POR_CONSTRUIR": "Diseñado en el plan; todavía no existe código."
+  },
+  "componentes": [
+    { "id": "crawler", "nombre": "NEXUS Crawler", "rol": "ojos", "estado": "CONECTADO", "ruta": "superseo/ojos/crawler.mjs", "hace": "Rastrea el sitio respetando robots.txt, lee sitemaps y registra redirecciones." },
+    { "id": "despertador", "nombre": "Despertador de autoridad", "rol": "ojos", "estado": "CONECTADO", "ruta": "superseo/ojos/auditoria.mjs", "hace": "Auditoría técnica: errores, redirecciones, indexación, títulos, canonical, clones, huérfanas, datos del negocio." },
+    { "id": "search-console", "nombre": "Search Console", "rol": "ojos", "estado": "CONECTADO", "ruta": "superseo/ojos/search-console.mjs", "requiere": "Secreto GSC_SERVICE_ACCOUNT_JSON y que el cliente agregue la cuenta de servicio a su propiedad", "hace": "Lee búsquedas, clics, impresiones y posiciones reales; alimenta a Avengers y al Demand Miner." },
+    { "id": "demand-miner", "nombre": "Demand Miner", "rol": "ojos", "estado": "CONECTADO", "ruta": "superseo/ojos/demanda.mjs", "hace": "Propone páginas por servicio, situación y zona, o desde un portafolio curado (agencias); usa Keyword Planner y Search Console cuando existen." },
+    { "id": "link-graph", "nombre": "Link Graph interno", "rol": "ojos", "estado": "CONECTADO", "ruta": "superseo/ojos/grafo.mjs", "hace": "Autoridad interna, profundidad, páginas inalcanzables y enlaces que faltan." },
+    { "id": "backlinks", "nombre": "Backlinks externos", "rol": "ojos", "estado": "POR_CONSTRUIR", "hace": "Quién enlaza a la competencia, desde el grafo de Common Crawl." },
+    { "id": "search-console-ctr", "nombre": "Search Console CTR", "rol": "ojos", "estado": "DISPONIBLE", "ruta": "packages/search-console-ctr", "hace": "Curva de CTR por posición y oportunidades de clic." },
+    { "id": "crawl-observability", "nombre": "Observabilidad de rastreo", "rol": "ojos", "estado": "DISPONIBLE", "ruta": "packages/crawl-observability", "hace": "Diagnóstico de rastreo a partir de logs del servidor o del edge." },
+    { "id": "analitica-propia", "nombre": "Analítica propia", "rol": "ojos", "estado": "DISPONIBLE", "ruta": "apps/cano-penal/src/app/NexusBehavioralSignals.tsx", "hace": "Las páginas SUPERSEO ya emiten señales de WhatsApp y llamada por página; falta leerlas del destino de la analítica." },
+
+    { "id": "estratega", "nombre": "Estratega", "rol": "cerebro", "estado": "CONECTADO", "ruta": "superseo/core/estratega.mjs", "hace": "Arma la estrategia de cada cliente con lo que haya entregado y mide su potencia." },
+    { "id": "territorios", "nombre": "Territorios", "rol": "cerebro", "estado": "CONECTADO", "ruta": "superseo/core/territorio.mjs", "hace": "Evita trabajar para dos clientes que compiten por lo mismo; respeta exclusividades." },
+    { "id": "interruptor", "nombre": "Interruptor", "rol": "cerebro", "estado": "CONECTADO", "ruta": "superseo/core/interruptor.mjs", "hace": "Prende, prepara o apaga SUPERSEO por cliente, con historial y plan de redirecciones." },
+    { "id": "avengers-2500", "nombre": "SEO Avengers M1001–M2500", "rol": "cerebro", "estado": "CONECTADO", "ruta": "seo-avengers-2500", "puente": "superseo/cerebro/avengers.mjs", "hace": "1,500 módulos white-hat en modo observación sobre el rastreo real y Search Console." },
+    { "id": "gauss", "nombre": "GAUSS", "rol": "cerebro", "estado": "CONECTADO", "ruta": "gauss", "puente": "superseo/cerebro/priorizar.mjs", "hace": "Elige el lote de páginas con la mochila binaria exacta GAUSS.CS.KNAPSACK_EXACT.001." },
+    { "id": "avengers-1000", "nombre": "SEO Avengers M001–M1000", "rol": "cerebro", "estado": "DISPONIBLE", "ruta": "seo-avengers-1000", "hace": "Primeros 1,000 módulos, verificados en cadena por WALLE." },
+    { "id": "walle", "nombre": "WALLE", "rol": "cerebro", "estado": "DISPONIBLE", "ruta": "walle", "hace": "Ejecución controlada y certificación; ya tiene adaptador para Avengers 2500." },
+    { "id": "axioma", "nombre": "AXIOMA", "rol": "cerebro", "estado": "DISPONIBLE", "ruta": "gauss/axioma", "hace": "Verifica de forma independiente las cuentas de GAUSS." },
+    { "id": "forja-auditoria", "nombre": "AXIOMA FORJA", "rol": "cerebro", "estado": "DISPONIBLE", "ruta": "forja", "hace": "Auditoría de conexiones e inventario del repo." },
+    { "id": "query-fanout", "nombre": "Query fan-out", "rol": "cerebro", "estado": "DISPONIBLE", "ruta": "packages/query-fanout", "hace": "Simula las subpreguntas que cubre una página." },
+    { "id": "topical-authority", "nombre": "Grafo de autoridad temática", "rol": "cerebro", "estado": "DISPONIBLE", "ruta": "packages/topical-authority-graph", "hace": "Cobertura de temas, intención y enlazado interno." },
+    { "id": "passage-intelligence", "nombre": "Inteligencia de pasajes", "rol": "cerebro", "estado": "DISPONIBLE", "ruta": "packages/passage-intelligence", "hace": "Claridad y respuesta de cada sección de una página." },
+    { "id": "entity-intelligence", "nombre": "Inteligencia de entidades", "rol": "cerebro", "estado": "DISPONIBLE", "ruta": "packages/entity-intelligence", "hace": "Entidades y su relevancia en el contenido." },
+
+    { "id": "candado-clones", "nombre": "Candado anti-clones", "rol": "manos", "estado": "CONECTADO", "ruta": "superseo/core/similitud.mjs", "hace": "Bloquea páginas que solo cambian la zona; enmascara nombres de lugar antes de comparar." },
+    { "id": "forja-paginas", "nombre": "Forja de páginas Torre", "rol": "manos", "estado": "CONECTADO", "ruta": "superseo/manos/forja.mjs", "requiere": "Secreto ANTHROPIC_API_KEY (o contenido escrito a mano)", "hace": "Plan, redacción con el conocimiento del cliente, candados de calidad y aprobación ligada al contenido." },
+    { "id": "publicacion", "nombre": "Publicación en el sitio", "rol": "manos", "estado": "CONECTADO", "ruta": "superseo/manos/publicar.mjs", "sitio": "apps/cano-penal/src/app/[superseo]/page.tsx", "hace": "Paquete del sitio según el interruptor: solo encendido publica, apagado redirige. Para sitios fuera del repo, entrega por ZIP en clientes/<id>/entrega/." },
+    { "id": "indexacion", "nombre": "Motor de indexación", "rol": "manos", "estado": "CONECTADO", "ruta": "superseo/manos/indexacion.mjs", "hace": "Sitemap de SUPERSEO, plan de enlaces internos e IndexNow." },
+    { "id": "perfil-google", "nombre": "Perfil de Google", "rol": "manos", "estado": "DISPONIBLE", "ruta": "packages/local-presence", "hace": "Datos del negocio, deriva de NAP y respuestas a reseñas con aprobación; requiere OAuth del cliente." },
+
+    { "id": "oraculo", "nombre": "Oráculo de tendencias", "rol": "tercer_ojo", "estado": "CONECTADO", "ruta": "superseo/tercer-ojo/oraculo.mjs", "hace": "Detecta temas nuevos del rubro en fuentes públicas antes que la competencia." },
+    { "id": "vigia", "nombre": "Vigía de competencia", "rol": "tercer_ojo", "estado": "CONECTADO", "ruta": "superseo/tercer-ojo/vigia.mjs", "hace": "Páginas nuevas, eliminadas y cambiadas en los sitios que compiten." },
+    { "id": "generative-readiness", "nombre": "Visibilidad en IA", "rol": "tercer_ojo", "estado": "DISPONIBLE", "ruta": "packages/generative-readiness", "hace": "Preparación de páginas para respuestas con IA de Google." },
+
+    { "id": "observatorio", "nombre": "Observatorio del delito", "rol": "arma", "estado": "CONECTADO", "ruta": "superseo/arma/observatorio.mjs", "hace": "Datos abiertos de la Fiscalía CDMX agregados y verificados; dan los datos locales de cada Torre. La página pública espera la decisión de dominio." },
+    { "id": "panel", "nombre": "Panel desde el teléfono", "rol": "control", "estado": "CONECTADO", "ruta": ".github/workflows/superseo-panel.yml", "hace": "Prender, apagar, cambiar plan, marcar insumos, aprobar y publicar desde GitHub Actions." }
+  ]
+}

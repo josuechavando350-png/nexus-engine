@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "como-hacer-que-google-indexe-mi-pagina",
+  "cliente": "nexus",
+  "ruta": "/como-hacer-que-google-indexe-mi-pagina",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "Cómo hacer que Google indexe tu página",
+  "descripcion": "Cómo lograr que Google descubra e indexe tu página: Search Console, sitemap, enlaces internos, solicitar indexación y qué revisar si una página no aparece.",
+  "h1": "Cómo hacer que Google indexe tu página",
+  "respuesta_rapida": [
+    "Da de alta tu sitio en Google Search Console y envía tu sitemap.",
+    "Enlaza cada página nueva desde otras páginas de tu sitio.",
+    "Usa la inspección de URL para pedir la indexación de páginas importantes.",
+    "Si una página no se indexa, revisa bloqueos técnicos, calidad y duplicados."
+  ],
+  "secciones": [
+    {
+      "titulo": "Rastrear, indexar, posicionar",
+      "parrafos": [
+        "Para que una página aparezca en Google pasan tres cosas. Primero, Google la descubre y la rastrea, es decir, la visita con su robot. Después decide si la indexa, o sea, si la guarda en su catálogo. Y solo entonces puede mostrarla en los resultados, en la posición que considere.",
+        "Muchas páginas se quedan en el camino: descubiertas pero no rastreadas, o rastreadas pero no indexadas. Entender en qué etapa está cada una es el primer paso."
+      ]
+    },
+    {
+      "titulo": "Search Console y sitemap",
+      "parrafos": [
+        "Google Search Console es la herramienta gratuita de Google para ver cómo ve tu sitio. Verifica tu dominio ahí y envía tu sitemap, el archivo que lista todas las páginas que quieres que Google conozca. Con eso, Google sabe qué existe y tú puedes ver el estado de indexación de cada página.",
+        "Si tu sitio genera el sitemap automáticamente, solo hay que enviar su dirección una vez."
+      ]
+    },
+    {
+      "titulo": "Enlaces internos",
+      "parrafos": [
+        "Google descubre páginas siguiendo enlaces. Una página nueva que no está enlazada desde ninguna otra de tu sitio es difícil de encontrar y parece poco importante. Enlaza cada página nueva desde páginas relacionadas, desde un índice o sección, y desde el menú si es relevante.",
+        "Los enlaces internos también le dicen a Google qué páginas consideras más importantes."
+      ]
+    },
+    {
+      "titulo": "Solicitar indexación",
+      "parrafos": [
+        "En Search Console, la inspección de URL permite revisar una página concreta y solicitar que Google la rastree. Es útil para páginas nuevas importantes o después de cambios grandes. No asegura que la página se indexe, pero acelera el rastreo.",
+        "Para otros buscadores, como Bing, existe IndexNow, un aviso automático que se envía cuando publicas o cambias páginas."
+      ]
+    },
+    {
+      "titulo": "Si una página no se indexa",
+      "parrafos": [
+        "Revisa que no esté bloqueada: una etiqueta de no indexar, una regla en el archivo robots o una etiqueta canónica que apunte a otra página. Este último error es más común de lo que parece: hemos encontrado sitios donde varias páginas le decían a Google que la página principal era la portada, y por eso no se indexaban por separado.",
+        "Si no hay bloqueos, Google puede considerar que la página es de poco valor o muy parecida a otra. Mejorar su contenido y diferenciarla suele resolverlo."
+      ]
+    },
+    {
+      "titulo": "Paciencia con dominios nuevos",
+      "parrafos": [
+        "Un dominio nuevo, con poca autoridad, recibe menos visitas del robot de Google. Las páginas pueden tardar semanas en indexarse, y algunas quedarán en espera. Publicar contenido útil de forma constante, conseguir menciones y enlaces de otros sitios y tener un sitio técnico sano ayuda a que Google confíe más con el tiempo.",
+        "Subir cientos de páginas de golpe no hace que se indexen más rápido."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Configuramos Search Console, el sitemap automático, IndexNow y los enlaces internos de cada página nueva. SUPERSEO revisa además cada página antes de publicarla para evitar duplicados y bloqueos. Es parte de Nexus Growth."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuánto tarda Google en indexar?",
+      "respuesta": "Desde horas hasta semanas, según la autoridad del sitio, los enlaces y la calidad de la página."
+    },
+    {
+      "pregunta": "¿Qué significa descubierta, actualmente sin indexar?",
+      "respuesta": "Google sabe que la página existe pero todavía no la ha rastreado; suele resolverse con tiempo, enlaces internos y un sitio rápido."
+    },
+    {
+      "pregunta": "¿Puedo pagar para que Google me indexe?",
+      "respuesta": "No. La indexación orgánica no se compra; los anuncios son un sistema aparte."
+    },
+    {
+      "pregunta": "¿Sirve pedir indexación muchas veces?",
+      "respuesta": "No. Una solicitud basta; repetirla no acelera el proceso."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/search-console-para-principiantes",
+      "texto": "Google Search Console para principiantes"
+    },
+    {
+      "ruta": "/por-que-mi-negocio-no-aparece-en-google",
+      "texto": "¿Por qué mi negocio no aparece en Google?"
+    },
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:4037971eaacf7e1883cf035156f6450990428247c1e616e5454bcac40f170181",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:4037971eaacf7e1883cf035156f6450990428247c1e616e5454bcac40f170181"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 606,
+    "similitud_max": 0.012,
+    "parecida_a": "/por-que-mi-negocio-no-aparece-en-google"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:7134eb2d23b57db82997a9f043aeb18cefc24083af38b8ff55ffb03e0aefcf15",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

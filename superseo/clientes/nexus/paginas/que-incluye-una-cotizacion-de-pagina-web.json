@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "id": "que-incluye-una-cotizacion-de-pagina-web",
+  "cliente": "nexus",
+  "ruta": "/que-incluye-una-cotizacion-de-pagina-web",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Costos y tiempos",
+  "titulo": "Qué debe incluir una cotización de página web",
+  "descripcion": "La lista de lo que una cotización de página web debe decir por escrito: alcance, entregables, tiempos, pagos, dominio, mantenimiento y qué pasa con los accesos.",
+  "h1": "Qué debe incluir una cotización de página web",
+  "respuesta_rapida": [
+    "Alcance claro: cuántas páginas o secciones, qué funciones y qué no incluye.",
+    "Entregables y tiempos: qué recibes, cuándo y cuántas rondas de cambios.",
+    "Pagos: monto, anticipo, forma de pago y qué pasa si el proyecto se detiene.",
+    "Propiedad: dominio, hosting, código y accesos a tu nombre."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué una cotización vaga sale cara",
+      "parrafos": [
+        "Muchos problemas entre negocios y proveedores de páginas web empiezan con una cotización de una línea: página web profesional, tanto. Después, cada uno entiende algo distinto. El cliente esperaba una tienda y recibió un catálogo; el proveedor pensaba en cinco secciones y el cliente pidió quince. Nadie mintió, pero nadie lo puso por escrito.",
+        "Una buena cotización protege a los dos: al cliente, de recibir menos de lo esperado, y al proveedor, de un proyecto que nunca termina."
+      ]
+    },
+    {
+      "titulo": "Alcance",
+      "parrafos": [
+        "La cotización debe decir cuántas páginas o secciones incluye y cuáles son, qué funciones tiene, como formulario, botón de WhatsApp, agenda, catálogo, tienda, asistente de IA, versión en otro idioma, y qué queda fuera. Si incluye textos o fotos, debe decir quién los produce.",
+        "También conviene que diga si el diseño es propio o una plantilla adaptada, y en qué tecnología se construye."
+      ]
+    },
+    {
+      "titulo": "Entregables y tiempos",
+      "parrafos": [
+        "Qué vas a recibir y cuándo: propuesta visual, versión de revisión, sitio publicado. Cuántas rondas de ajustes están incluidas y cómo se cobran los cambios adicionales. Qué necesita el proveedor de ti y para cuándo, porque muchas veces el retraso viene de textos o fotos que no llegan.",
+        "Un calendario con fechas aproximadas de cada etapa evita malentendidos."
+      ]
+    },
+    {
+      "titulo": "Pagos",
+      "parrafos": [
+        "El monto total, si incluye impuestos, el anticipo para arrancar, cuándo se paga el resto y por qué medios. También qué pasa si el proyecto se pausa por mucho tiempo o se cancela: qué se entrega y qué se reembolsa.",
+        "Los costos recurrentes deben aparecer aparte: dominio, hospedaje, mantenimiento, servicios conectados."
+      ]
+    },
+    {
+      "titulo": "Propiedad y accesos",
+      "parrafos": [
+        "Este punto es el más importante y el que más se olvida. La cotización debe decir que el dominio estará registrado a tu nombre, que tendrás acceso al hosting y al panel de administración, y que el contenido y el diseño te pertenecen al terminar de pagar.",
+        "Sin esto, un negocio puede quedar atado a un proveedor o perder su página si la relación termina."
+      ]
+    },
+    {
+      "titulo": "Preguntas que conviene hacer",
+      "parrafos": [
+        "¿Puedo ver tres sitios que hayan hecho y abrirlos en mi celular? ¿Quién escribe los textos? ¿Se mide cuántos mensajes y llamadas llegan desde la página? ¿Qué pasa si quiero agregar una sección dentro de seis meses? ¿Puedo hacer cambios yo mismo? Las respuestas a estas preguntas dicen más del proveedor que el precio.",
+        "Si alguna respuesta es vaga, pide que la pongan por escrito antes de pagar el anticipo."
+      ]
+    },
+    {
+      "titulo": "Después de publicar",
+      "parrafos": [
+        "Qué soporte incluye después de la entrega y por cuánto tiempo, cómo se solicitan cambios, cuánto cuestan y cuánto tardan. Si hay garantía por errores técnicos, también debe estar escrita.",
+        "En Nexus la cotización se envía por escrito con todo esto. Los paquetes van de $1,999 a $44,800 MXN, y el dominio y los accesos siempre quedan a tu nombre."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Es normal pagar anticipo?",
+      "respuesta": "Sí, es habitual pagar una parte para arrancar y el resto contra entrega. Lo importante es que esté por escrito."
+    },
+    {
+      "pregunta": "¿Qué hago si la cotización no menciona el dominio?",
+      "respuesta": "Pregunta antes de pagar a nombre de quién quedará y pide que se agregue por escrito."
+    },
+    {
+      "pregunta": "¿Debo firmar contrato?",
+      "respuesta": "Para proyectos grandes, conviene. Para proyectos pequeños, una cotización detallada y aceptada por escrito suele bastar."
+    },
+    {
+      "pregunta": "¿Cómo comparo dos cotizaciones?",
+      "respuesta": "Poniendo lado a lado alcance, entregables, tiempos, pagos y propiedad. Solo así se comparan precios de verdad."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/preguntas-antes-de-contratar-una-pagina-web",
+      "texto": "Preguntas antes de contratar una página web"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-pagina-web-en-mexico",
+      "texto": "¿Cuánto cuesta una página web en México?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:1b1410ea3b9bd4cb73853dc07b887b92adadde5e890aeb9c1ea5feda3ac4af88",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:1b1410ea3b9bd4cb73853dc07b887b92adadde5e890aeb9c1ea5feda3ac4af88"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 610,
+    "similitud_max": 0.01,
+    "parecida_a": "/cuanto-cuesta-mantener-una-pagina-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:5d9b83f557aa678069c5de7c99dac06ae60edbec8e28fa205ef2c4c74ebf739d",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

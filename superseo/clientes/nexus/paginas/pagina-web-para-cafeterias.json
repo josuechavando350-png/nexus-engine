@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-cafeterias",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-cafeterias",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comida",
+  "titulo": "Página web para cafeterías",
+  "descripcion": "Sitios para cafeterías: carta con precios, horario, espacio para trabajar, venta de café en grano y pedidos para llevar. Rápidos en el celular.",
+  "h1": "Página web para cafeterías",
+  "respuesta_rapida": [
+    "Una cafetería compite por ambiente y por costumbre: la página debe mostrar el lugar y la carta.",
+    "Indica si hay wifi, enchufes y espacio para trabajar; mucha gente busca exactamente eso.",
+    "Si vendes café en grano o postres para pedido, la página puede convertirse en tienda.",
+    "Horario exacto y ubicación, idénticos en Google Maps."
+  ],
+  "secciones": [
+    {
+      "titulo": "El cliente de cafetería",
+      "parrafos": [
+        "Hay quien busca un café para trabajar dos horas, quien busca un lugar bonito para una cita, quien quiere un buen espresso de camino a la oficina y quien busca un pastel para llevar. Cada uno revisa cosas distintas, y una buena página de cafetería responde a todos sin complicarse.",
+        "Lo que comparten es que deciden rápido y desde el celular. La página debe cargar en un instante y mostrar el lugar, la carta y el horario sin vueltas."
+      ]
+    },
+    {
+      "titulo": "La carta",
+      "parrafos": [
+        "Bebidas calientes y frías, métodos de extracción, leches alternativas, alimentos, postres. Con precios y, si vale la pena, el origen del café. Para quien aprecia el café de especialidad, saber de qué región viene y cómo se tuesta es un argumento de peso.",
+        "En texto, no en foto ni PDF, para que se lea bien y Google la entienda."
+      ]
+    },
+    {
+      "titulo": "El espacio y la identidad",
+      "parrafos": [
+        "Fotos reales del lugar con luz natural, de las mesas, de la barra. Indicar si hay wifi, enchufes, terraza, si se admiten mascotas o si hay música tranquila. Son detalles que se buscan literalmente, como cafetería para trabajar o cafetería pet friendly.",
+        "Si organizas catas, talleres o eventos, una sección con el calendario atrae público nuevo.",
+        "El encanto de una cafetería independiente está en su personalidad: el nombre, la paleta, la vajilla, la música. La página debe reflejar esa identidad, no parecer una plantilla con tu logo.",
+        "Esa coherencia hace que el cliente que te descubre en Google reconozca el lugar cuando llega."
+      ]
+    },
+    {
+      "titulo": "Venta de café y pedidos",
+      "parrafos": [
+        "Muchas cafeterías venden café en grano o molido, y algunas tienen repostería por encargo. La página puede convertirse en una pequeña tienda con envío local o pedido para recoger, que suma ingresos fuera del horario del local.",
+        "Una suscripción mensual de café es otra idea que funciona con clientes fieles."
+      ]
+    },
+    {
+      "titulo": "Google Maps y reseñas",
+      "parrafos": [
+        "Cafetería cerca de mí es una búsqueda constante. El perfil de Google con fotos recientes, horario correcto y reseñas es lo que te pone en la lista. Una tarjeta en la barra con un código QR para dejar reseña funciona mejor que pedirla en voz alta.",
+        "Cuando la página y el perfil coinciden en horario y dirección, Google confía más en ambos."
+      ]
+    },
+    {
+      "titulo": "Desayunos y oficina",
+      "parrafos": [
+        "Si estás cerca de oficinas o escuelas, el pedido anticipado es una ventaja enorme: el cliente pide desde su escritorio y recoge sin fila. La página puede mostrar los combos de desayuno y permitir pedir para una hora concreta.",
+        "Para empresas, una página de pedidos para juntas y eventos, con café para grupos y bocadillos, abre una línea de ingreso que muchas cafeterías dejan pasar."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para cafeterías con carta fácil de actualizar, fotos reales y pedidos o venta de café en línea. Desde $1,999 MXN, con tienda en línea según el paquete."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo vender café en grano con envío?",
+      "respuesta": "Sí. Se puede integrar una tienda sencilla con pago en línea y envío local o nacional."
+    },
+    {
+      "pregunta": "¿Sirve la página si estoy en una zona de oficinas?",
+      "respuesta": "Sí. Muchos oficinistas buscan desayunos y café para llevar; una página con pedidos anticipados te hace la opción más cómoda."
+    },
+    {
+      "pregunta": "¿Necesito blog?",
+      "respuesta": "No es indispensable. Algunas notas sobre tu café, sus orígenes o métodos de preparación pueden atraer amantes del café de especialidad."
+    },
+    {
+      "pregunta": "¿Puedo tener tarjeta de lealtad digital?",
+      "respuesta": "Sí. Un sistema sencillo registra las compras de cada cliente y le avisa cuando gana su bebida de cortesía."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-cafeterias",
+      "texto": "Cómo aparecer en Google Maps: cafeterías"
+    },
+    {
+      "ruta": "/reservas-en-linea-para-restaurantes",
+      "texto": "Reservas en línea para restaurantes"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:ab613dcaf099ddc66bc0ffbd018355de47213d6b1f135d65ce68dd3f8f818634",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:ab613dcaf099ddc66bc0ffbd018355de47213d6b1f135d65ce68dd3f8f818634"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 631,
+    "similitud_max": 0.005,
+    "parecida_a": "/pagina-web-para-barberias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:940cc9c2f883c7389b2ed8d5e49eb08c8260dc3921caa1afa74c69e4ad21dcb5",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

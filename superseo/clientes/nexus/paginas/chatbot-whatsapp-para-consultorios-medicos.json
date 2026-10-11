@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-consultorios-medicos",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-consultorios-medicos",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Chatbot de WhatsApp para consultorios médicos",
+  "descripcion": "Asistente de IA para médicos: agenda consultas, responde costo, ubicación y aseguradoras, confirma citas y deriva todo lo clínico al médico o a su asistente.",
+  "h1": "Chatbot de WhatsApp para consultorios médicos",
+  "respuesta_rapida": [
+    "Contesta a cualquier hora las dudas logísticas: costo de consulta, ubicación, aseguradoras, horarios.",
+    "Agenda según la disponibilidad real del médico y confirma la cita el día anterior.",
+    "Todo lo clínico se deriva al médico o a la asistente, sin excepciones.",
+    "Reduce citas perdidas y libera tiempo de la asistente para atender a los pacientes presentes."
+  ],
+  "secciones": [
+    {
+      "titulo": "La asistente no se da abasto",
+      "parrafos": [
+        "En un consultorio de especialidad, la asistente atiende pacientes en sala, cobra, contesta llamadas, maneja la agenda y responde WhatsApp, todo al mismo tiempo. Las preguntas repetidas sobre costo, dirección dentro del hospital, estacionamiento o seguros consumen buena parte de su día, y los mensajes nocturnos esperan hasta la mañana.",
+        "Mientras tanto, los huecos en la agenda por pacientes que no llegan representan ingresos perdidos que difícilmente se recuperan."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Responde de inmediato con la información que el médico autorizó: especialidad, costo de consulta, aseguradoras aceptadas, si emite factura, torre y número de consultorio, estacionamiento y horarios. Ofrece horarios disponibles, agenda y envía la confirmación con indicaciones de llegada y lo que conviene traer, como estudios previos.",
+        "Un día antes envía un recordatorio con opción de confirmar o reprogramar. Si el paciente cancela, el espacio se libera y puede ofrecerse a alguien en lista de espera.",
+        "Si un paciente describe síntomas, el asistente no opina: indica que el médico o la asistente le contactarán, y ante cualquier señal de urgencia recomienda acudir a un servicio de emergencias."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un paciente referido por su médico familiar escribe el domingo: necesito una consulta con el cardiólogo, ¿aceptan mi seguro? El asistente confirma si la aseguradora está en la lista, explica el proceso de pago y ofrece citas de la semana. El paciente agenda y recibe la ubicación exacta en el hospital.",
+        "El lunes, la asistente ve la cita registrada con el motivo general y la aseguradora, lista para preparar el expediente."
+      ]
+    },
+    {
+      "titulo": "Responsabilidad médica",
+      "parrafos": [
+        "El asistente no diagnostica, no interpreta estudios, no sugiere medicamentos y no reemplaza la valoración. Está configurado con límites estrictos y con mensajes de seguridad para situaciones de urgencia. Esa prudencia es la única forma responsable de usar inteligencia artificial en la atención a pacientes.",
+        "Las respuestas que da sobre el consultorio son las que el médico aprobó, no información general de internet."
+      ]
+    },
+    {
+      "titulo": "Privacidad",
+      "parrafos": [
+        "Se solicitan solo los datos necesarios para agendar, con el aviso de privacidad del consultorio. Los datos clínicos no se tratan por chat. La información se guarda con acceso restringido, y el médico puede revisar cualquier conversación.",
+        "En Nexus aplicamos criterio de ciberseguridad en cada integración: validación estricta, acceso mínimo y registros de actividad."
+      ]
+    },
+    {
+      "titulo": "Cómo se configura",
+      "parrafos": [
+        "En un diagnóstico gratuito reunimos la información práctica del consultorio: sedes, horarios, costos, aseguradoras, preparación para estudios y reglas de agenda, como cuánto dura una primera consulta frente a una subsecuente. El médico aprueba cada respuesta. Después conectamos el calendario, hacemos pruebas con la asistente y definimos en qué casos el asistente debe pasar la conversación de inmediato. Las primeras semanas revisamos las conversaciones para ajustar detalles."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN. Como servicio aparte para consultorios que ya tienen sitio, se cotiza según volumen y la integración con su agenda."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede manejar varias sedes?",
+      "respuesta": "Sí. El asistente pregunta en qué sede prefiere el paciente y agenda según el horario de cada una."
+    },
+    {
+      "pregunta": "¿Puede recordar estudios o preparación previa?",
+      "respuesta": "Sí, con las indicaciones que el médico defina para cada tipo de consulta o procedimiento."
+    },
+    {
+      "pregunta": "¿El paciente puede hablar con una persona?",
+      "respuesta": "Siempre. En cualquier momento puede pedir que le contacte la asistente."
+    },
+    {
+      "pregunta": "¿Contesta llamadas?",
+      "respuesta": "Para llamadas existe la recepcionista de voz con IA, que funciona con la misma lógica."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-consultorios-medicos",
+      "texto": "Página web para consultorios médicos"
+    },
+    {
+      "ruta": "/soluciones/clinicas",
+      "texto": "Agentes de IA para clínicas y consultorios"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:62f4a89ad5eb05a75402f2b8c6cb1d7f4e79341171fba2746e1bbaf7201cab60",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:62f4a89ad5eb05a75402f2b8c6cb1d7f4e79341171fba2746e1bbaf7201cab60"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 617,
+    "similitud_max": 0.024,
+    "parecida_a": "/recepcionista-de-voz-con-ia-para-consultorios-medicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:70bfc3a5cc9499f5345a66e848c8b7977189ce0e87f0bca777c541517b765a32",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

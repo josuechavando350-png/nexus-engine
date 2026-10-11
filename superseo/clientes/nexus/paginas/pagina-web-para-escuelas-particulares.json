@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-escuelas-particulares",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-escuelas-particulares",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Página web para escuelas particulares",
+  "descripcion": "Sitios para escuelas y colegios particulares: niveles y modelo educativo, instalaciones, proceso de admisión, agenda de visitas y comunicación con familias.",
+  "h1": "Página web para escuelas particulares",
+  "respuesta_rapida": [
+    "Elegir escuela es una decisión de familia que se toma con meses de anticipación: el sitio acompaña ese proceso.",
+    "Explica tu modelo educativo con ejemplos concretos, no solo con palabras como integral o de excelencia.",
+    "El proceso de admisión, fechas y requisitos deben estar claros y fáciles de encontrar.",
+    "Agendar una visita guiada en línea es el paso que más inscripciones genera."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cómo eligen las familias",
+      "parrafos": [
+        "Una familia que busca escuela compara varias opciones durante semanas: visita sitios, pregunta a otros padres, revisa reseñas y agenda recorridos. Busca seguridad, un modelo educativo con el que se identifique, cercanía y un costo que pueda sostener. La página web es, muchas veces, el primer filtro de esa lista.",
+        "Una escuela con un sitio desactualizado, con fotos de hace años o sin información de admisiones, queda fuera de la comparación antes de la visita.",
+        "También influye lo que encuentran sobre la escuela fuera de su sitio: reseñas en Google, comentarios en grupos de padres, notas en medios locales. Un sitio sólido y actualizado le da a la escuela un lugar propio donde contar su versión con datos y fotos, en lugar de dejar que otros la cuenten por ella."
+      ]
+    },
+    {
+      "titulo": "Modelo educativo con ejemplos",
+      "parrafos": [
+        "Todas las escuelas dicen ser integrales, bilingües y de excelencia. Lo que distingue es cómo se vive eso en el aula: proyectos, clubes, horas de inglés, deportes, acompañamiento emocional, tecnología, relación con las familias. Explicarlo con ejemplos concretos y fotos reales de actividades vale más que cualquier adjetivo.",
+        "Una página por nivel, desde maternal hasta bachillerato, con lo particular de cada etapa, ayuda a cada familia a ver lo que le corresponde."
+      ]
+    },
+    {
+      "titulo": "Admisiones sin confusión",
+      "parrafos": [
+        "Fechas del proceso, requisitos, documentos, examen o entrevista, cuotas generales y formas de pago. Toda esa información, ordenada en una página de admisiones, reduce llamadas y muestra organización. Un formulario de preinscripción en línea facilita el primer paso.",
+        "Si hay becas o descuentos por hermanos, explicarlos con claridad elimina una duda frecuente."
+      ]
+    },
+    {
+      "titulo": "Visitas guiadas",
+      "parrafos": [
+        "El recorrido por las instalaciones es donde la mayoría de las familias decide. Una agenda en línea para reservar visita, con confirmación y recordatorio automáticos, aumenta el número de recorridos y libera al área de admisiones del teléfono.",
+        "Un asistente de WhatsApp puede responder dudas frecuentes sobre horarios, transporte o uniformes a cualquier hora."
+      ]
+    },
+    {
+      "titulo": "Instalaciones y seguridad",
+      "parrafos": [
+        "Fotos reales de aulas, laboratorios, canchas, biblioteca, comedor y accesos. Explicar las medidas de seguridad, como control de acceso y protocolos de emergencia, da tranquilidad a los padres. Si hay transporte escolar, rutas y horarios generales también ayudan.",
+        "Mostrar al equipo directivo y docente, con su formación, humaniza a la escuela."
+      ]
+    },
+    {
+      "titulo": "Comunicación con familias inscritas",
+      "parrafos": [
+        "La página también sirve a las familias actuales: calendario escolar, circulares, listas de útiles, avisos. Tener todo en un lugar evita que la información se pierda en grupos de mensajería. Los recordatorios de colegiaturas automáticos y amables reducen la cobranza manual.",
+        "Una escuela organizada en lo digital transmite que también lo está en lo demás."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para escuelas con niveles, admisiones, agenda de visitas y comunicación con familias. Desde $1,999 MXN; con asistente y recordatorios desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Debemos publicar colegiaturas?",
+      "respuesta": "No es obligatorio, pero publicar un rango o el proceso para conocerlas reduce visitas de familias fuera de presupuesto."
+    },
+    {
+      "pregunta": "¿Podemos tener inscripción en línea?",
+      "respuesta": "Sí, la preinscripción con carga de documentos y pago de cuota se puede hacer desde la página."
+    },
+    {
+      "pregunta": "¿Cómo mostramos la vida escolar sin exponer a los alumnos?",
+      "respuesta": "Con fotos donde no se identifique a los menores o con autorización expresa de sus padres, y un aviso de privacidad claro."
+    },
+    {
+      "pregunta": "¿Cuánto tarda?",
+      "respuesta": "Entre dos y cuatro semanas desde que se aprueba la dirección visual; conviene tenerlo listo antes del periodo de admisiones."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-escuelas-particulares",
+      "texto": "Chatbot de WhatsApp para escuelas particulares"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-escuelas-particulares",
+      "texto": "Cómo aparecer en Google Maps: escuelas particulares"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:23ee2ec21f881c063dbcec90e65c60fc8983210b9e511edda93d514b455ea00f",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:23ee2ec21f881c063dbcec90e65c60fc8983210b9e511edda93d514b455ea00f"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 628,
+    "similitud_max": 0.01,
+    "parecida_a": "/pagina-web-para-contadores"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:ba0f221f91d43370320c1a2c3862fedbe10bd305cdd2b86a51b3c238b0c91a70",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

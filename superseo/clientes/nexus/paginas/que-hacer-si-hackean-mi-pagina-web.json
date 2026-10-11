@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "que-hacer-si-hackean-mi-pagina-web",
+  "cliente": "nexus",
+  "ruta": "/que-hacer-si-hackean-mi-pagina-web",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Seguridad y propiedad",
+  "titulo": "Qué hacer si hackean tu página web",
+  "descripcion": "Pasos para actuar si tu página web fue hackeada: contener, cambiar accesos, limpiar o restaurar, actualizar, avisar a Google y prevenir que vuelva a pasar.",
+  "h1": "Qué hacer si hackean tu página web",
+  "respuesta_rapida": [
+    "Señales: redirecciones a otros sitios, páginas que no creaste, avisos de Google o del navegador.",
+    "Contén: cambia todas las contraseñas y activa la verificación en dos pasos.",
+    "Limpia o restaura desde un respaldo limpio, y actualiza todo.",
+    "Pide a Google la revisión en Search Console y corrige la causa para que no se repita."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cómo saber si te hackearon",
+      "parrafos": [
+        "Las señales más comunes son: tu página redirige a sitios de apuestas, farmacias o contenido para adultos, a veces solo desde el celular o solo cuando se llega desde Google; aparecen páginas que no creaste en los resultados de búsqueda; el navegador o Google muestran un aviso de sitio peligroso; tu hosting te avisa de actividad sospechosa; o tu correo empieza a enviar spam.",
+        "Hemos visto dominios de negocios que terminaron sirviendo contenido ajeno sin que el dueño lo notara durante meses."
+      ]
+    },
+    {
+      "titulo": "Primero, contener",
+      "parrafos": [
+        "Cambia todas las contraseñas: hosting, panel del sitio, base de datos, dominio, correo y cualquier servicio conectado. Activa la verificación en dos pasos donde se pueda. Revisa qué usuarios tienen acceso y elimina los que no reconozcas. Avisa a tu proveedor de hospedaje, que puede ayudarte a aislar el sitio.",
+        "No borres archivos al azar: puedes perder evidencia de cómo entraron.",
+        "Anota todo lo que observes, con fechas y capturas de pantalla: qué cambió, cuándo lo notaste y quién tenía acceso. Esa bitácora ayuda a encontrar la causa y sirve si después necesitas reclamar a un proveedor."
+      ]
+    },
+    {
+      "titulo": "Limpiar o restaurar",
+      "parrafos": [
+        "Si tienes un respaldo de antes del ataque, restaurarlo suele ser lo más rápido, siempre que después corrijas la falla que permitió la entrada. Si no hay respaldo limpio, hay que revisar archivos y base de datos para eliminar el código malicioso, una tarea que conviene dejar a alguien con experiencia.",
+        "Después, actualiza el sistema, el tema y los complementos, y elimina los que no uses."
+      ]
+    },
+    {
+      "titulo": "Avisar a Google",
+      "parrafos": [
+        "Revisa en Search Console la sección de problemas de seguridad y acciones manuales. Si Google detectó el hackeo, marcará tu sitio y puede mostrar advertencias a los visitantes. Una vez limpio, solicita la revisión desde ahí explicando qué hiciste. También revisa si se indexaron páginas falsas y pide su eliminación.",
+        "La recuperación de la confianza de Google puede tardar unos días después de la revisión."
+      ]
+    },
+    {
+      "titulo": "Encontrar la causa",
+      "parrafos": [
+        "Si no corriges por dónde entraron, volverán a entrar. Las causas más comunes son un complemento o tema desactualizado, una contraseña débil o filtrada, un acceso que nadie quitó o un servidor mal configurado. Los registros del servidor ayudan a identificarla.",
+        "Esta es la parte que más se omite y la que más importa."
+      ]
+    },
+    {
+      "titulo": "Prevenir la próxima vez",
+      "parrafos": [
+        "Respaldos automáticos fuera del servidor, actualizaciones constantes o una tecnología con pocas dependencias, contraseñas únicas con doble factor, cabeceras de seguridad y monitoreo. Si tu sitio es un gestor de contenido que nadie mantiene, migrar a una base más simple y segura puede ser la mejor prevención.",
+        "La seguridad cuesta mucho menos antes que después."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Desde la ciberseguridad, que es el origen de nuestro fundador, te ayudamos a evaluar el daño, recuperar el sitio o migrarlo a una base más segura, con cabeceras, validación estricta y pocas dependencias. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Pierdo mi posición en Google si me hackean?",
+      "respuesta": "Puede bajar temporalmente; suele recuperarse tras limpiar el sitio y pedir la revisión."
+    },
+    {
+      "pregunta": "¿Debo avisar a mis clientes?",
+      "respuesta": "Si se comprometieron datos personales, sí, y conviene revisar tus obligaciones con un abogado."
+    },
+    {
+      "pregunta": "¿Por qué la redirección solo pasa en celular?",
+      "respuesta": "Muchos ataques se esconden del dueño y solo afectan a ciertos visitantes para no ser detectados."
+    },
+    {
+      "pregunta": "¿Un antivirus en mi computadora ayuda?",
+      "respuesta": "Protege tu equipo, pero el sitio vive en el servidor; hay que revisarlo ahí."
+    },
+    {
+      "pregunta": "¿Debo avisar a mis clientes?",
+      "respuesta": "Si la página recolectaba datos personales y pudieron quedar expuestos, sí. Revisa tu aviso de privacidad y las obligaciones de protección de datos que aplican a tu negocio."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/seguridad-de-pagina-web-para-negocios",
+      "texto": "Seguridad de tu página web: lo básico"
+    },
+    {
+      "ruta": "/wordpress-vs-pagina-a-medida",
+      "texto": "WordPress vs. página a medida para tu negocio"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:2d8d4a6774d0cb9819df38aa6dcdb7a694fa919860dda7bb6059541782900b9f",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:2d8d4a6774d0cb9819df38aa6dcdb7a694fa919860dda7bb6059541782900b9f"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 658,
+    "similitud_max": 0.007,
+    "parecida_a": "/rediseno-o-pagina-nueva"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:879cf7be0054c7c1b8bfd81c46433459a2edc7ea4bb0bc857359ffb294c7b961",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

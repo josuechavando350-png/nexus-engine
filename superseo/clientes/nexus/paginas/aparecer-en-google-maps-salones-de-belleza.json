@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-salones-de-belleza",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-salones-de-belleza",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Cómo aparecer en Google Maps: salones de belleza",
+  "descripcion": "Guía para que tu salón aparezca en Google Maps: categoría, servicios con precio, fotos de trabajos reales, botón de reservar y reseñas constantes.",
+  "h1": "Cómo hacer que tu salón de belleza aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal: salón de belleza, o la especialidad que más te represente.",
+    "Servicios con precio desde y fotos reales de tus trabajos.",
+    "Botón de reservar conectado a tu agenda o WhatsApp.",
+    "Reseñas pedidas al terminar cada servicio, con un enlace directo."
+  ],
+  "secciones": [
+    {
+      "titulo": "Las clientas nuevas te buscan en el mapa",
+      "parrafos": [
+        "Cuando alguien se muda, busca un cambio o necesita un peinado para un evento, busca salón de belleza cerca o el servicio específico, como balayage o alaciado, en su zona. Google le muestra unos cuantos salones en el mapa, y ella decide por fotos, estrellas y precios. Un perfil cuidado convierte esas búsquedas en citas.",
+        "Para un salón, el perfil de Google es una vitrina que trabaja las veinticuatro horas.",
+        "Las búsquedas también tienen temporadas: graduaciones, bodas, fiestas de fin de año. Un perfil con fotos de peinados y maquillaje de evento, publicado unas semanas antes de esas fechas, atrae a clientas que buscan justo eso y que suelen reservar servicios completos."
+      ]
+    },
+    {
+      "titulo": "Categoría y servicios",
+      "parrafos": [
+        "La categoría principal suele ser salón de belleza, pero si tu fuerte es el color, las uñas o las pestañas, considera la categoría más específica. En servicios, lista corte, color, mechas, balayage, alaciado, tratamientos, peinados, maquillaje, uñas, con duración aproximada y precio desde.",
+        "Los atributos, como acepta tarjeta, accesibilidad o atención solo con cita, ayudan a la clienta a decidir."
+      ]
+    },
+    {
+      "titulo": "Fotos que venden",
+      "parrafos": [
+        "En belleza, las fotos son el argumento principal. Trabajos terminados con buena luz natural, organizados por servicio. Fotos del salón, de las estaciones y de la entrada. Si tienes fotos de antes y después con permiso de tus clientas, son muy efectivas.",
+        "Subir fotos nuevas cada semana muestra que el salón está activo y le da a Google más contenido para mostrarte."
+      ]
+    },
+    {
+      "titulo": "Reservar desde Google",
+      "parrafos": [
+        "El botón de reservar puede llevar directo a tu agenda en línea, donde la clienta elige servicio, estilista y horario. También puedes vincular tu WhatsApp. Algunas agendas permiten reservar sin salir de Google, lo que reduce todavía más la fricción.",
+        "Cada reserva que llega del perfil puede medirse para saber cuánto vale."
+      ]
+    },
+    {
+      "titulo": "Reseñas que construyen reputación",
+      "parrafos": [
+        "Al terminar cada servicio, con la experiencia fresca, es el mejor momento para pedir una reseña a todas tus clientas. Un mensaje con el enlace directo, enviado ese mismo día, funciona muy bien. Responde cada reseña con el estilo del salón.",
+        "Nunca ofrezcas descuentos a cambio de reseñas: está prohibido y puede costarte las reseñas que ya tienes."
+      ]
+    },
+    {
+      "titulo": "Horario y publicaciones",
+      "parrafos": [
+        "Horario exacto, con días festivos y horarios especiales de temporada, como diciembre o temporada de graduaciones. Las publicaciones pueden mostrar promociones, nuevos servicios o trabajos destacados.",
+        "Mantén la misma información en el perfil, tu sitio y tus redes."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, lo conectamos con tu agenda, preparamos el mensaje de reseñas y medimos reservas y llamadas. Usa gratis nuestra herramienta para generar el mensaje de reseñas. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo listar servicios de varias estilistas?",
+      "respuesta": "Sí, los servicios son del salón; cada estilista puede aparecer en fotos y en la agenda."
+    },
+    {
+      "pregunta": "¿Mi salón está en mi casa, puedo aparecer?",
+      "respuesta": "Sí, si atiendes clientas ahí. Si prefieres no mostrar la dirección, puedes configurarlo como área de servicio en ciertos casos."
+    },
+    {
+      "pregunta": "¿Cada cuánto subo fotos?",
+      "respuesta": "Lo ideal es cada semana o cada vez que tengas trabajos que te enorgullezcan."
+    },
+    {
+      "pregunta": "¿Las reseñas antiguas cuentan?",
+      "respuesta": "Cuentan, pero las recientes pesan más para Google y para las clientas."
+    },
+    {
+      "pregunta": "¿Qué hago si alguien sube fotos que no me gustan?",
+      "respuesta": "Puedes reportar fotos que no correspondan a tu negocio; la mejor estrategia es subir con frecuencia tus propias fotos de calidad para que sean las más vistas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-salones-de-belleza",
+      "texto": "Página web para salones de belleza"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:9f9dce8d6b4d8a0715c2a08b25def08969ec295b7f9189dbfe2bb6b64d7db938",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:9f9dce8d6b4d8a0715c2a08b25def08969ec295b7f9189dbfe2bb6b64d7db938"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 621,
+    "similitud_max": 0.039,
+    "parecida_a": "/aparecer-en-google-maps-barberias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:1d2ffa7083395092147ac659a412049c8f08c2d16af689cfb8581ad8329d8c98",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}

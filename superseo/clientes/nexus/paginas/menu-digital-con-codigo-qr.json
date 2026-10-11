@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "menu-digital-con-codigo-qr",
+  "cliente": "nexus",
+  "ruta": "/menu-digital-con-codigo-qr",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "Menú digital con código QR para tu restaurante",
+  "descripcion": "Cómo hacer un menú digital con código QR que se lea bien en el celular, se actualice fácil y además ayude a que tu restaurante aparezca en Google.",
+  "h1": "Menú digital con código QR para tu restaurante",
+  "respuesta_rapida": [
+    "El QR debe abrir una página con el menú en texto, no un PDF pesado.",
+    "Ese mismo menú puede vivir en tu sitio web y vincularse a tu perfil de Google.",
+    "Actualizar precios debe tomar minutos, no rehacer un archivo.",
+    "Incluye fotos de los platillos estrella, alergenos si los conoces y un botón para pedir o reservar."
+  ],
+  "secciones": [
+    {
+      "titulo": "El problema del PDF",
+      "parrafos": [
+        "Muchos restaurantes adoptaron el menú con QR enlazando un PDF o una foto del menú impreso. En la mesa, el comensal tiene que descargar un archivo pesado, hacer zoom y moverse de un lado a otro para leer. Además, cada cambio de precio obliga a rehacer el archivo, y Google no puede leer bien un menú en imagen.",
+        "Un menú digital en texto resuelve todo eso.",
+        "También hay un tema de confianza: un menú en PDF con precios viejos o con platillos que ya no existen genera discusiones con los meseros y malas reseñas. Un menú vivo, que se actualiza en minutos, evita esos momentos incómodos."
+      ]
+    },
+    {
+      "titulo": "Cómo debe ser",
+      "parrafos": [
+        "Una página ligera, organizada por secciones como entradas, platos fuertes, bebidas y postres, con nombre, descripción breve y precio de cada platillo. Letra legible, buen contraste y navegación rápida entre secciones. Fotos de los platillos estrella, sin saturar.",
+        "Debe cargar en segundos incluso con la señal débil que hay en muchos restaurantes.",
+        "Si tu restaurante tiene platillos con historia, como recetas de la casa o productos regionales, una línea que lo cuente puede convertir la curiosidad en pedido y dar algo de qué hablar en la mesa."
+      ]
+    },
+    {
+      "titulo": "Un menú, muchos usos",
+      "parrafos": [
+        "El mismo menú que se abre con el QR en la mesa puede ser la página de menú de tu sitio web y el enlace de menú en tu perfil de Google. Así, quien busca tu restaurante en Google ve el mismo menú que verá en la mesa, actualizado, y Google entiende mejor qué cocina sirves.",
+        "Un solo lugar para actualizar, todos los canales al día."
+      ]
+    },
+    {
+      "titulo": "Actualizar sin complicaciones",
+      "parrafos": [
+        "Los precios cambian, los platillos de temporada entran y salen, algo se agota. El menú debe poder actualizarse en minutos, desde el celular, sin depender de un diseñador. Marcar un platillo como agotado durante el servicio evita pedidos imposibles.",
+        "Un menú siempre al día evita discusiones en la mesa y malas reseñas."
+      ]
+    },
+    {
+      "titulo": "Más allá de leer",
+      "parrafos": [
+        "Un menú digital puede incluir botones para pedir para llevar por WhatsApp, reservar una mesa o llamar al mesero. Puede tener versión en inglés para turistas y señalar opciones vegetarianas, picantes o con alérgenos, si el restaurante tiene esa información confirmada.",
+        "Para alergias, siempre conviene indicar que se confirme con el personal."
+      ]
+    },
+    {
+      "titulo": "El código QR",
+      "parrafos": [
+        "El QR debe llevar a una dirección estable de tu propio dominio, no a un servicio de terceros que pueda cambiar o cobrar después. Imprímelo en buen tamaño y contraste, en un soporte limpio, y ponle una indicación breve como escanea para ver el menú. Si cambias el diseño del menú, el QR sigue funcionando porque la dirección es la misma.",
+        "Conserva también algunos menús impresos para quien no use celular."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Hacemos menús digitales en tu propio sitio, fáciles de actualizar, con QR estable y conectados a tu perfil de Google, pedidos y reservas. Paquetes desde $1,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo tener el menú en mi sitio y en el QR al mismo tiempo?",
+      "respuesta": "Sí, y es lo ideal: una sola página para ambos usos."
+    },
+    {
+      "pregunta": "¿Y si cambio de proveedor?",
+      "respuesta": "Si el QR apunta a tu dominio, sigue funcionando aunque cambies la tecnología del menú."
+    },
+    {
+      "pregunta": "¿Puedo poner promociones?",
+      "respuesta": "Sí, en una sección destacada que puedas cambiar tú mismo."
+    },
+    {
+      "pregunta": "¿Sirve para varias sucursales?",
+      "respuesta": "Sí, con un menú por sucursal si los precios o platillos varían."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/pagina-web-para-restaurantes",
+      "texto": "Página web para restaurantes"
+    },
+    {
+      "ruta": "/reservas-en-linea-para-restaurantes",
+      "texto": "Reservas en línea para restaurantes"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-restaurantes",
+      "texto": "Cómo aparecer en Google Maps: restaurantes"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:4cfadb1c44a75c3202e6b7215bc606b583ff8a6afb7d82735ed964a9f2e289c2",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:4cfadb1c44a75c3202e6b7215bc606b583ff8a6afb7d82735ed964a9f2e289c2"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 623,
+    "similitud_max": 0.004,
+    "parecida_a": "/pagina-web-para-restaurantes"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:de9ebed5e06c887336d6a6fb192e76b4d6d0b1f06eabad54d4129668a3d5120a",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

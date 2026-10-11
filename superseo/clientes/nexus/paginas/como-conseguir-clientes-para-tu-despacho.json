@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "como-conseguir-clientes-para-tu-despacho",
+  "cliente": "nexus",
+  "ruta": "/como-conseguir-clientes-para-tu-despacho",
+  "tipo": "GUIA",
+  "servicio": "despachos",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Por industria",
+  "titulo": "Cómo conseguir clientes para su despacho jurídico",
+  "descripcion": "Cómo atraer clientes a un despacho de abogados con una página que inspire confianza, especialidad clara, ficha de Google, atención rápida y publicidad ética.",
+  "h1": "Cómo conseguir clientes para su despacho jurídico",
+  "respuesta_rapida": [
+    "Aunque lo recomienden, el posible cliente lo buscará en Google antes de llamar.",
+    "Una página clara por materia ayuda a que lo encuentre quien tiene ese problema.",
+    "Atender rápido y filtrar bien los asuntos ahorra tiempo al despacho y al cliente.",
+    "La publicidad legal debe ser ética: sin prometer resultados de un juicio."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cómo eligen abogado hoy",
+      "parrafos": [
+        "La mayoría de las personas llega a un despacho por recomendación, pero casi nadie contrata sin revisar antes. Buscan su nombre o el del despacho, abren su página, revisan la ficha de Google y leen lo que encuentran. Si no hay nada o lo que hay se ve descuidado, la recomendación pierde fuerza.",
+        "Otras personas no tienen a quién preguntar y buscan directamente su problema: abogado penal en su zona, cómo recuperar un inmueble o qué hacer ante una auditoría. Ahí gana el despacho que tiene una página clara para ese asunto."
+      ]
+    },
+    {
+      "titulo": "Una página que inspire confianza",
+      "parrafos": [
+        "La página de un despacho debe responder rápido quién es usted, qué materias atiende, dónde y cómo es el primer contacto. Su trayectoria verificable, su cédula, su formación y una explicación honesta del proceso dan más confianza que fotos genéricas de balanzas y mazos.",
+        "El diseño también comunica. Una página lenta, desordenada o con textos de plantilla hace pensar que el despacho trabaja igual. Una página clara, rápida y con una dirección visual propia transmite seriedad antes de la primera llamada."
+      ]
+    },
+    {
+      "titulo": "Especialidad clara",
+      "parrafos": [
+        "Un despacho que dice atender todo no se distingue. Defina sus materias principales y dedique una página a cada una, explicando qué problemas resuelve, cómo trabaja y qué documentos suele necesitar. Así Google entiende su especialidad y el visitante se siente en el lugar correcto.",
+        "Escriba para la persona que tiene el problema, no para otros abogados. Use lenguaje claro, explique los términos necesarios y evite promesas sobre el resultado de un caso."
+      ]
+    },
+    {
+      "titulo": "Ficha de Google y reseñas",
+      "parrafos": [
+        "El Perfil de Empresa en Google le ayuda a aparecer en el mapa cuando alguien busca un abogado cerca. Mantenga datos correctos, horarios reales, fotos de la oficina y una descripción de sus materias. Si atiende solo con cita, indíquelo.",
+        "Para las reseñas, pídalas a todos sus clientes, sin incentivos. Al responder, nunca mencione detalles del asunto, aunque el cliente los haya escrito: la confidencialidad también se cuida en público."
+      ]
+    },
+    {
+      "titulo": "Atención rápida y buen filtro",
+      "parrafos": [
+        "Quien busca un abogado suele tener urgencia o preocupación, y muchas veces escribe a varios despachos a la vez. Responder pronto, aunque sea para agendar, marca la diferencia. Un asistente puede hacer un primer triaje por materia y urgencia y avisar a la persona correcta del despacho.",
+        "El filtro también protege su tiempo. Explicar desde el inicio qué materias atiende y cómo funciona la primera asesoría, sea gratuita o con costo, evita llamadas que no corresponden a su especialidad."
+      ]
+    },
+    {
+      "titulo": "Publicidad ética",
+      "parrafos": [
+        "Los anuncios en Google pueden traer personas que buscan exactamente su materia en su zona. Pero la publicidad de un abogado debe ser especialmente cuidadosa: no prometa resultados de un juicio, no presuma porcentajes de éxito sin sustento y no use el miedo del cliente como argumento.",
+        "Lo que funciona a largo plazo es la claridad: qué hace, para quién, cómo trabaja y cómo contactarlo. Esa honestidad atrae a los clientes que sí quiere tener."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nexus Bot Studio construyó el sitio de CANO Estrategia Penal, despacho de defensa penal en la Ciudad de México: migración desde Wix sin perder dominio ni correo, conservando la medición de Google Ads, con PageSpeed móvil de 99 en rendimiento y 100 en SEO. Diseñamos para despachos con una dirección visual propia, sin símbolos genéricos."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Un abogado puede anunciarse en Google?",
+      "respuesta": "Sí, con anuncios claros y éticos que describan sus servicios sin prometer resultados."
+    },
+    {
+      "pregunta": "¿Conviene una página por materia?",
+      "respuesta": "Sí. Ayuda a que lo encuentren quienes buscan ese asunto y a que el visitante entienda rápido su especialidad."
+    },
+    {
+      "pregunta": "¿Cómo respondo una reseña negativa?",
+      "respuesta": "Con calma, sin revelar detalles del asunto y ofreciendo hablar en privado. Otros lectores valoran la profesionalidad."
+    },
+    {
+      "pregunta": "¿Un chatbot puede dar asesoría legal?",
+      "respuesta": "No debe. Puede orientar sobre materias, agendar y recabar datos básicos, y pasar el caso a un abogado."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/diseno-web-para-despachos-juridicos",
+      "texto": "Diseño web para despachos jurídicos"
+    },
+    {
+      "ruta": "/casos/cano-estrategia-penal",
+      "texto": "Caso: CANO Estrategia Penal"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-abogados",
+      "texto": "Cómo aparecer en Google Maps: abogados"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:18e408db06c6e6ec30f85cf7d127903f4bc434a97289fdb4281d23eb8a27484d",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:18e408db06c6e6ec30f85cf7d127903f4bc434a97289fdb4281d23eb8a27484d"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 699,
+    "similitud_max": 0.007,
+    "parecida_a": "/pagina-web-para-abogados-penalistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:61e56709cb393ec20436816dfae23fbecdd6ecee4956a514120da880a8e33015",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-nutriologos",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-nutriologos",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Página web para nutriólogos",
+  "descripcion": "Sitios para nutriólogos: consulta presencial y en línea, especialidades claras, seguimiento con recordatorios y un enfoque de salud sin promesas milagro.",
+  "h1": "Página web para nutriólogos",
+  "respuesta_rapida": [
+    "La gente busca nutriólogo por una meta concreta: un diagnóstico médico, rendimiento deportivo, embarazo o comer mejor.",
+    "Tu página debe mostrar en qué casos te especializas y cómo es el proceso de consulta y seguimiento.",
+    "Evita promesas de bajar kilos en pocos días: atraen al paciente equivocado y restan seriedad.",
+    "La consulta en línea amplía tu alcance; la agenda y los recordatorios sostienen el seguimiento."
+  ],
+  "secciones": [
+    {
+      "titulo": "Diferenciarte en un campo saturado",
+      "parrafos": [
+        "En redes sociales sobran personas que dan consejos de alimentación sin formación. Un nutriólogo con cédula tiene una ventaja enorme, pero solo si la hace visible. La página es el lugar para mostrar tu preparación, tu forma de trabajar y los casos en los que te especializas.",
+        "Especializarse ayuda mucho: nutrición para diabetes, para embarazo, para deportistas, para niños, para trastornos digestivos. Quien busca algo específico prefiere a alguien que se dedica a eso."
+      ]
+    },
+    {
+      "titulo": "Explicar el proceso completo",
+      "parrafos": [
+        "Qué pasa en la primera consulta, qué mediciones haces, si pides estudios de laboratorio, cómo entregas el plan y cada cuánto son las citas de seguimiento. Esa claridad le da al paciente una idea de lo que está contratando y reduce las dudas antes de agendar.",
+        "Si ofreces paquetes de varias consultas, conviene explicar qué incluyen y por qué el seguimiento es parte del tratamiento, no un extra."
+      ]
+    },
+    {
+      "titulo": "Un tono responsable",
+      "parrafos": [
+        "La alimentación toca temas sensibles para muchas personas. Una página que habla de salud, energía y hábitos sostenibles atrae pacientes que se quedan. Una que promete transformaciones rápidas atrae frustración y puede reforzar relaciones poco sanas con la comida.",
+        "Las fotos de antes y después, si se usan, requieren consentimiento y conviene acompañarlas de contexto. Muchos nutriólogos prefieren no usarlas y contar en cambio cómo acompañan el proceso."
+      ]
+    },
+    {
+      "titulo": "Consulta en línea",
+      "parrafos": [
+        "La nutrición se presta muy bien a la consulta a distancia. Si la ofreces, la página debe explicar cómo funciona: qué necesita el paciente, cómo se toman las medidas, por dónde recibe el plan y cómo se paga. Con eso puedes atender pacientes de cualquier ciudad.",
+        "Un buen sistema de agenda en línea muestra tus horarios disponibles y manda el enlace de la videollamada sin que tengas que hacerlo a mano."
+      ]
+    },
+    {
+      "titulo": "Seguimiento que se sostiene solo",
+      "parrafos": [
+        "El reto de un nutriólogo no es conseguir la primera consulta, sino que el paciente vuelva. Recordatorios automáticos de la siguiente cita y mensajes de seguimiento con el tono de tu consulta ayudan a que no se pierda en el camino.",
+        "Todo eso se puede automatizar sin perder el trato personal: el sistema recuerda, tú atiendes."
+      ]
+    },
+    {
+      "titulo": "Contenido que trae pacientes",
+      "parrafos": [
+        "Las notas sobre dudas reales funcionan muy bien: qué desayunar si tienes resistencia a la insulina, cómo comer durante el embarazo, qué llevar de lunch a la oficina, cómo alimentarse antes de una carrera. Cada una muestra tu criterio profesional y atrae a quien tiene justamente esa pregunta.",
+        "Conviene escribir con base en evidencia, evitar dietas de moda y cerrar con una invitación a consulta para un plan personalizado. Con el tiempo, esas notas se convierten en la puerta de entrada de muchos pacientes que no te conocían."
+      ]
+    },
+    {
+      "titulo": "Lo que hacemos en Nexus",
+      "parrafos": [
+        "Diseñamos tu sitio con fotos reales, textos claros y una agenda que funciona en celular. Dejamos medido de dónde llegan tus pacientes para que sepas qué contenido te funciona.",
+        "Los paquetes van de $1,999 a $44,800 MXN según lo que necesites."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Publico recetas o planes de alimentación?",
+      "respuesta": "Recetas y consejos generales sí, porque atraen visitas. Los planes deben ser personalizados en consulta."
+    },
+    {
+      "pregunta": "¿Puedo vender paquetes en línea?",
+      "respuesta": "Sí. Se puede integrar el pago de paquetes de consultas para que el paciente reserve y pague desde la página."
+    },
+    {
+      "pregunta": "¿Cómo me encuentran en mi zona?",
+      "respuesta": "Con un perfil de Google bien configurado, reseñas reales y páginas que mencionen la colonia o ciudad donde atiendes de forma natural."
+    },
+    {
+      "pregunta": "¿Necesito estar en redes sociales además de la página?",
+      "respuesta": "Las redes ayudan a mostrar tu día a día, pero la página es donde el paciente confirma quién eres y agenda. Las dos se complementan."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/agenda-de-citas-en-linea-para-nutriologos",
+      "texto": "Agenda de citas en línea para nutriólogos"
+    },
+    {
+      "ruta": "/como-conseguir-pacientes-para-tu-consultorio",
+      "texto": "Cómo conseguir más pacientes para tu consultorio"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:ee8d33774c61bde88b3b8142740480e7a1265cbea4798904d52de921d07087f8",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:ee8d33774c61bde88b3b8142740480e7a1265cbea4798904d52de921d07087f8"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 672,
+    "similitud_max": 0.008,
+    "parecida_a": "/landing-page-vs-sitio-completo"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:ad1dbb5ce0009565e25412a07867fc9fdb93c4b747c7b32beb4e50860223a7d8",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

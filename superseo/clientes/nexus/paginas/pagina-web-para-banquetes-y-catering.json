@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-banquetes-y-catering",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-banquetes-y-catering",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comida",
+  "titulo": "Página web para banquetes y catering",
+  "descripcion": "Sitios para empresas de banquetes y catering: menús por tipo de evento, paquetes por persona, cotizador, galería de montajes y apartado con anticipo.",
+  "h1": "Página web para banquetes y catering",
+  "respuesta_rapida": [
+    "Quien contrata un banquete compara mucho: menús, montajes y forma de cotizar deciden la venta.",
+    "Organiza por tipo de evento: bodas, XV años, corporativos, bautizos, coffee breaks.",
+    "Un cotizador con fecha, número de invitados y tipo de servicio filtra y acelera la venta.",
+    "La galería de montajes reales y las reseñas de clientes pesan más que cualquier promesa."
+  ],
+  "secciones": [
+    {
+      "titulo": "Una compra que se planea",
+      "parrafos": [
+        "Contratar un banquete no es una decisión de impulso. La persona que organiza una boda o un evento de empresa revisa varias opciones durante semanas, compara menús, pide cotizaciones y pregunta a conocidos. En ese proceso, la página web es el lugar donde tu empresa se presenta con calma, muestra su trabajo y facilita la cotización.",
+        "Si la página no existe o se ve descuidada, quedas fuera de la comparación antes de que te escriban. Si es clara y profesional, el cliente llega a la conversación ya convencido de que eres una buena opción."
+      ]
+    },
+    {
+      "titulo": "Menús y paquetes por evento",
+      "parrafos": [
+        "Bodas, XV años, primeras comuniones, eventos corporativos, desayunos de trabajo, coffee breaks, taquizas, parrilladas. Cada tipo de evento tiene su propia búsqueda y su propio cliente, así que merece su página con menús de ejemplo, tiempos, servicio incluido y precio por persona desde.",
+        "Si manejas opciones vegetarianas, sin gluten o menús infantiles, decirlo resuelve dudas frecuentes y te distingue de quien solo ofrece un menú fijo."
+      ]
+    },
+    {
+      "titulo": "Cotizar en minutos",
+      "parrafos": [
+        "Un formulario o asistente que pregunte fecha, ciudad, número de invitados, tipo de evento y tipo de servicio permite responder con una cotización precisa, en lugar de una conversación de días. También te deja ver la demanda: qué fechas se piden más y qué tipo de eventos te buscan.",
+        "Mostrar disponibilidad de fechas, o al menos avisar cuando una temporada está casi llena, motiva a decidir antes."
+      ]
+    },
+    {
+      "titulo": "Galería y pruebas reales",
+      "parrafos": [
+        "Fotos de montajes reales, de los platillos servidos, del equipo trabajando. Videos cortos de un evento terminado. Reseñas de clientes con su permiso. En un servicio donde el cliente confía su evento más importante, ver trabajo real es lo que más tranquiliza.",
+        "Si trabajas con salones o haciendas de forma frecuente, mencionarlo ayuda a quien ya eligió lugar."
+      ]
+    },
+    {
+      "titulo": "Degustación y apartado",
+      "parrafos": [
+        "La degustación es un paso clave en bodas y eventos grandes. La página puede explicar cómo funciona, si tiene costo y cómo se agenda. Después, un anticipo en línea para apartar la fecha formaliza el compromiso sin depender de transferencias perdidas en el chat.",
+        "Un recordatorio automático de los pagos pendientes antes del evento ahorra conversaciones incómodas."
+      ]
+    },
+    {
+      "titulo": "Empresas como clientes recurrentes",
+      "parrafos": [
+        "Los eventos corporativos se repiten: juntas, capacitaciones, fin de año. Una página para empresas que explique cómo facturas, tiempos de pedido y opciones para grupos atrae clientes que vuelven varias veces al año.",
+        "Para ellos, un proceso de pedido sencillo y profesional vale tanto como el sabor."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios de banquetes con menús por evento, cotizador, galería y anticipos en línea, con el contacto medido. Desde $1,999 MXN; con asistente que cotiza desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo publicar precios por persona?",
+      "respuesta": "Sí, como precio desde, aclarando qué incluye y que la cotización final depende del menú y el lugar."
+    },
+    {
+      "pregunta": "¿El cotizador puede calcular automáticamente?",
+      "respuesta": "Sí, para paquetes estándar. Para eventos especiales, recoge los datos y te los entrega listos para preparar la propuesta."
+    },
+    {
+      "pregunta": "¿Sirve para atender otras ciudades?",
+      "respuesta": "Sí. La página puede indicar las zonas que cubres y el costo de traslado, para que el cliente lo sepa desde el principio."
+    },
+    {
+      "pregunta": "¿Puedo mostrar los salones donde he trabajado?",
+      "respuesta": "Sí, con fotos de tus montajes en esos lugares. Ayuda mucho a la pareja o a la empresa que ya eligió salón y quiere saber si conoces el espacio, sus cocinas y sus horarios de montaje."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/reservas-en-linea-para-restaurantes",
+      "texto": "Reservas en línea para restaurantes"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:def2db502e3a407c18dfd0c9e0add5379b50cef2783f363bae504dd908436469",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:def2db502e3a407c18dfd0c9e0add5379b50cef2783f363bae504dd908436469"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 628,
+    "similitud_max": 0.008,
+    "parecida_a": "/pagina-web-para-salones-de-eventos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:5a2b6f5ba2d4aa3b3a36e6c994c8a668eaf88b55baa55b27be769dc9eaa7e46a",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

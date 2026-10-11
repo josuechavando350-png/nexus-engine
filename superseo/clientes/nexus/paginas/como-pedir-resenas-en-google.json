@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "como-pedir-resenas-en-google",
+  "cliente": "nexus",
+  "ruta": "/como-pedir-resenas-en-google",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "Cómo pedir reseñas en Google sin incomodar",
+  "descripcion": "Cómo pedir reseñas en Google a tus clientes de forma natural y dentro de las reglas: momento, mensaje, enlace directo, código QR y qué evitar.",
+  "h1": "Cómo pedir reseñas en Google sin incomodar",
+  "respuesta_rapida": [
+    "Pide la reseña justo después de entregar el servicio, cuando la experiencia está fresca.",
+    "Usa un enlace directo que lleve al formulario de reseña, sin pasos extra.",
+    "Pide a todos tus clientes, no solo a los que crees contentos: es regla de Google.",
+    "Nunca ofrezcas descuentos o regalos a cambio de una reseña."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué importan tanto",
+      "parrafos": [
+        "Las reseñas son una de las razones principales por las que un negocio aparece en Google Maps y, sobre todo, por las que un cliente nuevo decide llamar. Un negocio con muchas reseñas recientes y respondidas transmite que está vivo y que atiende bien. Uno sin reseñas, o con reseñas de hace años, genera duda.",
+        "La mayoría de los clientes satisfechos no deja reseña por iniciativa propia; simplemente no se les ocurre. Por eso hay que pedirlas."
+      ]
+    },
+    {
+      "titulo": "El momento",
+      "parrafos": [
+        "El mejor momento es justo después de que el cliente recibió el servicio: al entregar el auto, al terminar el corte, al cerrar el asunto, al entregar el pedido. La experiencia está fresca y el agradecimiento es natural. Pedirla semanas después funciona mucho peor.",
+        "En negocios con citas, un mensaje automático unas horas después de la visita funciona muy bien."
+      ]
+    },
+    {
+      "titulo": "El enlace directo",
+      "parrafos": [
+        "Desde tu Perfil de Empresa en Google puedes obtener un enlace que abre directamente la ventana para escribir la reseña. Con ese enlace, el cliente no tiene que buscar tu negocio ni encontrar el botón: toca y escribe. Cada paso que quitas aumenta la probabilidad de que lo haga.",
+        "Ese mismo enlace se convierte en un código QR para el mostrador, la mesa, el espejo o la nota de venta."
+      ]
+    },
+    {
+      "titulo": "El mensaje",
+      "parrafos": [
+        "Corto, personal y sin presión. Agradece, menciona algo concreto del servicio si puedes y deja el enlace. Algo como: gracias por confiar en nosotros, si tienes un minuto, tu opinión en Google nos ayuda mucho a que otras personas nos encuentren. Evita mensajes largos o que suenen a encuesta corporativa.",
+        "Nuestra herramienta gratuita genera mensajes por giro y por tono para que solo copies y pegues."
+      ]
+    },
+    {
+      "titulo": "Las reglas que no se rompen",
+      "parrafos": [
+        "Google prohíbe ofrecer incentivos a cambio de reseñas, como descuentos, regalos o servicios gratis. También prohíbe pedir reseñas solo a los clientes que crees que van a calificar bien, y publicar reseñas falsas o de empleados. Romper estas reglas puede hacer que Google borre reseñas o suspenda tu perfil.",
+        "La única estrategia segura es pedirlas a todos, de forma constante, y dar un buen servicio."
+      ]
+    },
+    {
+      "titulo": "Hacerlo costumbre",
+      "parrafos": [
+        "Las reseñas funcionan mejor cuando llegan de forma constante que cuando llegan en ráfagas. Haz que pedir la reseña sea parte del proceso: un mensaje automático después de cada cita, un QR siempre visible, una línea en la nota de venta. Con el tiempo, el flujo se sostiene solo.",
+        "Y responde cada reseña: le muestra a los futuros clientes cómo tratas a la gente."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Configuramos el envío automático del mensaje de reseña después de cada servicio, el QR para tu local y la medición de cómo crece tu perfil. Es parte de Nexus Growth y de los asistentes de WhatsApp incluidos desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo pedir reseñas por WhatsApp?",
+      "respuesta": "Sí, es uno de los canales que mejor funciona, con el enlace directo en el mensaje."
+    },
+    {
+      "pregunta": "¿Puedo pedir a mi familia que deje reseñas?",
+      "respuesta": "No. Las reseñas deben ser de clientes reales; las de familiares o empleados van contra las reglas."
+    },
+    {
+      "pregunta": "¿Qué hago si un cliente me deja una mala reseña?",
+      "respuesta": "Respóndela con calma y ofrece resolver. Revisa nuestra guía sobre cómo responder reseñas negativas."
+    },
+    {
+      "pregunta": "¿Cuántas reseñas debo pedir?",
+      "respuesta": "A todos tus clientes. No hay un número ideal; importa la constancia."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/como-responder-resenas-negativas",
+      "texto": "Cómo responder una reseña negativa en Google"
+    },
+    {
+      "ruta": "/como-aparecer-en-google-maps",
+      "texto": "Cómo aparecer en Google Maps con tu negocio"
+    },
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:ddc3cbcf5cea2cbc042389ce6b256a112730c8423a35a30c41f5858cb12801a0",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:ddc3cbcf5cea2cbc042389ce6b256a112730c8423a35a30c41f5858cb12801a0"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 612,
+    "similitud_max": 0.005,
+    "parecida_a": "/agenda-de-citas-en-linea-para-salones-de-belleza"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:0b287f0bfeafc7344271d8fde183e1ed9700bff3a3137282bd9c142dce357ab4",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-talleres-mecanicos",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-talleres-mecanicos",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Google Ads para talleres mecánicos",
+  "descripcion": "Google Ads para talleres: anuncios por servicio y marca, radio cercano, llamadas en horario de taller, medición de citas y filtros contra búsquedas de refacciones.",
+  "h1": "Google Ads para talleres mecánicos",
+  "respuesta_rapida": [
+    "Anuncios por servicio y por especialidad: transmisiones, frenos, diagnóstico, aire acondicionado.",
+    "Radio corto y horario de taller: la mayoría busca un taller cerca y que conteste ya.",
+    "Extensión de llamada y WhatsApp, medidos como conversión.",
+    "Palabras negativas contra refacciones, tutoriales y empleos de mecánico."
+  ],
+  "secciones": [
+    {
+      "titulo": "Búsquedas con necesidad inmediata",
+      "parrafos": [
+        "Quien busca un taller suele tener un problema concreto: el auto hace un ruido, se calienta, no frena bien, una luz se encendió en el tablero. Busca con palabras muy específicas y desde el celular, a menudo cerca de donde está. Un anuncio que aparece en ese momento, con el servicio exacto y un botón de llamada, tiene una gran oportunidad.",
+        "Los talleres especializados, por ejemplo en transmisiones automáticas o en ciertas marcas, tienen todavía más ventaja: compiten en búsquedas con pocas opciones."
+      ]
+    },
+    {
+      "titulo": "Estructura recomendada",
+      "parrafos": [
+        "Grupos de anuncios por servicio, como frenos, suspensión, afinación, clutch, transmisión, diagnóstico por computadora y aire acondicionado, cada uno con un anuncio que menciona el servicio y lleva a su página en el sitio. Si el taller se especializa en marcas, un grupo por marca.",
+        "Radio corto alrededor del taller y horario de anuncios que coincide con el horario de atención, para que cada llamada encuentre a alguien. Fuera de horario, los anuncios pueden llevar a agendar cita en línea."
+      ]
+    },
+    {
+      "titulo": "Filtros necesarios",
+      "parrafos": [
+        "Muchas búsquedas parecidas no buscan taller: precio de balatas, cómo cambiar el clutch, refacciones baratas, empleo de mecánico, curso de mecánica. Una lista de palabras negativas bien trabajada evita pagar por ellas, y se revisa cada semana con los términos reales.",
+        "Si el taller no atiende ciertos tipos de vehículo, como motos o transporte pesado, también se excluyen."
+      ]
+    },
+    {
+      "titulo": "Medir llamadas y citas",
+      "parrafos": [
+        "Las conversiones son llamadas desde el anuncio y desde la página, mensajes de WhatsApp y citas agendadas. Con esa medición se sabe qué servicios traen más clientes y cuánto cuesta cada uno. Si el taller registra el valor de cada servicio, se puede medir el retorno real.",
+        "Muchos talleres descubren que ciertos servicios, como diagnóstico, traen clientes que luego regresan por años."
+      ]
+    },
+    {
+      "titulo": "Reseñas y confianza",
+      "parrafos": [
+        "En este giro, la desconfianza es alta, y los anuncios rinden mucho más cuando el perfil de Google tiene buenas reseñas. Las extensiones de ubicación muestran las estrellas y la distancia, lo que influye en el clic.",
+        "La página de destino debe mostrar garantía, precios orientativos y fotos reales del taller."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Correr anuncios con extensión de llamada cuando el taller está cerrado o cuando nadie puede contestar. Usar un radio demasiado amplio para servicios comunes. No excluir búsquedas de refacciones y tutoriales, que se llevan buena parte del presupuesto. Llevar a una portada sin precios ni servicios. Y no medir llamadas, lo que hace imposible saber si la campaña trae clientes o solo curiosos."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Configuramos campañas por servicio, radio y horario, medición de llamadas y citas, y páginas por servicio en el sitio. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Conviene anunciar precios?",
+      "respuesta": "Precios desde en servicios comunes mejoran la calidad de los clics y atraen clientes decididos."
+    },
+    {
+      "pregunta": "¿Funcionan los anuncios para flotillas?",
+      "respuesta": "Sí, con una campaña dirigida a empresas y una página específica para ellas."
+    },
+    {
+      "pregunta": "¿Qué tan grande debe ser el radio?",
+      "respuesta": "Para servicios comunes, cercano; para especialidades difíciles de encontrar, más amplio."
+    },
+    {
+      "pregunta": "¿Puedo pausar anuncios cuando el taller está lleno?",
+      "respuesta": "Sí, se pueden pausar o bajar el presupuesto en días de mucha carga."
+    },
+    {
+      "pregunta": "¿Sirve anunciar promociones de temporada?",
+      "respuesta": "Sí, por ejemplo revisión antes de vacaciones o del aire acondicionado antes del calor. Se anuncian unas semanas antes y llevan a una página con la promoción y forma de agendar."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-talleres-mecanicos",
+      "texto": "Página web para talleres mecánicos"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:a56c7fdbc7a45c3343cbace15226042c83b3c5efe90ec42dfd8471881c0c2d2f",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:a56c7fdbc7a45c3343cbace15226042c83b3c5efe90ec42dfd8471881c0c2d2f"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 617,
+    "similitud_max": 0.032,
+    "parecida_a": "/google-ads-para-veterinarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:6102e60ebebf9f02f1969cc2e5535732a871c5c31b184ba74c803ecfb9ab4660",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

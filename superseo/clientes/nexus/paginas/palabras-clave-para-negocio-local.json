@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "palabras-clave-para-negocio-local",
+  "cliente": "nexus",
+  "ruta": "/palabras-clave-para-negocio-local",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "Palabras clave para un negocio local",
+  "descripcion": "Cómo encontrar las palabras clave que usan tus clientes para buscarte en Google, cómo organizarlas por intención y cómo usarlas en tu página sin exagerar.",
+  "h1": "Palabras clave para un negocio local",
+  "respuesta_rapida": [
+    "Piensa en cómo busca tu cliente, no en cómo describes tu servicio internamente.",
+    "Usa el autocompletado de Google, las preguntas relacionadas y Search Console para descubrir búsquedas reales.",
+    "Organiza las palabras por intención: urgente, comercial e informativa.",
+    "Asigna cada grupo a una página, y escribe de forma natural, sin repetirlas de más."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cómo busca tu cliente",
+      "parrafos": [
+        "El error más común es usar en la página el lenguaje técnico del negocio. Un médico escribe gastroenterología; el paciente busca dolor de estómago frecuente. Un despacho escribe derecho laboral; el trabajador busca me despidieron sin darme nada. Las palabras clave útiles son las del cliente, no las del catálogo.",
+        "Una buena forma de empezar es anotar las preguntas que te hacen por teléfono y por WhatsApp: son, casi siempre, las mismas que se escriben en Google."
+      ]
+    },
+    {
+      "titulo": "Herramientas gratuitas",
+      "parrafos": [
+        "Escribe tu servicio en Google y mira el autocompletado: son búsquedas reales. Baja a la sección de preguntas relacionadas y a las búsquedas sugeridas al final de la página. Si ya tienes Search Console, el reporte de rendimiento muestra las búsquedas exactas por las que apareces.",
+        "El planificador de palabras clave de Google Ads da volúmenes aproximados de búsqueda; necesita una cuenta de Ads, pero no hace falta gastar para usarlo."
+      ]
+    },
+    {
+      "titulo": "Intención, no solo volumen",
+      "parrafos": [
+        "No todas las búsquedas valen lo mismo. Las urgentes, como cerrajero ahora o abogado para detenido, suelen convertirse en llamadas inmediatas. Las comerciales, como cuánto cuesta o mejor opción para, vienen de alguien comparando. Las informativas, como qué es o cómo hacer, atraen a quien todavía no está listo para comprar.",
+        "Una búsqueda con poco volumen pero intención alta puede traerte más clientes que una muy buscada pero informativa."
+      ]
+    },
+    {
+      "titulo": "Lo local",
+      "parrafos": [
+        "Para negocios locales, la zona importa. Muchas búsquedas incluyen colonia, alcaldía, municipio o la frase cerca de mí. Tu página debe mencionar de forma natural dónde atiendes y tu perfil de Google debe tener la dirección o el área de servicio correcta.",
+        "No hace falta crear una página por cada colonia con el mismo texto: Google las trata como relleno. Mejor una página fuerte por servicio, con la zona bien explicada."
+      ]
+    },
+    {
+      "titulo": "Una página por intención",
+      "parrafos": [
+        "Agrupa las palabras clave parecidas y asigna cada grupo a una página: una para cada servicio principal, una para precios, una para preguntas frecuentes. Si dos páginas compiten por la misma búsqueda, Google no sabe cuál mostrar y ambas pierden fuerza.",
+        "Ese mapa de palabras y páginas es la base de cualquier estrategia de contenido."
+      ]
+    },
+    {
+      "titulo": "Escribir sin exagerar",
+      "parrafos": [
+        "Usa la palabra clave principal en el título, en el encabezado y de forma natural en el texto. No la repitas en cada frase: Google entiende sinónimos y contexto, y el lector se cansa. Lo que más ayuda es responder bien la pregunta que hay detrás de la búsqueda.",
+        "Un texto escrito para personas suele funcionar mejor que uno escrito para el buscador."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "SUPERSEO cruza las situaciones de tus clientes, tus servicios y tu zona para proponer páginas que respondan búsquedas reales, y prioriza con los volúmenes de Keyword Planner y Search Console cuando los tienes. Es parte de Nexus Growth."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuántas palabras clave por página?",
+      "respuesta": "Un grupo principal con sus variantes cercanas. Si una página intenta cubrir temas distintos, conviene dividirla."
+    },
+    {
+      "pregunta": "¿Debo poner palabras clave en el nombre de mi perfil de Google?",
+      "respuesta": "No. El nombre debe ser el real del negocio; agregar palabras clave va contra las reglas."
+    },
+    {
+      "pregunta": "¿Las palabras clave en inglés sirven?",
+      "respuesta": "Si tus clientes buscan en inglés, sí, con una versión de la página en ese idioma."
+    },
+    {
+      "pregunta": "¿Cada cuánto reviso mis palabras clave?",
+      "respuesta": "Cada pocos meses con Search Console, para detectar búsquedas nuevas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/que-es-el-seo-local",
+      "texto": "Qué es el SEO local y cómo funciona"
+    },
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/como-escribir-los-textos-de-tu-pagina-web",
+      "texto": "Cómo escribir los textos de tu página web"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:5d89f392681a3772c045a99f46b276cbaa84130a8841dfa54c3463d2aa506f66",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:5d89f392681a3772c045a99f46b276cbaa84130a8841dfa54c3463d2aa506f66"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 610,
+    "similitud_max": 0.005,
+    "parecida_a": "/como-escribir-los-textos-de-tu-pagina-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:19ba27dd80ef3c0d8f31046467b95859d485cab1e8f0e22b288c58749fc2a49a",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

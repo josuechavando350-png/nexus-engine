@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-gimnasios",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-gimnasios",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Página web para gimnasios",
+  "descripcion": "Sitios para gimnasios y estudios fitness: membresías claras, horario de clases con reserva, instalaciones, entrenadores y pase de prueba en línea.",
+  "h1": "Página web para gimnasios",
+  "respuesta_rapida": [
+    "Quien busca gimnasio compara precio de membresía, horario, cercanía y ambiente.",
+    "Publica tus planes con lo que incluyen, sin letra chica en inscripción y permanencia.",
+    "El horario de clases con reserva en línea llena grupos y ordena el cupo.",
+    "Un pase de prueba que se pide en un minuto es la mejor puerta de entrada."
+  ],
+  "secciones": [
+    {
+      "titulo": "Competir por cercanía y por ambiente",
+      "parrafos": [
+        "La mayoría de la gente entrena cerca de su casa o de su trabajo, así que la competencia es local. Entre varias opciones cercanas, decide por precio, horario, ambiente y tipo de entrenamiento. Un gimnasio con página clara, fotos reales y precios visibles le gana a uno que obliga a ir en persona para preguntar.",
+        "Si tu gimnasio tiene un enfoque, como funcional, crossfit, box, yoga, pesas o un estudio boutique, dilo desde la portada: el cliente que busca eso te elige a ti.",
+        "Las fotos del ambiente real en horario normal, con gente entrenando, comunican mejor que cualquier foto de catálogo con modelos. Quien empieza a entrenar quiere saber si se va a sentir cómodo, y esas imágenes responden esa pregunta."
+      ]
+    },
+    {
+      "titulo": "Membresías sin letra chica",
+      "parrafos": [
+        "Mensual, trimestral, anual, por clases, estudiante, pareja. Cada plan con lo que incluye, costo de inscripción si existe, plazo mínimo y condiciones de cancelación. La transparencia en este giro es una ventaja competitiva, porque muchos clientes han tenido malas experiencias con cargos que no esperaban.",
+        "La compra o renovación en línea, con pago domiciliado opcional, reduce la fila en recepción y las bajas por olvido."
+      ]
+    },
+    {
+      "titulo": "Clases con reserva",
+      "parrafos": [
+        "Un horario semanal de clases con reserva en línea permite controlar el cupo, evita discusiones por lugares y da datos sobre qué clases tienen más demanda. Los recordatorios automáticos y la lista de espera llenan los lugares que se liberan.",
+        "Cada clase puede tener una descripción breve, nivel recomendado e instructor."
+      ]
+    },
+    {
+      "titulo": "Instalaciones y entrenadores",
+      "parrafos": [
+        "Fotos reales del área de pesas, cardio, salones, regaderas y estacionamiento. Presentar a los entrenadores con su especialidad y certificaciones ayuda a quien busca entrenamiento personal, que es una de las ventas más rentables.",
+        "Los horarios de mayor y menor afluencia, si los conoces, ayudan a quien prefiere entrenar tranquilo.",
+        "Si tienes nutriólogo, fisioterapeuta o servicios complementarios, como guardería o regaderas con toallas, cada uno es un argumento que vale mencionar con claridad, porque inclina la balanza entre dos gimnasios parecidos."
+      ]
+    },
+    {
+      "titulo": "Pase de prueba y seguimiento",
+      "parrafos": [
+        "Un pase de prueba que se solicita en línea, con un mensaje automático de bienvenida y otro de seguimiento después de la visita, convierte curiosos en socios. Es mucho más efectivo que esperar a que el interesado regrese por su cuenta.",
+        "También funciona un mensaje automático a socios que dejan de venir varias semanas, antes de que cancelen."
+      ]
+    },
+    {
+      "titulo": "Contenido y comunidad",
+      "parrafos": [
+        "Retos, eventos, resultados de socios con su permiso, consejos de entrenamiento. Una sección viva le da a la gente razones para volver al sitio y compartirlo. La comunidad es lo que retiene a los socios más allá del precio.",
+        "Evita las promesas de transformaciones en pocos días; atraen frustración y bajas."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios de gimnasio con membresías, reservas de clases, pases de prueba y seguimiento automático. Desde $1,999 MXN; con asistente y cobranza desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo cobrar membresías domiciliadas?",
+      "respuesta": "Sí, con un procesador de pagos que permita cargos recurrentes y avisos automáticos antes de cada cobro."
+    },
+    {
+      "pregunta": "¿Las reservas funcionan desde el celular?",
+      "respuesta": "Sí, el socio reserva, cancela o entra a lista de espera desde su teléfono."
+    },
+    {
+      "pregunta": "¿Sirve si soy un estudio pequeño?",
+      "respuesta": "Sí. Un estudio boutique con reservas en línea y buena imagen compite muy bien en su zona."
+    },
+    {
+      "pregunta": "¿Cómo aparezco cuando buscan gimnasio cerca?",
+      "respuesta": "Con tu perfil de Google completo, fotos recientes, horario correcto y reseñas de socios."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-gimnasios",
+      "texto": "Chatbot de WhatsApp para gimnasios"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-gimnasios",
+      "texto": "Cómo aparecer en Google Maps: gimnasios"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:83d7029f885f8c34410dc9535a503f52bebc9d9165c95ced0fa19a6bfd2c0612",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:83d7029f885f8c34410dc9535a503f52bebc9d9165c95ced0fa19a6bfd2c0612"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 625,
+    "similitud_max": 0.008,
+    "parecida_a": "/pagina-web-para-coworking"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:d2b12c1d0ac08b16ecae98e8df9b7865baec53d754c4431ef274eba619a371c8",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

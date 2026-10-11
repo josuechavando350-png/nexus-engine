@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-salones-de-belleza",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-salones-de-belleza",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Chatbot de WhatsApp para salones de belleza",
+  "descripcion": "Asistente de IA para salones de belleza: agenda por estilista y servicio, responde precios, pide anticipo, confirma citas y avisa cuándo toca el retoque.",
+  "h1": "Chatbot de WhatsApp para salones de belleza",
+  "respuesta_rapida": [
+    "Agenda por servicio y por estilista, calculando la duración real de cada cita.",
+    "Responde precios desde, promociones y dudas frecuentes sin que nadie suelte las tijeras.",
+    "Pide anticipo en servicios largos y confirma la cita el día anterior.",
+    "Avisa a cada clienta cuándo le toca su retoque de color o su tratamiento."
+  ],
+  "secciones": [
+    {
+      "titulo": "Manos ocupadas, mensajes pendientes",
+      "parrafos": [
+        "En un salón, quienes mejor conocen la agenda tienen las manos ocupadas con tinte, secadora o tijeras. Los mensajes de ¿tienes lugar el sábado?, ¿cuánto cuesta un balayage? y ¿haces peinados para boda? se acumulan y se contestan cuando hay un respiro, a veces horas después. Para entonces, la clienta ya reservó en otro lado.",
+        "Y cuando se agenda a mano, es fácil empalmar citas o calcular mal cuánto dura un servicio de color."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Pregunta qué servicio quiere la clienta y con quién, responde el precio desde y la duración aproximada que el salón definió, y ofrece los horarios realmente disponibles para ese servicio y esa estilista. Si el servicio es largo o en horario de alta demanda, envía el enlace para el anticipo antes de confirmar.",
+        "Un día antes manda el recordatorio con la opción de confirmar o reprogramar. Para servicios de color, puede pedir una foto del cabello actual y de la referencia, para que la estilista llegue preparada.",
+        "Cuando pasan las semanas habituales desde el último color o tratamiento, envía un mensaje amable con un enlace para reservar."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un martes en la noche, una clienta nueva escribe: quiero mechas para el viernes, ¿cuánto cuesta? El asistente pregunta el largo del cabello, comparte el precio desde y explica que el precio final se confirma en la valoración, ofrece dos horarios con la colorista y envía el enlace para el anticipo. La clienta paga y recibe su confirmación.",
+        "El miércoles, la colorista ve la cita con las fotos de referencia adjuntas."
+      ]
+    },
+    {
+      "titulo": "Con el tono de tu salón",
+      "parrafos": [
+        "El asistente se configura con la forma de hablar del salón: cercana, elegante, divertida. Usa los nombres de tus servicios y conoce tus promociones vigentes. Para la clienta, se siente como hablar con la recepción, solo que siempre contesta.",
+        "Si en algún momento la clienta prefiere hablar con una persona, la conversación pasa al equipo sin perder lo que ya se platicó."
+      ]
+    },
+    {
+      "titulo": "Lo que gana el salón",
+      "parrafos": [
+        "Más citas tomadas fuera de horario, menos ausencias gracias a los recordatorios y anticipos, agendas sin empalmes y clientas que regresan solas cuando les toca. También un registro de servicios por clienta, útil para ofrecer tratamientos complementarios.",
+        "Y, sobre todo, un equipo que se concentra en lo que mejor hace."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Armamos contigo el catálogo de servicios con su duración real, precio desde y qué estilista lo realiza, porque eso es lo que permite agendar sin empalmes. Definimos las reglas de anticipo y cancelación, escribimos las respuestas con el tono del salón y conectamos la agenda de cada estilista. Antes de activarlo, el equipo prueba varias citas. Después solo hay que mantener actualizados precios y promociones."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN. Para salones que ya tienen sitio, se cotiza aparte según número de estilistas y volumen de citas."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede manejar paquetes y membresías?",
+      "respuesta": "Sí. Lleva el control de sesiones usadas y avisa cuando quedan pocas."
+    },
+    {
+      "pregunta": "¿Qué pasa si una clienta cancela?",
+      "respuesta": "El horario se libera y el asistente puede ofrecerlo a quien esté en lista de espera."
+    },
+    {
+      "pregunta": "¿Puedo revisar la agenda desde mi celular?",
+      "respuesta": "Sí, la agenda y las conversaciones se consultan desde el teléfono."
+    },
+    {
+      "pregunta": "¿Sirve si trabajo sola?",
+      "respuesta": "Especialmente: el asistente atiende mientras tú trabajas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-salones-de-belleza",
+      "texto": "Página web para salones de belleza"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:2c397f9f3e4544a13c09b7b62837551c8cdc144ef9b151c425cb4393089ba08d",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:2c397f9f3e4544a13c09b7b62837551c8cdc144ef9b151c425cb4393089ba08d"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 609,
+    "similitud_max": 0.021,
+    "parecida_a": "/chatbot-whatsapp-para-barberias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:aa66f3239e0ebbd8f6e1ea62a9143f29283a8558f4ed5e608eaeffb4091ae368",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}
