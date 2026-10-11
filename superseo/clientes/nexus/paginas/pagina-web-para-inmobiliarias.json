@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-inmobiliarias",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-inmobiliarias",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Página web para inmobiliarias",
+  "descripcion": "Sitios para inmobiliarias: propiedades con filtros, fichas completas, contacto por propiedad, captación de propietarios y seguimiento automático de prospectos.",
+  "h1": "Página web para inmobiliarias",
+  "respuesta_rapida": [
+    "Un portal inmobiliario te pone junto a cien competidores; tu sitio propio te deja mostrar tus propiedades solo.",
+    "Cada propiedad necesita su ficha: fotos, ubicación, superficie, precio, amenidades y un botón de contacto.",
+    "Los filtros por zona, tipo, precio y recámaras son lo que más usa el visitante.",
+    "Captar propietarios que quieren vender o rentar es tan importante como atraer compradores."
+  ],
+  "secciones": [
+    {
+      "titulo": "Más allá de los portales",
+      "parrafos": [
+        "Los portales inmobiliarios generan contactos, pero ahí tu propiedad compite en la misma pantalla con la de la agencia de enfrente, a veces la misma propiedad publicada por varios asesores. Tu sitio propio es el único lugar donde el cliente solo ve tu inventario, tu marca y tu forma de trabajar.",
+        "También es donde llegan los clientes que te recomendaron o que vieron tu letrero en una ventana. Si te buscan y encuentran un sitio profesional, con propiedades actuales, la confianza se multiplica."
+      ]
+    },
+    {
+      "titulo": "Fichas que venden",
+      "parrafos": [
+        "Cada propiedad con su página: galería de fotos de calidad, ubicación aproximada en el mapa, superficie de terreno y construcción, recámaras, baños, estacionamiento, amenidades, precio, mantenimiento si aplica y un botón para preguntar por esa propiedad específica. Un video recorrido o una visita virtual suben mucho el interés.",
+        "Cuando la propiedad se vende o se renta, la ficha puede marcarse como no disponible y sugerir opciones similares, en lugar de dejar un enlace roto."
+      ]
+    },
+    {
+      "titulo": "Búsqueda y filtros",
+      "parrafos": [
+        "El visitante quiere filtrar por zona, tipo de inmueble, operación, rango de precio y número de recámaras. Un buscador sencillo que funcione bien en el celular es más valioso que cualquier efecto visual. Las páginas por colonia o zona, con las propiedades disponibles y una descripción real del barrio, también atraen búsquedas como departamentos en renta en una colonia concreta.",
+        "Esas páginas por zona solo funcionan si tienen propiedades reales y contenido propio; una página vacía por colonia no ayuda a nadie."
+      ]
+    },
+    {
+      "titulo": "Captación de propietarios",
+      "parrafos": [
+        "El inventario es el negocio. Una página dirigida a propietarios que quieren vender o rentar, explicando cómo trabajas, cómo promueves la propiedad, cómo filtras inquilinos o compradores y cuál es tu comisión, atrae al cliente que más vale. Un formulario para solicitar una valuación o una visita de evaluación convierte esas visitas en captaciones.",
+        "Muchas inmobiliarias olvidan esta página y solo hablan a compradores."
+      ]
+    },
+    {
+      "titulo": "Seguimiento que no se pierde",
+      "parrafos": [
+        "El prospecto inmobiliario tarda en decidir. Un asistente de WhatsApp puede responder al momento las preguntas básicas de cada propiedad, agendar visitas y registrar al prospecto. Después, mensajes de seguimiento con propiedades nuevas que coinciden con lo que busca mantienen la relación viva sin que tengas que acordarte de cada uno.",
+        "Ese seguimiento es justo donde se pierden la mayoría de las ventas en este giro."
+      ]
+    },
+    {
+      "titulo": "Confianza y formalidad",
+      "parrafos": [
+        "Presentar al equipo, explicar el proceso de compraventa o renta, mencionar si trabajas con notarías y valuadores, y mostrar las asociaciones profesionales a las que perteneces da seguridad en operaciones de mucho dinero. Las reseñas reales de clientes que ya compraron o rentaron contigo son tu mejor argumento.",
+        "Un aviso de privacidad claro también importa, porque vas a recibir datos personales y financieros."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios inmobiliarios con fichas, filtros, captación de propietarios y asistente de WhatsApp. Los paquetes van de $1,999 a $44,800 MXN; los de $19,999 y $44,800 incluyen tecnología para Google Ads y captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo sincronizar mis propiedades con portales?",
+      "respuesta": "Depende del portal y del sistema que uses. En muchos casos se puede cargar el inventario una vez y publicarlo en varios lugares."
+    },
+    {
+      "pregunta": "¿Cada asesor puede tener su página?",
+      "respuesta": "Sí. Cada asesor con su perfil, sus propiedades y su contacto, dentro del sitio de la inmobiliaria."
+    },
+    {
+      "pregunta": "¿Cómo evito que me escriban por propiedades vendidas?",
+      "respuesta": "Marcando el estado de cada ficha y redirigiendo las vendidas a propiedades similares disponibles."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-inmobiliarias",
+      "texto": "Chatbot de WhatsApp para inmobiliarias"
+    },
+    {
+      "ruta": "/google-ads-para-inmobiliarias",
+      "texto": "Google Ads para inmobiliarias"
+    },
+    {
+      "ruta": "/automatizar-cotizaciones",
+      "texto": "Cómo automatizar cotizaciones sin perder clientes"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:edaa6f8883fa93cab6a67f64e9d604ddec4990913be7f580466831867f1aada6",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:edaa6f8883fa93cab6a67f64e9d604ddec4990913be7f580466831867f1aada6"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 628,
+    "similitud_max": 0.017,
+    "parecida_a": "/pagina-web-para-hoteles-boutique"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:b1c830413271fa14eb6e10b8f30750d218792cf3a11456cef7bb42fe0a9dfc63",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

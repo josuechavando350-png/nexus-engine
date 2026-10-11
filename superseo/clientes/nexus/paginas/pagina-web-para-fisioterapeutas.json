@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-fisioterapeutas",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-fisioterapeutas",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Página web para fisioterapeutas",
+  "descripcion": "Sitios para fisioterapeutas y centros de rehabilitación: lesiones y tratamientos explicados, servicio a domicilio, paquetes de sesiones y agenda en línea.",
+  "h1": "Página web para fisioterapeutas",
+  "respuesta_rapida": [
+    "El paciente busca por lesión o por dolor: lumbalgia, esguince, rehabilitación después de una cirugía.",
+    "Explica qué tratas, cómo es una sesión y cuántas sesiones suele requerir cada caso en términos generales.",
+    "Si das servicio a domicilio, dilo claramente con las zonas que cubres.",
+    "Una agenda en línea con recordatorios sostiene el tratamiento completo, que es donde está el negocio."
+  ],
+  "secciones": [
+    {
+      "titulo": "Tres pacientes distintos",
+      "parrafos": [
+        "El primero tiene un dolor que no se le quita: espalda, cuello, rodilla. El segundo viene de una cirugía y su médico le indicó rehabilitación. El tercero es deportista y quiere recuperarse de una lesión o prevenirla. Cada uno busca con palabras distintas y espera algo distinto de la página.",
+        "Un sitio que separa estos caminos desde la portada ayuda a cada uno a encontrar su caso. Es más eficaz que una lista larga de técnicas que el paciente no conoce."
+      ]
+    },
+    {
+      "titulo": "Páginas por lesión y por tratamiento",
+      "parrafos": [
+        "Lumbalgia, ciática, hernia de disco, esguince de tobillo, lesiones de hombro, rehabilitación de rodilla, parálisis facial, fisioterapia neurológica, piso pélvico. Cada página explica en lenguaje simple qué es, cómo se trabaja en terapia y cuándo conviene acudir, sin diagnosticar a distancia.",
+        "Las técnicas, como punción seca, electroterapia o terapia manual, pueden tener su propia página para quien ya sabe lo que busca."
+      ]
+    },
+    {
+      "titulo": "Domicilio y zonas",
+      "parrafos": [
+        "Muchos pacientes no pueden desplazarse, sobre todo después de una cirugía o si son adultos mayores. Si ofreces fisioterapia a domicilio, esa página puede ser la que más consultas genere. Conviene decir qué zonas cubres, qué equipo llevas y cómo se agenda.",
+        "Lo mismo si atiendes en el consultorio de un hospital o en un gimnasio: la ubicación exacta y el acceso deben estar claros."
+      ]
+    },
+    {
+      "titulo": "El tratamiento es el negocio",
+      "parrafos": [
+        "Un paciente que viene una sola vez no se recupera ni se convierte en recomendación. El valor está en que complete su plan. Los paquetes de sesiones bien explicados, los recordatorios automáticos y un mensaje de seguimiento cuando alguien deja de venir hacen una diferencia grande.",
+        "Una agenda en línea donde el paciente reserve sus siguientes sesiones antes de salir reduce los huecos y te da visibilidad de tu semana."
+      ]
+    },
+    {
+      "titulo": "Confianza profesional",
+      "parrafos": [
+        "Cédula, formación, especialidades y fotos reales del espacio de trabajo. Si colaboras con ortopedistas o médicos del deporte, mencionarlo da tranquilidad al paciente que viene referido.",
+        "Las reseñas en Google de pacientes reales son la mejor prueba: pídelas al terminar un tratamiento."
+      ]
+    },
+    {
+      "titulo": "Contenido que muestra tu método",
+      "parrafos": [
+        "Las notas sobre dudas frecuentes atraen a pacientes que todavía no saben si necesitan terapia: cómo dormir con dolor lumbar, cuándo volver a correr después de un esguince, qué hacer las primeras semanas después de una cirugía de rodilla. Explicadas con prudencia, muestran tu criterio y generan confianza.",
+        "Cada nota debe aclarar que la información es general y que cada caso requiere valoración. Esa honestidad es parte de lo que distingue a un profesional en un campo donde abundan los consejos de internet."
+      ]
+    },
+    {
+      "titulo": "Lo que hacemos en Nexus",
+      "parrafos": [
+        "Diseñamos tu sitio a medida, con textos escritos a partir de una conversación contigo y una agenda que funciona en celular. Dejamos el contacto medido para que sepas qué lesiones te traen más pacientes.",
+        "Los paquetes van desde $1,999 MXN; la agenda con asistente y recordatorios está incluida desde $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo vender paquetes de sesiones en la página?",
+      "respuesta": "Sí. Se puede integrar el pago para que el paciente compre su paquete y agende desde el mismo lugar."
+    },
+    {
+      "pregunta": "¿Sirve publicar ejercicios en video?",
+      "respuesta": "Ejercicios generales de prevención atraen visitas y muestran tu estilo. Los ejercicios de rehabilitación deben indicarse en consulta."
+    },
+    {
+      "pregunta": "¿Cómo atraigo pacientes referidos por médicos?",
+      "respuesta": "Una página para médicos que explique cómo recibes pacientes referidos y cómo reportas su evolución ayuda a construir esa relación."
+    },
+    {
+      "pregunta": "¿Puedo trabajar con aseguradoras?",
+      "respuesta": "Si tienes convenios, menciónalos en la página: muchos pacientes buscan específicamente terapeutas que acepten su seguro de gastos médicos."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/agenda-de-citas-en-linea-para-fisioterapeutas",
+      "texto": "Agenda de citas en línea para fisioterapeutas"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-fisioterapeutas",
+      "texto": "Cómo aparecer en Google Maps: fisioterapeutas"
+    },
+    {
+      "ruta": "/como-conseguir-pacientes-para-tu-consultorio",
+      "texto": "Cómo conseguir más pacientes para tu consultorio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:58056611063bf16fb0f4ba9eff3687fe9f243b9c8e5d7766ad2f8bfef5097cb3",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:58056611063bf16fb0f4ba9eff3687fe9f243b9c8e5d7766ad2f8bfef5097cb3"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 646,
+    "similitud_max": 0.011,
+    "parecida_a": "/pagina-web-para-salones-de-belleza"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:b71872ae1bc23c3fc9b0aaf05ebee7406291cea66a7b61b7438e3fb6362b4119",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

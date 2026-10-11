@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-hoteles-boutique",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-hoteles-boutique",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Chatbot de WhatsApp para hoteles boutique",
+  "descripcion": "Asistente de IA para hoteles: responde disponibilidad y tarifas, empuja la reserva directa, atiende en español e inglés y acompaña al huésped en su estancia.",
+  "h1": "Chatbot de WhatsApp para hoteles boutique",
+  "respuesta_rapida": [
+    "Responde disponibilidad, tarifas y políticas en español e inglés, a cualquier hora del día.",
+    "Lleva al viajero a la reserva directa, sin comisión de agencias.",
+    "Antes de la llegada envía indicaciones, opciones de traslado y horario de entrada.",
+    "Durante la estancia atiende solicitudes y recomendaciones, y al final pide la reseña."
+  ],
+  "secciones": [
+    {
+      "titulo": "Viajeros en otro huso horario",
+      "parrafos": [
+        "Un hotel boutique recibe preguntas de viajeros que están en otro país, a horas en que la recepción está ocupada o con poco personal. ¿Tienen disponibilidad para el próximo fin de semana?, ¿aceptan mascotas?, ¿cuánto cuesta el traslado del aeropuerto? Si la respuesta tarda, el viajero reserva por la agencia en línea, y el hotel paga comisión.",
+        "Una respuesta rápida y amable, en su idioma, es muchas veces lo que convierte una consulta en una reserva directa."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Antes de la reserva, responde disponibilidad, tipos de habitación, tarifas, desayuno, estacionamiento, mascotas y políticas de cancelación, en el idioma en que le escriben. Explica el beneficio de reservar directo y envía el enlace del motor de reservas o el de pago, según cómo trabaje el hotel.",
+        "Antes de la llegada, envía un mensaje con la dirección, la hora de entrada, opciones de traslado y recomendaciones para la primera noche. Durante la estancia, atiende solicitudes como toallas extra, horario del desayuno o reservaciones en restaurantes cercanos, y las pasa a recepción cuando requieren a una persona.",
+        "Después de la salida, agradece y comparte el enlace para dejar una reseña."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Una pareja de Canadá escribe en inglés a las tres de la mañana hora de México: do you have a room with a terrace for three nights next week? El asistente responde en inglés con las habitaciones disponibles con terraza, la tarifa y el desayuno incluido por reservar directo, y envía el enlace. Reservan en ese momento.",
+        "Dos días antes de llegar reciben las indicaciones de traslado y una recomendación de cena en el barrio."
+      ]
+    },
+    {
+      "titulo": "Hospitalidad, no automatismo",
+      "parrafos": [
+        "Un boutique vende trato personal, y el asistente debe sumarse a esa experiencia, no reemplazarla. Se configura con el tono del hotel, conoce sus espacios y su barrio, y sabe cuándo pasar la conversación a una persona del equipo, por ejemplo ante una queja o una petición especial.",
+        "Bien hecho, el huésped siente que el hotel siempre responde, aunque la recepción esté atendiendo a alguien más."
+      ]
+    },
+    {
+      "titulo": "Lo que gana el hotel",
+      "parrafos": [
+        "Más reservas directas, menos comisión, huéspedes mejor informados que llegan sin contratiempos, una recepción menos saturada y más reseñas positivas. También información sobre qué preguntan los viajeros y desde qué países escriben.",
+        "Todas las conversaciones quedan registradas y el equipo puede intervenir cuando quiera."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Reunimos habitaciones, tarifas, políticas, servicios, recomendaciones del barrio y el tono del hotel. El equipo aprueba las respuestas en español e inglés. Conectamos el motor de reservas o el sistema de gestión cuando es posible, y probamos con recepción antes de activarlo."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN; los de $19,999 y $44,800 suman tecnología para Google Ads y captación. Como servicio aparte se cotiza según volumen e integraciones."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede confirmar reservas por sí solo?",
+      "respuesta": "Si se integra con el motor de reservas, sí. Si no, toma los datos y envía el enlace de pago para que la reserva quede firme."
+    },
+    {
+      "pregunta": "¿Habla otros idiomas además de inglés?",
+      "respuesta": "Sí, responde en el idioma en que le escriben, con las respuestas que el hotel aprobó."
+    },
+    {
+      "pregunta": "¿Puede vender experiencias o traslados?",
+      "respuesta": "Sí, puede ofrecer y cobrar servicios adicionales que el hotel defina."
+    },
+    {
+      "pregunta": "¿Puede manejar solicitudes de grupos o bodas?",
+      "respuesta": "Sí. Recoge fechas, número de personas y necesidades, y pasa la solicitud al área de ventas con un resumen listo para cotizar."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-hoteles-boutique",
+      "texto": "Página web para hoteles boutique"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:ebaa3afc578697cd06d3f9ecd985da112846e9f50bcc3641432848e2b8df9bb5",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:ebaa3afc578697cd06d3f9ecd985da112846e9f50bcc3641432848e2b8df9bb5"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 624,
+    "similitud_max": 0.03,
+    "parecida_a": "/recepcionista-de-voz-con-ia-para-hoteles-boutique"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:c92f46e02b9a2426f0cd4f684b42f41d6effb622f56c802106487160e3bd1c83",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

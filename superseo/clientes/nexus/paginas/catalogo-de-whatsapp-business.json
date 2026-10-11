@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "catalogo-de-whatsapp-business",
+  "cliente": "nexus",
+  "ruta": "/catalogo-de-whatsapp-business",
+  "tipo": "GUIA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "IA y automatización",
+  "titulo": "Catálogo y respuestas rápidas de WhatsApp Business",
+  "descripcion": "Cómo usar el catálogo, las respuestas rápidas, los mensajes automáticos y las etiquetas de WhatsApp Business para atender y vender mejor sin perder conversaciones.",
+  "h1": "Catálogo y respuestas rápidas de WhatsApp Business",
+  "respuesta_rapida": [
+    "El catálogo te deja mostrar productos o servicios con foto, precio y descripción dentro del chat.",
+    "Las respuestas rápidas ahorran tiempo en las preguntas que te hacen todos los días.",
+    "Los mensajes de bienvenida y ausencia avisan al cliente que lo recibiste.",
+    "Las etiquetas ordenan las conversaciones para no olvidar a nadie."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué es el catálogo",
+      "parrafos": [
+        "El catálogo de WhatsApp Business es una vitrina dentro de la aplicación. Puedes agregar productos o servicios con foto, nombre, precio, descripción y enlace, y compartirlos en cualquier conversación con un toque. El cliente lo ve sin salir de WhatsApp.",
+        "Para negocios que reciben siempre las mismas preguntas sobre qué venden y cuánto cuesta, el catálogo evita mandar fotos sueltas y listas de precios en imágenes que nadie encuentra después."
+      ]
+    },
+    {
+      "titulo": "Cómo armarlo bien",
+      "parrafos": [
+        "Usa fotos claras, con buena luz y fondo limpio. Escribe nombres que tu cliente reconozca, no códigos internos, y en la descripción incluye lo que más preguntan: tallas, medidas, ingredientes, duración del servicio o tiempo de entrega. Mantén los precios al día: un precio viejo en el catálogo genera discusiones.",
+        "Agrupa los productos en colecciones, como temporada, categoría o servicio, para que el cliente encuentre rápido lo que busca. Y retira lo que ya no vendes."
+      ]
+    },
+    {
+      "titulo": "Respuestas rápidas",
+      "parrafos": [
+        "Las respuestas rápidas son mensajes guardados que insertas escribiendo una diagonal y un atajo. Sirven para las preguntas de todos los días: horarios, ubicación, formas de pago, tiempos de envío o requisitos para una cita.",
+        "Úsalas como base, no como respuesta final. Empieza con el nombre de la persona y lo que preguntó, y luego inserta la respuesta guardada. Así ahorras tiempo sin sonar a contestadora."
+      ]
+    },
+    {
+      "titulo": "Bienvenida y ausencia",
+      "parrafos": [
+        "El mensaje de bienvenida se envía cuando alguien te escribe por primera vez o después de un tiempo sin hablar. Úsalo para saludar, decir en qué puedes ayudar y, si quieres, compartir el enlace a tu catálogo.",
+        "El mensaje de ausencia se envía fuera de tu horario. Indica cuándo vas a responder y, si aplica, dónde encontrar información mientras tanto. Es mejor que dejar al cliente sin ninguna señal."
+      ]
+    },
+    {
+      "titulo": "Etiquetas para no olvidar a nadie",
+      "parrafos": [
+        "Las etiquetas permiten marcar conversaciones como nuevo cliente, pendiente de pago, pedido enviado o seguimiento. Con ellas puedes filtrar y ver en segundos a quién debes contestar o recordar algo.",
+        "Si las usas con disciplina, se vuelven un pequeño CRM dentro de WhatsApp: sabes en qué etapa está cada cliente y quién se quedó sin respuesta."
+      ]
+    },
+    {
+      "titulo": "Cuándo se queda corto",
+      "parrafos": [
+        "WhatsApp Business funciona muy bien para negocios pequeños, pero tiene límites: pocos dispositivos vinculados, automatización básica y poca integración con otros sistemas. Cuando varias personas atienden, cuando llegan muchos mensajes o cuando quieres conectar con tu CRM o tu agenda, conviene pasar a la API de WhatsApp Business.",
+        "Con la API puedes tener un asistente que atienda a cualquier hora, varias personas en la misma bandeja e integraciones con tus herramientas, siempre con las reglas de mensajes de WhatsApp."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "En Nexus Bot Studio te ayudamos a ordenar tu WhatsApp: catálogo, mensajes y etiquetas para empezar y, cuando el volumen lo pide, un agente de IA de Nexus Sales que atiende, califica, agenda y da seguimiento 24/7 con escalamiento a una persona."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿El catálogo cobra comisión?",
+      "respuesta": "El catálogo de WhatsApp Business no cobra por mostrar productos; los pagos se acuerdan por los medios que tú uses."
+    },
+    {
+      "pregunta": "¿Puedo poner servicios en el catálogo?",
+      "respuesta": "Sí. Funciona para servicios con descripción y precio, o con un precio desde cuando depende del caso."
+    },
+    {
+      "pregunta": "¿Cuántas respuestas rápidas puedo tener?",
+      "respuesta": "Las suficientes para tus preguntas frecuentes. Mejor pocas y bien escritas que muchas que nadie recuerda."
+    },
+    {
+      "pregunta": "¿Puedo conectar mi catálogo con mi página web?",
+      "respuesta": "Puedes enlazarlo, aunque una tienda o catálogo en tu página te da más control y te ayuda a aparecer en Google."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/whatsapp-business-vs-api",
+      "texto": "WhatsApp Business app vs. API: diferencias reales"
+    },
+    {
+      "ruta": "/mensajes-de-whatsapp-que-venden",
+      "texto": "Mensajes de WhatsApp que convierten prospectos"
+    },
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:cfe80d71a0d2f712a5670009eb3295ce7ea6afecf8b411f6ab869255542c4f38",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:cfe80d71a0d2f712a5670009eb3295ce7ea6afecf8b411f6ab869255542c4f38"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 638,
+    "similitud_max": 0.01,
+    "parecida_a": "/mensajes-de-whatsapp-que-venden"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:1b22f54dffabc54b43e5f9944a5665814c64644fcde4837c163840fe16330541",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

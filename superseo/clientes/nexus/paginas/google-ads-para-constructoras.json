@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-constructoras",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-constructoras",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Google Ads para constructoras",
+  "descripcion": "Google Ads para constructoras: campañas por tipo de obra, zona de servicio, solicitudes de cotización medidas y filtros contra búsquedas de empleo o materiales.",
+  "h1": "Google Ads para constructoras",
+  "respuesta_rapida": [
+    "Campañas por tipo de obra: casa habitación, naves industriales, locales y remodelación mayor.",
+    "Palabras negativas contra empleos, cursos, precios de materiales y planos gratis.",
+    "Medición de solicitudes de cotización con datos de la obra.",
+    "Páginas de destino con obras reales del mismo tipo que se anuncia."
+  ],
+  "secciones": [
+    {
+      "titulo": "Pocas búsquedas, mucho valor",
+      "parrafos": [
+        "Las búsquedas de servicios de construcción no son masivas, pero cada una puede valer mucho: una casa, una bodega, un local comercial. Por eso la publicidad en Google tiene sentido para una constructora, siempre que la cuenta esté bien filtrada. Un solo proyecto conseguido puede pagar meses de inversión.",
+        "El riesgo es pagar por quien busca otra cosa: empleo de albañil, precio del cemento, planos gratis o cursos de construcción. Esas búsquedas comparten palabras con las de un cliente real."
+      ]
+    },
+    {
+      "titulo": "Estructura recomendada",
+      "parrafos": [
+        "Campañas por tipo de obra, cada una con anuncios que mencionan la experiencia de la constructora en ese tipo de proyecto y llevan a una página con obras similares, proceso y formulario de cotización. Las naves industriales se anuncian con un lenguaje de negocio, tiempos y capacidad; la casa habitación, con confianza, proceso y acompañamiento.",
+        "La zona geográfica se define según dónde trabaja realmente la constructora, con posibilidad de ampliar para obras grandes."
+      ]
+    },
+    {
+      "titulo": "Filtrar con rigor",
+      "parrafos": [
+        "La lista de palabras negativas es extensa: empleo, vacantes, trabajo, curso, precio de material, cemento, varilla, planos gratis, cómo construir, y los tipos de obra que la empresa no realiza. Se revisa cada semana con los términos de búsqueda reales, porque siempre aparecen variaciones nuevas.",
+        "Una página de destino que pide datos de la obra, como ubicación, superficie y plazo, filtra a quien solo estaba explorando."
+      ]
+    },
+    {
+      "titulo": "Medir solicitudes que valen",
+      "parrafos": [
+        "Las conversiones son solicitudes de cotización completas, llamadas y mensajes de WhatsApp. Con el seguimiento del equipo comercial se puede marcar cuáles avanzaron a visita y cuáles a contrato, y así saber cuánto cuesta un proyecto conseguido por anuncios.",
+        "Ese dato permite decidir con calma cuánto invertir en cada tipo de obra."
+      ]
+    },
+    {
+      "titulo": "Temporalidad",
+      "parrafos": [
+        "La construcción tiene ciclos: muchas familias planean obras al inicio del año o después de recibir aguinaldos, y las empresas planean expansiones con su presupuesto anual. Ajustar la inversión a esos momentos hace rendir el presupuesto.",
+        "En temporadas bajas, las campañas pueden mantenerse con presupuesto menor para no perder presencia."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Usar palabras demasiado amplias, como construcción, que atraen todo tipo de búsquedas. No revisar los términos de búsqueda y pagar durante meses por empleos y precios de materiales. Llevar los anuncios a una portada sin portafolio ni formulario. Y no dar seguimiento a las solicitudes que llegan, lo que convierte una buena campaña en dinero perdido. Una solicitud de obra respondida al día siguiente vale mucho menos que una respondida en la primera hora."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Armamos campañas por tipo de obra, con filtros rigurosos, medición de solicitudes y páginas de destino con portafolio real. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración mensual se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Conviene anunciarse si casi todo llega por recomendación?",
+      "respuesta": "Puede abrir un canal nuevo de proyectos, sobre todo en tipos de obra con búsqueda activa. Conviene probar con medición y decidir con datos."
+    },
+    {
+      "pregunta": "¿Puedo anunciarme para licitaciones?",
+      "respuesta": "Las licitaciones públicas no se consiguen con anuncios; sí funcionan para empresas privadas que buscan constructora."
+    },
+    {
+      "pregunta": "¿Qué presupuesto se necesita?",
+      "respuesta": "Depende de la zona y del tipo de obra. Lo recomendable es un periodo de prueba medido antes de escalar."
+    },
+    {
+      "pregunta": "¿Funcionan los anuncios en video?",
+      "respuesta": "Para mostrar obras terminadas y generar confianza, pueden complementar a los anuncios de búsqueda."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-constructoras",
+      "texto": "Página web para constructoras"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:fd175d17fb34597d704d7c687427639fa58bd2856b4976b7ca2b1eabf4a0a4ff",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:fd175d17fb34597d704d7c687427639fa58bd2856b4976b7ca2b1eabf4a0a4ff"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 600,
+    "similitud_max": 0.023,
+    "parecida_a": "/google-ads-para-remodelacion-y-acabados"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:ad5e0bcdc15ecd6240206e557899725eba3b228d92acc46bed141fd4484c6f6a",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

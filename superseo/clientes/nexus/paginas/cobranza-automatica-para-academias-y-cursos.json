@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "id": "cobranza-automatica-para-academias-y-cursos",
+  "cliente": "nexus",
+  "ruta": "/cobranza-automatica-para-academias-y-cursos",
+  "tipo": "AGENTE_IA",
+  "servicio": "cobranza",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Cobranza automática para academias y cursos",
+  "descripcion": "Cobranza automática de mensualidades para academias: recordatorios a alumnos o padres, pago en línea, control de inscripciones y avisos de baja temprana.",
+  "h1": "Cobranza automática para academias y cursos",
+  "respuesta_rapida": [
+    "Recordatorio de mensualidad a cada alumno o tutor, con enlace de pago.",
+    "Control de quién está al corriente antes de cada clase, sin revisar listas.",
+    "Aviso temprano de alumnos que dejan de pagar, que suele anticipar una baja.",
+    "Cobro de inscripciones, materiales y exámenes con el mismo sistema."
+  ],
+  "secciones": [
+    {
+      "titulo": "Mensualidades que se olvidan",
+      "parrafos": [
+        "En una academia de idiomas, música, regularización o deportes, la mensualidad es el ingreso que sostiene todo. Pero los alumnos o sus padres se olvidan, pagan tarde o dejan de venir sin avisar. Los instructores no quieren cobrar en clase y la administración, si existe, no da abasto con las listas.",
+        "Una cobranza automática mantiene el flujo de ingresos estable y libera a los instructores de un papel que no les corresponde."
+      ]
+    },
+    {
+      "titulo": "Cómo funciona",
+      "parrafos": [
+        "Cada alumno está registrado con su curso, su mensualidad y su fecha de pago. Unos días antes, el alumno o su tutor recibe un recordatorio con el monto y un enlace para pagar en línea. Al pagar, recibe su comprobante y la academia lo ve registrado.",
+        "Si la fecha pasa, llega un recordatorio amable. Si responde con una fecha, se registra y se le recuerda. Si un alumno acumula atrasos, la academia recibe una alerta, porque muchas veces el atraso anticipa una baja y vale la pena una conversación.",
+        "Inscripciones, materiales, uniformes, exámenes de certificación o recitales se cobran con el mismo flujo."
+      ]
+    },
+    {
+      "titulo": "Saber quién está al corriente",
+      "parrafos": [
+        "Antes de cada clase, el instructor o la administración pueden ver quién está al corriente sin revisar libretas ni preguntar en el salón. Eso evita situaciones incómodas frente a otros alumnos y permite atender cada caso en privado.",
+        "La privacidad del alumno se cuida en todo momento: la información de pagos solo la ve quien debe verla."
+      ]
+    },
+    {
+      "titulo": "Retener antes de perder",
+      "parrafos": [
+        "El atraso en el pago y la ausencia en clases suelen ir juntos. Cuando el sistema detecta ambas cosas, avisa a la academia para que alguien escriba al alumno, pregunte cómo va y le ofrezca opciones, como cambiar de horario o pausar el curso. Muchas bajas se evitan con ese contacto a tiempo.",
+        "Retener a un alumno cuesta mucho menos que conseguir uno nuevo."
+      ]
+    },
+    {
+      "titulo": "Reportes para decidir",
+      "parrafos": [
+        "La academia ve cuántos alumnos activos tiene por curso, cuánto se cobró en el mes, quién tiene saldo pendiente y cuántas bajas hubo. Con esos datos decide qué cursos abrir, cuándo lanzar inscripciones y dónde reforzar la retención.",
+        "Los reportes se consultan desde el celular."
+      ]
+    },
+    {
+      "titulo": "Pagos seguros",
+      "parrafos": [
+        "Los pagos se procesan con un proveedor reconocido, la academia no guarda datos de tarjetas y la información de alumnos, muchos de ellos menores, queda bajo un aviso de privacidad y con acceso restringido. En Nexus configuramos cada integración con criterio de ciberseguridad.",
+        "Los comprobantes se envían automáticamente."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos la cobranza con tus cursos, mensualidades, fechas y mensajes, conectada a WhatsApp y a pagos en línea. Incluida desde el paquete de $9,999 MXN o como servicio aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo dar descuentos por hermanos o pago anticipado?",
+      "respuesta": "Sí, cada alumno tiene su monto y sus descuentos configurados."
+    },
+    {
+      "pregunta": "¿Los mensajes van al alumno o al padre?",
+      "respuesta": "Al responsable del pago que registres: el alumno adulto o el tutor en el caso de menores."
+    },
+    {
+      "pregunta": "¿Puedo pausar la mensualidad en vacaciones?",
+      "respuesta": "Sí, se pueden configurar meses sin cobro o cursos con fechas definidas."
+    },
+    {
+      "pregunta": "¿Funciona con varias sedes?",
+      "respuesta": "Sí, con reportes por sede y por curso."
+    },
+    {
+      "pregunta": "¿Funciona para cursos con pago único?",
+      "respuesta": "Sí. Se puede cobrar el curso completo o en parcialidades, con recordatorio de cada pago."
+    },
+    {
+      "pregunta": "¿Puedo cobrar a empresas que inscriben a su personal?",
+      "respuesta": "Sí, con un responsable de pago por empresa y factura correspondiente."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/soluciones/cobranza",
+      "texto": "Cobranza y recordatorios automáticos"
+    },
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-academias-y-cursos",
+      "texto": "Página web para academias y cursos"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:65698c6d2dc43fef96bd00d22a7d942a32f550e65844b0cc183633be6043cf25",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:65698c6d2dc43fef96bd00d22a7d942a32f550e65844b0cc183633be6043cf25"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 608,
+    "similitud_max": 0.034,
+    "parecida_a": "/cobranza-automatica-para-gimnasios"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:6e8695dd78870795765b7dc53219477805a83f7e997f06c7d315401fc8c86a96",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

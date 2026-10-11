@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "cobranza-automatica-para-escuelas-particulares",
+  "cliente": "nexus",
+  "ruta": "/cobranza-automatica-para-escuelas-particulares",
+  "tipo": "AGENTE_IA",
+  "servicio": "cobranza",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Cobranza automática de colegiaturas",
+  "descripcion": "Cobranza automática para escuelas particulares: recordatorios amables de colegiatura, enlace de pago, registro de promesas y reportes de cartera.",
+  "h1": "Cobranza automática para escuelas particulares",
+  "respuesta_rapida": [
+    "Recordatorios amables antes y después de la fecha de pago, con enlace para pagar.",
+    "Cada familia recibe el mensaje que le corresponde, sin listas genéricas.",
+    "Las promesas de pago quedan registradas y se les da seguimiento solas.",
+    "La administración ve en un reporte quién pagó, quién prometió y quién necesita una llamada."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cobrar sin desgastar la relación",
+      "parrafos": [
+        "Cobrar colegiaturas es una de las tareas más delicadas de una escuela. La relación con las familias es larga y valiosa, y nadie quiere que un recordatorio de pago se sienta como un cobro agresivo. Al mismo tiempo, los retrasos se acumulan, y la administración pasa horas revisando listas, mandando mensajes uno por uno y anotando quién dijo que pagaba el viernes.",
+        "La cobranza automática resuelve la parte repetitiva con un tono cuidado y deja a las personas lo que realmente requiere tacto."
+      ]
+    },
+    {
+      "titulo": "Cómo funciona",
+      "parrafos": [
+        "Unos días antes de la fecha límite, cada familia recibe un recordatorio con el monto, la fecha y un enlace para pagar en línea o los datos para transferencia. Si paga, recibe su comprobante automáticamente y no vuelve a recibir mensajes ese mes.",
+        "Si la fecha pasa sin pago, el sistema envía un segundo mensaje, igual de amable, ofreciendo ayuda y preguntando si hay algún inconveniente. Si la familia responde con una fecha, esa promesa queda registrada y el sistema le recuerda ese día.",
+        "Los casos que siguen sin respuesta después de varios intentos pasan a la administración con el historial completo, para una llamada personal."
+      ]
+    },
+    {
+      "titulo": "El tono importa",
+      "parrafos": [
+        "Los mensajes se escriben con la voz de la escuela, cálidos y respetuosos, sin amenazas ni lenguaje de despacho de cobranza. Se dirigen a los padres o tutores responsables, nunca a los alumnos, y no mencionan la situación de pago frente a terceros.",
+        "Un buen recordatorio a tiempo resuelve la mayoría de los retrasos, que suelen ser olvidos y no falta de voluntad."
+      ]
+    },
+    {
+      "titulo": "Visibilidad de la cartera",
+      "parrafos": [
+        "La administración ve en un reporte sencillo cuántas familias pagaron a tiempo, cuántas pagaron después del recordatorio, cuántas prometieron una fecha y cuántas necesitan atención personal. Con eso se toman decisiones informadas, como ofrecer planes de pago a quien lo necesita o revisar políticas de recargo.",
+        "El reporte se puede consultar desde el celular en cualquier momento."
+      ]
+    },
+    {
+      "titulo": "Otros cobros escolares",
+      "parrafos": [
+        "El mismo sistema sirve para inscripciones, reinscripciones, cuotas de material, uniformes, excursiones o transporte. Cada cobro con su fecha y su mensaje, y todo en el mismo historial por familia.",
+        "Las familias agradecen tener todos los pagos en un solo lugar y con comprobante inmediato."
+      ]
+    },
+    {
+      "titulo": "Datos y privacidad",
+      "parrafos": [
+        "La información de pagos de las familias es sensible. El sistema funciona con acceso restringido, bajo el aviso de privacidad de la escuela, y los mensajes solo se envían a los contactos autorizados. En Nexus construimos cada integración con criterio de ciberseguridad.",
+        "Los pagos en línea se procesan con un procesador reconocido; la escuela nunca guarda datos de tarjetas."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos la cobranza con tus fechas, montos, mensajes y reglas, conectada a WhatsApp y a pagos en línea. Se incluye en los paquetes desde $9,999 MXN o se cotiza aparte para escuelas que ya tienen sitio."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Se pueden aplicar descuentos por pronto pago?",
+      "respuesta": "Sí. El recordatorio puede mencionar el descuento y la fecha límite para aprovecharlo."
+    },
+    {
+      "pregunta": "¿Qué pasa con las familias con becas?",
+      "respuesta": "Cada familia tiene su monto configurado, y los mensajes reflejan lo que le corresponde."
+    },
+    {
+      "pregunta": "¿Se conecta con mi sistema escolar?",
+      "respuesta": "Depende del sistema. Muchas veces basta con una hoja de cálculo actualizada con montos y estados de pago."
+    },
+    {
+      "pregunta": "¿Puedo revisar los mensajes antes de que salgan?",
+      "respuesta": "Sí, se aprueban las plantillas y se pueden ajustar en cualquier momento."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/soluciones/cobranza",
+      "texto": "Cobranza y recordatorios automáticos"
+    },
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-escuelas-particulares",
+      "texto": "Página web para escuelas particulares"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:21e8abe22f9ddbd8b566f4e85bb29ef9cc5db83c7e44b6ee6837d76643f8ca88",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:21e8abe22f9ddbd8b566f4e85bb29ef9cc5db83c7e44b6ee6837d76643f8ca88"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 613,
+    "similitud_max": 0.021,
+    "parecida_a": "/cobranza-automatica-para-condominios"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:3cfee1508d85e25f24512bf3a47e2c98aa36e70ce7fcdc42d2a7e58ac6d85227",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

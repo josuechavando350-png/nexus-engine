@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-panaderias-y-pastelerias",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-panaderias-y-pastelerias",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comida",
+  "titulo": "Página web para panaderías y pastelerías",
+  "descripcion": "Sitios para panaderías y pastelerías: catálogo de pasteles por encargo, cotización con foto de referencia, anticipos, horarios y entregas.",
+  "h1": "Página web para panaderías y pastelerías",
+  "respuesta_rapida": [
+    "Los pasteles por encargo son el negocio más rentable: un catálogo con tamaños, sabores y precios desde lo hace crecer.",
+    "Un formulario de pedido con fecha, número de personas y foto de referencia ahorra muchas conversaciones.",
+    "El anticipo en línea asegura el pedido y protege tu trabajo.",
+    "El pan del día, horarios y temporadas como rosca o pan de muerto también se buscan mucho."
+  ],
+  "secciones": [
+    {
+      "titulo": "Dos negocios en uno",
+      "parrafos": [
+        "Una panadería o pastelería suele tener dos tipos de cliente. El del día a día, que pasa por pan dulce, bolillo o un postre y decide por cercanía y horario. Y el de ocasión, que necesita un pastel para un cumpleaños, una boda o un bautizo, y compara con calma, revisa fotos y quiere saber precios antes de escribir.",
+        "La página puede atender a los dos. Para el primero, ubicación, horario y lo que hay hoy. Para el segundo, un catálogo de pasteles y un proceso de pedido claro, que es donde están los márgenes más altos del negocio."
+      ]
+    },
+    {
+      "titulo": "Catálogo de pasteles por encargo",
+      "parrafos": [
+        "Organiza el catálogo por ocasión y por estilo: infantiles, bodas, XV años, corporativos, minimalistas, temáticos. Cada pastel con fotos reales, sabores disponibles, tamaños por número de personas y un precio desde. Esa información, que normalmente se da por mensaje una y otra vez, en la página filtra a quien busca algo que no haces y anima a quien sí.",
+        "Si trabajas con opciones especiales, como sin azúcar, sin gluten o veganas, dedica una sección: es una búsqueda creciente y con pocos competidores."
+      ]
+    },
+    {
+      "titulo": "Pedidos sin ir y venir",
+      "parrafos": [
+        "El formulario de pedido ideal pregunta lo indispensable: fecha del evento, número de personas, sabor, estilo y una foto de referencia. Con eso puedes cotizar con precisión y confirmar. Un asistente de WhatsApp puede hacer esas preguntas a cualquier hora y dejarte el pedido listo para revisar.",
+        "Cobrar un anticipo en línea al confirmar asegura el compromiso del cliente y te protege de pedidos que se cancelan cuando ya compraste los insumos."
+      ]
+    },
+    {
+      "titulo": "Temporadas que se buscan",
+      "parrafos": [
+        "Rosca de Reyes, pan de muerto, cenas de fin de año, Día de las Madres. Cada temporada genera búsquedas concentradas en pocas semanas. Una página de temporada publicada a tiempo, con fotos, precios y forma de apartar, te pone en la lista de quien está buscando en ese momento.",
+        "Después de la temporada, la misma página se actualiza para el año siguiente, y con el tiempo gana fuerza en Google."
+      ]
+    },
+    {
+      "titulo": "Entregas y recolección",
+      "parrafos": [
+        "Aclara si haces entregas, en qué zonas, con qué costo y con cuánta anticipación. Para pasteles grandes, la entrega es parte del servicio y muchas veces decide la compra. Si solo se recoge en tienda, dilo y explica cómo transportar el pastel para que llegue bien.",
+        "Estas instrucciones evitan reclamos y muestran el cuidado que pones en tu trabajo."
+      ]
+    },
+    {
+      "titulo": "Fotografía que se antoja",
+      "parrafos": [
+        "En repostería, la foto lo es todo. Fotografías propias con luz natural, fondo limpio y detalle del corte, del relleno, de la decoración. Es mejor tener veinte fotos buenas de pasteles reales que cien de internet que no hiciste.",
+        "Esas mismas fotos alimentan tu perfil de Google y tus redes, y le dan coherencia a toda tu presencia."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para panaderías y pastelerías con catálogo de pedidos, anticipos en línea y WhatsApp medido. Desde $1,999 MXN; con asistente que recibe pedidos desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo poner precios si cada pastel es distinto?",
+      "respuesta": "Sí, con precios desde por tamaño y estilo, aclarando que el diseño final se cotiza. Eso orienta al cliente sin comprometerte a un precio cerrado."
+    },
+    {
+      "pregunta": "¿Cuánta anticipación debo pedir?",
+      "respuesta": "La que tu producción requiera. La página puede bloquear fechas con poca anticipación o llenas automáticamente."
+    },
+    {
+      "pregunta": "¿Sirve vender pan del día en línea?",
+      "respuesta": "Para pedidos grandes o entregas a negocios sí. Para pan del día suele bastar con mostrar horario y lo que hay disponible."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/reservas-en-linea-para-restaurantes",
+      "texto": "Reservas en línea para restaurantes"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:fe7fc862598109679fd813196cc3782c6555b0a70482eb8597c841911eeaabc9",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:fe7fc862598109679fd813196cc3782c6555b0a70482eb8597c841911eeaabc9"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 649,
+    "similitud_max": 0.01,
+    "parecida_a": "/pagina-web-para-remodelacion-y-acabados"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:ce0c2d0f17aae92bdd9561fb5f925dd734e38878f8f129db5990cfb67e4a598f",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

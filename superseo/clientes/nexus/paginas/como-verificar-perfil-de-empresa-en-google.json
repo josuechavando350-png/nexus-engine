@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "como-verificar-perfil-de-empresa-en-google",
+  "cliente": "nexus",
+  "ruta": "/como-verificar-perfil-de-empresa-en-google",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "Cómo verificar tu Perfil de Empresa en Google",
+  "descripcion": "Cómo verificar tu Perfil de Empresa en Google: métodos disponibles, cómo preparar el video de verificación y qué hacer si la verificación falla.",
+  "h1": "Cómo verificar tu Perfil de Empresa en Google",
+  "respuesta_rapida": [
+    "La verificación confirma que tu negocio existe y que tú lo administras.",
+    "Google decide qué métodos te ofrece: llamada, mensaje, correo, video o videollamada.",
+    "Para el video, muestra el letrero, el interior y algo que pruebe que administras el negocio.",
+    "Si falla, revisa que nombre, dirección y categoría sean reales y coherentes, y vuelve a intentar."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué Google pide verificar",
+      "parrafos": [
+        "Google quiere evitar perfiles falsos, negocios que no existen y personas que se apropian de perfiles ajenos. Por eso, antes de mostrar plenamente tu negocio y dejarte administrarlo, pide pruebas de que es real y de que tú eres el responsable.",
+        "Un perfil sin verificar puede no aparecer en Maps o aparecer con información que no puedes cambiar."
+      ]
+    },
+    {
+      "titulo": "Los métodos",
+      "parrafos": [
+        "Según el tipo de negocio, la ubicación y el historial, Google puede ofrecerte uno o varios métodos: código por llamada o mensaje de texto al teléfono del negocio, código por correo, grabación de un video del lugar o una videollamada en vivo con personal de Google. En algunos casos todavía se usa el correo postal.",
+        "No puedes elegir libremente: el método disponible lo decide Google. Si ves varias opciones, la más rápida suele ser la de teléfono o correo."
+      ]
+    },
+    {
+      "titulo": "Cómo preparar el video",
+      "parrafos": [
+        "La verificación por video es cada vez más común. Graba de forma continua, sin cortes. Empieza afuera mostrando el letrero y la calle o una referencia del lugar. Entra y muestra el interior, el equipo de trabajo o los productos. Termina mostrando algo que pruebe que administras el negocio, como abrir la caja, el área de trabajo con llave o documentos del negocio.",
+        "Si atiendes a domicilio, muestra tu vehículo rotulado, tu herramienta y documentación del negocio."
+      ]
+    },
+    {
+      "titulo": "Antes de verificar",
+      "parrafos": [
+        "Revisa que el nombre del perfil sea el nombre real del negocio, sin palabras clave añadidas. Que la dirección sea correcta y corresponda a un lugar donde atiendes, o que hayas configurado bien el área de servicio. Que la categoría sea la adecuada. Muchas verificaciones fallan por inconsistencias en estos datos.",
+        "Ten a la mano documentos que respalden el negocio por si Google los pide."
+      ]
+    },
+    {
+      "titulo": "Si la verificación falla",
+      "parrafos": [
+        "Revisa los datos del perfil, corrige lo que no sea coherente y vuelve a intentar con el método que Google ofrezca. Si el perfil sigue rechazado o suspendido, puedes solicitar una revisión desde el centro de ayuda de Google Business Profile, adjuntando pruebas como fotos del local, comprobante de domicilio, licencias o registro fiscal.",
+        "Evita crear perfiles nuevos para el mismo negocio: puede complicar el caso."
+      ]
+    },
+    {
+      "titulo": "Después de verificar",
+      "parrafos": [
+        "Con el perfil verificado, completa todo: horarios, servicios, fotos, descripción y atributos. Pide reseñas de forma constante y publica novedades. La verificación es solo el comienzo; lo que te hace aparecer es un perfil completo y activo.",
+        "Guarda los accesos del perfil con un correo del negocio, no con el de un empleado que podría irse."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Te acompañamos en la verificación, revisamos que los datos sean coherentes y optimizamos el perfil después. Es parte de Nexus Growth y de los paquetes de $19,999 y $44,800 MXN, que incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuánto tarda la verificación?",
+      "respuesta": "Desde minutos hasta varios días, según el método y si Google pide revisión adicional."
+    },
+    {
+      "pregunta": "¿Puedo verificar sin local?",
+      "respuesta": "Sí, como negocio con área de servicio, mostrando en el video tu forma de trabajo y documentación."
+    },
+    {
+      "pregunta": "¿Puede otra persona verificar mi negocio?",
+      "respuesta": "Puede ayudarte, pero el perfil debe quedar con tu correo como propietario."
+    },
+    {
+      "pregunta": "¿Qué hago si alguien más ya reclamó mi negocio?",
+      "respuesta": "Solicita la propiedad desde Google Business Profile; Google contactará al administrador actual y, si no responde, puede dártela a ti."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/como-aparecer-en-google-maps",
+      "texto": "Cómo aparecer en Google Maps con tu negocio"
+    },
+    {
+      "ruta": "/google-maps-ficha-suspendida",
+      "texto": "Ficha de Google Maps suspendida: qué hacer"
+    },
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:d8f10c65f8688757080ac1b6680f5c0fa548ea841aee4c7df23df45fe506d98f",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:d8f10c65f8688757080ac1b6680f5c0fa548ea841aee4c7df23df45fe506d98f"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 609,
+    "similitud_max": 0.009,
+    "parecida_a": "/google-maps-ficha-suspendida"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:4dc3996f5480859dc33e0a20089b40346f24fd35b1aab50a5b3e4cac0d3e3cd5",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

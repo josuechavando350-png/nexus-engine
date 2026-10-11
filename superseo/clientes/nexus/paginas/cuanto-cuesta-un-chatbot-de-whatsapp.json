@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "id": "cuanto-cuesta-un-chatbot-de-whatsapp",
+  "cliente": "nexus",
+  "ruta": "/cuanto-cuesta-un-chatbot-de-whatsapp",
+  "tipo": "GUIA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Costos y tiempos",
+  "titulo": "¿Cuánto cuesta un chatbot de WhatsApp?",
+  "descripcion": "Qué determina el costo de un chatbot de WhatsApp para negocios: configuración, operación mensual, conversaciones, integraciones y la diferencia entre app y API.",
+  "h1": "¿Cuánto cuesta un chatbot de WhatsApp?",
+  "respuesta_rapida": [
+    "Un chatbot tiene dos costos: la configuración inicial y la operación mensual.",
+    "Influyen el volumen de conversaciones, la inteligencia del asistente y las integraciones con agenda, pagos o CRM.",
+    "WhatsApp Business app y la API de WhatsApp funcionan distinto y tienen costos distintos.",
+    "En Nexus, el chatbot con IA está incluido en los paquetes de sitio desde $9,999 MXN."
+  ],
+  "secciones": [
+    {
+      "titulo": "No todos los chatbots son iguales",
+      "parrafos": [
+        "Bajo el nombre chatbot de WhatsApp se venden cosas muy distintas. Un menú de opciones que responde con textos fijos cuando el cliente escribe uno, dos o tres. Un asistente con inteligencia artificial que entiende lo que la persona escribe con sus propias palabras, responde con la información de tu negocio, agenda y pasa la conversación a una persona cuando hace falta. Y sistemas más completos, conectados a la agenda, los pagos y el CRM.",
+        "Comparar precios sin saber cuál de estos se cotiza lleva a malas decisiones."
+      ]
+    },
+    {
+      "titulo": "Configuración inicial",
+      "parrafos": [
+        "La configuración incluye entender tu negocio, escribir las respuestas y el tono, definir cuándo el asistente pasa la conversación a una persona, conectar el número de WhatsApp y, si aplica, integrar la agenda, el catálogo o los pagos. Un buen proceso de configuración incluye pruebas con tu equipo antes de activarlo.",
+        "Cuanto más integrado y más específico de tu negocio, más trabajo inicial, y mejores resultados."
+      ]
+    },
+    {
+      "titulo": "Operación mensual",
+      "parrafos": [
+        "Un asistente con inteligencia artificial tiene costos mensuales: el uso del modelo de lenguaje, el servidor, el mantenimiento y los ajustes. Si se usa la API de WhatsApp, Meta cobra según el tipo y número de conversaciones. Por eso la mensualidad suele depender del volumen de conversaciones.",
+        "Pregunta siempre si hay un límite de conversaciones incluido y qué pasa si lo superas."
+      ]
+    },
+    {
+      "titulo": "App de WhatsApp Business o API",
+      "parrafos": [
+        "La aplicación de WhatsApp Business es gratuita y sirve para atender desde el teléfono, con respuestas rápidas y catálogo, pero no permite automatizar con inteligencia artificial de forma oficial ni que varias personas atiendan con flexibilidad. La API de WhatsApp permite automatización, varios agentes e integraciones, y tiene costos por conversación.",
+        "La elección depende de cuántos mensajes recibes y de cuánto quieres automatizar."
+      ]
+    },
+    {
+      "titulo": "Preguntas antes de contratar",
+      "parrafos": [
+        "¿Quién es dueño de las conversaciones y los datos? ¿Dónde se guardan? ¿Se usan para entrenar modelos de terceros? ¿Puedo revisar las conversaciones? ¿Qué pasa si el asistente no sabe una respuesta? ¿Cuánto cuesta cambiar un guion? ¿Hay tope de conversaciones al mes?",
+        "Un proveedor serio responde todo esto por escrito antes de que firmes."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "El asistente con inteligencia artificial está incluido en los paquetes de sitio desde $9,999 MXN. Si ya tienes página y solo quieres el asistente, se cotiza aparte según el volumen de conversaciones y las integraciones. Lo construimos con criterio de ciberseguridad y con la información bajo tu control.",
+        "Puedes calcular cuántos clientes podrías estar perdiendo por contestar tarde con nuestra calculadora gratuita."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Un chatbot reemplaza a mi personal?",
+      "respuesta": "No. Atiende lo repetitivo y fuera de horario, y pasa a tu equipo lo que requiere criterio humano."
+    },
+    {
+      "pregunta": "¿Puedo usar mi número actual?",
+      "respuesta": "En la mayoría de los casos sí; depende de si usas la app o la API. Se revisa en el diagnóstico."
+    },
+    {
+      "pregunta": "¿Cuánto tarda en estar listo?",
+      "respuesta": "Depende de las integraciones; un asistente básico se configura más rápido que uno conectado a agenda, pagos y CRM."
+    },
+    {
+      "pregunta": "¿Qué pasa si el asistente se equivoca?",
+      "respuesta": "Se revisan las conversaciones, se corrige la información y se ajusta. Por eso las primeras semanas se monitorean de cerca."
+    },
+    {
+      "pregunta": "¿Puedo probarlo antes de contratar?",
+      "respuesta": "Puedes conversar con el agente del propio sitio de Nexus para ver cómo responde un asistente con inteligencia artificial, y en el diagnóstico gratuito revisamos cómo funcionaría con tu negocio."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/whatsapp-business-vs-api",
+      "texto": "WhatsApp Business app vs. API: diferencias reales"
+    },
+    {
+      "ruta": "/que-puede-hacer-un-agente-de-ia-en-un-negocio",
+      "texto": "Qué puede hacer un agente de IA en tu negocio"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:0ade24896f2c6701ecaa5aad44875eb3415d3bd4aad1b3928d311e71dd66f449",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:0ade24896f2c6701ecaa5aad44875eb3415d3bd4aad1b3928d311e71dd66f449"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 619,
+    "similitud_max": 0.012,
+    "parecida_a": "/chatbot-whatsapp-para-notarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:51bfbdec9e7f7be23fad74f7f471b9eaef1f8b6875009945035c59a983554bc2",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

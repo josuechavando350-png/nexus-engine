@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-vs-recepcionista-humana",
+  "cliente": "nexus",
+  "ruta": "/chatbot-vs-recepcionista-humana",
+  "tipo": "GUIA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "Chatbot vs. recepcionista: qué hace mejor cada uno",
+  "descripcion": "Qué tareas hace mejor un chatbot o recepcionista con IA y cuáles una persona. Cómo combinarlos para atender rápido sin perder el trato humano.",
+  "h1": "Chatbot vs. recepcionista: qué hace mejor cada uno",
+  "respuesta_rapida": [
+    "Un asistente de IA es mejor para responder al instante, a cualquier hora y lo mismo cien veces sin cansarse.",
+    "Una persona es mejor para casos delicados, quejas, negociaciones y decisiones con criterio.",
+    "Lo ideal es combinarlos: el asistente atiende lo repetitivo y pasa a la persona lo que importa.",
+    "El asistente no sustituye a tu equipo; le quita trabajo para que atienda mejor."
+  ],
+  "secciones": [
+    {
+      "titulo": "No es una competencia",
+      "parrafos": [
+        "La pregunta no es si un chatbot reemplaza a una recepcionista, sino qué parte del trabajo conviene que haga cada uno. En la mayoría de los negocios, una parte enorme de los mensajes y llamadas son preguntas repetidas: horarios, precios, ubicación, disponibilidad. Otra parte, más pequeña pero más valiosa, requiere criterio humano.",
+        "Separar esas dos partes es lo que hace que la atención mejore."
+      ]
+    },
+    {
+      "titulo": "Lo que hace mejor un asistente de IA",
+      "parrafos": [
+        "Responder al instante, a las tres de la mañana o en la hora pico. Atender muchas conversaciones al mismo tiempo. Dar siempre la misma información correcta, sin olvidar detalles. Agendar respetando reglas, enviar recordatorios y registrar todo de forma ordenada.",
+        "No se cansa, no se distrae y no tiene días malos. Para el trabajo repetitivo, es más constante que cualquier persona."
+      ]
+    },
+    {
+      "titulo": "Lo que hace mejor una persona",
+      "parrafos": [
+        "Entender una situación delicada, calmar a un cliente molesto, negociar, decidir excepciones, leer entre líneas y construir una relación. En materias sensibles, como salud, asuntos legales o duelos, el trato humano no tiene sustituto.",
+        "También detectar oportunidades que no están en el guion: el cliente que podría comprar algo más o el problema que nadie había previsto."
+      ]
+    },
+    {
+      "titulo": "Cómo combinarlos",
+      "parrafos": [
+        "El asistente recibe la conversación, responde lo frecuente, hace las preguntas iniciales y ordena la información. Cuando detecta algo que requiere a una persona, como una queja, una urgencia o una petición especial, pasa la conversación con un resumen. La persona entra ya sabiendo de qué se trata.",
+        "El cliente recibe atención inmediata y, cuando hace falta, atención humana sin repetir su historia."
+      ]
+    },
+    {
+      "titulo": "Transparencia con el cliente",
+      "parrafos": [
+        "Recomendamos que el asistente se presente como tal. La mayoría de los clientes acepta hablar con un asistente si responde bien y si puede pedir una persona en cualquier momento. Lo que molesta es sentirse engañado o atrapado en un menú sin salida.",
+        "Un buen diseño siempre deja una salida clara hacia una persona."
+      ]
+    },
+    {
+      "titulo": "Lo que cambia para tu equipo",
+      "parrafos": [
+        "Con el asistente atendiendo lo repetitivo, la recepción deja de contestar lo mismo todo el día y puede atender mejor a quien está presente, dar seguimiento a casos importantes y hacer trabajo que genera valor. No se trata de despedir a nadie, sino de que el equipo trabaje en lo que solo una persona puede hacer.",
+        "En muchos negocios, eso se traduce en más clientes atendidos con el mismo equipo."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Configuramos asistentes de WhatsApp y recepcionistas de voz con IA que trabajan junto a tu equipo, con reglas claras de cuándo pasar la conversación. El asistente de WhatsApp está incluido en los paquetes de sitio desde $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿El cliente nota que es un asistente?",
+      "respuesta": "Si se presenta como tal, sí, y está bien. Lo importante es que responda bien y deje pedir una persona."
+    },
+    {
+      "pregunta": "¿Qué pasa si el asistente no sabe algo?",
+      "respuesta": "Lo dice y pasa la conversación a tu equipo, en lugar de inventar una respuesta."
+    },
+    {
+      "pregunta": "¿Funciona por teléfono también?",
+      "respuesta": "Sí, con una recepcionista de voz con IA que atiende llamadas con la misma lógica."
+    },
+    {
+      "pregunta": "¿Cuánto tarda en aprender mi negocio?",
+      "respuesta": "Se configura con tu información en el arranque y se afina durante las primeras semanas revisando conversaciones."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/que-puede-hacer-un-agente-de-ia-en-un-negocio",
+      "texto": "Qué puede hacer un agente de IA en tu negocio"
+    },
+    {
+      "ruta": "/recepcionista-de-voz-con-ia-para-consultorios-medicos",
+      "texto": "Recepcionista de voz con IA para consultorios médicos"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:d1644b0c599f4f76f7b80d9fd0b8dc1b5a175a5573c4fa4d1bc2da17f4f8d878",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:d1644b0c599f4f76f7b80d9fd0b8dc1b5a175a5573c4fa4d1bc2da17f4f8d878"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 603,
+    "similitud_max": 0.01,
+    "parecida_a": "/cuanto-cuesta-un-chatbot-de-whatsapp"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:b0a24466beb118d259e3be74639890d13dd2c601b42b4e8022d271d601abae4b",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

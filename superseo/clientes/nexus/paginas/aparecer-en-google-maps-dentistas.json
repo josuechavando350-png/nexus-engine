@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-dentistas",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-dentistas",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Cómo aparecer en Google Maps: dentistas",
+  "descripcion": "Guía para que tu consultorio dental aparezca en Google Maps: categoría correcta, servicios, fotos del consultorio, agenda vinculada y reseñas de pacientes reales.",
+  "h1": "Cómo hacer que tu consultorio dental aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal precisa: dentista, ortodoncista, odontopediatra o periodoncista, según tu práctica.",
+    "Lista tus servicios y tratamientos dentro del perfil, con descripción breve.",
+    "Fotos reales del consultorio, el equipo y la fachada para encontrar el lugar.",
+    "Pide reseñas a todos tus pacientes y respóndelas sin revelar información clínica."
+  ],
+  "secciones": [
+    {
+      "titulo": "Dentista cerca de mí",
+      "parrafos": [
+        "Es una de las búsquedas locales más frecuentes, y casi siempre se resuelve en el mapa. El paciente con dolor elige entre los consultorios que Google le muestra, mirando estrellas, distancia, fotos y si está abierto. El paciente que planea un tratamiento revisa con más calma las reseñas y los servicios.",
+        "Un perfil completo y activo compite muy bien aunque haya consultorios más cercanos, porque Google premia la relevancia y la reputación además de la distancia."
+      ]
+    },
+    {
+      "titulo": "Categoría y servicios",
+      "parrafos": [
+        "La categoría principal debe reflejar lo que más haces. Si eres ortodoncista y la mayoría de tus pacientes vienen por eso, esa es tu categoría; si eres dentista general con varios tratamientos, dentista. Las categorías secundarias agregan especialidades reales del consultorio, sin inflar.",
+        "En la sección de servicios puedes listar limpieza, resinas, endodoncia, implantes, ortodoncia, blanqueamiento, con una descripción breve de cada uno. Eso ayuda a aparecer en búsquedas más específicas, como implantes dentales cerca."
+      ]
+    },
+    {
+      "titulo": "Fotos que dan confianza",
+      "parrafos": [
+        "El paciente quiere ver dónde lo van a atender. Fotos del consultorio limpio y bien iluminado, del equipo, de la recepción, de la fachada y de cómo llegar si el consultorio está dentro de un edificio o plaza. Las fotos de antes y después requieren consentimiento por escrito y deben cumplir las políticas; muchos consultorios prefieren usarlas solo en su sitio.",
+        "Actualizar fotos de vez en cuando le muestra a Google que el perfil está activo."
+      ]
+    },
+    {
+      "titulo": "Reseñas con cuidado",
+      "parrafos": [
+        "Pide reseñas a todos tus pacientes al terminar un tratamiento o una limpieza, con un enlace directo enviado por WhatsApp. Al responder, agradece sin mencionar el tratamiento específico ni ningún dato clínico del paciente, aunque él lo haya mencionado: la confidencialidad también aplica en público.",
+        "Ante una reseña negativa, responde con empatía, sin discutir y ofreciendo hablar en privado. Nunca ofrezcas descuentos a cambio de reseñas, lo prohíben las políticas de Google."
+      ]
+    },
+    {
+      "titulo": "Horario, citas y urgencias",
+      "parrafos": [
+        "Mantén el horario exacto y aclara en la descripción si atiendes urgencias. Vincula el botón de cita a tu agenda en línea o a tu WhatsApp, para que quien te encuentra pueda agendar en ese momento.",
+        "Si atiendes con cita solamente, dilo en la descripción para evitar visitas sin aviso."
+      ]
+    },
+    {
+      "titulo": "Datos consistentes",
+      "parrafos": [
+        "Nombre, dirección y teléfono deben ser idénticos en el perfil, en tu sitio y en los directorios médicos donde aparezcas. Las inconsistencias, como un teléfono viejo en un directorio, confunden a Google y a los pacientes.",
+        "El nombre del perfil debe ser el nombre real del consultorio, sin agregar palabras clave: hacerlo va contra las políticas y puede causar la suspensión."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos el perfil, lo conectamos con tu agenda y tu sitio, preparamos el mensaje para pedir reseñas y medimos llamadas y citas. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo tener un perfil para cada dentista?",
+      "respuesta": "Los profesionales que atienden en un consultorio pueden tener perfil propio en ciertos casos, además del perfil del consultorio. Conviene revisarlo para no duplicar."
+    },
+    {
+      "pregunta": "¿Puedo poner precios en el perfil?",
+      "respuesta": "Sí, en la sección de servicios, como precio desde. Aclara que el costo final depende de la valoración."
+    },
+    {
+      "pregunta": "¿Qué hago si un paciente menciona su tratamiento en la reseña?",
+      "respuesta": "Agradece de forma general, sin confirmar ni comentar el tratamiento."
+    },
+    {
+      "pregunta": "¿El perfil sustituye mi página web?",
+      "respuesta": "No. Se complementan: el perfil atrae y la página convence y agenda."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-dentistas",
+      "texto": "Página web para dentistas"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:848ceca3d724443162f4c319542a5cbdb0c61e22dc514854a380068f4e9c8542",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:848ceca3d724443162f4c319542a5cbdb0c61e22dc514854a380068f4e9c8542"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 617,
+    "similitud_max": 0.025,
+    "parecida_a": "/aparecer-en-google-maps-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:4968965bafaa53fcbfc3c5386e47293e55a09f9c7d8d05d2d729c2489f27aaf0",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}

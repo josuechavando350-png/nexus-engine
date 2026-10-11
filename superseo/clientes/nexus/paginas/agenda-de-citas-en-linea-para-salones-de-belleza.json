@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "agenda-de-citas-en-linea-para-salones-de-belleza",
+  "cliente": "nexus",
+  "ruta": "/agenda-de-citas-en-linea-para-salones-de-belleza",
+  "tipo": "AGENTE_IA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Agenda de citas en línea para salones de belleza",
+  "descripcion": "Reservas en línea para salones: servicios con duración real, estilista a elegir, anticipo en servicios largos, recordatorios y retoques automáticos.",
+  "h1": "Agenda de citas en línea para salones de belleza",
+  "respuesta_rapida": [
+    "Las clientas reservan desde tu página a cualquier hora, eligiendo servicio y estilista.",
+    "Cada servicio ocupa su tiempo real: un color no se agenda como un corte.",
+    "Anticipo en servicios largos y política de cancelación clara.",
+    "Recordatorios antes de la cita y aviso cuando toca el retoque."
+  ],
+  "secciones": [
+    {
+      "titulo": "El reto de agendar en un salón",
+      "parrafos": [
+        "Agendar en un salón es más complejo que en otros negocios: un corte dura una cosa, un balayage otra muy distinta, y algunos servicios requieren que la clienta espere mientras el color actúa, tiempo en que la estilista puede atender a otra persona. Llevarlo en una libreta o en el chat produce empalmes, esperas largas y estilistas desocupadas a ratos.",
+        "Una agenda en línea bien configurada entiende esas reglas y ofrece solo los horarios en que el servicio realmente cabe."
+      ]
+    },
+    {
+      "titulo": "Cómo reserva la clienta",
+      "parrafos": [
+        "Desde tu página o desde el enlace en tus redes, elige el servicio, por ejemplo corte y peinado, uñas en gel o color completo, elige a su estilista o la primera disponible, y ve los horarios en que cabe ese servicio. Reserva, deja sus datos y recibe confirmación al instante.",
+        "Para servicios que dependen del cabello, como color o alaciado, la reserva puede pedir una foto del cabello actual y de la referencia, para que la estilista confirme tiempo y precio antes de la cita."
+      ]
+    },
+    {
+      "titulo": "Reglas que la agenda respeta",
+      "parrafos": [
+        "Duración de cada servicio, tiempos de espera aprovechables, estilistas que hacen ciertos servicios y otras que no, días de descanso, horarios de comida, márgenes para limpiar la estación. Todo se configura una vez y la agenda lo aplica siempre.",
+        "Si una estilista se enferma, se bloquea su día y la agenda avisa a sus clientas con opciones para reprogramar."
+      ]
+    },
+    {
+      "titulo": "Anticipos y cancelaciones",
+      "parrafos": [
+        "Un servicio de color de tres horas que no se presenta es una pérdida enorme. La agenda puede pedir anticipo en servicios largos o en horarios de alta demanda, cobrado en línea al reservar, y descontarlo del total. La política de cancelación, con el tiempo mínimo de aviso, queda escrita en la confirmación.",
+        "Las clientas cumplidas no lo sienten como una carga, y las ausencias bajan de forma notable."
+      ]
+    },
+    {
+      "titulo": "Que vuelvan cuando toca",
+      "parrafos": [
+        "La agenda registra el historial de cada clienta: qué servicio se hizo, con quién y cuándo. Con eso puede enviar un recordatorio cuando se acerca el retoque de color, el cambio de gel o el tratamiento de mantenimiento, con un enlace para reservar. Son mensajes útiles que mantienen la agenda llena sin publicidad.",
+        "El mismo historial ayuda a la estilista a recordar la fórmula de color o las preferencias de cada clienta."
+      ]
+    },
+    {
+      "titulo": "Desde Google y desde tus redes",
+      "parrafos": [
+        "El enlace de reservas se coloca en tu perfil de empresa en Google, en tu biografía de Instagram y en tu WhatsApp. Así, cualquier persona que te descubre puede reservar en el mismo momento, sin escribir y esperar.",
+        "Con el tiempo, ves de qué canal llegan más reservas y dónde conviene invertir."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos la agenda con tus servicios, duraciones, estilistas y reglas, integrada a tu página y a WhatsApp. Incluida desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo aprobar ciertas reservas antes de confirmarlas?",
+      "respuesta": "Sí. Servicios como color o extensiones pueden quedar pendientes hasta que la estilista revise las fotos."
+    },
+    {
+      "pregunta": "¿Las estilistas ven solo su agenda?",
+      "respuesta": "Cada una ve la suya; la dueña o la recepción ven todas."
+    },
+    {
+      "pregunta": "¿Puedo vender paquetes en la agenda?",
+      "respuesta": "Sí, con control de sesiones usadas."
+    },
+    {
+      "pregunta": "¿Qué pasa con las clientas que prefieren llamar?",
+      "respuesta": "La recepción las anota en la misma agenda, así nunca hay dos agendas distintas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-salones-de-belleza",
+      "texto": "Página web para salones de belleza"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:ba6aa5e6d72c32abaa4b2b5f78f262000f3c12470c58b8b9692499c582b69a51",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:ba6aa5e6d72c32abaa4b2b5f78f262000f3c12470c58b8b9692499c582b69a51"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 603,
+    "similitud_max": 0.016,
+    "parecida_a": "/agenda-de-citas-en-linea-para-psicologos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:ad308cd9e4030cd00e7401b8dbe4c20c60bb1f6f7e464f368b05512724e88f98",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

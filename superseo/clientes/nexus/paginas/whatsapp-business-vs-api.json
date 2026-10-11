@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "whatsapp-business-vs-api",
+  "cliente": "nexus",
+  "ruta": "/whatsapp-business-vs-api",
+  "tipo": "GUIA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "WhatsApp Business app vs. API: diferencias reales",
+  "descripcion": "Diferencias entre la app de WhatsApp Business y la API de WhatsApp: automatización, varios usuarios, costos por conversación y cuál conviene a tu negocio.",
+  "h1": "WhatsApp Business app vs. API: diferencias reales",
+  "respuesta_rapida": [
+    "La app de WhatsApp Business es gratuita, se usa desde el teléfono y sirve para negocios que contestan ellos mismos.",
+    "La API permite automatizar con inteligencia artificial, varios usuarios e integraciones, con costo por conversación.",
+    "Si recibes pocos mensajes y los atiendes tú, la app basta.",
+    "Si recibes muchos, atiendes fuera de horario o quieres un asistente, la API es el camino."
+  ],
+  "secciones": [
+    {
+      "titulo": "La app de WhatsApp Business",
+      "parrafos": [
+        "Es la aplicación gratuita que muchos negocios usan desde su celular. Permite tener un perfil de empresa con horario, dirección y descripción, un catálogo de productos, respuestas rápidas, mensajes de bienvenida y de ausencia, y etiquetas para organizar chats.",
+        "Es ideal para negocios pequeños donde el dueño o una persona contesta todos los mensajes."
+      ]
+    },
+    {
+      "titulo": "Sus límites",
+      "parrafos": [
+        "La app está pensada para ser usada por personas. No permite conectar un asistente de inteligencia artificial de forma oficial, y aunque se puede vincular a algunos dispositivos, no está diseñada para equipos grandes que atienden en paralelo con reglas de asignación. Tampoco se integra directamente con sistemas como CRM o agendas.",
+        "Cuando el volumen crece, los mensajes se acumulan y se contestan tarde."
+      ]
+    },
+    {
+      "titulo": "La API de WhatsApp",
+      "parrafos": [
+        "La API es la versión para empresas que necesitan automatizar e integrar. Permite que un asistente con inteligencia artificial responda, que varios agentes atiendan desde una plataforma, que las conversaciones se conecten con la agenda, los pagos o el CRM, y que se envíen notificaciones como confirmaciones o recordatorios.",
+        "Se accede directamente con Meta o a través de proveedores, y tiene costos según el tipo y número de conversaciones."
+      ]
+    },
+    {
+      "titulo": "Costos",
+      "parrafos": [
+        "La app es gratuita. La API tiene un costo por conversación que cobra Meta según la categoría del mensaje, por ejemplo servicio, utilidad o marketing, y según el país. A eso se suma el costo de la plataforma o el desarrollo que la conecta con tu negocio.",
+        "Para negocios con pocos mensajes, la API puede no justificarse; para negocios con muchos, el ahorro de tiempo y las ventas recuperadas suelen compensar."
+      ]
+    },
+    {
+      "titulo": "El número de teléfono",
+      "parrafos": [
+        "Un mismo número no puede estar al mismo tiempo en la app y en la API de la forma tradicional. Al pasar a la API, hay que planear la migración del número para no perder el contacto con los clientes. Algunos negocios usan un número nuevo para la API y conservan el anterior en la app.",
+        "Conviene revisar esto con cuidado antes de decidir."
+      ]
+    },
+    {
+      "titulo": "Cuál conviene",
+      "parrafos": [
+        "Si atiendes tú mismo, recibes una cantidad manejable de mensajes y no necesitas automatizar, la app es suficiente. Si pierdes mensajes por falta de tiempo, atiendes fuera de horario, tienes un equipo o quieres un asistente que agende y venda, la API es la herramienta adecuada.",
+        "No hay una respuesta universal: depende del volumen y de lo que quieras lograr.",
+        "Una señal clara de que ya necesitas la API es cuando revisas tu WhatsApp por la mañana y encuentras mensajes de la noche anterior que ya no vale la pena contestar, porque esa persona ya compró en otro lado."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Te ayudamos a decidir en un diagnóstico gratuito y, si conviene, configuramos el asistente de IA sobre la API, con tus respuestas y tu tono. Está incluido en los paquetes de sitio desde $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo tener la app y la API al mismo tiempo?",
+      "respuesta": "Con números distintos, sí. Con el mismo número hay que planear la migración."
+    },
+    {
+      "pregunta": "¿La API permite mandar mensajes masivos?",
+      "respuesta": "Permite enviar plantillas aprobadas a clientes que aceptaron recibirlas, respetando las reglas de WhatsApp."
+    },
+    {
+      "pregunta": "¿Pierdo mis conversaciones al pasar a la API?",
+      "respuesta": "Depende de cómo se haga la migración; conviene respaldar antes de cambiar."
+    },
+    {
+      "pregunta": "¿Necesito ser empresa constituida?",
+      "respuesta": "Meta pide verificar el negocio; muchos negocios pequeños pueden hacerlo con su documentación básica."
+    },
+    {
+      "pregunta": "¿La API funciona con WhatsApp en mi celular?",
+      "respuesta": "Las conversaciones de la API se atienden desde una plataforma, que puede usarse en el celular o la computadora, no desde la app normal."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/cuanto-cuesta-un-chatbot-de-whatsapp",
+      "texto": "¿Cuánto cuesta un chatbot de WhatsApp?"
+    },
+    {
+      "ruta": "/catalogo-de-whatsapp-business",
+      "texto": "Catálogo y respuestas rápidas de WhatsApp Business"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:2995e5079509f86dbf52acbb0b320ef25a775b9d9bbf57d5c35dfeb8ceb0391a",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:2995e5079509f86dbf52acbb0b320ef25a775b9d9bbf57d5c35dfeb8ceb0391a"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 658,
+    "similitud_max": 0.011,
+    "parecida_a": "/cuanto-cuesta-un-chatbot-de-whatsapp"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:d1341b36ee2a220731e4f699b2c0e5e91eb2ec107e5d0fa33eb2c594c65d9ba5",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

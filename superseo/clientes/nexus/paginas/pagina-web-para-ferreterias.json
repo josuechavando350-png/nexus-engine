@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-ferreterias",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-ferreterias",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Página web para ferreterías",
+  "descripcion": "Sitios para ferreterías y tlapalerías: catálogo por categoría, existencias, cotización por WhatsApp, entregas a obra, horarios y ubicación clara.",
+  "h1": "Página web para ferreterías",
+  "respuesta_rapida": [
+    "Quien busca ferretería quiere saber si tienes lo que necesita, a qué hora abres y si entregas.",
+    "Un catálogo por categoría con marcas que manejas ayuda a decidir antes de ir.",
+    "La cotización de listas por WhatsApp es ideal para contratistas y obras.",
+    "Las entregas a obra y el crédito para clientes frecuentes son argumentos de venta."
+  ],
+  "secciones": [
+    {
+      "titulo": "La ferretería de siempre, encontrada en Google",
+      "parrafos": [
+        "La ferretería de barrio tiene algo que las grandes cadenas no: atención de alguien que sabe, disposición para conseguir la pieza rara y trato con los contratistas de la zona. El problema es que, cuando alguien busca ferretería cerca o un producto específico, Google muestra primero a quien tiene la información en línea. Muchas ferreterías excelentes no aparecen.",
+        "Una página sencilla, con horario, ubicación, catálogo general y contacto directo, más un perfil de Google bien llenado, cambia eso por completo."
+      ]
+    },
+    {
+      "titulo": "Catálogo por categoría",
+      "parrafos": [
+        "No hace falta subir miles de productos. Basta un catálogo por categorías, como plomería, electricidad, herramienta eléctrica y manual, pinturas, tornillería, jardinería, materiales, con las marcas que manejas y fotos de los productos más buscados. Con eso, el cliente sabe que vale la pena ir o escribir.",
+        "Si tienes productos de especialidad, como refacciones difíciles de encontrar, dales una página propia: esa búsqueda tiene muy poca competencia."
+      ]
+    },
+    {
+      "titulo": "Cotizar listas de material",
+      "parrafos": [
+        "Los contratistas, plomeros y electricistas suelen comprar por lista. Un botón de WhatsApp para enviar la lista, recibir cotización y apartar el pedido ahorra tiempo a ambos. Un asistente puede recibir la lista a cualquier hora y dejarla lista para cotizar a primera hora.",
+        "Esa facilidad convierte a un cliente ocasional en uno frecuente, y en este giro el cliente frecuente es el que sostiene el negocio."
+      ]
+    },
+    {
+      "titulo": "Entregas y crédito",
+      "parrafos": [
+        "Si entregas en obra o a domicilio, dilo con claridad: zonas, costos y horarios. Si ofreces crédito o precios especiales a contratistas, una sección para clientes profesionales con un formulario de alta atrae justo a quien compra en volumen.",
+        "Las facturas, formas de pago y la posibilidad de pedir por teléfono también deben estar visibles."
+      ]
+    },
+    {
+      "titulo": "Asesoría como diferencia",
+      "parrafos": [
+        "Notas sencillas sobre cómo elegir la pintura para exterior, qué tubería conviene para agua caliente, cómo arreglar una fuga o qué herramienta comprar para empezar atraen visitas y muestran que en tu ferretería sí saben. Es la versión en línea de la plática en el mostrador.",
+        "Esas notas, con enlaces a tus productos, llevan a la compra de forma natural."
+      ]
+    },
+    {
+      "titulo": "Google Maps, horario y fotos",
+      "parrafos": [
+        "El perfil de Google con categoría correcta, horario exacto, fotos del mostrador y de los pasillos y reseñas de clientes es lo que te pone en el mapa. Pide reseñas a todos tus clientes; los contratistas que te compran seguido son de los que mejor pueden hablar de tu servicio.",
+        "La página refuerza el perfil y le da a Google información sobre lo que vendes."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para ferreterías con catálogo por categoría, cotización de listas por WhatsApp y sección para contratistas. Desde $1,999 MXN; con asistente que recibe listas desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Tengo que publicar precios de todo?",
+      "respuesta": "No. Puedes publicar precios de productos clave y cotizar el resto por WhatsApp. Lo importante es mostrar qué tienes."
+    },
+    {
+      "pregunta": "¿Puedo vender en línea?",
+      "respuesta": "Sí, para productos con precio estable y fáciles de enviar. Para material pesado suele funcionar mejor el pedido con entrega local."
+    },
+    {
+      "pregunta": "¿Cómo actualizo el catálogo?",
+      "respuesta": "Lo dejamos en un formato sencillo para agregar o quitar productos sin depender de nosotros."
+    },
+    {
+      "pregunta": "¿Sirve para competir con las cadenas?",
+      "respuesta": "Sí: en búsquedas locales, la ferretería cercana con buen perfil y buena atención compite muy bien."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-ferreterias",
+      "texto": "Cómo aparecer en Google Maps: ferreterías"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-tienda-en-linea",
+      "texto": "¿Cuánto cuesta una tienda en línea?"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:652b78f99d3204a8351000ac064cb3400a23c8356627451f650ecfa076016219",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:652b78f99d3204a8351000ac064cb3400a23c8356627451f650ecfa076016219"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 604,
+    "similitud_max": 0.007,
+    "parecida_a": "/pagina-web-para-bares"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:0d9d5cd407edf33ae405786706f35d08d9ca5e1f38b89651f1f588d16e3b3aa1",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

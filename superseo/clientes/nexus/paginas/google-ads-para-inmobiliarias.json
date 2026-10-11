@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-inmobiliarias",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-inmobiliarias",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Google Ads para inmobiliarias",
+  "descripcion": "Google Ads para inmobiliarias: campañas por zona y tipo de propiedad, captación de propietarios, medición de visitas agendadas y filtros para curiosos.",
+  "h1": "Google Ads para inmobiliarias",
+  "respuesta_rapida": [
+    "Campañas por zona, operación y tipo de inmueble: rentar un departamento no se busca como comprar una casa.",
+    "Una campaña aparte para captar propietarios que quieren vender o rentar.",
+    "Medición de visitas agendadas y contactos por propiedad, no solo de clics.",
+    "Anuncios que llevan a fichas reales, nunca a páginas vacías."
+  ],
+  "secciones": [
+    {
+      "titulo": "Competir contra los portales",
+      "parrafos": [
+        "En búsquedas inmobiliarias, los portales grandes dominan los resultados orgánicos. Google Ads permite a una inmobiliaria aparecer en búsquedas concretas, como departamentos en renta en una colonia o casas en venta en un fraccionamiento, y llevar al prospecto a su propio sitio, donde solo ve su inventario.",
+        "La clave es la especificidad. Una campaña genérica de bienes raíces gasta mucho y atrae curiosos; una por zona y tipo de propiedad atrae a quien está buscando justo eso."
+      ]
+    },
+    {
+      "titulo": "Estructura recomendada",
+      "parrafos": [
+        "Campañas separadas por operación, renta o venta, y dentro de cada una, grupos por zona y tipo de inmueble, con anuncios que mencionan la zona y llevan a una página con las propiedades disponibles ahí. Si una zona se queda sin inventario, se pausa su grupo para no pagar por clics que no tienen nada que ver.",
+        "Una campaña aparte para propietarios, con búsquedas como vender mi casa o quién renta mi departamento, alimenta el inventario, que es el verdadero negocio de una inmobiliaria."
+      ]
+    },
+    {
+      "titulo": "Medir lo que genera comisiones",
+      "parrafos": [
+        "Las conversiones importantes son solicitudes de información por propiedad, visitas agendadas, llamadas y mensajes de WhatsApp, y para la campaña de propietarios, solicitudes de valuación. Con esa medición se sabe qué zonas producen prospectos serios y cuánto cuesta cada visita.",
+        "Si el equipo registra qué visitas terminan en operación, se puede calcular el costo por operación cerrada."
+      ]
+    },
+    {
+      "titulo": "Filtrar curiosos",
+      "parrafos": [
+        "Las palabras negativas evitan pagar por búsquedas de empleo en inmobiliarias, cursos de bienes raíces, subastas o programas de vivienda que la agencia no maneja. Los anuncios pueden mencionar rangos de precio para que quien no está en ese rango no haga clic.",
+        "Un asistente de WhatsApp que califica al prospecto en el primer mensaje completa el filtro."
+      ]
+    },
+    {
+      "titulo": "Políticas de vivienda",
+      "parrafos": [
+        "Google tiene reglas para anuncios de vivienda en algunos países que limitan la segmentación por características personales, para evitar discriminación. Aunque las reglas varían por país, una buena práctica es segmentar por zona y por búsqueda, no por características de las personas.",
+        "Los anuncios deben corresponder a propiedades reales y disponibles."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Anunciar todo el inventario con un solo anuncio genérico que lleva a la portada. Mantener anuncios activos de zonas sin propiedades disponibles. Medir solo clics y no saber cuántas visitas se agendaron. Olvidar la captación de propietarios, que es la que alimenta el negocio. Y no responder rápido a los contactos que llegan de los anuncios, que es donde se pierde buena parte de la inversión: un prospecto que espera horas ya habló con otra inmobiliaria."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Diseñamos campañas por zona y operación, una campaña de captación de propietarios, medición de visitas y contactos, y páginas de destino con fichas reales. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración mensual se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo anunciar una sola propiedad?",
+      "respuesta": "Sí, para propiedades de alto valor puede justificarse una campaña propia con su ficha como destino."
+    },
+    {
+      "pregunta": "¿Conviene anunciarse en portales y en Google?",
+      "respuesta": "Son complementarios. Google lleva prospectos a tu sitio, donde no compites en la misma pantalla."
+    },
+    {
+      "pregunta": "¿Cómo evito anuncios de propiedades ya vendidas?",
+      "respuesta": "Conectando las campañas con el inventario o pausando grupos cuando una zona se queda sin propiedades."
+    },
+    {
+      "pregunta": "¿Funciona para desarrollos nuevos?",
+      "respuesta": "Sí, con una campaña por desarrollo y una página de preventa con disponibilidad y planos."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-inmobiliarias",
+      "texto": "Página web para inmobiliarias"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:febc0dfb1a3bc42b729e493a9ae6e751ba9ee2228ebb5ac7c7479449b24196f0",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:febc0dfb1a3bc42b729e493a9ae6e751ba9ee2228ebb5ac7c7479449b24196f0"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 610,
+    "similitud_max": 0.02,
+    "parecida_a": "/google-ads-para-dentistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:551c51a02f9153e0a57d0a5aeaaf9c02e9d617eb6c003fca8222bf0607ef6ee3",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

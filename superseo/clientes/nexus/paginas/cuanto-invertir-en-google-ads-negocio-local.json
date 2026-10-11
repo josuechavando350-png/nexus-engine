@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "id": "cuanto-invertir-en-google-ads-negocio-local",
+  "cliente": "nexus",
+  "ruta": "/cuanto-invertir-en-google-ads-negocio-local",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Costos y tiempos",
+  "titulo": "¿Cuánto invertir en Google Ads siendo negocio local?",
+  "descripcion": "Cómo calcular cuánto invertir en Google Ads para un negocio local: costo por clic, tasa de conversión, valor de un cliente y cómo empezar con una prueba medida.",
+  "h1": "¿Cuánto invertir en Google Ads siendo negocio local?",
+  "respuesta_rapida": [
+    "No hay una cifra universal: depende del costo por clic de tu giro, de cuántos clics se convierten y de cuánto vale un cliente.",
+    "La forma correcta es calcular hacia atrás desde los clientes que quieres conseguir.",
+    "Empieza con una prueba medida de algunas semanas antes de comprometer presupuestos grandes.",
+    "Sin medición de conversiones, cualquier presupuesto es demasiado."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué nadie te puede dar una cifra exacta",
+      "parrafos": [
+        "El costo de un clic en Google Ads lo define una subasta entre todos los negocios que quieren aparecer para esa búsqueda. En giros con mucha competencia y clientes de alto valor, como abogados o clínicas, los clics son caros. En giros con menos competencia, son más baratos. Además, el costo cambia por ciudad, temporada y calidad de tus anuncios.",
+        "Por eso cualquiera que te dé una cifra fija sin conocer tu giro, tu zona y tu sitio está adivinando."
+      ]
+    },
+    {
+      "titulo": "Calcular hacia atrás",
+      "parrafos": [
+        "La forma sensata de definir un presupuesto empieza por el final. ¿Cuántos clientes nuevos quieres al mes? De cada cuántas consultas cierras una venta? ¿De cada cuántos clics sale una consulta? ¿Cuánto cuesta un clic en tu giro y zona? Con esas cuatro respuestas, multiplicando hacia atrás, sale el presupuesto que necesitas.",
+        "Al principio no conoces todas las respuestas, y para eso sirve el periodo de prueba: para obtener tus números reales en lugar de usar promedios de internet."
+      ]
+    },
+    {
+      "titulo": "Cuánto vale un cliente",
+      "parrafos": [
+        "El presupuesto tiene sentido solo si lo comparas con lo que te deja un cliente. Un despacho que cobra honorarios altos puede pagar mucho por cada consulta; una taquería, no. Considera también el valor de largo plazo: un paciente dental o un socio de gimnasio regresa por años.",
+        "Si un cliente te deja mucho más de lo que cuesta conseguirlo por anuncios, vale la pena invertir más. Si no, hay que mejorar la campaña, el sitio o el seguimiento antes de subir el presupuesto."
+      ]
+    },
+    {
+      "titulo": "Una prueba bien hecha",
+      "parrafos": [
+        "Una prueba útil dura lo suficiente para acumular datos, con campañas bien enfocadas en las búsquedas de mayor intención, palabras negativas desde el inicio, una página de destino específica y la medición de llamadas, WhatsApp y formularios configurada. Al terminar, sabes cuánto te cuesta cada consulta y puedes decidir con datos.",
+        "Empezar con presupuestos grandes sin esa base es la forma más común de perder dinero en anuncios."
+      ]
+    },
+    {
+      "titulo": "Dónde se va el dinero",
+      "parrafos": [
+        "Los presupuestos se desperdician sobre todo en búsquedas irrelevantes que no se excluyeron, en anuncios que corren cuando nadie contesta, en zonas donde no atiendes y en páginas de destino lentas o genéricas. Revisar cada semana los términos de búsqueda reales es la tarea más rentable de cualquier cuenta.",
+        "Y si no hay medición de conversiones, no sabrás cuál de estos problemas tienes."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Nexus Cortex conecta Google Ads con ventas reales: medición, precisión y automatización para invertir donde existe mayor probabilidad de convertir. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración mensual se cotiza aparte.",
+        "Nadie serio puede prometerte una posición o un número de clientes; sí podemos darte medición clara para decidir."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo empezar con poco?",
+      "respuesta": "Sí, si enfocas el presupuesto en pocas búsquedas de alta intención y en tu zona. Con poco y disperso, en cambio, no se aprende nada."
+    },
+    {
+      "pregunta": "¿Cuánto tarda en dar resultados?",
+      "respuesta": "Los primeros contactos pueden llegar en días; la optimización con datos suficientes toma algunas semanas."
+    },
+    {
+      "pregunta": "¿Conviene pagar por mi propia marca?",
+      "respuesta": "Si tus competidores o agencias aparecen cuando te buscan por nombre, una campaña de marca con presupuesto bajo suele ser rentable."
+    },
+    {
+      "pregunta": "¿Google Ads reemplaza al SEO?",
+      "respuesta": "No. Los anuncios dan resultados mientras pagas; el SEO construye presencia que se mantiene. Se complementan."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/google-ads-vs-facebook-ads",
+      "texto": "Google Ads vs. Facebook Ads para negocio local"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:a4abd4d1fb871d9021f097ee300b85c842e7f7bd775809268519fa1f826fc4b3",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:a4abd4d1fb871d9021f097ee300b85c842e7f7bd775809268519fa1f826fc4b3"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 623,
+    "similitud_max": 0.022,
+    "parecida_a": "/google-ads-para-dentistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:3841be89d8d30b65ff1087f937a5e6249aa93c5fcd4a70c90ee8000d3fb97090",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

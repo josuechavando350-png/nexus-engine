@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-salones-de-eventos",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-salones-de-eventos",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Google Ads para salones de eventos",
+  "descripcion": "Google Ads para salones y jardines de eventos: campañas por tipo de evento, temporadas de planeación, visitas agendadas y filtros de capacidad.",
+  "h1": "Google Ads para salones de eventos",
+  "respuesta_rapida": [
+    "Cada tipo de evento tiene su búsqueda: bodas, XV años, infantiles, corporativos.",
+    "Las familias planean con meses de anticipación; la inversión sigue ese calendario.",
+    "La conversión es la visita agendada al salón, donde se cierra la venta.",
+    "Mencionar capacidad y zona en el anuncio filtra a quien no le conviene tu espacio."
+  ],
+  "secciones": [
+    {
+      "titulo": "Ventas grandes que se planean",
+      "parrafos": [
+        "Un evento es una venta grande que se decide con tiempo. Una pareja busca salón para su boda muchos meses antes, una familia empieza a ver opciones para los XV años con bastante anticipación y una empresa cotiza su fiesta de fin de año desde el otoño. Cada uno busca con palabras distintas y espera ver cosas distintas.",
+        "Un anuncio que aparece en ese momento de búsqueda, con el tipo de evento correcto y la capacidad adecuada, puede iniciar una venta de alto valor."
+      ]
+    },
+    {
+      "titulo": "Campañas por tipo de evento",
+      "parrafos": [
+        "Bodas, XV años, bautizos y primeras comuniones, fiestas infantiles, graduaciones y eventos corporativos. Cada uno con su campaña o grupo de anuncios, mensajes propios y una página de destino con fotos de ese tipo de evento, paquetes y forma de agendar visita.",
+        "Las palabras negativas evitan pagar por búsquedas de empleo en eventos, renta de sillas o mesas sueltas, o servicios que el salón no ofrece."
+      ]
+    },
+    {
+      "titulo": "Capacidad y zona en el anuncio",
+      "parrafos": [
+        "Decir en el anuncio la capacidad del salón y la zona filtra a quien busca algo distinto. Una pareja con trescientos invitados no debe hacer clic en un jardín para cien. Ese filtro ahorra presupuesto y tiempo del equipo comercial.",
+        "El radio de los anuncios puede ser más amplio que en otros giros, porque la gente sí viaja para un evento importante, pero conviene revisarlo con los datos de dónde vienen los clientes."
+      ]
+    },
+    {
+      "titulo": "La visita como conversión",
+      "parrafos": [
+        "El objetivo del anuncio es la visita al salón. Las conversiones que se miden son visitas agendadas, solicitudes de cotización, llamadas y mensajes. Con el seguimiento del equipo, se puede saber cuántas visitas terminan en contrato y cuánto cuesta cada evento conseguido.",
+        "Un evento contratado suele justificar meses de inversión."
+      ]
+    },
+    {
+      "titulo": "Calendario de inversión",
+      "parrafos": [
+        "La temporada de bodas, la planeación de XV años y la de eventos corporativos de fin de año tienen ventanas de búsqueda conocidas. Concentrar la inversión en esas ventanas, y mostrar disponibilidad de fechas en la página, aumenta la conversión.",
+        "Cuando el calendario de fechas populares se llena, la inversión se mueve a fechas disponibles con alguna promoción."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Un anuncio genérico de salón de eventos para todo tipo de celebración. Llevar a una portada sin fotos ni paquetes. No mencionar la capacidad y recibir solicitudes imposibles. Invertir igual todo el año. Y no dar seguimiento inmediato a las solicitudes, que en este giro se enfrían rápido porque la familia está contactando a varios salones a la vez."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Armamos campañas por tipo de evento con calendario de inversión, medición de visitas y páginas de destino con galería y paquetes. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Conviene anunciar precios?",
+      "respuesta": "Un precio desde por paquete en el anuncio filtra a quien no está en tu rango."
+    },
+    {
+      "pregunta": "¿Funciona para jardines y haciendas fuera de la ciudad?",
+      "respuesta": "Sí, con un radio más amplio y mensajes que destaquen el entorno y la facilidad de llegar."
+    },
+    {
+      "pregunta": "¿Puedo anunciar fechas disponibles con descuento?",
+      "respuesta": "Sí, con campañas temporales para llenar fechas específicas."
+    },
+    {
+      "pregunta": "¿Sirven los anuncios en video?",
+      "respuesta": "Para mostrar el ambiente de un evento terminado, son un buen complemento."
+    },
+    {
+      "pregunta": "¿Puedo anunciar paquetes completos con banquete?",
+      "respuesta": "Sí, con una página de destino que detalle qué incluye cada paquete y cómo agendar la visita para conocer el salón."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-salones-de-eventos",
+      "texto": "Página web para salones de eventos"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:f675de4d09d514facffdf31103a4f72848bbb72406da8c0b7eafe8f8f6a1be9a",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:f675de4d09d514facffdf31103a4f72848bbb72406da8c0b7eafe8f8f6a1be9a"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 621,
+    "similitud_max": 0.02,
+    "parecida_a": "/google-ads-para-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:a17529257d7e6a48e6fed25bea7fb03742213064da36dddd387125630886eb7d",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-abogados",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-abogados",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Google Ads para abogados y despachos",
+  "descripcion": "Google Ads para despachos: campañas por materia, palabras negativas que filtran consultas gratis, conversiones de WhatsApp y llamada, y reporte de costo por cliente.",
+  "h1": "Google Ads para abogados",
+  "respuesta_rapida": [
+    "En derecho, los clics son caros: cada peso debe medirse contra consultas reales, no contra visitas.",
+    "Campañas separadas por materia y por urgencia, con anuncios que hablan del problema concreto.",
+    "Palabras negativas para no pagar por búsquedas de modelos de demanda, empleos o asesoría gratuita.",
+    "Medición de llamadas, WhatsApp y formularios para saber cuánto cuesta cada cliente nuevo."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué tantos despachos pierden dinero en anuncios",
+      "parrafos": [
+        "Las búsquedas legales tienen mucha competencia y los clics son de los más caros. Un despacho que activa una campaña genérica, con la palabra abogado y un presupuesto diario, suele terminar pagando por estudiantes que buscan tareas, personas que buscan formatos gratis o asuntos de otras ciudades. El dinero se va y las consultas no llegan.",
+        "Hemos visto cuentas con cientos de clics y gasto constante, sin una sola conversión registrada. No porque no llegaran clientes, sino porque nadie configuró la medición. Sin ese dato, es imposible saber qué funciona."
+      ]
+    },
+    {
+      "titulo": "Cómo se arma una campaña legal que sí funciona",
+      "parrafos": [
+        "Primero, campañas separadas por materia: penal, familiar, laboral, migratorio, lo que el despacho atiende. Dentro de cada una, grupos de anuncios por situación, como detención, citatorio, divorcio o despido, cada uno con anuncios que hablan de ese problema y llevan a la página correspondiente del sitio, no a la portada.",
+        "Segundo, una lista amplia de palabras negativas: gratis, formato, ejemplo, empleo, vacante, licenciatura, tesis, y las ciudades que el despacho no atiende. Esa lista se revisa cada semana con los términos de búsqueda reales.",
+        "Tercero, horarios y zonas acordes a la práctica. Si el despacho atiende urgencias de noche, la campaña de urgencias puede correr a esas horas; si no, conviene concentrar el presupuesto cuando alguien puede contestar."
+      ]
+    },
+    {
+      "titulo": "Medir lo que importa",
+      "parrafos": [
+        "Las conversiones que cuentan en un despacho son tres: llamadas, clics a WhatsApp y formularios enviados. Cada una se configura como acción de conversión, de modo que Google sepa qué búsquedas producen consultas y optimice hacia ellas. Sin esto, la plataforma optimiza hacia clics, que es exactamente lo que no queremos.",
+        "Con la medición en marcha, el despacho puede saber cuánto le cuesta cada consulta y, con el seguimiento de sus casos, cuánto le cuesta cada cliente nuevo. Esa es la lógica de Nexus Cortex: anuncios conectados a ventas, no a vanidad."
+      ]
+    },
+    {
+      "titulo": "La página de destino decide",
+      "parrafos": [
+        "Un anuncio excelente que lleva a una portada lenta y genérica desperdicia el clic. La página de destino debe hablar del mismo problema que el anuncio, cargar rápido en el celular y tener el botón de llamada o WhatsApp a la vista. En materias urgentes, cada segundo de carga cuenta.",
+        "Por eso trabajamos los anuncios junto con el sitio: el mismo equipo que diseña la página mide lo que pasa después del clic."
+      ]
+    },
+    {
+      "titulo": "Lo que no prometemos",
+      "parrafos": [
+        "Nadie puede asegurar una posición fija en los anuncios ni un número de clientes. Lo que sí se puede asegurar es una cuenta ordenada, medición correcta, revisión constante de términos de búsqueda y reportes claros del costo por consulta. Con eso, el despacho decide con datos si aumentar, ajustar o pausar la inversión.",
+        "Respetamos además las reglas de publicidad de cada colegio de abogados y evitamos anuncios con promesas de resultado."
+      ]
+    },
+    {
+      "titulo": "Cómo trabajamos",
+      "parrafos": [
+        "Empezamos revisando la cuenta actual si existe: términos de búsqueda, conversiones y gasto. Después reorganizamos las campañas por materia, configuramos la medición de llamadas, WhatsApp y formularios, y ajustamos las páginas de destino. Cada mes entregamos un reporte de consultas y costo por consulta.",
+        "Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación. La administración mensual de campañas se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuánto debo invertir al mes?",
+      "respuesta": "Depende de la materia, la ciudad y la competencia. Recomendamos empezar con un presupuesto que permita medir durante unas semanas y ajustar con datos, en lugar de fijar una cifra a ciegas."
+    },
+    {
+      "pregunta": "¿Puedo anunciarme solo para urgencias?",
+      "respuesta": "Sí. Una campaña de urgencias con horario nocturno y llamada directa puede ser muy eficaz para despachos penales con guardia."
+    },
+    {
+      "pregunta": "¿Mi cuenta actual se puede rescatar?",
+      "respuesta": "Casi siempre. Lo primero es revisar términos de búsqueda y conversiones; ahí suele estar el problema."
+    },
+    {
+      "pregunta": "¿Funciona sin página web propia?",
+      "respuesta": "Funciona mucho peor. La página de destino es la mitad del resultado."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-abogados-penalistas",
+      "texto": "Página web para abogados penalistas"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:d693801fc537381fb04eb1f01d0a8388b98fd80d830790705ec91598ba293040",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:d693801fc537381fb04eb1f01d0a8388b98fd80d830790705ec91598ba293040"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 705,
+    "similitud_max": 0.017,
+    "parecida_a": "/google-ads-para-dentistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:44005cfe2d5813575fe48ae45e100d31dbd3c5c147076163835f7fa643049f20",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

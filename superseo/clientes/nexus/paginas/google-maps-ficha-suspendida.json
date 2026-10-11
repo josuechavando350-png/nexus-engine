@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "google-maps-ficha-suspendida",
+  "cliente": "nexus",
+  "ruta": "/google-maps-ficha-suspendida",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "Ficha de Google Maps suspendida: qué hacer",
+  "descripcion": "Por qué Google suspende un Perfil de Empresa, cómo identificar la causa, qué corregir y cómo solicitar la reactivación con las pruebas correctas.",
+  "h1": "Ficha de Google Maps suspendida: qué hacer",
+  "respuesta_rapida": [
+    "Identifica la causa: casi siempre es una regla incumplida, como el nombre, la dirección o un perfil duplicado.",
+    "Corrige el problema antes de pedir la revisión.",
+    "Solicita la reactivación con pruebas: fotos del local, comprobante de domicilio, registro del negocio.",
+    "No crees un perfil nuevo para el mismo negocio mientras se resuelve."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué significa una suspensión",
+      "parrafos": [
+        "Cuando Google suspende un perfil, puede dejar de mostrarlo en Maps y en la búsqueda, o mostrarlo sin que puedas administrarlo. Para un negocio que depende de clientes locales, es una pérdida inmediata de llamadas y visitas. La buena noticia es que muchas suspensiones se resuelven corrigiendo la causa y solicitando la revisión.",
+        "Lo primero es mantener la calma y no hacer cambios al azar.",
+        "Hay suspensiones en las que el perfil sigue visible pero no puedes editarlo, y otras en las que desaparece por completo. Saber cuál es tu caso, revisando el aviso en el panel y el correo asociado, te ayuda a elegir el camino correcto."
+      ]
+    },
+    {
+      "titulo": "Causas más comunes",
+      "parrafos": [
+        "Palabras clave agregadas al nombre del negocio. Dirección de una oficina virtual, un apartado postal o un lugar donde no se atiende a clientes. Perfiles duplicados del mismo negocio. Área de servicio mal configurada, mostrando una dirección donde no hay atención. Cambios bruscos de nombre, dirección o categoría. Y giros que Google considera de alto riesgo, como cerrajeros o reparaciones a domicilio, donde la revisión es más estricta.",
+        "Revisa las directrices de Google Business Profile y compara con tu perfil."
+      ]
+    },
+    {
+      "titulo": "Corregir antes de pedir revisión",
+      "parrafos": [
+        "Si el nombre tiene palabras clave, déjalo como el nombre real del negocio. Si la dirección no es un lugar donde atiendes, cambia a área de servicio. Si hay duplicados, identifica el correcto. Pedir revisión sin corregir la causa suele terminar en rechazo.",
+        "Haz los cambios necesarios, no más: modificar todo al mismo tiempo puede complicar la revisión."
+      ]
+    },
+    {
+      "titulo": "Las pruebas que sirven",
+      "parrafos": [
+        "Al solicitar la reactivación, Google puede pedir pruebas de que el negocio existe y opera donde dices. Sirven fotos del letrero y la fachada, del interior, de la calle con referencias, un comprobante de domicilio a nombre del negocio, la constancia de situación fiscal, licencias de funcionamiento o facturas de servicios. Si atiendes a domicilio, fotos del vehículo rotulado y de tu herramienta.",
+        "Pruebas claras y coherentes con el perfil aceleran la decisión."
+      ]
+    },
+    {
+      "titulo": "Cómo solicitar la reactivación",
+      "parrafos": [
+        "Desde el panel de Google Business Profile o desde el centro de ayuda puedes iniciar la apelación. Explica brevemente la situación, qué corregiste y adjunta las pruebas. Después, espera la respuesta; puede tardar días o semanas. Revisa el correo asociado al perfil.",
+        "Mientras tanto, no crees otro perfil para el mismo negocio: puede considerarse duplicado y empeorar el caso."
+      ]
+    },
+    {
+      "titulo": "Prevenir la próxima",
+      "parrafos": [
+        "Mantén el nombre real, una dirección donde realmente atiendes o un área de servicio bien configurada, un solo perfil por ubicación y cambios graduales y justificados. Guarda los accesos con un correo del negocio y evita que varias personas editen sin coordinación.",
+        "Un perfil apegado a las reglas casi nunca tiene problemas."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Revisamos la causa de la suspensión, corregimos el perfil y preparamos la solicitud de reactivación con las pruebas adecuadas. Después lo optimizamos dentro de las reglas. Es parte de Nexus Growth."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Pierdo mis reseñas si me suspenden?",
+      "respuesta": "Normalmente se conservan y vuelven a mostrarse cuando el perfil se reactiva."
+    },
+    {
+      "pregunta": "¿Cuánto tarda la reactivación?",
+      "respuesta": "Puede tardar días o semanas, según el caso y las pruebas."
+    },
+    {
+      "pregunta": "¿Puedo hablar con alguien de Google?",
+      "respuesta": "Existen canales de soporte en el centro de ayuda de Google Business Profile; la disponibilidad varía."
+    },
+    {
+      "pregunta": "¿Y si la rechazan?",
+      "respuesta": "Revisa de nuevo la causa, corrige lo que falte y vuelve a solicitar con pruebas más claras."
+    },
+    {
+      "pregunta": "¿Un competidor puede hacer que me suspendan?",
+      "respuesta": "Cualquiera puede reportar un perfil, pero Google revisa contra sus reglas. Un perfil apegado a las directrices tiene poco que temer."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/como-verificar-perfil-de-empresa-en-google",
+      "texto": "Cómo verificar tu Perfil de Empresa en Google"
+    },
+    {
+      "ruta": "/como-aparecer-en-google-maps",
+      "texto": "Cómo aparecer en Google Maps con tu negocio"
+    },
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:66d8c49a6ff3ad11debf073a3db4bf9c51e907bf3df78aff396d3661c828036c",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:66d8c49a6ff3ad11debf073a3db4bf9c51e907bf3df78aff396d3661c828036c"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 649,
+    "similitud_max": 0.009,
+    "parecida_a": "/como-verificar-perfil-de-empresa-en-google"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:eccd580d921667a5c12ab1755496d4313bd04c7034e700925895e9cafc950117",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "recepcionista-de-voz-con-ia-para-consultorios-medicos",
+  "cliente": "nexus",
+  "ruta": "/recepcionista-de-voz-con-ia-para-consultorios-medicos",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Recepcionista de voz con IA para consultorios",
+  "descripcion": "Una recepcionista con inteligencia artificial que contesta las llamadas del consultorio, agenda citas, confirma pacientes y transfiere lo urgente a una persona.",
+  "h1": "Recepcionista de voz con IA para consultorios médicos",
+  "respuesta_rapida": [
+    "Contesta cada llamada del consultorio, también cuando la asistente está ocupada o fuera de horario.",
+    "Agenda, confirma y reprograma citas hablando con el paciente de forma natural.",
+    "Responde costo de consulta, ubicación, aseguradoras y preparación para estudios.",
+    "Transfiere a una persona cualquier llamada clínica o urgente, sin intentar resolverla."
+  ],
+  "secciones": [
+    {
+      "titulo": "El paciente que llama y nadie contesta",
+      "parrafos": [
+        "Muchos pacientes, sobre todo los mayores, prefieren llamar en lugar de escribir. En un consultorio con una sola asistente, el teléfono suena mientras ella cobra, atiende la sala o ayuda al médico, y muchas llamadas se pierden. Fuera de horario, la llamada cae en un buzón que casi nadie escucha. Cada llamada perdida puede ser un paciente que agenda con otro especialista.",
+        "La recepcionista de voz con inteligencia artificial contesta todas esas llamadas, en cualquier momento, con una voz natural y con la información del consultorio."
+      ]
+    },
+    {
+      "titulo": "Qué hace en una llamada",
+      "parrafos": [
+        "Saluda con el nombre del consultorio y pregunta en qué puede ayudar. Si el paciente quiere una cita, pregunta su nombre y el motivo general, consulta la agenda y le ofrece horarios disponibles, confirma el que elige y le envía la confirmación por mensaje. Si quiere información, responde costo de consulta, ubicación dentro del hospital, estacionamiento, aseguradoras y lo que hay que traer.",
+        "También puede llamar ella: un día antes de la cita, para confirmar o reprogramar, lo que reduce las ausencias. Si el paciente cancela, el espacio se libera para otro.",
+        "Cuando el paciente describe un síntoma o una urgencia, no opina: transfiere la llamada a la asistente o al médico y, si nadie está disponible, indica acudir a un servicio de emergencias."
+      ]
+    },
+    {
+      "titulo": "Cómo suena",
+      "parrafos": [
+        "Las voces sintéticas actuales suenan naturales, entienden interrupciones y responden sin pausas largas. Aun así, recomendamos que la recepcionista se presente como asistente virtual del consultorio: la transparencia evita confusiones y la mayoría de los pacientes lo acepta bien cuando el trato es amable y eficiente.",
+        "El tono, la velocidad y el vocabulario se ajustan al consultorio. Para pacientes mayores, habla más despacio y confirma cada dato."
+      ]
+    },
+    {
+      "titulo": "Límites clínicos estrictos",
+      "parrafos": [
+        "La recepcionista no diagnostica, no interpreta estudios, no sugiere medicamentos y no decide si algo es urgente o no: ante cualquier duda clínica, transfiere a una persona. Está configurada con frases de seguridad para emergencias y con la lista de lo que puede y no puede responder, aprobada por el médico.",
+        "Esa prudencia es la única forma responsable de usar inteligencia artificial en atención a pacientes."
+      ]
+    },
+    {
+      "titulo": "Privacidad de las llamadas",
+      "parrafos": [
+        "Si las llamadas se graban o se transcriben para mejorar el servicio, el paciente debe saberlo al inicio, y el aviso de privacidad del consultorio debe contemplarlo. Los datos que se recogen son los mínimos para agendar, con acceso restringido.",
+        "En Nexus construimos estas integraciones con criterio de ciberseguridad: control de acceso, registros de actividad y la información bajo control del consultorio."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "En un diagnóstico gratuito revisamos cómo llegan hoy las llamadas, qué preguntan los pacientes y cómo se maneja la agenda. Escribimos el guion y las respuestas, el médico las aprueba y conectamos la agenda y el desvío de llamadas del número del consultorio. Probamos llamadas reales con el equipo antes de activarla, y durante las primeras semanas revisamos transcripciones para afinar.",
+        "El número del consultorio no cambia: las llamadas se desvían a la recepcionista cuando nadie contesta, fuera de horario o siempre, según prefiera el consultorio."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "La recepcionista de voz se cotiza aparte según el volumen de llamadas y las integraciones. Puede combinarse con el asistente de WhatsApp, que está incluido en los paquetes de sitio desde $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿El paciente nota que es una inteligencia artificial?",
+      "respuesta": "Recomendamos que se presente como asistente virtual. La voz es natural y el trato fluido, así que la mayoría de los pacientes simplemente resuelve lo que necesitaba."
+    },
+    {
+      "pregunta": "¿Puede transferir a mi celular?",
+      "respuesta": "Sí. Las llamadas urgentes o las que piden hablar con una persona se transfieren al número que el consultorio defina."
+    },
+    {
+      "pregunta": "¿Qué pasa si no entiende al paciente?",
+      "respuesta": "Pide que repita y, si sigue sin entender, ofrece que alguien del consultorio le devuelva la llamada, y deja el recado registrado."
+    },
+    {
+      "pregunta": "¿Funciona con mi número actual?",
+      "respuesta": "Sí, mediante desvío de llamadas. El número que conocen sus pacientes no cambia."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-consultorios-medicos",
+      "texto": "Página web para consultorios médicos"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-consultorios-medicos",
+      "texto": "Chatbot de WhatsApp para consultorios médicos"
+    },
+    {
+      "ruta": "/chatbot-vs-recepcionista-humana",
+      "texto": "Chatbot vs. recepcionista: qué hace mejor cada uno"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:48f288597abd8d47b96a7c2abff68b9784e3bb04a8c6ae16426ad88b9af2318d",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:48f288597abd8d47b96a7c2abff68b9784e3bb04a8c6ae16426ad88b9af2318d"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 715,
+    "similitud_max": 0.024,
+    "parecida_a": "/chatbot-whatsapp-para-consultorios-medicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:9c6042ac506d7e7dc79fccdc7e7f90dc4f2b7669a94b2ee196140e4621e7c5ad",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}

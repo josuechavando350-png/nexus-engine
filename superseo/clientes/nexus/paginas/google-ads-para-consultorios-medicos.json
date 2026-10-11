@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-consultorios-medicos",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-consultorios-medicos",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Google Ads para médicos y consultorios",
+  "descripcion": "Google Ads para médicos especialistas: campañas por padecimiento y procedimiento, zona del hospital, medición de citas y anuncios dentro de las políticas de salud.",
+  "h1": "Google Ads para consultorios médicos",
+  "respuesta_rapida": [
+    "Los pacientes buscan por síntoma y por procedimiento, no por el nombre de la especialidad.",
+    "Campañas por padecimiento con páginas de destino específicas convierten mucho mejor.",
+    "La zona importa: los pacientes buscan especialistas cerca de su casa o de su hospital.",
+    "Las políticas de publicidad en salud se respetan desde el diseño de la campaña."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cómo busca un paciente",
+      "parrafos": [
+        "Un paciente rara vez busca la especialidad por su nombre técnico. Busca lo que siente o lo que le dijeron que necesita: dolor de rodilla al subir escaleras, especialista en tiroides, cirugía de vesícula, ginecólogo para embarazo. Las campañas que funcionan se construyen alrededor de esas búsquedas, con anuncios que repiten las palabras del paciente.",
+        "También busca por cercanía: especialista cerca de mí o en el hospital que le queda cerca o que cubre su seguro."
+      ]
+    },
+    {
+      "titulo": "Estructura por padecimiento",
+      "parrafos": [
+        "Cada padecimiento o procedimiento principal tiene su grupo de anuncios y su página de destino en el sitio. Si el especialista atiende cinco problemas frecuentes, hay cinco caminos claros: búsqueda, anuncio específico, página que explica el tema y botón para agendar. Esa coherencia mejora la calidad de los anuncios y reduce el costo por clic.",
+        "Las palabras negativas, como tratamiento casero, síntomas de en contextos informativos, empleo o residencia médica, filtran búsquedas que no buscan consulta."
+      ]
+    },
+    {
+      "titulo": "Medir citas y llamadas",
+      "parrafos": [
+        "Las conversiones son citas agendadas, llamadas al consultorio y mensajes de WhatsApp. Con la medición correcta, Google aprende qué búsquedas producen pacientes, y el médico sabe cuánto le cuesta cada consulta nueva.",
+        "Si el consultorio registra qué consultas se convierten en procedimiento, se puede calcular el retorno real de la inversión."
+      ]
+    },
+    {
+      "titulo": "Políticas de salud",
+      "parrafos": [
+        "Los anuncios de salud tienen reglas: no prometer curas, no usar afirmaciones sin sustento, no anunciar medicamentos de prescripción sin certificación, y respetar la regulación mexicana de publicidad sanitaria. Diseñar la campaña dentro de esas reglas evita rechazos y protege la reputación del médico.",
+        "El tono de los anuncios debe ser informativo y sereno, nunca alarmista."
+      ]
+    },
+    {
+      "titulo": "Horarios y zonas",
+      "parrafos": [
+        "Si las campañas dependen de llamadas, conviene mostrarlas en horario de consultorio. Si el consultorio tiene agenda en línea, los anuncios pueden correr fuera de horario y llevar a reservar directamente. El radio geográfico se ajusta según la especialidad: para consultas generales, cerca; para cirugías de alta especialidad, más amplio.",
+        "Si el médico atiende en varios hospitales, cada sede puede tener su campaña."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Anunciar el nombre de la especialidad en lugar de los padecimientos que busca la gente. Mandar todos los anuncios a la portada del sitio. Mostrar anuncios en ciudades donde el médico no atiende. Y no conectar la agenda o las llamadas como conversiones, lo que impide saber si la campaña trae pacientes o solo visitas. Corregir esos cuatro puntos suele mejorar la cuenta en pocas semanas."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Diseñamos campañas por padecimiento, con páginas de destino específicas, medición de citas y reportes mensuales de costo por consulta. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración mensual se cotiza aparte.",
+        "Si el médico ya tiene cuenta, empezamos por auditarla."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo anunciar procedimientos quirúrgicos?",
+      "respuesta": "Sí, cumpliendo las políticas de salud: información clara, sin promesas de resultados y con la página de destino adecuada."
+    },
+    {
+      "pregunta": "¿Conviene anunciar el costo de consulta?",
+      "respuesta": "Puede mejorar la calidad de los clics, porque filtra a quien no está dispuesto a pagar una consulta privada."
+    },
+    {
+      "pregunta": "¿Puedo dirigir anuncios a pacientes con cierto seguro?",
+      "respuesta": "Se pueden crear anuncios y páginas que mencionen las aseguradoras aceptadas, lo que atrae a esos pacientes."
+    },
+    {
+      "pregunta": "¿Los anuncios sustituyen las reseñas?",
+      "respuesta": "No. Las reseñas en Google siguen siendo decisivas; los anuncios funcionan mejor cuando el perfil tiene buenas reseñas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-consultorios-medicos",
+      "texto": "Página web para consultorios médicos"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:e50f2bacf5769b05d7ceeb73c145bcc078c9cb19a25804adcafa2d37ad7d67b0",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:e50f2bacf5769b05d7ceeb73c145bcc078c9cb19a25804adcafa2d37ad7d67b0"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 616,
+    "similitud_max": 0.021,
+    "parecida_a": "/google-ads-para-dentistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:2d0f805abcbaf3479a208607ae690422d42985feea1141d9e9ea72fb0b9291bb",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

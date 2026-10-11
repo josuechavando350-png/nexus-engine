@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "como-saber-si-mi-pagina-es-lenta",
+  "cliente": "nexus",
+  "ruta": "/como-saber-si-mi-pagina-es-lenta",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "Cómo saber si tu página web es lenta",
+  "descripcion": "Cómo medir la velocidad de tu página con PageSpeed Insights y Search Console, qué significan las métricas web principales y qué suele hacer lenta una página.",
+  "h1": "Cómo saber si tu página web es lenta",
+  "respuesta_rapida": [
+    "Mide tu página con PageSpeed Insights de Google, siempre en la versión para celular.",
+    "Fíjate en las métricas web principales: LCP, INP y CLS, con datos de visitas reales si existen.",
+    "Una puntuación de 90 a 100 es buena; de 0 a 49, deficiente.",
+    "Las causas más comunes son imágenes pesadas, plantillas sobrecargadas y demasiados complementos."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué la velocidad importa",
+      "parrafos": [
+        "La mayoría de tus clientes abren tu página desde el celular, muchas veces con una conexión que no es perfecta. Si la página tarda en mostrar algo útil, se van antes de ver lo que ofreces. Además, Google considera la experiencia de la página, incluida la velocidad, como una de sus señales.",
+        "Una página rápida no solo posiciona mejor: convierte mejor, porque la gente llega al botón de contacto antes de perder la paciencia."
+      ]
+    },
+    {
+      "titulo": "Cómo medir",
+      "parrafos": [
+        "Entra a PageSpeed Insights de Google, escribe la dirección de tu página y revisa la pestaña de celular. Arriba verás datos de usuarios reales, si tu sitio tiene suficientes visitas, y abajo una prueba de laboratorio con una puntuación. Según Google, de 90 a 100 es buena, de 50 a 89 necesita mejorar y de 0 a 49 es deficiente.",
+        "En Search Console, el reporte de métricas web principales agrupa tus páginas según su experiencia real. Nuestro analizador gratuito también revisa velocidad y otros puntos básicos en segundos."
+      ]
+    },
+    {
+      "titulo": "Las tres métricas que importan",
+      "parrafos": [
+        "LCP mide cuánto tarda en aparecer el elemento principal de la página, como la imagen o el titular grande; es bueno si es de 2.5 segundos o menos. INP mide qué tan rápido responde la página cuando tocas algo; es bueno si es de 200 milisegundos o menos. CLS mide cuánto se mueve el contenido mientras carga; es bueno si es de 0.1 o menos.",
+        "Google evalúa estas métricas con el percentil 75 de las visitas reales, es decir, considera la experiencia de la mayoría, no solo de los usuarios con buena conexión."
+      ]
+    },
+    {
+      "titulo": "Lo que suele hacer lenta una página",
+      "parrafos": [
+        "Imágenes enormes subidas tal cual salieron de la cámara. Plantillas que cargan código para funciones que no se usan. Demasiados complementos, cada uno con sus propios archivos. Videos de portada sin optimizar. Fuentes y scripts de terceros, como chats, mapas o herramientas de seguimiento, cargados antes de que hagan falta. Y un hospedaje lento.",
+        "Casi siempre hay dos o tres causas principales; resolver esas da la mayor parte de la mejora."
+      ]
+    },
+    {
+      "titulo": "Laboratorio contra realidad",
+      "parrafos": [
+        "La puntuación de laboratorio es una prueba simulada; los datos de usuarios reales son lo que vive tu cliente. Puede haber diferencias: una página con buena puntuación de laboratorio puede ser lenta para usuarios reales con celulares sencillos, y viceversa. Cuando existen, los datos reales mandan.",
+        "Hemos visto sitios muy bonitos en escritorio que reprueban las métricas reales en celular."
+      ]
+    },
+    {
+      "titulo": "Una referencia",
+      "parrafos": [
+        "El sitio de CANO Estrategia Penal, que construimos con el motor NEXUS, marca 99 en rendimiento, 99 en accesibilidad, 100 en buenas prácticas y 100 en SEO en PageSpeed móvil. No es casualidad: imágenes optimizadas, código mínimo y una base técnica pensada para celular.",
+        "Cualquier negocio puede tener un sitio así; no es exclusivo de empresas grandes."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Revisamos tu página actual y te decimos con franqueza si conviene optimizarla o rehacerla. Nuestros sitios se construyen rápidos desde el inicio. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Mi puntuación cambia cada vez que la mido?",
+      "respuesta": "Sí, la prueba de laboratorio varía un poco entre mediciones. Fíjate en la tendencia y en los datos reales."
+    },
+    {
+      "pregunta": "¿Por qué en escritorio sale bien y en celular mal?",
+      "respuesta": "Porque la prueba de celular simula un dispositivo y una red más lentos, más parecidos a los de muchos usuarios."
+    },
+    {
+      "pregunta": "¿Un sitio lento me baja en Google?",
+      "respuesta": "La experiencia de la página es una señal más entre muchas; no lo es todo, pero un sitio lento pierde clientes de cualquier forma."
+    },
+    {
+      "pregunta": "¿Puedo arreglarlo sin rehacer la página?",
+      "respuesta": "A veces sí: optimizar imágenes y quitar complementos suele mejorar mucho."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/herramientas/analizador-web",
+      "texto": "Analizador gratis de páginas web"
+    },
+    {
+      "ruta": "/pagina-web-rapida-en-celular",
+      "texto": "Página web rápida en celular: qué la hace lenta"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:518f2650f18fbfc2105e7f8357363ea4d83582866b4f0284e93ff522980aa0f9",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:518f2650f18fbfc2105e7f8357363ea4d83582866b4f0284e93ff522980aa0f9"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 666,
+    "similitud_max": 0.012,
+    "parecida_a": "/rediseno-o-pagina-nueva"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:6ee3c692422a8451fc242b2dc9152603dd1f3bb7c4eb921cd036a2b7992698c3",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

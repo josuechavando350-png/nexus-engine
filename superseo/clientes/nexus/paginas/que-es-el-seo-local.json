@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "que-es-el-seo-local",
+  "cliente": "nexus",
+  "ruta": "/que-es-el-seo-local",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "Qué es el SEO local y cómo funciona",
+  "descripcion": "Qué es el SEO local, cómo decide Google qué negocios mostrar en el mapa y en los resultados, y qué puede hacer un negocio para aparecer en su zona.",
+  "h1": "Qué es el SEO local y cómo funciona",
+  "respuesta_rapida": [
+    "Es el trabajo para que tu negocio aparezca cuando alguien busca lo que haces en tu zona.",
+    "Se juega en dos lugares: el mapa, que depende de tu perfil de Google, y los resultados, que dependen de tu sitio.",
+    "Google combina relevancia, distancia y prominencia para decidir.",
+    "Se construye con constancia: perfil completo, reseñas, contenido útil y una página rápida."
+  ],
+  "secciones": [
+    {
+      "titulo": "Búsquedas con intención local",
+      "parrafos": [
+        "Muchas búsquedas tienen una intención local, aunque no lo digan: dentista, taller mecánico, abogado laboral, florería. Google entiende que quien busca eso quiere opciones cercanas y muestra un mapa con negocios de la zona, seguido de resultados de páginas. Otras búsquedas incluyen la zona explícitamente, como cafetería en una colonia.",
+        "El SEO local busca que tu negocio aparezca en ambas partes: el mapa y los resultados."
+      ]
+    },
+    {
+      "titulo": "El mapa: tu Perfil de Empresa",
+      "parrafos": [
+        "En el mapa, Google decide con tres factores. Relevancia: qué tan bien coincide tu perfil con la búsqueda, gracias a la categoría, servicios y descripción. Distancia: qué tan cerca estás. Prominencia: qué tan conocido eres, medido por reseñas, calificación, menciones en otros sitios y la fuerza de tu página web.",
+        "Un perfil completo, verificado, con fotos y reseñas constantes, es la base del SEO local."
+      ]
+    },
+    {
+      "titulo": "Los resultados: tu sitio web",
+      "parrafos": [
+        "Debajo del mapa aparecen páginas web. Para aparecer ahí, tu sitio necesita páginas que respondan búsquedas concretas: una por servicio, con información útil, que mencione de forma natural la zona donde atiendes. También necesita ser rápido en celular, seguro y técnicamente claro para Google.",
+        "Un sitio fuerte también ayuda a la prominencia de tu perfil en el mapa."
+      ]
+    },
+    {
+      "titulo": "Lo que ayuda",
+      "parrafos": [
+        "Datos coherentes en todas partes: nombre, dirección y teléfono iguales en tu perfil, tu sitio y los directorios. Reseñas reales y respondidas. Contenido útil sobre tus servicios. Menciones y enlaces de sitios locales, como asociaciones, cámaras o medios de tu ciudad. Fotos reales y actividad en el perfil.",
+        "Ninguna de estas acciones por sí sola hace milagros; juntas y constantes, construyen posición."
+      ]
+    },
+    {
+      "titulo": "Lo que perjudica",
+      "parrafos": [
+        "Palabras clave metidas en el nombre del perfil, direcciones falsas u oficinas virtuales, reseñas compradas, páginas clonadas por colonia con el mismo texto y sitios lentos o abandonados. Algunas de estas prácticas pueden dar un salto temporal, pero terminan en suspensiones o caídas.",
+        "En SEO local, lo que dura es lo que es real."
+      ]
+    },
+    {
+      "titulo": "Cuánto tarda",
+      "parrafos": [
+        "Los cambios en el perfil se reflejan en días. La posición en el mapa y en los resultados se construye en semanas y meses, según la competencia de tu giro y zona. Medir desde el principio, con Search Console y las estadísticas del perfil, te permite ver la tendencia aunque las posiciones tarden.",
+        "Nadie serio puede prometerte una posición; sí puede mostrarte el avance con datos."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nexus Growth trabaja tu perfil, tu sitio y tus reseñas, y mide llamadas, mensajes y visitas. Para quien quiere ir más lejos, SUPERSEO decide qué páginas construir y las revisa con candados de calidad. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿El SEO local sirve si atiendo en todo el país?",
+      "respuesta": "Sirve para tu zona principal; para alcance nacional se trabaja además el SEO general con contenido."
+    },
+    {
+      "pregunta": "¿Necesito página web para el SEO local?",
+      "respuesta": "El perfil puede funcionar solo, pero una página fuerte mejora mucho tus posibilidades."
+    },
+    {
+      "pregunta": "¿Las redes sociales cuentan?",
+      "respuesta": "Ayudan de forma indirecta con menciones y visitas, pero el peso principal está en el perfil y el sitio."
+    },
+    {
+      "pregunta": "¿Puedo hacerlo yo mismo?",
+      "respuesta": "Buena parte sí: perfil, reseñas y contenido. La parte técnica y la estrategia suelen requerir apoyo."
+    },
+    {
+      "pregunta": "¿Qué pasa si mi competencia tiene más reseñas?",
+      "respuesta": "No es definitivo. Un perfil más completo, reseñas más recientes y un mejor sitio pueden compensar, y la constancia acorta la distancia con el tiempo."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/palabras-clave-para-negocio-local",
+      "texto": "Palabras clave para un negocio local"
+    },
+    {
+      "ruta": "/cuanto-cuesta-el-seo-local",
+      "texto": "¿Cuánto cuesta el SEO local y qué incluye?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:2cc22d8e75a2aeaae2da5b9c876e4412c414254dbdda9fb830e8bd5ddebf7ecb",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:2cc22d8e75a2aeaae2da5b9c876e4412c414254dbdda9fb830e8bd5ddebf7ecb"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 631,
+    "similitud_max": 0.033,
+    "parecida_a": "/cuanto-cuesta-el-seo-local"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:38e91800300673ba98df6ef2a64c095b6c47f8896303ffdea418d07b585d4f8a",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

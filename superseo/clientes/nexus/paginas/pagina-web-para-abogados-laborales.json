@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-abogados-laborales",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-abogados-laborales",
+  "tipo": "GIRO",
+  "servicio": "despachos",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Página web para abogados laborales",
+  "descripcion": "Sitios para despachos laborales: elegir si atiende a trabajadores o a empresas, explicar despido y liquidación con claridad y responder rápido.",
+  "h1": "Página web para abogados laborales",
+  "respuesta_rapida": [
+    "Lo primero es decidir a quién le habla la página: trabajadores despedidos o empresas que necesitan asesoría.",
+    "Para trabajadores, la urgencia es el plazo: la página debe invitar a escribir pronto y explicar la conciliación.",
+    "Para empresas, lo que vende es la prevención: contratos, reglamentos, auditorías y atención de demandas.",
+    "En ambos casos, WhatsApp visible y un mensaje claro sobre la primera consulta."
+  ],
+  "secciones": [
+    {
+      "titulo": "Dos públicos que no se mezclan",
+      "parrafos": [
+        "El derecho laboral tiene dos clientes con intereses opuestos. Un trabajador que acaba de ser despedido busca cuánto le toca y si puede demandar. Una empresa busca quién la asesore en una demanda, una inspección o un despido bien hecho. Una sola página que intenta hablarle a ambos termina sin convencer a ninguno.",
+        "Si el despacho atiende a los dos, conviene separarlos con claridad desde la portada, con secciones y mensajes distintos. Si se especializa en uno, mejor todavía: el sitio puede ser mucho más directo."
+      ]
+    },
+    {
+      "titulo": "Si atiende a trabajadores",
+      "parrafos": [
+        "El trabajador llega con miedo y con prisa, muchas veces sin saber que los plazos para reclamar son cortos. La página debe explicar en palabras simples qué es un despido injustificado, qué es la conciliación prejudicial antes de una demanda y qué documentos conviene reunir: recibos de nómina, contrato, mensajes.",
+        "Ayuda mucho una sección de preguntas frecuentes: si renuncié bajo presión, si no tengo contrato firmado, si me pagan por fuera de nómina. Son las búsquedas reales de alguien que acaba de perder su trabajo."
+      ]
+    },
+    {
+      "titulo": "Si atiende a empresas",
+      "parrafos": [
+        "La empresa compra tranquilidad. La página debe hablar de prevención: contratos individuales y colectivos, reglamento interior, procedimientos de terminación, atención de inspecciones, defensa en juicios y negociación. Un tono sereno y técnico, con casos tipo descritos sin nombrar clientes.",
+        "Aquí funciona un formulario breve para solicitar propuesta, además del WhatsApp, porque el área de recursos humanos suele necesitar dejar registro."
+      ]
+    },
+    {
+      "titulo": "Errores frecuentes en sitios laborales",
+      "parrafos": [
+        "Prometer montos de indemnización, publicar calculadoras que dan cifras sin contexto o usar lenguaje de confrontación que asusta a las empresas. También es común que el sitio no deje claro si la primera consulta tiene costo, lo que llena la agenda de llamadas sin futuro.",
+        "Otro error es esconder el contacto. Un trabajador despedido no va a buscar el formulario en el pie de página; necesita un botón a la vista."
+      ]
+    },
+    {
+      "titulo": "Contenido que atrae casos",
+      "parrafos": [
+        "Los trabajadores buscan preguntas muy concretas: me despidieron sin darme nada, me obligaron a firmar mi renuncia, no me dieron de alta en el seguro social, me deben vacaciones. Una página que conteste cada una con calma, explique qué opciones existen y diga qué documentos conviene guardar, se convierte en la puerta de entrada de muchos casos.",
+        "Del lado empresarial pasa algo parecido con temas como reparto de utilidades, subcontratación, registro de contratos colectivos o inspecciones. Una nota bien explicada atrae justo al director de recursos humanos que está tratando de entender el tema."
+      ]
+    },
+    {
+      "titulo": "Cómo te ayudamos",
+      "parrafos": [
+        "En Nexus definimos con usted a qué público le habla cada página y escribimos los textos a partir de una conversación. Medimos qué páginas generan mensajes, para que sepa si sus prospectos llegan por despido, por liquidación o por asesoría empresarial.",
+        "Si recibe muchos mensajes repetidos, un asistente de WhatsApp puede hacer las preguntas iniciales y agendar con usted solo los casos que sí son de su práctica."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Conviene poner una calculadora de liquidación?",
+      "respuesta": "Solo si está bien explicada y deja claro que es una estimación. Una cifra equivocada genera expectativas que luego cuestan el cliente."
+    },
+    {
+      "pregunta": "¿Puedo atender trabajadores y empresas en el mismo sitio?",
+      "respuesta": "Sí, pero separando los caminos desde la portada. Cada público debe sentir que la página es para él."
+    },
+    {
+      "pregunta": "¿Cómo filtro a quien no es mi cliente?",
+      "respuesta": "Con preguntas iniciales en el asistente o en el formulario: tipo de asunto, ciudad y fecha del despido o del conflicto."
+    },
+    {
+      "pregunta": "¿Debo publicar que cobro por porcentaje?",
+      "respuesta": "Si así trabaja con trabajadores, explicarlo con transparencia genera confianza. Lo importante es aclarar qué incluye y en qué momento se paga."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/diseno-web-para-despachos-juridicos",
+      "texto": "Diseño web para despachos jurídicos"
+    },
+    {
+      "ruta": "/casos/cano-estrategia-penal",
+      "texto": "Caso: CANO Estrategia Penal"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-despachos-de-abogados",
+      "texto": "Chatbot de WhatsApp para despachos de abogados"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:18b0b49d167eeab4ec6a0cd046373b3ee06e928c8d7cac20a8f941efd85ae9ad",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:54Z",
+    "contenido_digest": "sha256:18b0b49d167eeab4ec6a0cd046373b3ee06e928c8d7cac20a8f941efd85ae9ad"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 670,
+    "similitud_max": 0.002,
+    "parecida_a": "/pagina-web-para-abogados-fiscalistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:9e184a51c39bbafa40abcb6e4cd1b03a052501b7adb52a66e93799c81fc2ecf6",
+    "generado_en": "2026-10-11T02:03:54Z"
+  }
+}

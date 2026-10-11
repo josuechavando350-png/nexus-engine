@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-abogados-penalistas",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-abogados-penalistas",
+  "tipo": "GIRO",
+  "servicio": "despachos",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Página web para abogados penalistas",
+  "descripcion": "Sitios para despachos de defensa penal: contacto inmediato por WhatsApp y teléfono, discreción y una imagen que transmite capacidad de respuesta.",
+  "h1": "Página web para abogados penalistas",
+  "respuesta_rapida": [
+    "Quien busca un penalista casi nunca está tranquilo: suele ser de noche, desde el celular y con un familiar detenido.",
+    "La página tiene que dejarle llamar o escribir en un toque, sin formularios largos ni menús que estorben.",
+    "Debe explicar en qué asuntos defiende el despacho y quién va a llevar el caso, con nombre y rostro.",
+    "La discreción se nota en el diseño: nada de fotos de esposas, rejas ni balanzas genéricas."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cómo busca un cliente penal",
+      "parrafos": [
+        "En defensa penal la búsqueda tiene urgencia real. Alguien recibe una llamada porque detuvieron a su hermano, porque llegó un citatorio del Ministerio Público o porque se enteró de una carpeta de investigación. Escribe en Google desde el teléfono, abre tres o cuatro resultados y en segundos decide a quién marcarle.",
+        "Esa decisión no la toma leyendo un ensayo. La toma por señales: que el sitio cargue rápido, que el botón de WhatsApp esté a la vista, que el abogado tenga cara y trayectoria, y que el texto hable de su problema concreto. Si la página tarda o se ve abandonada, el prospecto ya está hablando con el siguiente despacho."
+      ]
+    },
+    {
+      "titulo": "Lo que no puede faltar",
+      "parrafos": [
+        "Un primer pantallazo que diga qué hace el despacho y cómo contactarlo, sin desplazarse. Llamada y WhatsApp como acciones principales, porque en materia penal casi nadie llena formularios.",
+        "Una página por área de práctica: delitos patrimoniales, fiscales, violentos, amparo, recursos. Cada una con lenguaje claro sobre qué ocurre en ese tipo de asunto, para que la persona sienta que llegó al lugar correcto.",
+        "Semblanza del abogado con formación verificable, y una explicación honesta de cómo funciona la primera consulta. Si cobra la valoración inicial, decirlo evita llamadas que no van a ningún lado."
+      ]
+    },
+    {
+      "titulo": "Lo que conviene evitar",
+      "parrafos": [
+        "Porcentajes de éxito, frases que anticipan el fallo de un juez o cualquier promesa sobre el resultado de un proceso. Además de ser delicado ética y legalmente, aleja al cliente informado, que es el que mejor paga.",
+        "También conviene evitar las fotos de banco con mazos y balanzas. Un despacho penal vende presencia y criterio; la mejor imagen es la del abogado en su oficina, en audiencia o con la ciudad detrás."
+      ]
+    },
+    {
+      "titulo": "El caso de CANO Estrategia Penal",
+      "parrafos": [
+        "Para CANO Estrategia Penal, despacho de defensa penal en la Ciudad de México, construimos un sitio nuevo a medida para reemplazar el que tenía en Wix. La dirección visual pone al abogado como protagonista frente al skyline, con un titular de alto impacto y una estructura oscura y contenida.",
+        "La migración se hizo sin tocar el sitio anterior hasta validar el nuevo, conservando el dominio, el correo del despacho y la medición de Google Ads. En PageSpeed móvil el sitio marca 99 en rendimiento, 99 en accesibilidad, 100 en buenas prácticas y 100 en SEO. El licenciado lo resumió así: Josué, te quedó perfecto."
+      ]
+    },
+    {
+      "titulo": "Cómo trabajamos con despachos penales",
+      "parrafos": [
+        "Empezamos con una conversación por WhatsApp, no con un cuestionario. Le presentamos una dirección visual pensada para su despacho y, aprobada esa dirección, construimos el sitio en un plazo de entre dos y cuatro semanas según el contenido disponible.",
+        "El dominio, el hosting y los accesos quedan a nombre del despacho. Medimos cuántas personas tocan WhatsApp o llaman desde cada página, para saber qué áreas generan consultas reales y no solo visitas."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo publicar mis casos ganados?",
+      "respuesta": "Se pueden contar casos con el permiso del cliente y sin datos que lo identifiquen. Lo que recomendamos evitar son los porcentajes de éxito y las promesas de resultado."
+    },
+    {
+      "pregunta": "¿Conviene poner el precio de la consulta?",
+      "respuesta": "Si la primera valoración tiene costo, decirlo filtra a quien no está listo para contratar y ahorra llamadas. Si es gratuita, también conviene aclararlo."
+    },
+    {
+      "pregunta": "¿Y si ya tengo página en Wix?",
+      "respuesta": "Se puede construir la nueva sin tocar la actual y cambiar el dominio hasta que esté validada, cuidando que el correo del despacho siga funcionando. Así lo hicimos con CANO."
+    },
+    {
+      "pregunta": "¿El sitio me hace aparecer en Google?",
+      "respuesta": "Un sitio bien construido es condición para competir, pero nadie serio puede prometer una posición. El posicionamiento continuo se trabaja aparte, con páginas por área y medición."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/diseno-web-para-despachos-juridicos",
+      "texto": "Diseño web para despachos jurídicos"
+    },
+    {
+      "ruta": "/casos/cano-estrategia-penal",
+      "texto": "Caso: CANO Estrategia Penal"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-despachos-de-abogados",
+      "texto": "Chatbot de WhatsApp para despachos de abogados"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:b3e45c6c6fe38846b26d95cf9a375050dfe360be8c4bf7a65d97a071e5a0277b",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:54Z",
+    "contenido_digest": "sha256:b3e45c6c6fe38846b26d95cf9a375050dfe360be8c4bf7a65d97a071e5a0277b"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 690,
+    "similitud_max": 0.008,
+    "parecida_a": "/como-saber-si-mi-pagina-es-lenta"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:d4bede0a00cb98ffeb1ffdb0daa717c1501bd1e5031bb603e7f408860808da6c",
+    "generado_en": "2026-10-11T02:03:54Z"
+  }
+}

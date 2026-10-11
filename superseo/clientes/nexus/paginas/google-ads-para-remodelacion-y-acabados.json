@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-remodelacion-y-acabados",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-remodelacion-y-acabados",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Google Ads para remodelación y acabados",
+  "descripcion": "Google Ads para contratistas de remodelación: anuncios por servicio, zona de trabajo, cotización con fotos por WhatsApp y filtros contra búsquedas de bricolaje.",
+  "h1": "Google Ads para remodelación y acabados",
+  "respuesta_rapida": [
+    "Anuncios por servicio: tablaroca, impermeabilización, pintura, pisos, cocinas y baños.",
+    "Radio de anuncios igual a la zona donde realmente trabajas.",
+    "WhatsApp con fotos del espacio como conversión principal.",
+    "Palabras negativas contra tutoriales, materiales y empleos."
+  ],
+  "secciones": [
+    {
+      "titulo": "Búsquedas con trabajo definido",
+      "parrafos": [
+        "Quien busca instalación de tablaroca, impermeabilización de azotea o remodelación de baño ya sabe qué necesita y está buscando a quién contratarlo. Son búsquedas con intención clara y suelen venir de personas con presupuesto. Un anuncio específico, que lleve a una página con trabajos reales de ese servicio, tiene muy buena oportunidad.",
+        "El reto es separar esas búsquedas de las de personas que quieren hacerlo ellas mismas.",
+        "Además, muchas búsquedas de remodelación vienen de personas que acaban de comprar o rentar una casa y quieren arreglarla antes de mudarse. Tienen fecha y presupuesto, y valoran a quien responde rápido y muestra trabajos terminados. Un anuncio que hable de tiempos claros y garantía les habla directamente."
+      ]
+    },
+    {
+      "titulo": "Estructura por servicio",
+      "parrafos": [
+        "Un grupo de anuncios por servicio, con anuncios que mencionan el servicio y la zona, y páginas de destino con galería de antes y después de ese servicio. Los servicios estacionales, como impermeabilización antes de lluvias, se refuerzan en su temporada.",
+        "Si trabajas también con negocios, como locales u oficinas, una campaña aparte con lenguaje comercial.",
+        "Las cocinas y los baños, que son proyectos más grandes, pueden tener su propia campaña con un mensaje centrado en el diseño y el proceso, distinto al de los servicios rápidos como pintura o tablaroca."
+      ]
+    },
+    {
+      "titulo": "Filtrar a quien no va a contratar",
+      "parrafos": [
+        "Cómo instalar tablaroca, precio del impermeabilizante, pintura barata, empleo de pintor, curso de acabados. Todas esas búsquedas comparten palabras con las de un cliente real. Una lista amplia de palabras negativas, revisada cada semana, evita pagar por ellas.",
+        "La página de destino que pide fotos y medidas filtra todavía más."
+      ]
+    },
+    {
+      "titulo": "WhatsApp con fotos",
+      "parrafos": [
+        "En remodelación, la conversión más natural es un mensaje de WhatsApp con fotos del espacio. Medirlo como conversión, junto con llamadas y formularios, permite saber cuánto cuesta cada solicitud de cotización. Con el seguimiento de cuáles se convierten en obra, se sabe cuánto cuesta cada trabajo conseguido.",
+        "Responder rápido esas solicitudes es parte del resultado: una respuesta del día siguiente vale mucho menos."
+      ]
+    },
+    {
+      "titulo": "Zona de trabajo",
+      "parrafos": [
+        "Los anuncios se muestran solo donde trabajas, y si cobras traslado en ciertas zonas, se dice en la página. Mostrar anuncios donde no llegas genera clics y conversaciones que terminan en nada.",
+        "Para obras grandes, se puede ampliar el radio con un anuncio aparte."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Un anuncio genérico de remodelaciones para todos los servicios. No excluir búsquedas de bricolaje y materiales. Llevar a una página sin fotos de trabajos reales. Correr anuncios en toda la ciudad. Y no medir los mensajes de WhatsApp, lo que impide saber qué servicios traen trabajo y cuáles solo consumen presupuesto."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Configuramos campañas por servicio con filtros rigurosos, medición de solicitudes y páginas con antes y después. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Funcionan los anuncios si trabajo solo?",
+      "respuesta": "Sí, con presupuesto modesto y radio cercano, para no recibir más trabajo del que puedes atender."
+    },
+    {
+      "pregunta": "¿Puedo pausar cuando tengo la agenda llena?",
+      "respuesta": "Sí, se pausa o se baja el presupuesto en cualquier momento."
+    },
+    {
+      "pregunta": "¿Conviene anunciar precio por metro cuadrado?",
+      "respuesta": "En servicios comunes, un precio desde mejora la calidad de las solicitudes."
+    },
+    {
+      "pregunta": "¿Qué servicio conviene anunciar primero?",
+      "respuesta": "El que más te deja y en el que tienes mejores fotos de trabajos reales."
+    },
+    {
+      "pregunta": "¿Conviene mostrar mi número de teléfono en el anuncio?",
+      "respuesta": "Sí, con extensión de llamada en tu horario de trabajo. Muchas personas prefieren llamar para explicar lo que necesitan."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-remodelacion-y-acabados",
+      "texto": "Página web para remodelación y acabados"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:8a47bd24d9833bcace777606b5cbd3087541e8e763e279bdc7d8ec3f4194ad2b",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:8a47bd24d9833bcace777606b5cbd3087541e8e763e279bdc7d8ec3f4194ad2b"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 623,
+    "similitud_max": 0.023,
+    "parecida_a": "/google-ads-para-constructoras"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:77f8c99c7b7aeaad02b0c8dc30af406e5b7ae73cc4351a45061a03cfe67f67b5",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

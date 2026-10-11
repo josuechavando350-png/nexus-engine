@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-contadores",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-contadores",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Página web para contadores y despachos contables",
+  "descripcion": "Sitios para contadores: servicios para personas físicas y empresas, régimen fiscal explicado, iguala mensual, citas y atención por WhatsApp.",
+  "h1": "Página web para contadores",
+  "respuesta_rapida": [
+    "Quien busca contador suele tener una urgencia con el SAT o quiere dejar de preocuparse cada mes.",
+    "Separa servicios para personas físicas, pequeños negocios y empresas.",
+    "Explica tus planes de iguala mensual y qué incluyen; es lo que más se compara.",
+    "Responder rápido y con claridad es la mejor señal de que vas a cumplir a tiempo."
+  ],
+  "secciones": [
+    {
+      "titulo": "El cliente llega preocupado",
+      "parrafos": [
+        "Muchas personas buscan contador cuando ya tienen un problema: una declaración atrasada, un requerimiento del SAT, una multa, la necesidad de facturar por primera vez. Otras lo buscan porque su negocio creció y ya no pueden llevar la contabilidad solas. En ambos casos quieren entender qué necesitan, cuánto les va a costar y si el contador es confiable.",
+        "Una página clara, con servicios por tipo de cliente y planes explicados, convierte esa preocupación en una cita.",
+        "Muchos de esos clientes tuvieron antes un contador que no contestaba o que dejó vencer obligaciones. Por eso valoran señales concretas de orden: tiempos de respuesta, un proceso de trabajo explicado y la forma en que les vas a reportar cada mes."
+      ]
+    },
+    {
+      "titulo": "Servicios por tipo de cliente",
+      "parrafos": [
+        "Personas físicas con actividad empresarial, régimen simplificado de confianza, arrendamiento, honorarios, plataformas digitales. Pequeños negocios y empresas: contabilidad mensual, nómina, declaraciones, auditorías, constitución de sociedades. Cada grupo con su página, en lenguaje claro, explicando qué obligaciones tiene y cómo lo ayudas.",
+        "Esas páginas atraen búsquedas muy específicas, como contador para régimen simplificado de confianza, que vienen de personas listas para contratar.",
+        "Si además atiendes trámites puntuales, como alta en el SAT, firma electrónica, devolución de saldo a favor o regularización de declaraciones atrasadas, cada uno puede tener su página: son búsquedas frecuentes de personas que luego se quedan como clientes de iguala."
+      ]
+    },
+    {
+      "titulo": "Igualas mensuales",
+      "parrafos": [
+        "La iguala mensual es el corazón del negocio contable. Explicar los planes, qué incluye cada uno, como número de facturas, declaraciones, nómina o asesoría, y un precio desde, permite al cliente comparar y decidir sin varias llamadas. La claridad sobre lo que no está incluido evita conflictos después.",
+        "Un cobro recurrente con recordatorios automáticos simplifica la cobranza del propio despacho."
+      ]
+    },
+    {
+      "titulo": "Atención que no se pierde",
+      "parrafos": [
+        "Un asistente de WhatsApp puede atender a cualquier hora las preguntas frecuentes, recibir documentos, agendar citas y recordar fechas de entrega de información a los clientes. Eso libera tiempo del contador para lo que realmente vale: el análisis y la asesoría.",
+        "Los recordatorios automáticos de fechas de declaración, enviados a cada cliente, también reducen los pendientes de último momento."
+      ]
+    },
+    {
+      "titulo": "Confianza profesional",
+      "parrafos": [
+        "Cédula profesional, formación, certificaciones y años de experiencia, con foto real del contador o del equipo. Si el despacho atiende sectores específicos, como médicos, restaurantes o arrendadores, mencionarlo atrae a clientes de esos giros. Las reseñas de clientes satisfechos son decisivas.",
+        "Un aviso de privacidad claro es indispensable, porque el cliente va a compartir información fiscal sensible."
+      ]
+    },
+    {
+      "titulo": "Contenido útil y a tiempo",
+      "parrafos": [
+        "Notas sobre fechas de declaración anual, cambios fiscales, cómo facturar, qué hacer con un requerimiento, publicadas a tiempo, atraen visitas en los momentos de mayor búsqueda. Cada nota termina con una invitación a agendar.",
+        "Ese contenido también se comparte con clientes actuales y refuerza la relación."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para contadores con servicios por cliente, planes de iguala, citas y asistente de WhatsApp. Desde $1,999 MXN; con asistente desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Debo publicar el precio de la iguala?",
+      "respuesta": "Un precio desde por plan filtra y ahorra tiempo. El precio final depende del volumen de operaciones."
+    },
+    {
+      "pregunta": "¿Puedo recibir documentos por la página?",
+      "respuesta": "Sí, con un área segura o por el asistente de WhatsApp, siempre con aviso de privacidad."
+    },
+    {
+      "pregunta": "¿Sirve para atender clientes de otras ciudades?",
+      "respuesta": "Sí. La contabilidad se atiende muy bien a distancia, y decirlo amplía tu mercado."
+    },
+    {
+      "pregunta": "¿Cuánto tarda?",
+      "respuesta": "Entre dos y cuatro semanas desde que apruebas la dirección visual."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-contadores",
+      "texto": "Chatbot de WhatsApp para contadores"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-contadores",
+      "texto": "Cómo aparecer en Google Maps: contadores"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:3024950e40a14541722f0e754d77f9bed295b8fc9ebad1299f68f6fb365e0806",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:3024950e40a14541722f0e754d77f9bed295b8fc9ebad1299f68f6fb365e0806"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 635,
+    "similitud_max": 0.017,
+    "parecida_a": "/pagina-web-para-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:f36df0572dea653125b8b3532ed9235318aed2c03f9bb389a5f3b40ff50b4e22",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "agenda-de-citas-en-linea-para-dentistas",
+  "cliente": "nexus",
+  "ruta": "/agenda-de-citas-en-linea-para-dentistas",
+  "tipo": "AGENTE_IA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Agenda de citas en línea para dentistas",
+  "descripcion": "Agenda en línea para consultorios dentales: el paciente reserva valoración o limpieza desde tu página, con recordatorios, confirmación y menos huecos.",
+  "h1": "Agenda de citas en línea para dentistas",
+  "respuesta_rapida": [
+    "Los pacientes reservan valoraciones, limpiezas y revisiones desde tu página, a cualquier hora.",
+    "Cada tipo de cita tiene su duración y solo se ofrece en los consultorios y horarios correctos.",
+    "Recordatorios automáticos con confirmación reducen los huecos en la agenda.",
+    "Los tratamientos en varias sesiones se programan con orden."
+  ],
+  "secciones": [
+    {
+      "titulo": "Los huecos cuestan",
+      "parrafos": [
+        "En un consultorio dental, una cita que no se presenta deja al dentista y a la asistente sin trabajo durante ese tiempo, y ese tiempo no se recupera. Al mismo tiempo, hay pacientes que querían una cita y no la consiguieron porque llamaron cuando la recepción estaba ocupada o fuera de horario.",
+        "Una agenda en línea con recordatorios ataca los dos problemas: llena los espacios disponibles y reduce las ausencias.",
+        "También hay un costo menos visible: el tiempo que la recepción dedica a acomodar citas por teléfono y por mensaje, moviendo pacientes de un día a otro. Cuando el paciente puede ver los horarios libres y elegir, buena parte de ese trabajo desaparece y la recepción se concentra en atender a quien está en la sala."
+      ]
+    },
+    {
+      "titulo": "Qué puede reservar el paciente",
+      "parrafos": [
+        "No todas las citas conviene abrirlas al público. Lo habitual es permitir en línea la valoración inicial, la limpieza, la revisión periódica y la consulta de ortodoncia, que tienen duración predecible. Los procedimientos más largos, como endodoncias o cirugías, se agendan desde el consultorio después de la valoración.",
+        "Cada tipo de cita tiene su duración, el profesional que la realiza y el consultorio o sillón disponible, y la agenda solo ofrece horarios donde todo coincide."
+      ]
+    },
+    {
+      "titulo": "Recordatorios y confirmación",
+      "parrafos": [
+        "Un mensaje automático un día antes, con la opción de confirmar o reprogramar, y otro unas horas antes con la dirección y las indicaciones, reducen de forma notable las ausencias. Si el paciente reprograma, el espacio se libera y puede ofrecerse a quien está en lista de espera.",
+        "Las indicaciones previas, como llegar unos minutos antes para llenar la historia clínica, también se envían solas."
+      ]
+    },
+    {
+      "titulo": "Tratamientos en varias sesiones",
+      "parrafos": [
+        "La ortodoncia, los implantes y muchos tratamientos requieren citas periódicas durante meses. La agenda puede programar la siguiente cita al terminar la actual y recordarle al paciente con tiempo. Cuando un paciente falta a un control, el sistema avisa al consultorio para darle seguimiento.",
+        "Ese orden mejora los resultados clínicos y evita que los tratamientos se abandonen."
+      ]
+    },
+    {
+      "titulo": "Desde tu página y desde Google",
+      "parrafos": [
+        "El botón de agendar va en tu página, en cada página de tratamiento y en tu perfil de Google. Quien busca dentista y te encuentra puede reservar en ese momento, sin esperar a que abra el consultorio.",
+        "Con el tiempo, ves cuántas citas llegan de cada canal y de cada tratamiento."
+      ]
+    },
+    {
+      "titulo": "Privacidad",
+      "parrafos": [
+        "La agenda pide solo los datos necesarios para la cita y está cubierta por el aviso de privacidad del consultorio. La historia clínica se maneja en el consultorio, no en el formulario de reserva. El acceso a la agenda se limita al personal autorizado.",
+        "En Nexus configuramos cada integración con criterio de ciberseguridad."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Instalamos la agenda en tu página con tus tipos de cita, profesionales y reglas, conectada con WhatsApp para confirmaciones. Incluida desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Se conecta con mi software dental?",
+      "respuesta": "Depende del software. Muchos permiten integración; si no, la agenda en línea funciona como agenda principal del consultorio."
+    },
+    {
+      "pregunta": "¿Puedo cobrar la valoración al reservar?",
+      "respuesta": "Sí, con pago en línea opcional que se descuenta del costo de la consulta."
+    },
+    {
+      "pregunta": "¿Y las urgencias?",
+      "respuesta": "Las urgencias no se agendan en línea: la página indica llamar o escribir de inmediato."
+    },
+    {
+      "pregunta": "¿Puedo tener varios doctores?",
+      "respuesta": "Sí, cada uno con su horario y sus tipos de cita."
+    },
+    {
+      "pregunta": "¿Puedo limitar cuántas valoraciones nuevas entran por día?",
+      "respuesta": "Sí. La agenda puede reservar un número máximo de primeras citas por día para no saturar al equipo y dejar espacio a los tratamientos en curso."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-dentistas",
+      "texto": "Página web para dentistas"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:6d05801e70b89b80e00df0202eb5fb49a52f8f7a56ea52eebd20848d612d6577",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:6d05801e70b89b80e00df0202eb5fb49a52f8f7a56ea52eebd20848d612d6577"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 644,
+    "similitud_max": 0.025,
+    "parecida_a": "/agenda-de-citas-en-linea-para-fisioterapeutas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:b7880d1b92b3011ecc57adc456c6858343498711fd253b247c94950c11f76617",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

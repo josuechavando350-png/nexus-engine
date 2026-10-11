@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "agenda-de-citas-en-linea-para-psicologos",
+  "cliente": "nexus",
+  "ruta": "/agenda-de-citas-en-linea-para-psicologos",
+  "tipo": "AGENTE_IA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Agenda de citas en línea para psicólogos",
+  "descripcion": "Agenda en línea para psicólogos: sesiones presenciales o por videollamada, reserva discreta, pago anticipado, enlace automático y recordatorios.",
+  "h1": "Agenda de citas en línea para psicólogos",
+  "respuesta_rapida": [
+    "La persona agenda su primera sesión sin tener que explicar por teléfono por qué busca terapia.",
+    "Sesiones presenciales o en línea, con el enlace de la videollamada enviado automáticamente.",
+    "Pago anticipado opcional y política de cancelación clara.",
+    "Recordatorios discretos que no revelan el motivo de la cita."
+  ],
+  "secciones": [
+    {
+      "titulo": "Agendar sin tener que explicar",
+      "parrafos": [
+        "Para muchas personas, lo más difícil de empezar terapia es la primera llamada. Tener que explicar en voz alta, a veces desde el trabajo o con la familia cerca, por qué quiere una cita, hace que muchas lo pospongan. Una agenda en línea quita esa barrera: la persona elige un horario, deja sus datos y listo.",
+        "Para el terapeuta, significa dejar de interrumpir sesiones para contestar mensajes de agenda.",
+        "Además, la agenda permite que la persona vea de inmediato si tus horarios le funcionan. Muchas consultas por mensaje terminan en nada porque, después de varios intercambios, resulta que no había horario compatible. Mostrarlo desde el principio ahorra tiempo a los dos."
+      ]
+    },
+    {
+      "titulo": "Presencial y en línea",
+      "parrafos": [
+        "La agenda distingue entre sesiones en consultorio y por videollamada, cada una con sus horarios. Para las sesiones en línea, envía automáticamente el enlace de la videollamada y las indicaciones, como buscar un lugar privado y una buena conexión. Para las presenciales, envía la dirección y cómo llegar.",
+        "Si atiendes pacientes de otras ciudades o países, la agenda muestra los horarios en la zona horaria de cada persona, lo que evita confusiones."
+      ]
+    },
+    {
+      "titulo": "Discreción en cada mensaje",
+      "parrafos": [
+        "Los recordatorios y confirmaciones se redactan de forma neutra, sin mencionar la palabra terapia ni el motivo, por si alguien más ve el teléfono del paciente. El formulario de reserva pide lo mínimo: nombre, forma de contacto y, si se desea, un campo opcional para comentar algo antes de la primera sesión.",
+        "La información se guarda con acceso restringido y bajo el aviso de privacidad del terapeuta."
+      ]
+    },
+    {
+      "titulo": "Pago y cancelaciones",
+      "parrafos": [
+        "Muchos terapeutas cobran la sesión al reservar o con cierta anticipación, lo que reduce las ausencias y evita hablar de dinero al final de la sesión. La política de cancelación, con el tiempo mínimo de aviso, queda escrita en la confirmación y se aplica de forma automática.",
+        "Si manejas tarifas diferenciadas, se pueden configurar por tipo de sesión."
+      ]
+    },
+    {
+      "titulo": "Continuidad del proceso",
+      "parrafos": [
+        "La terapia funciona con regularidad. La agenda permite reservar sesiones recurrentes, por ejemplo cada semana a la misma hora, y avisa al terapeuta si un paciente deja de agendar. Ese aviso permite dar seguimiento con cuidado, sin que nadie se pierda en el camino.",
+        "Para el paciente, tener su horario fijo asegurado también da estabilidad."
+      ]
+    },
+    {
+      "titulo": "Un recordatorio importante",
+      "parrafos": [
+        "La página donde está la agenda debe indicar con claridad que la terapia no sustituye la atención de emergencias, y a dónde acudir en una crisis. Es una responsabilidad profesional que también da tranquilidad a quien está decidiendo.",
+        "La agenda nunca debe ser el único canal para una persona en riesgo."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos tu agenda con modalidades, horarios, pagos y mensajes discretos, integrada a tu página. Incluida desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Qué plataforma de videollamada usa?",
+      "respuesta": "La que prefieras, siempre que permita sesiones privadas. La agenda genera y envía el enlace."
+    },
+    {
+      "pregunta": "¿Puedo bloquear horarios para pacientes actuales?",
+      "respuesta": "Sí, puedes reservar horarios solo para pacientes en proceso y abrir otros para primeras sesiones."
+    },
+    {
+      "pregunta": "¿Los recordatorios mencionan que es terapia?",
+      "respuesta": "No. Se redactan de forma neutra para cuidar la privacidad del paciente."
+    },
+    {
+      "pregunta": "¿Puedo emitir recibos?",
+      "respuesta": "Sí, se puede enviar el comprobante de pago automáticamente y conectar con tu facturación."
+    },
+    {
+      "pregunta": "¿Puedo ofrecer una primera llamada breve sin costo?",
+      "respuesta": "Sí, como un tipo de cita distinto, con su propia duración y horarios, para que la persona resuelva dudas antes de comprometerse."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-psicologos",
+      "texto": "Página web para psicólogos"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:f87d5d28c325a0f916769fd7d62cdf2567c219644efaf1310a0b4f2606dbb3a1",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:f87d5d28c325a0f916769fd7d62cdf2567c219644efaf1310a0b4f2606dbb3a1"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 619,
+    "similitud_max": 0.016,
+    "parecida_a": "/agenda-de-citas-en-linea-para-salones-de-belleza"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:607a4b24cc34bad967222520ea15545b7c249d490943ff9e47efc15b6eb80223",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

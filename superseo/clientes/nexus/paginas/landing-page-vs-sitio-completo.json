@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "landing-page-vs-sitio-completo",
+  "cliente": "nexus",
+  "ruta": "/landing-page-vs-sitio-completo",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "Landing page vs. sitio completo: qué necesitas",
+  "descripcion": "Qué es una landing page, en qué se diferencia de un sitio web completo, cuándo conviene cada uno y cómo combinarlos para anuncios y posicionamiento.",
+  "h1": "Landing page vs. sitio completo: qué necesitas",
+  "respuesta_rapida": [
+    "Una landing page es una sola página con un objetivo: que el visitante haga una acción concreta.",
+    "Un sitio completo presenta todo tu negocio y atrae búsquedas variadas en Google.",
+    "Para anuncios, la landing suele convertir mejor; para posicionamiento, el sitio completo.",
+    "Muchos negocios necesitan ambos: un sitio y landings para campañas específicas."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué es una landing page",
+      "parrafos": [
+        "Una landing page, o página de aterrizaje, es una página diseñada para un solo objetivo: que quien llega agende, cotice, compre o escriba. No tiene menús que distraigan ni secciones que no ayuden a esa acción. Todo, desde el titular hasta el botón, está pensado para convertir.",
+        "Suelen usarse como destino de anuncios, promociones o campañas, donde el visitante llega con una intención concreta."
+      ]
+    },
+    {
+      "titulo": "Qué hace un sitio completo",
+      "parrafos": [
+        "Un sitio completo presenta el negocio entero: servicios, quiénes son, casos, preguntas frecuentes, contacto. Atiende a visitantes con distintas necesidades y, sobre todo, tiene muchas páginas que pueden aparecer en Google para búsquedas distintas.",
+        "Es la base de la presencia digital de un negocio y lo que da confianza a quien quiere conocerte antes de contratarte."
+      ]
+    },
+    {
+      "titulo": "Para anuncios: landing",
+      "parrafos": [
+        "Cuando pagas por cada clic, quieres que el visitante haga la acción, no que explore. Una landing que habla exactamente del anuncio que vio, con prueba de confianza y un botón claro, suele convertir mucho mejor que la portada de un sitio. Por eso las campañas bien hechas tienen una landing por oferta o por servicio.",
+        "La landing también facilita medir: un solo objetivo, una sola conversión."
+      ]
+    },
+    {
+      "titulo": "Para posicionamiento: sitio",
+      "parrafos": [
+        "Google muestra páginas que responden búsquedas. Un sitio con páginas por servicio, por tipo de cliente y por pregunta frecuente puede aparecer en muchas búsquedas distintas y construir autoridad con el tiempo. Una landing aislada difícilmente lo logra.",
+        "El posicionamiento se construye con contenido útil, y eso necesita espacio."
+      ]
+    },
+    {
+      "titulo": "Cómo combinarlos",
+      "parrafos": [
+        "Lo más común es tener un sitio completo como base y landings para campañas: una por servicio que anuncias, una por promoción de temporada, una para un evento. Las landings pueden vivir dentro del mismo dominio, aprovechando su confianza.",
+        "Si estás empezando con poco presupuesto y vas a anunciarte, una landing bien hecha puede ser el primer paso, y el sitio completo puede crecer después."
+      ]
+    },
+    {
+      "titulo": "Qué debe tener una buena landing",
+      "parrafos": [
+        "Un titular que repita lo que el visitante buscó o vio en el anuncio. Una explicación breve de lo que ofreces y para quién es. Pruebas de confianza: fotos reales, reseñas, casos. Respuestas a las dudas más frecuentes. Y una sola acción clara, repetida en varios puntos de la página: escribir por WhatsApp, agendar o comprar.",
+        "Todo lo demás, como menús, enlaces a otras secciones o textos generales, se quita para no distraer. Y debe cargar rápido en el celular, porque cada segundo de espera se paga en clics perdidos."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Diseñamos sitios completos y landings para anuncios, medidas y conectadas a WhatsApp. Con Nexus Cortex conectamos las landings con Google Ads para medir ventas reales. Los paquetes van de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Una landing aparece en Google?",
+      "respuesta": "Puede aparecer, pero difícilmente compite con sitios que tienen muchas páginas útiles."
+    },
+    {
+      "pregunta": "¿Cuántas landings necesito?",
+      "respuesta": "Una por oferta o servicio que anuncies, para que cada anuncio lleve a una página que hable de lo mismo."
+    },
+    {
+      "pregunta": "¿Puedo usar mi portada como landing?",
+      "respuesta": "Se puede, pero suele convertir peor porque intenta hablarle a todos."
+    },
+    {
+      "pregunta": "¿La landing necesita formulario?",
+      "respuesta": "Necesita una acción clara; en México muchas veces WhatsApp convierte mejor que un formulario."
+    },
+    {
+      "pregunta": "¿Cuánto cuesta una landing page?",
+      "respuesta": "Depende del alcance y de si incluye medición y conexión con anuncios. En Nexus entra dentro de los paquetes de $1,999 a $44,800 MXN según lo que necesites."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/landing-page-para-anuncios",
+      "texto": "Landing page para anuncios: qué debe tener"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:059defe36f0c92d96f68f92c678d5825e088781beb5f78e185fba93473fc1355",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:059defe36f0c92d96f68f92c678d5825e088781beb5f78e185fba93473fc1355"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 618,
+    "similitud_max": 0.012,
+    "parecida_a": "/landing-page-para-anuncios"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:e9456ba5802d8d4de575205703989027d3b2e9c33dc607ed6041c6c3b41b0f50",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

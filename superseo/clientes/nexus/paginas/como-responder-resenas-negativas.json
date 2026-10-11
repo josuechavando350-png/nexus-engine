@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "como-responder-resenas-negativas",
+  "cliente": "nexus",
+  "ruta": "/como-responder-resenas-negativas",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "Cómo responder una reseña negativa en Google",
+  "descripcion": "Cómo responder una reseña negativa en Google con calma y profesionalismo, cuándo reportarla y por qué tu respuesta importa más que la reseña misma.",
+  "h1": "Cómo responder una reseña negativa en Google",
+  "respuesta_rapida": [
+    "No respondas en caliente: espera, lee con calma y revisa qué pasó.",
+    "Agradece, reconoce lo que corresponda y ofrece resolverlo en privado.",
+    "No discutas, no reveles datos del cliente y no amenaces.",
+    "Si la reseña viola las reglas de Google, puedes reportarla; si no, no se puede borrar."
+  ],
+  "secciones": [
+    {
+      "titulo": "Tu respuesta es para los que leen",
+      "parrafos": [
+        "Una reseña negativa duele, sobre todo cuando sientes que es injusta. Pero la respuesta no es para quien la escribió, es para los cientos de personas que la van a leer después. Un cliente potencial que ve una crítica respondida con calma y una solución confía más en el negocio que si viera solo reseñas perfectas.",
+        "Una respuesta agresiva, en cambio, puede hacer más daño que la reseña misma."
+      ]
+    },
+    {
+      "titulo": "Antes de responder",
+      "parrafos": [
+        "Espera unas horas. Lee la reseña completa, identifica al cliente si puedes y revisa qué pasó realmente con tu equipo. Muchas reseñas negativas tienen una parte de razón: una espera larga, un error en el pedido, una mala comunicación. Reconocerlo es el primer paso.",
+        "Si la reseña es de alguien que no reconoces como cliente, también conviene tomarlo con calma antes de acusar."
+      ]
+    },
+    {
+      "titulo": "Cómo estructurar la respuesta",
+      "parrafos": [
+        "Agradece que se haya tomado el tiempo de escribir. Reconoce lo que corresponda, sin excusas largas. Explica brevemente qué hiciste o vas a hacer para que no vuelva a pasar. Ofrece continuar la conversación en privado, con un teléfono o correo. Firma con tu nombre si eres el responsable.",
+        "Breve, humana y sin tecnicismos. Tres o cuatro frases suelen bastar.",
+        "Si el cliente tiene razón, dilo sin rodeos: tienes razón, esa espera no debió pasar. Esa frase sencilla desarma más que cualquier explicación y muestra a los lectores que el negocio sabe reconocer errores."
+      ]
+    },
+    {
+      "titulo": "Lo que nunca hacer",
+      "parrafos": [
+        "Discutir en público, decir que el cliente miente, revelar datos personales o detalles de su caso, amenazar con acciones legales o responder con sarcasmo. En giros como salud o legal, tampoco confirmes que la persona fue tu paciente o cliente: responde de forma general.",
+        "Tampoco copies la misma respuesta en todas las reseñas; se nota y transmite indiferencia."
+      ]
+    },
+    {
+      "titulo": "Cuándo reportar",
+      "parrafos": [
+        "Google permite reportar reseñas que violan sus reglas: spam, contenido ofensivo o de odio, conflictos de interés como reseñas de un competidor o exempleado, o reseñas que no corresponden a una experiencia real. Si la reseña solo es negativa pero legítima, no se puede borrar.",
+        "Reporta desde tu perfil y, mientras Google decide, responde de forma profesional."
+      ]
+    },
+    {
+      "titulo": "Convertir la crítica en mejora",
+      "parrafos": [
+        "Las reseñas negativas son información gratuita sobre lo que tus clientes viven. Si varias mencionan lo mismo, como tiempos de espera o falta de respuesta en WhatsApp, ahí hay algo que corregir. Muchos negocios descubren que un asistente que responde al instante o un recordatorio de citas elimina la queja más frecuente.",
+        "Y cuando corriges algo, puedes mencionarlo en tus respuestas futuras."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Te ayudamos a configurar alertas de nuevas reseñas, a preparar respuestas tipo con el tono de tu negocio y a medir cómo evoluciona tu reputación. Es parte de Nexus Growth."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo pedirle al cliente que borre su reseña?",
+      "respuesta": "Puedes resolver su problema y, si queda satisfecho, él puede decidir editarla. No lo condiciones ni lo presiones."
+    },
+    {
+      "pregunta": "¿Qué hago con una reseña falsa?",
+      "respuesta": "Repórtala a Google explicando por qué no corresponde a un cliente real, y responde con calma mientras se revisa."
+    },
+    {
+      "pregunta": "¿Debo responder todas las reseñas?",
+      "respuesta": "Sí, las buenas y las malas. Muestra que el negocio está atento."
+    },
+    {
+      "pregunta": "¿Cuánto tiempo tengo para responder?",
+      "respuesta": "No hay plazo, pero responder en uno o dos días muestra atención."
+    },
+    {
+      "pregunta": "¿Y si la reseña es de un competidor?",
+      "respuesta": "Repórtala como conflicto de interés y responde de forma breve y profesional, sin acusar públicamente sin pruebas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/como-aparecer-en-google-maps",
+      "texto": "Cómo aparecer en Google Maps con tu negocio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:bb339e641af3c49e3808af15798ec20ab801081feb9afc5cb5d3dde44ad1b3de",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:bb339e641af3c49e3808af15798ec20ab801081feb9afc5cb5d3dde44ad1b3de"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 625,
+    "similitud_max": 0.002,
+    "parecida_a": "/fotos-para-perfil-de-google"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:b86af04f8ab620e8dff063306402408bad3d4f09cd42e399017559e2c13d7668",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

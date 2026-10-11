@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "como-escribir-los-textos-de-tu-pagina-web",
+  "cliente": "nexus",
+  "ruta": "/como-escribir-los-textos-de-tu-pagina-web",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "Cómo escribir los textos de tu página web",
+  "descripcion": "Cómo escribir los textos de la página de tu negocio: hablar del problema del cliente, explicar servicios con claridad, responder dudas y llevar al contacto.",
+  "h1": "Cómo escribir los textos de tu página web",
+  "respuesta_rapida": [
+    "Escribe para tu cliente, no para impresionar: habla de su problema y de cómo lo resuelves.",
+    "En la primera pantalla di qué haces, para quién y cómo contactarte.",
+    "Explica cada servicio en su propia página, con lenguaje sencillo y datos verdaderos.",
+    "Responde las dudas que te hacen siempre por teléfono y termina cada sección con una acción clara."
+  ],
+  "secciones": [
+    {
+      "titulo": "El error más común",
+      "parrafos": [
+        "Muchas páginas empiezan hablando del negocio: somos una empresa líder, con amplia experiencia, comprometida con la excelencia. El visitante no busca eso; busca saber si puedes resolver su problema. Los textos que funcionan empiezan por el cliente: lo que necesita, lo que le preocupa y cómo lo ayudas.",
+        "Una prueba sencilla: si puedes cambiar tu nombre por el de tu competencia y el texto sigue funcionando, el texto es genérico."
+      ]
+    },
+    {
+      "titulo": "La primera pantalla",
+      "parrafos": [
+        "Lo primero que se ve debe responder tres preguntas en segundos: qué haces, para quién y cómo contactarte. Un titular claro, una frase que lo complemente y un botón de WhatsApp o llamada. Todo lo demás puede esperar más abajo.",
+        "Un titular creativo que no explica nada puede ganar premios, pero pierde clientes.",
+        "Debajo de esa primera pantalla, una sección breve con tus principales servicios, otra con pruebas de confianza como fotos reales, reseñas o casos, y una más con la forma de trabajar ordenan la información en el mismo orden en que el cliente se hace preguntas."
+      ]
+    },
+    {
+      "titulo": "Una página por servicio",
+      "parrafos": [
+        "Cada servicio importante merece su página: qué es, para quién, cómo funciona, cuánto tarda, qué incluye, cuánto cuesta o de qué depende el precio, y por qué elegirte. Esas páginas responden búsquedas específicas en Google y dan al cliente la información que necesita para decidir.",
+        "Usa las palabras que usan tus clientes, no las de tu catálogo interno."
+      ]
+    },
+    {
+      "titulo": "Verdad antes que adjetivos",
+      "parrafos": [
+        "Un dato verdadero convence más que diez adjetivos. En lugar de servicio de excelencia, cuenta cómo trabajas. En lugar de los mejores precios, muestra tus precios. En lugar de amplia experiencia, di desde cuándo y con qué tipo de casos. Y nunca inventes cifras, clientes o testimonios: tarde o temprano se nota y destruye la confianza.",
+        "En giros como salud o legal, además, las promesas de resultado pueden traer problemas."
+      ]
+    },
+    {
+      "titulo": "Responder las dudas de siempre",
+      "parrafos": [
+        "Anota las preguntas que te hacen por teléfono y por WhatsApp: cuánto cuesta, cuánto tarda, si atienden en cierta zona, qué hay que llevar, cómo se paga. Contéstalas en la página, en la sección de cada servicio o en preguntas frecuentes. Ahorras tiempo y el cliente llega más decidido.",
+        "Esas preguntas son, además, búsquedas reales en Google."
+      ]
+    },
+    {
+      "titulo": "Siempre una siguiente acción",
+      "parrafos": [
+        "Cada sección debería terminar invitando a algo: escribir por WhatsApp, agendar, llamar, pedir una cotización. Un texto que informa pero no invita deja al cliente sin saber qué hacer. Los mensajes precargados de WhatsApp, distintos según la página, ayudan a saber de dónde llegó cada contacto.",
+        "Escribe como hablas con tus clientes: claro, cercano y sin rodeos."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Escribimos los textos de tu página a partir de una conversación contigo, sin cuestionarios eternos, con tus datos reales y el lenguaje de tus clientes. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Debo hablar de tú o de usted?",
+      "respuesta": "Como le hablas a tus clientes. En servicios profesionales suele funcionar el usted; en negocios casuales, el tú."
+    },
+    {
+      "pregunta": "¿Textos largos o cortos?",
+      "respuesta": "Cortos en la portada; completos en las páginas de servicio, donde el cliente quiere detalles."
+    },
+    {
+      "pregunta": "¿Puedo usar IA para escribirlos?",
+      "respuesta": "Como ayuda, sí, revisando que cada dato sea verdadero y que el texto suene a ti."
+    },
+    {
+      "pregunta": "¿Cada cuánto actualizo los textos?",
+      "respuesta": "Cuando cambian tus servicios, precios o forma de trabajar."
+    },
+    {
+      "pregunta": "¿Debo incluir mis precios en los textos?",
+      "respuesta": "Si puedes, al menos un precio desde o de qué depende el costo. Es de lo primero que busca el cliente."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/palabras-clave-para-negocio-local",
+      "texto": "Palabras clave para un negocio local"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:38c8e9566049d3045798de0b77a16a6dceccd06bc46a4de5d3ddf22d9c364961",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:38c8e9566049d3045798de0b77a16a6dceccd06bc46a4de5d3ddf22d9c364961"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 640,
+    "similitud_max": 0.033,
+    "parecida_a": "/que-paginas-debe-tener-un-sitio-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:2d9bcc646b0224e19ed26b537b99852a7dbaccf85b7a7840a8115532a3a55f20",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

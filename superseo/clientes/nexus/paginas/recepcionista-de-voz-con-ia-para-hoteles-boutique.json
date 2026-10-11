@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "recepcionista-de-voz-con-ia-para-hoteles-boutique",
+  "cliente": "nexus",
+  "ruta": "/recepcionista-de-voz-con-ia-para-hoteles-boutique",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Recepcionista de voz con IA para hoteles",
+  "descripcion": "Recepcionista con IA para hoteles boutique: atiende llamadas en español e inglés, informa tarifas, toma reservas y apoya a la recepción de noche.",
+  "h1": "Recepcionista de voz con IA para hoteles boutique",
+  "respuesta_rapida": [
+    "Contesta llamadas de huéspedes y viajeros en español e inglés, de día y de noche.",
+    "Informa disponibilidad, tarifas, políticas y servicios, y lleva a la reserva directa.",
+    "Toma solicitudes de huéspedes hospedados y las pasa a la persona indicada.",
+    "Libera a la recepción para atender a quien está frente al mostrador."
+  ],
+  "secciones": [
+    {
+      "titulo": "Una recepción pequeña con muchas llamadas",
+      "parrafos": [
+        "En un hotel boutique, la recepción suele estar a cargo de muy pocas personas, a veces una sola de noche. Esa persona registra llegadas, resuelve solicitudes, cobra y, al mismo tiempo, contesta el teléfono. Cuando un huésped está en el mostrador, la llamada de un viajero que quiere reservar se queda sin respuesta, y esa reserva termina en una agencia en línea con comisión.",
+        "Las llamadas de huéspedes hospedados, pidiendo toallas o preguntando por el desayuno, también interrumpen constantemente."
+      ]
+    },
+    {
+      "titulo": "Qué hace en una llamada",
+      "parrafos": [
+        "Para viajeros, responde en el idioma de la llamada disponibilidad por fechas, tipos de habitación, tarifas, desayuno, estacionamiento, mascotas y políticas de cancelación. Explica el beneficio de reservar directo y, según cómo trabaje el hotel, toma la reserva o envía por mensaje el enlace para completarla.",
+        "Para huéspedes hospedados, toma solicitudes como servicio a la habitación, despertador, toallas o recomendaciones, y las pasa a la persona indicada con número de habitación. Si hay una queja o una emergencia, transfiere la llamada a la recepción de inmediato.",
+        "Todas las llamadas quedan registradas con un resumen para el equipo."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Son las once de la noche. Mientras el recepcionista registra a una pareja que acaba de llegar, entra una llamada en inglés de un viajero que quiere dos noches el próximo fin de semana. La recepcionista virtual le informa la disponibilidad, la tarifa con desayuno y le envía el enlace de reserva por mensaje. Él reserva antes de colgar.",
+        "Diez minutos después, un huésped llama para pedir que lo despierten a las seis, y la solicitud queda registrada para el turno."
+      ]
+    },
+    {
+      "titulo": "Hospitalidad con buena voz",
+      "parrafos": [
+        "El trato de un boutique es parte de lo que vende. La recepcionista se configura con un tono cálido y elegante, con el nombre del hotel y sus detalles: la terraza, el desayuno, el barrio. Se presenta como asistente virtual del hotel y transfiere a una persona cualquier situación que requiera empatía o decisión.",
+        "Bien configurada, complementa a la recepción y hace que el hotel siempre conteste."
+      ]
+    },
+    {
+      "titulo": "Lo que gana el hotel",
+      "parrafos": [
+        "Más reservas directas tomadas por teléfono, menos comisión de agencias, solicitudes de huéspedes atendidas sin olvidos y un equipo de recepción que puede concentrarse en quien está presente. También información sobre qué preguntan los viajeros y en qué idiomas llaman.",
+        "Las llamadas se pueden revisar en resumen desde el teléfono del gerente."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Reunimos habitaciones, tarifas, políticas, servicios y el tono del hotel, en español e inglés. Configuramos el desvío de llamadas, la conexión con el motor de reservas si es posible y las reglas de transferencia a recepción. El equipo prueba llamadas reales antes de activarla."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Se cotiza aparte según volumen de llamadas e integraciones. Se combina con el asistente de WhatsApp para hoteles, incluido en los paquetes de sitio desde $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede cobrar reservas por teléfono?",
+      "respuesta": "Por seguridad, envía un enlace de pago por mensaje en lugar de tomar datos de tarjeta por voz."
+    },
+    {
+      "pregunta": "¿Qué idiomas habla?",
+      "respuesta": "Español e inglés de forma natural, y puede configurarse para otros idiomas."
+    },
+    {
+      "pregunta": "¿Funciona solo de noche?",
+      "respuesta": "Puede atender solo de noche, solo cuando recepción no contesta o todo el día, como el hotel prefiera."
+    },
+    {
+      "pregunta": "¿Puede despertar a los huéspedes?",
+      "respuesta": "Sí, puede hacer llamadas de despertador programadas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-hoteles-boutique",
+      "texto": "Página web para hoteles boutique"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-hoteles-boutique",
+      "texto": "Chatbot de WhatsApp para hoteles boutique"
+    },
+    {
+      "ruta": "/chatbot-vs-recepcionista-humana",
+      "texto": "Chatbot vs. recepcionista: qué hace mejor cada uno"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:9eaafe80fb041ae0126da3b696ad089a5a9ae2d2986f347bdd08dc64d4bc8c30",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:9eaafe80fb041ae0126da3b696ad089a5a9ae2d2986f347bdd08dc64d4bc8c30"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 606,
+    "similitud_max": 0.03,
+    "parecida_a": "/chatbot-whatsapp-para-hoteles-boutique"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:c534b5d69df74b46905d4f2df099961ed3c871cefd044a366cb070f62c3b4511",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}

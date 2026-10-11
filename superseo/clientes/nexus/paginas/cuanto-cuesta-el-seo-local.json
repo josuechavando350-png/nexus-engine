@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "id": "cuanto-cuesta-el-seo-local",
+  "cliente": "nexus",
+  "ruta": "/cuanto-cuesta-el-seo-local",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Costos y tiempos",
+  "titulo": "¿Cuánto cuesta el SEO local y qué incluye?",
+  "descripcion": "Qué es el SEO local, qué trabajo incluye, cómo se cobra y qué señales de alerta revisar antes de contratarlo. Sin promesas de primer lugar.",
+  "h1": "¿Cuánto cuesta el SEO local y qué incluye?",
+  "respuesta_rapida": [
+    "El SEO local es el trabajo para que tu negocio aparezca en Google y en el mapa cuando buscan lo que haces en tu zona.",
+    "Suele cobrarse por mes, porque es un trabajo continuo: contenido, perfil de Google, reseñas, técnica y medición.",
+    "El precio depende de la competencia, del número de páginas y de cuánto trabajo de contenido incluye.",
+    "Desconfía de quien promete primeros lugares o resultados en pocos días."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué es y qué no es",
+      "parrafos": [
+        "El SEO local busca que tu negocio aparezca cuando alguien en tu zona busca lo que vendes: dentista en una colonia, taller de frenos cerca, abogado laboral en tu ciudad. Se trabaja en dos frentes: el perfil de empresa en Google, que decide el mapa, y tu sitio web, que decide los resultados debajo del mapa.",
+        "No es un truco ni un pago único. Es un trabajo continuo, porque tus competidores también se mueven y Google cambia con el tiempo."
+      ]
+    },
+    {
+      "titulo": "Qué trabajo incluye",
+      "parrafos": [
+        "Una auditoría técnica del sitio: velocidad, errores, estructura, datos para Google. La optimización del perfil de empresa: categorías, servicios, fotos, publicaciones. Un sistema para conseguir reseñas reales y responderlas. Páginas útiles para las búsquedas que te traen clientes, escritas con información real de tu negocio. Y medición: búsquedas en las que apareces, visitas, llamadas y mensajes.",
+        "Un buen servicio te explica cada mes qué se hizo y qué pasó, con datos de Search Console y del perfil, no con capturas de pantalla de posiciones aisladas."
+      ]
+    },
+    {
+      "titulo": "Cómo se cobra",
+      "parrafos": [
+        "Lo más común es una mensualidad, porque el trabajo es constante. El precio depende de la competencia de tu giro y zona, de cuántas páginas de contenido incluye cada mes, de si incluye la gestión de reseñas y del nivel de reportes. Algunas agencias cobran además una configuración inicial.",
+        "Compara lo que incluye cada propuesta, no solo el precio: una mensualidad barata que solo manda un reporte automático no es lo mismo que un trabajo de contenido y técnica."
+      ]
+    },
+    {
+      "titulo": "Cuánto tarda",
+      "parrafos": [
+        "Los arreglos técnicos y la optimización del perfil pueden notarse en semanas. El contenido nuevo tarda más: Google necesita tiempo para rastrear, indexar y confiar en las páginas, sobre todo si el dominio es nuevo. En general, los resultados del SEO se construyen en meses, no en días.",
+        "Por eso conviene medir desde el inicio: impresiones, búsquedas y contactos, para ver la tendencia aunque las posiciones tarden."
+      ]
+    },
+    {
+      "titulo": "Señales de alerta",
+      "parrafos": [
+        "Promesas de primer lugar, garantías de resultados en días, compra de enlaces, reseñas falsas o páginas clonadas por ciudad con el mismo texto. Todo eso puede dar un salto temporal y luego una caída, o incluso una penalización que afecta a todo el sitio.",
+        "Pregunta siempre qué se va a hacer, cómo se va a medir y qué pasa con el contenido si dejas de pagar."
+      ]
+    },
+    {
+      "titulo": "Cómo lo hacemos en Nexus",
+      "parrafos": [
+        "Nexus Growth trabaja tu presencia en Google y mide qué pasa después: visitas, mensajes, llamadas, reservaciones y oportunidades reales. Para clientes con más ambición usamos SUPERSEO, nuestro sistema propio que rastrea el sitio, decide qué páginas construir y las revisa con candados de calidad: sin clones, sin cifras sin fuente y sin promesas de posición.",
+        "Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación; el trabajo continuo se cotiza según tu giro y zona."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo hacer SEO local yo mismo?",
+      "respuesta": "Una parte sí: mantener tu perfil de Google, pedir reseñas y escribir sobre tu negocio. La parte técnica y la estrategia de contenido suelen requerir ayuda."
+    },
+    {
+      "pregunta": "¿El SEO local sirve si no tengo local físico?",
+      "respuesta": "Sí, como negocio con área de servicio, aunque el mapa favorece a quien atiende en una dirección."
+    },
+    {
+      "pregunta": "¿Qué pasa si dejo de pagar?",
+      "respuesta": "Las páginas y mejoras que quedaron en tu sitio siguen siendo tuyas; lo que se detiene es el trabajo nuevo."
+    },
+    {
+      "pregunta": "¿Cómo sé si está funcionando?",
+      "respuesta": "Con Search Console y el perfil de Google: impresiones, búsquedas, clics, llamadas y mensajes mes con mes."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/que-es-el-seo-local",
+      "texto": "Qué es el SEO local y cómo funciona"
+    },
+    {
+      "ruta": "/por-que-mi-negocio-no-aparece-en-google",
+      "texto": "¿Por qué mi negocio no aparece en Google?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:93c21bef667e4c382a8f2d674afb5aad88c92a12c5a32aa6d1110a7a3eb8d319",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:93c21bef667e4c382a8f2d674afb5aad88c92a12c5a32aa6d1110a7a3eb8d319"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 659,
+    "similitud_max": 0.033,
+    "parecida_a": "/que-es-el-seo-local"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:4925b4d4b3e51a551fe73679cae9c3837f398bda8cbaf89fa18d7de95f4d3e01",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

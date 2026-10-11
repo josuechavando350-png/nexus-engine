@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "fotos-para-pagina-web-de-negocio",
+  "cliente": "nexus",
+  "ruta": "/fotos-para-pagina-web-de-negocio",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "Fotos para la página web de tu negocio",
+  "descripcion": "Qué fotos usar en la página de tu negocio, por qué las propias venden más que las de banco, cómo tomarlas con el celular y cómo optimizarlas para que carguen rápido.",
+  "h1": "Fotos para la página web de tu negocio",
+  "respuesta_rapida": [
+    "Las fotos reales de tu negocio, tu equipo y tu trabajo generan más confianza que las de banco.",
+    "Con un celular, luz natural y un poco de cuidado se pueden lograr fotos muy buenas.",
+    "Elige pocas fotos excelentes en lugar de muchas regulares.",
+    "Optimízalas antes de subirlas: una foto pesada hace lenta toda la página."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué las fotos propias venden más",
+      "parrafos": [
+        "El cliente quiere saber cómo es realmente tu negocio: quién lo va a atender, cómo es el lugar, cómo queda tu trabajo. Las fotos de banco de imágenes, con personas sonriendo que no trabajan contigo, se reconocen al instante y generan desconfianza. Una foto honesta, aunque no sea perfecta, transmite más que una perfecta y falsa.",
+        "En muchos giros, la foto del dueño o del profesional es la que más pesa en la decisión."
+      ]
+    },
+    {
+      "titulo": "Qué fotos necesitas",
+      "parrafos": [
+        "Un retrato tuyo o de tu equipo, con buena luz y en tu espacio de trabajo. La fachada y el interior, para que te reconozcan al llegar. Tus productos o trabajos terminados, que son tu mejor argumento. Y detalles que muestren tu forma de trabajar: herramientas, materiales, el proceso.",
+        "Para servicios con resultados visibles, como remodelación, belleza o diseño, el antes y después vale oro, siempre con permiso del cliente."
+      ]
+    },
+    {
+      "titulo": "Cómo tomarlas con el celular",
+      "parrafos": [
+        "Limpia la lente. Usa luz natural, de preferencia de una ventana, sin flash. Busca fondos limpios. Mantén el celular derecho y a la altura de los ojos para retratos. Toma muchas y elige pocas. Evita filtros exagerados que cambian los colores reales de tus productos.",
+        "Para la foto principal de la página, una sesión con un fotógrafo profesional puede valer la pena."
+      ]
+    },
+    {
+      "titulo": "Pocas y excelentes",
+      "parrafos": [
+        "Una página con veinte fotos regulares se ve peor que una con seis excelentes. Elige las mejores, que cuenten algo distinto cada una, y descarta las borrosas, oscuras o repetidas. Si tienes muchas, usa una galería ordenada por tipo de trabajo.",
+        "Renueva las fotos cuando cambie tu negocio: un local remodelado merece fotos nuevas."
+      ]
+    },
+    {
+      "titulo": "Optimizar para que no pese",
+      "parrafos": [
+        "Una foto tal como sale del celular puede pesar mucho más de lo que la página necesita. Antes de subirla hay que redimensionarla y comprimirla, idealmente en formatos modernos, y servir a cada pantalla el tamaño adecuado. Bien hecho, la foto se ve igual de nítida y la página carga mucho más rápido.",
+        "También conviene darles un nombre descriptivo y una descripción alternativa."
+      ]
+    },
+    {
+      "titulo": "Permisos y privacidad",
+      "parrafos": [
+        "Si aparecen clientes, pacientes o menores, necesitas su permiso, o el de sus padres, para publicarlas. En algunos giros, como salud o legal, lo mejor es difuminar rostros o evitar que se identifique a nadie. Y nunca uses fotos de otros negocios como si fueran tuyas.",
+        "En el sitio de CANO Estrategia Penal, por ejemplo, se difuminaron los rostros de las personas que aparecían en las fotos de audiencia."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Te damos una guía sencilla para tomar tus fotos, las optimizamos para que carguen rápido y las integramos en el diseño de tu página. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo usar fotos de banco?",
+      "respuesta": "Para fondos o ilustraciones generales, con licencia, sí. Para mostrar tu negocio, tu equipo o tu trabajo, mejor fotos reales."
+    },
+    {
+      "pregunta": "¿Y si mis fotos son malas?",
+      "respuesta": "Empieza con las mejores que tengas y sigue nuestra guía para mejorarlas; también se pueden retocar ligeramente."
+    },
+    {
+      "pregunta": "¿Las fotos de redes sirven para la página?",
+      "respuesta": "Algunas sí, si tienen buena calidad; las verticales a veces no encajan bien en todos los espacios."
+    },
+    {
+      "pregunta": "¿Las fotos generadas con IA sirven?",
+      "respuesta": "Para mostrar tu negocio real, no: el cliente espera ver lo que va a encontrar."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/fotos-para-perfil-de-google",
+      "texto": "Fotos para tu Perfil de Empresa en Google"
+    },
+    {
+      "ruta": "/pagina-web-rapida-en-celular",
+      "texto": "Página web rápida en celular: qué la hace lenta"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:bd7995005e4ed53b69c7fb36bb6ee936e5aefd58d2fb70aa4c531619b014348f",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:bd7995005e4ed53b69c7fb36bb6ee936e5aefd58d2fb70aa4c531619b014348f"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 607,
+    "similitud_max": 0.015,
+    "parecida_a": "/fotos-para-perfil-de-google"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:bb50684c450f836025052744d5129ab57bc03a99214042bf45b155497952493c",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

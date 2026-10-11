@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-talleres-mecanicos",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-talleres-mecanicos",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Página web para talleres mecánicos",
+  "descripcion": "Sitios para talleres mecánicos: servicios y marcas que atiendes, cotización por WhatsApp, citas de servicio, garantía y avisos de mantenimiento.",
+  "h1": "Página web para talleres mecánicos",
+  "respuesta_rapida": [
+    "Quien busca taller desconfía: transparencia en precios, garantía y diagnóstico es lo que más convence.",
+    "Lista servicios y marcas que atiendes; las búsquedas suelen ser muy específicas.",
+    "Una cita de servicio en línea y cotización por WhatsApp con fotos del problema ahorran tiempo.",
+    "Los avisos de mantenimiento traen al cliente de vuelta en el momento justo."
+  ],
+  "secciones": [
+    {
+      "titulo": "La confianza es el negocio",
+      "parrafos": [
+        "Casi todos conocen a alguien que pagó de más en un taller o que recogió su auto con el mismo problema. Por eso el cliente que busca mecánico llega a la defensiva. Lo que lo convence no es un logo bonito, sino señales de honestidad: precios orientativos, diagnóstico explicado, garantía por escrito, reseñas reales y la posibilidad de ver su auto en el proceso.",
+        "Una página que comunica eso con claridad pone a tu taller por encima del resto antes de que el cliente llegue."
+      ]
+    },
+    {
+      "titulo": "Servicios y especialidades",
+      "parrafos": [
+        "Afinación, frenos, suspensión, clutch, transmisión, sistema eléctrico, diagnóstico por computadora, aire acondicionado, hojalatería y pintura si la haces. Cada servicio con una explicación breve de cuándo se necesita y qué incluye. Si te especializas en ciertas marcas, como autos japoneses, europeos o vehículos de trabajo, una página por especialidad atrae búsquedas con muy poca competencia.",
+        "Las búsquedas reales son concretas: taller de transmisiones automáticas, cambio de clutch, servicio de frenos. Tu página debe usar esas palabras."
+      ]
+    },
+    {
+      "titulo": "Cotizar con fotos y audio",
+      "parrafos": [
+        "Muchos problemas se pueden orientar con una foto del tablero, un video del ruido o la descripción del síntoma. Un botón de WhatsApp que pida marca, modelo, año y una descripción permite dar un rango de precio o recomendar diagnóstico. Un asistente puede hacer esas preguntas a cualquier hora y dejarte la información lista.",
+        "Esa respuesta rápida es, en sí misma, una señal de seriedad."
+      ]
+    },
+    {
+      "titulo": "Citas y seguimiento del auto",
+      "parrafos": [
+        "Una cita de servicio en línea ordena la carga del taller y reduce las filas por la mañana. Durante la reparación, enviar fotos del avance y de las piezas cambiadas por WhatsApp genera una confianza enorme y reduce las discusiones al cobrar.",
+        "Al entregar, un recordatorio automático para el próximo servicio según el kilometraje o el tiempo trae al cliente de vuelta sin publicidad."
+      ]
+    },
+    {
+      "titulo": "Garantía y transparencia",
+      "parrafos": [
+        "Explicar tu garantía, qué cubre y por cuánto tiempo, y cómo manejas las refacciones, originales o equivalentes, elimina la duda más frecuente. Si das presupuesto antes de reparar y pides autorización para cualquier trabajo extra, dilo en la página.",
+        "Las formas de pago y la emisión de factura también son importantes para clientes con auto de empresa."
+      ]
+    },
+    {
+      "titulo": "Flotillas y empresas",
+      "parrafos": [
+        "Las empresas con vehículos de trabajo necesitan un taller confiable y ordenado. Una página para flotillas que explique mantenimiento programado, reportes por unidad, facturación y tiempos de atención abre contratos recurrentes que estabilizan el ingreso del taller.",
+        "Es un cliente que valora la organización tanto como el precio."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para talleres con servicios, cotización por WhatsApp, citas y recordatorios de mantenimiento. Desde $1,999 MXN; con asistente desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Debo publicar precios?",
+      "respuesta": "Precios desde de servicios comunes, como afinación o cambio de balatas, ayudan mucho. Las reparaciones mayores siempre después del diagnóstico."
+    },
+    {
+      "pregunta": "¿Cómo manejo reseñas negativas?",
+      "respuesta": "Respondiendo con calma, explicando lo ocurrido y ofreciendo una solución. Una buena respuesta convence a quien lee más que la reseña misma."
+    },
+    {
+      "pregunta": "¿Sirve para servicio a domicilio?",
+      "respuesta": "Sí. Si haces diagnósticos o reparaciones menores a domicilio, una página con zonas y forma de solicitarlo atrae muchas consultas."
+    },
+    {
+      "pregunta": "¿Cuánto tarda?",
+      "respuesta": "Entre dos y cuatro semanas desde que apruebas la dirección visual."
+    },
+    {
+      "pregunta": "¿Puedo mostrar reparaciones que he hecho?",
+      "respuesta": "Sí, con fotos del antes y después de reparaciones de hojalatería o motor, sin mostrar placas. Es una prueba de trabajo que el cliente valora mucho."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-talleres-mecanicos",
+      "texto": "Chatbot de WhatsApp para talleres mecánicos"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-talleres-mecanicos",
+      "texto": "Cómo aparecer en Google Maps: talleres mecánicos"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:2d5342d4a152ca30d7f09c6f32cc0210230061317735752a41b444690f226359",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:2d5342d4a152ca30d7f09c6f32cc0210230061317735752a41b444690f226359"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 626,
+    "similitud_max": 0.017,
+    "parecida_a": "/pagina-web-para-contadores"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:5c17ccb79d9583f2be8ac19ab04c0807dd505be2bfb23d1f2b67a0dd9453cf5c",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

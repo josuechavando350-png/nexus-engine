@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-vs-redes-sociales",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-vs-redes-sociales",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "Página web vs. redes sociales: ¿necesito las dos?",
+  "descripcion": "Para qué sirve una página web si ya tienes Facebook o Instagram, qué hace cada canal mejor y cómo usarlos juntos para conseguir más clientes.",
+  "h1": "Página web vs. redes sociales: ¿necesito las dos?",
+  "respuesta_rapida": [
+    "Las redes sirven para que te descubran y para mantener contacto; la página, para que te encuentren cuando te buscan y para convertir.",
+    "En Google aparece tu página, no tu perfil de Instagram, cuando alguien busca lo que vendes.",
+    "Tu perfil en redes no es tuyo: un cambio de reglas o una suspensión te deja sin canal.",
+    "Lo ideal es que las redes lleven a tu página, y tu página a WhatsApp."
+  ],
+  "secciones": [
+    {
+      "titulo": "Dos canales, dos trabajos",
+      "parrafos": [
+        "Las redes sociales son muy buenas para mostrar tu día a día, construir comunidad y que personas que no te conocían te descubran. Funcionan por interrupción: tu contenido aparece mientras alguien se entretiene. La página web funciona por intención: aparece cuando alguien busca activamente lo que vendes.",
+        "No compiten; hacen trabajos distintos. El error es pensar que uno sustituye al otro."
+      ]
+    },
+    {
+      "titulo": "Lo que solo hace una página",
+      "parrafos": [
+        "Cuando alguien busca en Google dentista en su colonia o cuánto cuesta un servicio, Google muestra páginas web y perfiles de empresa, rara vez perfiles de Instagram. Si no tienes página, no existes para esa persona, aunque tengas miles de seguidores.",
+        "La página también ordena la información: servicios, precios, preguntas frecuentes, ubicación. En redes, esa información se pierde entre publicaciones y obliga al cliente a preguntar por mensaje."
+      ]
+    },
+    {
+      "titulo": "Lo que no controlas en redes",
+      "parrafos": [
+        "Tu perfil en una red social no es tuyo. La plataforma decide cuántas personas ven tus publicaciones, puede cambiar sus reglas y puede suspender tu cuenta, a veces por error. Negocios enteros han perdido su canal de ventas de un día para otro.",
+        "Tu página y tu dominio sí son tuyos. Son el único lugar en internet que controlas por completo."
+      ]
+    },
+    {
+      "titulo": "Cómo usarlos juntos",
+      "parrafos": [
+        "Las redes generan interés; la página lo convierte. Un enlace en tu biografía que lleve a tu página, con tus servicios y un botón de WhatsApp, convierte seguidores en clientes. Las publicaciones pueden llevar a páginas específicas, como una promoción o un servicio.",
+        "Y tu página puede mostrar tus redes para que quien te encontró en Google vea tu día a día."
+      ]
+    },
+    {
+      "titulo": "Si solo puedes tener uno",
+      "parrafos": [
+        "Depende de tu negocio. Si tus clientes te buscan en Google, como pasa con servicios profesionales, salud, talleres o abogados, la página es indispensable. Si vendes productos muy visuales a un público que vive en redes, puedes empezar por ahí, pero con una página sencilla para no depender de una sola plataforma.",
+        "En la práctica, una página sencilla cuesta poco frente al riesgo de no tenerla."
+      ]
+    },
+    {
+      "titulo": "Lo que dicen los datos de tu negocio",
+      "parrafos": [
+        "La mejor forma de decidir cuánto invertir en cada canal es medir. Si tu página tiene botones de WhatsApp medidos y en tus redes usas enlaces que también se miden, en pocas semanas sabrás de dónde llegan tus clientes de verdad. Muchas veces la sorpresa es que la mayoría de los clientes que pagan llegan por Google, aunque las redes generen más interacción.",
+        "Con esos datos, decides dónde poner tu tiempo y tu dinero."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Diseñamos páginas que conectan con tus redes y con WhatsApp, medidas para saber de dónde llegan tus clientes. Los paquetes van de $1,999 a $44,800 MXN, y el dominio queda a tu nombre."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Facebook cuenta como página web?",
+      "respuesta": "No. Es un perfil dentro de una plataforma ajena; no aparece igual en Google y no controlas sus reglas."
+    },
+    {
+      "pregunta": "¿Necesito publicar en la página tanto como en redes?",
+      "respuesta": "No. La página se actualiza cuando cambian tus servicios o precios; las redes, con más frecuencia."
+    },
+    {
+      "pregunta": "¿Qué pongo en el enlace de mi biografía?",
+      "respuesta": "Tu página o una página específica con tus servicios y un botón de WhatsApp."
+    },
+    {
+      "pregunta": "¿Las redes ayudan al SEO?",
+      "respuesta": "De forma indirecta: generan visitas y menciones, pero el posicionamiento en Google depende sobre todo de tu sitio y tu perfil de empresa."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-pagina-web-en-mexico",
+      "texto": "¿Cuánto cuesta una página web en México?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:a02a909d1fdaa7bc23c5c17fce3792a5430532735e26088eebf07028609dcc8a",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:a02a909d1fdaa7bc23c5c17fce3792a5430532735e26088eebf07028609dcc8a"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 638,
+    "similitud_max": 0.007,
+    "parecida_a": "/que-incluye-una-cotizacion-de-pagina-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:d2a5ca99731881e5dc3ff33b9aff9c4b01714e3c1c15da3ebd4410ca4882ee2d",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

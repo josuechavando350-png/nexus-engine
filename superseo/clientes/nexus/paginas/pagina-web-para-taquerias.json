@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-taquerias",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-taquerias",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comida",
+  "titulo": "Página web para taquerías",
+  "descripcion": "Sitios para taquerías: menú con precios a la vista, horario nocturno correcto, pedidos por WhatsApp, órdenes para eventos y ubicación fácil de encontrar.",
+  "h1": "Página web para taquerías",
+  "respuesta_rapida": [
+    "La taquería se elige por antojo y por cercanía: menú, precios, horario y mapa deben verse sin buscar.",
+    "El horario nocturno es clave: si cierras tarde, dilo bien claro y mantenlo igual en Google.",
+    "Los pedidos por WhatsApp sin comisiones de plataformas son ideales para tus clientes de siempre.",
+    "Las órdenes para fiestas y oficinas son una línea de venta que merece su propia página."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué una taquería necesita página",
+      "parrafos": [
+        "Mucha gente piensa que una taquería vive solo de la calle y de la recomendación, y durante años fue así. Hoy, cuando alguien sale tarde del trabajo o del cine y busca tacos cerca de mí, Google decide qué lugares le muestra. Los que tienen horario confiable, fotos del trompo, menú con precios y reseñas aparecen primero; los que no, ni existen para ese cliente.",
+        "La página no reemplaza la fama del barrio, la amplifica. Le da a Google la información que necesita para recomendarte y le da al cliente nuevo la confianza de que vale la pena desviarse un par de cuadras para probar tus tacos."
+      ]
+    },
+    {
+      "titulo": "Menú con precios, sin rodeos",
+      "parrafos": [
+        "Pastor, suadero, tripa, campechanos, gringas, volcanes, costras, quesadillas, bebidas. El menú de una taquería es corto y conocido, pero el cliente quiere ver precios antes de ir, sobre todo si va en grupo. Publicarlos en texto, legibles en el celular, evita sorpresas y se ve honesto.",
+        "Si tienes especialidad, como tacos de canasta, de guisado, de barbacoa los fines de semana o salsas de la casa, esa es tu historia y merece una foto grande y un par de líneas que la cuenten."
+      ]
+    },
+    {
+      "titulo": "Horario: el dato que más importa",
+      "parrafos": [
+        "Una de las quejas más frecuentes en reseñas es llegar y encontrar cerrado. Si el horario cambia en fin de semana, en días festivos o en temporada, la página y el perfil de Google tienen que decir exactamente lo mismo. Ese detalle, que parece menor, influye en cómo te muestra Google y en la confianza del cliente.",
+        "Para taquerías nocturnas, decir hasta qué hora sirves y si hay servicio para llevar a esa hora es la mejor publicidad que puedes tener."
+      ]
+    },
+    {
+      "titulo": "Pedidos directos",
+      "parrafos": [
+        "Las plataformas de reparto traen clientes nuevos, pero cobran una comisión alta en cada pedido. Para quienes ya te conocen, un botón de pedir por WhatsApp con el menú a la vista es más barato para ti y más rápido para ellos. Un asistente puede tomar el pedido, confirmar la dirección y avisar el tiempo estimado.",
+        "Si no haces reparto propio, el pedido para recoger listo a una hora concreta también ahorra filas y gusta mucho."
+      ]
+    },
+    {
+      "titulo": "Taquizas y órdenes grandes",
+      "parrafos": [
+        "Cumpleaños, comidas de oficina, posadas, partidos. Las taquizas son ventas grandes que se planean con días de anticipación, y quien las busca compara opciones en Google. Una página dedicada con paquetes por número de personas, guisados disponibles, lo que incluye el servicio y la forma de apartar convierte esas búsquedas en pedidos.",
+        "Es una de las páginas que más dinero puede generar en el sitio de una taquería y casi nadie la tiene bien hecha."
+      ]
+    },
+    {
+      "titulo": "Fotos que dan hambre",
+      "parrafos": [
+        "El taco se vende por los ojos: el trompo, la plancha, las salsas, el taquero en acción. Fotos reales, tomadas con buena luz, valen más que cualquier imagen de banco. Un video corto del trompo girando en la portada puede ser tu mejor carta de presentación, siempre que esté optimizado para que el sitio cargue rápido.",
+        "Esas mismas fotos deben estar en tu perfil de Google, que es donde la mayoría te va a ver primero."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Hacemos sitios para taquerías rápidos, con menú fácil de actualizar, pedidos por WhatsApp medidos y página de taquizas. Desde $1,999 MXN; con asistente que toma pedidos desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Necesito tienda en línea con pago?",
+      "respuesta": "Para la mayoría de las taquerías no. Pedido por WhatsApp y pago al entregar o por transferencia funciona bien. El pago en línea conviene para taquizas con anticipo."
+    },
+    {
+      "pregunta": "¿Puedo cambiar los precios yo mismo?",
+      "respuesta": "Sí. Dejamos el menú en un formato que puedes actualizar sin pedirnos cada cambio."
+    },
+    {
+      "pregunta": "¿Sirve si tengo un puesto sin local fijo?",
+      "respuesta": "Sí. La página puede mostrar dónde te pones cada día y en qué horario, y avisar cambios por WhatsApp a tus clientes frecuentes."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/reservas-en-linea-para-restaurantes",
+      "texto": "Reservas en línea para restaurantes"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:26db2b838f4cb046a6b689211cb8c54da98d1405ca08804e7106b741d1cd116c",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:26db2b838f4cb046a6b689211cb8c54da98d1405ca08804e7106b741d1cd116c"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 713,
+    "similitud_max": 0.01,
+    "parecida_a": "/pagina-web-para-restaurantes"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:1c5c9728cd943782f2f9ae043e21a00c5b46ecaf59856e2d952ab4c2e209667a",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

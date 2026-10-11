@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "id": "cuanto-cuesta-una-pagina-web-en-mexico",
+  "cliente": "nexus",
+  "ruta": "/cuanto-cuesta-una-pagina-web-en-mexico",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Costos y tiempos",
+  "titulo": "¿Cuánto cuesta una página web en México?",
+  "descripcion": "Qué determina el precio de una página web en México, qué incluye cada nivel y cuáles son los precios de los paquetes de Nexus, de $1,999 a $44,800 MXN.",
+  "h1": "¿Cuánto cuesta una página web en México?",
+  "respuesta_rapida": [
+    "El precio depende de cuántas secciones necesitas, si vendes en línea, si quieres agenda o un asistente de IA y quién escribe los textos.",
+    "En Nexus hay cinco paquetes: $1,999, $3,499, $9,999, $19,999 y $44,800 MXN.",
+    "Desde $9,999 incluyen chatbot con IA; los de $19,999 y $44,800 suman tecnología para Google Ads y captación.",
+    "Pregunta siempre qué incluye, quién es dueño del dominio y cuánto cuesta mantenerla después."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué los precios varían tanto",
+      "parrafos": [
+        "Si preguntas en tres lugares cuánto cuesta una página web, probablemente recibas tres respuestas muy distintas. No siempre es abuso: detrás de la palabra página web hay productos muy diferentes. Una tarjeta de presentación digital de una sola sección no se parece a un sitio con veinte páginas, agenda en línea, tienda y un asistente que contesta WhatsApp.",
+        "Lo útil no es buscar el precio más bajo, sino entender qué estás comparando. Dos cotizaciones solo se pueden comparar si incluyen lo mismo."
+      ]
+    },
+    {
+      "titulo": "Lo que mueve el precio",
+      "parrafos": [
+        "El número de secciones y páginas: una página de inicio con contacto es más sencilla que un sitio con una página por servicio. El diseño: una plantilla adaptada cuesta menos que un diseño propio pensado para tu negocio. Los textos: si tú los entregas o si alguien los escribe a partir de una conversación contigo.",
+        "Las funciones: agenda de citas, catálogo, tienda con pagos, área privada, varios idiomas. Las integraciones: WhatsApp, Google, sistemas de facturación, CRM. Y la tecnología de captación: asistente de IA, medición de conversiones y preparación para anuncios.",
+        "También influye la velocidad de entrega y el acompañamiento después de publicar."
+      ]
+    },
+    {
+      "titulo": "Los paquetes de Nexus",
+      "parrafos": [
+        "En Nexus trabajamos con cinco paquetes de precio fijo: $1,999, $3,499, $9,999, $19,999 y $44,800 MXN. Desde el paquete de $9,999 se incluye un chatbot con inteligencia artificial que atiende a tus clientes. Los paquetes de $19,999 y $44,800 además incluyen tecnología para Google Ads y para mejorar la captación de clientes.",
+        "El paquete exacto se confirma por WhatsApp según lo que tu negocio necesita: cuántas secciones, si vendes en línea, si necesitas agenda, catálogo o agente de IA. El primer diagnóstico es gratuito."
+      ]
+    },
+    {
+      "titulo": "Lo que siempre debería incluir",
+      "parrafos": [
+        "Sin importar el precio, una página profesional debería verse bien y cargar rápido en el celular, tener botones directos a WhatsApp y teléfono, estar preparada para que Google entienda qué haces y dónde, usar HTTPS y tener lo básico de seguridad.",
+        "Y algo que muchos olvidan preguntar: el dominio y los accesos deben quedar a tu nombre. En Nexus siempre es así; si algún día dejas de trabajar con nosotros, conservas tus activos."
+      ]
+    },
+    {
+      "titulo": "Costos que vienen después",
+      "parrafos": [
+        "Además del desarrollo, una página tiene costos recurrentes: la renovación del dominio, el hospedaje, el mantenimiento y los cambios que quieras hacer con el tiempo. Pregunta desde el principio cuáles están incluidos y cuáles no, para evitar sorpresas al año siguiente.",
+        "Si la página incluye un asistente de IA o servicios conectados, también pregunta cómo se cobra su operación mensual."
+      ]
+    },
+    {
+      "titulo": "Señales de alerta",
+      "parrafos": [
+        "Desconfía de quien promete dejarte hasta arriba de los resultados en poco tiempo, de quien no te deja el dominio a tu nombre, de quien no puede mostrarte trabajos reales y de quien no explica qué incluye su precio. Una buena cotización es clara, por escrito y sin letra chica.",
+        "También vale la pena revisar la velocidad de los sitios que esa agencia ya hizo: es la mejor prueba de cómo trabaja."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Una página de $1,999 sirve para algo?",
+      "respuesta": "Sí, para negocios que necesitan una presencia clara con contacto directo. Para vender en línea o automatizar atención se necesita un paquete más completo."
+    },
+    {
+      "pregunta": "¿El precio incluye el dominio?",
+      "respuesta": "Depende del paquete; se aclara en la cotización. En todos los casos, el dominio queda a tu nombre."
+    },
+    {
+      "pregunta": "¿Se puede pagar en partes?",
+      "respuesta": "Es común trabajar con un anticipo para empezar y el resto contra entrega; se acuerda en la cotización."
+    },
+    {
+      "pregunta": "¿Puedo empezar con un paquete y crecer después?",
+      "respuesta": "Sí. Un sitio bien construido puede crecer con más secciones, tienda o asistente sin rehacerse."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/que-incluye-una-cotizacion-de-pagina-web",
+      "texto": "Qué debe incluir una cotización de página web"
+    },
+    {
+      "ruta": "/pagina-web-barata-vs-profesional",
+      "texto": "Página web barata vs. profesional: qué cambia"
+    },
+    {
+      "ruta": "/cuanto-cuesta-mantener-una-pagina-web",
+      "texto": "¿Cuánto cuesta mantener una página web al año?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:99f48e8f83bcd4606a9f7d3faa980698366d32577e4b0a9b67d67b94a48d1f47",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:99f48e8f83bcd4606a9f7d3faa980698366d32577e4b0a9b67d67b94a48d1f47"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 676,
+    "similitud_max": 0.018,
+    "parecida_a": "/diseno-de-paginas-web-en-colima"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:7c1028b2530dff7883a2a7c8cc49ffb066c21b938cecd2a9e20f98d1dcd04685",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

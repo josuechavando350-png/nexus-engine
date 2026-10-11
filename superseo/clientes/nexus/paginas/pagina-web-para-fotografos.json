@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-fotografos",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-fotografos",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Página web para fotógrafos",
+  "descripcion": "Sitios para fotógrafos: portafolio por especialidad, paquetes con precio desde, disponibilidad de fechas, galerías privadas para clientes y contacto rápido.",
+  "h1": "Página web para fotógrafos",
+  "respuesta_rapida": [
+    "Tu portafolio es tu vendedor: elige tus mejores trabajos y organízalos por especialidad.",
+    "Bodas, producto, retrato, eventos, inmobiliaria: cada especialidad atrae un cliente distinto.",
+    "Paquetes con precio desde y disponibilidad de fechas filtran y aceleran la venta.",
+    "Galerías privadas para entregar las fotos dan una experiencia profesional."
+  ],
+  "secciones": [
+    {
+      "titulo": "Menos fotos, mejor elegidas",
+      "parrafos": [
+        "El error más común en el sitio de un fotógrafo es mostrar todo. Un cliente que ve cien fotos de calidad desigual se queda con la impresión de las peores. Una selección cuidada, organizada por especialidad, comunica tu nivel y tu estilo. Es mejor tener veinte imágenes excelentes de bodas que doscientas regulares.",
+        "El estilo también se elige: luz natural, documental, editorial, clásico. Que el portafolio sea coherente ayuda a atraer al cliente que busca justo eso.",
+        "Una buena práctica es revisar el portafolio cada cierto tiempo y sustituir trabajos antiguos por los mejores recientes. El sitio debe mostrar al fotógrafo que eres hoy, no al que eras cuando empezaste, porque eso es lo que el cliente va a recibir."
+      ]
+    },
+    {
+      "titulo": "Una página por especialidad",
+      "parrafos": [
+        "Bodas, XV años, sesiones familiares, retrato profesional, fotografía de producto, gastronomía, inmobiliaria, eventos corporativos. Cada especialidad tiene su propio cliente y su propia búsqueda, así que merece su página con galería, forma de trabajo y paquetes.",
+        "Para clientes de empresa, como marcas o restaurantes, una página con casos de uso comercial y tiempos de entrega les habla en su idioma."
+      ]
+    },
+    {
+      "titulo": "Paquetes y fechas",
+      "parrafos": [
+        "Paquetes con lo que incluyen, como horas de cobertura, número de fotos editadas, segundo fotógrafo, álbum o video, y un precio desde. Esa claridad filtra y evita la conversación de cuánto cobras que muchas veces termina en nada. Para bodas, mostrar disponibilidad por fecha motiva a apartar.",
+        "Un anticipo en línea para apartar la fecha formaliza el compromiso.",
+        "Para sesiones de producto o retrato corporativo, un formulario que pregunte cuántos productos o personas, uso de las imágenes y fecha deseada permite cotizar rápido y con precisión, sin una larga conversación previa."
+      ]
+    },
+    {
+      "titulo": "Entrega profesional",
+      "parrafos": [
+        "Una galería privada en tu propio sitio, con contraseña, donde el cliente vea, descargue y comparta sus fotos, da una experiencia muy superior a un enlace de descarga cualquiera. También puede permitir pedidos de impresiones o álbumes.",
+        "Ese momento de entrega es ideal para pedir una reseña y permiso para usar algunas fotos en tu portafolio."
+      ]
+    },
+    {
+      "titulo": "Rendimiento con imágenes pesadas",
+      "parrafos": [
+        "Un portafolio fotográfico es pesado por naturaleza. Si no se optimiza, el sitio tarda en cargar justo en el celular de quien está decidiendo. Servir las imágenes en formatos modernos y en el tamaño que cada pantalla necesita mantiene la calidad visual y la velocidad.",
+        "También conviene proteger tus imágenes con resolución adecuada para web y marca discreta si lo prefieres."
+      ]
+    },
+    {
+      "titulo": "Contenido que atrae clientes",
+      "parrafos": [
+        "Historias de bodas con fotos y lugar, guías como qué ponerse para una sesión familiar o cómo preparar productos para una sesión, y recomendaciones de lugares para fotos en tu ciudad atraen búsquedas y muestran tu experiencia.",
+        "Las historias de boda también son muy compartidas por las parejas y sus familias, lo que trae nuevos clientes."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para fotógrafos con portafolio optimizado, paquetes, apartado de fechas y galerías privadas. Desde $1,999 MXN, según cuántas especialidades y galerías necesites."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo entregar fotos desde mi propio sitio?",
+      "respuesta": "Sí, con galerías privadas protegidas con contraseña y descarga para el cliente."
+    },
+    {
+      "pregunta": "¿Conviene publicar precios?",
+      "respuesta": "Precios desde por paquete ayudan a filtrar. Muchos fotógrafos dan el precio final según fecha y lugar."
+    },
+    {
+      "pregunta": "¿Cómo muestro video si también lo hago?",
+      "respuesta": "Con una sección propia y videos optimizados para no hacer lento el sitio."
+    },
+    {
+      "pregunta": "¿Sirve si trabajo solo bajo recomendación?",
+      "respuesta": "Sí: quien te recomienda manda a la gente a buscarte; el sitio confirma que eres la opción correcta."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:e294348a6c12e76a68bca0ccec2cfd225903dbed529b41681a2271360281976a",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:e294348a6c12e76a68bca0ccec2cfd225903dbed529b41681a2271360281976a"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 624,
+    "similitud_max": 0.007,
+    "parecida_a": "/pagina-web-para-banquetes-y-catering"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:1b2ecd3f887c533062f285318365f729ea5bdadf1df494566ebe8bf9b3a2d01f",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

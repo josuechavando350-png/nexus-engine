@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "id": "cuanto-cuesta-una-tienda-en-linea",
+  "cliente": "nexus",
+  "ruta": "/cuanto-cuesta-una-tienda-en-linea",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Costos y tiempos",
+  "titulo": "¿Cuánto cuesta una tienda en línea?",
+  "descripcion": "Qué determina el costo de una tienda en línea en México: plataforma, catálogo, pagos, envíos, comisiones y mantenimiento. Lo que conviene saber antes de cotizar.",
+  "h1": "¿Cuánto cuesta una tienda en línea?",
+  "respuesta_rapida": [
+    "El costo depende del número de productos, las formas de pago, los envíos, el diseño y si usas una plataforma o una tienda propia.",
+    "Además del desarrollo hay costos recurrentes: mensualidad de plataforma, comisiones por venta y procesador de pagos.",
+    "Una tienda sin fotos buenas, envío claro y pago fácil no vende, sin importar cuánto costó.",
+    "En Nexus los paquetes van de $1,999 a $44,800 MXN; el adecuado para tu tienda se confirma según tu catálogo."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo que hay detrás de una tienda",
+      "parrafos": [
+        "Una tienda en línea es más que una página bonita con productos. Necesita un catálogo ordenado, fichas con fotos y descripciones, un carrito, un proceso de pago seguro, cálculo de envío, notificaciones de pedido, control de inventario y políticas claras de cambios y devoluciones. Cada pieza tiene un costo de construcción y, en muchos casos, un costo mensual.",
+        "Por eso dos tiendas pueden tener precios muy distintos aunque a simple vista se parezcan."
+      ]
+    },
+    {
+      "titulo": "Lo que mueve el precio",
+      "parrafos": [
+        "El tamaño del catálogo: no es lo mismo cargar veinte productos que quinientos con variantes de talla y color. El diseño: una plantilla de plataforma frente a un diseño propio. Las formas de pago: tarjeta, transferencia, pago en tiendas de conveniencia, meses sin intereses. Los envíos: tarifa fija, cálculo por zona, varias paqueterías, entrega local.",
+        "Las integraciones: facturación, inventario compartido con una tienda física, marketplaces, asistente de WhatsApp. Y quién hace el trabajo de catálogo: fotos, descripciones y carga de productos, que muchas veces es lo que más tiempo toma."
+      ]
+    },
+    {
+      "titulo": "Costos recurrentes que no se ven en la cotización",
+      "parrafos": [
+        "Las plataformas de comercio electrónico cobran una mensualidad y, en algunos casos, una comisión por venta. Los procesadores de pago cobran una comisión por transacción. A eso se suman el dominio, las aplicaciones o extensiones de pago y el mantenimiento.",
+        "Una tienda propia evita las mensualidades de plataforma, pero requiere hospedaje y mantenimiento técnico. Antes de decidir, conviene calcular cuánto pagarías al año con tu volumen de ventas esperado en cada opción."
+      ]
+    },
+    {
+      "titulo": "Empezar sencillo",
+      "parrafos": [
+        "Si estás empezando, no siempre necesitas una tienda completa desde el primer día. Un catálogo con buenas fotos y un botón para pedir por WhatsApp puede validar qué productos se venden, con una inversión menor. Cuando el volumen de pedidos crece, se pasa a una tienda con carrito y pagos.",
+        "Lo importante es que el catálogo se construya de forma que pueda crecer sin rehacerse."
+      ]
+    },
+    {
+      "titulo": "Lo que hace que una tienda venda",
+      "parrafos": [
+        "Ninguna tienda vende solo por existir. Lo que convierte visitas en compras es la velocidad en celular, fotos de calidad, información de tallas y medidas, costo de envío visible antes del último paso, formas de pago conocidas y una política de devoluciones clara. Después vienen las visitas: contenido, anuncios bien medidos y redes que lleven tráfico.",
+        "Invertir en anuncios antes de resolver estos puntos suele ser tirar dinero."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Los paquetes de Nexus van de $1,999 a $44,800 MXN. Cuál corresponde a tu tienda se confirma por WhatsApp según tu catálogo, pagos y envíos. Desde $9,999 se incluye un asistente de IA que responde dudas de producto, y los de $19,999 y $44,800 suman tecnología para Google Ads y captación.",
+        "La tienda, el dominio y tu base de clientes quedan a tu nombre."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Conviene más una plataforma o una tienda propia?",
+      "respuesta": "Depende de tu volumen, tu catálogo y cuánto quieras personalizar. Con pocas ventas, una plataforma puede ser práctica; con volumen, una tienda propia suele salir mejor a largo plazo."
+    },
+    {
+      "pregunta": "¿Puedo vender sin pagar comisiones?",
+      "respuesta": "Las comisiones del procesador de pagos casi siempre existen; las de la plataforma se pueden evitar con una tienda propia."
+    },
+    {
+      "pregunta": "¿Cuánto tarda en estar lista?",
+      "respuesta": "Depende del catálogo; la carga de productos y fotos suele ser lo que más tiempo toma."
+    },
+    {
+      "pregunta": "¿Quién carga los productos?",
+      "respuesta": "Se puede acordar que los cargues tú o que se incluya en el proyecto; conviene definirlo en la cotización."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/pagina-web-para-tiendas-en-linea",
+      "texto": "Página web para tiendas en línea"
+    },
+    {
+      "ruta": "/shopify-vs-tienda-propia",
+      "texto": "Shopify vs. tienda en línea propia"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-pagina-web-en-mexico",
+      "texto": "¿Cuánto cuesta una página web en México?"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:f6bcf25fb1ccd53ab5109b8e85fccdc8f6a3bf4d6b931eef4f984887243952ef",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:f6bcf25fb1ccd53ab5109b8e85fccdc8f6a3bf4d6b931eef4f984887243952ef"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 652,
+    "similitud_max": 0.022,
+    "parecida_a": "/pagina-web-para-tiendas-en-linea"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:6b88c3621a219084007d2f2151513f66dbff82d9cf8bf3f284f54b597e09a5da",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-escuelas-particulares",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-escuelas-particulares",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Google Ads para escuelas particulares",
+  "descripcion": "Google Ads para escuelas: campañas por nivel en temporada de admisiones, zona cercana, visitas guiadas agendadas como conversión y anuncios para familias.",
+  "h1": "Google Ads para escuelas particulares",
+  "respuesta_rapida": [
+    "La inversión se concentra en la temporada de admisiones, cuando las familias comparan escuelas.",
+    "Campañas por nivel educativo, porque cada nivel tiene su propia búsqueda.",
+    "La zona es clave: las familias buscan escuelas cerca de casa o del trabajo.",
+    "La conversión que importa es la visita guiada agendada."
+  ],
+  "secciones": [
+    {
+      "titulo": "El calendario manda",
+      "parrafos": [
+        "Las familias eligen escuela en una ventana de tiempo concreta, varios meses antes del inicio del ciclo. Fuera de esa ventana, las búsquedas bajan mucho. Una escuela que invierte parejo todo el año desperdicia presupuesto en meses sin demanda y se queda corta justo cuando las familias deciden.",
+        "La estrategia correcta concentra la inversión en la temporada de admisiones y mantiene una presencia mínima el resto del año para quien se muda o cambia de escuela a mitad de ciclo."
+      ]
+    },
+    {
+      "titulo": "Campañas por nivel",
+      "parrafos": [
+        "Maternal, preescolar, primaria, secundaria y preparatoria se buscan de forma distinta y por familias distintas. Cada nivel merece su grupo de anuncios con mensajes propios, como el enfoque en juego y adaptación para preescolar o la preparación universitaria para bachillerato, y su página de destino.",
+        "Si la escuela es bilingüe, tiene un modelo educativo particular o deportes destacados, esas características son las palabras que buscan las familias interesadas."
+      ]
+    },
+    {
+      "titulo": "Zona y horarios",
+      "parrafos": [
+        "La mayoría de las familias busca escuelas dentro de un radio razonable de su casa. Configurar la zona de los anuncios según de dónde vienen realmente los alumnos evita pagar por clics de familias que nunca harían ese trayecto.",
+        "Los anuncios pueden correr también por la noche y fines de semana, que es cuando muchos padres investigan con calma."
+      ]
+    },
+    {
+      "titulo": "La visita como conversión",
+      "parrafos": [
+        "El objetivo de los anuncios no es la inscripción inmediata, sino la visita guiada, que es donde la familia decide. Por eso la conversión principal es la visita agendada en línea, seguida de llamadas y mensajes al área de admisiones. Con esa medición se sabe cuánto cuesta cada visita y cuántas visitas terminan en inscripción.",
+        "La página de destino debe permitir agendar la visita en un minuto."
+      ]
+    },
+    {
+      "titulo": "Mensajes que generan confianza",
+      "parrafos": [
+        "Los anuncios de una escuela deben ser serenos y concretos: niveles, enfoque, ubicación y la invitación a conocer la escuela. Evitar superlativos como la mejor escuela de la ciudad y cifras sin sustento protege la credibilidad ante padres que comparan con detalle.",
+        "Las reseñas reales de padres en Google refuerzan lo que dicen los anuncios."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Invertir lo mismo todo el año sin importar la temporada. Anunciar todos los niveles con el mismo mensaje. Mostrar anuncios en toda la ciudad cuando las familias vienen de unas cuantas colonias. Llevar a una portada sin forma de agendar visita. Y medir clics en lugar de visitas agendadas, lo que impide saber cuánto cuesta realmente cada familia nueva y cuál nivel conviene impulsar con más presupuesto."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Planeamos la temporada de admisiones, armamos campañas por nivel con páginas de destino y agenda de visitas, y reportamos el costo por visita. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuándo debo empezar la campaña de admisiones?",
+      "respuesta": "Unas semanas antes de que abra el proceso, para captar a las familias que empiezan a investigar."
+    },
+    {
+      "pregunta": "¿Puedo anunciar becas?",
+      "respuesta": "Sí, con condiciones claras en la página de destino para no generar expectativas falsas."
+    },
+    {
+      "pregunta": "¿Sirven los anuncios para cursos de verano?",
+      "respuesta": "Sí, con una campaña aparte en las semanas previas."
+    },
+    {
+      "pregunta": "¿Cómo mido inscripciones y no solo visitas?",
+      "respuesta": "Registrando qué visitas terminan en inscripción, lo que permite calcular el costo por alumno nuevo."
+    },
+    {
+      "pregunta": "¿Conviene anunciarse en redes además de Google?",
+      "respuesta": "Sí, como complemento. Google capta a quien ya busca escuela; las redes ayudan a que te conozcan familias de la zona antes de buscar."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-escuelas-particulares",
+      "texto": "Página web para escuelas particulares"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:d50f3e704c1e601f93e2d87a737dc6a1604f91db0d91474d9b68d3efbacd2a85",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:d50f3e704c1e601f93e2d87a737dc6a1604f91db0d91474d9b68d3efbacd2a85"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 625,
+    "similitud_max": 0.023,
+    "parecida_a": "/google-ads-para-psicologos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:74d193beddbe49531553f950e1666dcb277d3dcaf72a26f0cc4514aec6f30b00",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

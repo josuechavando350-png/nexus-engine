@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "recordatorios-automaticos-de-citas",
+  "cliente": "nexus",
+  "ruta": "/recordatorios-automaticos-de-citas",
+  "tipo": "GUIA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "IA y automatización",
+  "titulo": "Recordatorios automáticos de citas por WhatsApp",
+  "descripcion": "Cómo funcionan los recordatorios automáticos de citas por WhatsApp, cuándo enviarlos, qué deben decir y cómo permitir confirmar o reagendar sin llamar.",
+  "h1": "Recordatorios automáticos de citas por WhatsApp",
+  "respuesta_rapida": [
+    "Un recordatorio automático avisa de la cita sin que nadie de tu equipo tenga que escribir.",
+    "Lo más común es enviar uno el día anterior y otro unas horas antes.",
+    "Debe incluir fecha, hora, lugar y una forma sencilla de confirmar o cambiar.",
+    "Para usarlos a escala necesitas plantillas aprobadas y el permiso del cliente."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué funcionan",
+      "parrafos": [
+        "Mucha gente que falta a una cita no lo hace por desinterés, sino porque la olvidó o porque le surgió algo y no avisó. Un recordatorio a tiempo resuelve lo primero y facilita lo segundo: si la persona no puede llegar, lo dice y tú puedes ofrecer ese espacio a alguien más.",
+        "WhatsApp funciona bien para esto porque es donde la gente ya revisa sus mensajes. Un recordatorio ahí se lee mucho más que un correo, y responder toma segundos."
+      ]
+    },
+    {
+      "titulo": "Cuándo enviarlos",
+      "parrafos": [
+        "Una combinación común es un recordatorio el día anterior, que da tiempo de reorganizarse, y otro unas horas antes, que funciona como último aviso. Para citas agendadas con muchas semanas de anticipación, conviene agregar uno al momento de agendar y otro algunos días antes.",
+        "Evita enviar recordatorios a horas incómodas, como muy temprano o muy de noche. Programa los envíos dentro de un horario razonable para tus clientes."
+      ]
+    },
+    {
+      "titulo": "Qué debe decir",
+      "parrafos": [
+        "Un buen recordatorio es corto y completo: nombre del negocio, nombre de la persona, servicio, fecha, hora y dirección o enlace de ubicación. Si la cita requiere alguna preparación, como llegar en ayunas o llevar documentos, inclúyelo en una línea.",
+        "Cierra con la acción esperada: responde sí para confirmar o escribe cambiar si necesitas otro horario. Mientras más fácil sea responder, más personas lo hacen."
+      ]
+    },
+    {
+      "titulo": "Confirmar, cancelar o reagendar",
+      "parrafos": [
+        "El valor real está en lo que pasa después del recordatorio. Si la persona confirma, la cita queda marcada. Si cancela, el espacio se libera en tu agenda y se puede ofrecer a alguien en lista de espera. Si quiere cambiar, un asistente puede mostrarle horarios disponibles y moverla sin intervención de tu equipo.",
+        "Cuando alguien no responde, tu equipo puede decidir si llamar o simplemente esperar. Lo importante es que la agenda refleje la realidad y no sorpresas a última hora."
+      ]
+    },
+    {
+      "titulo": "Conectar con tu agenda",
+      "parrafos": [
+        "Para que los recordatorios salgan solos, el sistema debe leer tu agenda: un calendario compartido, un software de citas o el sistema que ya uses en tu clínica o negocio. Cada cita nueva programa sus recordatorios y cada cambio los actualiza.",
+        "Si hoy tu agenda vive en una libreta, el primer paso es pasarla a una herramienta digital. Sin esa base, cualquier automatización termina dependiendo de que alguien copie datos a mano."
+      ]
+    },
+    {
+      "titulo": "Reglas de WhatsApp y permisos",
+      "parrafos": [
+        "Para enviar recordatorios automáticos a escala se usa la API de WhatsApp Business, que exige plantillas de mensaje aprobadas y que la persona haya aceptado recibir mensajes de tu negocio. Pide ese permiso al agendar y explícalo en tu aviso de privacidad.",
+        "Respeta también a quien pide no recibir más mensajes. Además de ser lo correcto, los reportes de usuarios afectan la calidad de tu número y pueden limitar tus envíos."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nexus Automation configura recordatorios por WhatsApp o por voz conectados a la agenda que ya usas, con confirmación, cancelación y cambio de horario. En clínicas, el asistente también responde dudas de ubicación, horarios y preparación a cualquier hora y deriva lo clínico al personal adecuado."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo enviar recordatorios desde WhatsApp Business normal?",
+      "respuesta": "Puedes enviarlos a mano o con mensajes programados limitados. Para automatizarlos a escala se usa la API de WhatsApp Business."
+    },
+    {
+      "pregunta": "¿Los recordatorios molestan a los clientes?",
+      "respuesta": "No, si son pocos, oportunos y útiles. Molestan cuando son demasiados o llegan a horas incómodas."
+    },
+    {
+      "pregunta": "¿Funcionan también por llamada?",
+      "respuesta": "Sí. Un agente de voz puede llamar para recordar la cita, útil para personas que no usan mucho WhatsApp."
+    },
+    {
+      "pregunta": "¿Qué pasa si alguien responde con una pregunta?",
+      "respuesta": "Un asistente puede contestar las dudas frecuentes y pasar a una persona lo que no sepa resolver."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/soluciones/clinicas",
+      "texto": "Agentes de IA para clínicas y consultorios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:0cc7e60f116db0069aedbab603abfd7ccd7f84c88b892a3a89077efb37038ad2",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:08Z",
+    "contenido_digest": "sha256:0cc7e60f116db0069aedbab603abfd7ccd7f84c88b892a3a89077efb37038ad2"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 664,
+    "similitud_max": 0.006,
+    "parecida_a": "/como-reducir-inasistencias-a-citas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:bc4731ad16270725a06e091d2d3df651dc8bd16fbd7d29edea1b162860728523",
+    "generado_en": "2026-10-11T02:04:08Z"
+  }
+}

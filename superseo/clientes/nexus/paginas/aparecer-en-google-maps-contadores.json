@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-contadores",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-contadores",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Cómo aparecer en Google Maps: contadores",
+  "descripcion": "Guía para que tu despacho contable aparezca en Google Maps: categoría, servicios por tipo de contribuyente, dirección real o área de servicio y reseñas de clientes.",
+  "h1": "Cómo hacer que tu despacho contable aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal: contador o servicio de contabilidad, según tu práctica.",
+    "Servicios por tipo de contribuyente: personas físicas, empresas, nómina, declaraciones.",
+    "Dirección real si atiendes en oficina; área de servicio si atiendes a distancia.",
+    "Reseñas de clientes que hablen de puntualidad y claridad."
+  ],
+  "secciones": [
+    {
+      "titulo": "Contador cerca de mí",
+      "parrafos": [
+        "Mucha gente busca contador cerca cuando tiene una urgencia: una declaración atrasada, un requerimiento o la necesidad de facturar. Otros buscan contador para empresa o para régimen simplificado. El mapa muestra unos cuantos despachos con sus estrellas y distancia, y el cliente elige ahí.",
+        "Aunque la contabilidad se hace cada vez más a distancia, muchas personas prefieren un contador al que puedan visitar, y el mapa es donde lo buscan.",
+        "En temporadas como la declaración anual, estas búsquedas aumentan mucho y el perfil puede convertirse en tu principal fuente de clientes nuevos."
+      ]
+    },
+    {
+      "titulo": "Categoría y servicios",
+      "parrafos": [
+        "La categoría principal puede ser contador, servicio de contabilidad o asesor fiscal, según tu práctica. En servicios, lista contabilidad mensual, declaraciones anuales, nómina, regularización, alta en el SAT, facturación, constitución de empresas, con descripción breve.",
+        "Mencionar los regímenes o giros que atiendes ayuda a aparecer en búsquedas específicas.",
+        "Si te especializas en ciertos clientes, como médicos, arrendadores, restaurantes o creadores de contenido, menciónalo. Esas personas buscan a alguien que entienda su actividad y suelen preferir a un contador especializado aunque quede un poco más lejos."
+      ]
+    },
+    {
+      "titulo": "Oficina o área de servicio",
+      "parrafos": [
+        "Si atiendes clientes en una oficina con horario, muestra la dirección. Si trabajas solo a distancia o visitas a tus clientes, configura el perfil como negocio con área de servicio, sin dirección visible. Usar una dirección donde no atiendes puede causar la suspensión del perfil.",
+        "En la descripción, aclara si atiendes en línea en todo el país."
+      ]
+    },
+    {
+      "titulo": "Reseñas de confianza",
+      "parrafos": [
+        "Las reseñas que hablan de puntualidad, claridad y trato son las más valiosas para un contador. Pide reseñas a tus clientes al cerrar la declaración anual o al resolver un trámite importante, con un enlace directo.",
+        "Al responder, nunca menciones información fiscal del cliente.",
+        "Las respuestas a las reseñas también son una oportunidad para mostrar tu forma de explicar: breves, claras y amables. Muchos futuros clientes las leen para imaginar cómo será trabajar contigo."
+      ]
+    },
+    {
+      "titulo": "Temporadas fiscales",
+      "parrafos": [
+        "Antes de la declaración anual y en fechas de obligaciones importantes, publica en el perfil recordatorios útiles y la forma de agendar. Esas publicaciones atraen a quien está buscando ayuda justo en ese momento.",
+        "Configura horarios especiales si atiendes más horas en temporada."
+      ]
+    },
+    {
+      "titulo": "Datos consistentes",
+      "parrafos": [
+        "Nombre, dirección y teléfono idénticos en el perfil, tu sitio y los directorios profesionales. El nombre del perfil debe ser el nombre real del despacho, sin palabras clave añadidas.",
+        "Mide llamadas y mensajes desde el perfil para saber cuántos clientes trae."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, lo alineamos con tu sitio, preparamos el sistema de reseñas y medimos contactos. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo aparecer si trabajo desde casa?",
+      "respuesta": "Sí, como negocio con área de servicio sin mostrar tu dirección, si no recibes clientes ahí."
+    },
+    {
+      "pregunta": "¿Conviene poner precios de servicios?",
+      "respuesta": "Precios desde, como la declaración anual de personas físicas, ayudan a atraer clientes decididos."
+    },
+    {
+      "pregunta": "¿Cómo pido reseñas sin incomodar?",
+      "respuesta": "Al terminar un trabajo importante, con un mensaje breve y el enlace directo."
+    },
+    {
+      "pregunta": "¿Puedo tener perfil para cada contador del despacho?",
+      "respuesta": "En algunos casos, los profesionales pueden tener perfil propio; conviene revisarlo para no duplicar."
+    },
+    {
+      "pregunta": "¿Conviene publicar en temporada de declaración anual?",
+      "respuesta": "Sí. Una publicación con fechas clave y la forma de agendar atrae a quienes buscan ayuda justo en esos días."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-contadores",
+      "texto": "Página web para contadores"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:79372fb1226009fad82a6b8eb622712637739ee95e202edd0d95321274dda5bd",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:79372fb1226009fad82a6b8eb622712637739ee95e202edd0d95321274dda5bd"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 601,
+    "similitud_max": 0.032,
+    "parecida_a": "/aparecer-en-google-maps-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:8efc18524d4e803c9b33e1c645d02934d3d7348504ac944f67494a7f399edc73",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

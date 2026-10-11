@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-escuelas-particulares",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-escuelas-particulares",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Cómo aparecer en Google Maps: escuelas",
+  "descripcion": "Guía para que tu escuela particular aparezca en Google Maps: categoría por nivel, fotos de instalaciones, horario de atención, visitas y reseñas de familias.",
+  "h1": "Cómo hacer que tu escuela aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal según el nivel: preescolar, escuela primaria, secundaria, preparatoria.",
+    "Fotos reales de instalaciones, sin identificar a los alumnos.",
+    "Horario de atención a padres y forma de agendar visitas.",
+    "Reseñas de familias, respondidas con cuidado y sin datos de alumnos."
+  ],
+  "secciones": [
+    {
+      "titulo": "Las familias buscan cerca",
+      "parrafos": [
+        "Escuela primaria cerca, kínder bilingüe en una colonia, secundaria particular en una zona. Las familias buscan escuelas cerca de casa o del trabajo, y el mapa es donde empiezan a armar su lista. Ahí ven fotos, estrellas, reseñas y la distancia.",
+        "Una escuela con perfil completo y reseñas de familias tiene más probabilidades de recibir la visita.",
+        "En temporada de admisiones, estas búsquedas se multiplican, y el perfil de Google se vuelve una de las primeras impresiones de la escuela."
+      ]
+    },
+    {
+      "titulo": "Categoría por nivel",
+      "parrafos": [
+        "La categoría principal debe reflejar el nivel principal: preescolar, escuela primaria, escuela secundaria, preparatoria. Si la escuela ofrece varios niveles, agrégalos como secundarias. Los atributos, como accesibilidad o estacionamiento, ayudan a las familias.",
+        "En la descripción, menciona niveles, modelo educativo, idiomas y actividades destacadas, sin superlativos.",
+        "Si la escuela tiene un enfoque particular, como bilingüe, Montessori, deportiva o artística, menciónalo con claridad: las familias buscan exactamente esos términos y suelen estar dispuestas a desplazarse más por un modelo que les convence."
+      ]
+    },
+    {
+      "titulo": "Fotos que respetan a los alumnos",
+      "parrafos": [
+        "Fotos de aulas, laboratorios, canchas, biblioteca, comedor, accesos y fachada, con buena luz. Si aparecen alumnos, que no se les identifique o que haya autorización expresa de sus padres. La seguridad y la privacidad de los menores son prioritarias.",
+        "Actualiza las fotos cuando haya mejoras en instalaciones."
+      ]
+    },
+    {
+      "titulo": "Horario y visitas",
+      "parrafos": [
+        "El horario del perfil puede reflejar el horario de atención a padres o de oficina, que es cuando una familia puede llamar o visitar. Vincula el botón de sitio web a la página de admisiones o de agenda de visitas.",
+        "Publica en el perfil las fechas de puertas abiertas y del proceso de admisión.",
+        "Responder las preguntas del perfil, como si hay transporte escolar, horario extendido o comedor, ayuda a las familias que comparan opciones desde su casa y reduce llamadas repetidas a la oficina."
+      ]
+    },
+    {
+      "titulo": "Reseñas de familias",
+      "parrafos": [
+        "Pide reseñas a las familias, por ejemplo al final del ciclo, con un enlace directo. Responde agradeciendo sin mencionar nombres de alumnos ni detalles personales.",
+        "Las reseñas críticas, que en escuelas pueden ser emotivas, se responden con serenidad, sin discutir en público y ofreciendo diálogo con la dirección."
+      ]
+    },
+    {
+      "titulo": "Datos consistentes",
+      "parrafos": [
+        "Nombre, dirección y teléfono idénticos en el perfil, el sitio y los directorios escolares. Si la escuela tiene varios planteles, cada uno con su perfil.",
+        "Mide llamadas, rutas y clics al sitio para saber cuántas familias llegan desde el mapa."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos el perfil de la escuela, lo alineamos con admisiones y la agenda de visitas, y medimos contactos. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo publicar fotos de eventos escolares?",
+      "respuesta": "Solo con autorización de los padres o sin que se identifique a los alumnos."
+    },
+    {
+      "pregunta": "¿Qué horario pongo en el perfil?",
+      "respuesta": "El de atención al público u oficina, que es cuando una familia puede comunicarse."
+    },
+    {
+      "pregunta": "¿Cómo manejo una reseña negativa de un padre?",
+      "respuesta": "Con una respuesta breve y respetuosa, invitando a hablar con la dirección, sin detalles del caso."
+    },
+    {
+      "pregunta": "¿Cada plantel necesita su perfil?",
+      "respuesta": "Sí, cada ubicación con su dirección, horario y fotos."
+    },
+    {
+      "pregunta": "¿Cuándo conviene pedir reseñas?",
+      "respuesta": "Al final del ciclo escolar o después de eventos importantes, cuando las familias tienen una experiencia completa que contar."
+    },
+    {
+      "pregunta": "¿Puedo publicar las fechas de admisión en el perfil?",
+      "respuesta": "Sí. Una publicación con fechas de puertas abiertas, proceso de admisión y forma de agendar la visita llega a las familias justo cuando están buscando escuela en la zona."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-escuelas-particulares",
+      "texto": "Página web para escuelas particulares"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:5f7f4469d6c6d315d0c306c43d77e04cbf8ad57d53fe1af37761bce51991c91d",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:5f7f4469d6c6d315d0c306c43d77e04cbf8ad57d53fe1af37761bce51991c91d"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 622,
+    "similitud_max": 0.022,
+    "parecida_a": "/aparecer-en-google-maps-gimnasios"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:3aa7e80b11aba3076879aad1f773118ebb79ad4fdd0fd3371c6ba7acec225c41",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-disenadores-de-interiores",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-disenadores-de-interiores",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Página web para diseñadores de interiores",
+  "descripcion": "Sitios para interioristas: proyectos por espacio y estilo, paquetes de diseño, proceso de trabajo, asesoría en línea y una estética que refleja tu firma.",
+  "h1": "Página web para diseñadores de interiores",
+  "respuesta_rapida": [
+    "El cliente de interiorismo compra un estilo: tu portafolio debe dejar ver tu firma desde la primera imagen.",
+    "Organiza por espacio y por estilo: salas, cocinas, recámaras, oficinas, restaurantes.",
+    "Explica tus paquetes: asesoría, proyecto completo, compra y supervisión de instalación.",
+    "La asesoría en línea es una puerta de entrada accesible para clientes de otras ciudades."
+  ],
+  "secciones": [
+    {
+      "titulo": "Vender un estilo",
+      "parrafos": [
+        "Quien contrata a un interiorista suele llegar con una imagen guardada en el celular. Busca a alguien cuyo trabajo se parezca a lo que imagina, o que le inspire algo mejor. Por eso el sitio debe mostrar tu sello desde el primer vistazo: paleta, materiales, forma de iluminar, nivel de detalle.",
+        "Un portafolio que mezcla estilos sin orden confunde. Uno coherente, aunque sea pequeño, atrae al cliente que se identifica con tu trabajo y descarta, con razón, al que busca otra cosa."
+      ]
+    },
+    {
+      "titulo": "Proyectos por espacio",
+      "parrafos": [
+        "Organizar los proyectos por tipo de espacio, como salas, cocinas, recámaras, baños, oficinas, comercios y restaurantes, permite que cada cliente vaya directo a lo que le interesa. Cada proyecto con su historia breve: lo que el cliente pidió, las restricciones, lo que se propuso y cómo quedó.",
+        "Las fotos de antes y después son muy poderosas en interiorismo, siempre que se tomen desde el mismo ángulo y con buena luz."
+      ]
+    },
+    {
+      "titulo": "Paquetes de servicio",
+      "parrafos": [
+        "Muchos clientes no saben qué incluye el trabajo de un interiorista y temen un costo indefinido. Explicar tus modalidades ayuda: asesoría puntual, proyecto con planos y moodboard, proyecto con compra de mobiliario, supervisión de la instalación. Cada una con lo que entrega y cómo se cobra de forma general.",
+        "Esa claridad reduce consultas sin intención real y convierte a quien estaba dudando por miedo al precio."
+      ]
+    },
+    {
+      "titulo": "Asesoría en línea",
+      "parrafos": [
+        "Una consulta por videollamada con fotos y medidas del espacio permite atender clientes de cualquier ciudad y a quienes no pueden pagar un proyecto completo. Puede venderse y agendarse directamente desde la página, con pago en línea, y funcionar como primer paso hacia un encargo mayor.",
+        "Es también una forma de llenar huecos de agenda con ingresos predecibles."
+      ]
+    },
+    {
+      "titulo": "Colaboraciones y proveedores",
+      "parrafos": [
+        "Si trabajas con carpinteros, tapiceros, marcas de mobiliario o constructoras de confianza, mencionarlo da tranquilidad: el cliente entiende que no estará solo coordinando la ejecución. También puede abrir alianzas con arquitectos e inmobiliarias que necesitan un interiorista para sus proyectos.",
+        "Una página para profesionales que quieran colaborar contigo puede traer trabajo recurrente."
+      ]
+    },
+    {
+      "titulo": "Contenido inspirador y útil",
+      "parrafos": [
+        "Notas sobre cómo elegir la paleta de una sala pequeña, cómo iluminar una cocina o qué materiales resisten mejor en un baño atraen a personas que están pensando renovar. Con tu voz y tus fotos, demuestran tu criterio y llevan a la asesoría.",
+        "Esas notas también alimentan tus redes con enlaces que llevan a tu sitio y no solo a un perfil ajeno."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios de interiorismo con la estética de tu firma, portafolio por espacio, venta de asesorías en línea y contacto medido. Desde $1,999 MXN; con agenda y pagos según el paquete."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo vender asesorías pagadas desde la página?",
+      "respuesta": "Sí. Se integra la agenda con pago en línea y el envío automático del enlace de la videollamada."
+    },
+    {
+      "pregunta": "¿Cómo muestro proyectos si no tengo fotos profesionales?",
+      "respuesta": "Puedes empezar con fotos bien tomadas con el celular y luz natural, e ir sustituyéndolas por fotografía profesional en los mejores proyectos."
+    },
+    {
+      "pregunta": "¿Conviene publicar precios?",
+      "respuesta": "Para asesorías puntuales sí. Para proyectos completos basta explicar cómo se cobra y dar el costo en la propuesta."
+    },
+    {
+      "pregunta": "¿Sirve para atraer clientes comerciales?",
+      "respuesta": "Sí, con una sección específica de proyectos comerciales y un lenguaje orientado a negocio: tiempos, presupuesto y operación."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/automatizar-cotizaciones",
+      "texto": "Cómo automatizar cotizaciones sin perder clientes"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:5d242c69528fca4d1f16cb50d82763d6441086494442a74b78af37c9f349f575",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:5d242c69528fca4d1f16cb50d82763d6441086494442a74b78af37c9f349f575"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 604,
+    "similitud_max": 0.003,
+    "parecida_a": "/pagina-web-para-banquetes-y-catering"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:952361cbce94a05f1cb6461223dd1f474cc5a64c4a42f7223c65c332b3cc085f",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

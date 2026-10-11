@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-restaurantes",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-restaurantes",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comida",
+  "titulo": "Google Ads para restaurantes",
+  "descripcion": "Google Ads para restaurantes: anuncios cercanos a la hora de comer, reservas y pedidos medidos, eventos y grupos, y campañas de temporada.",
+  "h1": "Google Ads para restaurantes",
+  "respuesta_rapida": [
+    "Los anuncios de restaurante funcionan cerca y a la hora en que la gente decide dónde comer.",
+    "Separar reservas, pedidos para llevar y eventos permite medir cada uno.",
+    "Las fechas especiales, como el Día de las Madres o fin de año, merecen campañas propias.",
+    "El perfil de Google con buenas reseñas multiplica el efecto de los anuncios."
+  ],
+  "secciones": [
+    {
+      "titulo": "Decisiones de último momento",
+      "parrafos": [
+        "Muchas personas deciden dónde comer o cenar una o dos horas antes, desde el celular y cerca de donde están. Un anuncio que aparece en ese momento, a pocas cuadras, con el tipo de comida que buscan y la opción de reservar o llamar, tiene una gran oportunidad. Fuera de esos horarios y de esa distancia, el anuncio rinde mucho menos.",
+        "Por eso la programación por horario y el radio corto son la base de cualquier campaña de restaurante."
+      ]
+    },
+    {
+      "titulo": "Reservas, pedidos y eventos",
+      "parrafos": [
+        "Son tres objetivos distintos. Las reservas se buscan con frases como restaurante para cenar en una zona o lugar para celebrar un cumpleaños. Los pedidos, con comida para llevar o a domicilio cerca. Los eventos, con salón privado para grupos o comida de fin de año para empresa.",
+        "Cada objetivo merece su campaña, su anuncio y su página de destino, para poder medir qué funciona y dónde poner el presupuesto."
+      ]
+    },
+    {
+      "titulo": "Fechas que llenan el restaurante",
+      "parrafos": [
+        "San Valentín, Día de las Madres, Día del Padre, fiestas patrias y fin de año concentran reservas y búsquedas. Campañas preparadas con semanas de anticipación, con menú especial y reserva en línea, llenan esas fechas antes de que la competencia reaccione.",
+        "Las comidas de fin de año de empresas se planean con mucha anticipación y tienen ticket alto: una campaña dedicada puede ser muy rentable."
+      ]
+    },
+    {
+      "titulo": "Medir lo que llega a la mesa",
+      "parrafos": [
+        "Las conversiones son reservas completadas, llamadas, pedidos por WhatsApp o en línea y solicitudes de eventos. Con esa medición se sabe cuánto cuesta cada reserva o pedido. Para pedidos directos, comparar con la comisión de las plataformas de reparto ayuda a decidir.",
+        "Las visitas al local desde el mapa también pueden estimarse con las herramientas de Google."
+      ]
+    },
+    {
+      "titulo": "El perfil y las reseñas",
+      "parrafos": [
+        "En restaurantes, el perfil de Google pesa tanto como el anuncio. Fotos recientes de los platillos, menú vinculado, horario correcto y reseñas respondidas hacen que el clic se convierta en visita. Un anuncio que lleva a un perfil descuidado pierde su efecto.",
+        "Antes de invertir en anuncios, conviene tener el perfil impecable."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Anuncios corriendo todo el día y en toda la ciudad. Un solo anuncio para reservas, pedidos y eventos. Llevar al usuario a un PDF del menú. No preparar las fechas especiales con tiempo. Y no medir reservas ni pedidos, lo que deja al restaurante sin saber si la inversión se recupera en la caja o solo en clics."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Configuramos campañas por objetivo, horario y radio, campañas de temporada y medición de reservas y pedidos. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Sirven los anuncios para un restaurante pequeño?",
+      "respuesta": "Sí, con radio corto y presupuesto modesto en horarios clave, sobre todo para pedidos y fechas especiales."
+    },
+    {
+      "pregunta": "¿Puedo anunciar promociones del día?",
+      "respuesta": "Sí, con anuncios que se activan solo los días y horas de la promoción."
+    },
+    {
+      "pregunta": "¿Conviene anunciarme en inglés?",
+      "respuesta": "Si estás en zona turística, sí, con menú en inglés en la página de destino."
+    },
+    {
+      "pregunta": "¿Funciona para varias sucursales?",
+      "respuesta": "Sí, con campañas por sucursal y su propio radio."
+    },
+    {
+      "pregunta": "¿Puedo medir cuántas personas llegaron por los anuncios?",
+      "respuesta": "Las reservas y pedidos se miden con precisión; las visitas al local se estiman con las herramientas de Google y se complementan preguntando al cliente cómo nos encontró."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-restaurantes",
+      "texto": "Página web para restaurantes"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:ca9a13d393e1a0ec8745131fe5d1b7f903f3c8384a23e671b764d6a5e2eea3ed",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:ca9a13d393e1a0ec8745131fe5d1b7f903f3c8384a23e671b764d6a5e2eea3ed"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 620,
+    "similitud_max": 0.02,
+    "parecida_a": "/google-ads-para-psicologos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:320cc9b5115ad7fdf04eb052477ad3b1ef8be78f2adead22508ee258b926766f",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

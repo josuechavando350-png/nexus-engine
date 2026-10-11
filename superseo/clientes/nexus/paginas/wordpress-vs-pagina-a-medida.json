@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "wordpress-vs-pagina-a-medida",
+  "cliente": "nexus",
+  "ruta": "/wordpress-vs-pagina-a-medida",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "WordPress vs. página a medida para tu negocio",
+  "descripcion": "Ventajas y riesgos de WordPress frente a una página a medida: costo, complementos, seguridad, velocidad y mantenimiento. Cuál conviene según tu negocio.",
+  "h1": "WordPress vs. página a medida para tu negocio",
+  "respuesta_rapida": [
+    "WordPress es flexible y muy usado, pero depende de complementos que hay que mantener.",
+    "Sin actualizaciones constantes, un WordPress se vuelve lento y vulnerable.",
+    "Una página a medida con tecnología moderna requiere menos mantenimiento y carga más rápido.",
+    "La decisión depende de cuánto contenido publicas y de quién va a mantener el sitio."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué WordPress es tan popular",
+      "parrafos": [
+        "WordPress es el gestor de contenido más usado en internet. Tiene miles de plantillas y complementos para casi cualquier función, y una gran comunidad. Para sitios con mucho contenido editorial, como blogs o medios, es una herramienta poderosa.",
+        "Su flexibilidad es también su debilidad: cada complemento agrega código, dependencias y posibles puntos de falla."
+      ]
+    },
+    {
+      "titulo": "Los riesgos reales",
+      "parrafos": [
+        "Muchos sitios de negocios hechos con WordPress acumulan complementos que nadie actualiza. Con el tiempo, el sitio se vuelve lento y vulnerable. Los sitios de WordPress desactualizados son de los blancos más comunes de ataques automatizados: redirecciones a sitios de apuestas, inyección de enlaces ocultos o páginas falsas dentro del dominio.",
+        "Hemos visto dominios de clínicas que terminaron mostrando contenido ajeno. Desde el punto de vista de la ciberseguridad, un WordPress sin mantenimiento es un riesgo para la reputación del negocio."
+      ]
+    },
+    {
+      "titulo": "Lo que da una página a medida",
+      "parrafos": [
+        "Una página construida a medida con tecnología moderna carga solo lo que necesita, lo que la hace más rápida. Tiene menos piezas de terceros que actualizar, lo que reduce la superficie de ataque. Y se diseña exactamente para tu negocio, sin pelear con las limitaciones de una plantilla.",
+        "A cambio, si quieres publicar contenido con frecuencia, necesitas un panel de edición pensado para ello."
+      ]
+    },
+    {
+      "titulo": "Cómo decidir",
+      "parrafos": [
+        "Si publicas contenido varias veces por semana, tienes a alguien que mantenga el sitio y necesitas muchas funciones de complementos, WordPress puede ser buena opción, siempre que se mantenga. Si tu sitio es principalmente de presentación, servicios y contacto, y no quieres preocuparte por actualizaciones, una página a medida suele ser mejor.",
+        "En ambos casos, lo importante es que alguien sea responsable del mantenimiento."
+      ]
+    },
+    {
+      "titulo": "Si ya tienes WordPress",
+      "parrafos": [
+        "No hace falta rehacerlo de inmediato. Primero revisa su estado: versión, complementos, velocidad y seguridad. A veces basta con limpiar complementos innecesarios, actualizar y optimizar. Si el sitio está muy deteriorado o fue hackeado, una migración a una página a medida puede ser la mejor salida.",
+        "Puedes empezar revisándolo con nuestro analizador gratuito."
+      ]
+    },
+    {
+      "titulo": "El mantenimiento que casi nadie hace",
+      "parrafos": [
+        "Un WordPress sano necesita actualizar el núcleo, el tema y cada complemento en cuanto salen versiones nuevas, revisar que nada se rompa después de actualizar, hacer respaldos y vigilar accesos sospechosos. Es trabajo constante. En muchos negocios nadie lo hace después de la entrega, y el sitio queda congelado en el tiempo con vulnerabilidades conocidas.",
+        "Si eliges WordPress, presupuesta ese mantenimiento desde el principio, igual que presupuestas el del local o el del auto."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Construimos páginas a medida con seguridad desde el primer día y menos mantenimiento. También migramos sitios de WordPress conservando las direcciones importantes. Los paquetes van de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿WordPress es inseguro?",
+      "respuesta": "No por sí mismo. El riesgo está en no actualizarlo y en usar complementos de mala calidad o abandonados."
+    },
+    {
+      "pregunta": "¿Puedo tener blog en una página a medida?",
+      "respuesta": "Sí, con un panel de publicación pensado para tu caso."
+    },
+    {
+      "pregunta": "¿Migrar me hace perder posiciones?",
+      "respuesta": "Si se redirigen bien las direcciones existentes, no debería; muchas veces mejora por la velocidad."
+    },
+    {
+      "pregunta": "¿Cómo sé si mi WordPress fue hackeado?",
+      "respuesta": "Señales comunes: redirecciones extrañas, páginas que no creaste o avisos de Google. Revisa nuestra guía sobre qué hacer si hackean tu página."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/que-hacer-si-hackean-mi-pagina-web",
+      "texto": "Qué hacer si hackean tu página web"
+    },
+    {
+      "ruta": "/como-saber-si-mi-pagina-es-lenta",
+      "texto": "Cómo saber si tu página web es lenta"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:4d94176b2954cd23edc9e28e2583b00e4c9a18a27c7354c7eb93d722fc076cd7",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:4d94176b2954cd23edc9e28e2583b00e4c9a18a27c7354c7eb93d722fc076cd7"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 600,
+    "similitud_max": 0.015,
+    "parecida_a": "/wix-vs-pagina-a-medida"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:01d82d3991e3f8fb7933a521af04dacdb9eb8b8fedcb183063356ddd25fee087",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

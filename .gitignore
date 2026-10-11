@@ -20,3 +20,6 @@ coverage/
 runtime/target/
 runtime/.env
 **/*.cdx.json
+
+# SUPERSEO: salidas locales del ciclo (reportes y rastreos)
+superseo-salida/

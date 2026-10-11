@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-joyerias",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-joyerias",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Página web para joyerías",
+  "descripcion": "Sitios para joyerías: catálogo con fotografía de detalle, materiales y certificados explicados, anillos de compromiso, citas privadas y compra segura.",
+  "h1": "Página web para joyerías",
+  "respuesta_rapida": [
+    "La joyería se vende por confianza y por detalle: fotos nítidas y datos de material, quilates y certificados.",
+    "Los anillos de compromiso y las piezas a la medida merecen su propia sección con cita privada.",
+    "Explica garantías, servicios de ajuste, limpieza y reparación.",
+    "La compra en línea debe sentirse tan segura como entrar a la tienda."
+  ],
+  "secciones": [
+    {
+      "titulo": "Confianza ante todo",
+      "parrafos": [
+        "Comprar una joya es comprar algo de valor, y muchas veces con carga emocional: un compromiso, un aniversario, una herencia. El cliente necesita estar seguro de que el material es el que dices, de que el precio es justo y de que la joyería va a responder si algo pasa. La página tiene que transmitir esa seguridad antes que cualquier otra cosa.",
+        "Datos verificables como la ubicación de la tienda, años en el oficio, membresías de asociaciones del ramo y la explicación clara de tus garantías hacen más que cualquier eslogan."
+      ]
+    },
+    {
+      "titulo": "Fotografía de detalle",
+      "parrafos": [
+        "En joyería la foto tiene que mostrar lo que el ojo vería en la mano: el brillo de la piedra, el acabado del metal, el grabado. Fotografía macro con fondo neutro, varias vistas y una imagen de la pieza puesta para dar escala. Un video corto girando la pieza bajo luz es todavía más convincente.",
+        "Las imágenes deben cargar rápido en el celular sin perder nitidez, lo que exige optimizarlas con cuidado."
+      ]
+    },
+    {
+      "titulo": "Información técnica clara",
+      "parrafos": [
+        "Material y ley del metal, peso, tipo de piedra, corte, color y pureza en el caso de diamantes, y si la pieza viene con certificado. Explicar estos términos en una página aparte, en lenguaje sencillo, ayuda a quien compra su primera joya importante y muestra que no tienes nada que ocultar.",
+        "Si trabajas con oro nacional, plata o piedras mexicanas, contar el origen es un argumento de valor."
+      ]
+    },
+    {
+      "titulo": "Compromiso y piezas a la medida",
+      "parrafos": [
+        "El anillo de compromiso es una de las búsquedas más valiosas del giro. Una sección dedicada con modelos, guía para elegir talla sin que la pareja se entere, opciones de personalización y la posibilidad de agendar una cita privada convierte esa búsqueda en visita.",
+        "Las piezas a la medida, como argollas grabadas o rediseño de joyas heredadas, también merecen su página con el proceso explicado."
+      ]
+    },
+    {
+      "titulo": "Servicios que fidelizan",
+      "parrafos": [
+        "Ajuste de talla, limpieza, reparación, cambio de broche, grabado. Son servicios que traen al cliente de vuelta y que muchas joyerías no publican. Ponerlos en la página, con tiempos aproximados, atrae a personas que luego compran.",
+        "Un recordatorio para limpieza anual de piezas compradas en la tienda es un buen pretexto para mantener el contacto."
+      ]
+    },
+    {
+      "titulo": "Venta en línea segura",
+      "parrafos": [
+        "Si vendes en línea, el pago debe hacerse con un procesador reconocido, el envío asegurado y con firma de recibido, y la política de devoluciones clara. Para piezas de alto valor, muchas joyerías prefieren apartar en línea y concretar en tienda, lo cual también funciona.",
+        "La factura y el certificado entregados con la pieza completan la experiencia."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios de joyería con fotografía optimizada, catálogo, sección de compromiso y citas privadas. Los paquetes van de $1,999 a $44,800 MXN, según si incluyes venta en línea y asistente."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Debo publicar precios de joyas finas?",
+      "respuesta": "Para piezas de catálogo sí, porque genera confianza. Para piezas únicas o de alto valor puedes indicar precio bajo consulta."
+    },
+    {
+      "pregunta": "¿Cómo ayudo a elegir la talla de un anillo sorpresa?",
+      "respuesta": "Con una guía de tallas descargable y la opción de ajuste posterior sin costo, que quita el miedo a equivocarse."
+    },
+    {
+      "pregunta": "¿Puedo agendar citas privadas en línea?",
+      "respuesta": "Sí. Una agenda con horarios de atención personalizada es ideal para compromisos y piezas a la medida."
+    },
+    {
+      "pregunta": "¿Sirve para vender a mayoreo?",
+      "respuesta": "Sí, con una sección para distribuidores protegida o con solicitud de catálogo mayorista."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-tienda-en-linea",
+      "texto": "¿Cuánto cuesta una tienda en línea?"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:cf3cfff4efbbf2cf900bf6ba93cd486aeb221d86432cf69302f580169feb7284",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:cf3cfff4efbbf2cf900bf6ba93cd486aeb221d86432cf69302f580169feb7284"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 619,
+    "similitud_max": 0.012,
+    "parecida_a": "/pagina-web-para-spas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:e09eb74231f91917c3a682c81344f9a7d68c4cb1c179eeb9bd89d2b629ac6bfa",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

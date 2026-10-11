@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "fotos-para-perfil-de-google",
+  "cliente": "nexus",
+  "ruta": "/fotos-para-perfil-de-google",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "Fotos para tu Perfil de Empresa en Google",
+  "descripcion": "Qué fotos subir a tu Perfil de Empresa en Google, cómo tomarlas con el celular, cada cuánto actualizarlas y qué mitos ignorar.",
+  "h1": "Fotos para tu Perfil de Empresa en Google",
+  "respuesta_rapida": [
+    "Sube fotos reales: fachada, interior, productos o trabajos, equipo y detalles.",
+    "Tómalas con luz natural, horizontales y sin filtros exagerados.",
+    "Agrega fotos nuevas con cierta frecuencia para mostrar que el negocio está activo.",
+    "Las fotos de banco restan confianza; las reales la construyen."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué importan",
+      "parrafos": [
+        "Cuando alguien encuentra tu negocio en Google Maps, lo primero que ve después del nombre y las estrellas son las fotos. Decide en segundos si el lugar le da confianza, si es lo que busca y si lo va a reconocer al llegar. Un perfil con buenas fotos recibe más llamadas, rutas y visitas que uno sin fotos o con imágenes genéricas.",
+        "Las fotos también le dan a Google más información sobre tu negocio."
+      ]
+    },
+    {
+      "titulo": "Qué fotos subir",
+      "parrafos": [
+        "Fachada desde la calle, de día, para que te reconozcan al llegar. Entrada y acceso. Interior: el área de atención, el mostrador, las mesas o el consultorio. Productos o trabajos terminados, que es lo que más se ve. Tu equipo trabajando, con su permiso. Y detalles que te distinguen: la decoración, el equipo especial, el ambiente.",
+        "Si atiendes a domicilio, fotos de tu vehículo rotulado, tu herramienta y trabajos terminados en casa de clientes, con su permiso.",
+        "Para restaurantes y cafeterías, los platillos y bebidas más pedidos son lo que más se ve. Para servicios, los trabajos terminados y el antes y después. Para tiendas, la variedad del inventario. Piensa en qué querría ver tu cliente antes de decidir."
+      ]
+    },
+    {
+      "titulo": "Cómo tomarlas con el celular",
+      "parrafos": [
+        "Limpia la lente. Usa luz natural, sin flash. Toma las fotos en horizontal, que es como se muestran mejor en el perfil. Mantén el celular derecho y evita filtros exagerados. Para productos, un fondo limpio y buena luz bastan. Toma varias de cada escena y elige las mejores.",
+        "No necesitas un fotógrafo profesional para empezar, aunque para fachada e interior puede valer la pena."
+      ]
+    },
+    {
+      "titulo": "Logo y portada",
+      "parrafos": [
+        "Sube tu logo en buena resolución y elige una foto de portada representativa, aunque Google decide cuál mostrar primero según la búsqueda. Por eso conviene que todas tus fotos sean buenas, no solo la de portada.",
+        "Mantén el logo igual al de tu sitio y tus redes."
+      ]
+    },
+    {
+      "titulo": "Constancia",
+      "parrafos": [
+        "Agregar fotos nuevas de vez en cuando, por ejemplo cuando tienes productos nuevos, un trabajo destacado o cambias algo del local, muestra que el negocio está activo. Un perfil con fotos de hace años transmite abandono.",
+        "Pide también a tus clientes que suban fotos cuando dejen su reseña; las fotos de clientes generan mucha confianza."
+      ]
+    },
+    {
+      "titulo": "Mitos que puedes ignorar",
+      "parrafos": [
+        "Agregar datos de ubicación a las fotos o ponerles nombres con palabras clave no tiene un efecto comprobado en tu posición. Subir cientos de fotos de golpe tampoco ayuda más que una actualización constante. Lo que cuenta es que sean reales, buenas y útiles para el cliente.",
+        "Y nunca uses fotos de otro negocio o de bancos de imágenes como si fueran tuyas."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Te damos una guía sencilla para tomar fotos con el celular, las optimizamos para tu sitio y tu perfil, y mantenemos el perfil activo. Es parte de Nexus Growth."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo borrar fotos que suben los clientes?",
+      "respuesta": "Puedes reportar las que no correspondan a tu negocio o violen las reglas; las demás se quedan."
+    },
+    {
+      "pregunta": "¿Cuántas fotos debo subir?",
+      "respuesta": "Suficientes para mostrar fachada, interior, productos y equipo, y agregar nuevas con constancia."
+    },
+    {
+      "pregunta": "¿Sirven los videos?",
+      "respuesta": "Sí, videos cortos del lugar o de tu trabajo complementan bien las fotos."
+    },
+    {
+      "pregunta": "¿Puedo usar las mismas fotos en mi sitio?",
+      "respuesta": "Sí, y conviene: la coherencia entre perfil y sitio genera confianza."
+    },
+    {
+      "pregunta": "¿Qué tamaño deben tener las fotos?",
+      "respuesta": "Fotos nítidas y bien iluminadas, tomadas con la cámara principal del celular, suelen cumplir de sobra con lo que Google pide."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/como-aparecer-en-google-maps",
+      "texto": "Cómo aparecer en Google Maps con tu negocio"
+    },
+    {
+      "ruta": "/fotos-para-pagina-web-de-negocio",
+      "texto": "Fotos para la página web de tu negocio"
+    },
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:c7ca1629b61cd38869e09577c3332e57fd9450d3172b0006cc06f4de94cab3fe",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:c7ca1629b61cd38869e09577c3332e57fd9450d3172b0006cc06f4de94cab3fe"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 626,
+    "similitud_max": 0.015,
+    "parecida_a": "/fotos-para-pagina-web-de-negocio"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:8d22e2f973fce35fe45d1c50549729085bdaa156cd13381a1b749eec94e7d050",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

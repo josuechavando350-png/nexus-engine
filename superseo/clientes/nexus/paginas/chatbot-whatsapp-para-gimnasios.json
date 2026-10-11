@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-gimnasios",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-gimnasios",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Chatbot de WhatsApp para gimnasios",
+  "descripcion": "Asistente de IA para gimnasios: responde membresías y horarios, agenda pases de prueba, reserva clases, cobra renovaciones y recupera socios inactivos.",
+  "h1": "Chatbot de WhatsApp para gimnasios",
+  "respuesta_rapida": [
+    "Responde precios de membresías, horarios y clases a cualquier hora, incluso cuando la recepción está cerrada.",
+    "Agenda el pase de prueba y le da seguimiento al interesado después de su visita.",
+    "Reserva lugares en clases con cupo y maneja la lista de espera.",
+    "Recuerda renovaciones y escribe a socios que dejaron de venir antes de que cancelen."
+  ],
+  "secciones": [
+    {
+      "titulo": "Los interesados escriben de noche",
+      "parrafos": [
+        "La decisión de entrar a un gimnasio se toma muchas veces de noche, después de un día largo o el domingo, cuando la persona se propone empezar el lunes. Si en ese momento escribe al gimnasio y nadie contesta, el impulso se enfría. Al día siguiente, la recepción está ocupada con socios en la entrada y el mensaje se contesta tarde.",
+        "Lo mismo pasa con los socios: preguntan si la clase de las siete tiene lugar, si el gimnasio abre el día festivo o cómo renovar, y esperan."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Responde con la información que el gimnasio aprobó: planes y precios, qué incluye cada membresía, costo de inscripción, horarios, clases y ubicación. Ofrece el pase de prueba y lo agenda en el horario que la persona prefiera, con un mensaje de bienvenida que explica qué traer y a quién buscar al llegar.",
+        "Para socios, reserva lugares en las clases con cupo, maneja la lista de espera cuando alguien cancela y avisa cuando se acerca la fecha de renovación, con un enlace de pago.",
+        "Si un socio deja de venir varias semanas, el asistente puede enviarle un mensaje amable de seguimiento, que muchas veces es lo que evita la cancelación."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Domingo, diez de la noche. Alguien escribe: ¿cuánto cuesta el mes? Quiero empezar mañana. El asistente explica los planes, recomienda el pase de prueba y lo agenda para el lunes a las siete de la mañana. El lunes, después de la visita, la persona recibe un mensaje preguntando cómo le fue y con la opción de inscribirse en línea.",
+        "La recepción no tuvo que hacer nada; el nuevo socio llegó solo."
+      ]
+    },
+    {
+      "titulo": "Con la energía de tu gimnasio",
+      "parrafos": [
+        "El asistente habla como tu marca: motivador en un estudio de funcional, sobrio en un club deportivo, cercano en un gimnasio de barrio. Usa los nombres de tus clases y de tus planes. No da consejos de entrenamiento ni de nutrición; para eso están tus entrenadores, y el asistente puede agendar una sesión con ellos.",
+        "Cualquier socio puede pedir hablar con una persona en cualquier momento."
+      ]
+    },
+    {
+      "titulo": "Lo que gana el gimnasio",
+      "parrafos": [
+        "Más pases de prueba agendados, más conversiones gracias al seguimiento, clases con mejor ocupación y menos bajas por olvido de renovación. También información valiosa: qué preguntas se repiten, qué horarios se piden más y qué planes interesan.",
+        "Todas las conversaciones quedan registradas y se pueden revisar desde el celular."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Reunimos planes, precios, horarios, reglas de reservación y el tono de la marca. El gimnasio aprueba las respuestas y conectamos la agenda de clases y los pagos. Probamos con el equipo de recepción antes de activarlo. Después solo hay que mantener al día horarios especiales y promociones."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN. Para gimnasios con sitio propio, se cotiza aparte según volumen de socios e integraciones."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede cobrar membresías?",
+      "respuesta": "Sí, envía enlaces de pago para inscripción y renovación, y puede avisar antes de cada cargo recurrente."
+    },
+    {
+      "pregunta": "¿Se conecta con mi sistema de control de acceso?",
+      "respuesta": "Depende del sistema. Muchos permiten integración; lo revisamos en el diagnóstico gratuito."
+    },
+    {
+      "pregunta": "¿Funciona para estudios boutique?",
+      "respuesta": "Sí, sobre todo con clases de cupo limitado y paquetes de sesiones."
+    },
+    {
+      "pregunta": "¿Puede atender a empresas que quieren convenios?",
+      "respuesta": "Sí. Recoge los datos de la empresa y el número de empleados interesados, y pasa la solicitud al área comercial para armar la propuesta."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-gimnasios",
+      "texto": "Página web para gimnasios"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:6aad6463b7ff4ae65db76ed63ace67a85379930b9a456f0a9b6cc63d19606a61",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:6aad6463b7ff4ae65db76ed63ace67a85379930b9a456f0a9b6cc63d19606a61"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 631,
+    "similitud_max": 0.014,
+    "parecida_a": "/chatbot-whatsapp-para-restaurantes"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:ee2b1ca2108bee415fd41406cd1a691c5ff587bb50143eb671d0582c00c770b7",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

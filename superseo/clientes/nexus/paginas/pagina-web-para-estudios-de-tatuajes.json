@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-estudios-de-tatuajes",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-estudios-de-tatuajes",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Página web para estudios de tatuajes",
+  "descripcion": "Sitios para estudios de tatuaje: portafolio por artista y estilo, proceso de cotización, anticipos, cuidados y una estética fiel a tu estudio.",
+  "h1": "Página web para estudios de tatuajes",
+  "respuesta_rapida": [
+    "Quien busca tatuarse elige al artista por su estilo: el portafolio por artista es el centro del sitio.",
+    "Explica el proceso: idea, cotización, anticipo, diseño, sesión y cuidados.",
+    "Un formulario de cotización con foto de referencia, tamaño y zona ahorra decenas de mensajes.",
+    "Higiene, materiales y cuidados posteriores visibles: así se gana confianza en este oficio."
+  ],
+  "secciones": [
+    {
+      "titulo": "El artista es la marca",
+      "parrafos": [
+        "En un estudio de tatuajes el cliente no compra un servicio genérico; elige a una persona por su trazo, su estilo y su forma de trabajar. Un sitio que presente a cada artista con su portafolio, sus especialidades y su forma de cotizar le da a cada uno su espacio y ayuda a que el cliente encuentre a quien busca.",
+        "Realismo, tradicional, neotradicional, blackwork, línea fina, lettering, acuarela: organizar el trabajo por estilo también ayuda a quien todavía no sabe con quién tatuarse."
+      ]
+    },
+    {
+      "titulo": "Cotizar sin perder el día en mensajes",
+      "parrafos": [
+        "La pregunta cuánto cuesta un tatuaje no tiene respuesta sin datos. Un formulario que pida referencia, tamaño aproximado, zona del cuerpo, si es a color o en negro y con qué artista, permite cotizar de forma más precisa y filtra a quien solo está curioseando.",
+        "Explicar el precio mínimo del estudio y cómo se cobra, por pieza o por sesión, evita discusiones después."
+      ]
+    },
+    {
+      "titulo": "Anticipos y agenda",
+      "parrafos": [
+        "Un anticipo al agendar protege el tiempo del artista, que suele dedicar horas al diseño antes de la sesión. Cobrarlo en línea, con la política de reprogramación escrita en la página, profesionaliza el proceso y reduce ausencias.",
+        "La agenda puede mostrar fechas de convenciones o de artistas invitados, que generan mucha demanda."
+      ]
+    },
+    {
+      "titulo": "Confianza sanitaria y preguntas frecuentes",
+      "parrafos": [
+        "Para muchas personas, la higiene es la mayor duda. Mostrar el área de trabajo, explicar el uso de material desechable, la esterilización y la licencia sanitaria del estudio da tranquilidad, sobre todo a quien se tatúa por primera vez.",
+        "Una página de cuidados posteriores, clara y descargable, además de útil es de las más visitadas del sitio.",
+        "Edad mínima y requisitos de identificación, si se puede tatuar sobre cicatrices, qué pasa si quiero cubrir un tatuaje anterior, cuánto tarda en sanar. Responderlas en la página ahorra tiempo al equipo y muestra profesionalismo.",
+        "También conviene explicar los cover up y retoques, que tienen su propio público."
+      ]
+    },
+    {
+      "titulo": "Diseño fiel al estudio",
+      "parrafos": [
+        "La estética del sitio debe parecerse al estudio: si su identidad es oscura y gráfica, el sitio también; si es luminoso y minimalista, igual. Una plantilla genérica no le hace justicia al trabajo de los artistas.",
+        "Lo que sí debe mantenerse siempre es la velocidad: los portafolios pesan, y las imágenes deben optimizarse para que carguen rápido en el celular."
+      ]
+    },
+    {
+      "titulo": "Contenido que construye reputación",
+      "parrafos": [
+        "Las notas sobre dudas reales atraen a quien está pensando tatuarse: cuánto duele según la zona, qué estilo envejece mejor, cómo elegir un artista, qué hacer si el tatuaje se infecta. Escritas por el estudio, muestran experiencia y responsabilidad.",
+        "Las entrevistas con los artistas, sus influencias y su proceso creativo también conectan con el cliente que valora el arte detrás de la pieza y está dispuesto a esperar por el artista correcto."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios a medida para estudios, con portafolio por artista, cotizador con referencia y anticipos en línea. Desde $1,999 MXN; con asistente de WhatsApp que recibe cotizaciones desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cada artista puede tener su propia página?",
+      "respuesta": "Sí. Cada artista con su portafolio, estilos, agenda y forma de contacto, dentro del sitio del estudio."
+    },
+    {
+      "pregunta": "¿Conviene publicar precios?",
+      "respuesta": "Conviene publicar el mínimo del estudio y explicar qué influye en el precio. El precio exacto se da con la cotización."
+    },
+    {
+      "pregunta": "¿Cómo protejo los diseños originales?",
+      "respuesta": "Se pueden publicar en resolución web con marca de agua discreta y aclarar que los diseños son propiedad del artista."
+    },
+    {
+      "pregunta": "¿Sirve si el estudio solo trabaja con cita?",
+      "respuesta": "Sí, y la página lo deja claro desde la portada para que nadie llegue esperando atención inmediata."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/agenda-de-citas-en-linea-para-estudios-de-tatuajes",
+      "texto": "Agenda de citas en línea para estudios de tatuajes"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:e233b9321c50f124007728a2e6e4248f5e9ad1ae5a357c2ecd6d91dce1b463c6",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:e233b9321c50f124007728a2e6e4248f5e9ad1ae5a357c2ecd6d91dce1b463c6"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 658,
+    "similitud_max": 0.01,
+    "parecida_a": "/agenda-de-citas-en-linea-para-estudios-de-tatuajes"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:5b56ec23e551c6f2110e7a8a8f91a398e787ece7402f462d4b4a1f30eba66184",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

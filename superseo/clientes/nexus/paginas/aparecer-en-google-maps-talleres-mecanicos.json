@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-talleres-mecanicos",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-talleres-mecanicos",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Cómo aparecer en Google Maps: talleres",
+  "descripcion": "Guía para que tu taller mecánico aparezca en Google Maps: categorías por especialidad, servicios, fotos del taller, horarios exactos y reseñas que generan confianza.",
+  "h1": "Cómo hacer que tu taller mecánico aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal según tu especialidad: taller mecánico, taller de transmisiones, hojalatería.",
+    "Lista servicios y marcas que atiendes; las búsquedas son muy específicas.",
+    "Fotos reales del taller, del equipo y de la entrada para encontrarlo fácil.",
+    "Reseñas de clientes satisfechos son tu mejor defensa contra la desconfianza."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cuando el auto falla, se busca en el mapa",
+      "parrafos": [
+        "Quien tiene un problema con su auto busca taller mecánico cerca, taller de frenos o taller de transmisiones automáticas, casi siempre desde el celular y muchas veces desde el lugar donde se quedó. Google muestra los talleres del mapa con sus estrellas y distancia. Un taller con buenas reseñas, horario claro y fotos reales genera la confianza que este cliente necesita.",
+        "En un giro con tanta desconfianza, el perfil de Google es la primera prueba de honestidad."
+      ]
+    },
+    {
+      "titulo": "Categorías y servicios",
+      "parrafos": [
+        "La categoría principal debe reflejar lo que más haces: taller mecánico, taller de transmisiones, taller de hojalatería y pintura, servicio de frenos, centro de diagnóstico. Las secundarias agregan especialidades reales. En la sección de servicios, lista afinación, frenos, suspensión, clutch, diagnóstico por computadora, aire acondicionado, con descripción breve y precio desde si lo manejas.",
+        "Mencionar las marcas en las que te especializas, en la descripción y en servicios, te ayuda a aparecer en búsquedas como taller especializado en una marca."
+      ]
+    },
+    {
+      "titulo": "Fotos que muestran orden",
+      "parrafos": [
+        "Fotos del taller limpio y ordenado, de las herramientas y el equipo de diagnóstico, de los mecánicos trabajando y de la entrada desde la calle. El cliente quiere ver que su auto estará en un lugar serio. Las fotos de reparaciones terminadas, como un motor armado o una pintura nueva, también ayudan.",
+        "Actualízalas de vez en cuando para mostrar actividad."
+      ]
+    },
+    {
+      "titulo": "Reseñas que desarman la desconfianza",
+      "parrafos": [
+        "Pide reseñas a cada cliente al entregar el auto, con un enlace por WhatsApp. Las reseñas que mencionan honestidad, precio justo o buena explicación del problema son las más valiosas para futuros clientes.",
+        "Responde todas, también las críticas, explicando con calma y ofreciendo resolver. Un taller que responde bien a una reseña negativa convence más que uno con solo reseñas perfectas."
+      ]
+    },
+    {
+      "titulo": "Horario y ubicación exactos",
+      "parrafos": [
+        "El horario debe ser exacto, incluidos sábados y días festivos. Si el taller está en una calle difícil de encontrar, describe referencias y sube una foto de la entrada. Si ofreces servicio a domicilio o grúa, indícalo con el área de servicio.",
+        "El nombre del perfil debe ser el nombre real del taller, sin agregar palabras como barato o el mejor: va contra las políticas."
+      ]
+    },
+    {
+      "titulo": "Preguntas y publicaciones",
+      "parrafos": [
+        "Responde las preguntas que la gente hace en el perfil y agrega tú mismo las más comunes, como si atiendes sin cita o si das garantía. Las publicaciones pueden anunciar promociones de temporada, como revisión antes de vacaciones.",
+        "Medir llamadas y solicitudes de ruta desde el perfil te dice qué tanto trabajo trae."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, lo alineamos con tu sitio, preparamos el sistema de reseñas y medimos llamadas. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo poner precios en el perfil?",
+      "respuesta": "Sí, como precio desde en servicios comunes. Ayuda a atraer clientes decididos."
+    },
+    {
+      "pregunta": "¿Y si mi taller no tiene local a la calle?",
+      "respuesta": "Si atiendes clientes en una dirección con señalización, puedes mostrarla. Si solo vas a domicilio, configura un área de servicio."
+    },
+    {
+      "pregunta": "¿Cómo respondo una reseña injusta?",
+      "respuesta": "Con hechos y calma, sin atacar. Los futuros clientes leen tu respuesta más que la reseña."
+    },
+    {
+      "pregunta": "¿Cuánto tarda en mejorar mi posición?",
+      "respuesta": "Un perfil completo mejora en semanas; las reseñas constantes construyen posición con los meses."
+    },
+    {
+      "pregunta": "¿Debo pedir reseña a todos los clientes?",
+      "respuesta": "Sí, a todos por igual. Pedirla solo a quienes crees contentos va contra las reglas de Google."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-talleres-mecanicos",
+      "texto": "Página web para talleres mecánicos"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:170a72eabcda8d7e68d4f9df8d239e85acd109667a062d611e4c292890de1b34",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:170a72eabcda8d7e68d4f9df8d239e85acd109667a062d611e4c292890de1b34"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 623,
+    "similitud_max": 0.034,
+    "parecida_a": "/aparecer-en-google-maps-veterinarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:a18deffa1d2cd478a25e7b5dd927a144dea94e116713a7bd1c8627397f9304ed",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}

@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-veterinarias",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-veterinarias",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Página web para veterinarias",
+  "descripcion": "Sitios para clínicas veterinarias: urgencias claras, servicios por especie, estética y hotel, recordatorios de vacunas y citas por WhatsApp.",
+  "h1": "Página web para veterinarias",
+  "respuesta_rapida": [
+    "Muchos dueños buscan veterinario en una urgencia: horario, teléfono y si atienden emergencias deben verse primero.",
+    "Separa servicios médicos de estética, guardería u hotel; cada uno se busca de forma distinta.",
+    "Los recordatorios de vacunas y desparasitación son una forma natural de que el cliente regrese.",
+    "Fotos reales de la clínica y del equipo generan más confianza que cualquier imagen de banco."
+  ],
+  "secciones": [
+    {
+      "titulo": "La urgencia manda",
+      "parrafos": [
+        "Cuando un perro come algo que no debía o un gato deja de comer, el dueño busca veterinario cerca de mí con angustia. En ese momento no va a leer; necesita saber si la clínica está abierta, si atiende urgencias y cómo llegar. Si no lo encuentra en segundos, busca otra.",
+        "Por eso la portada debe mostrar horario, teléfono, WhatsApp y si hay atención de emergencias, de forma clara y sin rodeos. Si no atiendes urgencias fuera de horario, decirlo también es una forma de respeto."
+      ]
+    },
+    {
+      "titulo": "Servicios bien organizados",
+      "parrafos": [
+        "Consulta general, vacunación, cirugía, laboratorio, rayos X, odontología, especialidades. Y aparte, los servicios que no son médicos: estética, baño, guardería, hotel. Cada grupo tiene un cliente distinto y conviene que tenga su propia página.",
+        "Si la clínica atiende especies poco comunes, como aves, reptiles o conejos, una página dedicada atrae a dueños que tienen pocas opciones y están dispuestos a desplazarse."
+      ]
+    },
+    {
+      "titulo": "Recordatorios que traen clientes de vuelta",
+      "parrafos": [
+        "El calendario de vacunas y desparasitación es una de las mejores herramientas de una veterinaria. Un sistema que registre a cada mascota y mande un recordatorio por WhatsApp cuando toca su siguiente dosis mantiene al cliente cerca sin publicidad.",
+        "Lo mismo para la estética: un mensaje cuando ha pasado el tiempo habitual entre baños. Son mensajes útiles que el dueño agradece."
+      ]
+    },
+    {
+      "titulo": "Confianza visual",
+      "parrafos": [
+        "El dueño quiere ver dónde va a dejar a su mascota: fotos reales del consultorio, del área de hospitalización y del equipo. Presentar a los médicos con su formación y su cédula profesional transmite seriedad.",
+        "Las fotos de pacientes, con permiso de sus dueños, dan calidez y son de lo más compartido en redes."
+      ]
+    },
+    {
+      "titulo": "Google Maps es tu vitrina",
+      "parrafos": [
+        "Para una veterinaria, el perfil de Google es tan importante como la página. Horarios correctos, categoría precisa, fotos, servicios y reseñas reales. La página y el perfil deben decir lo mismo: si el horario no coincide, el cliente desconfía.",
+        "Pedir reseñas al final de cada consulta, con un enlace directo, es la forma más honesta de crecer en el mapa."
+      ]
+    },
+    {
+      "titulo": "Contenido útil para dueños",
+      "parrafos": [
+        "Las notas sobre dudas frecuentes atraen visitas y muestran cuidado: calendario de vacunas para cachorros, qué hacer si tu perro comió chocolate, cada cuánto bañar a un gato, cómo preparar a una mascota para una cirugía. Son búsquedas que hacen los dueños todos los días.",
+        "Cada nota puede cerrar con una invitación a agendar y con la recomendación de acudir a consulta ante cualquier síntoma. Así la página se vuelve una referencia para la comunidad de dueños de tu zona y no solo una tarjeta de presentación."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para veterinarias con la urgencia y los servicios bien resueltos, rápidos en celular y con el contacto medido. Si quieres recordatorios automáticos y un asistente que agende, están incluidos desde el paquete de $9,999 MXN.",
+        "Todo queda a nombre de la clínica: dominio, hosting y accesos."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Debo publicar precios de consulta o vacunas?",
+      "respuesta": "Publicar el costo de servicios básicos como consulta o vacunas suele ayudar. Para cirugías conviene decir que se cotiza después de valorar a la mascota."
+    },
+    {
+      "pregunta": "¿El asistente puede dar consejos médicos?",
+      "respuesta": "No. Puede orientar sobre horarios y citas, y ante cualquier síntoma preocupante indica traer a la mascota o llamar de inmediato."
+    },
+    {
+      "pregunta": "¿Sirve vender alimento en la página?",
+      "respuesta": "Puede funcionar para alimentos de prescripción con entrega local. Para lo demás, suele bastar un catálogo con pedido por WhatsApp."
+    },
+    {
+      "pregunta": "¿Puedo tener una página para la estética aparte?",
+      "respuesta": "Sí. Muchas clínicas tienen la estética como servicio con clientes propios. Una sección o página dedicada con su propia agenda funciona bien."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-veterinarias",
+      "texto": "Chatbot de WhatsApp para veterinarias"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-veterinarias",
+      "texto": "Cómo aparecer en Google Maps: veterinarias"
+    },
+    {
+      "ruta": "/como-conseguir-pacientes-para-tu-consultorio",
+      "texto": "Cómo conseguir más pacientes para tu consultorio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:d78f6a91ad4be35eafcce4959f8493624e64411bbfdaf9f6899e6e2ae7694374",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:55Z",
+    "contenido_digest": "sha256:d78f6a91ad4be35eafcce4959f8493624e64411bbfdaf9f6899e6e2ae7694374"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 663,
+    "similitud_max": 0.011,
+    "parecida_a": "/aparecer-en-google-maps-veterinarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:c2065b588983320825c5630ff0c41f45c53599f24b2138125b8fd1ebd6d64188",
+    "generado_en": "2026-10-11T02:03:55Z"
+  }
+}

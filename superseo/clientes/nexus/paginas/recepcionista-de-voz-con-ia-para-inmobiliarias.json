@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "recepcionista-de-voz-con-ia-para-inmobiliarias",
+  "cliente": "nexus",
+  "ruta": "/recepcionista-de-voz-con-ia-para-inmobiliarias",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Recepcionista de voz con IA para inmobiliarias",
+  "descripcion": "Recepcionista con inteligencia artificial para inmobiliarias: contesta llamadas de anuncios y letreros, informa por propiedad, califica y agenda visitas.",
+  "h1": "Recepcionista de voz con IA para inmobiliarias",
+  "respuesta_rapida": [
+    "Contesta las llamadas que llegan por letreros y anuncios, aunque el asesor esté en una visita.",
+    "Identifica la propiedad y responde precio, superficie, mantenimiento y disponibilidad.",
+    "Califica al interesado y agenda la visita con el asesor responsable.",
+    "Atiende también a propietarios que quieren vender o rentar."
+  ],
+  "secciones": [
+    {
+      "titulo": "Los letreros generan llamadas",
+      "parrafos": [
+        "Un letrero de se vende o se renta en una ventana sigue siendo una fuente importante de prospectos, y esos prospectos llaman en lugar de escribir. El problema es que el número del letrero es el del asesor, que suele estar mostrando otra propiedad, manejando o en una firma. Las llamadas sin respuesta se convierten en prospectos que llaman al siguiente letrero de la cuadra.",
+        "Lo mismo pasa con los anuncios en portales que muestran el teléfono: la llamada llega en el peor momento."
+      ]
+    },
+    {
+      "titulo": "Qué hace en una llamada",
+      "parrafos": [
+        "Pregunta por qué propiedad llama la persona, por la dirección del letrero o el anuncio, y responde con los datos de esa ficha: precio, superficie, recámaras, mantenimiento, mascotas y disponibilidad. Luego hace las preguntas de calificación que el equipo definió, como presupuesto, forma de pago, crédito y fecha de mudanza.",
+        "Si la persona quiere ver la propiedad, consulta la agenda del asesor responsable y agenda la visita, con confirmación por mensaje. Si la propiedad ya no está disponible, menciona opciones similares del inventario.",
+        "Si quien llama es un propietario que quiere vender o rentar, toma los datos de su inmueble y agenda una visita de evaluación."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un sábado a mediodía, una persona ve un letrero en un departamento y llama. El asesor está en otra visita. La recepcionista identifica el departamento por la calle, le informa la renta, el mantenimiento y que acepta mascotas pequeñas, pregunta para cuándo busca mudarse y agenda una visita el domingo con el asesor. El asesor recibe el resumen al terminar su visita.",
+        "Ese prospecto no llamó a ningún otro letrero."
+      ]
+    },
+    {
+      "titulo": "Sin compromisos indebidos",
+      "parrafos": [
+        "La recepcionista no negocia precios, no promete condiciones especiales y no confirma la propiedad para nadie: eso lo hace el asesor. Comparte solo la información aprobada de cada ficha y canaliza todo lo demás. Así se evitan malentendidos en operaciones de mucho dinero.",
+        "Los datos personales que se recogen quedan bajo el aviso de privacidad de la inmobiliaria."
+      ]
+    },
+    {
+      "titulo": "Lo que gana la inmobiliaria",
+      "parrafos": [
+        "Ninguna llamada de letrero perdida, prospectos calificados antes de la visita, agendas de asesores mejor aprovechadas y propietarios captados que de otro modo se habrían ido con otra agencia. Además, un registro de cuántas llamadas genera cada propiedad, útil para ajustar precios y anuncios.",
+        "En un giro de comisiones altas, una operación recuperada justifica de sobra la inversión."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Conectamos la recepcionista con el inventario de la inmobiliaria para que siempre responda con datos actuales, definimos las preguntas de calificación y las reglas de asignación por asesor, y configuramos el desvío de los números de letreros y anuncios. Probamos llamadas reales antes de activarla."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Se cotiza aparte según volumen de llamadas e integraciones. Se combina con el asistente de WhatsApp para inmobiliarias, incluido en los paquetes de sitio desde $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede atender varios números de asesores?",
+      "respuesta": "Sí. Cada número puede desviarse a la recepcionista, que reconoce a qué asesor corresponde cada llamada."
+    },
+    {
+      "pregunta": "¿Puede identificar la propiedad por la calle?",
+      "respuesta": "Sí, por la calle, la colonia o la clave del anuncio, según esté registrado el inventario."
+    },
+    {
+      "pregunta": "¿Habla inglés?",
+      "respuesta": "Sí, útil en zonas con compradores o inquilinos extranjeros."
+    },
+    {
+      "pregunta": "¿Puedo escuchar las llamadas?",
+      "respuesta": "Puedes leer el resumen de cada llamada y, si se graban con aviso, escucharlas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-inmobiliarias",
+      "texto": "Página web para inmobiliarias"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-inmobiliarias",
+      "texto": "Chatbot de WhatsApp para inmobiliarias"
+    },
+    {
+      "ruta": "/chatbot-vs-recepcionista-humana",
+      "texto": "Chatbot vs. recepcionista: qué hace mejor cada uno"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:1ef7f16bc2b55d2e49bbdf2e2249b72f569cc6d3158d69f9ab4a12bd7a60377f",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:1ef7f16bc2b55d2e49bbdf2e2249b72f569cc6d3158d69f9ab4a12bd7a60377f"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 600,
+    "similitud_max": 0.031,
+    "parecida_a": "/chatbot-whatsapp-para-inmobiliarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:199ace3e034376fc69928365aef04b58a6bb9d41f599831c598f386bacedd78f",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}

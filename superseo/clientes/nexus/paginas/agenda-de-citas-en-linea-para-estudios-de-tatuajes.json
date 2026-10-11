@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "agenda-de-citas-en-linea-para-estudios-de-tatuajes",
+  "cliente": "nexus",
+  "ruta": "/agenda-de-citas-en-linea-para-estudios-de-tatuajes",
+  "tipo": "AGENTE_IA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Agenda de citas en línea para estudios de tatuajes",
+  "descripcion": "Agenda en línea para estudios de tatuaje: solicitud con referencia, cotización, anticipo, sesión por artista y recordatorios de cuidados.",
+  "h1": "Agenda de citas en línea para estudios de tatuajes",
+  "respuesta_rapida": [
+    "La reserva empieza con una solicitud: referencia, tamaño, zona y artista.",
+    "El artista cotiza y, al aceptar, el cliente paga el anticipo y elige fecha.",
+    "Cada artista maneja su agenda, sus días y la duración de sus sesiones.",
+    "Recordatorio antes de la sesión y cuidados automáticos después."
+  ],
+  "secciones": [
+    {
+      "titulo": "Un flujo distinto al de otros negocios",
+      "parrafos": [
+        "En un estudio de tatuajes no se puede reservar como en una barbería, eligiendo un servicio y un horario. Antes hay que saber qué quiere el cliente, de qué tamaño, en qué zona, a color o en negro, y con qué artista. Solo entonces se puede estimar cuánto tiempo tomará y cuánto costará.",
+        "Una agenda en línea pensada para tatuaje respeta ese orden: primero la solicitud, después la cotización, después el anticipo y la fecha."
+      ]
+    },
+    {
+      "titulo": "Paso a paso",
+      "parrafos": [
+        "El cliente llena una solicitud desde tu página con su idea, imágenes de referencia, tamaño aproximado, zona del cuerpo y artista preferido. La solicitud llega al artista, que la revisa y responde con una cotización y la duración estimada de la sesión.",
+        "Si el cliente acepta, paga el anticipo en línea y elige fecha entre los espacios del artista que caben para esa duración. Recibe la confirmación con las indicaciones previas: descansar, comer bien, no beber alcohol el día anterior y llevar ropa cómoda para la zona."
+      ]
+    },
+    {
+      "titulo": "La agenda de cada artista",
+      "parrafos": [
+        "Cada artista define sus días de trabajo, la duración de sus sesiones y cuánto tiempo necesita para diseñar antes de la cita. La agenda solo ofrece fechas que respetan ese tiempo de diseño. Los artistas invitados o las fechas de convención se abren y cierran con facilidad.",
+        "El dueño del estudio ve la ocupación de todos los artistas y de las estaciones."
+      ]
+    },
+    {
+      "titulo": "Anticipos que protegen el trabajo",
+      "parrafos": [
+        "El artista invierte horas en el diseño antes de la sesión. El anticipo, cobrado en línea, protege ese trabajo y reduce las ausencias. La política de reprogramación, con cuántos días de aviso y si el anticipo se conserva, queda escrita en la confirmación.",
+        "El anticipo se descuenta del total al terminar la pieza."
+      ]
+    },
+    {
+      "titulo": "Después de la sesión",
+      "parrafos": [
+        "Al terminar, el cliente recibe automáticamente las instrucciones de cuidado y, unas semanas después, un mensaje para revisar cómo sanó y agendar el retoque si hace falta. Para piezas grandes en varias sesiones, la agenda programa las siguientes con el intervalo que el artista indique.",
+        "Ese acompañamiento es lo que convierte a un cliente en recomendación."
+      ]
+    },
+    {
+      "titulo": "Requisitos claros",
+      "parrafos": [
+        "La solicitud puede pedir confirmación de mayoría de edad y aceptar las condiciones del estudio, como el consentimiento informado que se firma el día de la sesión. Dejarlo claro desde el principio evita malos ratos en el mostrador.",
+        "La información del cliente se guarda bajo el aviso de privacidad del estudio."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos la agenda con solicitudes, cotización, anticipos y agendas por artista, integrada a tu página y a WhatsApp. Incluida desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo aceptar clientes sin cita para piezas pequeñas?",
+      "respuesta": "Sí. Se pueden abrir días o bloques para piezas pequeñas sin solicitud previa."
+    },
+    {
+      "pregunta": "¿El artista puede rechazar solicitudes?",
+      "respuesta": "Sí, con un mensaje amable y, si quieres, sugiriendo a otro artista del estudio."
+    },
+    {
+      "pregunta": "¿Cómo manejo las piezas de varias sesiones?",
+      "respuesta": "La agenda programa todas las sesiones y lleva el registro del avance."
+    },
+    {
+      "pregunta": "¿Funciona desde Instagram?",
+      "respuesta": "Sí, el enlace de solicitud se coloca en tu biografía."
+    },
+    {
+      "pregunta": "¿Qué pasa si el cliente quiere cambiar el diseño después de pagar el anticipo?",
+      "respuesta": "Depende de la política de cada artista. La agenda permite registrar los cambios y, si afectan la duración, mover la cita a un espacio adecuado."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-estudios-de-tatuajes",
+      "texto": "Página web para estudios de tatuajes"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:75c2436a31f165bf232800344061cc57e5fd3ee7cb7537b1e23935554effac61",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:75c2436a31f165bf232800344061cc57e5fd3ee7cb7537b1e23935554effac61"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 604,
+    "similitud_max": 0.014,
+    "parecida_a": "/agenda-de-citas-en-linea-para-salones-de-belleza"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:934d31dc43e4884d9b4d10f22ccfecc2289856cbe09c3f770ba6a4b2f7b31643",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

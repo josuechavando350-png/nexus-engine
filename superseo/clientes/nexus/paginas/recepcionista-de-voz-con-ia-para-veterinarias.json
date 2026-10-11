@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "id": "recepcionista-de-voz-con-ia-para-veterinarias",
+  "cliente": "nexus",
+  "ruta": "/recepcionista-de-voz-con-ia-para-veterinarias",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Recepcionista de voz con IA para veterinarias",
+  "descripcion": "Recepcionista con inteligencia artificial para veterinarias: contesta llamadas, agenda consulta y estética, informa horarios y canaliza urgencias de inmediato.",
+  "h1": "Recepcionista de voz con IA para veterinarias",
+  "respuesta_rapida": [
+    "Contesta las llamadas de la clínica aunque el equipo esté en consulta o en cirugía.",
+    "Agenda consultas, vacunas, estética y hotel según cada agenda.",
+    "Ante una urgencia, da el teléfono de guardia o indica traer a la mascota de inmediato.",
+    "Toma recados ordenados para el veterinario cuando hace falta."
+  ],
+  "secciones": [
+    {
+      "titulo": "Una clínica que no siempre puede contestar",
+      "parrafos": [
+        "En una veterinaria, el teléfono suena mientras el médico está en consulta, en cirugía o atendiendo a un paciente que llegó de urgencia. La recepción, si existe, también cobra, despacha alimento y recibe mascotas para estética. Muchas llamadas se pierden, y entre ellas hay dueños angustiados que necesitan saber qué hacer.",
+        "Para un dueño con una mascota enferma, que nadie conteste es la peor experiencia posible."
+      ]
+    },
+    {
+      "titulo": "Qué hace en una llamada",
+      "parrafos": [
+        "Contesta con el nombre de la clínica y pregunta en qué puede ayudar. Si es para agendar, pregunta el nombre de la mascota, especie y el motivo, y agenda en la agenda correspondiente, ya sea consulta, vacuna, estética u hotel, con confirmación por mensaje. Si es una duda de horarios, costos de servicios básicos o ubicación, responde con la información aprobada.",
+        "Si el dueño describe síntomas preocupantes, la recepcionista no los evalúa: indica traer a la mascota de inmediato o comparte el teléfono de urgencias, y avisa al médico de guardia.",
+        "Si el dueño necesita hablar con el veterinario, toma un recado detallado y lo envía para que le devuelvan la llamada."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Un domingo por la tarde, con la clínica cerrada, llama una dueña porque su perro se comió un juguete. La recepcionista le explica, con calma, que conviene que lo vea un veterinario cuanto antes, le da el número de urgencias de la clínica y avisa al médico de guardia con un resumen. La dueña llega con su perro en menos de una hora.",
+        "El lunes temprano, otras dos llamadas agendan vacunas sin que nadie interrumpa la consulta."
+      ]
+    },
+    {
+      "titulo": "Sin consejos médicos",
+      "parrafos": [
+        "La recepcionista no diagnostica, no recomienda medicamentos ni remedios caseros y no minimiza ningún síntoma. Su papel es agendar, informar y canalizar rápido. Esa claridad protege a la mascota, al dueño y a la clínica.",
+        "Su tono es cálido y paciente, porque quien llama a una veterinaria suele estar preocupado."
+      ]
+    },
+    {
+      "titulo": "Lo que gana la clínica",
+      "parrafos": [
+        "Ninguna llamada perdida, agendas de consulta y estética más llenas, urgencias canalizadas al instante y un equipo médico que no tiene que interrumpir la consulta para contestar. Además, las llamadas quedan registradas con resumen y la recepcionista puede hacer llamadas de recordatorio de vacunas.",
+        "Para muchas clínicas, eso significa poder atender más mascotas con el mismo equipo."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Definimos con la clínica sus servicios, agendas, costos básicos, protocolo de urgencias y quién está de guardia. Escribimos el guion con el tono de la clínica, lo aprueban y configuramos el desvío del número actual. Probamos llamadas, incluidas las de urgencia, antes de activarla."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Se cotiza aparte según volumen de llamadas. Se combina con el asistente de WhatsApp para veterinarias, incluido en los paquetes de sitio desde $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede hacer llamadas de recordatorio de vacunas?",
+      "respuesta": "Sí, según las fechas registradas, por llamada o por mensaje."
+    },
+    {
+      "pregunta": "¿Qué pasa si nadie de guardia contesta?",
+      "respuesta": "La recepcionista indica al dueño acudir a la clínica de urgencias más cercana que la clínica haya definido."
+    },
+    {
+      "pregunta": "¿Puede atender el hotel de mascotas?",
+      "respuesta": "Sí, consulta disponibilidad, explica requisitos y reserva."
+    },
+    {
+      "pregunta": "¿Funciona con el número actual?",
+      "respuesta": "Sí, mediante desvío de llamadas."
+    },
+    {
+      "pregunta": "¿Puede dar costos de servicios?",
+      "respuesta": "Sí, los costos de servicios básicos que la clínica apruebe, como consulta, vacunas o baño. Para cirugías explica que se cotiza después de valorar a la mascota."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-veterinarias",
+      "texto": "Página web para veterinarias"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-veterinarias",
+      "texto": "Chatbot de WhatsApp para veterinarias"
+    },
+    {
+      "ruta": "/chatbot-vs-recepcionista-humana",
+      "texto": "Chatbot vs. recepcionista: qué hace mejor cada uno"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:76a8a25c2eb0f14454329bd95be1888556635c8052e620cd5c543462fb9200fd",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:76a8a25c2eb0f14454329bd95be1888556635c8052e620cd5c543462fb9200fd"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 612,
+    "similitud_max": 0.033,
+    "parecida_a": "/recepcionista-de-voz-con-ia-para-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:de6ccb262917b22240532cbf44b7a2dd70fd387792f6781b719a92918abcd1e2",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}
