@@ -1,0 +1,238 @@
+{
+  "schema_version": 2,
+  "stage": "RMC-011",
+  "contract": "NQC_RMC011_EXECUTION_TOPOLOGIES_V2_RESEARCH_ONLY",
+  "status": "OPEN_MORPHO_FAMILY_AND_ROUTING_GAPS",
+  "terminal": false,
+  "authority_scope": "DERIVED_REQUIREMENT_DISCOVERY_ONLY_NOT_D11_AUTHORITY",
+  "upstream_d11_source_head": "3b23804a46bfcc730d57784fb95a349e6e6e726b",
+  "opportunity_identity": {
+    "required": [
+      "chain_id",
+      "protocol_deployment",
+      "borrower",
+      "collateral_asset",
+      "debt_asset",
+      "canonical_block_hash",
+      "prestate_commitment",
+      "sizing_semantics",
+      "trigger_conditions"
+    ],
+    "prohibited": [
+      "flash_provider",
+      "flash_premium",
+      "flash_repayment",
+      "funding_topology",
+      "swap_route",
+      "gas_provider",
+      "builder_payment",
+      "calldata",
+      "post_event_result"
+    ]
+  },
+  "execution_variant_identity": {
+    "required": [
+      "opportunity_id",
+      "funding_source",
+      "funding_asset",
+      "funding_terms_commitment",
+      "acquisition_route",
+      "liquidation",
+      "monetization_route",
+      "repayment_route",
+      "gas_source",
+      "builder_policy",
+      "calldata_commitment",
+      "canonical_block_hash"
+    ],
+    "prohibited": [
+      "future_inclusion_outcome",
+      "future_competitor_result",
+      "post_event_pnl"
+    ]
+  },
+  "topologies": [
+    {
+      "id": "TOPOLOGY-V2-001",
+      "name": "Morpho USDT / Curve USDT→USDC / unresolved USDtb acquisition / Aave liquidation / Fluid",
+      "funding": {
+        "source_family": "MORPHO_BLUE_FLASH_LOAN",
+        "provider": "MORPHO_BLUE",
+        "provider_address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+        "asset": "USDT",
+        "callback": "onMorphoFlashLoan",
+        "premium": "ZERO_BY_PINNED_MORPHO_UPSTREAM_VERIFY_LIVE_CODE",
+        "source_code_commit": "8e26ca6a8dbc5089edcd67fb576248810fd2870a"
+      },
+      "steps": [
+        {
+          "kind": "FLASH_BORROW",
+          "asset": "USDT",
+          "provider": "MORPHO_BLUE"
+        },
+        {
+          "kind": "SWAP",
+          "input_asset": "USDT",
+          "output_asset": "USDC",
+          "venue_family": "CURVE_3POOL_USDT_USDC",
+          "quote": "BLOCK_PIN_REQUIRED"
+        },
+        {
+          "kind": "UNRESOLVED_SWAP",
+          "input_asset": "USDC",
+          "output_asset": "USDtb",
+          "venue_family": null,
+          "reason": "NO_EXACT_BOUNDED_USDTB_ACQUISITION_QUOTE"
+        },
+        {
+          "kind": "LIQUIDATE",
+          "input_asset": "USDtb",
+          "output_asset": "sUSDe",
+          "venue_family": "AAVE_V3_LIQUIDATION",
+          "quote": "EXACT_TRIGGER_BLOCK_REQUIRED"
+        },
+        {
+          "kind": "SWAP",
+          "input_asset": "sUSDe",
+          "output_asset": "USDT",
+          "venue_family": "FLUID_SUSDE_USDT",
+          "quote": "BLOCK_PIN_REQUIRED"
+        },
+        {
+          "kind": "FLASH_REPAY",
+          "asset": "USDT",
+          "provider": "MORPHO_BLUE"
+        }
+      ],
+      "state_anchor": "EXACT_TRIGGER_BLOCK_NOT_AVAILABLE",
+      "status": "RESEARCH_CANDIDATE_NOT_ADMITTED",
+      "gas": {
+        "source_family": "EXTERNAL_GAS_SPONSOR",
+        "eligibility": "UNKNOWN",
+        "capital_committed": false,
+        "prepaid_by_operator": false,
+        "recourse": "UNKNOWN",
+        "fee": "UNKNOWN"
+      },
+      "builder": {
+        "terms": "UNKNOWN",
+        "payment": "UNKNOWN",
+        "probability_calibrated": false
+      },
+      "evidence": {
+        "borrower_hf_under_one": false,
+        "exact_flash_capacity": false,
+        "executor_callback_fork_pass": false,
+        "all_route_quotes_block_pinned": false,
+        "gas_sponsorship_terms_accepted": false,
+        "competition_survival_proven": false,
+        "profit_net_after_full_cost_proven": false
+      },
+      "own_capital_exposure": {
+        "principal": "EXTERNAL_REQUIRED",
+        "gas": "EXTERNAL_REQUIRED",
+        "collateral": "NO_OPERATOR_COLLATERAL_PERMITTED",
+        "guarantees": "NO_OPERATOR_RECOURSE_PERMITTED"
+      }
+    },
+    {
+      "id": "TOPOLOGY-V2-002",
+      "name": "Aave direct USDtb / liquidation / Fluid / unresolved USDtb reacquisition",
+      "funding": {
+        "source_family": "AAVE_V3_FLASH_LOAN",
+        "provider": "AAVE_V3",
+        "provider_address": "0x87870Bca3F3fD6335C3F4Ce8392D69350B4fA4E2",
+        "asset": "USDtb",
+        "callback": "executeOperation",
+        "premium": "READ_FLASHLOAN_PREMIUM_TOTAL_AT_TRIGGER"
+      },
+      "steps": [
+        {
+          "kind": "FLASH_BORROW",
+          "asset": "USDtb",
+          "provider": "AAVE_V3"
+        },
+        {
+          "kind": "LIQUIDATE",
+          "input_asset": "USDtb",
+          "output_asset": "sUSDe",
+          "venue_family": "AAVE_V3_LIQUIDATION",
+          "quote": "EXACT_TRIGGER_BLOCK_REQUIRED"
+        },
+        {
+          "kind": "SWAP",
+          "input_asset": "sUSDe",
+          "output_asset": "USDT",
+          "venue_family": "FLUID_SUSDE_USDT",
+          "quote": "BLOCK_PIN_REQUIRED"
+        },
+        {
+          "kind": "UNRESOLVED_SWAP",
+          "input_asset": "USDT",
+          "output_asset": "USDtb",
+          "venue_family": null,
+          "reason": "AAVE_USDTB_PRINCIPAL_PLUS_PREMIUM_REPAYMENT_NOT_QUOTED"
+        },
+        {
+          "kind": "FLASH_REPAY",
+          "asset": "USDtb",
+          "provider": "AAVE_V3"
+        }
+      ],
+      "state_anchor": "EXACT_TRIGGER_BLOCK_NOT_AVAILABLE",
+      "status": "RESEARCH_CANDIDATE_NOT_ADMITTED",
+      "gas": {
+        "source_family": "EXTERNAL_GAS_SPONSOR",
+        "eligibility": "UNKNOWN",
+        "capital_committed": false,
+        "prepaid_by_operator": false,
+        "recourse": "UNKNOWN",
+        "fee": "UNKNOWN"
+      },
+      "builder": {
+        "terms": "UNKNOWN",
+        "payment": "UNKNOWN",
+        "probability_calibrated": false
+      },
+      "evidence": {
+        "borrower_hf_under_one": false,
+        "exact_flash_capacity": false,
+        "executor_callback_fork_pass": false,
+        "all_route_quotes_block_pinned": false,
+        "gas_sponsorship_terms_accepted": false,
+        "competition_survival_proven": false,
+        "profit_net_after_full_cost_proven": false
+      },
+      "own_capital_exposure": {
+        "principal": "EXTERNAL_REQUIRED",
+        "gas": "EXTERNAL_REQUIRED",
+        "collateral": "NO_OPERATOR_COLLATERAL_PERMITTED",
+        "guarantees": "NO_OPERATOR_RECOURSE_PERMITTED"
+      }
+    }
+  ],
+  "required_source_families": [
+    "AAVE_V3_FLASH_LOAN",
+    "EXTERNAL_GAS_SPONSOR",
+    "MORPHO_BLUE_FLASH_LOAN"
+  ],
+  "required_venue_families": [
+    "AAVE_V3_LIQUIDATION",
+    "CURVE_3POOL_USDT_USDC",
+    "FLUID_SUSDE_USDT"
+  ],
+  "missing_venue_requirements": [
+    "USDtb_ACQUISITION_USDC_TO_USDtb",
+    "USDtb_REACQUISITION_USDT_TO_USDtb"
+  ],
+  "nonclaims": [
+    "D11_TERMINAL_OPEN",
+    "RMC_D17_TERMINAL_OPEN",
+    "NO_LIVE_EXECUTABLE_CAPITAL",
+    "NO_FULL_PATH_EXECUTION",
+    "NO_HF_BELOW_ONE_TRIGGER",
+    "NO_GAS_SPONSOR_APPROVAL",
+    "NO_PROFIT_OR_SHADOW_CERTIFICATION",
+    "NQC_REALIZED_PNL_ZERO"
+  ]
+}
