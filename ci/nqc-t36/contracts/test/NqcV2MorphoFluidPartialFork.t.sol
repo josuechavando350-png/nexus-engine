@@ -209,8 +209,10 @@ contract NqcV2MorphoFluidPartialForkTest {
         uint256 positiveCount;
         for (uint256 i; i < sizes.length; ++i) {
             emit log_named_uint("NQC_FLUID_CLOSE_WINDOW_SUSDE_UNITS", sizes[i]);
-            try IV2FluidReserves(RESOLVER).estimateSwapIn(FLUID, true, sizes[i] * 1 ether, 1)
-                returns (uint256 output) {
+            try IV2FluidReserves(RESOLVER)
+                .estimateSwapIn(FLUID, true, sizes[i] * 1 ether, 1) returns (
+                uint256 output
+            ) {
                 emit log_named_uint("NQC_FLUID_CLOSE_WINDOW_USDT_QUOTE_RAW", output);
                 if (output > 0) {
                     positiveCount++;
