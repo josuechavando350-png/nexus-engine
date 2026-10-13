@@ -97,7 +97,10 @@ class SniperTriageTests(unittest.TestCase):
                                  sample(2,close=False)]))
         self.assertEqual(d["hf_near_threshold_watch_count"],0)
     def test_nonmonotonic_near_is_still_only_watch(self):
-        d=t.triage(self.journal([sample(2),sample(1),sample(0)]))
+        docs=[sample(i) for i in range(3)]
+        docs[2]["account_rows"][0]["account"]["health_factor_wad"]=str(
+            W+100_000_000_000_000+10_000_000)
+        d=t.triage(self.journal(docs))
         row=next(x for x in d["triage"] if x["borrower_label"]=="emode24_susde_usdtb")
         self.assertEqual(row["status"],"PRETRIGGER_NEAR_ONE_WATCH_ONLY")
     def test_only_two_samples_refused(self):
