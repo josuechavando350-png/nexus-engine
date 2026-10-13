@@ -63,6 +63,7 @@ jobs:
               --rpc-url "$RPC" --output "$OUT/curve-twohop.json" \
               > "$OUT/console.txt" 2> "$OUT/last-error.txt"; then
               echo "CANONICAL_TWOHOP_QUOTE_ACQUIRED $RPC" >> "$OUT/provider-attempts.txt"
+              echo "SELECTED_CURVE_TWOHOP_RPC=$RPC" >> "$GITHUB_ENV"
               SUCCESS=1
               break
             fi
@@ -92,6 +93,32 @@ jobs:
                  {input_usdt_display,usdc_after_3pool_display,
                   usdtb_after_curve_pool_display}]}' "$OUT/curve-twohop.json" \
             | tee "$OUT/route-summary.json"
+      - name: Solve integer exact-input requirements for Morpho cover and Aave premium
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/rmc-v2-curve-usdtb"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-routing \
+            -p 'test_bisect_curve_usdtb_cover.py' -v
+          timeout 300s python3 ci/nqc-census/rmc-v2-routing/bisect_curve_usdtb_cover.py \
+            --rpc-url "$SELECTED_CURVE_TWOHOP_RPC" \
+            --seed "$OUT/curve-twohop.json" \
+            --output "$OUT/inverse-required-usdt.json" \
+            | tee "$OUT/inverse-summary.log"
+          jq -e '
+            .contract=="NQC_RMC_V2_CURVE_TWOHOP_EXACT_INPUT_SIZING_RESEARCH_ONLY"
+            and .block_number==26184741
+            and .block_hash=="0xe4b0718c51a6a484eef56edce0f25e9a5c546c2f66f595c6e305a589a612dbbe"
+            and (.minimum_usdt_quotes|length)==2
+            and (.minimum_usdt_quotes|all(.quote_minimal_within_bracket==true and .actual_swap_executed==false))
+            and .morpho_required_flash_tested_at_exact_size==false
+            and .route_executed_on_fork==false
+            and .external_gas_nonrecourse_admitted==false
+            and .p2_shadow_certified==false
+            and .rmc_closed==false
+            and .commercial_score_upgrade==false
+            and .nqc_realized_pnl_usd=="0"
+          ' "$OUT/inverse-required-usdt.json"
       - name: Content-address source, block and economic nonclaims
         shell: bash
         run: |
@@ -99,6 +126,8 @@ jobs:
           OUT="$RUNNER_TEMP/rmc-v2-curve-usdtb"
           cp ci/nqc-census/rmc-v2-routing/quote_curve_usdtb_twohop.py "$OUT/quote-producer.py"
           cp ci/nqc-census/rmc-v2-routing/test_quote_curve_usdtb_twohop.py "$OUT/quote-tests.py"
+          cp ci/nqc-census/rmc-v2-routing/bisect_curve_usdtb_cover.py "$OUT/inverse-producer.py"
+          cp ci/nqc-census/rmc-v2-routing/test_bisect_curve_usdtb_cover.py "$OUT/inverse-tests.py"
           jq -n --arg head "${{ github.event.pull_request.head.sha || github.sha }}" \
             '{schema_version:1,producing_head:$head,
               contract:"NQC_CURVE_TWOHOP_RESEARCH_ONLY",
@@ -110,6 +139,7 @@ jobs:
               rmc_closed:false,commercial_score_upgrade:false,
               realized_nqc_pnl_usd:"0"}' > "$OUT/nonclaims.json"
           (cd "$OUT" && sha256sum curve-twohop.json quote-producer.py quote-tests.py \
+            inverse-required-usdt.json inverse-producer.py inverse-tests.py \
             route-summary.json nonclaims.json > evidence.sha256 && sha256sum -c evidence.sha256)
       - name: Preserve exact quote or failure dossier
         if: always()
