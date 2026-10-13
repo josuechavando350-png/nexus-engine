@@ -13,18 +13,15 @@
 
 use crate::{
     Amount256, CapitalAsset, CapitalCaps, CapitalClass, CapitalError, CapitalEvidenceRef,
-    CapitalFailureMode, CapitalOwnership, CapitalProviderKind, CapitalSource,
-    CapitalSourceSpec, CollateralRequirement, FeeModel, RepaymentSemantics,
-    TemporaryLock, UtilizationConstraints,
+    CapitalFailureMode, CapitalOwnership, CapitalProviderKind, CapitalSource, CapitalSourceSpec,
+    CollateralRequirement, FeeModel, RepaymentSemantics, TemporaryLock, UtilizationConstraints,
 };
 use nqc_census_core::{Address, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
 
 pub const MORPHO_BLUE_PROVIDER_NAMESPACE: u16 = 0x1401;
-pub const MORPHO_BLUE_MAINNET_ADDRESS: &str =
-    "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb";
-pub const MORPHO_BLUE_UPSTREAM_COMMIT: &str =
-    "8e26ca6a8dbc5089edcd67fb576248810fd2870a";
+pub const MORPHO_BLUE_MAINNET_ADDRESS: &str = "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb";
+pub const MORPHO_BLUE_UPSTREAM_COMMIT: &str = "8e26ca6a8dbc5089edcd67fb576248810fd2870a";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MorphoBlueObservedState {
@@ -50,9 +47,9 @@ pub struct MorphoBlueOperatorWitness {
 fn operator_id_syntax_valid(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 96
-        && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_'
-        })
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-' || byte == b'_')
 }
 
 fn protocol_contract_locator_hash(morpho: Address) -> Result<Hash32, CapitalError> {
@@ -62,8 +59,7 @@ fn protocol_contract_locator_hash(morpho: Address) -> Result<Hash32, CapitalErro
     hasher.update(MORPHO_BLUE_PROVIDER_NAMESPACE.to_be_bytes());
     hasher.update(morpho.as_bytes());
     let digest: [u8; 32] = hasher.finalize().into();
-    Hash32::new(digest)
-        .map_err(|_| CapitalError::InvalidCanonical("zero Morpho locator digest"))
+    Hash32::new(digest).map_err(|_| CapitalError::InvalidCanonical("zero Morpho locator digest"))
 }
 
 /// Reconcile two declared operator observations into a *non-executable*
@@ -94,10 +90,9 @@ pub fn reconcile_morpho_blue_nominal(
         ));
     }
 
-    let expected = Address::parse_hex(MORPHO_BLUE_MAINNET_ADDRESS)
-        .map_err(|_| CapitalError::InvalidCanonical(
-            "invalid pinned Morpho Blue mainnet address",
-        ))?;
+    let expected = Address::parse_hex(MORPHO_BLUE_MAINNET_ADDRESS).map_err(|_| {
+        CapitalError::InvalidCanonical("invalid pinned Morpho Blue mainnet address")
+    })?;
     if first.state.morpho != expected {
         return Err(CapitalError::InvalidUpstreamAuthority(
             "Morpho flash source contract differs from pinned mainnet deployment",
@@ -162,14 +157,14 @@ mod tests {
     }
     fn anchor() -> StateAnchor {
         StateAnchor::new(
-            ChainDomain::new(1, hash(1), hash(2))
-                .unwrap_or_else(|_| unreachable!()),
+            ChainDomain::new(1, hash(1), hash(2)).unwrap_or_else(|_| unreachable!()),
             26_184_415,
             hash(3),
             hash(4),
             1_791_904_679,
             hash(5),
-        ).unwrap_or_else(|_| unreachable!())
+        )
+        .unwrap_or_else(|_| unreachable!())
     }
     fn state() -> MorphoBlueObservedState {
         MorphoBlueObservedState {
@@ -190,11 +185,16 @@ mod tests {
 
     #[test]
     fn reconciles_nominal_token_balance_with_zero_executable_capital() {
-        let x = reconcile_morpho_blue_nominal(
-            &witness("rpc-org-a", 7), &witness("rpc-org-b", 8),
-        ).unwrap_or_else(|_| unreachable!());
-        assert_eq!(x.maximum_available(), Amount256::from_u128(65_581_714_595_588));
-        assert_eq!(x.executable_capacity().unwrap_or(Amount256::MAX), Amount256::ZERO);
+        let x = reconcile_morpho_blue_nominal(&witness("rpc-org-a", 7), &witness("rpc-org-b", 8))
+            .unwrap_or_else(|_| unreachable!());
+        assert_eq!(
+            x.maximum_available(),
+            Amount256::from_u128(65_581_714_595_588)
+        );
+        assert_eq!(
+            x.executable_capacity().unwrap_or(Amount256::MAX),
+            Amount256::ZERO
+        );
         assert!(!x.execution_eligible());
         assert_eq!(x.class(), CapitalClass::ProtocolNativeFlashLoan);
         assert_eq!(x.provider_namespace(), MORPHO_BLUE_PROVIDER_NAMESPACE);
@@ -202,29 +202,37 @@ mod tests {
         assert_eq!(x.ownership(), CapitalOwnership::External);
         assert_eq!(x.repayment(), RepaymentSemantics::AtomicSameTransaction);
         assert_eq!(x.fee_model(), FeeModel::None);
-        assert_eq!(x.quote_fee(Amount256::from_u128(1000)).unwrap_or_else(|_| unreachable!()), None);
+        assert_eq!(
+            x.quote_fee(Amount256::from_u128(1000))
+                .unwrap_or_else(|_| unreachable!()),
+            None
+        );
     }
 
     #[test]
     fn same_operator_cannot_fake_independence() {
-        assert!(reconcile_morpho_blue_nominal(
-            &witness("rpc-org-a", 7), &witness("rpc-org-a", 8),
-        ).is_err());
+        assert!(
+            reconcile_morpho_blue_nominal(&witness("rpc-org-a", 7), &witness("rpc-org-a", 8),)
+                .is_err()
+        );
     }
 
     #[test]
     fn same_transcript_cannot_be_counted_twice() {
-        assert!(reconcile_morpho_blue_nominal(
-            &witness("rpc-org-a", 7), &witness("rpc-org-b", 7),
-        ).is_err());
+        assert!(
+            reconcile_morpho_blue_nominal(&witness("rpc-org-a", 7), &witness("rpc-org-b", 7),)
+                .is_err()
+        );
     }
 
     #[test]
     fn independent_identifiers_are_only_declared_not_certified() {
-        let src = reconcile_morpho_blue_nominal(
-            &witness("provider-A", 7), &witness("provider-B", 8),
-        ).unwrap_or_else(|_| unreachable!());
-        assert!(src.execution_blockers().iter()
+        let src =
+            reconcile_morpho_blue_nominal(&witness("provider-A", 7), &witness("provider-B", 8))
+                .unwrap_or_else(|_| unreachable!());
+        assert!(src
+            .execution_blockers()
+            .iter()
             .any(|x| x == "MORPHO_RPC_OPERATORS_NOT_INDEPENDENTLY_AUTHENTICATED"));
     }
 
@@ -258,10 +266,14 @@ mod tests {
         let first = witness("rpc-org-a", 7);
         let mut second = witness("rpc-org-b", 8);
         second.state.anchor = StateAnchor::new(
-            ChainDomain::new(1, hash(1), hash(2))
-                .unwrap_or_else(|_| unreachable!()),
-            26_184_416, hash(3), hash(4), 1_791_904_691, hash(5),
-        ).unwrap_or_else(|_| unreachable!());
+            ChainDomain::new(1, hash(1), hash(2)).unwrap_or_else(|_| unreachable!()),
+            26_184_416,
+            hash(3),
+            hash(4),
+            1_791_904_691,
+            hash(5),
+        )
+        .unwrap_or_else(|_| unreachable!());
         assert!(reconcile_morpho_blue_nominal(&first, &second).is_err());
     }
 
@@ -271,30 +283,30 @@ mod tests {
         let mut b = witness("rpc-org-b", 8);
         a.state.nominal_token_balance = Amount256::ZERO;
         b.state.nominal_token_balance = Amount256::ZERO;
-        let src = reconcile_morpho_blue_nominal(&a, &b)
-            .unwrap_or_else(|_| unreachable!());
+        let src = reconcile_morpho_blue_nominal(&a, &b).unwrap_or_else(|_| unreachable!());
         assert_eq!(src.maximum_available(), Amount256::ZERO);
         assert!(!src.execution_eligible());
-        assert!(src.execution_blockers().contains(&"MORPHO_ZERO_TOKEN_BALANCE".to_owned()));
+        assert!(src
+            .execution_blockers()
+            .contains(&"MORPHO_ZERO_TOKEN_BALANCE".to_owned()));
     }
 
     #[test]
     fn malformed_operator_identifiers_fail_closed() {
         for name in ["", "source/foo", "has whitespace", "🔑"] {
-            assert!(reconcile_morpho_blue_nominal(
-                &witness(name, 7), &witness("rpc-org-b", 8),
-            ).is_err());
+            assert!(
+                reconcile_morpho_blue_nominal(&witness(name, 7), &witness("rpc-org-b", 8),)
+                    .is_err()
+            );
         }
     }
 
     #[test]
     fn same_evidence_is_deterministic() {
-        let a = reconcile_morpho_blue_nominal(
-            &witness("rpc-org-a", 7), &witness("rpc-org-b", 8),
-        ).unwrap_or_else(|_| unreachable!());
-        let b = reconcile_morpho_blue_nominal(
-            &witness("rpc-org-a", 7), &witness("rpc-org-b", 8),
-        ).unwrap_or_else(|_| unreachable!());
+        let a = reconcile_morpho_blue_nominal(&witness("rpc-org-a", 7), &witness("rpc-org-b", 8))
+            .unwrap_or_else(|_| unreachable!());
+        let b = reconcile_morpho_blue_nominal(&witness("rpc-org-a", 7), &witness("rpc-org-b", 8))
+            .unwrap_or_else(|_| unreachable!());
         assert_eq!(a, b);
     }
 }
