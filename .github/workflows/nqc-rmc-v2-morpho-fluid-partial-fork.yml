@@ -136,6 +136,8 @@ jobs:
           grep -F '[PASS] testRealMorphoFluidSwapTwoHundredThousandSUSDeRevertsWithMeasuredUSDT()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
           grep -F '[PASS] testRealFluid378kSUSDeForkOutputExceeds472461USDTQuoteRequirement()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
           grep -F '[PASS] testRealFluid380kSUSDeForkOutputExceeds472461USDTQuoteRequirement()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
+          grep -F '[PASS] testPinnedAaveFeeAdjustedSeizureIsBelow388kSUSDe()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
+          grep -F '[PASS] testActualFluidSwapOfFeeAdjustedAaveNetSUSDeChallengesLegacyGross()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
           grep -F '[PASS] testActualFluid388kForkReachesInheritedGrossTargetBeforeOtherCosts()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
           grep -F '[PASS] testActualFluid387kForkFallsShortOfInheritedGrossBenchmark()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
           grep -F '[PASS] testFluidResolverNoPositive400kEstimateDoesNotProveGlobalCapacity()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
