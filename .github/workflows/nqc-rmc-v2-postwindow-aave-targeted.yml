@@ -93,7 +93,7 @@ jobs:
           TOOL=ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py
           # PublicNode previously refused 403; LlamaNodes gave TLS 525.
           # This stage is deliberately ONE public endpoint, not quorum.
-          if timeout 3450s python3 "$TOOL" --provider drpc --span 5000 \
+          if timeout 3450s python3 "$TOOL" --provider drpc --span 2500 \
             --output "$OUT/drpc.json" \
             > "$OUT/drpc.stdout" 2> "$OUT/drpc.stderr"; then
             printf 'drpc_exit=0\n' > "$OUT/endpoint-exit-status.txt"
