@@ -32,12 +32,18 @@ contract ForkUSDtbPrincipalOnlyStrategy {
     error WrongPrincipal();
     error TokenTransferFailed();
 
-    address public immutable approvedExecutor;
+    address public approvedExecutor;
+    address public immutable owner;
     address public immutable underlyingAsset;
 
-    constructor(address executor_, address token_) {
-        approvedExecutor = executor_;
+    constructor(address token_) {
+        owner = msg.sender;
         underlyingAsset = token_;
+    }
+
+    function bindExecutor(address executor_) external {
+        if (msg.sender != owner || approvedExecutor != address(0)) revert WrongExecutor();
+        approvedExecutor = executor_;
     }
 
     function executeFunded(bytes32, address token, uint256 principal, bytes calldata)
@@ -86,11 +92,9 @@ contract NqcFlashFundingExecutorV2AaveUSDtbForkTest {
         require(blockhash(block.number - 1) == PARENT_HASH, "CANONICAL_PARENT_MISMATCH");
         require(AAVE_POOL.code.length > 0, "AAVE_POOL_CODE_MISSING");
         require(USDTB.code.length > 0 && ATOKEN.code.length > 0, "USDtb_RESERVE_CODE_MISSING");
-        strategy = new ForkUSDtbPrincipalOnlyStrategy(address(0), USDTB);
+        strategy = new ForkUSDtbPrincipalOnlyStrategy(USDTB);
         executor = new NqcFlashFundingExecutorV2(address(this), address(strategy));
-        // The strategy MUST reject an unbound coordinator. The pool flash still
-        // reaches executeOperation before our principal-only strategy is called.
-        // This branch reports truth of reserve/fee gates without a funded strategy.
+        strategy.bindExecutor(address(executor));
     }
 
     function testPinnedAaveUSDtbReserveConfigAndNominalCash() public {
@@ -138,10 +142,13 @@ contract NqcFlashFundingExecutorV2AaveUSDtbForkTest {
             _plan(payload, ILLUSTRATIVE_PRINCIPAL, fee, 0);
         uint256 cashBefore = IERC20USDtbFork(USDTB).balanceOf(ATOKEN);
         uint256 operatorBefore = IERC20USDtbFork(USDTB).balanceOf(address(this));
-        (bool ok,) = address(executor).call(
+        (bool ok, bytes memory reason) = address(executor).call(
             abi.encodeWithSelector(executor.execute.selector, plan, payload)
         );
         require(!ok, "UNFUNDED_EXECUTION_MUST_REVERT");
+        require(_selector(reason) ==
+                NqcFlashFundingExecutorV2.InsufficientForRepaymentAndProfit.selector,
+                "UNFUNDED_EXECUTION_MUST_REVERT_AT_FEE_GATE");
         require(IERC20USDtbFork(USDTB).balanceOf(ATOKEN) == cashBefore, "RESERVE_LOST_CASH");
         require(IERC20USDtbFork(USDTB).balanceOf(address(this)) == operatorBefore,
                 "UNFUNDED_OPERATOR_ASSET_CHANGED");
@@ -154,12 +161,21 @@ contract NqcFlashFundingExecutorV2AaveUSDtbForkTest {
         NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan =
             _plan(payload, ILLUSTRATIVE_PRINCIPAL, 0, 0);
         uint256 cashBefore = IERC20USDtbFork(USDTB).balanceOf(ATOKEN);
-        (bool ok,) = address(executor).call(
+        (bool ok, bytes memory reason) = address(executor).call(
             abi.encodeWithSelector(executor.execute.selector, plan, payload)
         );
         require(!ok, "WRONG_FEE_PLAN_MUST_REVERT");
+        require(_selector(reason) ==
+                NqcFlashFundingExecutorV2.InvalidCallbackFee.selector,
+                "WRONG_PREMIUM_REJECT_REASON");
         require(IERC20USDtbFork(USDTB).balanceOf(ATOKEN) == cashBefore,
                 "FEE_REVERT_RESERVE_CHANGED");
+    }
+
+    function _selector(bytes memory raw) internal pure returns (bytes4 result) {
+        if (raw.length >= 4) {
+            assembly ("memory-safe") { result := mload(add(raw, 0x20)) }
+        }
     }
 
     function _roundedFee(uint256 amount, uint128 premiumBps) internal pure returns (uint256) {
