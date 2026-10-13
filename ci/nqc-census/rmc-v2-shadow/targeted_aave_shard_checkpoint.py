@@ -255,16 +255,18 @@ def combine(parts):
     ids = set()
     previous_end_hash = None
     for report, cp in pairs:
+        # Classify gaps/overlaps before comparing canonical ancestry, so a
+        # broken interval is not misreported as an RPC reorg/mismatch.
+        require(cp["window_start"] == cursor,
+                "missing or overlapping historical checkpoint interval")
+        require(report["provider_id"] == provider and
+                report["operator_label"] == operator,
+                "unrelated operators cannot form one complete source")
         edge = report["segment_boundary_headers"]
         if previous_end_hash is not None:
             require(edge["first"]["parent_hash"] == previous_end_hash,
                     "adjacent segment parent/hash ancestry mismatch")
         previous_end_hash = edge["last"]["hash"]
-        require(report["provider_id"] == provider and
-                report["operator_label"] == operator,
-                "unrelated operators cannot form one complete source")
-        require(cp["window_start"] == cursor,
-                "missing or overlapping historical checkpoint interval")
         for event in report["events"]:
             identity = census.identifier(event)
             require(identity not in ids, "cross-checkpoint duplicate event")
