@@ -1,0 +1,222 @@
+name: NQC RMC V2 Live Read-only Sniper Observation (NO TRADE)
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-v2-live-readonly-sniper-20261013"
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py"
+      - "ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py"
+      - "ci/nqc-census/rmc-v2-shadow/sniper_hf_pretrigger_triage.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_sniper_hf_pretrigger_triage.py"
+      - ".github/workflows/nqc-v2-sniper-readonly-observation.yml"
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py"
+      - "ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py"
+      - "ci/nqc-census/rmc-v2-shadow/sniper_hf_pretrigger_triage.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_sniper_hf_pretrigger_triage.py"
+      - ".github/workflows/nqc-v2-sniper-readonly-observation.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-sniper-no-trade-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  read-only-one-shot-observation:
+    name: Authenticate pinned Ethereum HF read-only
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout exact proposed read-only source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Reject code from wrong head and run synthetic guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-v2-sniper-pilot"
+          python3 -m py_compile \
+            ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py \
+            ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py \
+            ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py \
+            ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py \
+            ci/nqc-census/rmc-v2-shadow/sniper_hf_pretrigger_triage.py \
+            ci/nqc-census/rmc-v2-shadow/test_sniper_hf_pretrigger_triage.py
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_sniper_readonly_observer.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-v2-sniper-pilot/adversarial-tests.log"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_sniper_readonly_journal.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-v2-sniper-pilot/journal-negative-tests.log"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_sniper_hf_pretrigger_triage.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-v2-sniper-pilot/triage-negative-tests.log"
+
+      - name: Take ONE genuine chain state snapshot without a wallet
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-sniper-pilot"
+          set +e
+          timeout 470s python3 ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py \
+            --providers drpc publicnode blast \
+            --out "$OUT/first-live-snapshot.json" \
+            > "$OUT/observer.stdout" 2> "$OUT/observer.stderr"
+          rc=$?
+          set -e
+          echo "observer_exit_code=$rc" > "$OUT/run-exit-code.txt"
+          test "$rc" -eq 0
+          python3 - "$OUT/first-live-snapshot.json" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          assert d['contract']=='NQC_V2_READ_ONLY_SNIPER_PROSPECTIVE_SNAPSHOT'
+          assert d['chain_id']==1
+          assert d['status'] in (
+            'DUAL_ENDPOINT_SAME_BLOCK_HF_WITNESS_NOT_P2',
+            'SINGLE_ENDPOINT_RESEARCH_ONLY_NOT_P2')
+          assert d['provider_count'] in (1,2,3)
+          assert d['watched_borrower_count']==4
+          assert len(d['account_rows'])==4
+          assert d['snapshot_sampling_not_24_7_deployment'] is True
+          assert d['actual_liquidation_executed'] is False
+          assert d['p2_shadow_certified'] is False
+          assert d['rmc_closed'] is False
+          assert d['commercial_score_upgrade'] is False
+          assert d['native_gas_nonrecourse_sponsor_verified'] is False
+          assert d['nqc_realized_pnl_usd']=='0'
+          print('NQC_ONE_READONLY_CHAIN_OBSERVATION_PASS')
+          print('block_number',d['pinned_block']['number'])
+          print('hf_below_one_state_candidates',d['hf_below_one_state_count_not_execution_admission'])
+          print('provider_count',d['provider_count'])
+          PY
+
+      - name: Measure THREE sequential read-only state samples (not permanent)
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-sniper-pilot"
+          mkdir -p "$OUT/three-sample-journal"
+          timeout 660s python3 ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py \
+            --out-dir "$OUT/three-sample-journal" \
+            --providers drpc publicnode blast \
+            --interval-seconds 60 --max-cycles 3 \
+            > "$OUT/three-sample.stdout" 2> "$OUT/three-sample.stderr"
+          python3 - "$OUT/three-sample-journal" <<'PY'
+          import json,sys
+          from pathlib import Path
+          sys.path.insert(0,"ci/nqc-census/rmc-v2-shadow")
+          import sniper_readonly_journal as j
+          p=Path(sys.argv[1])
+          entries,final_digest=j.audit((p/"journal.jsonl").read_bytes(),p)
+          assert len(entries)==3
+          assert [e["sequence"] for e in entries]==[0,1,2]
+          snapshots=[json.loads((p/e["snapshot_file"]).read_text()) for e in entries]
+          assert all(s["status"]!="UNVERIFIED_NO_OBSERVATION" for s in snapshots)
+          assert all(s["nqc_realized_pnl_usd"]=="0" and
+                     s["p2_shadow_certified"] is False for s in snapshots)
+          blocks=[s["pinned_block"]["number"] for s in snapshots]
+          assert blocks[0]<blocks[1]<blocks[2]
+          assert all(s["watched_borrower_count"]==4 for s in snapshots)
+          print("NQC_THREE_VERIFIABLE_SEQUENTIAL_NO_TRADE_SAMPLES_PASS")
+          print("block_heights",blocks)
+          print("hf_below_one_by_sample",
+                [s["hf_below_one_state_count_not_execution_admission"]
+                 for s in snapshots])
+          print("journal_last_sha256",final_digest)
+          PY
+
+      - name: Issue safe integer HF triage advisory on three real samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-sniper-pilot"
+          python3 ci/nqc-census/rmc-v2-shadow/sniper_hf_pretrigger_triage.py \
+            --journal-dir "$OUT/three-sample-journal" \
+            --out "$OUT/read-only-hf-triage.json"
+          jq -e '
+            .contract=="NQC_V2_READONLY_PRETRIGGER_HF_TRIAGE"
+            and .status=="READ_ONLY_HF_TRIAGE_NOT_A_TRADE"
+            and .borrowers_watched==4
+            and (.latest_blocks|length)==3
+            and .hf_near_threshold_watch_count>=0
+            and .two_endpoint_agreement_not_independent_operator_certification==true
+            and .no_live_transaction==true
+            and .no_external_gas_sponsor_certified==true
+            and .p2_shadow_certified==false
+            and .rmc_closed==false
+            and .commercial_score_upgrade==false
+            and .nqc_realized_pnl_usd=="0"
+          ' "$OUT/read-only-hf-triage.json"
+          jq '{latest_blocks,borrowers_watched,hf_near_threshold_watch_count,
+               hf_below_one_state_candidates_only,
+               triage:[.triage[]|{borrower_label,status,latest_hf_headroom_bps_micro}],
+               no_live_transaction,nqc_realized_pnl_usd}' "$OUT/read-only-hf-triage.json"
+
+      - name: Write immutable source and nonprofit assertions
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-sniper-pilot"
+          cp ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py "$OUT/offline-negative-tests.py"
+          cp ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py "$OUT/daemon-candidate.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py "$OUT/journal-negative-tests.py"
+          cp ci/nqc-census/rmc-v2-shadow/sniper_hf_pretrigger_triage.py "$OUT/triage-source.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_sniper_hf_pretrigger_triage.py "$OUT/triage-negative-tests.py"
+          jq -n --arg source_commit "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$source_commit,
+              scope:"ONE_SHOT_PLUS_THREE_SEQUENTIAL_SAMPLES_NO_24_7",
+              not_24_7_deployment:true,
+              no_generic_borrower_discovery:true,no_prospective_capture_certification:true,
+              no_Aave_liquidation_call:true,
+              no_blockchain_signed_or_broadcast_transactions:true,
+              no_wallet_credentials:true,no_user_MetaMask_connection:true,
+              no_native_gas_sponsorship_contract:true,
+              no_expected_monthly_PnL_authority:true,
+              no_realized_Nexus_PnL:true, RMC_closed:false,P2_shadow_certified:false,
+              commercial_score_upgrade:false}' > "$OUT/nonclaims.json"
+          (
+            cd "$OUT"
+            sha256sum producer.py offline-negative-tests.py daemon-candidate.py \
+              journal-negative-tests.py journal-negative-tests.log \
+              triage-source.py triage-negative-tests.py triage-negative-tests.log \
+              nonclaims.json > producer-evidence.sha256
+            sha256sum -c producer-evidence.sha256
+            if test -f first-live-snapshot.json; then
+              sha256sum first-live-snapshot.json > snapshot.sha256
+              sha256sum -c snapshot.sha256
+            fi
+            if test -f read-only-hf-triage.json; then
+              sha256sum read-only-hf-triage.json > triage-result.sha256
+              sha256sum -c triage-result.sha256
+            fi
+            if test -f three-sample-journal/journal.jsonl; then
+              sha256sum three-sample-journal/journal.jsonl \
+                three-sample-journal/sample-*.json > longitudinal.sha256
+              sha256sum -c longitudinal.sha256
+            fi
+          )
+
+      - name: Preserve result OR exact RPC denial
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-sniper-readonly-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-v2-sniper-pilot/
+          if-no-files-found: error
+          retention-days: 30
