@@ -214,9 +214,10 @@ contract NqcV2MorphoCurvePartialForkTest {
     }
 
     function testRealMorphoCurveRecordsActualOutputForFormer472000USDtbQuote() public {
-        _simulateTwoHopAndRollback(
+        uint256 actual = _simulateTwoHopAndRollback(
             FIRST_MINIMAL_USDT, FIRST_TARGET_USDTB, FIRST_CURVE_USDC, FIRST_CURVE_USDTB_QUOTE, true
         );
+        require(actual < FIRST_TARGET_USDTB, "QUOTE_MINIMUM_MUST_MISS_IN_REAL_FORK");
     }
 
     function testRealMorphoCurveOneAdditionalUSDTBaseUnitMeetsFormerTarget() public {
@@ -228,19 +229,21 @@ contract NqcV2MorphoCurvePartialForkTest {
     }
 
     function testRealMorphoCurveRecordsOutputForOneUnitLowerInput() public {
-        _simulateTwoHopAndRollback(
+        uint256 actual = _simulateTwoHopAndRollback(
             FIRST_PREVIOUS_USDT, FIRST_TARGET_USDTB, 0, FIRST_PREVIOUS_USDTB_QUOTE, false
         );
+        require(actual < FIRST_TARGET_USDTB, "PRIOR_NEIGHBOR_MUST_MISS");
     }
 
     function testRealMorphoCurveRecordsActualOutputForPremiumQuote() public {
-        _simulateTwoHopAndRollback(
+        uint256 actual = _simulateTwoHopAndRollback(
             SECOND_MINIMAL_USDT,
             SECOND_TARGET_USDTB,
             SECOND_CURVE_USDC,
             SECOND_CURVE_USDTB_QUOTE,
             true
         );
+        require(actual >= SECOND_TARGET_USDTB, "PREMIUM_TARGET_MUST_CLEAR_ON_FORK");
     }
 
     function _assertQuotedPath(uint256 usdtIn, uint256 expectedUsdc, uint256 expectedUsdTb)
