@@ -1,0 +1,182 @@
+name: NQC RMC V2 Aave USDtb Reserve + Flash Fee Historical Fork (NO LIVE)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-t36/contracts/test/NqcFlashFundingExecutorV2AaveUSDtbFork.t.sol'
+      - '.github/workflows/nqc-rmc-v2-aave-usdtb-fork.yml'
+  push:
+    branches:
+      - 'nqc/rmc-v2-aave-usdtb-fork-20261013'
+    paths:
+      - 'ci/nqc-t36/contracts/test/NqcFlashFundingExecutorV2AaveUSDtbFork.t.sol'
+      - '.github/workflows/nqc-rmc-v2-aave-usdtb-fork.yml'
+permissions:
+  contents: read
+concurrency:
+  group: nqc-v2-aave-usdtb-fork-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  block-pinned-aave-usdtb-capital-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      BLOCK: "26184741"
+      EXPECTED_HASH: "0xe4b0718c51a6a484eef56edce0f25e9a5c546c2f66f595c6e305a589a612dbbe"
+      EXPECTED_PARENT: "0x53ddf49d46b566154bbb876ae76839331ee43b01beab19190b813eecbda5ec66"
+      AAVE_POOL: "0x87870Bca3F3fD6335C3F4Ce8392D69350B4fA4E2"
+      USDtb: "0xC139190F447e929f090Edeb554D95AbB8b18aC1C"
+      ATOKEN: "0xEc4ef66D4fCeEba34aBB4dE69dB391Bc5476ccc8"
+      BORROWER: "0x08c14b32c8a48894e4b933090ebcc9ce33b21135"
+    steps:
+      - name: Checkout exact producing commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify immutable original sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = "aa3883fa141aa096006e90e56d8d4150c9ee14ef"
+          mkdir -p "$RUNNER_TEMP/aave-usdtb-fork"
+          echo "HEAD=$(git rev-parse HEAD)" > "$RUNNER_TEMP/aave-usdtb-fork/attempts.txt"
+      - name: Install Foundry 1.7.1 by pinned distribution digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/foundry"
+          curl --fail --location --retry 4 --retry-all-errors --max-time 160 \
+            -o "$RUNNER_TEMP/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  $RUNNER_TEMP/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
+          echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/foundry/forge" --version
+      - name: Strict format and Solidity compilation
+        working-directory: ci/nqc-t36/contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          forge fmt --check test/NqcFlashFundingExecutorV2AaveUSDtbFork.t.sol
+          forge build --sizes 2>&1 | tee "$RUNNER_TEMP/aave-usdtb-fork/build.txt"
+      - name: Pin archive RPC against canonical header, USDtb cash and Aave fee
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/aave-usdtb-fork"
+          SELECTED=""
+          for RPC in \
+            "https://ethereum-rpc.publicnode.com" \
+            "https://eth.drpc.org" \
+            "https://1rpc.io/eth" \
+            "https://eth.llamarpc.com" \
+            "https://rpc.flashbots.net"
+          do
+            echo "TRY_PUBLIC_RPC $RPC" >> "$OUT/attempts.txt"
+            if ! timeout 25s cast block "$BLOCK" --rpc-url "$RPC" --json > "$OUT/candidate-block.json" 2>/dev/null; then
+              echo "BLOCK_UNAVAILABLE" >> "$OUT/attempts.txt"
+              continue
+            fi
+            if ! jq -e --arg hash "$EXPECTED_HASH" --arg parent "$EXPECTED_PARENT" \
+                 '(.hash|ascii_downcase)==$hash and (.parentHash|ascii_downcase)==$parent' \
+                 "$OUT/candidate-block.json" >/dev/null; then
+              echo "BLOCK_MISMATCH" >> "$OUT/attempts.txt"
+              continue
+            fi
+            if ! timeout 25s cast code "$AAVE_POOL" --block "$BLOCK" --rpc-url "$RPC" > "$OUT/pool-code.txt" 2>/dev/null ||
+               ! timeout 25s cast code "$USDtb" --block "$BLOCK" --rpc-url "$RPC" > "$OUT/usdtb-code.txt" 2>/dev/null; then
+              echo "DEPLOYED_CODE_UNAVAILABLE" >> "$OUT/attempts.txt"
+              continue
+            fi
+            if ! timeout 25s cast call "$USDtb" 'balanceOf(address)(uint256)' "$ATOKEN" \
+                 --block "$BLOCK" --rpc-url "$RPC" > "$OUT/usdtb-atoken-cash.txt" 2>/dev/null; then
+              echo "USDTB_ATOKEN_BALANCE_UNAVAILABLE" >> "$OUT/attempts.txt"
+              continue
+            fi
+            if ! timeout 25s cast call "$AAVE_POOL" 'FLASHLOAN_PREMIUM_TOTAL()(uint128)' \
+                 --block "$BLOCK" --rpc-url "$RPC" > "$OUT/premium-bps.txt" 2>/dev/null; then
+              echo "PREMIUM_UNAVAILABLE" >> "$OUT/attempts.txt"
+              continue
+            fi
+            if ! timeout 25s cast call "$AAVE_POOL" 'getConfiguration(address)(uint256)' "$USDtb" \
+                 --block "$BLOCK" --rpc-url "$RPC" > "$OUT/reserve-flags.txt" 2>/dev/null; then
+              echo "CONFIGURATION_UNAVAILABLE" >> "$OUT/attempts.txt"
+              continue
+            fi
+            python3 - "$OUT/usdtb-atoken-cash.txt" "$OUT/premium-bps.txt" "$OUT/reserve-flags.txt" "$OUT/reserve-snapshot.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          def natural(path):
+              txt=Path(path).read_text().strip().split()[0]
+              val=int(txt,16) if txt.startswith("0x") else int(txt)
+              assert val>=0 and val < (1<<256)
+              return val
+          raw,premium,flags=map(natural,sys.argv[1:4])
+          bits={"active":bool((flags>>56)&1),"frozen":bool((flags>>57)&1),
+                "paused":bool((flags>>60)&1),"flash_enabled":bool((flags>>63)&1)}
+          assert raw>=472000*10**18 and premium==5
+          assert bits == {"active":True,"frozen":False,"paused":False,"flash_enabled":True}
+          data={"schema_version":1,"source_tier":"SINGLE_ARCHIVE_RPC_HISTORICAL_ONLY",
+                "block_number":26184741,"aave_usdtb_underlying_raw":str(raw),
+                "flash_premium_total_bps":premium,
+                "aave_reserve_configuration_uint256":str(flags),
+                "reserve_flags":bits,
+                "flash_callback_executed":False,
+                "capital_committed_to_nqc":False,
+                "external_gas_source_known":False}
+          Path(sys.argv[4]).write_text(json.dumps(data,indent=2,sort_keys=True)+"\n")
+          PY
+            STATUS=$?
+            if test "$STATUS" -ne 0; then
+              echo "RESERVE_GATE_FAILED" >> "$OUT/attempts.txt"
+              continue
+            fi
+            echo "ATOKEN_CASH_PREMIUM_CONFIG_VERIFIED $RPC" >> "$OUT/attempts.txt"
+            SELECTED="$RPC"
+            break
+          done
+          test -n "$SELECTED"
+          echo "SELECTED_ARCHIVE_RPC=$SELECTED" >> "$GITHUB_ENV"
+          echo "$SELECTED" > "$OUT/selected-rpc.txt"
+          mv "$OUT/candidate-block.json" "$OUT/pinned-block.json"
+      - name: Actual Aave USDtb flash fork — unpaid premium must revert
+        working-directory: ci/nqc-t36/contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 160s forge test \
+            --fork-url "$SELECTED_ARCHIVE_RPC" \
+            --fork-block-number "$BLOCK" \
+            --match-contract NqcFlashFundingExecutorV2AaveUSDtbForkTest -vvv \
+            2>&1 | tee "$RUNNER_TEMP/aave-usdtb-fork/fork-tests.txt"
+          grep -F '[PASS] testPinnedAaveUSDtbReserveConfigAndNominalCash()' "$RUNNER_TEMP/aave-usdtb-fork/fork-tests.txt"
+          grep -F '[PASS] testUnfundedFlashFeeRevertsWithoutTouchingReserveOrOperatorBalance()' "$RUNNER_TEMP/aave-usdtb-fork/fork-tests.txt"
+          grep -F '[PASS] testWrongPremiumCannotPassRealAaveCallback()' "$RUNNER_TEMP/aave-usdtb-fork/fork-tests.txt"
+      - name: Write non-authoritative provenance, no executable-capital claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/aave-usdtb-fork"
+          cp ci/nqc-t36/contracts/test/NqcFlashFundingExecutorV2AaveUSDtbFork.t.sol "$OUT/fork-tests-source.sol"
+          jq -n --arg sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --arg hash "$EXPECTED_HASH" \
+            '{schema_version:1,source_head:$sha,canonical_block_hash:$hash,
+              claim_scope:"AAVE_USDTB_SINGLE_ARCHIVE_RPC_RESERVE_AND_NEGATIVE_FEE_FORK_ONLY",
+              usd_tb_atoken_cash_measured:true,callback_reached:true,
+              aave_usdtb_flash_premium_must_be_financed:true,
+              exact_token_amount_borrowed_for_liquidation:false,
+              full_cross_asset_route_executed:false,gas_sponsor_approved:false,
+              operator_paid_fee_in_live:false,realized_pnl_usd:"0",
+              shadow_p2_certified:false,rmc_closed:false,commercial_upgrade:false}' > "$OUT/nonclaims.json"
+          (cd "$OUT" && sha256sum fork-tests-source.sol build.txt pinned-block.json usdtb-atoken-cash.txt \
+             reserve-flags.txt premium-bps.txt reserve-snapshot.json fork-tests.txt nonclaims.json \
+             > archive.sha256 && sha256sum -c archive.sha256)
+      - name: Preserve results and diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-aave-usdtb-reserve-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/aave-usdtb-fork/
+          if-no-files-found: warn
+          retention-days: 30
