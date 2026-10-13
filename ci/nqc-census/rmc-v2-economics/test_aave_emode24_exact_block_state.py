@@ -42,6 +42,7 @@ def make_fake():
     insert(m.POOL,"getReserveData(address)@sUSDe",col)
     insert(m.POOL,"getReserveData(address)@USDtb",debt)
     insert(m.SUSDE_ATOKEN,"balanceOf(address)",5_000_000*m.WAD)
+    insert(m.SUSDE,"balanceOf(address)",2_000_000*m.WAD)
     insert(m.USDTB_VTOKEN,"balanceOf(address)",6_200_000*m.WAD)
     insert(m.USDTB,"balanceOf(address)",2_282_160*m.WAD)
     insert(m.ORACLE,"getAssetPrice(address)@sUSDe",m.EXPECTED_PRICE_SUSDE)
@@ -193,6 +194,24 @@ class NegativeState(unittest.TestCase):
         self.assertEqual(out["collateral_seizure_sensitivity"]["status"],
                          "COLLATERAL_CAPPED_RECOMPUTE_DEBT")
         self.assertIsNone(out["collateral_seizure_sensitivity"]["fluid_estimate_usdt_raw"])
+    def test_borrower_atoken_claim_is_not_physical_cash(self):
+        f=make_fake()
+        f.values[(m.SUSDE,"balanceOf(address)")]=100*m.WAD
+        out=m.run(f)
+        claim=int(out["borrower_susde_atoken_balance_raw"])
+        cash=int(out["aave_susde_underlying_cash_at_atoken_raw"])
+        self.assertGreater(claim,cash)
+        self.assertFalse(out["collateral_seizure_sensitivity"][
+            "physical_cash_covers_hypothetical_net_susde"])
+        self.assertFalse(out["aave_actual_liquidation_admitted"])
+
+    def test_reserve_with_sufficient_physical_cash_is_still_not_liquidatable(self):
+        out=m.run(make_fake())
+        self.assertTrue(out["collateral_seizure_sensitivity"][
+            "physical_cash_covers_hypothetical_net_susde"])
+        self.assertTrue(out["aave_receive_underlying_cash_not_execution_guarantee"])
+        self.assertFalse(out["aave_actual_liquidation_admitted"])
+
     def test_insufficient_usdtb_debt_marks_cover_unavailable(self):
         f=make_fake();f.values[(m.USDTB_VTOKEN,"balanceOf(address)")]=1_000*m.WAD
         out=m.run(f)
