@@ -1,0 +1,83 @@
+name: NQC RMC V2 Aave Append-only Targeted Census Shard Auditor (NO LIVE)
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py"
+      - "ci/nqc-census/rmc-v2-shadow/targeted_aave_shard_checkpoint.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_targeted_aave_shard_checkpoint.py"
+      - ".github/workflows/nqc-rmc-v2-aave-shard-checkpoints.yml"
+  push:
+    branches:
+      - "nqc/rmc-v2-postwindow-resumable-shards-20261013"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-aave-shard-audit-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  offline-checkpoint-adversarial:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout proposed source-locked commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Fail-closed offline interval and evidence checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-targeted-aave-checkpoints"
+          python3 -m py_compile \
+            ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py \
+            ci/nqc-census/rmc-v2-shadow/targeted_aave_shard_checkpoint.py \
+            ci/nqc-census/rmc-v2-shadow/test_targeted_aave_shard_checkpoint.py
+          python3 -m unittest discover \
+            -s ci/nqc-census/rmc-v2-shadow \
+            -p test_targeted_aave_shard_checkpoint.py -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-targeted-aave-checkpoints/tests.log"
+          grep -E '^Ran [0-9]+ tests in' \
+            "$RUNNER_TEMP/nqc-targeted-aave-checkpoints/tests.log"
+          grep -Fx 'OK' "$RUNNER_TEMP/nqc-targeted-aave-checkpoints/tests.log"
+
+      - name: Hash exact producer and test bytes; attach strict nonclaims
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-targeted-aave-checkpoints"
+          cp ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py "$OUT/targeted-source.py"
+          cp ci/nqc-census/rmc-v2-shadow/targeted_aave_shard_checkpoint.py "$OUT/immutable-checkpoint.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_targeted_aave_shard_checkpoint.py "$OUT/adversarial-checkpoint-tests.py"
+          jq -n --arg sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$sha,
+              scope:"ADVERSARIAL_OFFLINE_CHECKPOINT_SEMANTICS_ONLY",
+              source_scan_executed:false,not_real_ethereum_events:true,
+              no_operator_quorum:true,no_fork_liquidation:true,
+              no_presigned_gas_or_flash_sponsor:true,no_Nexus_capture:true,
+              no_P2_or_RMC_closeout:true,no_Nexus_realized_PnL:true,
+              commercial_score_upgrade:false}' > "$OUT/nonclaims.json"
+          (
+            cd "$OUT"
+            sha256sum targeted-source.py immutable-checkpoint.py \
+              adversarial-checkpoint-tests.py tests.log nonclaims.json \
+              > evidence.sha256
+            sha256sum -c evidence.sha256
+          )
+
+      - name: Preserve exact-source offline negative gate
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-aave-append-only-shards-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-targeted-aave-checkpoints/
+          if-no-files-found: warn
+          retention-days: 30
