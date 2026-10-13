@@ -136,12 +136,12 @@ class SniperTriageTests(unittest.TestCase):
             t.triage(self.journal(docs))
     def test_p2_claim_refused(self):
         docs=[sample(i) for i in range(3)];docs[2]["p2_shadow_certified"]=True
-        with self.assertRaisesRegex(t.Rejected,"missing quorum"):
-            t.triage(self.journal(docs))
+        with self.assertRaisesRegex(j.JournalError,"forged shadow/revenue"):
+            self.journal(docs)
     def test_fake_profit_refused(self):
         docs=[sample(i) for i in range(3)];docs[2]["nqc_realized_pnl_usd"]="45000"
-        with self.assertRaisesRegex(t.Rejected,"missing quorum"):
-            t.triage(self.journal(docs))
+        with self.assertRaisesRegex(j.JournalError,"forged shadow/revenue"):
+            self.journal(docs)
     def test_invalid_risk_parameter_refused(self):
         docs=[sample(i) for i in range(3)]
         docs[1]["account_rows"][0]["account"]["ltv_bps"]="10001"
@@ -150,7 +150,7 @@ class SniperTriageTests(unittest.TestCase):
     def test_false_hf_trigger_flag_refused(self):
         docs=[sample(i) for i in range(3)]
         docs[2]["account_rows"][0]["health_factor_below_one_with_debt"]=True
-        with self.assertRaisesRegex(t.Rejected,"candidate HF flag"):
+        with self.assertRaisesRegex(t.Rejected,"borrower HF flag"):
             t.triage(self.journal(docs))
     def test_false_aggregate_candidate_count_refused(self):
         docs=[sample(i) for i in range(3)]
