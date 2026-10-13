@@ -23,7 +23,9 @@ BORROWER = "0x08c14b32c8a48894e4b933090ebcc9ce33b21135"
 # keccak256("getUserAccountData(address)")[:4]
 SELECTOR = "0xbf92857c"
 WAD = 10**18
-RPCS = ("https://ethereum-rpc.publicnode.com", "https://eth.llamarpc.com")
+RPCS = ("https://ethereum-rpc.publicnode.com", "https://eth.llamarpc.com",
+        "https://rpc.flashbots.net", "https://rpc.mevblocker.io",
+        "https://eth-mainnet.public.blastapi.io")
 FIELDS = ("total_collateral_base", "total_debt_base", "available_borrows_base",
           "current_liquidation_threshold", "ltv", "health_factor_wad")
 HEX64 = re.compile(r"^0x[0-9a-fA-F]{64}$")
@@ -43,9 +45,13 @@ def rpc(endpoint: str, method: str, params: list) -> object:
     demand(method in {"eth_chainId", "eth_blockNumber", "eth_getBlockByNumber", "eth_call"}, "unsupported RPC method")
     body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode()
     req = Request(endpoint, data=body, method="POST", headers={"Content-Type": "application/json", "User-Agent": "NQC-RMC-V2-read-only-state-observer/1"})
-    with urlopen(req, timeout=13) as response:
-        demand(response.status == 200, "HTTP_NON_200")
-        value = json.loads(response.read(1024 * 1024).decode())
+    try:
+        with urlopen(req, timeout=13) as response:
+            demand(response.status == 200, "HTTP_NON_200")
+            value = json.loads(response.read(1024 * 1024).decode())
+    except Exception as exc:
+        # Public RPC edge/CDN failures (e.g. 525) must identify the provider.
+        raise EvidenceError(f"{endpoint} {method}: {type(exc).__name__}: {str(exc)[:100]}") from exc
     demand(isinstance(value, dict) and value.get("jsonrpc") == "2.0" and value.get("id") == 1, "invalid JSON-RPC response")
     demand("error" not in value and "result" in value, "RPC_ERROR_OR_MISSING_RESULT")
     return value["result"]
@@ -72,7 +78,28 @@ def check_block(b: object, height: int) -> dict:
     return {"number": height, "hash": b["hash"].lower(), "parent_hash": b["parentHash"].lower(), "timestamp": int(b["timestamp"], 16)}
 
 
-def observe(endpoints: tuple[str, str] = RPCS) -> dict:
+def select_endpoints(candidates: tuple[str, ...] = RPCS) -> tuple[str, str]:
+    """Choose a two-domain same-chain quorum without masking provider failures."""
+    successes = []
+    failures = []
+    for url in candidates:
+        try:
+            chain = rpc(url, "eth_chainId", [])
+            demand(chain == hex(CHAIN_ID), f"wrong chain: {chain}")
+            head = int(rpc(url, "eth_blockNumber", []), 16)
+            demand(head > 0, "invalid head")
+            successes.append((url, head))
+        except Exception as exc:
+            failures.append(f"{url}: {type(exc).__name__}: {str(exc)[:130]}")
+    successes.sort(key=lambda row: row[1], reverse=True)
+    for i, (left, a) in enumerate(successes):
+        for right, b in successes[i + 1:]:
+            if left.split("/")[2] != right.split("/")[2] and abs(a - b) <= 12:
+                return left, right
+    raise EvidenceError(f"RPC_QUORUM_UNAVAILABLE working={len(successes)} failures={failures}")
+
+
+def observe(endpoints: tuple[str, str] = RPCS[:2]) -> dict:
     demand(len(endpoints) == 2 and len(set(endpoints)) == 2, "two independent RPC endpoints required")
     chain = [rpc(p, "eth_chainId", []) for p in endpoints]
     demand(chain == [hex(CHAIN_ID)] * 2, "chain ID disagreement")
@@ -121,7 +148,7 @@ def main() -> int:
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     try:
-        report = observe()
+        report = observe(select_endpoints())
         ret = 0
     except Exception as exc:  # Preserve a negative artifact even on provider outage.
         report = {"schema_version": 1, "contract": "NQC_V2_DUAL_RPC_AAVE_STATE_WITNESS_READ_ONLY",
