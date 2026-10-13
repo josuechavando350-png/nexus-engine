@@ -1,0 +1,91 @@
+name: NQC RMC V2 Economic Negative Preflight (NO EXECUTION AUTHORITY)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-economics/**'
+      - '.github/workflows/nqc-rmc-v2-economic-preflight.yml'
+  push:
+    branches:
+      - 'nqc/rmc-v2-economic-truth-20261013'
+    paths:
+      - 'ci/nqc-census/rmc-v2-economics/**'
+      - '.github/workflows/nqc-rmc-v2-economic-preflight.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc-v2-economic-negative-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  fail-closed-economics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Check out pinned PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Compile and run adversarial Python unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/nqc-census/rmc-v2-economics/driver_gate.py
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-economics -p 'test_driver_gate.py' -v
+
+      - name: Materialize negative economics record from pinned observation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rmc-v2-economic-negative"
+          python3 ci/nqc-census/rmc-v2-economics/driver_gate.py \
+            --input ci/nqc-census/rmc-v2-economics/fixtures/ethereum-26184415-research-only.json \
+            --out "$RUNNER_TEMP/rmc-v2-economic-negative/economic-gates.json"
+          jq -e '
+            .contract == "NQC_V2_ECONOMIC_NEGATIVE_PREFLIGHT_ONLY"
+            and .block == 26184415
+            and .hf_above_one == true
+            and .admitted_count == 0
+            and (.variants | length == 2)
+            and (.variants | all(.execution_admitted == false and .status == "BLOCKED" and .net_pnl_usd == null))
+          ' "$RUNNER_TEMP/rmc-v2-economic-negative/economic-gates.json"
+          jq -e '
+            .commercial_score_upgrade == false
+            and .prospective_shadow_p2_certified == false
+            and .rmc_closed == false
+            and .realized_nqc_pnl_usd == "0"
+            and .driver_decomposition.collateral_usd_base_delta == "-1178.11750102"
+            and .driver_decomposition.debt_usd_base_delta == "49.55335624"
+            and .illustrative_aave_flash_fee_raw_usdtb == "236000000000000000000"
+            and (.variants | all(.execution_admitted == false and .status == "BLOCKED"))
+          ' "$RUNNER_TEMP/rmc-v2-economic-negative/economic-gates.json"
+
+      - name: Bind source and artifact digest, without certification
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/rmc-v2-economic-negative"
+          SRC='ci/nqc-census/rmc-v2-economics/fixtures/ethereum-26184415-research-only.json'
+          SHA="${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git rev-parse HEAD)" = "$SHA"
+          mkdir -p "$OUT/source"
+          cp -- "$SRC" "$OUT/source/ethereum-26184415-research-only.json"
+          cp -- ci/nqc-census/rmc-v2-economics/driver_gate.py "$OUT/source/driver_gate.py"
+          cp -- ci/nqc-census/rmc-v2-economics/test_driver_gate.py "$OUT/source/test_driver_gate.py"
+          jq -n --arg head "$SHA" --arg scope 'OFFLINE_NEGATIVE_RESEARCH_ONLY' \
+            '{schema_version:1, source_sha:$head, claim_scope:$scope, terminal:false, p2_certified:false, live_pnl_usd:"0"}' > "$OUT/attestation.json"
+          cd "$OUT"
+          sha256sum economic-gates.json attestation.json source/driver_gate.py source/test_driver_gate.py source/ethereum-26184415-research-only.json > archive.sha256
+          sha256sum -c archive.sha256
+
+      - name: Save only non-authoritative artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc-v2-economics-negative-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/rmc-v2-economic-negative/
+          retention-days: 30

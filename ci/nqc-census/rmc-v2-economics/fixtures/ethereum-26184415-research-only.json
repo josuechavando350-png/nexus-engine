@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "evidence_tier": "RETROSPECTIVE_SINGLE_PROVIDER_RESEARCH_ONLY",
+  "chain_id": 1,
+  "borrower": "0x08c14b32c8a48894e4b933090ebcc9ce33b21135",
+  "aave_pool": "0x87870Bca3F3fD6335C3F4Ce8392D69350B4fA4E2",
+  "previous": {
+    "block_number": 26184199,
+    "block_hash": null,
+    "raw_abi_certified": false,
+    "total_collateral_base": "676016213509830",
+    "total_debt_base": "621727361946444",
+    "health_factor_wad_approx": "1000333833257190900",
+    "liquidation_threshold_display_bps": 9199
+  },
+  "current": {
+    "block_number": 26184415,
+    "block_hash": null,
+    "raw_abi_certified": false,
+    "total_collateral_base": "675898401759728",
+    "total_debt_base": "621732317282068",
+    "health_factor_wad_approx": "1000151530043078500",
+    "liquidation_threshold_display_bps": 9199
+  },
+  "morpho_usdt": {
+    "provider_address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+    "token_address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+    "nominal_balance_raw_6_decimals": "65581714595588",
+    "executable_capital_proven": false,
+    "committed_to_nqc": false
+  },
+  "aave_usdtb": {
+    "asset_address": "0xC139190F447e929f090Edeb554D95AbB8b18aC1C",
+    "atoken_address": "0xEc4ef66D4fCeEba34aBB4dE69dB391Bc5476ccc8",
+    "underlying_balance_raw_18_decimals": null,
+    "premium_total_bps": 5,
+    "executable_capital_proven": false
+  },
+  "route_evidence": {
+    "morpho_usdt_to_usdtb": false,
+    "aave_usdtb_repay_conversion": false,
+    "susde_monetization": false,
+    "liquidation_fork_pass": false
+  },
+  "gas_sponsor_nonrecourse_proven": false,
+  "builder_terms_proven": false,
+  "competition_survival_proven": false,
+  "external_liabilities_proven_zero": false,
+  "illustrative_cover_usdtb_raw_18_decimals": "472000000000000000000000",
+  "independent_rpc_operator_count": 1,
+  "prospective_trigger_seen": false,
+  "live_transactions": 0,
+  "realized_nqc_pnl_usd": "0",
+  "certifies_p2": false,
+  "certifies_rmc": false
+}
