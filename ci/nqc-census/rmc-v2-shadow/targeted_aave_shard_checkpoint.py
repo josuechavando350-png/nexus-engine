@@ -20,6 +20,7 @@ MANIFEST = "NQC_V2_AAVE_TARGETED_EXHAUSTIVE_SEGMENT_MERGE_V1"
 PARTIAL = "PARTIAL_ONLY_CANNOT_CERTIFY_FULL_89390_BLOCKS"
 COMPLETE = "COMPLETE_SINGLE_RPC_TARGETED_89390_BLOCKS_NOT_QUORUM"
 HEX32 = re.compile(r"0x[0-9a-f]{64}\Z")
+HEX64_SHA = re.compile(r"[0-9a-f]{64}\Z")
 DECIMAL = re.compile(r"0|[1-9][0-9]*\Z")
 U256 = 2**256-1
 
@@ -121,7 +122,9 @@ def verify_report(doc):
                 lo <= e["block_number"] <= hi, "event outside shard")
         exact_hex(e.get("block_hash"), "event block")
         exact_hex(e.get("transaction_hash"), "event transaction")
-        exact_hex(e.get("raw_event_commitment_sha256"), "ABI commitment")
+        require(type(e.get("raw_event_commitment_sha256")) is str and
+                HEX64_SHA.fullmatch(e["raw_event_commitment_sha256"]) is not None,
+                "ABI commitment: invalid SHA256 digest")
         exact_hex("0x" + e.get("borrower_address_hash_sha256", ""),
                   "borrower hash")
         require(e.get("collateral_asset") in
