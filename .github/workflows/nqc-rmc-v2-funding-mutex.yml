@@ -27,7 +27,6 @@ jobs:
     timeout-minutes: 20
     env:
       GH_TOKEN: ${{ github.token }}
-      NQC_RMC_V2_EVIDENCE_DIR: ${{ runner.temp }}/nqc-v2-mutex/sources
     steps:
       - name: Checkout exact source head, not synthetic merge
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -40,6 +39,9 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          NQC_RMC_V2_EVIDENCE_DIR="$RUNNER_TEMP/nqc-v2-mutex/sources"
+          export NQC_RMC_V2_EVIDENCE_DIR
+          echo "NQC_RMC_V2_EVIDENCE_DIR=$NQC_RMC_V2_EVIDENCE_DIR" >> "$GITHUB_ENV"
           mkdir -p "$NQC_RMC_V2_EVIDENCE_DIR"
           # IDs are GitHub Actions artifacts from historical read-only fork or
           # reserve-census runs, not arbitrary external web content.
