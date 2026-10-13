@@ -108,6 +108,27 @@ class GateTests(unittest.TestCase):
             with self.subTest(field=parent+"."+field):
                 data=case();data[parent][field]=value
                 with self.assertRaises(InvalidEvidence):audit(data)
+    def test_reject_wrong_deployed_contract_identity(self):
+        paths=[
+            ("aave_pool", None, "0x"+"1"*40),
+            ("morpho_usdt", "provider_address", "0x"+"1"*40),
+            ("morpho_usdt", "token_address", "0x"+"1"*40),
+            ("aave_usdtb", "asset_address", "0x"+"1"*40),
+            ("aave_usdtb", "atoken_address", "0x"+"1"*40),
+        ]
+        for parent,field,bad in paths:
+            with self.subTest(parent=parent,field=field):
+                d=case()
+                if field is None:
+                    d[parent]=bad
+                else:
+                    d[parent][field]=bad
+                with self.assertRaises(InvalidEvidence):audit(d)
+    def test_reject_crossing_as_research_only(self):
+        d=case()
+        d["current"]["health_factor_wad_approx"]=str(WAD-1)
+        with self.assertRaises(InvalidEvidence):audit(d)
+
     def test_reject_premium_outside_bps(self):
         for v in (-1,10001,1.2,True,"5"):
             with self.subTest(v=v):
