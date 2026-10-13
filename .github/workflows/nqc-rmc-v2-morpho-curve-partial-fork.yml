@@ -1,0 +1,176 @@
+name: NQC RMC V2 Morpho → Curve → Curve Historical Partial Fork (ALWAYS REVERT)
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-t36/contracts/test/NqcV2MorphoCurvePartialFork.t.sol"
+      - ".github/workflows/nqc-rmc-v2-morpho-curve-partial-fork.yml"
+  push:
+    branches:
+      - "nqc/rmc-v2-morpho-curve-partial-fork-20261013"
+    paths:
+      - "ci/nqc-t36/contracts/test/NqcV2MorphoCurvePartialFork.t.sol"
+      - ".github/workflows/nqc-rmc-v2-morpho-curve-partial-fork.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-morpho-curve-fork-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  partial-acquisition-real-fork:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      BLOCK: "26184741"
+      HASH: "0xe4b0718c51a6a484eef56edce0f25e9a5c546c2f66f595c6e305a589a612dbbe"
+      PARENT: "0x53ddf49d46b566154bbb876ae76839331ee43b01beab19190b813eecbda5ec66"
+      USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7"
+      MORPHO: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb"
+      POOL_USDTB: "0xC2921134073151490193ac7369313c8e0b08e1e7"
+      POOL_3: "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7"
+      EXPECTED_MORPHO_USDT_RAW: "65666477002958"
+    steps:
+      - name: Checkout exact producing head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Verify frozen T36 and V2 source safety
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = "aa3883fa141aa096006e90e56d8d4150c9ee14ef"
+          mkdir -p "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork"
+          git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutorV2.sol > "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/v2-executor-blob.txt"
+
+      - name: Install pinned Foundry 1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/foundry"
+          curl --fail --location --retry 4 --retry-all-errors --max-time 160 \
+            -o "$RUNNER_TEMP/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  $RUNNER_TEMP/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
+          echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/foundry/forge" --version
+
+      - name: Strict Foundry formatting and clean compile
+        working-directory: ci/nqc-t36/contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          forge fmt --check test/NqcV2MorphoCurvePartialFork.t.sol
+          forge build --sizes 2>&1 | tee "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/forge-build.txt"
+
+      - name: Select historical archive RPC at exact canonical header and Morpho token state
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork"
+          : > "$OUT/rpc-attempts.txt"
+          CHOSEN=""
+          for RPC in \
+            "https://ethereum-rpc.publicnode.com" \
+            "https://eth.drpc.org" \
+            "https://1rpc.io/eth" \
+            "https://eth.llamarpc.com"
+          do
+            echo "TRY_PUBLIC_ARCHIVE $RPC" >> "$OUT/rpc-attempts.txt"
+            if ! timeout 35s cast block "$BLOCK" --rpc-url "$RPC" --json > "$OUT/candidate-block.json" 2>/dev/null; then
+              echo "BLOCK_READ_REJECT" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            if ! jq -e --arg h "$HASH" --arg p "$PARENT" \
+              '(.hash|ascii_downcase)==$h and (.parentHash|ascii_downcase)==$p' \
+              "$OUT/candidate-block.json" > /dev/null; then
+              echo "HASH_REJECT" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            if ! timeout 35s cast call "$USDT" 'balanceOf(address)(uint256)' "$MORPHO" \
+              --block "$BLOCK" --rpc-url "$RPC" > "$OUT/morpho-token-balance.txt" 2>/dev/null; then
+              echo "ARCHIVE_USDT_READ_REJECT" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            RAW="$(awk '{print $1}' "$OUT/morpho-token-balance.txt")"
+            if [[ "$RAW" != "$EXPECTED_MORPHO_USDT_RAW" ]]; then
+              echo "NOMINAL_SOURCE_MISMATCH" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            if ! timeout 35s cast code "$POOL_USDTB" --block "$BLOCK" --rpc-url "$RPC" > "$OUT/usdtb-pool-code.txt" 2>/dev/null ||
+               ! timeout 35s cast code "$POOL_3" --block "$BLOCK" --rpc-url "$RPC" > "$OUT/threepool-code.txt" 2>/dev/null; then
+              echo "POOL_RUNTIME_READ_REJECT" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            if [[ "$(wc -c < "$OUT/usdtb-pool-code.txt")" -lt 32 ]] ||
+               [[ "$(wc -c < "$OUT/threepool-code.txt")" -lt 32 ]]; then
+              echo "POOL_RUNTIME_EMPTY" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            CHOSEN="$RPC"
+            echo "ARCHIVE_MORPHO_CURVE_SOURCE_MATCH $RPC" >> "$OUT/rpc-attempts.txt"
+            break
+          done
+          test -n "$CHOSEN"
+          mv "$OUT/candidate-block.json" "$OUT/canonical-block.json"
+          echo "SELECTED_RPC=$CHOSEN" >> "$GITHUB_ENV"
+          echo "$CHOSEN" > "$OUT/selected-archive-rpc.txt"
+
+      - name: Execute two Curve pools inside real Morpho flash; revert deliberately with output evidence
+        working-directory: ci/nqc-t36/contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 180s forge test \
+            --fork-url "$SELECTED_RPC" \
+            --fork-block-number "$BLOCK" \
+            --match-contract NqcV2MorphoCurvePartialForkTest -vvv \
+            2>&1 | tee "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/fork-tests.txt"
+          grep -F '[PASS] testRealMorphoCurveTwoHopRevertsAfterAcquiringAtLeast472000USDtb()' "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/fork-tests.txt"
+          grep -F '[PASS] testRealMorphoCurvePreviousSingleUSDTBaseUnitFallsShort()' "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/fork-tests.txt"
+          grep -F '[PASS] testRealMorphoCurveQuoteCanCoverPrincipalPlusAaveIllustrativePremium()' "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/fork-tests.txt"
+
+      - name: Mark strict partial-route nonclaims and content hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork"
+          cp ci/nqc-t36/contracts/test/NqcV2MorphoCurvePartialFork.t.sol "$OUT/partial-strategy-source.sol"
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutorV2.sol "$OUT/flash-coordinator-source.sol"
+          jq -n --arg head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --arg hash "$HASH" \
+            '{schema_version:1,producing_head:$head,block_hash:$hash,
+              evidence_scope:"HISTORICAL_SINGLE_ARCHIVE_RPC_MORPHO_CURVE_REVERTED_PARTIAL_SWAP",
+              deployed_morpho_flash_invoked_in_fork:true,
+              curve_threepool_swap_executed_before_rollback:true,
+              curve_usdtb_pool_swap_executed_before_rollback:true,
+              intentional_atomic_rollback:true,
+              morpho_flash_loan_settled_successfully:false,
+              borrower_liquidation_executed:false,
+              susde_to_usdt_route_proven:false,
+              full_atomically_profitable_execution:false,
+              real_token_and_gas_spent:false,
+              independent_rpc_operator_quorum_proven:false,
+              external_gas_sponsor_approved:false,
+              capture_probability_calibrated:false,
+              prospective_hf_lt_one_trigger:false,
+              p2_shadow_certified:false,rmc_closed:false,
+              commercial_score_upgrade:false,nqc_realized_pnl_usd:"0"}' > "$OUT/nonclaims.json"
+          (cd "$OUT" && sha256sum partial-strategy-source.sol flash-coordinator-source.sol \
+            canonical-block.json fork-tests.txt forge-build.txt nonclaims.json \
+            > evidence.sha256 && sha256sum -c evidence.sha256)
+
+      - name: Preserve success evidence or exact failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-morpho-curve-partial-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-v2-morpho-curve-real-fork/
+          if-no-files-found: warn
+          retention-days: 30
