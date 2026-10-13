@@ -201,6 +201,10 @@ def run(cast):
     protocol_fee=(collateral_config>>152)&65535
     require(0<=protocol_fee<=10000,"Aave reserve protocol fee out of range")
     col_bal=cast.call(SUSDE_ATOKEN,"balanceOf(address)",BORROWER)
+    # Aave aToken balance held by borrower is a CLAIM; the actual sUSDe
+    # held at the reserve aToken is the separate physical asset available
+    # for liquidation with receiveAToken=false. Neither alone is sufficient.
+    physical_susde_cash=cast.call(SUSDE,"balanceOf(address)",SUSDE_ATOKEN)
     borrower_debt=cast.call(USDTB_VTOKEN,"balanceOf(address)",BORROWER)
     available_usdtb=cast.call(USDTB,"balanceOf(address)",USDTB_ATOKEN)
     price_col=cast.call(ORACLE,"getAssetPrice(address)",SUSDE)
@@ -227,6 +231,11 @@ def run(cast):
     estimate=collateral_math(
         COVER,price_col,price_debt,col_dec,debt_dec,bonus,protocol_fee,col_bal
     )
+    if estimate["status"]=="CONDITIONAL_ONLY_HF_ABOVE_ONE":
+        net_for_liquidity=int(estimate["net_susde_raw"])
+        estimate["aave_physical_susde_cash_raw"]=str(physical_susde_cash)
+        estimate["physical_cash_covers_hypothetical_net_susde"]=(
+            physical_susde_cash>=net_for_liquidity)
     if estimate["status"]=="CONDITIONAL_ONLY_HF_ABOVE_ONE" and can_cover_472k:
         net=int(estimate["net_susde_raw"])
         try:
@@ -261,6 +270,8 @@ def run(cast):
       "oracle_susde_8decimals":str(price_col),
       "oracle_usdtb_8decimals":str(price_debt),
       "borrower_susde_atoken_balance_raw":str(col_bal),
+      "aave_susde_underlying_cash_at_atoken_raw":str(physical_susde_cash),
+      "aave_receive_underlying_cash_not_execution_guarantee":True,
       "borrower_usdtb_variable_debt_balance_raw":str(borrower_debt),
       "available_aave_usdtb_atoken_cash_raw":str(available_usdtb),
       "borrower_hf_wad_raw":str(hf),
@@ -288,6 +299,7 @@ def run(cast):
          "AAVE_DEPLOYED_IMPLEMENTATION_MATH_PARITY_NOT_TERMINAL_AT_THIS_BLOCK",
          "BORROWER_A_TOKEN_BALANCE_MAY_DIFFER_AFTER_RESERVE_UPDATE",
          "COLLATERAL_SEIZURE_IS_CONDITIONAL_NOT_EXECUTED",
+         "PHYSICAL_CASH_NECESSARY_NOT_SUFFICIENT_FOR_RECEIVE_ATOKEN_FALSE",
          "FLUID_QUOTE_ONLY_NOT_SAME_TRANSACTION_SWAP_OR_REPAY",
          "BUILDER_PRIORITY_FEE_GAS_SPONSOR_AND_CAPTURE_UNPROVEN"]
     }
