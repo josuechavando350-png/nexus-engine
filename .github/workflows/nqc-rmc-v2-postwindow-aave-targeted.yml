@@ -48,145 +48,118 @@ jobs:
             -p test_targeted_aave_liquidation_census.py -v \
             2>&1 | tee "$RUNNER_TEMP/nqc-v2-targeted-postwindow/adversarial-tests.log"
 
-      - name: Preflight historical topics on two documented public endpoints
+      - name: Admit dRPC historical 10-block read permission (NOT a census)
         shell: bash
         run: |
           set -euo pipefail
           OUT="$RUNNER_TEMP/nqc-v2-targeted-postwindow"
-          run_preflight() {
-            local provider="$1"
-            python3 - "$provider" <<'PY' > "$OUT/$provider-preflight.json" 2> "$OUT/$provider-preflight.stderr"
-          import importlib.util,json,sys
+          python3 - <<'PY' > "$OUT/drpc-preflight.json" 2> "$OUT/drpc-preflight.stderr"
+          import importlib.util,json
           from pathlib import Path
-          src=Path('ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py')
-          spec=importlib.util.spec_from_file_location('nqc_postwindow',src)
+          path=Path("ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py")
+          spec=importlib.util.spec_from_file_location("nqc_postwindow",path)
           mod=importlib.util.module_from_spec(spec)
           spec.loader.exec_module(mod)
-          rpc=mod.RPC(sys.argv[1])
-          assert mod.q(rpc.call('eth_chainId',[]),'chain')==1
-          p=rpc.header(mod.PREVIOUS_END)
-          assert p['hash']==mod.PREVIOUS_END_HASH
-          e=rpc.header(mod.END)
-          assert e['hash']==mod.END_HASH and e['parent_hash']==mod.END_PARENT
-          examined=0
-          for stream,topics in [
-            ('collateral',[mod.TOPIC,[mod.topic_for(mod.SUSDE),mod.topic_for(mod.USDTB)]]),
-            ('debt',[mod.TOPIC,None,[mod.topic_for(mod.SUSDE),mod.topic_for(mod.USDTB)]])]:
-              result=rpc.call('eth_getLogs',[{
-                'address':mod.AAVE,'topics':topics,
-                'fromBlock':hex(mod.END-9),'toBlock':hex(mod.END)}])
-              mod.need(type(result) is list,'preflight log response is not a list')
-              for item in result:mod.normalize(item,mod.END-9,mod.END,stream)
-              examined+=len(result)
-          print(json.dumps({
-            'scope':'TEN_BLOCK_TARGETED_RPC_PERMISSION_ONLY_NOT_CENSUS',
-            'provider':sys.argv[1], 'method':'eth_getLogs',
-            'probe_start':mod.END-9,'probe_end':mod.END,
-            'source_tip_hash':mod.END_HASH,
-            'log_responses_checked':examined,
-            'full_scan_complete':False,'zero_event_claim':False,
-            'p2_certified':False,'nqc_pnl_usd':'0'
-          },sort_keys=True))
+          rpc=mod.RPC("drpc")
+          assert mod.q(rpc.call("eth_chainId",[]),"chain")==1
+          prev=rpc.header(mod.PREVIOUS_END)
+          assert prev["hash"]==mod.PREVIOUS_END_HASH
+          end=rpc.header(mod.END)
+          assert end["hash"]==mod.END_HASH and end["parent_hash"]==mod.END_PARENT
+          n=0
+          for stream,topics in (
+              ("collateral",[mod.TOPIC,[mod.topic_for(mod.SUSDE),mod.topic_for(mod.USDTB)]]),
+              ("debt",[mod.TOPIC,None,[mod.topic_for(mod.SUSDE),mod.topic_for(mod.USDTB)]])):
+              rows=rpc.call("eth_getLogs",[{
+                  "address":mod.AAVE,"topics":topics,
+                  "fromBlock":hex(mod.END-9),"toBlock":hex(mod.END)}])
+              mod.need(type(rows) is list,"provider log result not list")
+              for row in rows:mod.normalize(row,mod.END-9,mod.END,stream)
+              n+=len(rows)
+          print(json.dumps({"status":"DRPC_TEN_BLOCK_READ_PERMISSION_ONLY",
+            "checked_log_rows":n,"source_tip_hash":mod.END_HASH,
+            "full_targeted_census_admitted":False,"p2":False,
+            "realized_nqc_pnl_usd":"0"},sort_keys=True))
           PY
-          }
-          set +e
-          run_preflight llama &
-          A=$!
-          run_preflight drpc &
-          B=$!
-          wait "$A"; A_STATUS=$?
-          wait "$B"; B_STATUS=$?
-          set -e
-          printf 'llama_preflight_exit=%s\ndrpc_preflight_exit=%s\n' "$A_STATUS" "$B_STATUS" > "$OUT/preflight-exit-status.txt"
-          test "$A_STATUS" -eq 0
-          test "$B_STATUS" -eq 0
-          # Respect the per-endpoint spacing across the preflight/full-scan boundary.
+          # Reopen a connection only after the last RPC call is outside the
+          # documented 22-second minimum per-endpoint spacing.
           sleep 22
 
-      - name: Exhaustive block-targeted event search on two public endpoints
+      - name: Exact 89390-block targeted historical discovery on dRPC only
         shell: bash
         run: |
           set -euo pipefail
           OUT="$RUNNER_TEMP/nqc-v2-targeted-postwindow"
           TOOL=ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py
-          # Independent processes each apply >=22 seconds between public JSON-RPC
-          # requests to their OWN endpoints. No keys, accounts or broadcasts.
-          set +e
-          timeout 3450s python3 "$TOOL" --provider llama \
-            --output "$OUT/llama.json" \
-            > "$OUT/llama.stdout" 2> "$OUT/llama.stderr" &
-          PID_A=$!
-          timeout 3450s python3 "$TOOL" --provider drpc \
+          # PublicNode previously refused 403; LlamaNodes gave TLS 525.
+          # This stage is deliberately ONE public endpoint, not quorum.
+          if timeout 3450s python3 "$TOOL" --provider drpc --span 5000 \
             --output "$OUT/drpc.json" \
-            > "$OUT/drpc.stdout" 2> "$OUT/drpc.stderr" &
-          PID_B=$!
-          wait "$PID_A"
-          EXIT_A=$?
-          wait "$PID_B"
-          EXIT_B=$?
-          set -e
-          printf 'llama_exit=%s\ndrpc_exit=%s\n' "$EXIT_A" "$EXIT_B" \
-            > "$OUT/endpoint-exit-status.txt"
-          test "$EXIT_A" -eq 0
-          test "$EXIT_B" -eq 0
-
-          python3 "$TOOL" --compare "$OUT/llama.json" "$OUT/drpc.json" \
-            --output "$OUT/two-endpoint-targeted-comparison.json"
+            > "$OUT/drpc.stdout" 2> "$OUT/drpc.stderr"; then
+            printf 'drpc_exit=0\n' > "$OUT/endpoint-exit-status.txt"
+          else
+            code=$?
+            printf 'drpc_exit=%s\n' "$code" > "$OUT/endpoint-exit-status.txt"
+            echo "SOURCE_BLOCKED_NO_EVENT_COUNT_ADMITTED" >&2
+            exit "$code"
+          fi
           python3 - "$OUT" <<'PY'
-          import json,sys
+          import importlib.util,json,sys
           from pathlib import Path
-          d=Path(sys.argv[1])
-          a=json.loads((d/'llama.json').read_text())
-          b=json.loads((d/'drpc.json').read_text())
-          c=json.loads((d/'two-endpoint-targeted-comparison.json').read_text())
-          for x in (a,b):
-              assert x['window']['start']==26095352 and x['window']['end']==26184741
-              assert x['window']['end_hash']=='0xe4b0718c51a6a484eef56edce0f25e9a5c546c2f66f595c6e305a589a612dbbe'
-              assert x['scope']=='HISTORICAL_TARGETED_SUSDE_USDTB_NOT_FULL_AAVE_CENSUS'
-              assert x['full_Aave_liquidation_count_in_postwindow_known'] is False
-              assert x['actual_liquidation_by_Nexus'] is False
-              assert x['commercial_score_upgrade'] is False
-              assert x['p2_shadow_certified'] is False
-              assert x['rmc_closed'] is False
-              assert x['nqc_realized_pnl_usd']=='0'
-          assert c['status']=='TWO_DISTINCT_PUBLIC_ENDPOINTS_EXACT_EVENTS_MATCH'
-          assert c['independent_rpc_operator_authentication_proven'] is False
-          assert c['block_end']-c['block_start']+1==89390
-          assert c['nqc_realized_pnl_usd']=='0'
-          print('POSTWINDOW_TARGETED_89390_BLOCKS_RECONCILED')
-          print('targeted_events', c['total_targeted_events'])
-          print('pair_susde_collateral_usdtb_debt', c['summary']['susde_collateral_usdtb_debt'])
-          print('pair_usdtb_collateral_susde_debt', c['summary']['usdtb_collateral_susde_debt'])
-          print('nqc_pnl_zero', c['nqc_realized_pnl_usd'])
+          source=Path("ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py")
+          spec=importlib.util.spec_from_file_location("nqc_postwindow",source)
+          mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+          p=Path(sys.argv[1])/"drpc.json"
+          doc=json.loads(p.read_text())
+          assert doc["contract"]=="NQC_RMC_V2_POSTWINDOW_TARGETED_LIQUIDATION_EVIDENCE"
+          assert doc["status"]=="COMPLETE_SINGLE_PUBLIC_RPC_TARGETED_HISTORICAL_ONLY"
+          assert doc["provider_id"]=="drpc"
+          assert doc["window"]["start"]==26095352 and doc["window"]["end"]==26184741
+          assert doc["window"]["end_hash"]==mod.END_HASH
+          assert doc["window"]["parent_hash"]==mod.END_PARENT
+          assert mod.interval_cover(doc["shards"],mod.START,mod.END)
+          assert len(doc["events"])==doc["total_targeted_events"]
+          assert mod.sha(doc["events"])==doc["events_sha256"]
+          assert len(doc["receipt_checks"])==len(doc["events"])
+          assert mod.sha(doc["receipt_checks"])==doc["receipt_checks_sha256"]
+          assert all(x["receipt_identity_matches"] is True for x in doc["receipt_checks"])
+          assert mod.classify(doc["events"])==doc["summary"]
+          assert doc["full_Aave_liquidation_count_in_postwindow_known"] is False
+          assert doc["independent_operator_authenticity_proven"] is False
+          assert doc["actual_liquidation_by_Nexus"] is False
+          assert doc["nqc_capture_probability_calibrated"] is False
+          assert doc["commercial_score_upgrade"] is False
+          assert doc["p2_shadow_certified"] is False and doc["rmc_closed"] is False
+          assert doc["nqc_realized_pnl_usd"]=="0"
+          print("POSTWINDOW_SUSDE_USDTB_SINGLE_SOURCE_COVERED_89390_BLOCKS")
+          print("total_targeted_events",doc["total_targeted_events"])
+          print("susde_collateral_usdtb_debt_events",doc["summary"]["susde_collateral_usdtb_debt"])
+          print("sUSDe_or_usdtb_events",doc["summary"]["events_referencing_susde"],doc["summary"]["events_referencing_usdtb"])
+          print("single_source_only_not_independent_quorum",True)
           PY
 
-      - name: Bundle content-addressed evidence, no commercial authority
+      - name: Content-addressed single-source evidence with explicit nonclaims
         if: success()
         shell: bash
         run: |
           set -euo pipefail
           OUT="$RUNNER_TEMP/nqc-v2-targeted-postwindow"
-          cp ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py \
-            "$OUT/producer.py"
-          cp ci/nqc-census/rmc-v2-shadow/test_targeted_aave_liquidation_census.py \
-            "$OUT/adversarial-tests.py"
-          jq -n \
-            --arg head "${{ github.event.pull_request.head.sha || github.sha }}" \
-            '{schema_version:1,source_commit:$head,
-              coverage_claim:"ONLY_AAVE_LIQUIDATIONCALL_WITH_SUSDE_OR_USDTB_26095352_26184741",
-              original_139_event_window_excluded:true,
-              two_endpoint_match_not_independent_operator_certificate:true,
-              no_hf_below_one_candidate_unless_observed_event:true,
-              no_Nexus_capture_calibration:true,
-              no_own_capital_or_gas_sponsorship_proven:true,
-              no_Nexus_realized_PnL:true,
-              no_Shadow_P2_certification:true,
-              no_RMC_terminal_closeout:true}' > "$OUT/nonclaims.json"
+          cp ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_targeted_aave_liquidation_census.py "$OUT/adversarial-tests.py"
+          jq -n --arg sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$sha,
+              coverage_claim:"ONLY_AAVE_SUSDE_USDTB_LIQUIDATIONCALL_26095352_26184741",
+              provider_count:1,provider:"dRPC",
+              not_full_Aave_census:true,independent_operator_quorum:false,
+              no_prospective_HF_crossing:true,no_Nexus_capture_probability:true,
+              no_gas_external_nonrecourse:true,no_own_operator_capital_spent:true,
+              no_morpho_curve_aave_fluid_atomic_execution:true,
+              no_Nexus_realized_PnL:true,commercial_upgrade:false,
+              P2_certified:false,RMC_closed:false}' > "$OUT/nonclaims.json"
           (
             cd "$OUT"
             sha256sum producer.py adversarial-tests.py \
-              llama.json drpc.json two-endpoint-targeted-comparison.json \
-              nonclaims.json > evidence.sha256
+              drpc-preflight.json drpc.json nonclaims.json > evidence.sha256
             sha256sum -c evidence.sha256
           )
 
