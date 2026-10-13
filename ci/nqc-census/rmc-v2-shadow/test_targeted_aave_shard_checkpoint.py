@@ -16,10 +16,30 @@ TX = "0x" + "1"*64
 BLOCK_HASH = "0x" + "2"*64
 
 
+def synthetic_hash(height):
+    if height == c.PREVIOUS_END:
+        return c.PREVIOUS_END_HASH
+    if height == c.END - 1:
+        return c.END_PARENT
+    if height == c.END:
+        return c.END_HASH
+    return "0x" + format(height, "064x")
+
+
+def synthetic_header(height):
+    return {
+        "number":height,
+        "hash":synthetic_hash(height),
+        "parent_hash":synthetic_hash(height-1),
+        "state_root":"0x" + "a"*64,
+        "timestamp":1_700_000_000,
+    }
+
+
 def event(block):
     return {
         "block_number": block,
-        "block_hash": BLOCK_HASH,
+        "block_hash": synthetic_hash(block),
         "transaction_hash": TX,
         "transaction_index": 1,
         "log_index": 0,
@@ -63,6 +83,10 @@ def synthetic(lo=START, hi=END, *, provider="drpc", with_event=False):
             "previous_end_hash": c.PREVIOUS_END_HASH,
             "end_hash": c.END_HASH,
             "parent_hash": c.END_PARENT,
+        },
+        "segment_boundary_headers":{
+            "first":synthetic_header(lo),
+            "last":synthetic_header(hi),
         },
         "shards": [{"start":lo,"end":hi,"collateral_stream_count":len(events),
                     "debt_stream_count":len(events)}],
@@ -248,6 +272,39 @@ class CheckpointCommitAndMerge(unittest.TestCase):
         cp=m.make_checkpoint(synthetic(START+100,END))
         merged=m.combine([cp])
         self.assertFalse(merged["full_global_coverage"])
+    def test_same_height_boundary_headers_must_match(self):
+        doc=synthetic(START,START)
+        self.assertEqual(m.verify_report(doc),(START,START))
+        doc["segment_boundary_headers"]["last"]["timestamp"]+=1
+        with self.assertRaisesRegex(c.SourceError,"one-block segment"):
+            m.verify_report(doc)
+    def test_unknown_predecessor_of_initial_checkpoint_rejected(self):
+        doc=synthetic(START,START+100)
+        doc["segment_boundary_headers"]["first"]["parent_hash"]="0x"+"9"*64
+        with self.assertRaisesRegex(c.SourceError,"wrong predecessor"):
+            m.verify_report(doc)
+    def test_final_checkpoint_wrong_end_anchor_rejected(self):
+        doc=synthetic(START+100,END)
+        doc["segment_boundary_headers"]["last"]["hash"]="0x"+"f"*64
+        with self.assertRaisesRegex(c.SourceError,"wrong canonical anchor"):
+            m.verify_report(doc)
+    def test_adjacent_checkpoints_wrong_parent_even_if_rehashed_rejected(self):
+        a=m.make_checkpoint(synthetic(START,START+100))
+        bdoc=synthetic(START+101,END)
+        bdoc["segment_boundary_headers"]["first"]["parent_hash"]="0x"+"e"*64
+        b=m.make_checkpoint(bdoc)
+        with self.assertRaisesRegex(c.SourceError,"parent/hash ancestry"):
+            m.combine([a,b])
+    def test_real_time_shard_event_with_wrong_first_header_rejected(self):
+        doc=synthetic(START,START+100,with_event=True)
+        doc["segment_boundary_headers"]["first"]["hash"]="0x"+"f"*64
+        with self.assertRaisesRegex(c.SourceError,"first-block event"):
+            m.verify_report(doc)
+    def test_boundary_header_timestamp_cannot_be_text(self):
+        doc=synthetic(START,START+100)
+        doc["segment_boundary_headers"]["first"]["timestamp"]="1700000000"
+        with self.assertRaisesRegex(c.SourceError,"timestamp"):
+            m.verify_report(doc)
     def test_internal_missing_shard_gap_rejected(self):
         a=m.make_checkpoint(synthetic(START,START+100))
         b=m.make_checkpoint(synthetic(START+102,END))
