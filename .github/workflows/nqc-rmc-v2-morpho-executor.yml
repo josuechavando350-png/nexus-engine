@@ -1,0 +1,102 @@
+name: NQC RMC V2 Morpho Flash Callback Deterministic Evidence (NO FORK OR LIVE)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-t36/contracts/src/NqcFlashFundingExecutorV2.sol'
+      - 'ci/nqc-t36/contracts/test/NqcFlashFundingExecutorV2Morpho.t.sol'
+      - '.github/workflows/nqc-rmc-v2-morpho-executor.yml'
+  push:
+    branches:
+      - 'nqc/rmc-v2-morpho-executor-callback-20261013'
+    paths:
+      - 'ci/nqc-t36/contracts/src/NqcFlashFundingExecutorV2.sol'
+      - 'ci/nqc-t36/contracts/test/NqcFlashFundingExecutorV2Morpho.t.sol'
+      - '.github/workflows/nqc-rmc-v2-morpho-executor.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc-v2-morpho-callback-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  deterministic-morpho-callback:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact PR source commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Preserve original T36 frozen executor and historical tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = "aa3883fa141aa096006e90e56d8d4150c9ee14ef"
+          test "$(git hash-object ci/nqc-t36/contracts/test/NqcFlashFundingExecutor.t.sol)" = "cebb90e36bf7d7ab4a9ad0e01a95da2039203ee0"
+
+      - name: Install SHA-256 pinned Foundry 1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/foundry"
+          curl --fail --location --retry 4 --retry-all-errors --max-time 160 \
+            -o "$RUNNER_TEMP/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  $RUNNER_TEMP/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
+          echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/foundry/forge" --version
+
+      - name: Check new V2 sources against Foundry format
+        working-directory: ci/nqc-t36/contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          forge fmt --check src/NqcFlashFundingExecutorV2.sol test/NqcFlashFundingExecutorV2Morpho.t.sol
+
+      - name: Compile and run all original and V2 deterministic callback tests
+        working-directory: ci/nqc-t36/contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rmc-v2-morpho-contract"
+          forge build --sizes 2>&1 | tee "$RUNNER_TEMP/rmc-v2-morpho-contract/build.txt"
+          forge test --match-contract NqcFlashFundingExecutorTest -vv 2>&1 | tee "$RUNNER_TEMP/rmc-v2-morpho-contract/original-tests.txt"
+          forge test --match-contract NqcFlashFundingExecutorV2MorphoTest -vv 2>&1 | tee "$RUNNER_TEMP/rmc-v2-morpho-contract/morpho-tests.txt"
+          grep -F '[PASS] testMorphoMockSkippingPullCannotFakeProfit()' "$RUNNER_TEMP/rmc-v2-morpho-contract/morpho-tests.txt"
+          grep -F '[PASS] testMorphoWrongCallbackSenderRejected()' "$RUNNER_TEMP/rmc-v2-morpho-contract/morpho-tests.txt"
+          grep -F '[PASS] testMorphoPlusAaveNestedReverseRepayment()' "$RUNNER_TEMP/rmc-v2-morpho-contract/morpho-tests.txt"
+          grep -F '[PASS] testAavePlusMorphoNestedReverseRepayment()' "$RUNNER_TEMP/rmc-v2-morpho-contract/morpho-tests.txt"
+          forge inspect NqcFlashFundingExecutorV2 methodIdentifiers > "$RUNNER_TEMP/rmc-v2-morpho-contract/method-identifiers.json"
+
+      - name: Record real source identity and strict nonclaims
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/rmc-v2-morpho-contract"
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutorV2.sol "$OUT/source-v2.sol"
+          cp ci/nqc-t36/contracts/test/NqcFlashFundingExecutorV2Morpho.t.sol "$OUT/test-v2.sol"
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = "aa3883fa141aa096006e90e56d8d4150c9ee14ef"
+          jq -n --arg sha "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$sha,scope:"SYNTHETIC_LOCAL_DETERMINISTIC_MORPHO_FLASH_CALLBACK",
+              original_t36_preserved:true,source_identity_v2_separate:true,
+              callback_interface:"onMorphoFlashLoan(uint256,bytes)",
+              verified_live_morpho_callback:false,verified_morpho_deployed_code:false,
+              full_morpho_curve_aave_fluid_strategy:false,
+              fork_positive:false,route_net_pnl_usd:null,
+              external_gas_proven:false,operator_funds_spent:false,
+              rmc_d11_closed:false,p2_shadow_certified:false,rmc_d17_closed:false,
+              commercial_score_upgrade:false,nqc_realized_pnl_usd:"0"}' > "$OUT/nonclaims.json"
+          (cd "$OUT" && sha256sum source-v2.sol test-v2.sol build.txt original-tests.txt morpho-tests.txt method-identifiers.json nonclaims.json > archive.sha256 && sha256sum -c archive.sha256)
+
+      - name: Archive deterministic-only evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc-v2-morpho-executor-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/rmc-v2-morpho-contract/
+          retention-days: 30
