@@ -100,6 +100,29 @@ class ObserverTests(unittest.TestCase):
             with self.assertRaisesRegex(observer.EvidenceError, "reorg"):
                 observer.observe(("a", "b"))
 
+    def test_failover_skips_failed_provider_and_requires_two_rpc(self):
+        def unreliable(endpoint, method, params):
+            if endpoint.endswith("first"):
+                raise observer.EvidenceError("HTTP 525")
+            return simulated_rpc(endpoint, method, params)
+        with patch.object(observer, "rpc", side_effect=unreliable):
+            chosen = observer.select_endpoints(("https://first", "https://second", "https://third"))
+            self.assertEqual(chosen, ("https://second", "https://third"))
+
+    def test_no_single_rpc_provider_satisfies_quorum(self):
+        def unreliable(endpoint, method, params):
+            if endpoint.endswith("unavailable"):
+                raise observer.EvidenceError("HTTP 525")
+            return simulated_rpc(endpoint, method, params)
+        with patch.object(observer, "rpc", side_effect=unreliable):
+            with self.assertRaisesRegex(observer.EvidenceError, "RPC_QUORUM_UNAVAILABLE"):
+                observer.select_endpoints(("https://good", "https://unavailable"))
+
+    def test_reject_same_rpc_domain_repeated(self):
+        with patch.object(observer, "rpc", side_effect=simulated_rpc):
+            with self.assertRaisesRegex(observer.EvidenceError, "RPC_QUORUM_UNAVAILABLE"):
+                observer.select_endpoints(("https://rpc.test", "https://rpc.test/path"))
+
     def test_no_broadcast_whitelisted(self):
         with self.assertRaisesRegex(observer.EvidenceError, "unsupported RPC method"):
             observer.rpc("x", "eth_sendRawTransaction", [])
