@@ -56,6 +56,9 @@ jobs:
             and .winning_block_hash=="0xf143f9988199037938e4dff57aaf24301a4c26770aefc0ec64774954cbf2dbe4"
             and .authentic_debt_paid_wei=="10684013854557827871"
             and .matching_real_liquidation_events==1
+            and .matching_original_raw_event_sha256=="d25b174177afd25fc6b789a4d76bad535120a9a883209ee7205a49d703d73949"
+            and .indexer_supplied_canonical_block_hash==false
+            and .canonical_block_hash_provenance=="PRIOR_IMMUTABLE_RMC016_NOT_FROM_BLOCKSCOUT_WHEN_MISSING"
             and .original_RMC016_events_artifact_sha256=="6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204"
             and .raw_log_replay_from_independent_rpc_certified==false
             and .whole_indexer_history_complete_certified==false
