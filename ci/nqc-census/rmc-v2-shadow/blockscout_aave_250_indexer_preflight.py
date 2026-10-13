@@ -128,7 +128,7 @@ def validate_response(d):
         'indexer_completeness_or_finality_certified':False,
         'second_rpc_independent_operator_attestation':False,
         'nqc_captured_liquidation':False,'nqc_realized_pnl_usd':'0',
-        'rMC_closed':False,'p2_shadow_certified':False,
+        'rmc_closed':False,'p2_shadow_certified':False,
         'commercial_score_upgrade':False,
         'no_claim_for_remaining_89140_blocks':True,
     }
