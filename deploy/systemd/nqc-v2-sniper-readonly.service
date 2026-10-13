@@ -1,0 +1,42 @@
+# NQC V2 sniper: opt-in deployment candidate, NOT enabled by this PR.
+# READ-ONLY RPC, no Ethereum signing, no self-funded gas.
+# Existing droplets still incur monthly hosting charges; operator must approve.
+[Unit]
+Description=NQC V2 Read-only Aave Sniper Research Observer (NO TRADE)
+Documentation=https://github.com/josuechavando350-png/nexus-engine/pull/692
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=/opt/nqc/nexus-engine/ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=nqc-sniper-readonly
+WorkingDirectory=/opt/nqc/nexus-engine/ci/nqc-census/rmc-v2-shadow
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/usr/bin/python3 /opt/nqc/nexus-engine/ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py --out-dir /var/lib/nqc-sniper-readonly --providers drpc publicnode blast --interval-seconds 300 --max-cycles 0
+Restart=on-failure
+RestartSec=90
+StartLimitIntervalSec=1800
+StartLimitBurst=4
+
+# The journal is the ONLY requested writable path. No wallet credentials.
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectKernelLogs=yes
+LockPersonality=yes
+RestrictSUIDSGID=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+MemoryMax=256M
+CPUQuota=50%
+
+[Install]
+WantedBy=multi-user.target
