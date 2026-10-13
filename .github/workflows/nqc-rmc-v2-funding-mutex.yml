@@ -1,0 +1,143 @@
+name: NQC RMC V2 Funding Mutex and Four Source Immutable Proofs (NO PNL)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-economics/reconcile_funding_mutex.py'
+      - 'ci/nqc-census/rmc-v2-economics/test_reconcile_funding_mutex.py'
+      - '.github/workflows/nqc-rmc-v2-funding-mutex.yml'
+  push:
+    branches:
+      - 'nqc/rmc-v2-funding-mutual-exclusion-20261013'
+    paths:
+      - 'ci/nqc-census/rmc-v2-economics/reconcile_funding_mutex.py'
+      - 'ci/nqc-census/rmc-v2-economics/test_reconcile_funding_mutex.py'
+      - '.github/workflows/nqc-rmc-v2-funding-mutex.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-funding-mutex-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  historical-four-source-financing-comparison:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout exact source head, not synthetic merge
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Download four immutable published GitHub Actions artifacts, check outer SHA-256
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          NQC_RMC_V2_EVIDENCE_DIR="$RUNNER_TEMP/nqc-v2-mutex/sources"
+          export NQC_RMC_V2_EVIDENCE_DIR
+          echo "NQC_RMC_V2_EVIDENCE_DIR=$NQC_RMC_V2_EVIDENCE_DIR" >> "$GITHUB_ENV"
+          mkdir -p "$NQC_RMC_V2_EVIDENCE_DIR"
+          # IDs are GitHub Actions artifacts from historical read-only fork or
+          # reserve-census runs, not arbitrary external web content.
+          while read -r ID NAME EXPECTED_SHA; do
+            test -n "$ID"
+            META="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ID" --jq '.digest')"
+            test "$META" = "sha256:$EXPECTED_SHA"
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$ID/zip" \
+              > "$NQC_RMC_V2_EVIDENCE_DIR/$NAME"
+            echo "$EXPECTED_SHA  $NQC_RMC_V2_EVIDENCE_DIR/$NAME" | sha256sum -c -
+            unzip -tq "$NQC_RMC_V2_EVIDENCE_DIR/$NAME" >/dev/null
+          done <<'SOURCES'
+          11840209244 NQC_RMC_V2_AAVE_SEIZE_BUDGET_BLOCK26184741.zip 777771c4f220299ba7985705efbf358843137736f00425fe82bd53c85258b343
+          11834790650 NQC_V2_EXECUTED_CURVE_FORK_EVIDENCE_20261013.zip 5598d2ece2261a3f4a14b4fee3cccccd84bdda037e00b6cbed0fc2d1f35f9bad
+          11841280676 NQC_V2_AAVE_FEE_ADJUSTED_FLUID_FORK_20261013.zip b5cfe2abcb90ba597b17f049d46faeeb2aa723e1c97c047f889c7c4e5e35149a
+          11831203604 NQC_V2_AAVE_USDTB_FORK_20261013.zip cfac15301d12f0cfe1eef4f7e9fbed1dd8186e976b501fff57646737c8ebd3dc
+          SOURCES
+
+      - name: Execute adversarial and integrity checks against four authentic archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/nqc-census/rmc-v2-economics/reconcile_funding_mutex.py
+          python3 -m unittest discover \
+            -s ci/nqc-census/rmc-v2-economics \
+            -p 'test_reconcile_funding_mutex.py' -v
+
+      - name: Emit finance variants and one non-admissible economic opportunity
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-mutex"
+          python3 ci/nqc-census/rmc-v2-economics/reconcile_funding_mutex.py \
+             --artifacts-dir "$NQC_RMC_V2_EVIDENCE_DIR" \
+             --out "$OUT/route-comparison.json"
+          jq -e '
+            .contract=="NQC_RMC_V2_MUTEX_FUNDING_VARIANT_RESEARCH_ONLY"
+            and .block_number==26184741
+            and .opportunities_discovered_eligible==0
+            and .finance_variant_count==2
+            and .one_capture_max_even_with_two_funding_variants==true
+            and .cannot_sum_candidate_pnl==true
+            and .aave_flash_premium_usdtb_raw=="236000000000000000000"
+            and (.artifact_sha256|length)==4
+            and (.candidates|length)==2
+            and (.candidates|all(.full_route_fork_certified==false
+              and .aave_liquidation_executed==false
+              and .gas_sponsor_nonrecourse_admitted==false
+              and .nqc_net_pnl_usd==null))
+            and .full_route_pnl_usd==null
+            and .liquidation_executed==false
+            and .zero_own_capital_gas_sponsorship_proven==false
+            and .shadow_p2_certified==false
+            and .commercial_score_upgrade==false
+            and .rmc_closed==false
+            and .realized_nqc_pnl_usd=="0"
+          ' "$OUT/route-comparison.json"
+          jq '{common_opportunity_id,block_number,artifact_sha256,
+               conditional_susde_net_raw,candidates,
+               same_borrower_conflict_keys,
+               cannot_sum_candidate_pnl,commercial_score_upgrade,
+               realized_nqc_pnl_usd}' "$OUT/route-comparison.json" > "$OUT/summary.json"
+
+      - name: Archive source, SHA256 and limitations, never execution authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-mutex"
+          cp ci/nqc-census/rmc-v2-economics/reconcile_funding_mutex.py "$OUT/reconciliation-source.py"
+          cp ci/nqc-census/rmc-v2-economics/test_reconcile_funding_mutex.py "$OUT/reconciliation-tests.py"
+          jq -n --arg producing_head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_head:$producing_head,
+              scope:"HISTORICAL_COUNTERFACTUAL_FOUR_IMMUTABLE_ARTIFACTS",
+              signed_or_broadcast:false,real_funds_spent:false,
+              prospective_HF_under_1_observed:false,
+              actual_Aave_liquidation:false,
+              Aave_direct_flash_plus_repay_full_route:false,
+              Morpho_flash_plus_liquidation_full_route:false,
+              curve_fluid_one_atomic_transaction:false,
+              same_borrower_candidates_can_be_added:false,
+              independent_operator_quorum:false,
+              externally_sponsored_gas_and_nonrecourse:false,
+              builder_competitor_capture_proven:false,
+              net_USD_PNL:null,
+              shadow_P2_certified:false,RMC_D17_closed:false,
+              commercial_upgrade:false,realized_nqc_pnl_usd:"0"}' \
+            > "$OUT/nonclaims.json"
+          (cd "$OUT" && sha256sum route-comparison.json summary.json \
+            reconciliation-source.py reconciliation-tests.py nonclaims.json \
+            > evidence.sha256 && sha256sum -c evidence.sha256)
+
+      - name: Preserve evidentiary record or failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-funding-mutex-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-v2-mutex/
+          if-no-files-found: warn
+          retention-days: 30
