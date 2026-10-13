@@ -6,6 +6,14 @@ import {NqcFlashFundingExecutorV2} from "../src/NqcFlashFundingExecutorV2.sol";
 interface IAaveUSDtbForkPool {
     function FLASHLOAN_PREMIUM_TOTAL() external view returns (uint128);
     function getConfiguration(address reserve) external view returns (uint256 configurationData);
+    function getUserEMode(address borrower) external view returns (uint256);
+    function getEModeCategoryCollateralConfig(uint8 category)
+        external view returns (uint16 ltv, uint16 threshold, uint16 bonus);
+    function liquidationCall(
+        address collateral, address debtAsset, address user,
+        uint256 debtToCover, bool receiveAToken
+    ) external;
+
     function getUserAccountData(address borrower)
         external
         view
@@ -70,6 +78,9 @@ contract NqcFlashFundingExecutorV2AaveUSDtbForkTest {
     address internal constant AAVE_POOL = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     address internal constant USDTB = 0xC139190F447e929f090Edeb554D95AbB8b18aC1C;
     address internal constant ATOKEN = 0xEc4ef66D4fCeEba34aBB4dE69dB391Bc5476ccc8;
+    address internal constant SUSDE = 0x9D39A5DE30e57443BfF2A8307A4256c8797A3497;
+    address internal constant SUSDE_ATOKEN = 0x4579a27aF00A62C0EB156349f31B345c08386419;
+    address internal constant USDtb_VTOKEN = 0xeA85a065F87FE28Aa8Fbf0D6C7deC472b106252C;
     address internal constant BORROWER = 0x08c14B32C8A48894E4b933090EBcC9CE33B21135;
 
     uint256 internal constant PINNED_BLOCK = 26_184_741;
@@ -126,6 +137,63 @@ contract NqcFlashFundingExecutorV2AaveUSDtbForkTest {
             pool.getConfiguration(USDTB),
             hf
         );
+    }
+
+    function testAaveFeeAdjustedNetCollateralMatchesExactHistoricalReader() public {
+        IAaveUSDtbForkPool pool = IAaveUSDtbForkPool(AAVE_POOL);
+        require(pool.getUserEMode(BORROWER) == 24, "NOT_EMODE_24");
+        (uint16 ltv,uint16 threshold,uint16 bonus) =
+            pool.getEModeCategoryCollateralConfig(24);
+        require(ltv == 9000 && threshold == 9200 && bonus == 10310,
+                "EMODE_24_RULES_CHANGED");
+        uint256 reserveConfig = pool.getConfiguration(SUSDE);
+        uint256 feeBps = (reserveConfig >> 152) & 0xFFFF;
+        require(feeBps == 1000, "HISTORICAL_PROTOCOL_FEE_NOT_1000_BPS");
+
+        uint256 borrowerSusde = IERC20USDtbFork(SUSDE_ATOKEN).balanceOf(BORROWER);
+        uint256 borrowerUsdTbDebt = IERC20USDtbFork(USDtb_VTOKEN).balanceOf(BORROWER);
+        require(borrowerSusde == 5_401_730_803_933_855_154_759_327,
+                "BORROWER_COLLATERAL_CHANGED");
+        require(borrowerUsdTbDebt == 6_216_365_161_336_592_826_745_096,
+                "BORROWER_USDTB_DEBT_CHANGED");
+
+        uint256 base = (100_000_000 * ILLUSTRATIVE_PRINCIPAL) / 125_127_009;
+        uint256 gross = base * bonus / 10_000;
+        uint256 bonusPart = gross - (gross * 10_000 / bonus);
+        uint256 fee = (bonusPart * feeBps + 9_999) / 10_000;
+        uint256 net = gross - fee;
+        require(gross == 388_910_438_992_432_081_550_034,
+                "EXACT_AAVE_GROSS_MODEL_MISMATCH");
+        require(fee == 1_169_371_834_021_861_738_900,
+                "EXACT_AAVE_PROTOCOL_FEE_MISMATCH");
+        require(net == 387_741_067_158_410_219_811_134,
+                "EXACT_NET_SUSDE_MODEL_MISMATCH");
+        require(net < 388_000 ether && borrowerSusde > gross,
+                "INSUFFICIENT_BORROWER_COLLATERAL_OR_FALSE_GROSS");
+    }
+
+    function testRealAaveLiquidationRevertsAtHFAboveOneAndPreservesBorrowerState() public {
+        IAaveUSDtbForkPool pool = IAaveUSDtbForkPool(AAVE_POOL);
+        (,,,,, uint256 hfBefore) = pool.getUserAccountData(BORROWER);
+        require(hfBefore == 1_000_145_351_354_931_860, "HF_BLOCK_CHANGED");
+        uint256 collateralBefore = IERC20USDtbFork(SUSDE_ATOKEN).balanceOf(BORROWER);
+        uint256 debtBefore = IERC20USDtbFork(USDtb_VTOKEN).balanceOf(BORROWER);
+        (bool ok, bytes memory errorData) = AAVE_POOL.call(
+            abi.encodeWithSelector(
+                IAaveUSDtbForkPool.liquidationCall.selector,
+                SUSDE, USDTB, BORROWER, ILLUSTRATIVE_PRINCIPAL, false
+            )
+        );
+        require(!ok, "AAVE_MUST_REJECT_NONLIQUIDATABLE_BORROWER");
+        require(_selector(errorData) ==
+                bytes4(keccak256("HealthFactorNotBelowThreshold()")),
+                "NOT_HEALTH_FACTOR_REJECTION");
+        (,,,,,uint256 hfAfter) = pool.getUserAccountData(BORROWER);
+        require(hfAfter == hfBefore, "REVERT_CHANGED_HEALTH_FACTOR");
+        require(IERC20USDtbFork(SUSDE_ATOKEN).balanceOf(BORROWER)==collateralBefore,
+                "REVERT_CHANGED_COLLATERAL");
+        require(IERC20USDtbFork(USDtb_VTOKEN).balanceOf(BORROWER)==debtBefore,
+                "REVERT_CHANGED_USDTB_DEBT");
     }
 
     function testUnfundedFlashFeeRevertsWithoutTouchingReserveOrOperatorBalance() public {
