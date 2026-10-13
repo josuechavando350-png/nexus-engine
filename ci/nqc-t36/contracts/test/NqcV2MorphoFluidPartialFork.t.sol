@@ -173,6 +173,20 @@ contract NqcV2MorphoFluidPartialForkTest {
         _partialFluidSwap(200_000 ether);
     }
 
+    function testRealFluid378kSUSDeForkOutputExceeds472461USDTQuoteRequirement() public {
+        uint256 received = _partialFluidSwap(378_000 ether);
+        // This only crosses the historic Morpho USDT->Curve USDtb
+        // acquisition input amount, NOT full flash repayment and costs.
+        require(received >= 472_461_610_797, "FLUID_REAL_OUTPUT_BELOW_USDT_ACQUISITION");
+        emit log_named_uint("NQC_FLUID_FORK_378K_ABOVE_PRE_ROUTING_USDT_REQUIREMENT", 1);
+    }
+
+    function testRealFluid380kSUSDeForkOutputExceeds472461USDTQuoteRequirement() public {
+        uint256 received = _partialFluidSwap(380_000 ether);
+        require(received >= 472_461_610_797, "FLUID_380K_REAL_OUTPUT_BELOW_ACQUISITION");
+        emit log_named_uint("NQC_FLUID_FORK_380K_ABOVE_PRE_ROUTING_USDT_REQUIREMENT", 1);
+    }
+
     function testFluidExitCapacitySamplesVersus472461USDTRepaymentThreshold() public {
         // Diagnostic resolver quote sampling only: the original Morpho USDT
         // route requires >= 472461.610797 USDT to fund 472000 USDtb on Curve.
@@ -225,7 +239,7 @@ contract NqcV2MorphoFluidPartialForkTest {
         // Do not call swapIn with an unbounded slippage policy.
     }
 
-    function _partialFluidSwap(uint256 collateralAmount) internal {
+    function _partialFluidSwap(uint256 collateralAmount) internal returns (uint256 actualOut) {
         BalancesBefore memory beforeBalance = _beforeBalances();
         uint256 estimate =
             IV2FluidReserves(RESOLVER).estimateSwapIn(FLUID, true, collateralAmount, 1);
@@ -236,13 +250,13 @@ contract NqcV2MorphoFluidPartialForkTest {
         try executor.execute(plan, payload) returns (uint256) {
             revert("MORPHO_FLASH_MUST_NOT_COMPLETE_WITH_USDT");
         } catch (bytes memory reason) {
-            uint256 actual = _decodeStrictPartial(reason, collateralAmount);
+            actualOut = _decodeStrictPartial(reason, collateralAmount);
             emit log_named_uint("NQC_FLUID_SUSDE_INPUT_RAW", collateralAmount);
             emit log_named_uint("NQC_FLUID_ESTIMATED_USDT_RAW", estimate);
-            emit log_named_uint("NQC_FLUID_ACTUAL_USDT_RAW", actual);
+            emit log_named_uint("NQC_FLUID_ACTUAL_USDT_RAW", actualOut);
             emit log_named_uint(
                 "NQC_FLUID_ACTUAL_MINUS_ESTIMATE_RAW",
-                actual >= estimate ? actual - estimate : estimate - actual
+                actualOut >= estimate ? actualOut - estimate : estimate - actualOut
             );
         }
         _assertRestored(beforeBalance, plan.executionIdentityHash);
