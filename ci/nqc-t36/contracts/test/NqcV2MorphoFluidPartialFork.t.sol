@@ -225,8 +225,7 @@ contract NqcV2MorphoFluidPartialForkTest {
         emit log_named_uint("NQC_AAVE_CONDITIONAL_NET_SUSDE_RAW", onlyHypotheticalSUsde);
         emit log_named_uint("NQC_AAVE_CONDITIONAL_NET_FLUID_USDT_RAW", receivedUSDT);
         emit log_named_uint(
-            "NQC_AAVE_CONDITIONAL_PRE_COST_MARGIN_USDT_RAW",
-            receivedUSDT - curveRequiredUSDT
+            "NQC_AAVE_CONDITIONAL_PRE_COST_MARGIN_USDT_RAW", receivedUSDT - curveRequiredUSDT
         );
         emit log_named_uint("NQC_AAVE_HF_ABOVE_ONE_NO_SEIZED_COLLATERAL", 1);
         emit log_named_uint("NQC_NO_REALIZED_OR_SHADOW_CAPTURE", 1);
