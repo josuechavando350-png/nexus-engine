@@ -159,6 +159,21 @@ contract NqcV2MorphoCurvePartialForkTest {
     uint256 internal constant SECOND_CURVE_USDTB_QUOTE = 472_236_000_000_914_279_535_684;
     uint256 internal constant FIRST_PREVIOUS_USDTB_QUOTE = 471_999_999_999_693_300_984_149;
 
+    struct BeforeBalances {
+        uint256 lender;
+        uint256 threepool;
+        uint256 usdtbPool;
+        uint256 operator;
+        uint256 strategy;
+    }
+    struct AcquiredAmounts {
+        uint256 input;
+        uint256 usdc;
+        uint256 usdtb;
+        uint256 leftoverUsdt;
+        uint256 leftoverUsdc;
+    }
+
     MorphoCurvePartialProbe internal strategy;
     NqcFlashFundingExecutorV2 internal executor;
 
@@ -224,75 +239,72 @@ contract NqcV2MorphoCurvePartialForkTest {
     }
 
     function _simulateTwoHopAndRollback(
-        uint256 usdtIn,
-        uint256 targetUsdTb,
-        uint256 expectedUsdc,
-        uint256 expectedUsdTb,
-        bool reachesTarget
+        uint256 usdtIn, uint256 targetUsdTb,
+        uint256 expectedUsdc, uint256 expectedUsdTb, bool reachesTarget
     ) internal {
-        uint256 lenderBefore = IV2PartialERC20(USDT).balanceOf(MORPHO);
-        uint256 threepoolBefore = IV2PartialERC20(USDT).balanceOf(THREEPOOL);
-        uint256 usdtbPoolBefore = IV2PartialERC20(USDTB).balanceOf(USDTB_POOL);
-        uint256 borrowerBefore = IV2PartialERC20(USDT).balanceOf(address(this));
-        uint256 strategyBefore = IV2PartialERC20(USDT).balanceOf(address(strategy));
+        BeforeBalances memory beforeBalance = _recordBalances();
         bytes memory payload = abi.encodePacked("MORPHO_CURVE_PARTIAL_FORK", usdtIn);
         NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan = _plan(usdtIn, payload);
         try executor.execute(plan, payload) returns (uint256) {
             revert("NOT_ALLOWED_TO_COMPLETE_UNREPAID_MORPHO_FLASH");
         } catch (bytes memory reason) {
-            require(reason.length == 164, "EXPECTED_PARTIAL_ROUTE_REVERT_NOT_RECEIVED");
-            bytes4 selector;
-            uint256 borrowed;
-            uint256 usdcOutput;
-            uint256 usdTbOutput;
-            uint256 leftoverUsdt;
-            uint256 leftoverUsdc;
-            assembly ("memory-safe") {
-                selector := mload(add(reason, 0x20))
-                borrowed := mload(add(reason, 0x24))
-                usdcOutput := mload(add(reason, 0x44))
-                usdTbOutput := mload(add(reason, 0x64))
-                leftoverUsdt := mload(add(reason, 0x84))
-                leftoverUsdc := mload(add(reason, 0xa4))
-            }
-            require(
-                selector == MorphoCurvePartialProbe.CapturedPartialRoute.selector,
-                "INCOMPLETE_CURVE_ACQUISITION"
+            _verifyRevertedTwoHop(
+                reason, usdtIn, targetUsdTb, expectedUsdc, expectedUsdTb, reachesTarget
             );
-            require(borrowed == usdtIn, "INCORRECT_FUNDING_AMOUNT");
-            require(expectedUsdc == 0 || usdcOutput == expectedUsdc, "WRONG_USDC_AMOUNT");
-            require(usdTbOutput == expectedUsdTb, "EXECUTED_SWAP_NE_QUOTED_OUTPUT");
-            require(leftoverUsdt == 0 && leftoverUsdc == 0, "PARTIAL_INPUT_NOT_CONSUMED");
-            if (reachesTarget) {
-                require(usdTbOutput >= targetUsdTb, "UNDER_TARGET");
-            } else {
-                require(usdTbOutput < targetUsdTb, "NEIGHBOR_SHOULD_NOT_SUFFICE");
-            }
         }
-        // The failure is intentional: Morpho USDT cannot be repaid by USDtb.
-        // This test is proof of partial swap execution and full rollback, not
-        // successful liquidation, flash settlement or positive NQC P&L.
-        require(IV2PartialERC20(USDT).balanceOf(MORPHO) == lenderBefore, "FLASH_LENDER_LOST_TOKENS");
-        require(
-            IV2PartialERC20(USDT).balanceOf(THREEPOOL) == threepoolBefore,
-            "CURVE_3POOL_STATE_NOT_ROLLED_BACK"
-        );
-        require(
-            IV2PartialERC20(USDTB).balanceOf(USDTB_POOL) == usdtbPoolBefore,
-            "CURVE_USDTB_POOL_STATE_NOT_ROLLED_BACK"
-        );
-        require(
-            IV2PartialERC20(USDT).balanceOf(address(this)) == borrowerBefore,
-            "OPERATOR_INVENTORY_CHANGED"
-        );
-        require(
-            IV2PartialERC20(USDT).balanceOf(address(strategy)) == strategyBefore,
-            "STRATEGY_STOLE_OR_LOST_USDT"
-        );
-        require(
-            !executor.consumedExecutionIdentity(plan.executionIdentityHash),
-            "REVERT_SHOULD_NOT_CONSUME_IDENTITY"
-        );
+        _assertRollback(beforeBalance, plan.executionIdentityHash);
+    }
+
+    function _recordBalances() private view returns (BeforeBalances memory original) {
+        original.lender = IV2PartialERC20(USDT).balanceOf(MORPHO);
+        original.threepool = IV2PartialERC20(USDT).balanceOf(THREEPOOL);
+        original.usdtbPool = IV2PartialERC20(USDTB).balanceOf(USDTB_POOL);
+        original.operator = IV2PartialERC20(USDT).balanceOf(address(this));
+        original.strategy = IV2PartialERC20(USDT).balanceOf(address(strategy));
+    }
+
+    function _assertRollback(BeforeBalances memory original, bytes32 identity) private view {
+        require(IV2PartialERC20(USDT).balanceOf(MORPHO) == original.lender,
+                "FLASH_LENDER_LOST_TOKENS");
+        require(IV2PartialERC20(USDT).balanceOf(THREEPOOL) == original.threepool,
+                "CURVE_3POOL_STATE_NOT_ROLLED_BACK");
+        require(IV2PartialERC20(USDTB).balanceOf(USDTB_POOL) == original.usdtbPool,
+                "CURVE_USDTB_POOL_STATE_NOT_ROLLED_BACK");
+        require(IV2PartialERC20(USDT).balanceOf(address(this)) == original.operator,
+                "OPERATOR_INVENTORY_CHANGED");
+        require(IV2PartialERC20(USDT).balanceOf(address(strategy)) == original.strategy,
+                "STRATEGY_STOLE_OR_LOST_USDT");
+        require(!executor.consumedExecutionIdentity(identity),
+                "REVERT_SHOULD_NOT_CONSUME_IDENTITY");
+    }
+
+    function _verifyRevertedTwoHop(
+        bytes memory reason, uint256 usdtIn, uint256 targetUsdTb,
+        uint256 expectedUsdc, uint256 expectedUsdTb, bool reachesTarget
+    ) private pure {
+        require(reason.length == 164, "EXPECTED_PARTIAL_ROUTE_REVERT_NOT_RECEIVED");
+        bytes4 selector;
+        AcquiredAmounts memory actual;
+        assembly ("memory-safe") {
+            selector := mload(add(reason, 0x20))
+            mstore(actual, mload(add(reason, 0x24)))
+            mstore(add(actual, 0x20), mload(add(reason, 0x44)))
+            mstore(add(actual, 0x40), mload(add(reason, 0x64)))
+            mstore(add(actual, 0x60), mload(add(reason, 0x84)))
+            mstore(add(actual, 0x80), mload(add(reason, 0xa4)))
+        }
+        require(selector == MorphoCurvePartialProbe.CapturedPartialRoute.selector,
+                "INCOMPLETE_CURVE_ACQUISITION");
+        require(actual.input == usdtIn, "INCORRECT_FUNDING_AMOUNT");
+        require(expectedUsdc == 0 || actual.usdc == expectedUsdc, "WRONG_USDC_AMOUNT");
+        require(actual.usdtb == expectedUsdTb, "EXECUTED_SWAP_NE_QUOTED_OUTPUT");
+        require(actual.leftoverUsdt == 0 && actual.leftoverUsdc == 0,
+                "PARTIAL_INPUT_NOT_CONSUMED");
+        if (reachesTarget) {
+            require(actual.usdtb >= targetUsdTb, "UNDER_TARGET");
+        } else {
+            require(actual.usdtb < targetUsdTb, "NEIGHBOR_SHOULD_NOT_SUFFICE");
+        }
     }
 
     function _plan(uint256 usdtIn, bytes memory payload)
