@@ -138,6 +138,7 @@ jobs:
           grep -F '[PASS] testRealFluid380kSUSDeForkOutputExceeds472461USDTQuoteRequirement()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
           grep -F '[PASS] testActualFluid388kForkReachesInheritedGrossTargetBeforeOtherCosts()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
           grep -F '[PASS] testActualFluid387kForkFallsShortOfInheritedGrossBenchmark()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
+          grep -F '[PASS] testActualFluidAave1000BpsNetCollateralExactOutputInFork()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
           grep -F '[PASS] testFluidResolverNoPositive400kEstimateDoesNotProveGlobalCapacity()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
       - name: Commit evidence limits and hashes — NOT a real funding settlement
         shell: bash
