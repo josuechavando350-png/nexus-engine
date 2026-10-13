@@ -63,8 +63,8 @@ jobs:
           : > "$OUT/rpc-attempts.txt"
           FOUND=0
           for RPC in \
-            "https://ethereum-rpc.publicnode.com" \
             "https://eth.drpc.org" \
+            "https://ethereum-rpc.publicnode.com" \
             "https://1rpc.io/eth" \
             "https://eth.llamarpc.com"
           do
@@ -80,6 +80,8 @@ jobs:
               break
             fi
             echo "REJECT_RPC_OR_STATE_OR_CONTRACT_CONFIGURATION" >> "$OUT/rpc-attempts.txt"
+            echo "REJECTION_TRACE_FOR $RPC" >> "$OUT/rpc-attempts.txt"
+            tail -n 7 "$OUT/last-error.txt" >> "$OUT/rpc-attempts.txt"
           done
           test "$FOUND" -eq 1
           jq -e '
