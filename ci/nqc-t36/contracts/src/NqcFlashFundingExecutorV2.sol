@@ -80,7 +80,9 @@ contract NqcFlashFundingExecutorV2 {
     error InsufficientFreshPrincipal(uint256 expected, uint256 actual);
     error InsufficientForRepaymentAndProfit(uint256 required, uint256 actual);
     error BaselineViolation(uint256 baseline, uint256 finalBalance);
-    error LenderRepaymentBalanceMismatch(address lender, uint256 beforeBalance, uint256 afterBalance);
+    error LenderRepaymentBalanceMismatch(
+        address lender, uint256 beforeBalance, uint256 afterBalance
+    );
     error TokenCallFailed(address token, bytes4 selector);
 
     uint8 internal constant SOURCE_AAVE_V3 = 1;
@@ -277,7 +279,9 @@ contract NqcFlashFundingExecutorV2 {
             revert InvalidCallbackAsset(envelope.plan.asset, address(tokens[0]));
         }
         if (amounts[0] != leg.principal) revert InvalidCallbackAmount(leg.principal, amounts[0]);
-        if (feeAmounts[0] != leg.expectedFee) revert InvalidCallbackFee(leg.expectedFee, feeAmounts[0]);
+        if (feeAmounts[0] != leg.expectedFee) {
+            revert InvalidCallbackFee(leg.expectedFee, feeAmounts[0]);
+        }
 
         _runCallback(envelope);
 
@@ -305,12 +309,12 @@ contract NqcFlashFundingExecutorV2 {
         nextAcquireIndex = index + 1;
 
         FundingLeg memory leg = plan.legs[index];
-        bytes memory envelope = abi.encode(CallbackEnvelope({plan: plan, payload: payload, legIndex: index}));
+        bytes memory envelope =
+            abi.encode(CallbackEnvelope({plan: plan, payload: payload, legIndex: index}));
 
         if (leg.sourceKind == SOURCE_AAVE_V3) {
-            IAaveV3FlashPoolMinimal(leg.lender).flashLoanSimple(
-                address(this), plan.asset, leg.principal, envelope, 0
-            );
+            IAaveV3FlashPoolMinimal(leg.lender)
+                .flashLoanSimple(address(this), plan.asset, leg.principal, envelope, 0);
             _forceApprove(plan.asset, leg.lender, 0);
         } else if (leg.sourceKind == SOURCE_BALANCER_V2) {
             IERC20FlashMinimal[] memory tokens = new IERC20FlashMinimal[](1);
@@ -353,7 +357,9 @@ contract NqcFlashFundingExecutorV2 {
         );
 
         uint256 afterStrategy = _balanceOf(plan.asset);
-        if (afterStrategy < activeBaseline) revert BaselineViolation(activeBaseline, afterStrategy);
+        if (afterStrategy < activeBaseline) {
+            revert BaselineViolation(activeBaseline, afterStrategy);
+        }
         uint256 observedReturned = afterStrategy - activeBaseline;
         if (declaredReturned != observedReturned) {
             revert StrategyReturnedMismatch(declaredReturned, observedReturned);
@@ -376,7 +382,9 @@ contract NqcFlashFundingExecutorV2 {
     {
         if (!active) revert NoExecutionActive();
         bytes32 actualPlanHash = keccak256(abi.encode(envelope.plan));
-        if (actualPlanHash != activePlanHash) revert PlanHashMismatch(activePlanHash, actualPlanHash);
+        if (actualPlanHash != activePlanHash) {
+            revert PlanHashMismatch(activePlanHash, actualPlanHash);
+        }
         if (keccak256(envelope.payload) != envelope.plan.payloadHash) {
             revert PayloadHashMismatch(envelope.plan.payloadHash, keccak256(envelope.payload));
         }
@@ -407,7 +415,9 @@ contract NqcFlashFundingExecutorV2 {
 
     function _validatePlan(FlashExecutionPlan calldata plan, bytes calldata payload) private view {
         if (plan.chainId != block.chainid) revert WrongChain(plan.chainId, block.chainid);
-        if (block.number > plan.validThroughBlock) revert Expired(plan.validThroughBlock, block.number);
+        if (block.number > plan.validThroughBlock) {
+            revert Expired(plan.validThroughBlock, block.number);
+        }
         if (plan.executionIdentityHash == bytes32(0)) revert InvalidExecutionIdentity();
         if (plan.fundingPlanHash == bytes32(0)) revert InvalidFundingPlanHash();
         if (plan.anchorHash == bytes32(0)) revert InvalidAnchor();
@@ -426,11 +436,11 @@ contract NqcFlashFundingExecutorV2 {
         for (uint256 i; i < length; ++i) {
             FundingLeg calldata leg = plan.legs[i];
             if (
-                (leg.sourceKind != SOURCE_AAVE_V3 && leg.sourceKind != SOURCE_BALANCER_V2
-                    && leg.sourceKind != SOURCE_MORPHO_BLUE)
+                (leg.sourceKind != SOURCE_AAVE_V3
+                        && leg.sourceKind != SOURCE_BALANCER_V2
+                        && leg.sourceKind != SOURCE_MORPHO_BLUE)
                     || (leg.sourceKind == SOURCE_MORPHO_BLUE && leg.expectedFee != 0)
-                    || leg.lender == address(0)
-                    || leg.principal == 0
+                    || leg.lender == address(0) || leg.principal == 0
                     || leg.callbackSemanticsHash == bytes32(0)
                     || leg.sourceEvidenceHash == bytes32(0)
             ) revert InvalidLeg(i);
@@ -449,25 +459,22 @@ contract NqcFlashFundingExecutorV2 {
     }
 
     function _safeTransfer(address token, address to, uint256 amount) private {
-        (bool ok, bytes memory data) = token.call(
-            abi.encodeWithSelector(IERC20FlashMinimal.transfer.selector, to, amount)
-        );
+        (bool ok, bytes memory data) =
+            token.call(abi.encodeWithSelector(IERC20FlashMinimal.transfer.selector, to, amount));
         if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) {
             revert TokenCallFailed(token, IERC20FlashMinimal.transfer.selector);
         }
     }
 
     function _forceApprove(address token, address spender, uint256 amount) private {
-        (bool okZero, bytes memory zeroData) = token.call(
-            abi.encodeWithSelector(IERC20FlashMinimal.approve.selector, spender, 0)
-        );
+        (bool okZero, bytes memory zeroData) =
+            token.call(abi.encodeWithSelector(IERC20FlashMinimal.approve.selector, spender, 0));
         if (!okZero || (zeroData.length != 0 && !abi.decode(zeroData, (bool)))) {
             revert TokenCallFailed(token, IERC20FlashMinimal.approve.selector);
         }
         if (amount == 0) return;
-        (bool ok, bytes memory data) = token.call(
-            abi.encodeWithSelector(IERC20FlashMinimal.approve.selector, spender, amount)
-        );
+        (bool ok, bytes memory data) =
+            token.call(abi.encodeWithSelector(IERC20FlashMinimal.approve.selector, spender, amount));
         if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) {
             revert TokenCallFailed(token, IERC20FlashMinimal.approve.selector);
         }
