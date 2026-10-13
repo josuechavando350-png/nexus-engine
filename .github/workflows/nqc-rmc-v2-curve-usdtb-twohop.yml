@@ -1,0 +1,121 @@
+name: NQC RMC V2 Curve USDT / USDtb Two-Hop Historical Quote (NO EXECUTION)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-routing/quote_curve_usdtb_twohop.py'
+      - 'ci/nqc-census/rmc-v2-routing/test_quote_curve_usdtb_twohop.py'
+      - '.github/workflows/nqc-rmc-v2-curve-usdtb-twohop.yml'
+  push:
+    branches:
+      - 'nqc/rmc-v2-curve-usdtb-quote-20261013'
+    paths:
+      - 'ci/nqc-census/rmc-v2-routing/quote_curve_usdtb_twohop.py'
+      - 'ci/nqc-census/rmc-v2-routing/test_quote_curve_usdtb_twohop.py'
+      - '.github/workflows/nqc-rmc-v2-curve-usdtb-twohop.yml'
+permissions:
+  contents: read
+concurrency:
+  group: rmc-v2-curve-twohop-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  exact-block-curve-usdtb-research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exactly published source head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run no-network quote and source identity regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-routing \
+            -p 'test_quote_curve_usdtb_twohop.py' -v
+      - name: Install pinned Foundry 1.7.1 cast
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/foundry" "$RUNNER_TEMP/rmc-v2-curve-usdtb"
+          curl --fail --location --retry 4 --retry-all-errors --max-time 160 \
+            -o "$RUNNER_TEMP/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  $RUNNER_TEMP/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
+          echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
+      - name: Read actual Curve 3pool and USDtb/USDC pool on canonical Ethereum block
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/rmc-v2-curve-usdtb"
+          : > "$OUT/provider-attempts.txt"
+          SUCCESS=0
+          for RPC in \
+            "https://ethereum-rpc.publicnode.com" \
+            "https://eth.drpc.org" \
+            "https://1rpc.io/eth" \
+            "https://eth.llamarpc.com"
+          do
+            echo "TRY_PUBLIC_RPC $RPC" >> "$OUT/provider-attempts.txt"
+            if timeout 300s python3 ci/nqc-census/rmc-v2-routing/quote_curve_usdtb_twohop.py \
+              --rpc-url "$RPC" --output "$OUT/curve-twohop.json" \
+              > "$OUT/console.txt" 2> "$OUT/last-error.txt"; then
+              echo "CANONICAL_TWOHOP_QUOTE_ACQUIRED $RPC" >> "$OUT/provider-attempts.txt"
+              SUCCESS=1
+              break
+            fi
+            echo "RPC_OR_ONCHAIN_QUOTE_BLOCKED" >> "$OUT/provider-attempts.txt"
+          done
+          test "$SUCCESS" -eq 1
+          jq -e '
+            .contract=="NQC_RMC_V2_CURVE_USDT_TO_USDTB_TWOHOP_RESEARCH"
+            and .block==26184741
+            and .block_hash=="0xe4b0718c51a6a484eef56edce0f25e9a5c546c2f66f595c6e305a589a612dbbe"
+            and .scope=="EXACT_HISTORICAL_SINGLE_ARCHIVE_RPC_ETH_CALL_ONLY"
+            and .path==["USDT","CURVE_3POOL","USDC","CURVE_USDTB_USDC","USDtb"]
+            and (.input_size_to_quote|length)==5
+            and (.input_size_to_quote|all(.actual_swap_executed==false and .liquidation_executed==false))
+            and .capital_committed==false
+            and .transaction_simulated==false
+            and .strategy_implemented==false
+            and .gas_sponsorship_admitted==false
+            and .p2_shadow_certified==false
+            and .rmc_closed==false
+            and .commercial_score_upgrade==false
+            and .realized_nqc_pnl_usd=="0"
+          ' "$OUT/curve-twohop.json"
+          jq '{scope,observed_usdtb_nominal_pool_balance_display,
+               threepool_fee_raw,usdtb_pool_fee_raw,
+               route_quotes:[.input_size_to_quote[]|
+                 {input_usdt_display,usdc_after_3pool_display,
+                  usdtb_after_curve_pool_display}]}' "$OUT/curve-twohop.json" \
+            | tee "$OUT/route-summary.json"
+      - name: Content-address source, block and economic nonclaims
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/rmc-v2-curve-usdtb"
+          cp ci/nqc-census/rmc-v2-routing/quote_curve_usdtb_twohop.py "$OUT/quote-producer.py"
+          cp ci/nqc-census/rmc-v2-routing/test_quote_curve_usdtb_twohop.py "$OUT/quote-tests.py"
+          jq -n --arg head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,producing_head:$head,
+              contract:"NQC_CURVE_TWOHOP_RESEARCH_ONLY",
+              full_input_consumption_proven:false,
+              executable_cross_asset_funding_proven:false,
+              external_gas_or_builder_terms_proven:false,
+              route_net_pnl_usd:null,prospective_crossing:false,
+              d11_closed:false,p2_shadow_certified:false,
+              rmc_closed:false,commercial_score_upgrade:false,
+              realized_nqc_pnl_usd:"0"}' > "$OUT/nonclaims.json"
+          (cd "$OUT" && sha256sum curve-twohop.json quote-producer.py quote-tests.py \
+            route-summary.json nonclaims.json > evidence.sha256 && sha256sum -c evidence.sha256)
+      - name: Preserve exact quote or failure dossier
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-curve-usdtb-twohop-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/rmc-v2-curve-usdtb/
+          if-no-files-found: warn
+          retention-days: 30
