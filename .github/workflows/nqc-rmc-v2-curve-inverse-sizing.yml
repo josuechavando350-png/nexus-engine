@@ -1,0 +1,179 @@
+name: NQC RMC V2 Curve USDtb Inverse Input Sizing (NON-AUTHORITY)
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-routing/bisect_curve_usdtb_cover.py"
+      - "ci/nqc-census/rmc-v2-routing/test_bisect_curve_usdtb_cover.py"
+      - ".github/workflows/nqc-rmc-v2-curve-inverse-sizing.yml"
+  push:
+    branches:
+      - "nqc/rmc-v2-curve-inverse-sizing-20261013"
+    paths:
+      - "ci/nqc-census/rmc-v2-routing/bisect_curve_usdtb_cover.py"
+      - "ci/nqc-census/rmc-v2-routing/test_bisect_curve_usdtb_cover.py"
+      - ".github/workflows/nqc-rmc-v2-curve-inverse-sizing.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-curve-inverse-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  historical-quote-inverse:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_ARTIFACT_ID: "11831824560"
+      SOURCE_ARTIFACT_DIGEST: "sha256:379f621027b98ef573d75b19b7e482ab89d12a60342dc346b5069ec454663d70"
+      SOURCE_ARTIFACT_NAME: "nqc-v2-curve-usdtb-twohop-63fbaa7accbd60a1809ff46c6a049fd7caa8b6e1-38435000108"
+    steps:
+      - name: Checkout exact PR head, never the merge synthetic
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Run offline integer bisection and evidence adversarial tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          python3 -m py_compile ci/nqc-census/rmc-v2-routing/bisect_curve_usdtb_cover.py
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-routing -p 'test_bisect_curve_usdtb_cover.py' -v
+
+      - name: Verify immutable original Curve quote artifact and exact source
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-curve-inverse"
+          mkdir -p "$OUT/original" "$OUT/result"
+          ACTUAL="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$SOURCE_ARTIFACT_ID" --jq '.digest')"
+          test "$ACTUAL" = "$SOURCE_ARTIFACT_DIGEST"
+          gh run download 38435000108 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "$SOURCE_ARTIFACT_NAME" \
+            --dir "$OUT/original"
+          (
+            cd "$OUT/original"
+            echo "610a16bfbd5502fc062ef0b332a59275189582708abf975f673f08121d0e0dbf  curve-twohop.json" | sha256sum -c -
+            sha256sum -c evidence.sha256
+          )
+          echo '4d32eb3c04f49fc61968387350612cbb043c328b122ac9be9a661948a7192a15  ci/nqc-census/rmc-v2-routing/quote_curve_usdtb_twohop.py' | sha256sum -c -
+          cp ci/nqc-census/rmc-v2-routing/bisect_curve_usdtb_cover.py "$OUT/result/inverse-producer.py"
+          cp ci/nqc-census/rmc-v2-routing/test_bisect_curve_usdtb_cover.py "$OUT/result/inverse-tests.py"
+          cp "$OUT/original/curve-twohop.json" "$OUT/result/pinned-curve-seed.json"
+          jq -e '
+            .block==26184741
+            and .block_hash=="0xe4b0718c51a6a484eef56edce0f25e9a5c546c2f66f595c6e305a589a612dbbe"
+            and .scope=="EXACT_HISTORICAL_SINGLE_ARCHIVE_RPC_ETH_CALL_ONLY"
+            and .strategy_implemented==false
+            and .p2_shadow_certified==false
+            and .commercial_score_upgrade==false
+            and .realized_nqc_pnl_usd=="0"
+          ' "$OUT/result/pinned-curve-seed.json"
+
+      - name: Install pinned Foundry 1.7.1 read-only cast
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/foundry"
+          curl --fail --location --retry 4 --retry-all-errors --max-time 160 \
+            -o "$RUNNER_TEMP/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  $RUNNER_TEMP/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
+          echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
+
+      - name: Binary search min input on original canonical block, two exact targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-curve-inverse"
+          : > "$OUT/result/rpc-attempts.txt"
+          PASS=0
+          for RPC in \
+            "https://ethereum-rpc.publicnode.com" \
+            "https://eth.drpc.org" \
+            "https://1rpc.io/eth" \
+            "https://eth.llamarpc.com"
+          do
+            echo "TRY $RPC" >> "$OUT/result/rpc-attempts.txt"
+            if timeout 360s python3 ci/nqc-census/rmc-v2-routing/bisect_curve_usdtb_cover.py \
+              --rpc-url "$RPC" \
+              --seed "$OUT/result/pinned-curve-seed.json" \
+              --output "$OUT/result/curve-inverse-minimum.json" \
+              > "$OUT/result/console.txt" 2> "$OUT/result/last-error.txt"; then
+              echo "EXACT_INTEGER_BRACKETED_OUTPUT_ACQUIRED $RPC" >> "$OUT/result/rpc-attempts.txt"
+              PASS=1
+              break
+            fi
+            echo "REJECT_REPLAY_OR_RPC_RESPONSE" >> "$OUT/result/rpc-attempts.txt"
+          done
+          test "$PASS" -eq 1
+          jq -e '
+            .contract=="NQC_RMC_V2_CURVE_TWOHOP_EXACT_INPUT_SIZING_RESEARCH_ONLY"
+            and .block_number==26184741
+            and .source_tier=="SINGLE_ARCHIVE_RPC_HISTORICAL_QUOTE_NOT_EXECUTION"
+            and (.minimum_usdt_quotes | length)==2
+            and (.minimum_usdt_quotes | all(
+                .quote_minimal_within_bracket_under_monotonicity_assumption==true
+                and .pool_quote_monotonicity_globally_proven==false
+                and .actual_swap_executed==false
+              ))
+            and .route_executed_on_fork==false
+            and .global_quote_monotonicity_certified==false
+            and .independent_rpc_operator_quorum_proven==false
+            and .full_input_consumption_proven==false
+            and .repayment_and_liquidation_executed==false
+            and .external_gas_nonrecourse_admitted==false
+            and .commercial_score_upgrade==false
+            and .nqc_realized_pnl_usd=="0"
+          ' "$OUT/result/curve-inverse-minimum.json"
+          python3 - "$OUT/result/curve-inverse-minimum.json" <<'PY'
+          import json,sys
+          o=json.load(open(sys.argv[1],encoding="utf8"))
+          expected=(472000*10**18,472236*10**18)
+          for row,target in zip(o["minimum_usdt_quotes"],expected):
+              amount=int(row["required_usdt_raw"])
+              assert 472000*10**6 < amount < 500000*10**6
+              assert int(row["target_usdtb_raw"])==target
+              assert int(row["preceding_usdtb_quote_out_raw"])<target
+              assert int(row["usdtb_quote_out_raw"])>=target
+              assert row["actual_swap_executed"] is False
+          PY
+
+      - name: Preserve exact source, nonclaims and SHA-256
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-curve-inverse/result"
+          jq -n --arg head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --arg source_sha "$SOURCE_ARTIFACT_DIGEST" \
+            '{schema_version:1,producing_head:$head,original_quote_artifact_digest:$source_sha,
+              claim_scope:"INVERSE_CURVE_GET_DY_HISTORICAL_ONLY",
+              full_input_consumption_proven:false,
+              route_execution_on_fork:false,
+              route_profit_after_gas_builder_competition_usd:null,
+              execution_ready:false,
+              external_gas_admitted:false,
+              prospective_crossing:false,shadow_p2_certified:false,
+              rmc_closed:false,commercial_score_upgrade:false,
+              realized_nqc_pnl_usd:"0"}' > "$OUT/nonclaims.json"
+          (cd "$OUT" && sha256sum inverse-producer.py inverse-tests.py \
+             pinned-curve-seed.json curve-inverse-minimum.json nonclaims.json \
+             > evidence.sha256 && sha256sum -c evidence.sha256)
+
+      - name: Preserve successes and failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-curve-inverse-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-v2-curve-inverse/
+          if-no-files-found: warn
+          retention-days: 30
