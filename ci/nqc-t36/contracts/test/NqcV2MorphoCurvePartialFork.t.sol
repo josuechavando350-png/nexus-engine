@@ -166,6 +166,7 @@ contract NqcV2MorphoCurvePartialForkTest {
         uint256 operator;
         uint256 strategy;
     }
+
     struct AcquiredAmounts {
         uint256 input;
         uint256 usdc;
@@ -239,8 +240,11 @@ contract NqcV2MorphoCurvePartialForkTest {
     }
 
     function _simulateTwoHopAndRollback(
-        uint256 usdtIn, uint256 targetUsdTb,
-        uint256 expectedUsdc, uint256 expectedUsdTb, bool reachesTarget
+        uint256 usdtIn,
+        uint256 targetUsdTb,
+        uint256 expectedUsdc,
+        uint256 expectedUsdTb,
+        bool reachesTarget
     ) internal {
         BeforeBalances memory beforeBalance = _recordBalances();
         bytes memory payload = abi.encodePacked("MORPHO_CURVE_PARTIAL_FORK", usdtIn);
@@ -264,23 +268,35 @@ contract NqcV2MorphoCurvePartialForkTest {
     }
 
     function _assertRollback(BeforeBalances memory original, bytes32 identity) private view {
-        require(IV2PartialERC20(USDT).balanceOf(MORPHO) == original.lender,
-                "FLASH_LENDER_LOST_TOKENS");
-        require(IV2PartialERC20(USDT).balanceOf(THREEPOOL) == original.threepool,
-                "CURVE_3POOL_STATE_NOT_ROLLED_BACK");
-        require(IV2PartialERC20(USDTB).balanceOf(USDTB_POOL) == original.usdtbPool,
-                "CURVE_USDTB_POOL_STATE_NOT_ROLLED_BACK");
-        require(IV2PartialERC20(USDT).balanceOf(address(this)) == original.operator,
-                "OPERATOR_INVENTORY_CHANGED");
-        require(IV2PartialERC20(USDT).balanceOf(address(strategy)) == original.strategy,
-                "STRATEGY_STOLE_OR_LOST_USDT");
-        require(!executor.consumedExecutionIdentity(identity),
-                "REVERT_SHOULD_NOT_CONSUME_IDENTITY");
+        require(
+            IV2PartialERC20(USDT).balanceOf(MORPHO) == original.lender, "FLASH_LENDER_LOST_TOKENS"
+        );
+        require(
+            IV2PartialERC20(USDT).balanceOf(THREEPOOL) == original.threepool,
+            "CURVE_3POOL_STATE_NOT_ROLLED_BACK"
+        );
+        require(
+            IV2PartialERC20(USDTB).balanceOf(USDTB_POOL) == original.usdtbPool,
+            "CURVE_USDTB_POOL_STATE_NOT_ROLLED_BACK"
+        );
+        require(
+            IV2PartialERC20(USDT).balanceOf(address(this)) == original.operator,
+            "OPERATOR_INVENTORY_CHANGED"
+        );
+        require(
+            IV2PartialERC20(USDT).balanceOf(address(strategy)) == original.strategy,
+            "STRATEGY_STOLE_OR_LOST_USDT"
+        );
+        require(!executor.consumedExecutionIdentity(identity), "REVERT_SHOULD_NOT_CONSUME_IDENTITY");
     }
 
     function _verifyRevertedTwoHop(
-        bytes memory reason, uint256 usdtIn, uint256 targetUsdTb,
-        uint256 expectedUsdc, uint256 expectedUsdTb, bool reachesTarget
+        bytes memory reason,
+        uint256 usdtIn,
+        uint256 targetUsdTb,
+        uint256 expectedUsdc,
+        uint256 expectedUsdTb,
+        bool reachesTarget
     ) private pure {
         require(reason.length == 164, "EXPECTED_PARTIAL_ROUTE_REVERT_NOT_RECEIVED");
         bytes4 selector;
@@ -293,13 +309,14 @@ contract NqcV2MorphoCurvePartialForkTest {
             mstore(add(actual, 0x60), mload(add(reason, 0x84)))
             mstore(add(actual, 0x80), mload(add(reason, 0xa4)))
         }
-        require(selector == MorphoCurvePartialProbe.CapturedPartialRoute.selector,
-                "INCOMPLETE_CURVE_ACQUISITION");
+        require(
+            selector == MorphoCurvePartialProbe.CapturedPartialRoute.selector,
+            "INCOMPLETE_CURVE_ACQUISITION"
+        );
         require(actual.input == usdtIn, "INCORRECT_FUNDING_AMOUNT");
         require(expectedUsdc == 0 || actual.usdc == expectedUsdc, "WRONG_USDC_AMOUNT");
         require(actual.usdtb == expectedUsdTb, "EXECUTED_SWAP_NE_QUOTED_OUTPUT");
-        require(actual.leftoverUsdt == 0 && actual.leftoverUsdc == 0,
-                "PARTIAL_INPUT_NOT_CONSUMED");
+        require(actual.leftoverUsdt == 0 && actual.leftoverUsdc == 0, "PARTIAL_INPUT_NOT_CONSUMED");
         if (reachesTarget) {
             require(actual.usdtb >= targetUsdTb, "UNDER_TARGET");
         } else {
