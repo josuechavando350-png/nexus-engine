@@ -1,0 +1,145 @@
+name: NQC RMC V2 Postwindow Aave sUSDe USDtb Event Census (NO LIVE)
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_targeted_aave_liquidation_census.py"
+      - ".github/workflows/nqc-rmc-v2-postwindow-aave-targeted.yml"
+  push:
+    branches:
+      - "nqc/rmc-v2-postwindow-targeted-aave-20261013"
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_targeted_aave_liquidation_census.py"
+      - ".github/workflows/nqc-rmc-v2-postwindow-aave-targeted.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-postwindow-aave-targeted-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  read-only-targeted-historical-census:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Pin immutable source commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Run adversarial offline evidence tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-v2-targeted-postwindow"
+          python3 -m py_compile \
+            ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py \
+            ci/nqc-census/rmc-v2-shadow/test_targeted_aave_liquidation_census.py
+          python3 -m unittest discover \
+            -s ci/nqc-census/rmc-v2-shadow \
+            -p test_targeted_aave_liquidation_census.py -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-v2-targeted-postwindow/adversarial-tests.log"
+
+      - name: Exhaustive block-targeted event search on two public endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-targeted-postwindow"
+          TOOL=ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py
+          # Independent processes each apply >=22 seconds between public JSON-RPC
+          # requests to their OWN endpoints. No keys, accounts or broadcasts.
+          set +e
+          timeout 3450s python3 "$TOOL" --provider publicnode \
+            --output "$OUT/publicnode.json" \
+            > "$OUT/publicnode.stdout" 2> "$OUT/publicnode.stderr" &
+          PID_A=$!
+          timeout 3450s python3 "$TOOL" --provider drpc \
+            --output "$OUT/drpc.json" \
+            > "$OUT/drpc.stdout" 2> "$OUT/drpc.stderr" &
+          PID_B=$!
+          wait "$PID_A"
+          EXIT_A=$?
+          wait "$PID_B"
+          EXIT_B=$?
+          set -e
+          printf 'publicnode_exit=%s\ndrpc_exit=%s\n' "$EXIT_A" "$EXIT_B" \
+            > "$OUT/endpoint-exit-status.txt"
+          test "$EXIT_A" -eq 0
+          test "$EXIT_B" -eq 0
+
+          python3 "$TOOL" --compare "$OUT/publicnode.json" "$OUT/drpc.json" \
+            --output "$OUT/two-endpoint-targeted-comparison.json"
+          python3 - "$OUT" <<'PY'
+          import json,sys
+          from pathlib import Path
+          d=Path(sys.argv[1])
+          a=json.loads((d/'publicnode.json').read_text())
+          b=json.loads((d/'drpc.json').read_text())
+          c=json.loads((d/'two-endpoint-targeted-comparison.json').read_text())
+          for x in (a,b):
+              assert x['window']['start']==26095352 and x['window']['end']==26184741
+              assert x['window']['end_hash']=='0xe4b0718c51a6a484eef56edce0f25e9a5c546c2f66f595c6e305a589a612dbbe'
+              assert x['scope']=='HISTORICAL_TARGETED_SUSDE_USDTB_NOT_FULL_AAVE_CENSUS'
+              assert x['full_Aave_liquidation_count_in_postwindow_known'] is False
+              assert x['actual_liquidation_by_Nexus'] is False
+              assert x['commercial_score_upgrade'] is False
+              assert x['p2_shadow_certified'] is False
+              assert x['rmc_closed'] is False
+              assert x['nqc_realized_pnl_usd']=='0'
+          assert c['status']=='TWO_DISTINCT_PUBLIC_ENDPOINTS_EXACT_EVENTS_MATCH'
+          assert c['independent_rpc_operator_authentication_proven'] is False
+          assert c['block_end']-c['block_start']+1==89390
+          assert c['nqc_realized_pnl_usd']=='0'
+          print('POSTWINDOW_TARGETED_89390_BLOCKS_RECONCILED')
+          print('targeted_events', c['total_targeted_events'])
+          print('pair_susde_collateral_usdtb_debt', c['summary']['susde_collateral_usdtb_debt'])
+          print('pair_usdtb_collateral_susde_debt', c['summary']['usdtb_collateral_susde_debt'])
+          print('nqc_pnl_zero', c['nqc_realized_pnl_usd'])
+          PY
+
+      - name: Bundle content-addressed evidence, no commercial authority
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-targeted-postwindow"
+          cp ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py \
+            "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_targeted_aave_liquidation_census.py \
+            "$OUT/adversarial-tests.py"
+          jq -n \
+            --arg head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$head,
+              coverage_claim:"ONLY_AAVE_LIQUIDATIONCALL_WITH_SUSDE_OR_USDTB_26095352_26184741",
+              original_139_event_window_excluded:true,
+              two_endpoint_match_not_independent_operator_certificate:true,
+              no_hf_below_one_candidate_unless_observed_event:true,
+              no_Nexus_capture_calibration:true,
+              no_own_capital_or_gas_sponsorship_proven:true,
+              no_Nexus_realized_PnL:true,
+              no_Shadow_P2_certification:true,
+              no_RMC_terminal_closeout:true}' > "$OUT/nonclaims.json"
+          (
+            cd "$OUT"
+            sha256sum producer.py adversarial-tests.py \
+              publicnode.json drpc.json two-endpoint-targeted-comparison.json \
+              nonclaims.json > evidence.sha256
+            sha256sum -c evidence.sha256
+          )
+
+      - name: Preserve reports or provider blockers even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-targeted-postwindow-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-v2-targeted-postwindow/
+          if-no-files-found: warn
+          retention-days: 30
