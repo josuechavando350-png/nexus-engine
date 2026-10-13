@@ -215,6 +215,19 @@ class CoverageAndQuorum(unittest.TestCase):
             'RPC_HTTP_400: invalid params: unsupported topic query')))
         self.assertTrue(m.permitted_split(m.SourceError(
             'RPC_HTTP_400: block range too large for plan')))
+    def test_actual_drpc_free_plan_block_span_error_is_splittable(self):
+        self.assertTrue(m.permitted_split(m.SourceError(
+            'RPC_HTTP_400: {"id":7,"jsonrpc":"2.0","error":'
+            '{"message":"ranges over 10000 blocks are not supported '
+            'on free plan","code":35}}')))
+    def test_drpc_permission_and_quota_errors_still_terminal(self):
+        for message in ('RPC_HTTP_403: access forbidden',
+                        'RPC_HTTP_429: rate limit',
+                        'RPC_JSON_ERROR_api key required',
+                        'RPC_HTTP_400: quota exceeded'):
+            with self.subTest(message=message):
+                self.assertFalse(m.permitted_split(m.SourceError(message)))
+
     def test_http_403_from_provider_never_split(self):
         self.assertFalse(m.permitted_split(m.SourceError(
             'RPC_HTTP_403: forbidden for this endpoint')))
