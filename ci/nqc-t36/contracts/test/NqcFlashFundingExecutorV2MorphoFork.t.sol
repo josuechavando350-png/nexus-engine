@@ -41,9 +41,8 @@ contract ForkMorphoUSDTPrincipalReturnStrategy {
         }
         // Ethereum USDT is compatible with non-returning ERC20 transfer paths;
         // a typed IERC20.transfer(address,uint256) that decodes a bool may fail.
-        (bool ok, bytes memory data) = token.call(
-            abi.encodeWithSignature("transfer(address,uint256)", msg.sender, principal)
-        );
+        (bool ok, bytes memory data) =
+            token.call(abi.encodeWithSignature("transfer(address,uint256)", msg.sender, principal));
         if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) {
             revert TokenTransferFailed();
         }
@@ -55,10 +54,8 @@ contract ForkMorphoUSDTPrincipalReturnStrategy {
 /// @dev This does NOT involve Aave liquidation, DEX swaps, externally sponsored
 ///      gas, prospective detection, a trading strategy or real NQC P&L.
 contract NqcFlashFundingExecutorV2MorphoForkTest {
-    address internal constant MORPHO_BLUE =
-        0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
-    address internal constant USDT =
-        0xdAC17F958D2ee523a2206206994597C13D831ec7;
+    address internal constant MORPHO_BLUE = 0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb;
+    address internal constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
     uint256 internal constant BLOCK_NUMBER = 26_184_741;
     bytes32 internal constant PARENT_HASH =
@@ -106,36 +103,38 @@ contract NqcFlashFundingExecutorV2MorphoForkTest {
         uint256 beforeLender = _balance(MORPHO_BLUE);
         uint256 beforeOperator = _balance(address(this));
         bytes memory payload = hex"f003";
-        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan =
-            _plan(1e6, 1, payload);
+        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan = _plan(1e6, 1, payload);
         try executor.execute(plan, payload) returns (uint256) {
             revert("MUST_REVERT_WITHOUT_GENUINE_PROFIT");
         } catch (bytes memory reason) {
-            require(_selector(reason) ==
-                NqcFlashFundingExecutorV2.InsufficientForRepaymentAndProfit.selector,
-                "INCORRECT_REVERT_REASON");
+            require(
+                _selector(reason)
+                    == NqcFlashFundingExecutorV2.InsufficientForRepaymentAndProfit.selector,
+                "INCORRECT_REVERT_REASON"
+            );
         }
         require(_balance(MORPHO_BLUE) == beforeLender, "REVERT_LENDER_BALANCE_CHANGED");
         require(_balance(address(this)) == beforeOperator, "REVERT_OPERATOR_GAINED");
         require(_balance(address(executor)) == 0, "REVERT_EXECUTOR_BALANCE_CHANGED");
-        require(!executor.consumedExecutionIdentity(plan.executionIdentityHash),
-                "REVERT_CONSUMED_IDENTITY");
+        require(
+            !executor.consumedExecutionIdentity(plan.executionIdentityHash),
+            "REVERT_CONSUMED_IDENTITY"
+        );
     }
 
     function testRealForkMorphoUnsolicitedCallbackDenied() public {
         uint256 principal = 1e6;
         bytes memory payload = hex"f004";
-        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan =
-            _plan(principal, 0, payload);
+        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan = _plan(principal, 0, payload);
         NqcFlashFundingExecutorV2.CallbackEnvelope memory envelope =
-            NqcFlashFundingExecutorV2.CallbackEnvelope({
-                plan: plan, payload: payload, legIndex: 0
-            });
+            NqcFlashFundingExecutorV2.CallbackEnvelope({plan: plan, payload: payload, legIndex: 0});
         try executor.onMorphoFlashLoan(principal, abi.encode(envelope)) {
             revert("UNEXPECTED_CALLBACK_ACCEPTED");
         } catch (bytes memory reason) {
-            require(_selector(reason) == NqcFlashFundingExecutorV2.NoExecutionActive.selector,
-                    "INVALID_REVERT_SELECTOR");
+            require(
+                _selector(reason) == NqcFlashFundingExecutorV2.NoExecutionActive.selector,
+                "INVALID_REVERT_SELECTOR"
+            );
         }
     }
 
@@ -144,8 +143,7 @@ contract NqcFlashFundingExecutorV2MorphoForkTest {
         uint256 lenderBefore = _balance(MORPHO_BLUE);
         uint256 operatorBefore = _balance(address(this));
         uint256 totalSupplyBefore = _totalSupply();
-        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan =
-            _plan(principal, 0, payload);
+        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan = _plan(principal, 0, payload);
         uint256 returnedProfit = executor.execute(plan, payload);
         require(returnedProfit == 0, "UNPROVEN_PNL_IN_TEST");
         require(_balance(MORPHO_BLUE) == lenderBefore, "EXACT_REPAYMENT_FAILED");
@@ -154,12 +152,16 @@ contract NqcFlashFundingExecutorV2MorphoForkTest {
         require(_balance(address(executor)) == 0, "EXECUTOR_BALANCE_DRIFT");
         require(_allowance(address(executor), MORPHO_BLUE) == 0, "REMAINING_APPROVAL");
         require(_totalSupply() == totalSupplyBefore, "NO_MINTED_CAPITAL_PERMITTED");
-        require(executor.consumedExecutionIdentity(plan.executionIdentityHash),
-                "NO_EXECUTION_ID_REPLAY_PROTECTION");
+        require(
+            executor.consumedExecutionIdentity(plan.executionIdentityHash),
+            "NO_EXECUTION_ID_REPLAY_PROTECTION"
+        );
     }
 
     function _plan(uint256 principal, uint256 profitFloor, bytes memory payload)
-        internal view returns (NqcFlashFundingExecutorV2.FlashExecutionPlan memory)
+        internal
+        view
+        returns (NqcFlashFundingExecutorV2.FlashExecutionPlan memory)
     {
         NqcFlashFundingExecutorV2.FundingLeg[] memory legs =
             new NqcFlashFundingExecutorV2.FundingLeg[](1);
@@ -191,17 +193,14 @@ contract NqcFlashFundingExecutorV2MorphoForkTest {
     }
 
     function _allowance(address owner_, address spender_) internal view returns (uint256) {
-        (bool ok, bytes memory data) = USDT.staticcall(
-            abi.encodeWithSignature("allowance(address,address)", owner_, spender_)
-        );
+        (bool ok, bytes memory data) =
+            USDT.staticcall(abi.encodeWithSignature("allowance(address,address)", owner_, spender_));
         require(ok && data.length >= 32, "ALLOWANCE_READ_FAILED");
         return abi.decode(data, (uint256));
     }
 
     function _totalSupply() internal view returns (uint256) {
-        (bool ok, bytes memory data) = USDT.staticcall(
-            abi.encodeWithSignature("totalSupply()")
-        );
+        (bool ok, bytes memory data) = USDT.staticcall(abi.encodeWithSignature("totalSupply()"));
         require(ok && data.length >= 32, "TOTAL_SUPPLY_READ_FAILED");
         return abi.decode(data, (uint256));
     }
