@@ -1,0 +1,138 @@
+name: NQC RMC V2 Fluid sUSDe/USDT Historical Capacity Census (NO EXECUTION)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-routing/quote_fluid_susde_usdt.py'
+      - 'ci/nqc-census/rmc-v2-routing/test_quote_fluid_susde_usdt.py'
+      - '.github/workflows/nqc-rmc-v2-fluid-susde-capacity.yml'
+  push:
+    branches:
+      - 'nqc/rmc-v2-fluid-susde-capacity-20261013'
+    paths:
+      - 'ci/nqc-census/rmc-v2-routing/quote_fluid_susde_usdt.py'
+      - 'ci/nqc-census/rmc-v2-routing/test_quote_fluid_susde_usdt.py'
+      - '.github/workflows/nqc-rmc-v2-fluid-susde-capacity.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-rmc-v2-fluid-census-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  pinned-fluid-dex-research:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact producing commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Validate unit tests and freeze canonical producer head
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          python3 -m py_compile ci/nqc-census/rmc-v2-routing/quote_fluid_susde_usdt.py
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-routing \
+            -p 'test_quote_fluid_susde_usdt.py' -v
+      - name: Install pinned Foundry 1.7.1, read-only cast only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/foundry" "$RUNNER_TEMP/nqc-fluid-susde"
+          curl --fail --location --retry 4 --retry-all-errors --max-time 160 \
+            -o "$RUNNER_TEMP/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  $RUNNER_TEMP/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
+          echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/foundry/cast" --version
+      - name: Read historical Fluid T1 pool, token identities, reserves and estimates
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-fluid-susde"
+          : > "$OUT/provider-attempts.txt"
+          FOUND=0
+          for RPC in \
+            "https://ethereum-rpc.publicnode.com" \
+            "https://eth.drpc.org" \
+            "https://1rpc.io/eth" \
+            "https://eth.llamarpc.com"
+          do
+            echo "TRY_PUBLIC_ARCHIVE $RPC" >> "$OUT/provider-attempts.txt"
+            if timeout 400s python3 ci/nqc-census/rmc-v2-routing/quote_fluid_susde_usdt.py \
+               --rpc-url "$RPC" --out "$OUT/fluid-susde-census.json" \
+               > "$OUT/console.txt" 2> "$OUT/last-error.txt"; then
+              echo "FLUID_HISTORICAL_POOL_IDENTITY_CONFIRMED $RPC" >> "$OUT/provider-attempts.txt"
+              echo "$RPC" > "$OUT/selected-rpc.txt"
+              FOUND=1
+              break
+            fi
+            echo "REJECT_PROVIDER_OR_POOL_IDENTITY" >> "$OUT/provider-attempts.txt"
+          done
+          test "$FOUND" -eq 1
+          jq -e '
+            .contract=="NQC_V2_FLUID_SUSDE_USDT_VENUE_HISTORICAL_RESEARCH_ONLY"
+            and .source_tier=="SINGLE_ARCHIVE_RPC_FORK_QUOTE_NOT_EXECUTION"
+            and .block==26184741
+            and .block_hash=="0xe4b0718c51a6a484eef56edce0f25e9a5c546c2f66f595c6e305a589a612dbbe"
+            and .fluid_dex_constants.dex_id==15
+            and .fluid_dex_constants.token0=="0x9d39a5de30e57443bff2a8307a4256c8797a3497"
+            and .fluid_dex_constants.token1=="0xdac17f958d2ee523a2206206994597c13d831ec7"
+            and (.estimator_quotes|length)==8
+            and (.estimator_quotes|all(.actual_swap_executed==false
+                       and .full_input_consumption_proven==false))
+            and .quotes_do_not_prove_full_input_consumption==true
+            and .actual_swap_executed==false
+            and .morpho_capital_committed==false
+            and .external_gas_sponsor_admitted==false
+            and .end_to_end_net_pnl_usd==null
+            and .prospective_hf_under_one_seen==false
+            and .shadow_p2_certified==false
+            and .rmc_closed==false
+            and .commercial_score_upgrade==false
+            and .realized_nqc_pnl_usd=="0"
+          ' "$OUT/fluid-susde-census.json"
+          jq '{block,fluid_dex_constants,raw_erc20_balances_not_total_liquidity,
+              positive_quotes:.quote_positive_count,unavailable:.quote_unavailable_count,
+              quotes:[.estimator_quotes[]|{input:.input_susde_nominal_units,
+                     output:.output_usdt_raw,status}]}' "$OUT/fluid-susde-census.json" \
+            | tee "$OUT/summary.json"
+      - name: Content-address Fluid source and research nonclaims
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-fluid-susde"
+          cp ci/nqc-census/rmc-v2-routing/quote_fluid_susde_usdt.py "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-routing/test_quote_fluid_susde_usdt.py "$OUT/tests.py"
+          jq -n --arg head "${{ github.event.pull_request.head.sha || github.sha }}" \
+             '{schema_version:1,producing_head:$head,
+               scope:"FLUID_SINGLE_ARCHIVE_RPC_HISTORICAL_ESTIMATE_ONLY",
+               independent_rpc_operators_authenticated:false,
+               fluid_external_cash_swap_executed:false,
+               s_usde_collateral_acquired:false,
+               liquidity_layer_limits_certified:false,
+               actual_fill_and_gas_verified:false,
+               morpho_curve_aave_fluid_complete:false,
+               gas_sponsor_nonrecourse_approved:false,
+               prospective_crossing:false,
+               p2_shadow_certified:false,rmc_closed:false,
+               commercial_score_upgrade:false,nqc_realized_pnl_usd:"0"}' > "$OUT/nonclaims.json"
+          (
+            cd "$OUT"
+            sha256sum fluid-susde-census.json producer.py tests.py summary.json nonclaims.json \
+              > archive.sha256
+            sha256sum -c archive.sha256
+          )
+      - name: Preserve exact source and failure diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-fluid-susde-census-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-fluid-susde/
+          if-no-files-found: warn
+          retention-days: 30
