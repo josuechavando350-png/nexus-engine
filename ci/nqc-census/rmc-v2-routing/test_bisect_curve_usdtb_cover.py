@@ -48,7 +48,7 @@ class SizeTests(unittest.TestCase):
             m.minimal_input(472000*10**18,q,low=-1)
     def test_no_bracket_rejected(self):
         with self.assertRaisesRegex(m.QuoteEvidenceError,"no strictly bracketed"):
-            m.minimal_input(0,q)
+            m.minimal_input(1,q)
     def test_wrong_upstream_block_rejected(self):
         x=seed();x["block"]=m.BLOCK+1
         with self.assertRaises(m.QuoteEvidenceError):
