@@ -219,6 +219,16 @@ contract NqcV2MorphoCurvePartialForkTest {
         );
     }
 
+    function testRealMorphoCurveOneAdditionalUSDTBaseUnitMeetsFormerTarget() public {
+        // Quote-minimum 472461.610796 USDT missed by < 1 micro USDtb on
+        // actual Curve swaps. This probes the immediate integer neighbor.
+        uint256 actual = _simulateTwoHopAndRollback(
+            FIRST_MINIMAL_USDT + 1, FIRST_TARGET_USDTB,
+            0, 0, true
+        );
+        require(actual >= FIRST_TARGET_USDTB, "PLUS_ONE_USDT_MICRO_STILL_UNDER_TARGET");
+    }
+
     function testRealMorphoCurveRecordsOutputForOneUnitLowerInput() public {
         _simulateTwoHopAndRollback(
             FIRST_PREVIOUS_USDT, FIRST_TARGET_USDTB, 0, FIRST_PREVIOUS_USDTB_QUOTE, false
@@ -251,14 +261,14 @@ contract NqcV2MorphoCurvePartialForkTest {
         uint256 expectedUsdc,
         uint256 expectedUsdTb,
         bool reachesTarget
-    ) internal {
+    ) internal returns (uint256 actualUsdTb) {
         BeforeBalances memory beforeBalance = _recordBalances();
         bytes memory payload = abi.encodePacked("MORPHO_CURVE_PARTIAL_FORK", usdtIn);
         NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan = _plan(usdtIn, payload);
         try executor.execute(plan, payload) returns (uint256) {
             revert("NOT_ALLOWED_TO_COMPLETE_UNREPAID_MORPHO_FLASH");
         } catch (bytes memory reason) {
-            _verifyRevertedTwoHop(
+            actualUsdTb = _verifyRevertedTwoHop(
                 reason, usdtIn, targetUsdTb, expectedUsdc, expectedUsdTb, reachesTarget
             );
         }
@@ -303,7 +313,7 @@ contract NqcV2MorphoCurvePartialForkTest {
         uint256 expectedUsdc,
         uint256 expectedUsdTb,
         bool reachesTarget
-    ) private {
+    ) private returns (uint256 measuredUsdTb) {
         require(reason.length == 164, "EXPECTED_PARTIAL_ROUTE_REVERT_NOT_RECEIVED");
         bytes4 selector;
         AcquiredAmounts memory actual;
@@ -329,6 +339,7 @@ contract NqcV2MorphoCurvePartialForkTest {
         emit log_named_uint("NQC_CURVE_USDC_ACTUAL_RAW", actual.usdc);
         emit log_named_uint("NQC_CURVE_USDTB_QUOTE_RAW", expectedUsdTb);
         emit log_named_uint("NQC_CURVE_USDTB_ACTUAL_RAW", actual.usdtb);
+        measuredUsdTb = actual.usdtb;
         emit log_named_uint(
             "NQC_CURVE_ACTUAL_OUTPUT_ABOVE_TARGET", actual.usdtb >= targetUsdTb ? 1 : 0
         );
