@@ -187,6 +187,27 @@ contract NqcV2MorphoFluidPartialForkTest {
         emit log_named_uint("NQC_FLUID_FORK_380K_ABOVE_PRE_ROUTING_USDT_REQUIREMENT", 1);
     }
 
+    function testActualFluid388kForkReachesInheritedGrossTargetBeforeOtherCosts() public {
+        // Historic Curve two-hop actual USDT input for 472k USDtb:
+        // 472461.610797 USDT. Legacy pre-builder/gas surplus target is
+        // 12297.01 USDT, so output must be >= 484758.620797 USDT.
+        // This is an intentionally REVERTED separate Fluid fork. No Aave
+        // seizure, integrated repayment, gas provider, or NQC revenue.
+        uint256 actual = _partialFluidSwap(388_000 ether);
+        require(actual >= 484_758_620_797, "FLUID_REAL_388K_BELOW_LEGACY_GROSS");
+        emit log_named_uint("NQC_FLUID_388K_ACTUAL_GROSS_BEFORE_ALL_COSTS_USDT_RAW",
+                            actual - 472_461_610_797);
+        emit log_named_uint("NQC_FLUID_388K_FORK_NOT_LIQUIDATION_NOT_REPAID", 1);
+    }
+
+    function testActualFluid387kForkFallsShortOfInheritedGrossBenchmark() public {
+        uint256 actual = _partialFluidSwap(387_000 ether);
+        require(actual < 484_758_620_797, "387K_FLUID_NOT_EXPECTED_ABOVE_BENCHMARK");
+        emit log_named_uint("NQC_FLUID_387K_ACTUAL_GROSS_BEFORE_ALL_COSTS_USDT_RAW",
+                            actual - 472_461_610_797);
+        emit log_named_uint("NQC_FLUID_387K_FORK_NOT_LIQUIDATION_NOT_REPAID", 1);
+    }
+
     function testFluidNearCapacityQuotesChallengeInherited12297GrossEdge() public {
         // HISTORICAL estimates, not executed swaps or a proof of captured
         // liquidation collateral. Guard against convenient legacy P&L claims.
