@@ -1,0 +1,87 @@
+name: NQC RMC V2 Morpho Blue Rust Preflight (NO D11 AUTHORITY)
+on:
+  pull_request:
+    paths:
+      - 'nqc-census/crates/nqc-census-capital/src/morpho_blue.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/lib.rs'
+      - '.github/workflows/nqc-rmc-v2-morpho-rust-preflight.yml'
+  push:
+    branches:
+      - 'nqc/rmc-v2-morpho-blue-capital-model-20261013'
+    paths:
+      - 'nqc-census/crates/nqc-census-capital/src/morpho_blue.rs'
+      - 'nqc-census/crates/nqc-census-capital/src/lib.rs'
+      - '.github/workflows/nqc-rmc-v2-morpho-rust-preflight.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc-v2-morpho-rust-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  rust-morpho-nominal-not-executable:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact producing commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Pin exact branch head and Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          rustup toolchain install 1.98.1 --profile minimal --component clippy,rustfmt
+          rustc +1.98.1 --version | grep -F 'rustc 1.98.1 '
+
+      - name: Rust locked tests
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +1.98.1 test --locked -p nqc-census-capital --lib morpho_blue
+
+      - name: Rust Clippy strict on capital crate
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +1.98.1 clippy --locked -p nqc-census-capital --lib -- -D warnings
+
+      - name: Rustfmt exact source
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +1.98.1 fmt --all -- --check
+
+      - name: Issue only non-authoritative source manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/rmc-v2-morpho-preflight"
+          mkdir -p "$OUT"
+          git rev-parse HEAD > "$OUT/checkout-head.txt"
+          git hash-object nqc-census/crates/nqc-census-capital/src/morpho_blue.rs > "$OUT/morpho-blob-sha.txt"
+          sha256sum nqc-census/crates/nqc-census-capital/src/morpho_blue.rs > "$OUT/morpho-source-sha256.txt"
+          jq -n --arg head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1, source_sha:$head,
+              result:"MORPHO_RUST_SEMANTIC_TESTED_NOMINAL_ONLY",
+              independently_authenticated_rpc_sources:0,
+              live_morpho_callback_fork_proven:false,
+              economic_capital_executable_verified:false,
+              d11_terminal_closed:false,rmc_closed:false,shadow_p2_certified:false,
+              nqc_realized_pnl_usd:"0"}' > "$OUT/non-authoritative.json"
+          (cd "$OUT" && sha256sum *.txt non-authoritative.json > archive.sha256 && sha256sum -c archive.sha256)
+
+      - name: Preserve negative proof only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc-v2-morpho-rust-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/rmc-v2-morpho-preflight/
+          retention-days: 30
