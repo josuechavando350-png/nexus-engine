@@ -3,7 +3,10 @@ pragma solidity ^0.8.24;
 
 import {NqcFlashFundingExecutorV2} from "../src/NqcFlashFundingExecutorV2.sol";
 import {
-    MockFlashToken, MockFundedStrategy, MockAaveFlashPool, MockBalancerVault
+    MockFlashToken,
+    MockFundedStrategy,
+    MockAaveFlashPool,
+    MockBalancerVault
 } from "./NqcFlashFundingExecutor.t.sol";
 
 contract MockMorphoFlashRelay {
@@ -14,7 +17,13 @@ contract MockMorphoFlashRelay {
 
 /// @notice Explicitly synthetic. Does NOT prove Morpho deployed runtime behavior.
 contract MockMorphoBlueFlash {
-    enum Mode { Honest, NoTransfer, NoPull, WrongAmount, WrongCallbackSender }
+    enum Mode {
+        Honest,
+        NoTransfer,
+        NoPull,
+        WrongAmount,
+        WrongCallbackSender
+    }
     Mode public mode;
     MockMorphoFlashRelay public immutable relay;
 
@@ -87,7 +96,8 @@ contract NqcFlashFundingExecutorV2MorphoTest {
         strategy.configure(0, 0, false);
         bytes memory payload = hex"02";
         _expectRevert(
-            _morphoPlan(payload, 1), payload,
+            _morphoPlan(payload, 1),
+            payload,
             NqcFlashFundingExecutorV2.InsufficientForRepaymentAndProfit.selector
         );
     }
@@ -97,7 +107,8 @@ contract NqcFlashFundingExecutorV2MorphoTest {
         morpho.setMode(MockMorphoBlueFlash.Mode.NoTransfer);
         bytes memory payload = hex"03";
         _expectRevert(
-            _morphoPlan(payload, 1), payload,
+            _morphoPlan(payload, 1),
+            payload,
             NqcFlashFundingExecutorV2.InsufficientFreshPrincipal.selector
         );
     }
@@ -107,7 +118,8 @@ contract NqcFlashFundingExecutorV2MorphoTest {
         morpho.setMode(MockMorphoBlueFlash.Mode.NoPull);
         bytes memory payload = hex"04";
         _expectRevert(
-            _morphoPlan(payload, 1), payload,
+            _morphoPlan(payload, 1),
+            payload,
             NqcFlashFundingExecutorV2.LenderRepaymentBalanceMismatch.selector
         );
     }
@@ -117,7 +129,8 @@ contract NqcFlashFundingExecutorV2MorphoTest {
         morpho.setMode(MockMorphoBlueFlash.Mode.WrongAmount);
         bytes memory payload = hex"05";
         _expectRevert(
-            _morphoPlan(payload, 1), payload,
+            _morphoPlan(payload, 1),
+            payload,
             NqcFlashFundingExecutorV2.InvalidCallbackAmount.selector
         );
     }
@@ -127,7 +140,8 @@ contract NqcFlashFundingExecutorV2MorphoTest {
         morpho.setMode(MockMorphoBlueFlash.Mode.WrongCallbackSender);
         bytes memory payload = hex"06";
         _expectRevert(
-            _morphoPlan(payload, 1), payload,
+            _morphoPlan(payload, 1),
+            payload,
             NqcFlashFundingExecutorV2.InvalidCallbackSender.selector
         );
     }
@@ -144,7 +158,8 @@ contract NqcFlashFundingExecutorV2MorphoTest {
         strategy.configure(25, 1, true);
         bytes memory payload = hex"08";
         _expectRevert(
-            _morphoPlan(payload, 1), payload,
+            _morphoPlan(payload, 1),
+            payload,
             NqcFlashFundingExecutorV2.StrategyReturnedMismatch.selector
         );
     }
@@ -154,17 +169,13 @@ contract NqcFlashFundingExecutorV2MorphoTest {
         bytes memory payload = hex"09";
         NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan = _morphoPlan(payload, 10);
         executor.execute(plan, payload);
-        _expectRevert(
-            plan, payload,
-            NqcFlashFundingExecutorV2.ExecutionAlreadyConsumed.selector
-        );
+        _expectRevert(plan, payload, NqcFlashFundingExecutorV2.ExecutionAlreadyConsumed.selector);
     }
 
     function testMorphoPlusAaveNestedReverseRepayment() public {
         strategy.configure(25, 0, false);
         bytes memory payload = hex"0a";
-        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan =
-            _nestedPlan(payload, true);
+        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan = _nestedPlan(payload, true);
         uint256 morphoBefore = token.balanceOf(address(morpho));
         uint256 returned = executor.execute(plan, payload);
         require(returned == 18, "NET_ASSET_RETAINED");
@@ -176,8 +187,7 @@ contract NqcFlashFundingExecutorV2MorphoTest {
     function testAavePlusMorphoNestedReverseRepayment() public {
         strategy.configure(25, 0, false);
         bytes memory payload = hex"0b";
-        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan =
-            _nestedPlan(payload, false);
+        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan = _nestedPlan(payload, false);
         uint256 morphoBefore = token.balanceOf(address(morpho));
         uint256 returned = executor.execute(plan, payload);
         require(returned == 18, "NET_ASSET_RETAINED");
@@ -189,8 +199,7 @@ contract NqcFlashFundingExecutorV2MorphoTest {
     function testMorphoRejectsDuplicateLender() public {
         strategy.configure(25, 0, false);
         bytes memory payload = hex"0c";
-        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan =
-            _nestedPlan(payload, true);
+        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan = _nestedPlan(payload, true);
         plan.legs[1].lender = plan.legs[0].lender;
         _expectRevert(plan, payload, NqcFlashFundingExecutorV2.DuplicateLender.selector);
     }
@@ -198,19 +207,14 @@ contract NqcFlashFundingExecutorV2MorphoTest {
     function testMorphoWrongPayloadHashRejectedBeforeFunding() public {
         strategy.configure(25, 0, false);
         bytes memory payload = hex"0d";
-        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan =
-            _morphoPlan(payload, 10);
-        _expectRevert(
-            plan, hex"0e",
-            NqcFlashFundingExecutorV2.PayloadHashMismatch.selector
-        );
+        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan = _morphoPlan(payload, 10);
+        _expectRevert(plan, hex"0e", NqcFlashFundingExecutorV2.PayloadHashMismatch.selector);
     }
 
     function testMorphoZeroProfitCanReturnWithoutProfitsButNotClaimRevenue() public {
         strategy.configure(0, 0, false);
         bytes memory payload = hex"0f";
-        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan =
-            _morphoPlan(payload, 0);
+        NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan = _morphoPlan(payload, 0);
         uint256 outcome = executor.execute(plan, payload);
         require(outcome == 0, "NO_ASSET_SURPLUS");
         require(token.balanceOf(address(this)) == 0, "NO_REVENUE");
@@ -218,7 +222,9 @@ contract NqcFlashFundingExecutorV2MorphoTest {
     }
 
     function _leg(uint8 kind, address lender, uint256 principal, uint256 fee)
-        internal pure returns (NqcFlashFundingExecutorV2.FundingLeg memory)
+        internal
+        pure
+        returns (NqcFlashFundingExecutorV2.FundingLeg memory)
     {
         return NqcFlashFundingExecutorV2.FundingLeg({
             sourceKind: kind,
@@ -231,7 +237,9 @@ contract NqcFlashFundingExecutorV2MorphoTest {
     }
 
     function _morphoPlan(bytes memory payload, uint256 minProfit)
-        internal view returns (NqcFlashFundingExecutorV2.FlashExecutionPlan memory)
+        internal
+        view
+        returns (NqcFlashFundingExecutorV2.FlashExecutionPlan memory)
     {
         NqcFlashFundingExecutorV2.FundingLeg[] memory legs =
             new NqcFlashFundingExecutorV2.FundingLeg[](1);
@@ -240,7 +248,9 @@ contract NqcFlashFundingExecutorV2MorphoTest {
     }
 
     function _nestedPlan(bytes memory payload, bool morphoFirst)
-        internal view returns (NqcFlashFundingExecutorV2.FlashExecutionPlan memory)
+        internal
+        view
+        returns (NqcFlashFundingExecutorV2.FlashExecutionPlan memory)
     {
         NqcFlashFundingExecutorV2.FundingLeg[] memory legs =
             new NqcFlashFundingExecutorV2.FundingLeg[](2);
