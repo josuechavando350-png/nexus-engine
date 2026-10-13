@@ -22,6 +22,20 @@ interface IV2FluidReserves {
         returns (uint256 amountOut);
 }
 
+interface IV2AaveExactFee {
+    function getUserAccountData(address user) external view returns (
+        uint256,uint256,uint256,uint256,uint256,uint256
+    );
+    function getUserEMode(address borrower) external view returns (uint256);
+    function getEModeCategoryCollateralConfig(uint8 category) external view returns (
+        uint16,uint16,uint16
+    );
+    function getConfiguration(address collateralAsset) external view returns (uint256);
+}
+interface IV2AavePrice {
+    function getAssetPrice(address token) external view returns (uint256);
+}
+
 /// @notice Morpho funds this test with real sUSDe; Fluid swaps into real USDT
 ///         against deployed contracts on a historical mainnet fork. The
 ///         partial route MUST revert before Morpho repayment.
@@ -208,6 +222,58 @@ contract NqcV2MorphoFluidPartialForkTest {
             "NQC_FLUID_387K_ACTUAL_GROSS_BEFORE_ALL_COSTS_USDT_RAW", actual - 472_461_610_797
         );
         emit log_named_uint("NQC_FLUID_387K_FORK_NOT_LIQUIDATION_NOT_REPAID", 1);
+    }
+
+    function testPinnedAaveFeeAdjustedSeizureIsBelow388kSUSDe() public {
+        uint256 counterfactualNet = _counterfactualNetSUsDe();
+        require(counterfactualNet == 387_741_067_158_410_219_811_134,
+                "AAVE_PINNED_FEE_ADJUSTED_MATH_MISMATCH");
+        require(counterfactualNet < 388_000 ether, "OLD_388K_GROSS_FALSE_ASSUMPTION");
+        emit log_named_uint("NQC_AAVE_HF_ABOVE_ONE_COUNTERFACTUAL_NET_SUSDE_RAW",
+                            counterfactualNet);
+    }
+
+    function testActualFluidSwapOfFeeAdjustedAaveNetSUSDeChallengesLegacyGross() public {
+        uint256 netSUsDe = _counterfactualNetSUsDe();
+        require(netSUsDe == 387_741_067_158_410_219_811_134,
+                "AAVE_PRICE_OR_CONFIG_DRIFT");
+        uint256 usdtActual = _partialFluidSwap(netSUsDe);
+        uint256 acquisitionUsdt = 472_461_610_797;
+        uint256 legacyGrossTarget = 12_297_010_000;
+        require(usdtActual > acquisitionUsdt, "FLUID_BELOW_FUNDING_PRINCIPAL");
+        emit log_named_uint("NQC_HF_GT_ONE_FEE_NET_SUSDE_RAW", netSUsDe);
+        emit log_named_uint("NQC_FLUID_FORK_USDT_AFTER_FEE_NET_SUSDE_RAW", usdtActual);
+        emit log_named_uint("NQC_HYPOTHETICAL_GROSS_BEFORE_ALL_COSTS_USDT_RAW",
+                            usdtActual-acquisitionUsdt);
+        require(usdtActual >= acquisitionUsdt + legacyGrossTarget,
+                "AAVE_FEE_CORRECTED_SEPARATE_FLUID_FORK_BELOW_12297_BENCHMARK");
+        // ALWAYS REVERTED. Collateral was borrowed from Morpho, NOT seized
+        // from Aave. No full execution, gas sponsor, capture or NQC P&L.
+    }
+
+    function _counterfactualNetSUsDe() internal view returns (uint256 net) {
+        address aave = 0x87870Bca3F3fD6335C3F4Ce8392D69350B4fA4E2;
+        address oracle = 0x54586bE62E3c3580375aE3723C145253060Ca0C2;
+        address borrower = 0x08c14B32C8A48894E4b933090EBcC9CE33B21135;
+        address usdtb = 0xC139190F447e929f090Edeb554D95AbB8b18aC1C;
+        IV2AaveExactFee pool = IV2AaveExactFee(aave);
+        (,,,,,uint256 hf) = pool.getUserAccountData(borrower);
+        require(hf > 1 ether, "CANNOT_REPURPOSE_THIS_AS_LIQUIDATABLE_BLOCK");
+        require(pool.getUserEMode(borrower) == 24, "BORROWER_EMODE_CHANGED");
+        (,,uint16 bonus) = pool.getEModeCategoryCollateralConfig(24);
+        require(bonus == 10310, "EMODE_BONUS_CHANGED");
+        uint256 feeBps = (pool.getConfiguration(SUSDE) >> 152) & 65535;
+        require(feeBps == 1000, "COLLATERAL_PROTOCOL_FEE_CHANGED");
+        uint256 sUsdePrice = IV2AavePrice(oracle).getAssetPrice(SUSDE);
+        uint256 usdTbPrice = IV2AavePrice(oracle).getAssetPrice(usdtb);
+        require(sUsdePrice == 125127009 && usdTbPrice == 100000000,
+                "PINNED_ORACLE_PRICE_CHANGED");
+        // Identical to Aave v3-origin Floor/Floor/Ceil for uncapped
+        // counterfactual 472k USDtb debt cover, both tokens 18 decimals.
+        uint256 gross=(472_000 ether * usdTbPrice / sUsdePrice) * bonus / 10000;
+        uint256 bonusOnly=gross-(gross*10000/bonus);
+        uint256 protocolFee=(bonusOnly*feeBps+9999)/10000;
+        net=gross-protocolFee;
     }
 
     function testFluidNearCapacityQuotesChallengeInherited12297GrossEdge() public {
