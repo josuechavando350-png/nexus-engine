@@ -101,7 +101,7 @@ class GateTests(unittest.TestCase):
             ("previous","raw_abi_certified",True),
             ("current","liquidation_threshold_display_bps",9200),
             ("current","health_factor_wad_approx","1000151530053078500"),
-            ("current","total_debt_base","621732317282168"),
+            ("current","total_debt_base","621732317292068"),
             ("previous","total_collateral_base","676016213519830"),
         ]
         for parent,field,value in mutations:
