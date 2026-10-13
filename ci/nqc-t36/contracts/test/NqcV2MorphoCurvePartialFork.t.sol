@@ -222,10 +222,8 @@ contract NqcV2MorphoCurvePartialForkTest {
     function testRealMorphoCurveOneAdditionalUSDTBaseUnitMeetsFormerTarget() public {
         // Quote-minimum 472461.610796 USDT missed by < 1 micro USDtb on
         // actual Curve swaps. This probes the immediate integer neighbor.
-        uint256 actual = _simulateTwoHopAndRollback(
-            FIRST_MINIMAL_USDT + 1, FIRST_TARGET_USDTB,
-            0, 0, true
-        );
+        uint256 actual =
+            _simulateTwoHopAndRollback(FIRST_MINIMAL_USDT + 1, FIRST_TARGET_USDTB, 0, 0, true);
         require(actual >= FIRST_TARGET_USDTB, "PLUS_ONE_USDT_MICRO_STILL_UNDER_TARGET");
     }
 
