@@ -44,7 +44,7 @@ def fake_state(fee=1000,bonus=10500):
         "usdtb_reserve_config":reserve_config(0,10500),
         "susde_reserve_id":COLL_ID,
         "usdtb_reserve_id":DEBT_ID,
-        "user_configuration_bitmap":(1<<(2*COLL_ID))|(1<<(2*DEBT_ID+1)),
+        "user_configuration_bitmap":(1<<(2*COLL_ID+1))|(1<<(2*DEBT_ID)),
         "borrower_susde_atoken_balance_raw":5_000_000*10**18,
         "borrower_usdtb_variable_debt_raw":6_200_000*10**18,
         "oracle_susde_price_base":125127009,
@@ -138,11 +138,23 @@ class ExactAaveSeizureTests(unittest.TestCase):
         d=fake_state();d["emode24"]["liq_bonus_bps"]=10400
         with self.assertRaises(a.EvidenceError):a.validate(d)
     def test_wrong_user_config_collateral_and_debt(self):
-        for change in (1<<(2*COLL_ID),1<<(2*DEBT_ID+1)):
+        for change in (1<<(2*COLL_ID+1),1<<(2*DEBT_ID)):
             d=fake_state()
             d["user_configuration_bitmap"]^=change
             with self.subTest(mask=change),self.assertRaises(a.EvidenceError):
                 a.validate(d)
+    def test_canonical_aave_user_config_even_borrow_odd_collateral(self):
+        """Aave v3-origin implementation outranks misleading DataTypes comment."""
+        state=fake_state()
+        bitmap=state["user_configuration_bitmap"]
+        self.assertEqual((bitmap>>(2*COLL_ID+1))&1,1)
+        self.assertEqual((bitmap>>(2*DEBT_ID))&1,1)
+        self.assertEqual((bitmap>>(2*COLL_ID))&1,0)
+        self.assertEqual((bitmap>>(2*DEBT_ID+1))&1,0)
+        # Inversion passes no accidental synthetic admission.
+        state["user_configuration_bitmap"]=(1<<(2*COLL_ID))|(1<<(2*DEBT_ID+1))
+        with self.assertRaises(a.EvidenceError):
+            a.validate(state)
     def test_close_factor_rejects_overlarge_requested_cover(self):
         d=fake_state()
         d["borrower_usdtb_variable_debt_raw"]=1*10**18
