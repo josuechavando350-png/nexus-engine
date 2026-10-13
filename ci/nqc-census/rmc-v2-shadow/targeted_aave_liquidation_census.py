@@ -178,9 +178,18 @@ def permitted_split(err):
     if any(token in s for token in ('429', 'rate limit', 'api key', '403', '401',
                                     'forbidden', 'unauthorized', 'quota')):
         return False
-    return any(token in s for token in ('block range', 'maximum block',
-                                        'query exceeds', 'range too large',
-                                        'limit the query to', 'max range'))
+    # Some public RPCs return a documented per-request free-tier block-span
+    # bound as HTTP 400: "ranges over 10000 blocks are not supported on free plan".
+    # Split only this explicit range limit, never authorization/quota/429.
+    provider_range_limit = re.search(
+        r'ranges? over [0-9]+ blocks (?:are |is )?not supported',
+        s,
+    ) is not None
+    return provider_range_limit or any(
+        token in s for token in ('block range', 'maximum block',
+                                 'query exceeds', 'range too large',
+                                 'limit the query to', 'max range')
+    )
 
 class RPC:
     def __init__(self, provider, *, min_interval=MIN_RPC_INTERVAL,
