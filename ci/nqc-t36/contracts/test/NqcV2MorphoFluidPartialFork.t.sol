@@ -187,6 +187,27 @@ contract NqcV2MorphoFluidPartialForkTest {
         emit log_named_uint("NQC_FLUID_FORK_380K_ABOVE_PRE_ROUTING_USDT_REQUIREMENT", 1);
     }
 
+    function testActualFluidAave1000BpsNetCollateralExactOutputInFork() public {
+        // Aave block 26,184,741 state gate measured: fee=1000 bps of
+        // liquidation bonus; hypothetical 472,000 USDtb cover would leave
+        // 387741.067158410219811134 sUSDe AFTER that fee, if a true
+        // HF<1 trigger existed. This block's borrower is NOT liquidatable.
+        // Test obtains the amount independently from Morpho sUSDe flash
+        // on local fork, never from seized borrower collateral.
+        uint256 netHypothetical = 387_741_067_158_410_219_811_134;
+        uint256 actual = _partialFluidSwap(netHypothetical);
+        uint256 archivedResolverEstimate = 484_870_110_578; // USDT 6 decimals.
+        require(actual == archivedResolverEstimate, "REAL_FLUID_DIFFERS_FROM_ABI_RESOLVER");
+        require(actual > 472_461_610_797, "REAL_FLUID_BELOW_USDT_ACQUISITION");
+        require(actual - 472_461_610_797 == 12_408_499_781, "FEE_ADJUSTED_RESEARCH_SPREAD_CHANGED");
+        emit log_named_uint("NQC_FLUID_AAVE_FEE_ADJUSTED_SUSDE_RAW", netHypothetical);
+        emit log_named_uint("NQC_FLUID_AAVE_FEE_ADJUSTED_USDT_RAW", actual);
+        emit log_named_uint(
+            "NQC_FLUID_AAVE_FEE_ADJUSTED_GROSS_BEFORE_COST_RAW", actual - 472_461_610_797
+        );
+        emit log_named_uint("NQC_FLUID_AAVE_FEE_ADJUSTED_NOT_LIQUIDATED", 1);
+    }
+
     function testActualFluid388kForkReachesInheritedGrossTargetBeforeOtherCosts() public {
         // Historic Curve two-hop actual USDT input for 472k USDtb:
         // 472461.610797 USDT. Legacy pre-builder/gas surplus target is
