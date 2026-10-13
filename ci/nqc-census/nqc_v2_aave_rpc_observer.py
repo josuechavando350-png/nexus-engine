@@ -23,9 +23,9 @@ BORROWER = "0x08c14b32c8a48894e4b933090ebcc9ce33b21135"
 # keccak256("getUserAccountData(address)")[:4]
 SELECTOR = "0xbf92857c"
 WAD = 10**18
-RPCS = ("https://ethereum-rpc.publicnode.com", "https://eth.llamarpc.com",
-        "https://rpc.flashbots.net", "https://rpc.mevblocker.io",
-        "https://eth-mainnet.public.blastapi.io")
+RPCS = ("https://rpc.mevblocker.io", "https://eth-mainnet.public.blastapi.io",
+        "https://ethereum-rpc.publicnode.com", "https://eth.llamarpc.com",
+        "https://rpc.flashbots.net")
 FIELDS = ("total_collateral_base", "total_debt_base", "available_borrows_base",
           "current_liquidation_threshold", "ltv", "health_factor_wad")
 HEX64 = re.compile(r"^0x[0-9a-fA-F]{64}$")
@@ -87,11 +87,16 @@ def select_endpoints(candidates: tuple[str, ...] = RPCS) -> tuple[str, str]:
             chain = rpc(url, "eth_chainId", [])
             demand(chain == hex(CHAIN_ID), f"wrong chain: {chain}")
             head = int(rpc(url, "eth_blockNumber", []), 16)
-            demand(head > 0, "invalid head")
+            demand(head > 3, "invalid head")
+            # A header-only RPC can still forbid eth_call (HTTP 403). Preflight
+            # the required view selector at a fixed recent block before admission.
+            preflight = rpc(url, "eth_call", [
+                {"to": AAVE_POOL, "data": calldata(BORROWER)}, hex(head - 3)
+            ])
+            parse_account(preflight)
             successes.append((url, head))
         except Exception as exc:
             failures.append(f"{url}: {type(exc).__name__}: {str(exc)[:130]}")
-    successes.sort(key=lambda row: row[1], reverse=True)
     for i, (left, a) in enumerate(successes):
         for right, b in successes[i + 1:]:
             if left.split("/")[2] != right.split("/")[2] and abs(a - b) <= 12:
