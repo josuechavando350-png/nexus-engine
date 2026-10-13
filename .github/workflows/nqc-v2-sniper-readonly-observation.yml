@@ -95,6 +95,41 @@ jobs:
           print('provider_count',d['provider_count'])
           PY
 
+      - name: Measure THREE sequential read-only state samples (not permanent)
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-sniper-pilot"
+          mkdir -p "$OUT/three-sample-journal"
+          timeout 660s python3 ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py \
+            --out-dir "$OUT/three-sample-journal" \
+            --providers drpc publicnode blast \
+            --interval-seconds 60 --max-cycles 3 \
+            > "$OUT/three-sample.stdout" 2> "$OUT/three-sample.stderr"
+          python3 - "$OUT/three-sample-journal" <<'PY'
+          import json,sys
+          from pathlib import Path
+          sys.path.insert(0,"ci/nqc-census/rmc-v2-shadow")
+          import sniper_readonly_journal as j
+          p=Path(sys.argv[1])
+          entries,final_digest=j.audit((p/"journal.jsonl").read_bytes(),p)
+          assert len(entries)==3
+          assert [e["sequence"] for e in entries]==[0,1,2]
+          snapshots=[json.loads((p/e["snapshot_file"]).read_text()) for e in entries]
+          assert all(s["status"]!="UNVERIFIED_NO_OBSERVATION" for s in snapshots)
+          assert all(s["nqc_realized_pnl_usd"]=="0" and
+                     s["p2_shadow_certified"] is False for s in snapshots)
+          blocks=[s["pinned_block"]["number"] for s in snapshots]
+          assert blocks[0]<blocks[1]<blocks[2]
+          assert all(s["watched_borrower_count"]==4 for s in snapshots)
+          print("NQC_THREE_VERIFIABLE_SEQUENTIAL_NO_TRADE_SAMPLES_PASS")
+          print("block_heights",blocks)
+          print("hf_below_one_by_sample",
+                [s["hf_below_one_state_count_not_execution_admission"]
+                 for s in snapshots])
+          print("journal_last_sha256",final_digest)
+          PY
+
       - name: Write immutable source and nonprofit assertions
         if: always()
         shell: bash
@@ -107,7 +142,7 @@ jobs:
           cp ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py "$OUT/journal-negative-tests.py"
           jq -n --arg source_commit "${{ github.event.pull_request.head.sha || github.sha }}" \
             '{schema_version:1,source_commit:$source_commit,
-              scope:"ONE_SHOT_SAMPLED_READ_ONLY_BORROWER_STATE",
+              scope:"ONE_SHOT_PLUS_THREE_SEQUENTIAL_SAMPLES_NO_24_7",
               not_24_7_deployment:true,
               no_generic_borrower_discovery:true,no_prospective_capture_certification:true,
               no_Aave_liquidation_call:true,
@@ -126,6 +161,11 @@ jobs:
             if test -f first-live-snapshot.json; then
               sha256sum first-live-snapshot.json > snapshot.sha256
               sha256sum -c snapshot.sha256
+            fi
+            if test -f three-sample-journal/journal.jsonl; then
+              sha256sum three-sample-journal/journal.jsonl \
+                three-sample-journal/sample-*.json > longitudinal.sha256
+              sha256sum -c longitudinal.sha256
             fi
           )
 
