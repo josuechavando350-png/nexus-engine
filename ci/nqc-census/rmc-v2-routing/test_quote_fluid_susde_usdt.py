@@ -42,7 +42,8 @@ def mock_on_block(endpoint,args):
         if args[1]==m.USDT and args[3]==m.MORPHO:return "65666477002958"
         return "10000000000000000000000"
     if len(args)>=6 and args[0]=="call" and args[1]==m.RESOLVER and args[2].startswith("estimateSwapIn"):
-        value=int(args[4])
+        if args[4] != 'true': raise AssertionError('only sUSDe->USDT direction admitted')
+        value=int(args[5])
         return str(value//10**12)
     raise AssertionError(f"unexpected call {args!r}")
 
