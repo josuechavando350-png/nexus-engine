@@ -187,6 +187,49 @@ contract NqcV2MorphoFluidPartialForkTest {
         emit log_named_uint("NQC_FLUID_FORK_380K_ABOVE_PRE_ROUTING_USDT_REQUIREMENT", 1);
     }
 
+    function testFluidNearCapacityQuotesChallengeInherited12297GrossEdge() public {
+        // HISTORICAL estimates, not executed swaps or a proof of captured
+        // liquidation collateral. Guard against convenient legacy P&L claims.
+        // Exact Morpho USDT size proved on separate Curve fork: 472461.610797.
+        // Historical pre-builder/gas gross target is illustrative 12297.01.
+        uint256 requiredBeforeAllOtherCosts = 484_758_620_797;
+        uint256[10] memory sizes = [
+            uint256(380_000),
+            381_000,
+            382_000,
+            383_000,
+            384_000,
+            385_000,
+            386_000,
+            387_000,
+            388_000,
+            389_000
+        ];
+        uint256 highestPositive;
+        uint256 positiveCount;
+        for (uint256 i; i < sizes.length; ++i) {
+            emit log_named_uint("NQC_FLUID_CLOSE_WINDOW_SUSDE_UNITS", sizes[i]);
+            try IV2FluidReserves(RESOLVER).estimateSwapIn(FLUID, true, sizes[i] * 1 ether, 1)
+                returns (uint256 output) {
+                emit log_named_uint("NQC_FLUID_CLOSE_WINDOW_USDT_QUOTE_RAW", output);
+                if (output > 0) {
+                    positiveCount++;
+                    if (output > highestPositive) highestPositive = output;
+                }
+            } catch {
+                emit log_named_uint("NQC_FLUID_CLOSE_WINDOW_ESTIMATOR_REVERT", 1);
+            }
+        }
+        emit log_named_uint("NQC_FLUID_CLOSE_WINDOW_POSITIVE_COUNT", positiveCount);
+        emit log_named_uint("NQC_FLUID_CLOSE_WINDOW_BEST_QUOTE_RAW", highestPositive);
+        emit log_named_uint(
+            "NQC_FLUID_CLOSE_WINDOW_QUOTES_REACH_LEGACY_GROSS_TARGET",
+            highestPositive >= requiredBeforeAllOtherCosts ? 1 : 0
+        );
+        // No inference beyond these 10 exact-block sampled estimates.
+        // No ERC20 swap, Aave liquidation, builder/gas cost or P2 capture.
+    }
+
     function testFluidExitCapacitySamplesVersus472461USDTRepaymentThreshold() public {
         // Diagnostic resolver quote sampling only: the original Morpho USDT
         // route requires >= 472461.610797 USDT to fund 472000 USDtb on Curve.
