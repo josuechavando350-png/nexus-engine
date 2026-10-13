@@ -55,6 +55,20 @@ def exact_hex(v, label):
     require(type(v) is str and HEX32.fullmatch(v) is not None, label + ": bytes32")
 
 
+def verify_boundary_header(row, height, label):
+    require(type(row) is dict and
+            type(row.get("number")) is int and row["number"] == height,
+            label + ": block number missing/mismatch")
+    for key in ("hash", "parent_hash", "state_root"):
+        exact_hex(row.get(key), label + "." + key)
+    timestamp = row.get("timestamp")
+    require(type(timestamp) is int and timestamp > 0,
+            label + ": timestamp missing")
+    require(row["hash"] != row["parent_hash"],
+            label + ": degenerate same-hash ancestry")
+    return row
+
+
 def verify_report(doc):
     require(type(doc) is dict and doc.get("schema_version") == 1,
             "report schema")
@@ -75,6 +89,21 @@ def verify_report(doc):
             w.get("end_hash") == census.END_HASH and
             w.get("parent_hash") == census.END_PARENT,
             "canonical period anchor mismatch")
+    boundaries = doc.get("segment_boundary_headers")
+    require(type(boundaries) is dict and
+            set(boundaries) == {"first", "last"},
+            "historical segment boundary headers missing")
+    first = verify_boundary_header(boundaries.get("first"), lo, "first")
+    last = verify_boundary_header(boundaries.get("last"), hi, "last")
+    if lo == hi:
+        require(first == last, "one-block segment disagreeing headers")
+    if lo == census.START:
+        require(first["parent_hash"] == census.PREVIOUS_END_HASH,
+                "checkpoint starts on wrong predecessor")
+    if hi == census.END:
+        require(last["hash"] == census.END_HASH and
+                last["parent_hash"] == census.END_PARENT,
+                "checkpoint finishes on wrong canonical anchor")
     full = lo == census.START and hi == census.END
     allowed_status = (
         "COMPLETE_SINGLE_PUBLIC_RPC_TARGETED_HISTORICAL_ONLY" if full
@@ -124,6 +153,12 @@ def verify_report(doc):
         require(type(e.get("block_number")) is int and
                 lo <= e["block_number"] <= hi, "event outside shard")
         exact_hex(e.get("block_hash"), "event block")
+        if e["block_number"] == lo:
+            require(e["block_hash"] == first["hash"],
+                    "first-block event differs from anchored header")
+        if e["block_number"] == hi:
+            require(e["block_hash"] == last["hash"],
+                    "last-block event differs from anchored header")
         exact_hex(e.get("transaction_hash"), "event transaction")
         require(type(e.get("raw_event_commitment_sha256")) is str and
                 HEX64_SHA.fullmatch(e["raw_event_commitment_sha256"]) is not None,
@@ -218,7 +253,13 @@ def combine(parts):
     all_receipts = []
     shard_proofs = []
     ids = set()
+    previous_end_hash = None
     for report, cp in pairs:
+        edge = report["segment_boundary_headers"]
+        if previous_end_hash is not None:
+            require(edge["first"]["parent_hash"] == previous_end_hash,
+                    "adjacent segment parent/hash ancestry mismatch")
+        previous_end_hash = edge["last"]["hash"]
         require(report["provider_id"] == provider and
                 report["operator_label"] == operator,
                 "unrelated operators cannot form one complete source")
@@ -291,7 +332,17 @@ def main():
     if args.scan_segment:
         start, end = args.scan_segment
         rpc = census.RPC(args.provider)
+        # Verify each checkpoint's first/last canonical headers both before
+        # and after the segment scan; all shards remain one-provider research.
+        edge_first = rpc.header(start)
+        edge_last = rpc.header(end)
         report = census.report_for_provider(rpc,start=start,end=end,span=args.span)
+        require(rpc.header(start) == edge_first and
+                rpc.header(end) == edge_last,
+                "segment boundary changed during historical scan")
+        report["segment_boundary_headers"] = {
+            "first": edge_first, "last": edge_last}
+        report["provider_rpc_requests"] = rpc.requests
         report["status"] = ("COMPLETE_SINGLE_PUBLIC_RPC_TARGETED_HISTORICAL_ONLY"
                             if start == census.START and end == census.END else
                             "PARTIAL_SINGLE_PUBLIC_RPC_TARGETED_HISTORICAL_ONLY")
