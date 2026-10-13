@@ -7,11 +7,15 @@ on:
     paths:
       - "ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py"
       - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py"
+      - "ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py"
       - ".github/workflows/nqc-v2-sniper-readonly-observation.yml"
   pull_request:
     paths:
       - "ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py"
       - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py"
+      - "ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py"
       - ".github/workflows/nqc-v2-sniper-readonly-observation.yml"
 
 permissions:
@@ -43,10 +47,15 @@ jobs:
           mkdir -p "$RUNNER_TEMP/nqc-v2-sniper-pilot"
           python3 -m py_compile \
             ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py \
-            ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py
+            ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py \
+            ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py \
+            ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py
           python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
             -p 'test_sniper_readonly_observer.py' -v \
             2>&1 | tee "$RUNNER_TEMP/nqc-v2-sniper-pilot/adversarial-tests.log"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_sniper_readonly_journal.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-v2-sniper-pilot/journal-negative-tests.log"
 
       - name: Take ONE genuine chain state snapshot without a wallet
         shell: bash
@@ -94,6 +103,8 @@ jobs:
           OUT="$RUNNER_TEMP/nqc-v2-sniper-pilot"
           cp ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py "$OUT/producer.py"
           cp ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py "$OUT/offline-negative-tests.py"
+          cp ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py "$OUT/daemon-candidate.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py "$OUT/journal-negative-tests.py"
           jq -n --arg source_commit "${{ github.event.pull_request.head.sha || github.sha }}" \
             '{schema_version:1,source_commit:$source_commit,
               scope:"ONE_SHOT_SAMPLED_READ_ONLY_BORROWER_STATE",
@@ -108,7 +119,9 @@ jobs:
               commercial_score_upgrade:false}' > "$OUT/nonclaims.json"
           (
             cd "$OUT"
-            sha256sum producer.py offline-negative-tests.py nonclaims.json > producer-evidence.sha256
+            sha256sum producer.py offline-negative-tests.py daemon-candidate.py \
+              journal-negative-tests.py journal-negative-tests.log \
+              nonclaims.json > producer-evidence.sha256
             sha256sum -c producer-evidence.sha256
             if test -f first-live-snapshot.json; then
               sha256sum first-live-snapshot.json > snapshot.sha256
