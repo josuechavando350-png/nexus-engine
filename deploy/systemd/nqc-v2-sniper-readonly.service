@@ -12,7 +12,8 @@ ConditionPathExists=/opt/nqc/nexus-engine/ci/nqc-census/rmc-v2-shadow/sniper_rea
 
 [Service]
 Type=simple
-DynamicUser=yes
+User=nqc-sniper
+Group=nqc-sniper
 StateDirectory=nqc-sniper-readonly
 WorkingDirectory=/opt/nqc/nexus-engine/ci/nqc-census/rmc-v2-shadow
 Environment=PYTHONDONTWRITEBYTECODE=1
