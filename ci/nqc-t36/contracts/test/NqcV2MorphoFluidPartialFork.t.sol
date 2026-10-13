@@ -195,16 +195,18 @@ contract NqcV2MorphoFluidPartialForkTest {
         // seizure, integrated repayment, gas provider, or NQC revenue.
         uint256 actual = _partialFluidSwap(388_000 ether);
         require(actual >= 484_758_620_797, "FLUID_REAL_388K_BELOW_LEGACY_GROSS");
-        emit log_named_uint("NQC_FLUID_388K_ACTUAL_GROSS_BEFORE_ALL_COSTS_USDT_RAW",
-                            actual - 472_461_610_797);
+        emit log_named_uint(
+            "NQC_FLUID_388K_ACTUAL_GROSS_BEFORE_ALL_COSTS_USDT_RAW", actual - 472_461_610_797
+        );
         emit log_named_uint("NQC_FLUID_388K_FORK_NOT_LIQUIDATION_NOT_REPAID", 1);
     }
 
     function testActualFluid387kForkFallsShortOfInheritedGrossBenchmark() public {
         uint256 actual = _partialFluidSwap(387_000 ether);
         require(actual < 484_758_620_797, "387K_FLUID_NOT_EXPECTED_ABOVE_BENCHMARK");
-        emit log_named_uint("NQC_FLUID_387K_ACTUAL_GROSS_BEFORE_ALL_COSTS_USDT_RAW",
-                            actual - 472_461_610_797);
+        emit log_named_uint(
+            "NQC_FLUID_387K_ACTUAL_GROSS_BEFORE_ALL_COSTS_USDT_RAW", actual - 472_461_610_797
+        );
         emit log_named_uint("NQC_FLUID_387K_FORK_NOT_LIQUIDATION_NOT_REPAID", 1);
     }
 
