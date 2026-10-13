@@ -209,7 +209,16 @@ class RPC:
             with urlopen(req, timeout=36) as stream:
                 data = stream.read(MAX_RESPONSE + 1)
                 need(len(data) <= MAX_RESPONSE, 'RPC response exceeds size bound')
-        except (HTTPError, URLError, TimeoutError, OSError) as exc:
+        except HTTPError as exc:
+            # HTTP 400 may mean block range or invalid query. A 403/429
+            # must be preserved as a source blocker, never accepted as empty.
+            try:
+                msg = exc.read(1200).decode('utf-8', 'replace')
+            except (OSError, UnicodeError):
+                msg = 'ERROR_BODY_UNREADABLE'
+            msg = re.sub(r'[^a-zA-Z0-9 _.,:;()\\[\\]/-]', ' ', msg)[:600]
+            raise SourceError('RPC_HTTP_' + str(exc.code) + ': ' + msg) from exc
+        except (URLError, TimeoutError, OSError) as exc:
             raise SourceError('RPC_NETWORK_' + str(exc)[:170]) from exc
         try:
             doc = json.loads(data)
