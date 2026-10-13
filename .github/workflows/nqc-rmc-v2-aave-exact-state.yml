@@ -92,6 +92,8 @@ jobs:
             and .oracle_usdtb_8decimals == "100000000"
             and (.liquidation_protocol_fee_bps | type == "number")
             and (.borrower_susde_atoken_balance_raw | test("^[0-9]+$"))
+            and (.aave_susde_underlying_cash_at_atoken_raw | test("^[0-9]+$"))
+            and .aave_receive_underlying_cash_not_execution_guarantee == true
             and (.borrower_usdtb_variable_debt_balance_raw | test("^[0-9]+$"))
             and .hf_below_one == false
             and .aave_actual_liquidation_admitted == false
@@ -109,6 +111,7 @@ jobs:
           jq '{block_number,e_mode,liquidation_bonus_bps,
                liquidation_protocol_fee_bps,
                borrower_susde_atoken_balance_raw,
+               aave_susde_underlying_cash_at_atoken_raw,
                borrower_usdtb_variable_debt_balance_raw,
                borrower_hf_wad_raw,
                maximum_usdtb_debt_cover_raw_conditional,
