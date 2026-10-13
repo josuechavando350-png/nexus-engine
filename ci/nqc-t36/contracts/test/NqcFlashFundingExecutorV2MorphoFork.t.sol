@@ -84,7 +84,10 @@ contract NqcFlashFundingExecutorV2MorphoForkTest {
         require(REPORTED_MORPHO_USDT_RAW > 472_000 * 1e6, "CAPACITY_INSUFFICIENT");
         require(_balance(address(executor)) == 0, "EXECUTOR_PREEXISTING_BALANCE");
         require(_balance(address(strategy)) == 0, "STRATEGY_PREEXISTING_BALANCE");
-        require(_balance(address(this)) == 0, "OPERATOR_PREEXISTING_BALANCE");
+        // Foundry's deterministic test-contract address may coincide with an
+        // existing Ethereum token holder at this historical block. Do not
+        // assume an operator's baseline is zero. Each execution test separately
+        // requires that its *actual* operator balance remains unchanged.
     }
 
     function testRealForkMorphoOneUSDTFlashPrincipalReturnsExactly() public {
