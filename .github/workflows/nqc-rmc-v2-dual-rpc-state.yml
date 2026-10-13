@@ -1,0 +1,52 @@
+name: NQC RMC V2 Aave Dual RPC Witness (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/nqc_v2_aave_rpc_observer.py"
+      - "ci/nqc-census/test_nqc_v2_aave_rpc_observer.py"
+      - ".github/workflows/nqc-rmc-v2-dual-rpc-state.yml"
+  push:
+    branches:
+      - "nqc/rmc-v2-prospective-observer-20261013"
+    paths:
+      - "ci/nqc-census/nqc_v2_aave_rpc_observer.py"
+      - "ci/nqc-census/test_nqc_v2_aave_rpc_observer.py"
+      - ".github/workflows/nqc-rmc-v2-dual-rpc-state.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  negative-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Verify offline no-claims and RPC quorum invariants
+        run: python3 -m unittest discover -s ci/nqc-census -p 'test_nqc_v2_aave_rpc_observer.py' -v
+
+  current-state-witness:
+    if: github.event_name == 'push'
+    needs: negative-regressions
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+      - name: Fetch same-block Aave state from two independent public RPC URLs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/nqc_v2_aave_rpc_observer.py --out "$RUNNER_TEMP/nqc-v2-dual-rpc-state.json"
+      - name: Preserve positive OR negative evidence without asserting a crossing
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-dual-rpc-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-v2-dual-rpc-state.json
+          if-no-files-found: error
+          retention-days: 30
