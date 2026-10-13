@@ -41,6 +41,16 @@ def audit(doc):
     require(doc.get("evidence_tier") == "RETROSPECTIVE_SINGLE_PROVIDER_RESEARCH_ONLY", "evidence tier")
     require("claim_scope" not in doc, "unregistered competing claim scope")
     require(doc.get("chain_id") == 1 and doc.get("borrower") == BORROWER, "chain/borrower mismatch")
+    require(str(doc.get("aave_pool", "")).lower() ==
+            "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2", "Aave Pool mismatch")
+    require(str(doc.get("morpho_usdt", {}).get("provider_address", "")).lower() ==
+            "0xbbbbbbbbbb9cc5e90e3b3af64bdaf62c37eeffcb", "Morpho contract mismatch")
+    require(str(doc.get("morpho_usdt", {}).get("token_address", "")).lower() ==
+            "0xdac17f958d2ee523a2206206994597c13d831ec7", "USDT contract mismatch")
+    require(str(doc.get("aave_usdtb", {}).get("asset_address", "")).lower() ==
+            "0xc139190f447e929f090edeb554d95abb8b18ac1c", "USDtb contract mismatch")
+    require(str(doc.get("aave_usdtb", {}).get("atoken_address", "")).lower() ==
+            "0xec4ef66d4fceeba34abb4de69db391bc5476ccc8", "USDtb aToken mismatch")
     require(doc.get("live_transactions") == 0 and doc.get("realized_nqc_pnl_usd") == "0"
             and doc.get("certifies_p2") is False and doc.get("certifies_rmc") is False,
             "cannot promote research fixture to terminal or realized P&L")
@@ -55,6 +65,7 @@ def audit(doc):
     c1, d1, h1 = (uint(c[k], "current."+k) for k in
                   ("total_collateral_base", "total_debt_base", "health_factor_wad_approx"))
     require(min(c0,d0,h0,c1,d1,h1) > 0, "zero value")
+    require(h0 >= WAD and h1 >= WAD, "a prospective crossing requires a separate exact trigger gate")
     nominal = uint(doc["morpho_usdt"]["nominal_balance_raw_6_decimals"], "Morpho nominal")
     amount = uint(doc["illustrative_cover_usdtb_raw_18_decimals"], "illustrative USDtb cover")
     require(amount > 0 and amount % (10**18) == 0, "cover decimals")
