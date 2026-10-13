@@ -16,7 +16,7 @@ La vigilancia de cuatro borrowers históricamente seleccionados NO tiene cobertu
 
 - `sniper_readonly_observer.py`: métodos RPC estrictamente limitados a `eth_chainId`, `eth_blockNumber`, `eth_getBlockByNumber` y `eth_call`. Pinning EIP-1898 (`blockHash`, `requireCanonical=true`), confirmaciones, lecturas raw ABI, doble comprobación de encabezado, rechazo de divergencia/staleness. Tres endpoints pueden concordar sin demostrar, por ello, operadores independientes.
 - `sniper_readonly_journal.py`: **candidato** de servicio recurrente cada 300 segundos. Los JSON de observación se crean con `O_EXCL` y fsync. Cada entrada en `journal.jsonl` conserva `previous_entry_sha256`, digest del JSON y estado de fuente. Auditoría fail-closed al reiniciar. Las observaciones con fallo del proveedor no se interpretan como cero candidatos.
-- `deploy/systemd/nqc-v2-sniper-readonly.service`: unidad systemd para Ubuntu 24.04, con `DynamicUser=yes`, acceso de escritura limitado a `StateDirectory`, `NoNewPrivileges`, sin capacidades Linux, con límites de CPU y memoria. **Solo plantilla: no instalada ni activada en los droplets.**
+- `deploy/systemd/nqc-v2-sniper-readonly.service`: unidad systemd para Ubuntu 24.04, con usuario de sistema exclusivo `nqc-sniper` (sin privilegios), acceso de escritura limitado a `StateDirectory`, `NoNewPrivileges`, sin capacidades Linux, con límites de CPU y memoria. **Solo plantilla: no instalada ni activada en los droplets.**
 - Tests: `python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow -p 'test_sniper_readonly_observer.py' -v` y `-p 'test_sniper_readonly_journal.py'`.
 
 ## Infraestructura existente, coste y autorizaciones
@@ -28,8 +28,9 @@ Host posible para **un futuro despliegue**, sin garantía de acceso operativo: `
 1. Obtener autorización explícita para operar una carga recurrente sobre ese host, confirmar quién cubre el coste existente y verificar su estado actual, sus procesos y su salud.
 2. Disponer de acceso remoto tipo SSH o conexión de administración autorizada. El plugin DigitalOcean utilizado aquí permite inventario, pero **no ofrece ejecución remota de comandos**.
 3. Revisar un commit exacto del PR #692, instalar archivos bajo `/opt/nqc/nexus-engine/`, verificar los test locales, copiar la unidad systemd y **habilitarla manualmente solo con autorización operativa y coste conocidos**.
-4. Validar `systemctl is-active`, `journalctl -u nqc-v2-sniper-readonly`, auditoría del `journal.jsonl`, avance de bloques, pérdida de proveedor, ausencia de transacciones y estabilidad ≥24h.
-5. Mantener `P2_shadow_certified=false`, `RMC_closed=false`, `nqc_realized_pnl_usd=0` hasta tener evidencias que permitan revisarlos.
+4. Crear, si aún no existe, una cuenta Linux de servicio **sin shell interactivo** (`nqc-sniper`) y comprobar que no tenga privilegios ni claves. La unidad preparada utiliza `User=nqc-sniper` y `Group=nqc-sniper`; no puede instalarse ni arrancar correctamente sin esa cuenta. **No ejecutar estos pasos sin autorización operativa.**
+5. Validar `systemctl is-active`, `journalctl -u nqc-v2-sniper-readonly`, auditoría del `journal.jsonl`, avance de bloques, pérdida de proveedor, ausencia de transacciones y estabilidad ≥24h.
+6. Mantener `P2_shadow_certified=false`, `RMC_closed=false`, `nqc_realized_pnl_usd=0` hasta tener evidencias que permitan revisarlos.
 
 Por seguridad, **no depositar ETH ni conectar MetaMask**, no insertar una clave privada en archivos/env vars de GitHub o del servidor, y no habilitar transacciones. El servicio no incorpora capacidad de construcción o publicación de transacciones.
 
