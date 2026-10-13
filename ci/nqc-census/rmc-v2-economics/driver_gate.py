@@ -39,6 +39,7 @@ def canon(obj):
 def audit(doc):
     require(type(doc) is dict and doc.get("schema_version") == 1, "schema version")
     require(doc.get("evidence_tier") == "RETROSPECTIVE_SINGLE_PROVIDER_RESEARCH_ONLY", "evidence tier")
+    require("claim_scope" not in doc, "unregistered competing claim scope")
     require(doc.get("chain_id") == 1 and doc.get("borrower") == BORROWER, "chain/borrower mismatch")
     require(doc.get("live_transactions") == 0 and doc.get("realized_nqc_pnl_usd") == "0"
             and doc.get("certifies_p2") is False and doc.get("certifies_rmc") is False,
