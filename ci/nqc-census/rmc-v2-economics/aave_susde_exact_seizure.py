@@ -253,7 +253,7 @@ def header(rpc: str) -> dict:
                          capture_output=True,text=True,timeout=35,check=False)
     except (OSError,subprocess.TimeoutExpired) as exc:
         raise EvidenceError("canonical header unavailable") from exc
-    require(p.returncode==0,"canonical header RPC returned error")
+    require(p.returncode==0,"canonical header RPC returned error: "+(p.stderr[-300:] or p.stdout[-200:]))
     try:v=json.loads(p.stdout)
     except json.JSONDecodeError as exc:raise EvidenceError("header not JSON") from exc
     require(str(v.get("hash","")).lower()==BLOCK_HASH
