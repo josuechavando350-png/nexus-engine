@@ -210,6 +210,28 @@ contract NqcV2MorphoFluidPartialForkTest {
         emit log_named_uint("NQC_FLUID_387K_FORK_NOT_LIQUIDATION_NOT_REPAID", 1);
     }
 
+    function testAave472kConditionalNetSeizeExactSizeAgainstDeployedFluidFork() public {
+        // Derived from 26,184,741 Aave oracle, eMode 24 10,310 bps bonus,
+        // 10% protocol fee on the bonus and 472,000 USDtb debt cover.
+        // See RMC V2 Aave conditional budget PR #684. Aave HF>1 here:
+        // the borrower could NOT actually be liquidated at this block.
+        uint256 onlyHypotheticalSUsde = 387_741_067_158_410_219_811_134;
+        require(onlyHypotheticalSUsde < 388_000 ether, "NET_SEIZE_CANNOT_REACH_388K");
+        uint256 receivedUSDT = _partialFluidSwap(onlyHypotheticalSUsde);
+        // Historic Morpho/Curve flash funding input for exactly 472,000
+        // USDtb, proven on a DIFFERENT reverted fork of the same block.
+        uint256 curveRequiredUSDT = 472_461_610_797;
+        require(receivedUSDT > curveRequiredUSDT, "CONDITIONAL_FLUID_OUTPUT_BELOW_CURVE");
+        emit log_named_uint("NQC_AAVE_CONDITIONAL_NET_SUSDE_RAW", onlyHypotheticalSUsde);
+        emit log_named_uint("NQC_AAVE_CONDITIONAL_NET_FLUID_USDT_RAW", receivedUSDT);
+        emit log_named_uint(
+            "NQC_AAVE_CONDITIONAL_PRE_COST_MARGIN_USDT_RAW",
+            receivedUSDT - curveRequiredUSDT
+        );
+        emit log_named_uint("NQC_AAVE_HF_ABOVE_ONE_NO_SEIZED_COLLATERAL", 1);
+        emit log_named_uint("NQC_NO_REALIZED_OR_SHADOW_CAPTURE", 1);
+    }
+
     function testFluidNearCapacityQuotesChallengeInherited12297GrossEdge() public {
         // HISTORICAL estimates, not executed swaps or a proof of captured
         // liquidation collateral. Guard against convenient legacy P&L claims.
