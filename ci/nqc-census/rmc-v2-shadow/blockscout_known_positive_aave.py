@@ -23,6 +23,10 @@ HASH="0xf143f9988199037938e4dff57aaf24301a4c26770aefc0ec64774954cbf2dbe4"
 TX="0x6313fb267755f3cfa48214bf74309505984306129ee09a558efe4801006dcbba"
 WETH="0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 PRINCIPAL=10684013854557827871
+SEIZED_WETH_RAW=10780169979248848321
+BORROWER="0x7a0575018b57cb64434fcd794f4f0c624fd0fbd3"
+LIQUIDATOR="0x9e3e25dcc3ed4a97e6fdcb166280a248d8c42219"
+EVENT_SHA256="d25b174177afd25fc6b789a4d76bad535120a9a883209ee7205a49d703d73949"
 PIN_ORIGINAL_RMC016_SHA="6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204"
 MAX_PAYLOAD=2_000_000
 HEX64=re.compile(r"0x[0-9a-f]{64}\Z")
@@ -66,8 +70,13 @@ def validate(d):
         num=e.get("blockNumber")
         need(type(num) is str and int(num,16)==BLOCK,
              "event missing historical block height")
-        need(str(e.get("blockHash","")).lower()==HASH,
-             "event canonical block hash mismatch")
+        # The classic Blockscout REST logs response omits blockHash.
+        # NEVER claim it was provided; bind positive raw ABI to the exact
+        # canonical BlockHash already authenticated in original RMC016.
+        indexer_supplied_hash = "blockHash" in e
+        if indexer_supplied_hash:
+            need(str(e["blockHash"]).lower()==HASH,
+                 "event canonical block hash mismatch")
         tx=str(e.get("transactionHash","")).lower()
         need(HEX64.fullmatch(tx) is not None,"transaction hash malformed")
         idx=e.get("logIndex")
@@ -79,9 +88,32 @@ def validate(d):
             # Known RMC016 winning liquidation exact WETH/WETH repaid amount,
             # NOT a bot-owned/captured liquidation or profitable outcome.
             need(collateral==WETH and debt==WETH and
-                 int(raw[2:66],16)==PRINCIPAL,
+                 int(raw[2:66],16)==PRINCIPAL and
+                 int(raw[66:130],16)==SEIZED_WETH_RAW and
+                 address(topics[3])==BORROWER and
+                 address("0x"+raw[130:194])==LIQUIDATOR and
+                 int(raw[194:258],16)==0 and
+                 e.get("transactionIndex")=="0x1" and idx=="0x15",
                  "winner indexed event differs from immutable Aave proof")
-            matched.append(e)
+            proof={
+              "pool":POOL,
+              "topics":[str(x).lower() for x in topics],
+              "data":raw.lower(),
+              "block_hash":HASH,
+              "block_number":BLOCK,
+              "tx_hash":TX,
+              "tx_index":1,
+              "log_index":21,
+            }
+            expected_raw_event_sha=hashlib.sha256(
+                (json.dumps(proof,sort_keys=True,
+                  separators=(',',':'),ensure_ascii=True)+"\\n").encode()
+            ).hexdigest()
+            need(expected_raw_event_sha==EVENT_SHA256,
+                 "indexer raw event fails immutable original event SHA256")
+            matched.append({"source_log":e,
+                            "indexer_supplied_block_hash":indexer_supplied_hash,
+                            "original_event_sha256":expected_raw_event_sha})
     need(len(matched)==1,"original rank-one winner not uniquely retrieved")
     return {
         "schema_version":1,
@@ -94,6 +126,9 @@ def validate(d):
         "winning_block_hash":HASH,
         "authentic_debt_paid_wei":str(PRINCIPAL),
         "matching_real_liquidation_events":len(matched),
+        "matching_original_raw_event_sha256":EVENT_SHA256,
+        "indexer_supplied_canonical_block_hash":matched[0]["indexer_supplied_block_hash"],
+        "canonical_block_hash_provenance":"PRIOR_IMMUTABLE_RMC016_NOT_FROM_BLOCKSCOUT_WHEN_MISSING",
         "all_indexed_aave_liquidation_events_in_that_block":len(events),
         "raw_log_replay_from_independent_rpc_certified":False,
         "whole_indexer_history_complete_certified":False,
