@@ -130,8 +130,8 @@ pub fn reconcile_morpho_blue_nominal(
             CapitalFailureMode::CallbackOrHookRevert,
         ],
         evidence: vec![
-            CapitalEvidenceRef::Artifact(*first.transcript.as_bytes()),
-            CapitalEvidenceRef::Artifact(*second.transcript.as_bytes()),
+            CapitalEvidenceRef::Artifact(first.transcript),
+            CapitalEvidenceRef::Artifact(second.transcript),
         ],
     })?;
 
