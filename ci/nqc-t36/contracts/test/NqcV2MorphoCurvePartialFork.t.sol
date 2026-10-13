@@ -321,8 +321,7 @@ contract NqcV2MorphoCurvePartialForkTest {
         );
         require(actual.input == usdtIn, "INCORRECT_FUNDING_AMOUNT");
         require(actual.usdc > 0 && actual.usdtb > 0, "NO_REAL_TOKENS_RECEIVED");
-        require(actual.leftoverUsdt == 0 && actual.leftoverUsdc == 0,
-                "PARTIAL_INPUT_NOT_CONSUMED");
+        require(actual.leftoverUsdt == 0 && actual.leftoverUsdc == 0, "PARTIAL_INPUT_NOT_CONSUMED");
         // Integer outputs below are measured on real deployed Curve pools,
         // but ALWAYS rolled back, so no loan settlement or capture occurs.
         emit log_named_uint("NQC_MORPHO_USDT_INPUT_RAW", actual.input);
@@ -330,10 +329,13 @@ contract NqcV2MorphoCurvePartialForkTest {
         emit log_named_uint("NQC_CURVE_USDC_ACTUAL_RAW", actual.usdc);
         emit log_named_uint("NQC_CURVE_USDTB_QUOTE_RAW", expectedUsdTb);
         emit log_named_uint("NQC_CURVE_USDTB_ACTUAL_RAW", actual.usdtb);
-        emit log_named_uint("NQC_CURVE_ACTUAL_OUTPUT_ABOVE_TARGET",
-                            actual.usdtb >= targetUsdTb ? 1 : 0);
-        emit log_named_uint("NQC_CURVE_QUOTED_CONDITION_MATCHED",
-                            (reachesTarget == (expectedUsdTb >= targetUsdTb)) ? 1 : 0);
+        emit log_named_uint(
+            "NQC_CURVE_ACTUAL_OUTPUT_ABOVE_TARGET", actual.usdtb >= targetUsdTb ? 1 : 0
+        );
+        emit log_named_uint(
+            "NQC_CURVE_QUOTED_CONDITION_MATCHED",
+            (reachesTarget == (expectedUsdTb >= targetUsdTb)) ? 1 : 0
+        );
     }
 
     function _plan(uint256 usdtIn, bytes memory payload)
