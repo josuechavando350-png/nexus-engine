@@ -178,15 +178,24 @@ contract NqcV2MorphoFluidPartialForkTest {
         // route requires >= 472461.610797 USDT to fund 472000 USDtb on Curve.
         // This is NOT an Aave liquidation reward or proof of actual repayment.
         uint256[10] memory inputSizes = [
-            uint256(250_000), 300_000, 330_000, 350_000, 370_000,
-            375_000, 378_000, 380_000, 390_000, 400_000
+            uint256(250_000),
+            300_000,
+            330_000,
+            350_000,
+            370_000,
+            375_000,
+            378_000,
+            380_000,
+            390_000,
+            400_000
         ];
         uint256 largestQuoted;
         uint256 positiveEstimates;
         for (uint256 i; i < inputSizes.length; ++i) {
             uint256 raw = inputSizes[i] * 1 ether;
-            try IV2FluidReserves(RESOLVER).estimateSwapIn(FLUID,true,raw,1)
-                returns (uint256 estimated) {
+            try IV2FluidReserves(RESOLVER).estimateSwapIn(FLUID, true, raw, 1) returns (
+                uint256 estimated
+            ) {
                 emit log_named_uint("NQC_FLUID_SAMPLE_SUSDE_INPUT_UNITS", inputSizes[i]);
                 emit log_named_uint("NQC_FLUID_SAMPLE_USDT_OUTPUT_RAW", estimated);
                 if (estimated > 0) {
@@ -195,7 +204,7 @@ contract NqcV2MorphoFluidPartialForkTest {
                 }
             } catch {
                 emit log_named_uint("NQC_FLUID_SAMPLE_SUSDE_INPUT_UNITS", inputSizes[i]);
-                emit log_named_uint("NQC_FLUID_SAMPLE_USDT_OUTPUT_UNAVAILABLE",1);
+                emit log_named_uint("NQC_FLUID_SAMPLE_USDT_OUTPUT_UNAVAILABLE", 1);
             }
         }
         require(positiveEstimates <= inputSizes.length, "BAD_SAMPLE_CARDINALITY");
