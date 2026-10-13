@@ -1,0 +1,90 @@
+name: NQC RMC V2 Month-One 45K-55K Commercial Hurdle (NOT A FORECAST)
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-v2-live-readonly-sniper-20261013"
+    paths:
+      - "ci/nqc-census/rmc-v2-economics/first_month_commercial_hurdle.py"
+      - "ci/nqc-census/rmc-v2-economics/test_first_month_commercial_hurdle.py"
+      - ".github/workflows/nqc-rmc-v2-month1-hurdle.yml"
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-economics/first_month_commercial_hurdle.py"
+      - "ci/nqc-census/rmc-v2-economics/test_first_month_commercial_hurdle.py"
+      - ".github/workflows/nqc-rmc-v2-month1-hurdle.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  economic-target-negative-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout exact economic evidence producer commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Fail closed on false capture rate or fabricated target economics
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-v2-month1-hurdle"
+          python3 -m py_compile \
+            ci/nqc-census/rmc-v2-economics/first_month_commercial_hurdle.py \
+            ci/nqc-census/rmc-v2-economics/test_first_month_commercial_hurdle.py
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-economics \
+            -p 'test_first_month_commercial_hurdle.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-v2-month1-hurdle/tests.log"
+
+      - name: Compute source-locked month-one commercial hurdle
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-month1-hurdle"
+          python3 ci/nqc-census/rmc-v2-economics/first_month_commercial_hurdle.py \
+            --source ci/nqc-census/rmc016-production-evidence.json \
+            --out "$OUT/commercial-hurdle.json"
+          jq -e '
+            .status=="FIRST_MONTH_45K_55K_TARGET_NOT_PROVEN"
+            and .scope=="RMC016_HISTORICAL_GROSS_REFERENCE_NOT_CAPTURABLE_NET_FORECAST"
+            and .original_winner_transactions==127
+            and .original_liquidation_events==139
+            and .baseline_historical_market_gross_oracle_edge_usd_wad=="138045174690310000000000"
+            and (.target_range|length)==2
+            and .target_range[0].net_target_usd=="45000"
+            and .target_range[0].minimum_fraction_of_original_gross_value_if_every_dollar_costless_ppm=="325981"
+            and .target_range[1].net_target_usd=="55000"
+            and .target_range[1].minimum_fraction_of_original_gross_value_if_every_dollar_costless_ppm=="398421"
+            and .realizable_nexus_capacity_lower_bound_usd_wad=="0"
+            and .nqc_realized_profit_usd=="0"
+            and .external_sponsorship_committed==false
+            and .no_actual_profitability_probability_calibration==true
+            and .p2_shadow_certified==false
+            and .rmc_closed==false
+            and .commercial_score_upgrade==false
+          ' "$OUT/commercial-hurdle.json"
+          cp ci/nqc-census/rmc016-production-evidence.json "$OUT/immutable-market-source.json"
+          cp ci/nqc-census/rmc-v2-economics/first_month_commercial_hurdle.py "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-economics/test_first_month_commercial_hurdle.py "$OUT/test-producer.py"
+          (
+            cd "$OUT"
+            sha256sum immutable-market-source.json producer.py test-producer.py \
+              tests.log commercial-hurdle.json > evidence.sha256
+            sha256sum -c evidence.sha256
+          )
+
+      - name: Preserve original and exact input/output evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-month1-net-target-hurdle-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-v2-month1-hurdle/
+          if-no-files-found: warn
+          retention-days: 30
