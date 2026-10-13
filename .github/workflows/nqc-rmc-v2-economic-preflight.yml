@@ -72,11 +72,15 @@ jobs:
           OUT="$RUNNER_TEMP/rmc-v2-economic-negative"
           SRC='ci/nqc-census/rmc-v2-economics/fixtures/ethereum-26184415-research-only.json'
           SHA="${{ github.event.pull_request.head.sha || github.sha }}"
-          sha256sum "$SRC" ci/nqc-census/rmc-v2-economics/driver_gate.py "$OUT/economic-gates.json" > "$OUT/source-and-output.sha256"
+          test "$(git rev-parse HEAD)" = "$SHA"
+          mkdir -p "$OUT/source"
+          cp -- "$SRC" "$OUT/source/ethereum-26184415-research-only.json"
+          cp -- ci/nqc-census/rmc-v2-economics/driver_gate.py "$OUT/source/driver_gate.py"
+          cp -- ci/nqc-census/rmc-v2-economics/test_driver_gate.py "$OUT/source/test_driver_gate.py"
           jq -n --arg head "$SHA" --arg scope 'OFFLINE_NEGATIVE_RESEARCH_ONLY' \
             '{schema_version:1, source_sha:$head, claim_scope:$scope, terminal:false, p2_certified:false, live_pnl_usd:"0"}' > "$OUT/attestation.json"
           cd "$OUT"
-          sha256sum economic-gates.json attestation.json source-and-output.sha256 > archive.sha256
+          sha256sum economic-gates.json attestation.json source/driver_gate.py source/test_driver_gate.py source/ethereum-26184415-research-only.json > archive.sha256
           sha256sum -c archive.sha256
 
       - name: Save only non-authoritative artifacts
