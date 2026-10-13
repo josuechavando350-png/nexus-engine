@@ -1,0 +1,102 @@
+name: NQC RMC V2 Topology Source Family Preflight (NO D11 AUTHORITY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc011-execution-topologies-v2-research.json'
+      - 'ci/nqc-census/verify_rmc011_execution_topologies_v2.py'
+      - 'ci/nqc-census/test_rmc011_execution_topologies_v2.py'
+      - '.github/workflows/nqc-rmc-v2-topology-source-preflight.yml'
+  push:
+    branches:
+      - 'nqc/rmc-v2-topology-source-universe-20261013'
+    paths:
+      - 'ci/nqc-census/rmc011-execution-topologies-v2-research.json'
+      - 'ci/nqc-census/verify_rmc011_execution_topologies_v2.py'
+      - 'ci/nqc-census/test_rmc011_execution_topologies_v2.py'
+      - '.github/workflows/nqc-rmc-v2-topology-source-preflight.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc-v2-topology-source-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  topology-research-non-authority:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Pin actual producing commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+
+      - name: Run offline source family and asset conservation regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/nqc-census/verify_rmc011_execution_topologies_v2.py
+          python3 -m unittest discover -s ci/nqc-census -p test_rmc011_execution_topologies_v2.py -v
+
+      - name: Produce D11 family gap and unresolved venue diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/rmc-v2-topology"
+          mkdir -p "$OUT/source"
+          python3 ci/nqc-census/verify_rmc011_execution_topologies_v2.py \
+            --catalog ci/nqc-census/rmc011-execution-topologies-v2-research.json \
+            --scope ci/nqc-census/capital-census-scope.json \
+            --universe ci/nqc-census/rmc011-capital-source-universe.json \
+            --out "$OUT/topology-source-gap.json"
+          jq -e '
+            .contract == "NQC_RMC011_TOPOLOGY_V2_DIAGNOSTIC_NO_TERMINAL"
+            and .status == "BLOCKED_RESEARCH_ONLY"
+            and .topology_count == 2
+            and .d11_missing_source_families == ["MORPHO_BLUE_FLASH_LOAN"]
+            and .required_unresolved_acquisition_routes == [
+                "USDtb_ACQUISITION_USDC_TO_USDtb",
+                "USDtb_REACQUISITION_USDT_TO_USDtb"
+              ]
+            and .execution_admitted == 0
+            and .capital_executable_verified == false
+            and .p2_shadow_certified == false
+            and .rmc_closed == false
+            and .commercial_upgrade_authorized == false
+            and .realized_nqc_pnl_usd == "0"
+          ' "$OUT/topology-source-gap.json"
+          for file in \
+            rmc011-execution-topologies-v2-research.json \
+            verify_rmc011_execution_topologies_v2.py \
+            test_rmc011_execution_topologies_v2.py \
+            capital-census-scope.json \
+            rmc011-capital-source-universe.json
+          do
+            cp -- "ci/nqc-census/$file" "$OUT/source/$file"
+          done
+          jq -n \
+            --arg producing_head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --arg scope 'DIAGNOSTIC_ONLY_NOT_D11_D17_AUTHORITY' \
+            '{schema_version:1,source_sha:$producing_head,claim_scope:$scope,
+              d11_closed:false,rmc_closed:false,p2_shadow_certified:false,
+              executable_capital_admitted:false,commercial_upgrade:false,
+              realized_nqc_pnl_usd:"0"}' > "$OUT/attestation.json"
+          (cd "$OUT" && sha256sum topology-source-gap.json attestation.json source/* > archive.sha256 && sha256sum -c archive.sha256)
+
+      - name: Save exact source and negative diagnostic only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc-v2-topology-gap-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/rmc-v2-topology/
+          retention-days: 30
