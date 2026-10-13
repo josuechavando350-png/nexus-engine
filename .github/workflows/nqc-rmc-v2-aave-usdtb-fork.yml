@@ -153,6 +153,8 @@ jobs:
           grep -F '[PASS] testPinnedAaveUSDtbReserveConfigAndNominalCash()' "$RUNNER_TEMP/aave-usdtb-fork/fork-tests.txt"
           grep -F '[PASS] testUnfundedFlashFeeRevertsWithoutTouchingReserveOrOperatorBalance()' "$RUNNER_TEMP/aave-usdtb-fork/fork-tests.txt"
           grep -F '[PASS] testWrongPremiumCannotPassRealAaveCallback()' "$RUNNER_TEMP/aave-usdtb-fork/fork-tests.txt"
+          grep -F '[PASS] testAaveFeeAdjustedNetCollateralMatchesExactHistoricalReader()' "$RUNNER_TEMP/aave-usdtb-fork/fork-tests.txt"
+          grep -F '[PASS] testRealAaveLiquidationRevertsAtHFAboveOneAndPreservesBorrowerState()' "$RUNNER_TEMP/aave-usdtb-fork/fork-tests.txt"
       - name: Write non-authoritative provenance, no executable-capital claim
         shell: bash
         run: |
