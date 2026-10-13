@@ -199,12 +199,12 @@ contract NqcV2MorphoFluidPartialForkTest {
         uint256 archivedResolverEstimate = 484_870_110_578; // USDT 6 decimals.
         require(actual == archivedResolverEstimate, "REAL_FLUID_DIFFERS_FROM_ABI_RESOLVER");
         require(actual > 472_461_610_797, "REAL_FLUID_BELOW_USDT_ACQUISITION");
-        require(actual - 472_461_610_797 == 12_408_499_781,
-                "FEE_ADJUSTED_RESEARCH_SPREAD_CHANGED");
+        require(actual - 472_461_610_797 == 12_408_499_781, "FEE_ADJUSTED_RESEARCH_SPREAD_CHANGED");
         emit log_named_uint("NQC_FLUID_AAVE_FEE_ADJUSTED_SUSDE_RAW", netHypothetical);
         emit log_named_uint("NQC_FLUID_AAVE_FEE_ADJUSTED_USDT_RAW", actual);
-        emit log_named_uint("NQC_FLUID_AAVE_FEE_ADJUSTED_GROSS_BEFORE_COST_RAW",
-                            actual - 472_461_610_797);
+        emit log_named_uint(
+            "NQC_FLUID_AAVE_FEE_ADJUSTED_GROSS_BEFORE_COST_RAW", actual - 472_461_610_797
+        );
         emit log_named_uint("NQC_FLUID_AAVE_FEE_ADJUSTED_NOT_LIQUIDATED", 1);
     }
 
