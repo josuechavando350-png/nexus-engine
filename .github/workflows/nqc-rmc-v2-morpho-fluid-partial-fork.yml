@@ -1,0 +1,177 @@
+name: NQC RMC V2 Morpho sUSDe → Fluid USDT Historical Fork (ALWAYS REVERT)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-t36/contracts/test/NqcV2MorphoFluidPartialFork.t.sol'
+      - '.github/workflows/nqc-rmc-v2-morpho-fluid-partial-fork.yml'
+  push:
+    branches:
+      - 'nqc/rmc-v2-morpho-fluid-real-fork-20261013'
+    paths:
+      - 'ci/nqc-t36/contracts/test/NqcV2MorphoFluidPartialFork.t.sol'
+      - '.github/workflows/nqc-rmc-v2-morpho-fluid-partial-fork.yml'
+permissions:
+  contents: read
+concurrency:
+  group: nqc-v2-morpho-fluid-fork-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  real-fluid-susde-swap-in-morpho-flash:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      BLOCK: "26184741"
+      EXPECTED_HASH: "0xe4b0718c51a6a484eef56edce0f25e9a5c546c2f66f595c6e305a589a612dbbe"
+      EXPECTED_PARENT: "0x53ddf49d46b566154bbb876ae76839331ee43b01beab19190b813eecbda5ec66"
+      MORPHO: "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb"
+      SUSDE: "0x9d39a5de30e57443bff2a8307a4256c8797a3497"
+      USDT: "0xdac17f958d2ee523a2206206994597c13d831ec7"
+      FLUID: "0x1dd125c32e4b5086c63cc13b3ca02c4a2a61fa9b"
+      FLUID_RESOLVER: "0x05bd8269a20c472b148246de20e6852091bf16ff"
+      EXPECTED_SUSDE_RAW: "93343562174783715605503221"
+    steps:
+      - name: Checkout actual source commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Preserve earlier certified T36 historical source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = "aa3883fa141aa096006e90e56d8d4150c9ee14ef"
+          mkdir -p "$RUNNER_TEMP/nqc-v2-fluid-fork"
+          echo "HEAD=$(git rev-parse HEAD)" > "$RUNNER_TEMP/nqc-v2-fluid-fork/attempts.txt"
+      - name: Install Foundry 1.7.1 with binary asset SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/foundry"
+          curl --fail --location --retry 4 --retry-all-errors --max-time 160 \
+            -o "$RUNNER_TEMP/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  $RUNNER_TEMP/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
+          echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/foundry/forge" --version
+      - name: Strict Solidity formatting and source compile
+        working-directory: ci/nqc-t36/contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          forge fmt --check test/NqcV2MorphoFluidPartialFork.t.sol
+          forge build --sizes 2>&1 | tee "$RUNNER_TEMP/nqc-v2-fluid-fork/build.txt"
+      - name: Verify real historical provider, Fluid pool, Morpho sUSDe balance, and hash
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-fluid-fork"
+          : > "$OUT/rpc-attempts.txt"
+          SELECTED=""
+          for RPC in \
+            "https://ethereum-rpc.publicnode.com" \
+            "https://eth.drpc.org" \
+            "https://1rpc.io/eth" \
+            "https://eth.llamarpc.com"
+          do
+            echo "TRY $RPC" >> "$OUT/rpc-attempts.txt"
+            if ! timeout 30s cast block "$BLOCK" --rpc-url "$RPC" --json > "$OUT/block.json" 2>/dev/null; then
+              echo "REJECT_HEADER_UNAVAILABLE" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            if ! jq -e --arg h "$EXPECTED_HASH" --arg p "$EXPECTED_PARENT" \
+              '(.hash|ascii_downcase)==$h and (.parentHash|ascii_downcase)==$p' \
+              "$OUT/block.json" >/dev/null; then
+              echo "REJECT_NON_CANONICAL_HEADER" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            if ! timeout 30s cast call "$SUSDE" 'balanceOf(address)(uint256)' "$MORPHO" \
+               --block "$BLOCK" --rpc-url "$RPC" > "$OUT/morpho-susde.txt" 2>/dev/null; then
+              echo "REJECT_MORPHO_SUSDE_STATE_UNAVAILABLE" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            if [[ "$(awk '{print $1}' "$OUT/morpho-susde.txt")" != "$EXPECTED_SUSDE_RAW" ]]; then
+              echo "REJECT_MORPHO_SUSDE_DIFFERENT" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            if ! timeout 30s cast call "$FLUID" 'DEX_ID()(uint256)' \
+              --block "$BLOCK" --rpc-url "$RPC" > "$OUT/fluid-id.txt" 2>/dev/null; then
+              echo "REJECT_FLUID_DEX_ID_UNAVAILABLE" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            if [[ "$(awk '{print $1}' "$OUT/fluid-id.txt")" != "15" ]]; then
+              echo "REJECT_WRONG_FLUID_POOL" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            if ! timeout 30s cast code "$FLUID" --block "$BLOCK" --rpc-url "$RPC" > "$OUT/fluid-runtime.txt" 2>/dev/null; then
+              echo "REJECT_FLUID_RUNTIME_UNAVAILABLE" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            if ! test "$(wc -c < "$OUT/fluid-runtime.txt")" -gt 32; then
+              echo "REJECT_EMPTY_FLUID_RUNTIME" >> "$OUT/rpc-attempts.txt"
+              continue
+            fi
+            echo "CANONICAL_MORPHO_SUSDE_AND_FLUID_T1_STATE_MATCH $RPC" >> "$OUT/rpc-attempts.txt"
+            SELECTED="$RPC"
+            break
+          done
+          test -n "$SELECTED"
+          echo "SELECTED_RPC=$SELECTED" >> "$GITHUB_ENV"
+          echo "$SELECTED" > "$OUT/selected-rpc.txt"
+      - name: Measure real Fluid swap fills inside Morpho sUSDe flash, always revert
+        working-directory: ci/nqc-t36/contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 190s forge test \
+            --fork-url "$SELECTED_RPC" \
+            --fork-block-number "$BLOCK" \
+            --match-contract NqcV2MorphoFluidPartialForkTest \
+            -vvv 2>&1 | tee "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
+          grep -F '[PASS] testRealFluidPoolTokenIdentityAndMorphoNominalSUsdePinned()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
+          grep -F '[PASS] testRealMorphoFluidSwapOneThousandSUSDeRevertsWithMeasuredUSDT()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
+          grep -F '[PASS] testRealMorphoFluidSwapFiftyThousandSUSDeRevertsWithMeasuredUSDT()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
+          grep -F '[PASS] testRealMorphoFluidSwapTwoHundredThousandSUSDeRevertsWithMeasuredUSDT()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
+          grep -F '[PASS] testFluidResolverNoPositive400kEstimateDoesNotProveGlobalCapacity()' "$RUNNER_TEMP/nqc-v2-fluid-fork/fork-tests.txt"
+      - name: Commit evidence limits and hashes — NOT a real funding settlement
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-fluid-fork"
+          cp ci/nqc-t36/contracts/test/NqcV2MorphoFluidPartialFork.t.sol "$OUT/fluid-test-source.sol"
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutorV2.sol "$OUT/executor-v2-source.sol"
+          jq -n --arg head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            --arg hash "$EXPECTED_HASH" \
+            '{schema_version:1,git_head:$head,eth_block_hash:$hash,
+              scope:"MORPHO_SUSDE_FLASH_FLUID_SUSDE_TO_USDT_PARTIAL_FORK_ONLY",
+              real_morpho_susde_flash_initiated:true,
+              real_fluid_swap_executed_in_rolled_back_fork:true,
+              real_morpho_flash_settled:false,
+              collateral_from_liquidation:false,
+              full_usdt_liquidation_route:false,
+              real_gas_paid:false,
+              slippage_min_out_one_is_production_unsafe:true,
+              fluid_estimate_is_guaranteed_execution:false,
+              aave_liquidation_at_true_hf_below_one:false,
+              independent_rpc_quorum_proven:false,
+              external_gas_sponsor_eligible:false,
+              builder_capture_survived:false,
+              rmc_d17_closed:false,shadow_p2_certified:false,
+              commercial_score_upgrade:false,nqc_realized_pnl_usd:"0"}' > "$OUT/nonclaims.json"
+          (
+            cd "$OUT"
+            sha256sum block.json morpho-susde.txt fluid-id.txt fluid-runtime.txt \
+               build.txt fork-tests.txt fluid-test-source.sol executor-v2-source.sol nonclaims.json \
+              > evidence.sha256
+            sha256sum -c evidence.sha256
+          )
+      - name: Preserve fork evidence and failures, no certification
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-morpho-fluid-fork-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-v2-fluid-fork/
+          if-no-files-found: warn
+          retention-days: 30
