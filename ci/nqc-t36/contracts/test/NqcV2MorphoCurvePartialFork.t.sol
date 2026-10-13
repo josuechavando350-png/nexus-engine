@@ -12,7 +12,9 @@ interface IV2PartialERC20 {
 interface ICurveStableSwapPartial {
     function coins(uint256 i) external view returns (address);
     function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256);
-    function exchange(int128 i, int128 j, uint256 dx, uint256 minDy) external returns (uint256);
+    // Some deployed Curve pools return no data from exchange. Measure the
+    // actual ERC-20 balance delta, not an assumed Solidity return value.
+    function exchange(int128 i, int128 j, uint256 dx, uint256 minDy) external;
 }
 
 /// @notice READ-ONLY historical fork probe that intentionally REVERTS after
@@ -84,10 +86,9 @@ contract MorphoCurvePartialProbe {
         uint256 quotedUsdc = ICurveStableSwapPartial(THREEPOOL).get_dy(2, 1, principal);
         if (quotedUsdc == 0) revert ObservedExchangeQuoteMismatch();
         _approve(USDT, THREEPOOL, principal);
-        uint256 tradedUsdc =
-            ICurveStableSwapPartial(THREEPOOL).exchange(2, 1, principal, quotedUsdc);
+        ICurveStableSwapPartial(THREEPOOL).exchange(2, 1, principal, quotedUsdc);
         uint256 observedUsdc = _balance(USDC) - oldUsdc;
-        if (tradedUsdc != quotedUsdc || observedUsdc != quotedUsdc) {
+        if (observedUsdc != quotedUsdc) {
             revert ObservedExchangeQuoteMismatch();
         }
         if (_balance(USDT) != oldUsdt) revert IncompleteInputConsumption();
@@ -95,10 +96,9 @@ contract MorphoCurvePartialProbe {
         uint256 quotedUsdTb = ICurveStableSwapPartial(USDTB_POOL).get_dy(0, 1, observedUsdc);
         if (quotedUsdTb == 0) revert ObservedExchangeQuoteMismatch();
         _approve(USDC, USDTB_POOL, observedUsdc);
-        uint256 tradedUsdTb =
-            ICurveStableSwapPartial(USDTB_POOL).exchange(0, 1, observedUsdc, quotedUsdTb);
+        ICurveStableSwapPartial(USDTB_POOL).exchange(0, 1, observedUsdc, quotedUsdTb);
         uint256 observedUsdTb = _balance(USDTB) - oldUsdTb;
-        if (tradedUsdTb != quotedUsdTb || observedUsdTb != quotedUsdTb) {
+        if (observedUsdTb != quotedUsdTb) {
             revert ObservedExchangeQuoteMismatch();
         }
         if (_balance(USDC) != oldUsdc) revert IncompleteInputConsumption();
