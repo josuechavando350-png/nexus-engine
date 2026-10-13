@@ -67,10 +67,10 @@ contract ForkUSDtbPrincipalOnlyStrategy {
 /// @notice Bound to exact Ethereum mainnet block. No live transactions.
 /// @dev This test is not a complete route, gas sponsor or profitability proof.
 contract NqcFlashFundingExecutorV2AaveUSDtbForkTest {
-    address internal constant AAVE_POOL = 0x87870Bca3F3fD6335C3F4Ce8392D69350B4fA4E2;
+    address internal constant AAVE_POOL = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     address internal constant USDTB = 0xC139190F447e929f090Edeb554D95AbB8b18aC1C;
     address internal constant ATOKEN = 0xEc4ef66D4fCeEba34aBB4dE69dB391Bc5476ccc8;
-    address internal constant BORROWER = 0x08c14b32c8a48894e4b933090ebcc9ce33b21135;
+    address internal constant BORROWER = 0x08c14B32C8A48894E4b933090EBcC9CE33B21135;
 
     uint256 internal constant PINNED_BLOCK = 26_184_741;
     bytes32 internal constant PARENT_HASH =
@@ -113,14 +113,8 @@ contract NqcFlashFundingExecutorV2AaveUSDtbForkTest {
 
     function testPinnedBorrowerHealthFactorExactAtThisBlock() public {
         IAaveUSDtbForkPool pool = IAaveUSDtbForkPool(AAVE_POOL);
-        (
-            uint256 collateral,
-            uint256 debt,
-            ,
-            uint256 threshold,
-            ,
-            uint256 hf
-        ) = pool.getUserAccountData(BORROWER);
+        (uint256 collateral, uint256 debt,, uint256 threshold,, uint256 hf) =
+            pool.getUserAccountData(BORROWER);
         require(collateral > debt && debt > 0, "BORROWER_STATE_UNEXPECTED");
         require(threshold == 9199, "BORROWER_THRESHOLD_UNEXPECTED");
         require(hf > 1e18, "BORROWER_ALREADY_LIQUIDATABLE");
@@ -129,7 +123,8 @@ contract NqcFlashFundingExecutorV2AaveUSDtbForkTest {
         emit ExactReserveSnapshot(
             IERC20USDtbFork(USDTB).balanceOf(ATOKEN),
             uint256(pool.FLASHLOAN_PREMIUM_TOTAL()),
-            pool.getConfiguration(USDTB), hf
+            pool.getConfiguration(USDTB),
+            hf
         );
     }
 
@@ -142,18 +137,23 @@ contract NqcFlashFundingExecutorV2AaveUSDtbForkTest {
             _plan(payload, ILLUSTRATIVE_PRINCIPAL, fee, 0);
         uint256 cashBefore = IERC20USDtbFork(USDTB).balanceOf(ATOKEN);
         uint256 operatorBefore = IERC20USDtbFork(USDTB).balanceOf(address(this));
-        (bool ok, bytes memory reason) = address(executor).call(
-            abi.encodeWithSelector(executor.execute.selector, plan, payload)
-        );
+        (bool ok, bytes memory reason) =
+            address(executor).call(abi.encodeWithSelector(executor.execute.selector, plan, payload));
         require(!ok, "UNFUNDED_EXECUTION_MUST_REVERT");
-        require(_selector(reason) ==
-                NqcFlashFundingExecutorV2.InsufficientForRepaymentAndProfit.selector,
-                "UNFUNDED_EXECUTION_MUST_REVERT_AT_FEE_GATE");
+        require(
+            _selector(reason)
+                == NqcFlashFundingExecutorV2.InsufficientForRepaymentAndProfit.selector,
+            "UNFUNDED_EXECUTION_MUST_REVERT_AT_FEE_GATE"
+        );
         require(IERC20USDtbFork(USDTB).balanceOf(ATOKEN) == cashBefore, "RESERVE_LOST_CASH");
-        require(IERC20USDtbFork(USDTB).balanceOf(address(this)) == operatorBefore,
-                "UNFUNDED_OPERATOR_ASSET_CHANGED");
-        require(!executor.consumedExecutionIdentity(plan.executionIdentityHash),
-                "REVERT_BURNED_EXECUTION_ID");
+        require(
+            IERC20USDtbFork(USDTB).balanceOf(address(this)) == operatorBefore,
+            "UNFUNDED_OPERATOR_ASSET_CHANGED"
+        );
+        require(
+            !executor.consumedExecutionIdentity(plan.executionIdentityHash),
+            "REVERT_BURNED_EXECUTION_ID"
+        );
     }
 
     function testWrongPremiumCannotPassRealAaveCallback() public {
@@ -161,15 +161,16 @@ contract NqcFlashFundingExecutorV2AaveUSDtbForkTest {
         NqcFlashFundingExecutorV2.FlashExecutionPlan memory plan =
             _plan(payload, ILLUSTRATIVE_PRINCIPAL, 0, 0);
         uint256 cashBefore = IERC20USDtbFork(USDTB).balanceOf(ATOKEN);
-        (bool ok, bytes memory reason) = address(executor).call(
-            abi.encodeWithSelector(executor.execute.selector, plan, payload)
-        );
+        (bool ok, bytes memory reason) =
+            address(executor).call(abi.encodeWithSelector(executor.execute.selector, plan, payload));
         require(!ok, "WRONG_FEE_PLAN_MUST_REVERT");
-        require(_selector(reason) ==
-                NqcFlashFundingExecutorV2.InvalidCallbackFee.selector,
-                "WRONG_PREMIUM_REJECT_REASON");
-        require(IERC20USDtbFork(USDTB).balanceOf(ATOKEN) == cashBefore,
-                "FEE_REVERT_RESERVE_CHANGED");
+        require(
+            _selector(reason) == NqcFlashFundingExecutorV2.InvalidCallbackFee.selector,
+            "WRONG_PREMIUM_REJECT_REASON"
+        );
+        require(
+            IERC20USDtbFork(USDTB).balanceOf(ATOKEN) == cashBefore, "FEE_REVERT_RESERVE_CHANGED"
+        );
     }
 
     function _selector(bytes memory raw) internal pure returns (bytes4 result) {
@@ -182,12 +183,11 @@ contract NqcFlashFundingExecutorV2AaveUSDtbForkTest {
         return (amount * uint256(premiumBps) + 5_000) / 10_000;
     }
 
-    function _plan(
-        bytes memory payload,
-        uint256 principal,
-        uint256 fee,
-        uint256 profitFloor
-    ) internal view returns (NqcFlashFundingExecutorV2.FlashExecutionPlan memory) {
+    function _plan(bytes memory payload, uint256 principal, uint256 fee, uint256 profitFloor)
+        internal
+        view
+        returns (NqcFlashFundingExecutorV2.FlashExecutionPlan memory)
+    {
         NqcFlashFundingExecutorV2.FundingLeg[] memory legs =
             new NqcFlashFundingExecutorV2.FundingLeg[](1);
         legs[0] = NqcFlashFundingExecutorV2.FundingLeg({
