@@ -1,0 +1,6 @@
+{
+  "providers": [
+    {"operator_id": "independent_operator_a", "url": "https://REPLACE_WITH_RPC_ENDPOINT_A"},
+    {"operator_id": "independent_operator_b", "url": "https://REPLACE_WITH_RPC_ENDPOINT_B"}
+  ]
+}

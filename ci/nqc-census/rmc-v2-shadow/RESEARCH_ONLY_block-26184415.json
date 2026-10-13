@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "status": "RESEARCH_ONLY_SINGLE_PROVIDER_BLOCK_NUMBER_PINNED",
+  "chain_id": 1,
+  "block_number": 26184415,
+  "block_timestamp_utc": "2026-10-13T15:17:47Z",
+  "block_hash": null,
+  "source": "Blockscout MCP 0.19.0",
+  "independent_rpc_operator_count": 1,
+  "borrower": "0x08c14b32c8a48894e4b933090ebcc9ce33b21135",
+  "aave_pool": "0x87870Bca3F3fD6335C3F4Ce8392D69350B4fA4E2",
+  "aave_get_user_account_data": {
+    "total_collateral_base_units": "675898401759728",
+    "total_debt_base_units": "621732317282068",
+    "available_borrows_base_units": "0",
+    "liquidation_threshold_bps_display": 9199,
+    "ltv_bps_display": 8999,
+    "health_factor_wad_approx": "1000151530043078500",
+    "health_factor_exact_uint256_certified": false,
+    "hf_below_one": false
+  },
+  "capital_evidence": {
+    "morpho_usdt": {
+      "token_address": "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      "contract_address": "0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb",
+      "balance_of_contract_raw_usdt_6_decimals": "65581714595588",
+      "nominal_amount_usdt": "65581714.595588",
+      "executable_capital_proven": false,
+      "committed_to_nqc": false
+    },
+    "aave_usdtb": {
+      "token_address": "0xC139190F447e929f090Edeb554D95AbB8b18aC1C",
+      "a_token_address": "0xEc4ef66D4fCeEba34aBB4dE69dB391Bc5476ccc8",
+      "underlying_balance_raw": null,
+      "underlying_balance_read_status": "TOOL_INTERNAL_FAILURE",
+      "flashloan_premium_total_bps": 5,
+      "capacity_verified": false
+    }
+  },
+  "full_execution_economics_verified": false,
+  "gas_sponsor_commitment_verified": false,
+  "competition_survival_verified": false,
+  "prospective_crossing_proven": false,
+  "commercial_score_change_authorized": false,
+  "p2_shadow_certified": false,
+  "rmc_closed": false,
+  "realized_nqc_pnl_usd": "0",
+  "limitations": [
+    "SINGLE_PROVIDER_NOT_QUORUM",
+    "BLOCK_NUMBER_PINNED_WITHOUT_BLOCK_HASH",
+    "HF_JSON_NUMBER_ROUNDED_NOT_RAW_ABI",
+    "MORPHO_NOMINAL_NOT_EXECUTABLE_OR_COMMITTED_CAPITAL",
+    "AAVE_USDTB_BALANCE_UNKNOWN",
+    "TRIGGER_NOT_LIQUIDATABLE",
+    "NO_EXTERNAL_GAS_OR_BUILDER_TERMS",
+    "NO_PROSPECTIVE_EXECUTION_OR_CAPTURE"
+  ]
+}
