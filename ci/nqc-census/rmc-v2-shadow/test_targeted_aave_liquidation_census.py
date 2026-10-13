@@ -210,6 +210,14 @@ class CoverageAndQuorum(unittest.TestCase):
         for code in ('429 rate limited','403 forbidden','api key unauthorized'):
             self.assertFalse(m.permitted_split(m.SourceError(code)))
         self.assertTrue(m.permitted_split(m.SourceError('max block range exceeded')))
+    def test_http_400_does_not_automatically_trigger_retry_split(self):
+        self.assertFalse(m.permitted_split(m.SourceError(
+            'RPC_HTTP_400: invalid params: unsupported topic query')))
+        self.assertTrue(m.permitted_split(m.SourceError(
+            'RPC_HTTP_400: block range too large for plan')))
+    def test_http_403_from_provider_never_split(self):
+        self.assertFalse(m.permitted_split(m.SourceError(
+            'RPC_HTTP_403: forbidden for this endpoint')))
     def test_incomplete_status_cannot_be_reconciled(self):
         r=m.report_for_provider(mock_rpc('publicnode',FakeTransport()),span=30000)
         s=copy.deepcopy(r);s['status']='PARTIAL_SOURCE_CENSORED'
