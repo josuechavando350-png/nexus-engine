@@ -107,7 +107,7 @@ def validate(d):
             }
             expected_raw_event_sha=hashlib.sha256(
                 (json.dumps(proof,sort_keys=True,
-                  separators=(',',':'),ensure_ascii=True)+"\\n").encode()
+                  separators=(',',':'),ensure_ascii=True)+chr(10)).encode()
             ).hexdigest()
             need(expected_raw_event_sha==EVENT_SHA256,
                  "indexer raw event fails immutable original event SHA256")
