@@ -53,11 +53,27 @@ def verify_seed(seed: dict) -> tuple[int,int]:
     usdc_idx=seed.get("usdc_pool_coin_index")
     usdtb_idx=seed.get("usdtb_pool_coin_index")
     require(type(usdc_idx) is int and type(usdtb_idx) is int
-            and usdc_idx!=usdtb_idx and
-            pair[usdc_idx]==USDC.lower() and pair[usdtb_idx]==USDtb.lower(),
+            and 0 <= usdc_idx < 2 and 0 <= usdtb_idx < 2
+            and usdc_idx != usdtb_idx
+            and pair[usdc_idx] == USDC.lower() and pair[usdtb_idx] == USDtb.lower(),
             "coin indices corrupted")
     quotes=seed.get("input_size_to_quote")
     require(type(quotes) is list and len(quotes)==5,"seed cardinality")
+    expected_sizes=(1_000,100_000,472_000,480_000,500_000)
+    prev_output=-1
+    for index,row in enumerate(quotes):
+        require(type(row) is dict,"seed quote row must be an object")
+        require(int_string(row.get("input_usdt_raw"),"seed input") ==
+                expected_sizes[index]*USDT_UNIT, "seed quote input series changed")
+        usdc=int_string(row.get("usdc_after_3pool_raw"),"seed USDC quote")
+        amount=int_string(row.get("usdtb_after_curve_pool_raw"),"seed USDtb quote")
+        require(usdc>0 and amount>prev_output,
+                "seed output does not strictly increase with trade size")
+        require(row.get("actual_swap_executed") is False
+                and row.get("full_input_consumed_onchain_proven") is False
+                and row.get("liquidation_executed") is False,
+                "historical get_dy quote cannot claim actual execution")
+        prev_output=amount
     return usdc_idx,usdtb_idx
 
 def output_amount(rpc: str,dx: int,i: int,j: int) -> tuple[int,int]:
@@ -73,7 +89,8 @@ def minimal_input(target: int, quote,low: int=LOW,high: int=HIGH) -> tuple[int,i
             "invalid search interval")
     low_output=quote(low)[1]
     high_output=quote(high)[1]
-    require(low_output<target<=high_output,
+    require(type(low_output) is int and type(high_output) is int
+            and 0 <= low_output < target <= high_output,
             "no strictly bracketed inverse quote at available trade sizes")
     left,right=low,high
     while left<right:
@@ -84,7 +101,9 @@ def minimal_input(target: int, quote,low: int=LOW,high: int=HIGH) -> tuple[int,i
             left=mid+1
     usdc,amount=quote(left)
     prev=quote(left-1)[1]
-    require(prev<target<=amount,"nonminimal or discontinuous inverse quote")
+    require(type(usdc) is int and type(amount) is int and type(prev) is int
+            and 0 <= prev < target <= amount,
+            "nonminimal or discontinuous inverse quote")
     return left,usdc,amount,prev
 
 def evaluate(rpc: str,seed: dict) -> dict:
@@ -97,7 +116,8 @@ def evaluate(rpc: str,seed: dict) -> dict:
     require(check.returncode==0,"canonical block unreadable during inverse sizing")
     header=json.loads(check.stdout)
     require(str(header.get("hash","")).lower()==HASH and
-            str(header.get("parentHash","")).lower()==PARENT,
+            str(header.get("parentHash","")).lower()==PARENT and
+            int(str(header.get("number","0")),0)==BLOCK,
             "inverse run used noncanonical fork state")
     observed=seed["input_size_to_quote"]
     @lru_cache(maxsize=128)
@@ -127,10 +147,22 @@ def evaluate(rpc: str,seed: dict) -> dict:
             "usdc_out_raw":str(usdc),
             "usdtb_quote_out_raw":str(output),
             "preceding_usdtb_quote_out_raw":str(prior),
-            "target_plus_slippage_delta_usdt_display":str(residual),
-            "quote_minimal_within_bracket":True,
+            "input_minus_target_nominal_units_not_usd_pnl":str(residual),
+            "quote_minimal_within_bracket_under_monotonicity_assumption":True,
+            "pool_quote_monotonicity_globally_proven":False,
             "actual_swap_executed":False,
         })
+    # Reject a different canonical block if it appears during the sequence of
+    # archived eth_call quotations. This does not make a single RPC independent.
+    verify=subprocess.run(
+        ["cast","block",str(BLOCK),"--rpc-url",rpc,"--json"],
+        capture_output=True,text=True,timeout=35,check=False)
+    require(verify.returncode==0,"canonical block unavailable at quote completion")
+    ending=json.loads(verify.stdout)
+    require(str(ending.get("hash","")).lower()==HASH and
+            str(ending.get("parentHash","")).lower()==PARENT and
+            int(str(ending.get("number","0")),0)==BLOCK,
+            "canonical header changed during inverse quote sizing")
     return {
         "schema_version":1,
         "contract":"NQC_RMC_V2_CURVE_TWOHOP_EXACT_INPUT_SIZING_RESEARCH_ONLY",
@@ -139,12 +171,16 @@ def evaluate(rpc: str,seed: dict) -> dict:
         "source_tier":"SINGLE_ARCHIVE_RPC_HISTORICAL_QUOTE_NOT_EXECUTION",
         "minimum_usdt_quotes":records,
         "quote_function_evaluations":quote.cache_info().misses,
+        "target_assumes_monotone_stableswap_quotes_in_bracket":True,
+        "global_quote_monotonicity_certified":False,
+        "independent_rpc_operator_quorum_proven":False,
         "underlying_pool_balance_observed":seed["observed_usdtb_nominal_pool_balance_display"],
         "morpho_nominal_usdt_at_block_raw":"65666477002958",
         "aave_nominal_usdtb_at_block_raw":"2282160051774282408759215",
         "aave_illustrative_flash_premium_bps":5,
         "morpho_required_flash_tested_at_exact_size":False,
         "full_input_consumption_proven":False,
+        "repayment_and_liquidation_executed":False,
         "route_executed_on_fork":False,
         "route_gas_and_builder_costs_usd":None,
         "execution_probability_calibrated":False,
