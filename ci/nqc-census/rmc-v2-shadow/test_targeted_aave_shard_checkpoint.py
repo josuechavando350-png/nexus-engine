@@ -29,7 +29,7 @@ def event(block):
         "debt_to_cover_raw": "472000000000000000000000",
         "collateral_liquidated_raw": "388000000000000000000000",
         "receive_atoken": False,
-        "raw_event_commitment_sha256": "0x" + "b"*64,
+        "raw_event_commitment_sha256": "b"*64,
     }
 
 
@@ -191,7 +191,7 @@ class ReportValidation(unittest.TestCase):
         doc=synthetic(with_event=True)
         doc["events"][0]["raw_event_commitment_sha256"]="0xdead"
         remake(doc)
-        with self.assertRaisesRegex(c.SourceError,"bytes32"):
+        with self.assertRaisesRegex(c.SourceError,"invalid SHA256 digest"):
             m.verify_report(doc)
     def test_receipt_gas_must_be_positive_and_integer(self):
         for value in ("0","01",123,"-1"):
