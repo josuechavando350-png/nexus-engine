@@ -9,6 +9,8 @@ on:
       - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py"
       - "ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py"
       - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py"
+      - "ci/nqc-census/rmc-v2-shadow/sniper_hf_pretrigger_triage.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_sniper_hf_pretrigger_triage.py"
       - ".github/workflows/nqc-v2-sniper-readonly-observation.yml"
   pull_request:
     paths:
@@ -16,6 +18,8 @@ on:
       - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py"
       - "ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py"
       - "ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py"
+      - "ci/nqc-census/rmc-v2-shadow/sniper_hf_pretrigger_triage.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_sniper_hf_pretrigger_triage.py"
       - ".github/workflows/nqc-v2-sniper-readonly-observation.yml"
 
 permissions:
@@ -49,13 +53,18 @@ jobs:
             ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py \
             ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py \
             ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py \
-            ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py
+            ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py \
+            ci/nqc-census/rmc-v2-shadow/sniper_hf_pretrigger_triage.py \
+            ci/nqc-census/rmc-v2-shadow/test_sniper_hf_pretrigger_triage.py
           python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
             -p 'test_sniper_readonly_observer.py' -v \
             2>&1 | tee "$RUNNER_TEMP/nqc-v2-sniper-pilot/adversarial-tests.log"
           python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
             -p 'test_sniper_readonly_journal.py' -v \
             2>&1 | tee "$RUNNER_TEMP/nqc-v2-sniper-pilot/journal-negative-tests.log"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_sniper_hf_pretrigger_triage.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-v2-sniper-pilot/triage-negative-tests.log"
 
       - name: Take ONE genuine chain state snapshot without a wallet
         shell: bash
@@ -130,6 +139,33 @@ jobs:
           print("journal_last_sha256",final_digest)
           PY
 
+      - name: Issue safe integer HF triage advisory on three real samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-sniper-pilot"
+          python3 ci/nqc-census/rmc-v2-shadow/sniper_hf_pretrigger_triage.py \
+            --journal-dir "$OUT/three-sample-journal" \
+            --out "$OUT/read-only-hf-triage.json"
+          jq -e '
+            .contract=="NQC_V2_READONLY_PRETRIGGER_HF_TRIAGE"
+            and .status=="READ_ONLY_HF_TRIAGE_NOT_A_TRADE"
+            and .borrowers_watched==4
+            and (.latest_blocks|length)==3
+            and .hf_near_threshold_watch_count>=0
+            and .two_endpoint_agreement_not_independent_operator_certification==true
+            and .no_live_transaction==true
+            and .no_external_gas_sponsor_certified==true
+            and .p2_shadow_certified==false
+            and .rmc_closed==false
+            and .commercial_score_upgrade==false
+            and .nqc_realized_pnl_usd=="0"
+          ' "$OUT/read-only-hf-triage.json"
+          jq '{latest_blocks,borrowers_watched,hf_near_threshold_watch_count,
+               hf_below_one_state_candidates_only,
+               triage:[.triage[]|{borrower_label,status,latest_hf_headroom_bps_micro}],
+               no_live_transaction,nqc_realized_pnl_usd}' "$OUT/read-only-hf-triage.json"
+
       - name: Write immutable source and nonprofit assertions
         if: always()
         shell: bash
@@ -140,6 +176,8 @@ jobs:
           cp ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_observer.py "$OUT/offline-negative-tests.py"
           cp ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py "$OUT/daemon-candidate.py"
           cp ci/nqc-census/rmc-v2-shadow/test_sniper_readonly_journal.py "$OUT/journal-negative-tests.py"
+          cp ci/nqc-census/rmc-v2-shadow/sniper_hf_pretrigger_triage.py "$OUT/triage-source.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_sniper_hf_pretrigger_triage.py "$OUT/triage-negative-tests.py"
           jq -n --arg source_commit "${{ github.event.pull_request.head.sha || github.sha }}" \
             '{schema_version:1,source_commit:$source_commit,
               scope:"ONE_SHOT_PLUS_THREE_SEQUENTIAL_SAMPLES_NO_24_7",
@@ -156,11 +194,16 @@ jobs:
             cd "$OUT"
             sha256sum producer.py offline-negative-tests.py daemon-candidate.py \
               journal-negative-tests.py journal-negative-tests.log \
+              triage-source.py triage-negative-tests.py triage-negative-tests.log \
               nonclaims.json > producer-evidence.sha256
             sha256sum -c producer-evidence.sha256
             if test -f first-live-snapshot.json; then
               sha256sum first-live-snapshot.json > snapshot.sha256
               sha256sum -c snapshot.sha256
+            fi
+            if test -f read-only-hf-triage.json; then
+              sha256sum read-only-hf-triage.json > triage-result.sha256
+              sha256sum -c triage-result.sha256
             fi
             if test -f three-sample-journal/journal.jsonl; then
               sha256sum three-sample-journal/journal.jsonl \
