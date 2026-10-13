@@ -52,9 +52,8 @@ jobs:
             and .hf_above_one == true
             and .admitted_count == 0
             and (.variants | length == 2)
-            and (.variants | all(.execution_admitted == false and .net_pnl_usd == null)) == false
-          ' "$RUNNER_TEMP/rmc-v2-economic-negative/economic-gates.json" && exit 2 || rc=$?
-          test "$rc" -eq 1
+            and (.variants | all(.execution_admitted == false and .status == "BLOCKED" and .net_pnl_usd == null))
+          ' "$RUNNER_TEMP/rmc-v2-economic-negative/economic-gates.json"
           jq -e '
             .commercial_score_upgrade == false
             and .prospective_shadow_p2_certified == false
