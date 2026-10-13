@@ -132,9 +132,9 @@ jobs:
             --fork-block-number "$BLOCK" \
             --match-contract NqcV2MorphoCurvePartialForkTest -vvv \
             2>&1 | tee "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/fork-tests.txt"
-          grep -F '[PASS] testRealMorphoCurveTwoHopRevertsAfterAcquiringAtLeast472000USDtb()' "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/fork-tests.txt"
-          grep -F '[PASS] testRealMorphoCurvePreviousSingleUSDTBaseUnitFallsShort()' "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/fork-tests.txt"
-          grep -F '[PASS] testRealMorphoCurveQuoteCanCoverPrincipalPlusAaveIllustrativePremium()' "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/fork-tests.txt"
+          grep -F '[PASS] testRealMorphoCurveRecordsActualOutputForFormer472000USDtbQuote()' "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/fork-tests.txt"
+          grep -F '[PASS] testRealMorphoCurveRecordsOutputForOneUnitLowerInput()' "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/fork-tests.txt"
+          grep -F '[PASS] testRealMorphoCurveRecordsActualOutputForPremiumQuote()' "$RUNNER_TEMP/nqc-v2-morpho-curve-real-fork/fork-tests.txt"
 
       - name: Mark strict partial-route nonclaims and content hashes
         shell: bash
@@ -150,6 +150,9 @@ jobs:
               deployed_morpho_flash_invoked_in_fork:true,
               curve_threepool_swap_executed_before_rollback:true,
               curve_usdtb_pool_swap_executed_before_rollback:true,
+              slippage_minimum_relaxed_for_measurement_only:true,
+              production_slippage_safety_proven:false,
+              quote_equals_actual_fill_assumed:false,
               intentional_atomic_rollback:true,
               morpho_flash_loan_settled_successfully:false,
               borrower_liquidation_executed:false,
