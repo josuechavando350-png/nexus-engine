@@ -7,11 +7,11 @@ import blockscout_known_positive_aave as p
 def topic(address):return '0x'+'0'*24+address[2:]
 def log():
     return {
-        'address':p.POOL,'topics':[p.LIQ,topic(p.WETH),topic(p.WETH),topic('0x'+'2'*40)],
-        'data':'0x'+format(p.PRINCIPAL,'064x')+format(p.PRINCIPAL+123,'064x')+
-            '0'*24+'3'*40+format(0,'064x'),
+        'address':p.POOL,'topics':[p.LIQ,topic(p.WETH),topic(p.WETH),topic(p.BORROWER)],
+        'data':'0x'+format(p.PRINCIPAL,'064x')+format(p.SEIZED_WETH_RAW,'064x')+
+            '0'*24+p.LIQUIDATOR[2:]+format(0,'064x'),
         'blockNumber':hex(p.BLOCK),'blockHash':p.HASH,
-        'transactionHash':p.TX,'transactionIndex':'0x1','logIndex':'0x1'
+        'transactionHash':p.TX,'transactionIndex':'0x1','logIndex':'0x15'
     }
 def response(rows):return {'status':'1','message':'OK','result':rows}
 
@@ -22,6 +22,14 @@ class IndexerRealPositiveWitnessTests(unittest.TestCase):
         self.assertFalse(out['whole_indexer_history_complete_certified'])
         self.assertFalse(out['Nexus_won_liquidation'])
         self.assertEqual(out['nqc_realized_pnl_usd'],'0')
+    def test_real_classic_rest_omits_blockhash_but_original_digest_matches(self):
+        x=log()
+        del x['blockHash']
+        result=p.validate(response([x]))
+        self.assertFalse(result['indexer_supplied_canonical_block_hash'])
+        self.assertEqual(result['matching_original_raw_event_sha256'],p.EVENT_SHA256)
+        self.assertEqual(result['canonical_block_hash_provenance'],
+                         'PRIOR_IMMUTABLE_RMC016_NOT_FROM_BLOCKSCOUT_WHEN_MISSING')
     def test_empty_indexer_history_rejected_for_real_positive(self):
         with self.assertRaisesRegex(p.Rejected,'known-positive source'):
             p.validate({'status':'0','message':'No logs found','result':[]})
