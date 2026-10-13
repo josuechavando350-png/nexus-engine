@@ -6,6 +6,8 @@ Description=NQC V2 Read-only Aave Sniper Research Observer (NO TRADE)
 Documentation=https://github.com/josuechavando350-png/nexus-engine/pull/692
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=1800
+StartLimitBurst=4
 ConditionPathExists=/opt/nqc/nexus-engine/ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py
 
 [Service]
@@ -17,8 +19,6 @@ Environment=PYTHONDONTWRITEBYTECODE=1
 ExecStart=/usr/bin/python3 /opt/nqc/nexus-engine/ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py --out-dir /var/lib/nqc-sniper-readonly --providers drpc publicnode blast --interval-seconds 300 --max-cycles 0
 Restart=on-failure
 RestartSec=90
-StartLimitIntervalSec=1800
-StartLimitBurst=4
 
 # The journal is the ONLY requested writable path. No wallet credentials.
 UMask=0077
