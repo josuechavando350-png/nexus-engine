@@ -80,6 +80,7 @@ contract NqcFlashFundingExecutorV2 {
     error InsufficientFreshPrincipal(uint256 expected, uint256 actual);
     error InsufficientForRepaymentAndProfit(uint256 required, uint256 actual);
     error BaselineViolation(uint256 baseline, uint256 finalBalance);
+    error LenderRepaymentBalanceMismatch(address lender, uint256 beforeBalance, uint256 afterBalance);
     error TokenCallFailed(address token, bytes4 selector);
 
     uint8 internal constant SOURCE_AAVE_V3 = 1;
@@ -318,7 +319,14 @@ contract NqcFlashFundingExecutorV2 {
             amounts[0] = leg.principal;
             IBalancerV2VaultMinimal(leg.lender).flashLoan(address(this), tokens, amounts, envelope);
         } else if (leg.sourceKind == SOURCE_MORPHO_BLUE) {
+            uint256 lenderBalanceBefore = IERC20FlashMinimal(plan.asset).balanceOf(leg.lender);
             IMorphoBlueFlashMinimal(leg.lender).flashLoan(plan.asset, leg.principal, envelope);
+            uint256 lenderBalanceAfter = IERC20FlashMinimal(plan.asset).balanceOf(leg.lender);
+            if (lenderBalanceAfter != lenderBalanceBefore) {
+                revert LenderRepaymentBalanceMismatch(
+                    leg.lender, lenderBalanceBefore, lenderBalanceAfter
+                );
+            }
             _forceApprove(plan.asset, leg.lender, 0);
         } else {
             revert InvalidProtocolKind(leg.sourceKind);
