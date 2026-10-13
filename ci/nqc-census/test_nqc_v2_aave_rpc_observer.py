@@ -123,6 +123,15 @@ class ObserverTests(unittest.TestCase):
             with self.assertRaisesRegex(observer.EvidenceError, "RPC_QUORUM_UNAVAILABLE"):
                 observer.select_endpoints(("https://rpc.test", "https://rpc.test/path"))
 
+    def test_header_only_provider_403_cannot_enter_quorum(self):
+        def header_only(endpoint, method, params):
+            if endpoint.endswith("flashbots") and method == "eth_call":
+                raise observer.EvidenceError("HTTP 403 Forbidden")
+            return simulated_rpc(endpoint, method, params)
+        with patch.object(observer, "rpc", side_effect=header_only):
+            chosen = observer.select_endpoints(("https://flashbots", "https://mevblocker", "https://blastapi"))
+            self.assertEqual(chosen, ("https://mevblocker", "https://blastapi"))
+
     def test_no_broadcast_whitelisted(self):
         with self.assertRaisesRegex(observer.EvidenceError, "unsupported RPC method"):
             observer.rpc("x", "eth_sendRawTransaction", [])
