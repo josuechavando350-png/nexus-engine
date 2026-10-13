@@ -182,8 +182,8 @@ contract NqcV2MorphoFluidPartialForkTest {
 
     function _partialFluidSwap(uint256 collateralAmount) internal {
         BalancesBefore memory beforeBalance = _beforeBalances();
-        uint256 estimate = IV2FluidReserves(RESOLVER)
-            .estimateSwapIn(FLUID, true, collateralAmount, 1);
+        uint256 estimate =
+            IV2FluidReserves(RESOLVER).estimateSwapIn(FLUID, true, collateralAmount, 1);
         require(estimate > 0, "FLUID_ESTIMATOR_NOT_POSITIVE_AT_THIS_SIZE");
 
         bytes memory payload = abi.encodePacked("FLUID_SUSDE_USDT_TEST", collateralAmount);
