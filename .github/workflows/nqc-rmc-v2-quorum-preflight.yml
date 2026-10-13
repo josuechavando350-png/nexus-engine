@@ -1,0 +1,76 @@
+name: NQC RMC V2 Quorum Intake Preflight (NO AUTHORITY)
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/**"
+      - ".github/workflows/nqc-rmc-v2-quorum-preflight.yml"
+  push:
+    branches:
+      - "nqc/rmc-v2-shadow-preflight-20261013"
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/**"
+      - ".github/workflows/nqc-rmc-v2-quorum-preflight.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rmc-v2-quorum-preflight-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  offline-quorum-negative-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact source head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Require original seven-observation seed checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '19ebd13298b0948996202acf0d8f7bb80a310cc598ac2f3999197eb615c3f304  ci/nqc-census/rmc-v2-shadow/fixtures/RUN07-immutable-seven-snapshot-ledger.jsonl' | sha256sum -c -
+
+      - name: Python syntax and 44 offline regressions
+        shell: bash
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow -p test_quorum_block_intake.py -v
+
+      - name: Publish non-authoritative provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc-rmc-v2-quorum-preflight"
+          python3 - "$RUNNER_TEMP/nqc-rmc-v2-quorum-preflight" <<'PY'
+          import hashlib, json, os, pathlib, sys
+          p=pathlib.Path(sys.argv[1])
+          root=pathlib.Path("ci/nqc-census/rmc-v2-shadow")
+          artifacts={
+              path: hashlib.sha256((root/path).read_bytes()).hexdigest()
+              for path in ("quorum_block_intake.py", "test_quorum_block_intake.py",
+                           "fixtures/RUN07-immutable-seven-snapshot-ledger.jsonl")
+          }
+          result={"schema_version":1, "status":"OFFLINE_TEST_PASS_NON_AUTHORITATIVE",
+                  "source_sha":os.environ["GITHUB_SHA"], "files_sha256":artifacts,
+                  "live_rpc_observed":False, "source_operator_quorum_attested":False,
+                  "prospective_decision":False, "p2_certified":False,
+                  "rmc_closed":False, "realized_nqc_pnl_usd":"0"}
+          (p/"preflight.json").write_text(json.dumps(result,sort_keys=True,indent=2)+"\n")
+          PY
+          cd "$RUNNER_TEMP/nqc-rmc-v2-quorum-preflight"
+          sha256sum preflight.json > archive.sha256
+          sha256sum -c archive.sha256
+
+      - name: Preserve offline preflight only
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc-v2-quorum-preflight-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-rmc-v2-quorum-preflight/
+          retention-days: 30
