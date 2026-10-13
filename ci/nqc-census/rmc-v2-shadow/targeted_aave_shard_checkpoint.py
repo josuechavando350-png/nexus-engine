@@ -64,7 +64,8 @@ def verify_report(doc):
     require(doc.get("scope") ==
             "HISTORICAL_TARGETED_SUSDE_USDTB_NOT_FULL_AAVE_CENSUS",
             "report scope")
-    require(doc.get("chain_id") == 1, "chain ID mismatch")
+    require(type(doc.get("chain_id")) is int and doc["chain_id"] == 1,
+            "chain ID mismatch")
     w = doc.get("window")
     require(type(w) is dict and type(w.get("start")) is int and
             type(w.get("end")) is int, "window type")
@@ -83,7 +84,9 @@ def verify_report(doc):
     require(doc.get("provider_id") in census.PROVIDERS, "unknown source provider")
     require(doc.get("operator_label") ==
             census.PROVIDERS[doc["provider_id"]][0], "operator spoofing")
-    require(doc.get("provider_rate_spacing_seconds") >= census.MIN_RPC_INTERVAL,
+    spacing = doc.get("provider_rate_spacing_seconds")
+    require(type(spacing) in (int, float) and
+            spacing >= census.MIN_RPC_INTERVAL,
             "public source pacing missing")
     count = doc.get("provider_rpc_requests")
     require(type(count) is int and 0 < count <= census.MAX_REQUESTS,
