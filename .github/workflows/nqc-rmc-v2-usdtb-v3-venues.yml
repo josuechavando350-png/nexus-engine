@@ -1,0 +1,119 @@
+name: NQC RMC V2 USDtb Uniswap V3 Exact-Block Venue Census (NON-AUTHORITY)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-routing/**'
+      - '.github/workflows/nqc-rmc-v2-usdtb-v3-venues.yml'
+  push:
+    branches:
+      - 'nqc/rmc-v2-usdtb-univ3-venue-census-20261013'
+    paths:
+      - 'ci/nqc-census/rmc-v2-routing/**'
+      - '.github/workflows/nqc-rmc-v2-usdtb-v3-venues.yml'
+permissions:
+  contents: read
+concurrency:
+  group: nqc-v2-usdtb-v3-discovery-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  bounded-v3-quoter-census:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact source commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run 19 offline adversarial tests without network
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-routing -p 'test_discover_uniswap_v3_usdtb.py' -v
+      - name: Install SHA-pinned Foundry cast from 1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/foundry" "$RUNNER_TEMP/rmc-v2-usdtb-venues"
+          curl --fail --location --retry 4 --retry-all-errors --max-time 160 \
+            -o "$RUNNER_TEMP/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  $RUNNER_TEMP/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
+          echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
+      - name: Read exact-block USDtb/USDC and USDtb/USDT factory venue state
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/rmc-v2-usdtb-venues"
+          : > "$OUT/provider-attempts.txt"
+          SUCCESS=0
+          for RPC in \
+            "https://ethereum-rpc.publicnode.com" \
+            "https://eth.drpc.org" \
+            "https://1rpc.io/eth" \
+            "https://eth.llamarpc.com"
+          do
+            echo "TRY_PUBLIC_RPC $RPC" >> "$OUT/provider-attempts.txt"
+            if timeout 380s python3 ci/nqc-census/rmc-v2-routing/discover_uniswap_v3_usdtb.py \
+              --rpc-url "$RPC" --output "$OUT/uniswap-v3-usdtb-venues.json" \
+              > "$OUT/census-console.txt" 2> "$OUT/last-probe-error.txt"; then
+              echo "SUCCESS_HISTORICAL_BOUNDED_FACTORY_READ $RPC" >> "$OUT/provider-attempts.txt"
+              SUCCESS=1
+              break
+            fi
+            echo "REJECT_MISSING_CANONICAL_PROVIDER_OR_BOUNDED_DATA" >> "$OUT/provider-attempts.txt"
+          done
+          test "$SUCCESS" -eq 1
+          jq -e '
+            .contract=="NQC_RMC_V2_USDTB_UNISWAP_V3_BOUNDED_VENUE_CENSUS"
+            and .chain_id==1
+            and .block_number==26184741
+            and .block_hash=="0xe4b0718c51a6a484eef56edce0f25e9a5c546c2f66f595c6e305a589a612dbbe"
+            and .scope=="HISTORICAL_SINGLE_RPC_READONLY_BOUNDED_FEES_ONLY"
+            and (.pools|length)==8
+            and .exhaustive_all_dex_venues==false
+            and .verified_route_profit==false
+            and .net_pnl_usd==null
+            and .capital_execute_admitted==false
+            and .commercial_score_upgrade==false
+            and .p2_shadow_certified==false
+            and .rmc_closed==false
+            and .realized_nqc_pnl_usd=="0"
+            and (.pools | all(.quoted_route_admitted==false and .capital_executable_admitted==false))
+          ' "$OUT/uniswap-v3-usdtb-venues.json"
+          jq -r '{fee_tiers_checked,pair_inputs,found_pool_count,successful_quote_count,
+                  pools:[.pools[]|{input_asset,fee_pips,pool_address,status,
+                          pool_active_liquidity_raw,usdtb_pool_balance_raw,
+                          input_token_pool_balance_raw,quotes}]}' \
+            "$OUT/uniswap-v3-usdtb-venues.json" | tee "$OUT/human-summary.json"
+      - name: Create strict source and output provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/rmc-v2-usdtb-venues"
+          cp ci/nqc-census/rmc-v2-routing/discover_uniswap_v3_usdtb.py "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-routing/test_discover_uniswap_v3_usdtb.py "$OUT/producer-tests.py"
+          jq -n --arg commit "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$commit,
+              scope:"UNISWAP_V3_FOUR_FEE_TIERS_TWO_PAIRS_SINGLE_ARCHIVE_OPERATOR",
+              historical_quoter_observed:true,
+              all_protocol_venues_complete:false,
+              fork_executed_route:false,
+              verified_swap_execution:false,
+              gas_sponsor_authenticated:false,
+              prospective_liquidation:false,
+              commercial_upgrade:false,p2_shadow_certified:false,
+              rmc_closed:false,realized_nqc_pnl_usd:"0"}' > "$OUT/no-execution-claims.json"
+          (cd "$OUT" && sha256sum producer.py producer-tests.py \
+            uniswap-v3-usdtb-venues.json human-summary.json no-execution-claims.json \
+            > evidence.sha256 && sha256sum -c evidence.sha256)
+      - name: Archive results and failures, without trade authority
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-usdtb-v3-venues-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/rmc-v2-usdtb-venues/
+          if-no-files-found: warn
+          retention-days: 30
