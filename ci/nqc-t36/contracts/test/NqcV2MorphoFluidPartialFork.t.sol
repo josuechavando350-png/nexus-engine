@@ -173,6 +173,42 @@ contract NqcV2MorphoFluidPartialForkTest {
         _partialFluidSwap(200_000 ether);
     }
 
+    function testFluidExitCapacitySamplesVersus472461USDTRepaymentThreshold() public {
+        // Diagnostic resolver quote sampling only: the original Morpho USDT
+        // route requires >= 472461.610797 USDT to fund 472000 USDtb on Curve.
+        // This is NOT an Aave liquidation reward or proof of actual repayment.
+        uint256[10] memory inputSizes = [
+            uint256(250_000), 300_000, 330_000, 350_000, 370_000,
+            375_000, 378_000, 380_000, 390_000, 400_000
+        ];
+        uint256 largestQuoted;
+        uint256 positiveEstimates;
+        for (uint256 i; i < inputSizes.length; ++i) {
+            uint256 raw = inputSizes[i] * 1 ether;
+            try IV2FluidReserves(RESOLVER).estimateSwapIn(FLUID,true,raw,1)
+                returns (uint256 estimated) {
+                emit log_named_uint("NQC_FLUID_SAMPLE_SUSDE_INPUT_UNITS", inputSizes[i]);
+                emit log_named_uint("NQC_FLUID_SAMPLE_USDT_OUTPUT_RAW", estimated);
+                if (estimated > 0) {
+                    positiveEstimates += 1;
+                    if (estimated > largestQuoted) largestQuoted = estimated;
+                }
+            } catch {
+                emit log_named_uint("NQC_FLUID_SAMPLE_SUSDE_INPUT_UNITS", inputSizes[i]);
+                emit log_named_uint("NQC_FLUID_SAMPLE_USDT_OUTPUT_UNAVAILABLE",1);
+            }
+        }
+        require(positiveEstimates <= inputSizes.length, "BAD_SAMPLE_CARDINALITY");
+        emit log_named_uint("NQC_FLUID_SAMPLED_POSITIVE_QUOTES", positiveEstimates);
+        emit log_named_uint("NQC_FLUID_SAMPLED_LARGEST_USDT_RAW", largestQuoted);
+        emit log_named_uint(
+            "NQC_FLUID_SAMPLED_QUOTE_COVERS_MORPHO_ROUTE_INPUT",
+            largestQuoted >= 472_461_610_797 ? 1 : 0
+        );
+        // Finite samples never prove global liquidity capacity, inclusion,
+        // gas sponsorship, competitor survival or net P&L.
+    }
+
     function testFluidResolverNoPositive400kEstimateDoesNotProveGlobalCapacity() public {
         uint256 quote = IV2FluidReserves(RESOLVER).estimateSwapIn(FLUID, true, 400_000 ether, 1);
         require(quote == 0, "HISTORICAL_400K_ESTIMATE_DIFFERENT");
