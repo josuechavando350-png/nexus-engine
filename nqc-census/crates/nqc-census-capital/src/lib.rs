@@ -12,6 +12,7 @@ pub mod demands;
 pub mod external_debt;
 pub mod gas_credit;
 pub mod gas_sponsor;
+pub mod morpho_blue;
 pub mod permissionless_atomic;
 pub mod replay;
 pub mod source_authority;
