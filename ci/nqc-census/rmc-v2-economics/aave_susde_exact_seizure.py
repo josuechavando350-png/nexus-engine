@@ -144,9 +144,12 @@ def validate(s: dict) -> dict:
             "reserve ids invalid")
     emode_collateral_applies=bool((em["collateral_bitmap"]>>coll_id)&1)
     user_bitmap=nat(s.get("user_configuration_bitmap"),"borrower position bitmap")
-    require((user_bitmap>>(2*coll_id))&1==1,
+    # Aave v3-origin UserConfiguration.sol is definitive, not the
+    # contradictory/misleading DataTypes bitmap comment:
+    # isBorrowing -> 2*reserveId; isUsingAsCollateral -> 2*reserveId+1.
+    require((user_bitmap>>(2*coll_id+1))&1==1,
             "borrower not using sUSDe as collateral")
-    require((user_bitmap>>(2*debt_id+1))&1==1,
+    require((user_bitmap>>(2*debt_id))&1==1,
             "borrower not borrowing USDtb")
     require(s.get("susde_atoken")==SUSDE_ATOKEN
             and s.get("usdtb_variable_debt_token")==USDTB_VTOKEN,
