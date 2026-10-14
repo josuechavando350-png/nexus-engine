@@ -57,21 +57,33 @@ jobs:
           printf '%s  %s\n' \
             6778f8e190d13c739331f731ca532d8607e3f653ca000de746b058b4903c7d7d \
             "$OUT/11865385506.zip" | sha256sum --check --strict
-      - name: Pin known Foundry binaries with original PR698 release SHA256
+      - name: Authenticate official Foundry v1.8.5 release and source archive before fork replay
         run: |
           set -euo pipefail
           OUT="$RUNNER_TEMP/nqc-local-cold"
-          mkdir -p "$RUNNER_TEMP/nqc-foundry-v171/bin"
+          ROOT="$RUNNER_TEMP/nqc-foundry-v185"
+          mkdir -p "$ROOT/bin"
+          gh api repos/foundry-rs/foundry/releases/tags/v1.8.5 \
+            > "$OUT/foundry-v185-official-release.json"
+          jq -e '.tag_name=="v1.8.5" and .draft==false and .prerelease==false and
+            any(.assets[]; .name=="foundry_v1.8.5_linux_amd64.tar.gz" and
+                ((.digest // "") | test("^sha256:[0-9a-f]{64}$")))' \
+            "$OUT/foundry-v185-official-release.json" >/dev/null
+          expected="$(jq -r '.assets[] | select(.name=="foundry_v1.8.5_linux_amd64.tar.gz") | .digest[7:]' \
+            "$OUT/foundry-v185-official-release.json")"
+          test "$(printf %s "$expected" | wc -c)" -eq 64
           curl --fail --silent --show-error --location \
-            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz \
-            --output "$RUNNER_TEMP/nqc-foundry-v171/foundry.tar.gz"
-          printf '%s  %s\n' \
-            cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b \
-            "$RUNNER_TEMP/nqc-foundry-v171/foundry.tar.gz" | sha256sum --check --strict
-          printf '%s\n' cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b > "$OUT/foundry-release-sha256.txt"
-          tar -xzf "$RUNNER_TEMP/nqc-foundry-v171/foundry.tar.gz" -C "$RUNNER_TEMP/nqc-foundry-v171/bin" forge anvil cast
-          "$RUNNER_TEMP/nqc-foundry-v171/bin/forge" --version | tee "$OUT/foundry-version.txt"
-          "$RUNNER_TEMP/nqc-foundry-v171/bin/anvil" --help | grep -- --fork-transaction-hash >/dev/null
+            https://github.com/foundry-rs/foundry/releases/download/v1.8.5/foundry_v1.8.5_linux_amd64.tar.gz \
+            --output "$ROOT/foundry.tar.gz"
+          printf '%s  %s\n' "$expected" "$ROOT/foundry.tar.gz" | sha256sum --check --strict
+          curl --fail --silent --show-error --location \
+            https://github.com/foundry-rs/foundry/releases/download/v1.8.5/foundry_v1.8.5_linux_amd64.sha256 \
+            --output "$OUT/foundry-v185-official-checksum.txt"
+          test "$(sed -n '1s/[[:space:]].*$//p' "$OUT/foundry-v185-official-checksum.txt")" = "$expected"
+          printf '%s\n' "$expected" > "$OUT/foundry-release-sha256.txt"
+          tar -xzf "$ROOT/foundry.tar.gz" -C "$ROOT/bin" forge anvil cast
+          "$ROOT/bin/forge" --version | tee "$OUT/foundry-version.txt"
+          "$ROOT/bin/anvil" --help | grep -- --fork-transaction-hash >/dev/null
       - name: Offline original PR698 source authority and adversarial cold receipt tests
         run: |
           set -euo pipefail
@@ -95,7 +107,7 @@ jobs:
             b157b28d5da13923dfa724f569f790b9dc6396ac8b47a6826c49dd718d42ace9 "$ROOT/test/NqcV2FundedRouteFork.t.sol" \
             1dcdefbf856d80cc3318131b7123c7d1e7a39e9fc3ac8c6fa5afa1742d9cd124 "$ROOT/foundry.toml" |
             sha256sum --check --strict
-          "$RUNNER_TEMP/nqc-foundry-v171/bin/forge" build --root "$ROOT" > "$OUT/compile.log" 2>&1
+          "$RUNNER_TEMP/nqc-foundry-v185/bin/forge" build --root "$ROOT" > "$OUT/compile.log" 2>&1
           echo "Original PR698 source and new local-only test script compiled."
       - name: Send ONLY to local Anvil historical prewinner fork and inspect full EOA receipt
         run: |
@@ -104,9 +116,9 @@ jobs:
           timeout 1500s python3 ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py \
             --source-zip "$OUT/11865385506.zip" \
             --workspace "$RUNNER_TEMP/nqc-local-cold-fork-project" \
-            --forge "$RUNNER_TEMP/nqc-foundry-v171/bin/forge" \
-            --anvil "$RUNNER_TEMP/nqc-foundry-v171/bin/anvil" \
-            --cast "$RUNNER_TEMP/nqc-foundry-v171/bin/cast" \
+            --forge "$RUNNER_TEMP/nqc-foundry-v185/bin/forge" \
+            --anvil "$RUNNER_TEMP/nqc-foundry-v185/bin/anvil" \
+            --cast "$RUNNER_TEMP/nqc-foundry-v185/bin/cast" \
             --out "$OUT/attempt" | tee "$OUT/stdout.log"
           jq -e '
             .schema_version==1 and
