@@ -37,6 +37,102 @@ def need(ok,why):
     if not ok:raise Rejected(why)
 
 
+# Ethereum Keccak-256, NOT hashlib.sha3_256. Self-contained so source
+# receipt witnesses remain verifiable offline without pip/remote dependencies.
+_KECCAK_RC=(
+    0x0000000000000001,0x0000000000008082,0x800000000000808a,0x8000000080008000,
+    0x000000000000808b,0x0000000080000001,0x8000000080008081,0x8000000000008009,
+    0x000000000000008a,0x0000000000000088,0x0000000080008009,0x000000008000000a,
+    0x000000008000808b,0x800000000000008b,0x8000000000008089,0x8000000000008003,
+    0x8000000000008002,0x8000000000000080,0x000000000000800a,0x800000008000000a,
+    0x8000000080008081,0x8000000000008080,0x0000000080000001,0x8000000080008008,
+)
+_KECCAK_RHO=(
+    (0,1,62,28,27),(36,44,6,55,20),(3,10,43,25,39),
+    (41,45,15,21,8),(18,2,61,56,14),
+)
+_MASK64=(1<<64)-1
+DRIFT_TOPIC="0xe238684811f086aea189615aa2ab3f4e6f5f589a82de7c34d422725ea6783829"
+_DRIFT_PPM_DENOM=1_000_000
+
+
+def ethereum_keccak256(data):
+    need(type(data) is bytes and len(data)<=2048,
+         "invalid offline Ethereum keccak256 input")
+    def rol(x,n):
+        return (((x<<n)|(x>>(64-n)))&_MASK64) if n else x
+    padded=bytearray(data)
+    padded.append(1)
+    while len(padded)%136!=135:
+        padded.append(0)
+    padded.append(0x80)
+    a=[0]*25
+    for offset in range(0,len(padded),136):
+        for i in range(17):
+            a[i]^=int.from_bytes(padded[offset+i*8:offset+i*8+8],"little")
+        for rc in _KECCAK_RC:
+            c=[a[x]^a[x+5]^a[x+10]^a[x+15]^a[x+20] for x in range(5)]
+            for x in range(5):
+                d=c[(x-1)%5]^rol(c[(x+1)%5],1)
+                for y in range(5):
+                    a[x+y*5]^=d
+            b=[0]*25
+            for x in range(5):
+                for y in range(5):
+                    b[y+5*((2*x+3*y)%5)]=rol(a[x+5*y],_KECCAK_RHO[y][x])
+            for x in range(5):
+                for y in range(5):
+                    a[x+5*y]=b[x+5*y]^((~b[(x+1)%5+5*y])&b[(x+2)%5+5*y])
+            a[0]^=rc
+    return b"".join(a[i].to_bytes(8,"little") for i in range(4))
+
+
+def verify_next_synthetic_block_state(event,public_inputs,block_number):
+    need(type(event) is dict and len(event.get("topics",[]))==1,
+         "one-shot state drift witness topics must be unindexed")
+    expected=public_inputs["NQC_PRESTATE_ABI"]
+    need(type(expected) is str and
+         re.fullmatch(r"0x[0-9a-fA-F]{384}",expected),
+         "expected historic prewinner ABI absent")
+    values=old._word_data(event.get("data"),15,"LocalOneShotStateDrift")
+    expected_words=[int(expected[2+i*64:2+(i+1)*64],16) for i in range(6)]
+    observed_words=values[8:14]
+    need(values[2:8]==expected_words and
+         values[0]==int.from_bytes(ethereum_keccak256(bytes.fromhex(expected[2:])),"big") and
+         values[1]==int.from_bytes(ethereum_keccak256(
+             b"".join(x.to_bytes(32,"big") for x in observed_words)),"big"),
+         "local execution state hashes and original six ABI words differ")
+    for i,(prior,actual) in enumerate(zip(expected_words,observed_words)):
+        if i in (0,1,5):
+            tolerance=prior//_DRIFT_PPM_DENOM+1
+            need(prior>0 and prior-tolerance<=actual<=prior+tolerance,
+                 "local one-block accrual exceeds expressly posthoc 1ppm")
+        else:
+            need(actual==prior,"non-accrual borrower configuration changed")
+    need(0<expected_words[5]<10**18 and 0<observed_words[5]<10**18,
+         "account not actually liquidatable on original and current states")
+    need(block_number==old.PINNED_BLOCK+1,
+         "one-shot transaction was not the very next synthetic block")
+    timestamp=values[14]
+    source_timestamp=int(public_inputs["NQC_WINNER_TIMESTAMP"])
+    need(source_timestamp<=timestamp<=source_timestamp+60,
+         "local synthetic block timestamp not pinned close to source")
+    return {
+        "historical_preoracle_winner_account_keccak256":"0x"+values[0].to_bytes(32,"big").hex(),
+        "actual_next_block_account_keccak256":"0x"+values[1].to_bytes(32,"big").hex(),
+        "original_six_abi_uint256_values":expected_words,
+        "actual_six_abi_uint256_values":observed_words,
+        "execution_minus_original_integer_deltas":[x-y for x,y in zip(observed_words,expected_words)],
+        "hf_source_wad":expected_words[5],
+        "hf_execution_wad":observed_words[5],
+        "source_and_execution_hf_below_one":True,
+        "actual_execution_state_1ppm_posthoc_guard_passed":True,
+        "one_synthetic_block_after_source_oracle_tx0":True,
+        "source_equals_execution_six_word_abi":observed_words==expected_words,
+        "same_block_real_ethereum_execution_proven":False,
+    }
+
+
 def report_source(receipt,public_inputs,operator):
     need(type(receipt) is dict and
          receipt.get("status")=="0x1" and
@@ -79,6 +175,10 @@ def report_source(receipt,public_inputs,operator):
          old.PINNED_BLOCK<=source_block<=old.PINNED_BLOCK+8 and
          source_block==old.quantity(receipt.get("blockNumber"),"one-shot receipt block"),
          "one-shot original winner/profit/block mismatch")
+
+    drift=unique(one_shot,DRIFT_TOPIC,"LocalOneShotStateDrift")
+    drift_proof=verify_next_synthetic_block_state(
+        drift,public_inputs,old.quantity(receipt.get("blockNumber"),"one-shot block"))
 
     aave=unique(old.POOL,old.AAVE_LIQUIDATION_TOPIC,"Aave LiquidationCall")
     need(len(aave["topics"])==4 and
@@ -142,6 +242,9 @@ def report_source(receipt,public_inputs,operator):
         "local_source_aave_liquidation_event_verified":True,
         "local_source_flash_repaid_event_verified":True,
         "local_source_funded_completion_event_verified":True,
+        "local_execution_one_block_state_drift":drift_proof,
+        "local_original_exact_prestate_checked_before_synthetic_broadcast":True,
+        "local_execution_uses_strict_1ppm_posthoc_drift_guard":True,
         "local_two_stage_erc20_profit_payout_to_test_eoa":True,
         "exact_local_usdc_profit_before_native_costs_base_units":EXPECTED_GROSS,
         "real_local_receipt_sha256":sha256(old.canonical(receipt)).hexdigest(),
