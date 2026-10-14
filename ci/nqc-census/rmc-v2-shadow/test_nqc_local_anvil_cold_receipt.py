@@ -53,6 +53,15 @@ class LocalOnlyColdReceiptTests(unittest.TestCase):
             raise AssertionError("exact immutable PR698 source ZIP not supplied")
         cls.raw=Path(name).read_bytes()
         cls.inputs,cls.proof=app.validate_original_zip(cls.raw)
+        oracle_name=os.environ.get("NQC_ORACLE_CAUSALITY_ZIP")
+        if not oracle_name:
+            raise AssertionError("exact immutable PR700 oracle source ZIP not supplied")
+        cls.oracle_raw=Path(oracle_name).read_bytes()
+        index_name=os.environ.get("NQC_PR693_EVIDENCE_ZIP")
+        if not index_name:
+            raise AssertionError("exact immutable PR693 indexer archive missing")
+        cls.index_raw=Path(index_name).read_bytes()
+        cls.oracle_proof=app.authenticate_oracle_prefix(cls.oracle_raw,cls.index_raw)
 
     def test_source_archive_full_immutable_authentication(self):
         self.assertEqual(sha256(self.raw).hexdigest(),app.SOURCE_ZIP_SHA)
@@ -61,6 +70,35 @@ class LocalOnlyColdReceiptTests(unittest.TestCase):
         self.assertEqual(int(self.inputs["NQC_PRINCIPAL"]),app.EXPECTED_PRINCIPAL)
         self.assertEqual(self.inputs["NQC_RPC_URL"],app.UPSTREAM_READ_ONLY_RPC)
         self.assertGreater(self.proof["manifest_files_verified"],20)
+
+    def test_actual_chainlink_tx0_precedes_competitor_winner_tx1(self):
+        self.assertNotEqual(app.FORK_ORACLE_TX0, app.FORK_WINNER)
+        self.assertEqual(app.FORK_ORACLE_TX0,
+            "0x20dd5bccadb185dbac34c94c8d00bf363a4a0b779fe1fddcdcfd8a3066d96c8b")
+        self.assertEqual(self.oracle_proof["source_oracle_trigger_tx_index"],0)
+        self.assertEqual(self.oracle_proof["source_winner_tx_index_from_original_indexer"],1)
+        self.assertEqual(self.oracle_proof["fork_transaction_hash_last_included"],app.FORK_ORACLE_TX0)
+        self.assertEqual(self.oracle_proof["excluded_original_competitor_winner"],app.FORK_WINNER)
+        self.assertEqual(self.oracle_proof[
+            "eth_usd_chainlink_answer_after_oracle_tx0_raw_8_decimals"],254_164_650_000)
+        self.assertFalse(self.oracle_proof[
+            "anvil_tx_hash_prefix_is_inclusive_at_v185_verified_by_state_only"])
+        self.assertEqual(self.oracle_proof["indexed_winner_number_of_liquidation_logs"],2)
+        self.assertEqual(self.oracle_proof["indexer_original_winner"]["verified_manifest_members"],6)
+        self.assertGreater(self.oracle_proof["source"]["sha256_manifest_members_verified"],10)
+
+    def test_oracle_zip_immutability_and_corruption_rejected(self):
+        self.assertEqual(sha256(self.oracle_raw).hexdigest(),app.ORACLE_SOURCE_ZIP_SHA)
+        with self.assertRaises(app.Rejected):
+            app.authenticate_oracle_prefix(self.oracle_raw[:-1]+b"x",self.index_raw)
+        with self.assertRaises(Exception):
+            app.authenticate_oracle_prefix(self.oracle_raw,self.index_raw+b"x")
+
+    def test_event0_must_not_be_conflated_with_winner_transaction(self):
+        self.assertEqual(app.oracle_evidence.EXPECTED[app.CASE]["tx"],app.FORK_WINNER)
+        self.assertEqual(app.oracle_evidence.EXPECTED[app.CASE]["trigger"],app.FORK_ORACLE_TX0)
+        self.assertTrue(self.oracle_proof[
+            "source_price_causality_not_prospective_svr_visibility"])
 
     def test_zip_single_bit_tamper_rejected(self):
         with self.assertRaises(Exception):
@@ -146,10 +184,23 @@ class LocalOnlyColdReceiptTests(unittest.TestCase):
         rows[2]["from"]="0x"+"00"*20
         with self.assertRaises(app.Rejected):self.make_report(rows)
 
-    def test_receipt_gas_below_internal_call_fails(self):
+    def test_refund_adjusted_receipt_may_be_below_gross_gasleft(self):
+        # This can happen even when the complete EOA transaction succeeds:
+        # gross gasleft does not account for transaction-level refunds.
         _,rows=fake_receipts()
         rows[3]["gasUsed"]=hex(1_000_000)
-        with self.assertRaises(app.Rejected):self.make_report(rows)
+        doc,_=self.make_report(rows)
+        self.assertEqual(doc["fork_only_execute_receipt_gas_used"],1_000_000)
+        self.assertEqual(doc["full_receipt_minus_internal_call_gas"],-115_038)
+        self.assertTrue(doc["full_receipt_minus_gross_call_is_signed_not_overhead"])
+        self.assertTrue(doc["refund_amount_not_directly_certified"])
+        self.assertTrue(doc["gross_gasleft_is_not_receipt_gas_used"])
+
+    def test_successful_receipt_must_still_exceed_intrinsic_gas(self):
+        _,rows=fake_receipts()
+        rows[3]["gasUsed"]=hex(20_000)
+        with self.assertRaises(app.Rejected):
+            self.make_report(rows)
 
     def test_rewrite_execution_or_setup_target_fails(self):
         _,rows=fake_receipts()
