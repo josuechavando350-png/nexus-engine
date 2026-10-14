@@ -387,7 +387,7 @@ def assess_accounts(rpc, expected_header, cohort):
     for entry in cohort:
         who=entry["borrower"]
         raw=rpc.call("eth_call",[{
-            "to":POOL,"data":"0x"+call_data(who)
+            "to":POOL,"data":call_data(who)
         },{"blockHash":expected_header["hash"],"requireCanonical":True}],
              allowed_borrowers=authorized)
         data=decode_account(raw)
