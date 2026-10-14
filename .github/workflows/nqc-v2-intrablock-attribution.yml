@@ -1,0 +1,122 @@
+name: NQC V2 Time and Intra-block Attribution (LOCAL FORK ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/postwindow_intrablock_attribution.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_postwindow_intrablock_attribution.py'
+      - 'ci/nqc-census/weth-physical/test/NqcV2IntraBlockAttribution.t.sol'
+      - '.github/workflows/nqc-v2-intrablock-attribution.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-intrablock-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  historical-attribution:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact head and offline attribution regressions
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-intrablock"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_postwindow_intrablock_attribution.py -v 2>&1 | tee "$RUNNER_TEMP/nqc-intrablock/tests.log"
+      - name: Authenticate immutable predecessor artifact and producer
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-intrablock"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38492277995" > "$OUT/source-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11861179989" > "$OUT/source-artifact.json"
+          jq -e '.id==38492277995 and .conclusion=="success" and .status=="completed"
+            and .head_sha=="42f2056039840fd9621021e88ca69aedb2242ad6"' "$OUT/source-run.json" >/dev/null
+          jq -e '.id==11861179989 and .expired==false and .workflow_run.id==38492277995
+            and .workflow_run.head_sha=="42f2056039840fd9621021e88ca69aedb2242ad6"
+            and .digest=="sha256:1c5837ad97607fda9cb60c4888a77648645c48326a93a67adcb9f121e52d7fb8"' \
+            "$OUT/source-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11861179989/zip" \
+            --output "$OUT/11861179989.zip"
+          printf '%s  %s\n' '1c5837ad97607fda9cb60c4888a77648645c48326a93a67adcb9f121e52d7fb8' \
+            "$OUT/11861179989.zip" | sha256sum --check --strict
+      - name: Authenticate pinned Foundry
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc-foundry"
+          curl --fail --silent --show-error --location \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz \
+            --output "$RUNNER_TEMP/nqc-foundry/foundry.tar.gz"
+          printf '%s  %s\n' 'cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b' \
+            "$RUNNER_TEMP/nqc-foundry/foundry.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/nqc-foundry/foundry.tar.gz" -C "$RUNNER_TEMP/nqc-foundry" forge
+          "$RUNNER_TEMP/nqc-foundry/forge" --version | tee "$RUNNER_TEMP/nqc-intrablock/foundry-version.txt"
+          "$RUNNER_TEMP/nqc-foundry/forge" fmt --check ci/nqc-census/weth-physical/test/NqcV2IntraBlockAttribution.t.sol
+      - name: Two endpoints, time-only, exact prefix, historical competitor event
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-intrablock"
+          timeout 2700s python3 ci/nqc-census/rmc-v2-shadow/postwindow_intrablock_attribution.py \
+            --source-artifact "$OUT/11861179989.zip" --out-dir "$OUT/attempt" \
+            --forge "$RUNNER_TEMP/nqc-foundry/forge" > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '.status=="HISTORICAL_TIME_PREFIX_WINNER_EVENT_PARITY_ONLY"
+            and (.errors|length)==0 and (.cases|length)==2 and all(.cases[];.two_endpoint_parity==true)
+            and .nqc_atomic_route_proven==false and .nqc_net_margin_proven==false
+            and .prospective_detection_proven==false and .P2_shadow_certified==false
+            and .RMC_closed==false and .commercial_score_upgrade==false
+            and .canary_live_authorized==false and .nqc_realized_pnl_usd=="0"' \
+            "$OUT/attempt/attribution.json" >/dev/null
+      - name: Preserve exact code, inputs, metrics, RPC checks and failed attempts
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-intrablock"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/postwindow_intrablock_attribution.py \
+            ci/nqc-census/rmc-v2-shadow/test_postwindow_intrablock_attribution.py \
+            ci/nqc-census/rmc-v2-shadow/postwindow_winner_prestate.py \
+            ci/nqc-census/rmc-v2-shadow/verify_postwindow_competitor_receipts.py \
+            ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py \
+            ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py \
+            ci/nqc-census/weth-physical/test/NqcV2IntraBlockAttribution.t.sol \
+            ci/nqc-census/weth-physical/foundry-time-only.toml \
+            .github/workflows/nqc-v2-intrablock-attribution.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload historical replay evidence or blocker
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-intrablock-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-intrablock/
+          retention-days: 30
+          if-no-files-found: error
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
