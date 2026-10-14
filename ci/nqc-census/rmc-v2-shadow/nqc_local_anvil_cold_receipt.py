@@ -336,7 +336,7 @@ def run(source_zip, workspace, forge, anvil, cast, out):
              "--fork-url",UPSTREAM_READ_ONLY_RPC,
              "--fork-transaction-hash",FORK_WINNER,
              "--no-storage-caching","--compute-units-per-second","5",
-             "--fork-retries","0","--silent"]
+             "--retries","0","--silent"]
         with (out/"anvil.log").open("w") as log:
             process=subprocess.Popen(cmd,cwd=workspace,stdout=log,stderr=subprocess.STDOUT)
         limit=time.monotonic()+WAIT_UP_TO_SECONDS
@@ -380,10 +380,15 @@ def run(source_zip, workspace, forge, anvil, cast, out):
         summary["full_local_eoa_receipts"]=gas
         summary["status"]="HISTORICAL_LOCAL_ANVIL_FULL_EOA_RECEIPT_NO_MAINNET_CAPTURE"
     except Exception as exc:
+        anvil_log=out/"anvil.log"
+        logtail=""
+        if anvil_log.exists():
+            logtail=anvil_log.read_text(errors="replace")[-1400:]
         summary["errors"].append({
             "stage":"local_Anvil_source_or_broadcast",
             "type":type(exc).__name__,
             "message":str(exc).split("https://")[0][:240],
+            "anvil_last_1400_log_characters":logtail,
         })
     finally:
         if process is not None:
