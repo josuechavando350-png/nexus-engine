@@ -119,14 +119,18 @@ def verify_header(raw,height):
 
 def verify_competitor_receipt(receipt,expected,block):
     """One paid competitor transaction with ALL its original indexed events."""
-    need(type(receipt) is dict and
-         h32(receipt.get("transactionHash"),"receipt.transactionHash")==expected["tx_hash"] and
-         h32(receipt.get("blockHash"),"receipt.blockHash")==block["hash"] and
-         num(receipt.get("blockNumber"),"receipt.blockNumber")==block["number"] and
-         num(receipt.get("transactionIndex"),"receipt.transactionIndex")==
-         expected["transaction_index"] and
-         num(receipt.get("status"),"receipt.status")==1,
-         "winner receipt did not succeed or canonical identity changed")
+    need(type(receipt) is dict,"receipt object unavailable")
+    need(h32(receipt.get("transactionHash"),"receipt.transactionHash")==expected["tx_hash"],
+         "TRANSACTION_HASH_MISMATCH")
+    need(h32(receipt.get("blockHash"),"receipt.blockHash")==block["hash"],
+         "CANONICAL_BLOCK_HASH_MISMATCH")
+    need(num(receipt.get("blockNumber"),"receipt.blockNumber")==block["number"],
+         "RECEIPT_BLOCK_NUMBER_MISMATCH")
+    need(num(receipt.get("transactionIndex"),"receipt.transactionIndex")==
+         expected["transaction_index"],
+         "RECEIPT_TRANSACTION_INDEX_MISMATCH")
+    need(num(receipt.get("status"),"receipt.status")==1,
+         "HISTORICAL_WINNER_TRANSACTION_STATUS_NOT_SUCCESS")
     gas=num(receipt.get("gasUsed"),"receipt.gasUsed")
     rate=num(receipt.get("effectiveGasPrice"),"receipt.effectiveGasPrice")
     need(21000<=gas<=block["block_gas_limit"] and rate>=block["base_fee_wei"],
@@ -283,7 +287,24 @@ def observe_source(provider,grouped,blocks,transport=None):
             row["blocks_verified"]+=1
         for tx,c in sorted(grouped.items()):
             receipt=rpc.call("eth_getTransactionReceipt",[tx])
-            proof=verify_competitor_receipt(receipt,c,headers[c["block_number"]])
+            try:
+                proof=verify_competitor_receipt(receipt,c,headers[c["block_number"]])
+            except Exception:
+                # Preserve source-visible identity fields on failure, without
+                # weakening any byte/receipt/fee check or claiming complete parity.
+                row["rejected_receipt_identity"]={
+                    "source_tx":tx,
+                    "expected_block":c["block_number"],
+                    "expected_block_hash":headers[c["block_number"]]["hash"],
+                    "expected_transaction_index":c["transaction_index"],
+                    "returned":{k:receipt.get(k) for k in (
+                        "transactionHash","blockHash","blockNumber",
+                        "transactionIndex","status","gasUsed",
+                        "effectiveGasPrice","type"
+                    )} if type(receipt) is dict else None,
+                    "source_response_sha256":sha256(canonical(receipt)).hexdigest(),
+                }
+                raise
             row["witnesses"].append(proof)
             row["receipts_verified"]+=1
         # The first and last source anchors must be byte-identical after the
@@ -385,11 +406,19 @@ def build(index_report,rows,transport_factory=None):
             transport_factory(name) if transport_factory else None)
     a,b=(out["sources"][i] for i in ("drpc","publicnode"))
     if a["status"]==b["status"]=="FULL_47_COMPETITOR_RECEIPTS_CANONICAL_GAS_WITNESS":
-        need(a["witnesses"]==b["witnesses"],
-             "MISMATCH_TWO_PUBLIC_URLS_COMPETITOR_GAS_UNCERTIFIED")
-        out["status"]="TWO_URL_47_COMPETITOR_RECEIPTS_GAS_PARITY_NO_NQC_GAS"
-        out["complete_two_url_receipt_parity"]=True
-        out["competitor_gas_statistics"]=statistical_report(a["witnesses"])
+        if a["witnesses"]!=b["witnesses"]:
+            out["status"]="MISMATCH_TWO_PUBLIC_URLS_COMPETITOR_GAS_UNCERTIFIED"
+            out["source_mismatch_ledger"]=[
+                {"tx_hash":x["tx_hash"],
+                 "drpc_witness_sha256":sha256(canonical(x)).hexdigest(),
+                 "publicnode_witness_sha256":sha256(canonical(y)).hexdigest()}
+                for x,y in zip(a["witnesses"],b["witnesses"]) if x!=y]
+            need(len(out["source_mismatch_ledger"])>0,
+                 "different witnesses without classified source deltas")
+        else:
+            out["status"]="TWO_URL_47_COMPETITOR_RECEIPTS_GAS_PARITY_NO_NQC_GAS"
+            out["complete_two_url_receipt_parity"]=True
+            out["competitor_gas_statistics"]=statistical_report(a["witnesses"])
     out["finished_at_utc"]=utc()
     return out
 
