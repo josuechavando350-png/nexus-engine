@@ -18,7 +18,12 @@ import time
 from urllib.request import Request, urlopen
 
 from oracle_pending_visibility_probe import canon, strict_json
-from oracle_ws_inclusion_audit import AGGREGATOR, NEW_TRANSMISSION_TOPIC
+from oracle_ws_inclusion_audit import AGGREGATOR
+
+# Exact emitter/topic pairs authenticated against both historical tx0 receipts.
+NEW_TRANSMISSION_TOPIC = '0xc797025feeeaf2cd924c99e9205ac8ec04d5cad21c41ce637a38fb6dee6016a'
+SECONDARY_ROUND_TOPIC = '0x8d530b9ddc4b318d28fdd4c3a21fcfecece54c1a72a824f262985b99afef009b'
+EVENT_TOPICS = [SECONDARY_ROUND_TOPIC, NEW_TRANSMISSION_TOPIC]
 
 PROVIDERS = {'drpc': 'https://eth.drpc.org',
              'blast': 'https://eth-mainnet.public.blastapi.io'}
