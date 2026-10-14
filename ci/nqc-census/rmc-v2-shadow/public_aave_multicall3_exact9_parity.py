@@ -334,9 +334,7 @@ def run_trial(mode,clients,cohort,header,full_calldata,now_fn=clock):
     with ThreadPoolExecutor(max_workers=2) as e:
         values=list(e.map(one,("drpc","publicnode")))
     for provider,rows in zip(("drpc","publicnode"),values):
-        need(len(rows)==N and
-             all(type(a) is str and borrow.HEXDATA if False else True for a in []),
-             "missing nine accounts")
+        need(len(rows)==N,"missing one or more nine Aave account responses")
         need(all(type(r) is str and re.fullmatch(r"0x[0-9a-f]{384}",r)
                  and borrow.decode_account(r) for r in rows),
              "not exact raw six-word Aave result")
