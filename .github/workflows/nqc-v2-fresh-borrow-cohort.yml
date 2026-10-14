@@ -1,0 +1,135 @@
+name: NQC V2 Fresh Aave Borrow Cohort and Current HF (NO TRADE)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_prospective_recent_borrow_cohort.py'
+      - 'ci/nqc-census/rmc-v2-shadow/FRESH_BORROW_PROSPECTIVE_CONTRACT.md'
+      - '.github/workflows/nqc-v2-fresh-borrow-cohort.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-fresh-borrow-cohort-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fresh-borrow-event-census:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact head, event ABI and adversarial fail-closed tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-fresh-borrow"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_prospective_recent_borrow_cohort.py -v 2>&1 | tee "$OUT/offline-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py
+      - name: Real two-source 384-block Borrow event discovery and borrower state (READ ONLY)
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-fresh-borrow"
+          timeout 820s python3 ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py \
+            --out "$OUT/recent-borrower-state.json" \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and .chain_id==1 and
+            .borrow_event_topic0=="0xb3d084820fb1a9decffb176436bd02558d15fac9b0ddfed8c465bc7359d7dce0" and
+            (.status=="TWO_URL_RECENT_BORROW_COHORT_STATE_ONLY_NOT_P2" or
+             .status=="TWO_URL_ZERO_BORROW_EVENTS_ONLY_IN_FIXED_WINDOW" or
+             .status=="INCOMPLETE_RECENT_BORROW_SOURCE_NOT_MARKET_ABSENCE") and
+            .selection_is_recent_borrow_not_all_outstanding_positions==true and
+            .prospective_observation_after_borrow_inclusion_not_before==true and
+            .candidate_HF_state_is_not_actionable_liquidation==true and
+            .real_full_transaction_gas_calibrated==false and
+            .route_feasibility_proven==false and
+            .competitive_capture_probability_calibrated==false and
+            .nonrecourse_sponsor_for_own_capital_zero_certified==false and
+            .shadow_P2_certified==false and
+            .RMC_closed==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            (.source_reports|keys|sort)==["drpc","publicnode"] and
+            all(.source_reports[];
+              .rpc_call_count<=200 and
+              .shards_complete<=16 and
+              .event_blocks_checked<=105 and
+              (.events|length)<=320 and
+              (.positive_receipt_controls|length)<=2) and
+            (.selected_source_cohort|length)<=48 and
+            (if .status=="TWO_URL_RECENT_BORROW_COHORT_STATE_ONLY_NOT_P2"
+             then .borrower_accounts_exact_two_url_parity==true and
+                  .recent_borrow_event_count_quorum>0 and
+                  .selected_recent_borrower_count_quorum>0 and
+                  .source_verified_hf_lt_one_count!=null and
+                  .source_verified_debt_active_count!=null and
+                  (.state_reports.drpc.accounts|length)==.selected_recent_borrower_count_quorum and
+                  (.state_reports.publicnode.accounts|length)==.selected_recent_borrower_count_quorum and
+                  all(.source_reports[];
+                    .status=="COMPLETE_CANONICAL_BORROW_EVENT_SOURCE" and
+                    (.positive_receipt_controls|length)>0)
+             elif .status=="TWO_URL_ZERO_BORROW_EVENTS_ONLY_IN_FIXED_WINDOW"
+             then .recent_borrow_event_count_quorum==0 and
+                  .selected_recent_borrower_count_quorum==0 and
+                  .source_verified_hf_lt_one_count==null
+             else .borrower_accounts_exact_two_url_parity==false and
+                  .source_verified_hf_lt_one_count==null and
+                  .recent_borrow_event_count_quorum==null
+             end)
+          ' "$OUT/recent-borrower-state.json" >/dev/null
+          echo "Fresh Borrow source audit only: no NQC execution, net profit or market-census completeness."
+      - name: Content-address all source, RPC errors, unit tests and immutable code identity
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-fresh-borrow"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/test_prospective_recent_borrow_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py \
+             ci/nqc-census/rmc-v2-economics/postwindow_competition_capacity_hurdle.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+             ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py \
+             ci/nqc-census/rmc-v2-shadow/FRESH_BORROW_PROSPECTIVE_CONTRACT.md \
+             .github/workflows/nqc-v2-fresh-borrow-cohort.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload source-authenticated new cohort, blockers and source-code SHA evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-fresh-borrow-cohort-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-fresh-borrow/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
