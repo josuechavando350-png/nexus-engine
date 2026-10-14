@@ -194,7 +194,7 @@ class OneShotLocalEoaNegativeTests(unittest.TestCase):
     def test_no_extra_live_private_key_or_signer_prerequisite(self):
         self.assertEqual(one.LOCAL,"http://127.0.0.1:18545")
         self.assertEqual(one.ONE_SHOT_SCRIPT,
-                         "NqcV2OneShotAtomicLocal.s.sol:NqcV2OneShotBroadcastScript")
+                         "script/NqcV2OneShotAtomicLocal.s.sol:NqcV2OneShotBroadcastScript")
         self.assertTrue(old.reject_nonlocal_url(one.LOCAL))
 
 
