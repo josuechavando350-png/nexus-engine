@@ -34,21 +34,40 @@ jobs:
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
           OUT="$RUNNER_TEMP/nqc-oracle-routing"
           mkdir -p "$OUT"
-          for test in \
-            'ADDRESSES_PROVIDER() 0542975c' \
-            'getPriceOracle() fca513a8' \
-            'getSourceOfAsset(address) 92bf2be0' \
-            'getAssetPrice(address) b3596f07' \
-            'BASE_CURRENCY() e19f4700' \
-            'BASE_CURRENCY_UNIT() 8c89b64f' \
-            'aggregator() 245a7bfc' \
-            'decimals() 313ce567' \
-            'latestRoundData() feaf968c'; do
-            read -r sig expected <<< "$test"
-            digest="$(printf '%s' "$sig" | openssl dgst -KECCAK-256 | sed 's/.*= //')"
-            actual="$(printf '%s' "$digest" | cut -c1-8)"
-            test "$actual" = "$expected"
-          done
+          # OpenSSL on Ubuntu does not expose KECCAK-256 as a digest.
+          # Use the already source-tested Ethereum Keccak-f[1600] in the
+          # separately authored local EOA receipt authenticator. It is
+          # independent of these nine hand-pinned selector constants.
+          python3 - <<'PY'
+          from nqc_local_one_shot_eoa import ethereum_keccak256
+          from aave_three_asset_live_oracle_route import SELECTORS
+          known = (
+              (b"", "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"),
+              (b"transfer(address,uint256)", "a9059cbb"),
+              (b"balanceOf(address)", "70a08231"),
+          )
+          for preimage, expected in known:
+              value = ethereum_keccak256(preimage).hex()
+              assert value.startswith(expected), ("Keccak golden vector mismatch",preimage)
+          signatures = {
+              "ADDRESSES_PROVIDER":"ADDRESSES_PROVIDER()",
+              "getPriceOracle":"getPriceOracle()",
+              "getSourceOfAsset":"getSourceOfAsset(address)",
+              "getAssetPrice":"getAssetPrice(address)",
+              "BASE_CURRENCY":"BASE_CURRENCY()",
+              "BASE_CURRENCY_UNIT":"BASE_CURRENCY_UNIT()",
+              "aggregator":"aggregator()",
+              "decimals":"decimals()",
+              "latestRoundData":"latestRoundData()",
+          }
+          assert set(signatures)==set(SELECTORS)
+          for key, signature in signatures.items():
+              computed="0x"+ethereum_keccak256(signature.encode("ascii")).hex()[:8]
+              assert computed==SELECTORS[key], (
+                  "original source-locked Ethereum ABI selector mismatch",
+                  key,signature,computed,SELECTORS[key])
+          print("All nine source ABI selectors independently verified as Keccak-256.")
+          PY
           echo "All nine original Ethereum method selectors authenticated."
       - name: Source-locked offline original ABI and anti-private-SVR regressions
         run: |
