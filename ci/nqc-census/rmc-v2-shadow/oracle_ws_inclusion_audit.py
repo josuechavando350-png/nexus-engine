@@ -21,7 +21,11 @@ from urllib.request import Request, urlopen
 import oracle_ws_visibility_probe as base
 from oracle_pending_visibility_probe import AGGREGATOR, parse_oracle_payload, strict_json, canon
 
-NEW_TRANSMISSION_TOPIC = '0xf6a97944f31ea060dfde0566e4167c1a1082551e64b60ecb14d599a9d023d451'
+NEW_TRANSMISSION_TOPIC = '0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a'
+SECONDARY_ROUND_TOPIC = '0x8d530b9ddc4b318d28fdd4c3a21fcfecece54c1a72a824f262985b99afef009b'
+# Source-bound: historical canonical receipts from PR705 contain the secondary
+# event in BOTH index-zero HF triggers and primary NewTransmission in USDT tx0.
+# The previously hardcoded 0xf6a97944... is NOT emitted by either positive.
 HTTP_RPC = 'https://eth.drpc.org'
 MAX_SECONDS = 360
 MAX_WS_NOTIFICATIONS = 30_000
