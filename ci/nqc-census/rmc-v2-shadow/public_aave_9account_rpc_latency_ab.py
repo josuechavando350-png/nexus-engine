@@ -321,7 +321,8 @@ def report_costs(trials,cohort,header):
     }
 
 
-def collect(cohort,source,out,transport_factory=None,now_fn=stamp):
+def collect(cohort,source,out,transport_factory=None,now_fn=stamp,
+            rate_gate_factory=None):
     need(type(out) is Path or isinstance(out,Path),
          "expected pathlib evidence path")
     need(out.is_absolute() and out.is_dir() and not list(out.iterdir()),
@@ -366,7 +367,8 @@ def collect(cohort,source,out,transport_factory=None,now_fn=stamp):
              "nonfixed or truncated cohort")
         for p in PROVIDERS:
             base=(transport_factory(p) if transport_factory else borrow.RPC.network)
-            limiter[p]=ProviderRateGate(base)
+            limiter[p]=(rate_gate_factory(base) if rate_gate_factory
+                        else ProviderRateGate(base))
             clients[p]=make_reader(p,limiter[p])
         tips={p:clients[p].tip() for p in PROVIDERS}
         report["provider_tips_at_pin"]=tips
