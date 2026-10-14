@@ -95,8 +95,9 @@ jobs:
                     .selection.owners_omitted_due_bounded_limit>=0 and
                     all(.source_reports[];.status=="COMPLETE_CANONICAL_WITHDRAW_EVENTS" and
                         (.positive_receipts|length)>0) and
-                    all(.state_reports[];(.accounts|length)==.verified_selected_owner_count and
-                        .status=="COMPLETE_STATE")
+                    (.verified_selected_owner_count as $selected |
+                        all(.state_reports[]; (.accounts|length)==$selected and
+                            .status=="COMPLETE_STATE"))
                elif .status=="ZERO_WITHDRAW_EVENTS_ONLY_THIS_384_BLOCK_WINDOW"
                then .verified_withdraw_event_count==0 and
                     .verified_selected_owner_count==0 and
