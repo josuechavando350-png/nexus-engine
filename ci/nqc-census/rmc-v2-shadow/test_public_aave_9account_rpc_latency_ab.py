@@ -29,8 +29,10 @@ class FakeRateGate:
     def __init__(self,transport):
         self.transport=transport
         self.dispatches=0
+        self.guard=threading.Lock()
     def __call__(self,url,method,params):
-        self.dispatches+=1
+        with self.guard:
+            self.dispatches+=1
         return self.transport(url,method,params)
 
 
@@ -76,7 +78,10 @@ class PublicFixture:
                 if self.mode=="missing" and provider=="publicnode" and index==4:
                     return None
                 if self.mode=="mismatch" and provider=="publicnode" and index==6:
-                    return account(index).replace("a","b")
+                    words=[int(account(index)[2+j*64:2+(j+1)*64],16)
+                           for j in range(6)]
+                    words[5]+=1
+                    return "0x"+"".join(f"{w:064x}" for w in words)
                 return account(index)
             raise AssertionError("unexpected source method")
         return query
