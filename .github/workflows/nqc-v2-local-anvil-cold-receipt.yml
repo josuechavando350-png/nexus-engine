@@ -61,16 +61,17 @@ jobs:
         run: |
           set -euo pipefail
           OUT="$RUNNER_TEMP/nqc-local-cold"
-          mkdir -p "$OUT/bin"
+          mkdir -p "$RUNNER_TEMP/nqc-foundry-v171/bin"
           curl --fail --silent --show-error --location \
             https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz \
-            --output "$OUT/foundry.tar.gz"
+            --output "$RUNNER_TEMP/nqc-foundry-v171/foundry.tar.gz"
           printf '%s  %s\n' \
             cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b \
-            "$OUT/foundry.tar.gz" | sha256sum --check --strict
-          tar -xzf "$OUT/foundry.tar.gz" -C "$OUT/bin" forge anvil cast
-          "$OUT/bin/forge" --version | tee "$OUT/foundry-version.txt"
-          "$OUT/bin/anvil" --help | grep -- --fork-transaction-hash >/dev/null
+            "$RUNNER_TEMP/nqc-foundry-v171/foundry.tar.gz" | sha256sum --check --strict
+          printf '%s\n' cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b > "$OUT/foundry-release-sha256.txt"
+          tar -xzf "$RUNNER_TEMP/nqc-foundry-v171/foundry.tar.gz" -C "$RUNNER_TEMP/nqc-foundry-v171/bin" forge anvil cast
+          "$RUNNER_TEMP/nqc-foundry-v171/bin/forge" --version | tee "$OUT/foundry-version.txt"
+          "$RUNNER_TEMP/nqc-foundry-v171/bin/anvil" --help | grep -- --fork-transaction-hash >/dev/null
       - name: Offline original PR698 source authority and adversarial cold receipt tests
         run: |
           set -euo pipefail
@@ -94,7 +95,7 @@ jobs:
             b157b28d5da13923dfa724f569f790b9dc6396ac8b47a6826c49dd718d42ace9 "$ROOT/test/NqcV2FundedRouteFork.t.sol" \
             1dcdefbf856d80cc3318131b7123c7d1e7a39e9fc3ac8c6fa5afa1742d9cd124 "$ROOT/foundry.toml" |
             sha256sum --check --strict
-          "$OUT/bin/forge" build --root "$ROOT" > "$OUT/compile.log" 2>&1
+          "$RUNNER_TEMP/nqc-foundry-v171/bin/forge" build --root "$ROOT" > "$OUT/compile.log" 2>&1
           echo "Original PR698 source and new local-only test script compiled."
       - name: Send ONLY to local Anvil historical prewinner fork and inspect full EOA receipt
         run: |
@@ -103,9 +104,9 @@ jobs:
           timeout 1500s python3 ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py \
             --source-zip "$OUT/11865385506.zip" \
             --workspace "$RUNNER_TEMP/nqc-local-cold-fork-project" \
-            --forge "$OUT/bin/forge" \
-            --anvil "$OUT/bin/anvil" \
-            --cast "$OUT/bin/cast" \
+            --forge "$RUNNER_TEMP/nqc-foundry-v171/bin/forge" \
+            --anvil "$RUNNER_TEMP/nqc-foundry-v171/bin/anvil" \
+            --cast "$RUNNER_TEMP/nqc-foundry-v171/bin/cast" \
             --out "$OUT/attempt" | tee "$OUT/stdout.log"
           jq -e '
             .schema_version==1 and
