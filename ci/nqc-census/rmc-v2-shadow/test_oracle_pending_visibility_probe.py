@@ -195,5 +195,38 @@ class OraclePendingTests(unittest.TestCase):
                 p.probe(*args,transport_factory=lambda _:lambda *a:None,sleeper=lambda x:None)
 
 
+    def test_interleaves_providers_for_temporal_comparison(self):
+        order=[]
+        def transport(provider):
+            def source(_url,method,params):
+                if method=='eth_chainId': return '0x1'
+                if params==['pending',True]:
+                    order.append(provider)
+                    return pending()
+                return latest()
+            return source
+        result=p.probe(2,0,transport_factory=transport,sleeper=lambda _:None)
+        self.assertEqual(order,['drpc','blast','drpc','blast'])
+        self.assertEqual(result['valid_pending_snapshots_per_provider'],{'drpc':2,'blast':2})
+        self.assertEqual(result['pending_transaction_objects_examined_per_provider'],
+                         {'drpc':0,'blast':0})
+        self.assertEqual(result['polling_order'],'round_robin_drpc_then_blast_each_round')
+
+    def test_degraded_source_preserves_useful_other_source_counts(self):
+        def transport(provider):
+            def source(_url,method,params):
+                if provider=='blast': raise OSError('HTTP 429')
+                if method=='eth_chainId': return '0x1'
+                if params==['pending',True]: return pending(txs=[oracle_tx('direct')])
+                if method=='eth_getTransactionReceipt': return None
+                return latest()
+            return source
+        result=p.probe(2,0,transport_factory=transport,sleeper=lambda _:None)
+        self.assertEqual(result['status'],'PENDING_ORACLE_REPORT_OBSERVED_UNCALIBRATED')
+        self.assertEqual(result['valid_pending_snapshots_per_provider'],{'drpc':2,'blast':0})
+        self.assertEqual(result['providers']['blast']['status'],'SOURCE_FAILURE_CENSORED')
+        self.assertFalse(result['prospective_capture_proven'])
+
+
 if __name__=='__main__':
     unittest.main()
