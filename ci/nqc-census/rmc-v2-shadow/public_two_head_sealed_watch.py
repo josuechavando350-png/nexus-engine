@@ -274,7 +274,7 @@ def wait_next_height(clients,old_height,now_fn=clock,sleeper=time.sleep):
 
 def collect(cohort,provenance,out_dir,transport_factory=None,
             now_fn=clock,sleeper=time.sleep):
-    need(type(out_dir) is Path and out_dir.is_absolute() and
+    need(isinstance(out_dir,Path) and out_dir.is_absolute() and
          out_dir.is_dir() and len(list(out_dir.iterdir()))==0,
          "new empty absolute evidence output directory required")
     report={
