@@ -1,0 +1,159 @@
+name: NQC V2 Local EOA Gas + Borrower Setup Economic Headroom (NO NET)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-economics/local_full_eoa_gas_headroom.py'
+      - 'ci/nqc-census/rmc-v2-economics/test_local_full_eoa_gas_headroom.py'
+      - 'ci/nqc-census/rmc-v2-economics/LOCAL_COLD_EOA_SETUP_HEADROOM_CONTRACT.md'
+      - '.github/workflows/nqc-v2-cold-eoa-headroom.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-local-headroom-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-bound-local-execute-and-setup-economics:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-economics:ci/nqc-census/rmc-v2-shadow
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Bind exact source head, original economic source runs and actual receipts
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-local-eoa-headroom"
+          mkdir -p "$OUT"
+          for spec in \
+            '38620588292 11922091704 95ac66423da56ddd0a6862a9a17bf2f66655cd2a edae8d055655f0fc23c443dbdccdf9c4150311133a1966249d4957dcd80ed346' \
+            '38593985410 11909875203 eb58765724b9583c04c469c9ae387a78cc125f3c 8675a4aeef42796f90b796c070d381a31df5f56af059ea7646a4cbf5537dab31'; do
+            read -r run_id artifact_id head digest <<< "$spec"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" \
+              > "$OUT/$run_id-run.json"
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id" \
+              > "$OUT/$artifact_id-artifact.json"
+            jq -e --argjson id "$run_id" --arg head "$head" \
+              '.id==$id and .head_sha==$head and .status=="completed" and .conclusion=="success"' \
+              "$OUT/$run_id-run.json" >/dev/null
+            jq -e --argjson id "$artifact_id" --argjson rid "$run_id" \
+              --arg head "$head" --arg digest "sha256:$digest" \
+              '.id==$id and .expired==false and .digest==$digest and
+               .workflow_run.id==$rid and .workflow_run.head_sha==$head' \
+              "$OUT/$artifact_id-artifact.json" >/dev/null
+            curl --fail --silent --show-error --location \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+              --output "$OUT/$artifact_id.zip"
+            printf '%s  %s\n' "$digest" "$OUT/$artifact_id.zip" | sha256sum --check --strict
+          done
+      - name: Twenty offline adversarial fee, source and no-capture assertions
+        env:
+          NQC_LOCAL_ATOMIC_RECEIPT_ZIP: ${{ runner.temp }}/nqc-local-eoa-headroom/11922091704.zip
+          NQC_COMPETITOR_ECONOMIC_ZIP: ${{ runner.temp }}/nqc-local-eoa-headroom/11909875203.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-local-eoa-headroom"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-economics \
+            -p test_local_full_eoa_gas_headroom.py -v 2>&1 | tee "$OUT/offline-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-economics/local_full_eoa_gas_headroom.py
+      - name: Print source-authenticated native gas + borrower-specific setup cost sensitivity
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-local-eoa-headroom"
+          python3 ci/nqc-census/rmc-v2-economics/local_full_eoa_gas_headroom.py \
+            --local-source-zip "$OUT/11922091704.zip" \
+            --economic-source-zip "$OUT/11909875203.zip" \
+            --out "$OUT/local-eoa-headroom.json" | tee "$OUT/stdout.log"
+          jq -e '
+            .schema_version==1 and
+            .status=="AUTHENTIC_LOCAL_GAS_AND_HISTORICAL_PRICE_HEADROOM_ONLY_NO_NET" and
+            .source.local_immutable_zip_sha256=="edae8d055655f0fc23c443dbdccdf9c4150311133a1966249d4957dcd80ed346" and
+            .source.local_manifest_members_verified==36 and
+            .source.competitor_economics_zip_sha256=="8675a4aeef42796f90b796c070d381a31df5f56af059ea7646a4cbf5537dab31" and
+            .source.competitor_manifest_members_verified==19 and
+            .source.cross_source_identical_funded_route_and_oracle_bytes==true and
+            .nqc_historical_local_atomic_profit_transfer_usdc_micros==2273989378 and
+            .nqc_historical_local_full_eoa_execute_receipt_gas_used==917625 and
+            .nqc_historical_local_three_setup_receipt_gas_used==[916432,1957983,43948] and
+            .nqc_historical_local_receipt_fee_paid_from_synthetic_anvil_eoa_wei==638701766058375 and
+            .onchain_competitor_effective_price_wei==1086577108 and
+            .historical_chainlink_eth_usd_raw_8_decimals==254164650000 and
+            (.economic_scenarios|length)==6 and
+            ([.economic_scenarios[] |
+               select(.gas_price_is_historical_competitor_observation==true) |
+               .ethereum_gas_cost_usdc_micros_if_usdc_usd_peg_one] | sort)==[2534201,10593829] and
+            all(.economic_scenarios[];
+                .nqc_local_measured_full_execute_gas_used==917625 and
+                .local_measured_three_setup_receipt_gas_used==[916432,1957983,43948] and
+                (.bid_headroom_scenarios_not_capture_or_net_profit|length)==8 and
+                all(.bid_headroom_scenarios_not_capture_or_net_profit[];
+                    .not_a_winning_builder_bid_or_available_private_orderflow==true) and
+                .three_setup_transactions_not_proven_insertable_between_oracle_and_winner==true and
+                .reuse_of_borrower_specific_immutable_strategy_across_other_borrowers_proven==false) and
+            .transferrable_surplus_pre_bid_not_net_profit==true and
+            .per_borrower_setup_is_not_auto_reusable_across_positions==true and
+            .predeployed_immutable_strategy_known_before_oracle_trigger_unverified==true and
+            .three_setup_tx_cannot_be_assumed_to_fit_svr_single_backrun_slot==true and
+            .synthetic_10_50gwei_are_not_future_gas_price_forecasts==true and
+            .failure_rate_unknown_not_zero==true and
+            .sponsor_nonrecourse_contract_and_reversion_payer_unknown==true and
+            .builder_access_bid_and_competitor_capture_rate_unknown==true and
+            .stablecoin_one_usd_peg_not_certified==true and
+            .nothing_sent_to_mainnet_and_user_mxn2000_not_spent==true and
+            .OWN_CAPITAL_ZERO_INCLUDING_GAS_UNCHANGED==true and
+            .commercial_score_upgrade==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .nqc_realized_pnl_usd=="0"
+          ' "$OUT/local-eoa-headroom.json" >/dev/null
+          echo "Exact local gas with hindsight selected route; no public mainnet bid/win, no net EV."
+      - name: Content-address real source, costs, rejects, scripts and exact head
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-local-eoa-headroom"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-economics/local_full_eoa_gas_headroom.py \
+             ci/nqc-census/rmc-v2-economics/test_local_full_eoa_gas_headroom.py \
+             ci/nqc-census/rmc-v2-economics/LOCAL_COLD_EOA_SETUP_HEADROOM_CONTRACT.md \
+             .github/workflows/nqc-v2-cold-eoa-headroom.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload immutable source-bound local gas and hypothetical headroom
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-local-headroom-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-local-eoa-headroom/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
