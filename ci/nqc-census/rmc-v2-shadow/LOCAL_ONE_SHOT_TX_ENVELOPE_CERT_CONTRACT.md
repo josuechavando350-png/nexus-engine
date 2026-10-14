@@ -1,0 +1,20 @@
+# NQC V2 — Authentic EIP-1559 CREATE envelope and initcode size from one-shot LOCAL Anvil transaction
+
+## Decisive question
+
+The parent [PR #725](https://github.com/josuechavando350-png/nexus-engine/pull/725) established one *local* historical-fork EOA contract-creation transaction with **3,914,680 gasUsed**, 37 authentic original Aave and ERC20 events, and **2,273,989,378 USDC base units** delivered to a synthetic EOA after principal/flash repayment. The original winner happened in **Ethereum block 26,142,067 TX1**, but our synthetic EOA is mined **one block later** in 26,142,068; prewinner account was authentically pinned before broadcast, and local execution-time drift was guarded below 1ppm. It is neither that original on-chain inclusion slot nor proof of winning private-orderflow access.
+
+The next engineering gate is to prove from **eth_getTransactionByHash plus eth_getBlockByNumber** on the independently verified isolated loopback node that the full transaction envelope obeys canonical Ethereum resource constraints: EIP-1559 CREATE `to=null`, chainId 1 on synthetic historical fork, ephemeral EOA `nonce=0`, `value=0`, authentic tx/block hashes, gasUsed <= tx gasLimit <= block gasLimit, valid EIP-1559 fee cap, all of block gasUsed accounted by the **only transaction** in newly mined synthetic block 26,142,068, and full original contract CREATE initcode + constructor arguments <= **49,152 bytes** (EIP-3860 Cancun limit). Verify that exact canonical original borrower, original parent block hash, original competitor transaction hash and entire six-word Aave prewinner account ABI are present in the transaction's constructor arguments. Retain raw transaction JSON and SHA256 of its complete initcode.
+
+This is **not** a new chain RPC allowance: only `eth_getTransactionByHash` has been added to the existing source allowlist, and the source caller is restricted byte-for-byte to `http://127.0.0.1:18545`. No raw signing or network broadcasts to external Ethereum endpoints. Read-only public provider is still only used by the isolated Anvil fork for historical state.
+
+## Test and source
+
+- Original event proof from PR725 [run 38630115801](https://github.com/josuechavando350-png/nexus-engine/actions/runs/38630115801), exact head `a9f43cba0bca450e5cd778ccc1b2cba1d5e8727b`, tree `515b9d33481e530d427ba842cf38bfee625b6323`, artifact **11925068240**, ZIP SHA256 `c53a673c5b7821a00178818e27b49f33a457d1129b62e0477f626f05c910c6b2` (30/30 manifest members).
+- Exact inherited immutable PR723/PR698/PR700/PR693 archive checks, official Foundry v1.8.5 release SHA256 and source hashes, six-word Aave source prewinner proof, all local Aave LiquidationCall + flash repayment + final USDC transfer receipts.
+- 12 additional adversarial offline cases forbid non-zero native principal, nonce reuse, different chain/type, contract CALL mislabeled CREATE, absent borrower/parent/account ABI, EIP-3860 oversized initcode, two transactions mined in the same block, gas over limit, bad EIP-1559 cap or original historic competitor-block conflation.
+- Exact-head GitHub Actions must return SUCCESS for specialized source job **AND Build Verification**; preserve FAIL/censored artifacts if any source transaction or resource inequality is disproven. Do not lower these constraints to make CI green.
+
+## Commercial boundary
+
+A single EIP-1559 CREATE fits inside Ethereum's generic transaction resource rules in the local test **only if all evidence gates pass**. It does not prove Flashbots MEV-Share accepts a CREATE as a privately ordered SVR backrun or that a searcher receives data before the builder's deadline. It does not quantify auction clearing price, native gas sponsor or NQC net income. Mainnet chain state was never written; EOA funds minted inside loopback Anvil only. OWN_CAPITAL=USD0 including real gas; owner's MXN2,000 protected. NQC commercial 5.9 unchanged, PFT CLOSED, RMC OPEN, P2 uncertified, LIVE unauthorized, realized profit USD0. Draft/stacked; no production deployment or merge.

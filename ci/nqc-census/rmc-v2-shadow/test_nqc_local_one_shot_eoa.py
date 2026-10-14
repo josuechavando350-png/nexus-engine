@@ -283,5 +283,150 @@ class OneShotLocalEoaNegativeTests(unittest.TestCase):
         self.assertTrue(old.reject_nonlocal_url(one.LOCAL))
 
 
+
+class OneShotEoaSubmissionEnvelopeTests(unittest.TestCase):
+    """Mock envelope tests prove fail-closed rules, NOT mainnet availability."""
+
+    def setUp(self):
+        self.operator="0x"+"77"*20
+        self.txhash="0x"+"ab"*32
+        self.blockhash="0x"+"bc"*32
+        self.borrower="0x"+"11"*20
+        self.inputs={
+            "NQC_BORROWER":self.borrower,
+            "NQC_PRESTATE_ABI":"0x"+"00"*192,
+            "NQC_PARENT_HASH":"0x"+"22"*32,
+        }
+        # Mock bytecode + exact ABI values, not a source-authenticated contract.
+        mock_initcode=(
+            bytes.fromhex("600060005260206000f3")+
+            bytes.fromhex("00"*12+self.borrower[2:])+
+            bytes.fromhex(self.inputs["NQC_PARENT_HASH"][2:])+
+            bytes.fromhex(old.FORK_WINNER[2:])+
+            bytes.fromhex(self.inputs["NQC_PRESTATE_ABI"][2:])
+        )
+        self.tx={
+            "hash":self.txhash,
+            "blockHash":self.blockhash,
+            "blockNumber":hex(old.PINNED_BLOCK+1),
+            "from":self.operator,
+            "to":None,
+            "chainId":"0x1",
+            "nonce":"0x0",
+            "value":"0x0",
+            "type":"0x2",
+            "gas":hex(8_000_000),
+            "maxFeePerGas":hex(2_000_000_000),
+            "maxPriorityFeePerGas":hex(50_000_000),
+            "input":"0x"+mock_initcode.hex(),
+        }
+        self.receipt={
+            "transactionHash":self.txhash,
+            "blockHash":self.blockhash,
+            "blockNumber":hex(old.PINNED_BLOCK+1),
+            "from":self.operator,
+            "to":None,
+            "gasUsed":hex(3_914_680),
+            "effectiveGasPrice":hex(1_001_089_409),
+        }
+        self.block={
+            "number":self.receipt["blockNumber"],
+            "hash":self.blockhash,
+            "gasLimit":hex(30_000_000),
+            "gasUsed":self.receipt["gasUsed"],
+            "transactions":[self.txhash],
+        }
+
+    def check(self,tx=None,receipt=None,block=None,inputs=None):
+        return one.authenticate_single_eoa_submission(
+            self.tx if tx is None else tx,
+            self.receipt if receipt is None else receipt,
+            self.block if block is None else block,
+            self.operator,
+            self.inputs if inputs is None else inputs)
+
+    def test_mock_one_eoa_initcode_envelope_conserves_gas(self):
+        d=self.check()
+        self.assertTrue(d["one_and_only_local_block_tx_identity_verified"])
+        self.assertTrue(d["constructor_args_embed_exact_source_hash_parent_borrower_and_abi"])
+        self.assertTrue(d["no_second_eoa_in_locally_mined_block"])
+        self.assertEqual(d["local_block_number"],old.PINNED_BLOCK+1)
+        self.assertEqual(d["eip1559_transaction_type"],2)
+        self.assertEqual(d["eoa_native_value_wei"],0)
+        self.assertEqual(d["local_eoa_receipt_gas_used_units"],3_914_680)
+        self.assertEqual(d["eip3860_cancun_max_initcode_bytes"],49_152)
+        self.assertFalse(d["one_transaction_is_not_mev_share_svr_relay_admission"] is False)
+
+    def test_erc20_principal_cannot_be_injected_by_native_value(self):
+        tx=copy.deepcopy(self.tx)
+        tx["value"]="0x1"
+        with self.assertRaises(one.Rejected):
+            self.check(tx=tx)
+
+    def test_reused_eoa_nonce_cannot_masquerade_as_fresh_local_account(self):
+        tx=copy.deepcopy(self.tx)
+        tx["nonce"]="0x1"
+        with self.assertRaises(one.Rejected):
+            self.check(tx=tx)
+
+    def test_unexpected_rpc_chain_or_transaction_type_is_rejected(self):
+        for prop,value in (("chainId","0x2105"),("type","0x0")):
+            tx=copy.deepcopy(self.tx)
+            tx[prop]=value
+            with self.subTest(prop=prop),self.assertRaises(one.Rejected):
+                self.check(tx=tx)
+
+    def test_cannot_forge_to_contract_call_instead_of_create(self):
+        tx=copy.deepcopy(self.tx)
+        tx["to"]="0x"+"55"*20
+        with self.assertRaises(one.Rejected):
+            self.check(tx=tx)
+
+    def test_missing_borrower_or_abi_in_constructor_calldata_fails(self):
+        for key in ("NQC_BORROWER","NQC_PRESTATE_ABI",
+                    "NQC_PARENT_HASH"):
+            inputs=copy.deepcopy(self.inputs)
+            inputs[key]="0x"+"ff"*(20 if key=="NQC_BORROWER" else
+                                   192 if key=="NQC_PRESTATE_ABI" else 32)
+            with self.subTest(key=key),self.assertRaises(one.Rejected):
+                self.check(inputs=inputs)
+
+    def test_eip3860_initcode_over_49152_is_never_accepted(self):
+        tx=copy.deepcopy(self.tx)
+        tx["input"]+="00"*(49_153)
+        with self.assertRaises(one.Rejected):
+            self.check(tx=tx)
+
+    def test_mined_block_with_second_transaction_fails(self):
+        block=copy.deepcopy(self.block)
+        block["transactions"].append("0x"+"ee"*32)
+        with self.assertRaises(one.Rejected):
+            self.check(block=block)
+
+    def test_receipt_gas_must_not_exceed_signed_gas_limit(self):
+        tx=copy.deepcopy(self.tx)
+        tx["gas"]=hex(3_000_000)
+        with self.assertRaises(one.Rejected):
+            self.check(tx=tx)
+
+    def test_block_gas_conservation_exact_one_transaction(self):
+        block=copy.deepcopy(self.block)
+        block["gasUsed"]=hex(3_914_681)
+        with self.assertRaises(one.Rejected):
+            self.check(block=block)
+
+    def test_eip1559_fee_cap_cannot_be_below_effective_fee(self):
+        tx=copy.deepcopy(self.tx)
+        tx["maxFeePerGas"]=hex(500_000_000)
+        with self.assertRaises(one.Rejected):
+            self.check(tx=tx)
+
+    def test_chain_source_block_hash_avoids_claiming_original_competitor_slot(self):
+        bad=copy.deepcopy(self.receipt)
+        bad["blockNumber"]=hex(old.PINNED_BLOCK)
+        with self.assertRaises(one.Rejected):
+            self.check(receipt=bad)
+
+
 if __name__=="__main__":
     unittest.main()

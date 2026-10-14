@@ -284,6 +284,94 @@ def authenticate_failed_loopback_receipt(receipt,tx_hash,operator):
     }
 
 
+
+def authenticate_single_eoa_submission(tx,receipt,block,operator,public_inputs):
+    """Prove recorded loopback tx fits Cancun CREATE-initcode and one block.
+
+    This tests Ethereum-format/size *mechanics*, not private relay policy or
+    searcher access. Caller can ONLY retrieve tx+block from isolated loopback.
+    """
+    need(type(tx) is dict and type(receipt) is dict and type(block) is dict,
+         "transaction/receipt/local block witness missing")
+    txhash=receipt.get("transactionHash")
+    b_hash=receipt.get("blockHash")
+    b_num=old.quantity(receipt.get("blockNumber"),"local receipt block")
+    need(type(txhash) is str and old.HEX32.fullmatch(txhash)
+         and type(b_hash) is str and old.HEX32.fullmatch(b_hash)
+         and b_num==old.PINNED_BLOCK+1,
+         "one-shot transaction is not local block immediately after tx0")
+    need(tx.get("hash")==txhash and tx.get("blockHash")==b_hash
+         and tx.get("blockNumber")==receipt["blockNumber"]
+         and tx.get("to") is None and receipt.get("to") is None
+         and tx.get("from","").lower()==operator.lower()
+         and receipt.get("from","").lower()==operator.lower(),
+         "EOA CREATE tx recipient, sender or mined identity mismatch")
+    need(old.quantity(tx.get("chainId"),"one-shot chain")==1 and
+         old.quantity(tx.get("nonce"),"new synthetic EOA nonce")==0 and
+         old.quantity(tx.get("value"),"native value sent")==0,
+         "wrong chain, reused real EOA or inventory supplied")
+    need(old.quantity(tx.get("type"),"tx EIP2718 type")==2,
+         "one-shot receipt not expected EIP-1559 typed CREATE")
+    tx_limit=old.quantity(tx.get("gas"),"one-shot EOA gas limit")
+    actual=old.quantity(receipt.get("gasUsed"),"one-shot receipt gasUsed")
+    b_limit=old.quantity(block.get("gasLimit"),"isolated local block gas limit")
+    b_used=old.quantity(block.get("gasUsed"),"isolated local block gas used")
+    effective=old.quantity(receipt.get("effectiveGasPrice"),"effective paid wei/gas")
+    cap=old.quantity(tx.get("maxFeePerGas"),"EOA fee cap")
+    priority=old.quantity(tx.get("maxPriorityFeePerGas"),"EOA priority cap")
+    need(0<actual<=tx_limit<=b_limit and b_used==actual and
+         0<effective<=cap and priority<=cap,
+         "invalid EIP-1559 gas, block or fee conservation")
+    need(block.get("hash")==b_hash and block.get("number")==receipt["blockNumber"]
+         and block.get("transactions")==[txhash],
+         "Anvil newly mined local block contains zero or multiple EOA txs")
+    raw=tx.get("input")
+    need(type(raw) is str and raw.startswith("0x") and
+         re.fullmatch(r"0x(?:[0-9a-fA-F]{2})+",raw) is not None,
+         "missing/malformed CREATE initcode and ABI arguments")
+    calldata=bytes.fromhex(raw[2:])
+    # EIP-3860 Cancun max initcode size: 2*EIP-170 runtime cap = 49,152.
+    # A passing public EVM local receipt still does not prove relay acceptance.
+    need(0<len(calldata)<=49152,"CREATE initcode exceeds canonical EIP-3860 max")
+    src_word=public_inputs.get("NQC_PRESTATE_ABI")
+    parent=public_inputs.get("NQC_PARENT_HASH")
+    borrower=public_inputs.get("NQC_BORROWER")
+    need(type(src_word) is str and type(parent) is str and
+         type(borrower) is str and
+         src_word.lower().startswith("0x") and
+         src_word[2:].lower() in raw.lower() and
+         parent[2:].lower() in raw.lower() and
+         old.FORK_WINNER[2:].lower() in raw.lower() and
+         ("0"*24+borrower[2:].lower()) in raw.lower(),
+         "CREATE constructor calldata lacks immutable borrower, parent, winner or 6-word risk")
+    need(actual<10_000_000,
+         "more than 10M gas in local one-shot CREATE, reject oversized candidate")
+    return {
+        "one_and_only_local_block_tx_identity_verified":True,
+        "local_block_number":b_num,
+        "locally_mined_block_gas_limit_units":b_limit,
+        "locally_mined_block_gas_used_units":b_used,
+        "local_eoa_transaction_gas_limit_units":tx_limit,
+        "local_eoa_receipt_gas_used_units":actual,
+        "local_single_tx_fraction_of_block_gas_limit_bps_ceil":
+            (actual*10_000+b_limit-1)//b_limit,
+        "eip1559_transaction_type":2,
+        "eoa_nonce":0,
+        "eoa_native_value_wei":0,
+        "local_eoa_max_fee_per_gas_wei":cap,
+        "local_eoa_max_priority_fee_per_gas_wei":priority,
+        "local_effective_gas_price_wei":effective,
+        "eip3860_cancun_max_initcode_bytes":49152,
+        "actual_create_initcode_and_constructor_args_bytes":len(calldata),
+        "actual_create_initcode_and_args_sha256":sha256(calldata).hexdigest(),
+        "constructor_args_embed_exact_source_hash_parent_borrower_and_abi":True,
+        "no_second_eoa_in_locally_mined_block":True,
+        "one_transaction_is_not_mev_share_svr_relay_admission":True,
+        "original_same_block_competitor_slot_access_unproven":True,
+        "source_is_post_oracle_tx0_next_synthetic_block_not_real_winner_slot":True,
+        "nqc_paid_no_public_ethereum_gas":True,
+    }
+
 def run(funded_zip,oracle_zip,index_zip,workspace,forge,anvil,cast,out):
     inputs,provenance=old.validate_original_zip(funded_zip)
     oracle_source=old.authenticate_oracle_prefix(oracle_zip,index_zip)
@@ -440,6 +528,13 @@ def run(funded_zip,oracle_zip,index_zip,workspace,forge,anvil,cast,out):
                  "Foundry transcript disagrees with Anvil receipt "+field)
         result["local_single_eoa_receipt_economic_proof"]=report_source(
             independent,inputs,operator)
+        # A receipt proves effect/gas; bind the *transaction envelope* as well.
+        # Both RPC reads are on the already-validated localhost Anvil only.
+        mined_tx=rpc.call("eth_getTransactionByHash",[receipt["transactionHash"]])
+        mined_block=rpc.call("eth_getBlockByNumber",[receipt["blockNumber"],False])
+        result["one_shot_eoa_submission_footprint"]=authenticate_single_eoa_submission(
+            mined_tx,independent,mined_block,operator,inputs)
+        result["full_original_local_transaction"]=mined_tx
         result["full_original_local_receipt"]=independent
         result["status"]="SINGLE_ATOMIC_LOCAL_EOA_FLASH_LIQUIDATION_NO_MAINNET"
     except Exception as exc:

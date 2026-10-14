@@ -193,7 +193,7 @@ class LocalAnvil:
         need(self.calls < MAX_RPC_CALLS,"local Anvil RPC budget exceeded")
         need(method in {
             "eth_chainId","eth_blockNumber","eth_getBlockByNumber",
-            "eth_getTransactionReceipt","eth_getBalance","eth_call",
+            "eth_getTransactionReceipt","eth_getTransactionByHash","eth_getBalance","eth_call",
             "anvil_nodeInfo","anvil_setBalance",
         },"outside audited local Anvil RPC allowlist")
         if method=="anvil_setBalance":
