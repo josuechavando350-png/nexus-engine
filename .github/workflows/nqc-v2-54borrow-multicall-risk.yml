@@ -1,0 +1,160 @@
+name: NQC V2 All 54 Prior Debt Aave Borrowers One Canonical Multicall3 (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/recent54_borrowers_multicall_risk.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_recent54_borrowers_multicall_risk.py'
+      - 'ci/nqc-census/rmc-v2-shadow/FIFTYFOUR_FRESH_BORROW_MULTICALL_CONTRACT.md'
+      - '.github/workflows/nqc-v2-54borrow-multicall-risk.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-54borrow-multicall-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  all-54-source-prior-debt-owners-one-EIP1898-state:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Fetch authentic PR715 58 borrowers original dual-RPC corpus with full source hash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-54-aave-borrow"
+          mkdir -p "$OUT"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38575818030" > "$OUT/38575818030-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11900775541" > "$OUT/11900775541-artifact.json"
+          jq -e '.id==38575818030 and .status=="completed" and
+                 .conclusion=="success" and
+                 .head_sha=="c236e6305fea16086c037772ffd9fbcbee2d526d"' \
+            "$OUT/38575818030-run.json" > /dev/null
+          jq -e '.id==11900775541 and .expired==false and
+                 .workflow_run.id==38575818030 and
+                 .workflow_run.head_sha=="c236e6305fea16086c037772ffd9fbcbee2d526d" and
+                 .digest=="sha256:4451facc60edba8e512699a9e637320f62e18a391bba459def0990d2a7d7826e"' \
+            "$OUT/11900775541-artifact.json" > /dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11900775541/zip" \
+            --output "$OUT/11900775541.zip"
+          printf '%s  %s\n' \
+            '4451facc60edba8e512699a9e637320f62e18a391bba459def0990d2a7d7826e' \
+            "$OUT/11900775541.zip" | sha256sum --check --strict
+      - name: Strict 54-debt-source immutable provenance, aggregate ABI and five direct controls tests
+        env:
+          NQC_PR715_BORROW58_SOURCE_ZIP: ${{ runner.temp }}/nqc-54-aave-borrow/11900775541.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-54-aave-borrow"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_recent54_borrowers_multicall_risk.py -v 2>&1 |
+            tee "$OUT/offline-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/recent54_borrowers_multicall_risk.py
+      - name: One public Ethereum Multicall3 EIP1898 query for 54 prior debt-positive Aave beneficiaries
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-54-aave-borrow"
+          timeout 400s python3 ci/nqc-census/rmc-v2-shadow/recent54_borrowers_multicall_risk.py \
+            --original-pr715-zip "$OUT/11900775541.zip" \
+            --out "$OUT/attempt" > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            .source.producer_pr715_sha256=="4451facc60edba8e512699a9e637320f62e18a391bba459def0990d2a7d7826e" and
+            .source.producer_commit=="c236e6305fea16086c037772ffd9fbcbee2d526d" and
+            .source.producer_manifest_verified==15 and
+            .source.original_Borrow_beneficiaries==58 and
+            .source.original_debt_positive_accounts==54 and
+            .source.source_rule_all_54_prior_debt_active_before_current_RPC==true and
+            .source.not_exhaustive_Aave_position_census==true and
+            .selected_source_before_new_RPC_count==54 and
+            .direct_control_preselected_account_indices==[0,1,2,27,53] and
+            .precommit.file=="54-cohort-committed-before-rpc.json" and
+            (.precommit.sha256|test("^[0-9a-f]{64}$")) and
+            .eth_call_is_readonly_even_if_multicall_contract_not_view==true and
+            .not_preinclusion_or_private_SVR_feed==true and
+            .builder_inclusion_and_captured_opportunities_proven==false and
+            .profit_route_or_flash_gas_quote_proven==false and
+            .OWN_CAPITAL_ZERO_INCLUDING_GAS_UNCHANGED==true and
+            .commercial_score_upgrade==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .user_mxn2000_spent==false and
+            .nqc_realized_pnl_usd=="0" and
+            (.status=="FIFTYFOUR_PRIOR_DEBT_BORROWERS_MULTICALL_QUORUM_NO_P2" or
+             .status=="INCOMPLETE_54_BORROWERS_MULTICALL_NOT_AAVE_MARKET_ZERO") and
+            (if .status=="FIFTYFOUR_PRIOR_DEBT_BORROWERS_MULTICALL_QUORUM_NO_P2"
+             then (.errors|length)==0 and
+                  .full_fiftyfour_EIP1898_source_parity==true and
+                  .one_mainnet_Multicall3_eth_call_per_source==true and
+                  .multicall3_deployed_code_sha256=="2756d7c52baee85cacb504f6ee1df7aad6809ac8d94a4a111d76991f90d36d6e" and
+                  (.all_fiftyfour_original_borrowers|length)==54 and
+                  (.original_five_direct_controls.drpc|length)==5 and
+                  (.original_five_direct_controls.publicnode|length)==5 and
+                  .new_active_debt_count+.new_no_debt_count==54 and
+                  .new_HF_below_one_count>=0 and
+                  .per_provider_rpc_calls.drpc<=20 and
+                  .per_provider_rpc_calls.publicnode<=20 and
+                  (.batch_elapsed_monotonic_ns|type)=="number"
+             else (.errors|length)>0 and
+                  .full_fiftyfour_EIP1898_source_parity==false and
+                  .per_provider_rpc_calls==null
+             end)
+          ' "$OUT/attempt/recent54-active-debt-borrowers-risk.json" > "$OUT/contract-check.log"
+          echo "Fifty-four source-frozen public Aave account risk only; NO private SVR inclusion or net profit."
+      - name: SHA manifest includes exact code/producer, success or censored source defects
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-54-aave-borrow"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/recent54_borrowers_multicall_risk.py \
+             ci/nqc-census/rmc-v2-shadow/test_recent54_borrowers_multicall_risk.py \
+             ci/nqc-census/rmc-v2-shadow/FIFTYFOUR_FRESH_BORROW_MULTICALL_CONTRACT.md \
+             ci/nqc-census/rmc-v2-shadow/public_aave_multicall3_exact9_parity.py \
+             ci/nqc-census/rmc-v2-shadow/public_aave_9account_rpc_latency_ab.py \
+             ci/nqc-census/rmc-v2-shadow/public_two_head_sealed_watch.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py \
+             .github/workflows/nqc-v2-54borrow-multicall-risk.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload immutable original source and actual 54-subcall read or exact censored failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-54-prior-borrow-multicall-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-54-aave-borrow/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
