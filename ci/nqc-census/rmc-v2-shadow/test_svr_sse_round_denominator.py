@@ -118,6 +118,11 @@ class WitnessTests(unittest.TestCase):
         self.assertEqual(audit.classify(a,b,{"status":"PROSPECTIVE_SOURCE_LOCAL_HINTS_OBSERVED_NOT_PREINCLUSION_PROOF"}),
                          "NO_WETH_ROUND_ADVANCE_BETWEEN_PINNED_BOOKENDS")
 
+    def test_no_round_advance_with_truncated_sse_must_be_censored(self):
+        a,b=sample(120,10),sample(120,30)
+        self.assertEqual(audit.classify(a,b,{"status":"BOUNDED_SSE_BYTE_CAP_INCOMPLETE"}),
+                         "NO_WETH_ROUND_ADVANCE_SSE_CENSORED")
+
     def test_round_advance_not_builder_or_inclusion_proof(self):
         a,b=sample(120,10),sample(121,30)
         self.assertEqual(audit.classify(a,b,{"status":"PROSPECTIVE_SOURCE_LOCAL_HINTS_OBSERVED_NOT_PREINCLUSION_PROOF"}),
@@ -135,17 +140,17 @@ class WitnessTests(unittest.TestCase):
         self.assertEqual(channel.MAX_STREAM_SECONDS,24)
         self.assertEqual(channel.MAX_STREAM_BYTES,524288)
         self.assertEqual(audit.MAX_SECONDS,180)
-        self.assertEqual(audit.MAX_SSE_BYTES,6000000)
-        self.assertEqual(audit.MAX_EVENTS,5000)
+        self.assertEqual(audit.MAX_SSE_BYTES,20000000)
+        self.assertEqual(audit.MAX_EVENTS,8000)
         with self.assertRaises(ValueError):
             channel.consume_sse(io.BytesIO(b""),max_seconds=181)
         with self.assertRaises(ValueError):
-            channel.consume_sse(io.BytesIO(b""),max_bytes=6000001)
+            channel.consume_sse(io.BytesIO(b""),max_bytes=20000001)
 
     def test_partial_sse_not_economic_capture(self):
         payload=json.dumps({"hash":"0x"+"33"*32,"txs":[{}]}).encode()
         stream=io.BytesIO(b"data:"+payload+b"\n\n")
-        r=channel.consume_sse(stream,max_seconds=180,max_bytes=6000000,max_events=5000)
+        r=channel.consume_sse(stream,max_seconds=180,max_bytes=20000000,max_events=8000)
         self.assertEqual(r["partial_hints_censored"],1)
         self.assertEqual(r["decoded_target_unauthenticated"],0)
         self.assertFalse(r["winning_bundle_inclusion_proven"])

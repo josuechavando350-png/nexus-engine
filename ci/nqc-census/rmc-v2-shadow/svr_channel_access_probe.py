@@ -81,8 +81,8 @@ def consume_sse(source, *, now=clock, monotonic=time.monotonic,
                 max_seconds=MAX_STREAM_SECONDS, max_bytes=MAX_STREAM_BYTES,
                 max_events=MAX_EVENTS):
     if not (type(max_seconds) is int and 1 <= max_seconds <= 180 and
-            type(max_bytes) is int and 1 <= max_bytes <= 6_000_000 and
-            type(max_events) is int and 1 <= max_events <= 5_000):
+            type(max_bytes) is int and 1 <= max_bytes <= 20_000_000 and
+            type(max_events) is int and 1 <= max_events <= 8_000):
         raise ValueError("unapproved extended stream budget")
     started = monotonic()
     total = 0
@@ -149,6 +149,7 @@ def consume_sse(source, *, now=clock, monotonic=time.monotonic,
         status = ("PROSPECTIVE_SOURCE_LOCAL_HINTS_OBSERVED_NOT_PREINCLUSION_PROOF"
                   if status == "BOUNDED_SSE_NO_EVENT_DOES_NOT_PROVE_ABSENCE" else status)
     return {"status": status, "read_bytes": total, "sse_data_messages": messages,
+            "elapsed_monotonic_seconds":round(monotonic()-started,3),
             "ping_frames": pings, "decoded_target_unauthenticated": candidates,
             "complete_non_target_hints": complete_nontarget,
             "partial_hints_censored": partial, "malformed_hints_censored": malformed,

@@ -63,6 +63,7 @@ jobs:
             all(.source_rpc_calls[]; .<=36) and
             (
               .status=="NO_WETH_ROUND_ADVANCE_BETWEEN_PINNED_BOOKENDS" or
+              .status=="NO_WETH_ROUND_ADVANCE_SSE_CENSORED" or
               .status=="WETH_FEED_CHANGED_IN_BOOKENDS_NOT_PREINCLUSION_PROOF" or
               .status=="WETH_FEED_CHANGED_BUT_SSE_OBSERVATION_CENSORED" or
               (.status|startswith("INCOMPLETE_"))
@@ -71,7 +72,11 @@ jobs:
               then (.source_errors|length)>0 or (.status!="INCOMPLETE_SOURCE_OR_CANONICAL_QUORUM")
               else (.source_errors|length)==0 and
                 .before.same_block_two_RPC_parity==true and
-                .after.same_block_two_RPC_parity==true
+                .after.same_block_two_RPC_parity==true and
+                (if .status=="NO_WETH_ROUND_ADVANCE_BETWEEN_PINNED_BOOKENDS" or
+                    .status=="WETH_FEED_CHANGED_IN_BOOKENDS_NOT_PREINCLUSION_PROOF"
+                 then .sse.status=="PROSPECTIVE_SOURCE_LOCAL_HINTS_OBSERVED_NOT_PREINCLUSION_PROOF"
+                 else true end)
               end)
           ' "$OUT/attempt/round-denominator.json" > "$OUT/contract-check.log"
           echo 'No net income / bidder inclusion / private SVR entitlement proven.'

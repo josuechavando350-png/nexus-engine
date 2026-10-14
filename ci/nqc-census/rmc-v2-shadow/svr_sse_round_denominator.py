@@ -18,8 +18,8 @@ PROVIDERS = {"drpc":"https://eth.drpc.org", "publicnode":"https://ethereum-rpc.p
 AGGREGATOR_SELECTOR = "0x245a7bfc"
 ROUND_SELECTOR = "0xfeaf968c"
 MAX_SECONDS = 180
-MAX_SSE_BYTES = 6_000_000
-MAX_EVENTS = 5_000
+MAX_SSE_BYTES = 20_000_000
+MAX_EVENTS = 8_000
 MAX_RPC_BYTES = 250_000
 MAX_RPC_CALLS = 36
 HEX32 = re.compile(r"0x[0-9a-fA-F]{64}\Z")
@@ -193,6 +193,8 @@ def classify(before,after,sse):
     if int(new["round_id"])<int(old["round_id"]) or new["updated_at"]<old["updated_at"]:
         return "INCOMPLETE_FEED_ROUND_REGRESSION"
     if new["round_id"]==old["round_id"] and new["updated_at"]==old["updated_at"]:
+        if not sse or sse.get("status") != "PROSPECTIVE_SOURCE_LOCAL_HINTS_OBSERVED_NOT_PREINCLUSION_PROOF":
+            return "NO_WETH_ROUND_ADVANCE_SSE_CENSORED"
         return "NO_WETH_ROUND_ADVANCE_BETWEEN_PINNED_BOOKENDS"
     if not sse or sse.get("status")!="PROSPECTIVE_SOURCE_LOCAL_HINTS_OBSERVED_NOT_PREINCLUSION_PROOF":
         return "WETH_FEED_CHANGED_BUT_SSE_OBSERVATION_CENSORED"
