@@ -39,7 +39,7 @@ def corpus():
 
 
 def endpoint(reject_or=False,reject_secondary=False,wrong_receipt=False,
-             mutate_recent=False):
+             mutate_recent=False,reject_address=False):
     past,recent=corpus()
     def request(method,params):
         if method=='eth_chainId': return '0x1'
@@ -56,14 +56,17 @@ def endpoint(reject_or=False,reject_secondary=False,wrong_receipt=False,
             return result
         if method=='eth_getLogs':
             q=params[0]
-            topics=q['topics'][0]
-            if isinstance(topics,list) and reject_or: raise ValueError('JSON_RPC_ERROR_-32000')
-            if topics==m.SECONDARY_ROUND_TOPIC and reject_secondary: raise ValueError('HTTP_400')
+            topics=q.get('topics')
+            filter_topic=topics[0] if topics else None
+            if filter_topic is None and reject_address: raise ValueError('HTTP_400_ADDRESS')
+            if isinstance(filter_topic,list) and reject_or: raise ValueError('JSON_RPC_ERROR_-32000')
+            if filter_topic==m.SECONDARY_ROUND_TOPIC and reject_secondary: raise ValueError('HTTP_400')
             lo,hi=int(q['fromBlock'],16),int(q['toBlock'],16)
             selected=[copy.deepcopy(e) for e in past+recent if
                 lo<=int(e['blockNumber'],16)<=hi and
-                (e['topics'][0] in topics if isinstance(topics,list) else
-                 e['topics'][0]==topics)]
+                (filter_topic is None or
+                 (e['topics'][0] in filter_topic if isinstance(filter_topic,list)
+                  else e['topics'][0]==filter_topic))]
             if mutate_recent:
                 for e in selected:
                     if int(e['blockNumber'],16)>26188000: e['data']='0x'
@@ -75,9 +78,12 @@ def endpoint(reject_or=False,reject_secondary=False,wrong_receipt=False,
 class OracleSourceMatrixTests(unittest.TestCase):
     def test_historical_positive_and_exact_recent_source_parity(self):
         output=m.run(lambda name:endpoint())
-        self.assertEqual(output['status'],'TWO_SOURCE_ORACLE_LOG_CAPABILITY_AND_RECENT_PARITY')
+        self.assertEqual(output['status'],'TWO_SOURCE_ADDRESS_ONLY_ORACLE_EVENT_PARITY')
         self.assertTrue(output['two_source_recent_parity'])
         self.assertTrue(output['two_source_positive_control_parity'])
+        self.assertTrue(output['two_source_address_positive_control_parity'])
+        self.assertTrue(output['two_source_address_recent_parity'])
+        self.assertEqual(output['confirmed_address_recent_oracle_events'],2)
         self.assertEqual(output['confirmed_recent_oracle_update_events'],2)
         self.assertEqual(output['confirmed_recent_oracle_update_transactions'],2)
         self.assertEqual(output['recent_anchor']['first']['block'],26188821)
@@ -95,6 +101,31 @@ class OracleSourceMatrixTests(unittest.TestCase):
         self.assertEqual(output['providers']['drpc']['positive_controls'][0]
                          ['or_query']['status'],'ERROR')
         self.assertEqual(output['confirmed_recent_oracle_update_events'],2)
+        self.assertTrue(output['two_source_address_positive_control_parity'])
+
+    def test_address_only_recovers_primary_event_when_topic_rpc_rejects(self):
+        output=m.run(lambda name:endpoint(reject_or=True,
+                         reject_secondary=(name=='blast')))
+        self.assertTrue(output['two_source_address_positive_control_parity'])
+        self.assertTrue(output['two_source_address_recent_parity'])
+        self.assertEqual(output['confirmed_address_recent_oracle_events'],2)
+        self.assertEqual(output['status'],'TWO_SOURCE_ADDRESS_ONLY_ORACLE_EVENT_PARITY')
+        self.assertFalse(output['two_source_positive_control_parity'])
+
+    def test_address_only_missing_source_fails_closed(self):
+        out=m.run(lambda name:endpoint(reject_address=(name=='blast'),
+                                      reject_secondary=(name=='blast')))
+        self.assertEqual(out['status'],'INCOMPLETE_ORACLE_RPC_SOURCE_CAPABILITY')
+        self.assertFalse(out['two_source_address_recent_parity'])
+        self.assertIsNone(out['confirmed_address_recent_oracle_events'])
+
+    def test_address_only_unknown_event_family_recorded_without_fake_price(self):
+        n=26188834
+        row=oracle_log(n,hash_of(12),14,'secondary')
+        row['topics'][0]='0x'+'99'*32
+        parsed=m.filter_address_logs([row],n,n)
+        self.assertEqual(parsed['events'],[])
+        self.assertEqual(parsed['unknown_topic_counts'],{'0x'+'99'*32:1})
 
     def test_historical_positive_control_must_not_be_invented(self):
         result=m.run(lambda name:endpoint(wrong_receipt=True))
