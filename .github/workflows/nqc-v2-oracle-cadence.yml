@@ -1,0 +1,105 @@
+name: NQC V2 Pinned ETH/USD NewTransmission Historical Cadence (NO TRADE)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/oracle_newtransmission_cadence.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_oracle_newtransmission_cadence.py'
+      - 'ci/nqc-census/rmc-v2-shadow/ORACLE_NEWTRANSMISSION_CADENCE_CONTRACT.md'
+      - '.github/workflows/nqc-v2-oracle-cadence.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-oracle-cadence-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  two-endpoint-source-cadence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact commit and offline mutation gates
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-oracle-cadence"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_oracle_newtransmission_cadence.py -v 2>&1 | tee "$OUT/tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/oracle_newtransmission_cadence.py
+      - name: Two public RPCs exact 720-block read-only NewTransmission source census
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-cadence"
+          timeout 320s python3 ci/nqc-census/rmc-v2-shadow/oracle_newtransmission_cadence.py \
+            --out "$OUT/oracle-cadence.json" \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            .window_fixed_before_observing_events==true and
+            .lookahead_selection_of_winner==false and
+            (.status=="TWO_ENDPOINT_PINNED_ORACLE_EVENT_PARITY_DESCRIPTIVE_ONLY" or
+             .status=="MISMATCH_NO_EVENT_AUTHORITY" or
+             .status=="INCOMPLETE_ORACLE_CADENCE_CENSUS") and
+            .rpc_operator_independence_certified==false and
+            .prospective_oracle_detection_proven==false and
+            .prospective_liquidation_capture_proven==false and
+            .native_gas_external_nonrecourse_certified==false and
+            .net_pnl_certified==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            .anchor_rpc_calls<=125 and
+            all(.sources[];.rpc_calls_used<=125 and
+                .shards_complete<=23 and
+                (.events|length)<=150)
+          ' "$OUT/oracle-cadence.json" >/dev/null
+          echo "Historical oracle activity measured only within pinned source scope; capture unproven."
+      - name: Exact source bytes, commit/tree, immutable hashes and errors
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-cadence"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/oracle_newtransmission_cadence.py \
+             ci/nqc-census/rmc-v2-shadow/test_oracle_newtransmission_cadence.py \
+             ci/nqc-census/rmc-v2-shadow/oracle_ws_inclusion_audit.py \
+             ci/nqc-census/rmc-v2-shadow/ORACLE_NEWTRANSMISSION_CADENCE_CONTRACT.md \
+             .github/workflows/nqc-v2-oracle-cadence.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload scoped positive/negative cadence evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-oracle-cadence-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-oracle-cadence/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
