@@ -1,0 +1,104 @@
+name: NQC RMC V2 Blockscout Aave REST Indexer Preflight 250 Blocks (NO LIVE)
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-v2-postwindow-resumable-shards-20261013"
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/blockscout_aave_250_indexer_preflight.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_blockscout_aave_250_indexer_preflight.py"
+      - ".github/workflows/nqc-v2-blockscout-aave-250-preflight.yml"
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/blockscout_aave_250_indexer_preflight.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_blockscout_aave_250_indexer_preflight.py"
+      - ".github/workflows/nqc-v2-blockscout-aave-250-preflight.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  indexed-liquidation-topic-preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout exact immutable source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run 20 deterministic REST evidence negatives
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-v2-indexer-250"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_blockscout_aave_250_indexer_preflight.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-v2-indexer-250/tests.log"
+      - name: Probe single public Blockscout REST endpoint read-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-indexer-250"
+          set +e
+          timeout 90s python3 ci/nqc-census/rmc-v2-shadow/blockscout_aave_250_indexer_preflight.py \
+            --output-dir "$OUT" > "$OUT/source.stdout" 2> "$OUT/source.stderr"
+          rc=$?
+          set -e
+          printf 'source_exit=%s\n' "$rc" > "$OUT/source-exit.txt"
+          test "$rc" -eq 0
+          jq -e '
+            .status=="INDEXER_250_BLOCK_CROSSCHECK_NOT_SOURCE_AUTHORITY"
+            and .scope=="UNTRUSTED_INDEXER_250_BLOCK_DISCOVERY_CROSSCHECK_ONLY"
+            and .from_block==26095352 and .to_block==26095601
+            and .original_drpc_evidence_run==38485623561
+            and .original_drpc_zip_sha256=="2026af447b87012693d07e86880dd5bf1006e7b1aee982d00d1d0704dbf23301"
+            and .indexer_targeted_susde_or_usdtb_events==0
+            and .indexer_completeness_or_finality_certified==false
+            and .second_rpc_independent_operator_attestation==false
+            and .nqc_captured_liquidation==false
+            and .nqc_realized_pnl_usd=="0"
+            and .p2_shadow_certified==false
+            and .rmc_closed==false
+            and .commercial_score_upgrade==false
+            and .no_claim_for_remaining_89140_blocks==true
+          ' "$OUT/indexer-crosscheck.json"
+          echo "BLOCKSCOUT_REST_INDEXER_250_BLOCKS_SOURCE_CORROBORATION_ONLY"
+      - name: Preserve source or refusal without profit authority
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-indexer-250"
+          cp ci/nqc-census/rmc-v2-shadow/blockscout_aave_250_indexer_preflight.py "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_blockscout_aave_250_indexer_preflight.py "$OUT/tests.py"
+          jq -n --arg commit "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$commit,
+              scope:"UNTRUSTED_REST_INDEXER_250_BLOCKS_READONLY",
+              not_blockchain_executable_source:true,
+              no_full_89390_coverage:true,no_independent_rpc_operator_quorum:true,
+              no_own_capital_or_native_gas_authority:true,
+              no_ethereum_transaction:true,no_nexus_revenue:true,
+              rmc_closed:false,p2_closed:false}' > "$OUT/nonclaims.json"
+          (
+            cd "$OUT"
+            sha256sum producer.py tests.py nonclaims.json tests.log > evidence.sha256
+            if test -f untrusted-blockscout-raw.json; then
+              sha256sum untrusted-blockscout-raw.json >> evidence.sha256
+            fi
+            if test -f indexer-crosscheck.json; then
+              sha256sum indexer-crosscheck.json >> evidence.sha256
+            fi
+            sha256sum -c evidence.sha256
+          )
+      - name: Upload public REST source result or honest refusal
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-blockscout-rest-250-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-v2-indexer-250/
+          if-no-files-found: warn
+          retention-days: 30

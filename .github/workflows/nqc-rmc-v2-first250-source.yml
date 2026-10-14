@@ -1,0 +1,99 @@
+name: NQC RMC V2 First 250-block Aave Targeted Checkpoint (READ ONLY)
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-v2-postwindow-resumable-shards-20261013"
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/targeted_aave_shard_checkpoint.py"
+      - ".github/workflows/nqc-rmc-v2-first250-source.yml"
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/targeted_aave_shard_checkpoint.py"
+      - ".github/workflows/nqc-rmc-v2-first250-source.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-micro-checkpoint:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run checkpoint adversarial regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-first250"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_targeted_aave_shard_checkpoint.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-first250/tests.log"
+      - name: Genuine 250-block Ethereum Aave targeted microsegment
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-first250"
+          set +e
+          timeout 640s python3 ci/nqc-census/rmc-v2-shadow/targeted_aave_shard_checkpoint.py \
+            --provider drpc --scan-segment 26095352 26095601 --span 250 \
+            --out "$OUT/250-block-evidence.json" \
+            > "$OUT/network.stdout" 2> "$OUT/network.stderr"
+          rc=$?
+          set -e
+          printf 'rpc_exit=%s\n' "$rc" > "$OUT/exit-code.txt"
+          test "$rc" -eq 0
+          python3 - "$OUT/250-block-evidence.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          sys.path.insert(0,"ci/nqc-census/rmc-v2-shadow")
+          import targeted_aave_shard_checkpoint as g
+          doc=json.loads(Path(sys.argv[1]).read_text())
+          r=g.verify_checkpoint(doc)
+          assert doc['window_start']==26095352 and doc['window_end']==26095601
+          assert r['provider_id']=='drpc'
+          assert r['status']=='PARTIAL_SINGLE_PUBLIC_RPC_TARGETED_HISTORICAL_ONLY'
+          assert r['nqc_realized_pnl_usd']=='0'
+          assert r['p2_shadow_certified'] is False
+          assert r['rmc_closed'] is False
+          assert doc['complete_global_coverage_claim'] is False
+          print('READ_ONLY_250_BLOCK_PARTIAL_EVIDENCE_PASS')
+          print('targeted_events',r['total_targeted_events'])
+          PY
+      - name: Retain source or explicit error
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-first250"
+          cp ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py "$OUT/source.py"
+          cp ci/nqc-census/rmc-v2-shadow/targeted_aave_shard_checkpoint.py "$OUT/producer.py"
+          jq -n --arg commit "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$commit,
+              scope:"ONLY_250_BLOCKS_OF_89390",
+              from_block:26095352,to_block:26095601,
+              no_full_census_certified:true,no_rmc_p2_close:true,
+              no_nexus_realized_profit:true,no_rpc_operator_quorum:true,
+              no_trading:true,no_personal_capital_spend:true,
+              zero_events_unproven_if_failure:true}' > "$OUT/nonclaims.json"
+          (
+            cd "$OUT"
+            sha256sum source.py producer.py nonclaims.json tests.log > evidence.sha256
+            if test -f 250-block-evidence.json; then
+              sha256sum 250-block-evidence.json >> evidence.sha256
+            fi
+            sha256sum -c evidence.sha256
+          )
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-postwindow-first250-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-first250/
+          if-no-files-found: warn
+          retention-days: 30

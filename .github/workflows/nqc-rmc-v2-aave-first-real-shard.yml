@@ -1,0 +1,118 @@
+name: NQC RMC V2 First 5000-block Aave sUSDe USDtb Source Shard (NO TRADE)
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-v2-postwindow-resumable-shards-20261013"
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/targeted_aave_shard_checkpoint.py"
+      - ".github/workflows/nqc-rmc-v2-aave-first-real-shard.yml"
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/targeted_aave_shard_checkpoint.py"
+      - ".github/workflows/nqc-rmc-v2-aave-first-real-shard.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-first-aave-real-shard-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  historical-source-shard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Exact source checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Run offline negative tests first
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-aave-first-source-shard"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_targeted_aave_shard_checkpoint.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-aave-first-source-shard/offline-tests.log"
+
+      - name: Retrieve one exact 5000-block source segment from dRPC
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-aave-first-source-shard"
+          set +e
+          timeout 1060s python3 ci/nqc-census/rmc-v2-shadow/targeted_aave_shard_checkpoint.py \
+            --provider drpc \
+            --scan-segment 26095352 26100351 \
+            --span 2500 \
+            --out "$OUT/first-5000-blocks.json" \
+            > "$OUT/source.stdout" 2> "$OUT/source.stderr"
+          rc=$?
+          set -e
+          printf 'source_exit=%s\n' "$rc" > "$OUT/source-exit.txt"
+          test "$rc" -eq 0
+          python3 - "$OUT/first-5000-blocks.json" <<'PY'
+          import json,sys
+          from pathlib import Path
+          sys.path.insert(0,'ci/nqc-census/rmc-v2-shadow')
+          import targeted_aave_shard_checkpoint as s
+          doc=json.loads(Path(sys.argv[1]).read_text())
+          report=s.verify_checkpoint(doc)
+          assert doc["window_start"]==26095352
+          assert doc["window_end"]==26100351
+          assert report["provider_id"]=="drpc"
+          assert report["status"]=="PARTIAL_SINGLE_PUBLIC_RPC_TARGETED_HISTORICAL_ONLY"
+          assert doc["independent_rpc_quorum"] is False
+          assert doc["complete_global_coverage_claim"] is False
+          assert doc["shadow_p2_certified"] is False
+          assert doc["rmc_closed"] is False
+          assert doc["nqc_realized_pnl_usd"]=="0"
+          print("FIRST_5000_POSTWINDOW_BLOCKS_SINGLE_SOURCE_PASS")
+          print("observed_targeted_liquidation_events",report["total_targeted_events"])
+          print("next_segment_start",26100352)
+          PY
+
+      - name: Preserve exact source code and negative scope
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-aave-first-source-shard"
+          cp ci/nqc-census/rmc-v2-shadow/targeted_aave_shard_checkpoint.py "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-shadow/targeted_aave_liquidation_census.py "$OUT/census-source.py"
+          jq -n --arg commit "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$commit,
+              scope:"ONE_SINGLE_SOURCE_5000_BLOCK_RESEARCH_SHARD",
+              first_block:26095352,last_block:26100351,
+              not_full_89390_block_coverage:true,
+              provider:"dRPC",independent_operator_quorum:false,
+              user_capital_spent:0,no_live_trading:true,
+              no_Nexus_capture:true,no_Nexus_realized_PnL:true,
+              RMC_closed:false,P2_certified:false,
+              commercial_score_upgrade:false}' > "$OUT/nonclaims.json"
+          (
+            cd "$OUT"
+            sha256sum producer.py census-source.py offline-tests.log nonclaims.json \
+              > evidence.sha256
+            sha256sum -c evidence.sha256
+            if test -f first-5000-blocks.json; then
+              sha256sum first-5000-blocks.json >> evidence.sha256
+              sha256sum -c evidence.sha256
+            fi
+          )
+
+      - name: Upload a source artifact or explicit provider blocker
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-first-aave-postwindow-shard-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-aave-first-source-shard/
+          if-no-files-found: warn
+          retention-days: 30

@@ -1,0 +1,104 @@
+name: NQC RMC V2 Blockscout Known Positive WETH Aave Source Admission (NO LIVE)
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-v2-postwindow-resumable-shards-20261013"
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/blockscout_known_positive_aave.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_blockscout_known_positive_aave.py"
+      - ".github/workflows/nqc-rmc-v2-blockscout-positive-anchor.yml"
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/blockscout_known_positive_aave.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_blockscout_known_positive_aave.py"
+      - ".github/workflows/nqc-rmc-v2-blockscout-positive-anchor.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  source-known-positive-weth-aave-anchor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Verify 16 adversarial negative fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-blockscout-positive"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_blockscout_known_positive_aave.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-blockscout-positive/tests.log"
+      - name: Index must reproduce certified WETH/WETH actual winner
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-blockscout-positive"
+          set +e
+          timeout 90s python3 ci/nqc-census/rmc-v2-shadow/blockscout_known_positive_aave.py \
+            --out-dir "$OUT" > "$OUT/probe.stdout" 2> "$OUT/probe.stderr"
+          code=$?
+          set -e
+          printf 'source_exit=%s\n' "$code" > "$OUT/source-status.txt"
+          test "$code" -eq 0
+          jq -e '
+            .status=="KNOWN_REAL_WETH_WETH_LIQUIDATION_INDEXED_ONCE_NOT_QUORUM"
+            and .historical_block==25938048
+            and .winning_tx=="0x6313fb267755f3cfa48214bf74309505984306129ee09a558efe4801006dcbba"
+            and .winning_block_hash=="0xf143f9988199037938e4dff57aaf24301a4c26770aefc0ec64774954cbf2dbe4"
+            and .authentic_debt_paid_wei=="10684013854557827871"
+            and .matching_real_liquidation_events==1
+            and .matching_original_raw_event_sha256=="d25b174177afd25fc6b789a4d76bad535120a9a883209ee7205a49d703d73949"
+            and .indexer_supplied_canonical_block_hash==false
+            and .canonical_block_hash_provenance=="PRIOR_IMMUTABLE_RMC016_NOT_FROM_BLOCKSCOUT_WHEN_MISSING"
+            and .original_RMC016_events_artifact_sha256=="6b4098c1acf153106ac5b67d2c5c7db5cd0295a16c782ad8c34ae75303306204"
+            and .raw_log_replay_from_independent_rpc_certified==false
+            and .whole_indexer_history_complete_certified==false
+            and .Nexus_won_liquidation==false
+            and .nqc_realized_pnl_usd=="0"
+            and .p2_shadow_certified==false
+            and .rmc_closed==false
+            and .commercial_score_upgrade==false
+          ' "$OUT/positive-anchor.json"
+          echo "BLOCKSCOUT_SINGLE_TRUE_AAVE_POSITIVE_REPRODUCED_NO_P2"
+      - name: Preserve immutable inputs and failure records
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-blockscout-positive"
+          cp ci/nqc-census/rmc-v2-shadow/blockscout_known_positive_aave.py "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_blockscout_known_positive_aave.py "$OUT/test-producer.py"
+          jq -n --arg head "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$head,
+              scope:"PUBLIC_REST_INDEXER_KNOWN_POSITIVE_ONE_HISTORICAL_BLOCK",
+              no_complete_market_census:true,no_external_gas_nonrecourse:true,
+              no_susde_usdtb_liquidation_proven:true,
+              no_Nexus_capture_or_landed_transaction:true,
+              no_Nexus_PnL:true,RMC_closed:false,P2_certified:false}' > "$OUT/nonclaims.json"
+          (
+            cd "$OUT"
+            sha256sum producer.py test-producer.py tests.log nonclaims.json > evidence.sha256
+            if test -f positive-anchor.json; then
+              sha256sum positive-anchor.json >> evidence.sha256
+            fi
+            if test -f raw-blockscout-known-positive.json; then
+              sha256sum raw-blockscout-known-positive.json >> evidence.sha256
+            fi
+            sha256sum -c evidence.sha256
+          )
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-blockscout-aave-real-positive-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-blockscout-positive/
+          if-no-files-found: warn
+          retention-days: 30
