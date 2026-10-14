@@ -65,9 +65,9 @@ def report_source(receipt,public_inputs,operator):
         need(len(rows)==1,"missing/duplicated "+name)
         return rows[0]
 
-    one_topic="0x"+__import__("Crypto.Hash.keccak",fromlist=["keccak"]).keccak(
-        digest_bits=256,data=b"LocalOneShotLiquidation(address,address,address,bytes32,uint256,uint256)"
-    ).hexdigest()
+    # Static Ethereum keccak256 event selector checked independently against
+    # a Keccak-f[1600] implementation, no optional Crypto dependency.
+    one_topic="0x24e59545e75cb035e07191d48b8d7e75163aebd237dafa18ff0aae720a7c00ec"
     log=unique(one_shot,one_topic,"one-shot constructor completion event")
     need(len(log["topics"])==4 and
          old._topic_address(log["topics"][1],"operator")==operator,
@@ -168,7 +168,7 @@ def run(funded_zip,oracle_zip,index_zip,workspace,forge,anvil,cast,out):
         "status":"INCOMPLETE_LOCAL_SINGLE_EOA_ORACLE_BACKRUN",
         "original_route_archive_sha256":old.SOURCE_ZIP_SHA,
         "original_oracle_archive_sha256":old.ORACLE_SOURCE_ZIP_SHA,
-        "original_indexed_corpus_sha256":old.ORIGINAL_INDEX_ZIP_SHA,
+        "original_indexed_corpus_sha256":old.original_index.INDEX_ARTIFACT_SHA,
         "source_files_sha256":hashes,
         "original_funded_source":provenance,
         "oracle_source":oracle_source,
