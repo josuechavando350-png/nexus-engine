@@ -1,0 +1,237 @@
+name: NQC V2 One-Shot Constructor Full Local EOA Receipt (NO MAINNET)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/weth-physical/script/NqcV2OneShotAtomicLocal.s.sol'
+      - 'ci/nqc-census/rmc-v2-shadow/nqc_local_one_shot_eoa.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_nqc_local_one_shot_eoa.py'
+      - 'ci/nqc-census/rmc-v2-shadow/LOCAL_SINGLE_EOA_CONSTRUCTOR_CONTRACT.md'
+      - '.github/workflows/nqc-v2-local-one-shot-eoa.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-one-shot-local-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-authenticated-one-eoa-contract-constructor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 48
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Authenticate exact PR723 historical source and original nested producer ZIPs
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-one-shot-eoa"
+          mkdir -p "$OUT"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38620588292" > "$OUT/38620588292-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11922091704" > "$OUT/11922091704-artifact.json"
+          jq -e '.id==38620588292 and .status=="completed" and
+                 .conclusion=="success" and
+                 .head_sha=="95ac66423da56ddd0a6862a9a17bf2f66655cd2a"' \
+            "$OUT/38620588292-run.json" >/dev/null
+          jq -e '.id==11922091704 and .expired==false and
+                 .workflow_run.id==38620588292 and
+                 .workflow_run.head_sha=="95ac66423da56ddd0a6862a9a17bf2f66655cd2a" and
+                 .digest=="sha256:edae8d055655f0fc23c443dbdccdf9c4150311133a1966249d4957dcd80ed346"' \
+            "$OUT/11922091704-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11922091704/zip" \
+            --output "$OUT/11922091704.zip"
+          printf '%s  %s\n' \
+            edae8d055655f0fc23c443dbdccdf9c4150311133a1966249d4957dcd80ed346 \
+            "$OUT/11922091704.zip" | sha256sum --check --strict
+          python3 - "$OUT" <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+          import zipfile,sys
+          base=Path(sys.argv[1])
+          root=base/"11922091704.zip"
+          with zipfile.ZipFile(root) as z:
+              names=set(z.namelist())
+              need={'manifest.sha256','code-commit.txt','code-tree.txt',
+                    'attempt/local-cold-receipt.json',
+                    '11865385506.zip','11871075488.zip','11861430884.zip'}
+              assert need<=names and len(names)==37
+              assert z.read('code-commit.txt').strip()==b'95ac66423da56ddd0a6862a9a17bf2f66655cd2a'
+              assert z.read('code-tree.txt').strip()==b'2b830164ad3d8f7c52261a93e7ba5935ae85cc51'
+              table={}
+              for line in z.read('manifest.sha256').decode('ascii').splitlines():
+                  digest,name=line.split('  ',1)
+                  assert name.startswith('./') and name[2:] not in table
+                  table[name[2:]]=digest
+              assert set(table)==names-{'manifest.sha256'} and len(table)==36
+              for name,digest in table.items():
+                  assert sha256(z.read(name)).hexdigest()==digest
+              for name,digest in {
+                '11865385506.zip':'6778f8e190d13c739331f731ca532d8607e3f653ca000de746b058b4903c7d7d',
+                '11871075488.zip':'ca495ebdb9b8c7f8ed8438e5c3226b58b9c31c0d50e44ef35d6fce2cec232dde',
+                '11861430884.zip':'5a198ad15588e6e2ec692ef05ab16f51127141b3b00b0949b6ea7d945b20d1c4',
+              }.items():
+                  buf=z.read(name)
+                  assert sha256(buf).hexdigest()==digest
+                  (base/name).write_bytes(buf)
+          print('Exact PR723 36/36 sha256 source and three nested canonical producers authenticated.')
+          PY
+      - name: Authenticate official pinned Foundry v1.8.5 release binaries and separate checksum
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-one-shot-eoa"
+          BIN="$RUNNER_TEMP/nqc-one-shot-foundry"
+          mkdir -p "$BIN"
+          gh api repos/foundry-rs/foundry/releases/tags/v1.8.5 > "$OUT/foundry-release.json"
+          jq -e '.tag_name=="v1.8.5" and .draft==false and .prerelease==false and
+             any(.assets[]; .name=="foundry_v1.8.5_linux_amd64.tar.gz" and
+                 ((.digest//"")|test("^sha256:[0-9a-f]{64}$")))' \
+            "$OUT/foundry-release.json" >/dev/null
+          expected="$(jq -r '.assets[]|select(.name=="foundry_v1.8.5_linux_amd64.tar.gz")|.digest[7:]' \
+            "$OUT/foundry-release.json")"
+          test "$(printf '%s' "$expected"|wc -c)" -eq 64
+          curl --fail --silent --show-error --location \
+            https://github.com/foundry-rs/foundry/releases/download/v1.8.5/foundry_v1.8.5_linux_amd64.tar.gz \
+            -o "$RUNNER_TEMP/nqc-one-shot-foundry.tar.gz"
+          printf '%s  %s\n' "$expected" "$RUNNER_TEMP/nqc-one-shot-foundry.tar.gz" \
+            | sha256sum --check --strict
+          curl --fail --silent --show-error --location \
+            https://github.com/foundry-rs/foundry/releases/download/v1.8.5/foundry_v1.8.5_linux_amd64.sha256 \
+            -o "$OUT/foundry-release-checksum.txt"
+          test "$(sed -n '1s/[[:space:]].*$//p' "$OUT/foundry-release-checksum.txt")" = "$expected"
+          printf '%s\n' "$expected" > "$OUT/foundry-sha256.txt"
+          tar -xzf "$RUNNER_TEMP/nqc-one-shot-foundry.tar.gz" -C "$BIN" forge anvil cast
+          "$BIN/forge" --version > "$OUT/foundry-version.txt"
+          "$BIN/anvil" --help | grep -- '--fork-transaction-hash' >/dev/null
+      - name: Original source-gated 20 offline single-receipt, Keccak and one-block Aave drift tests
+        env:
+          NQC_PR723_SOURCE_ZIP: ${{ runner.temp }}/nqc-one-shot-eoa/11922091704.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-one-shot-eoa"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_nqc_local_one_shot_eoa.py -v 2>&1 | tee "$OUT/offline-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/nqc_local_one_shot_eoa.py
+      - name: Compile original source-locked T36/Aave route plus ONE test-only EOA constructor
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-one-shot-eoa"
+          ROOT="$RUNNER_TEMP/nqc-one-shot-foundry-project"
+          mkdir -p "$ROOT/src" "$ROOT/test" "$ROOT/script"
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol "$ROOT/src/"
+          cp ci/nqc-census/weth-physical/test/NqcV2FundedRouteFork.t.sol "$ROOT/test/"
+          cp ci/nqc-census/weth-physical/foundry-time-only.toml "$ROOT/foundry.toml"
+          cp ci/nqc-census/weth-physical/script/NqcV2LocalColdReceipt.s.sol "$ROOT/script/"
+          cp ci/nqc-census/weth-physical/script/NqcV2OneShotAtomicLocal.s.sol "$ROOT/script/"
+          printf '%s  %s\n' \
+            1eb01ef850e8de52c89ef0825207f0a3086251f713313300a73aede1e450875e "$ROOT/src/NqcFlashFundingExecutor.sol" \
+            b157b28d5da13923dfa724f569f790b9dc6396ac8b47a6826c49dd718d42ace9 "$ROOT/test/NqcV2FundedRouteFork.t.sol" \
+            1dcdefbf856d80cc3318131b7123c7d1e7a39e9fc3ac8c6fa5afa1742d9cd124 "$ROOT/foundry.toml" \
+            | sha256sum --check --strict
+          "$RUNNER_TEMP/nqc-one-shot-foundry/forge" build --root "$ROOT" > "$OUT/compile.log" 2>&1
+          echo 'Compiled exact original funded coordinator and new single EOA constructor.'
+      - name: Broadcast ONE AND ONLY ONE EOA CREATE transaction to ephemeral loopback Anvil
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-one-shot-eoa"
+          timeout 1450s python3 ci/nqc-census/rmc-v2-shadow/nqc_local_one_shot_eoa.py \
+            --source-zip "$OUT/11865385506.zip" \
+            --oracle-zip "$OUT/11871075488.zip" \
+            --index-zip "$OUT/11861430884.zip" \
+            --workspace "$RUNNER_TEMP/nqc-one-shot-foundry-project" \
+            --forge "$RUNNER_TEMP/nqc-one-shot-foundry/forge" \
+            --anvil "$RUNNER_TEMP/nqc-one-shot-foundry/anvil" \
+            --cast "$RUNNER_TEMP/nqc-one-shot-foundry/cast" \
+            --out "$OUT/attempt" | tee "$OUT/stdout.log"
+          jq -e '
+            .schema_version==1 and
+            .status=="SINGLE_ATOMIC_LOCAL_EOA_FLASH_LIQUIDATION_NO_MAINNET" and
+            (.errors|length)==0 and
+            .source_hindsight_winner_tx1=="0x08db2e5d5f4e627f9fb4d12a780aac26aed725fab36b70fb9647119872d74625" and
+            .exact_prewinner_local_fork.account_hex_matches_original_exactly==true and
+            .local_single_eoa_receipt_economic_proof.one_and_only_local_eoa_tx_actual_gas_used>21000 and
+            .local_single_eoa_receipt_economic_proof.local_source_aave_liquidation_event_verified==true and
+            .local_single_eoa_receipt_economic_proof.local_source_flash_repaid_event_verified==true and
+            .local_single_eoa_receipt_economic_proof.local_source_funded_completion_event_verified==true and
+            .local_single_eoa_receipt_economic_proof.local_two_stage_erc20_profit_payout_to_test_eoa==true and
+            .local_single_eoa_receipt_economic_proof.local_original_exact_prestate_checked_before_synthetic_broadcast==true and
+            .local_single_eoa_receipt_economic_proof.local_execution_uses_strict_1ppm_posthoc_drift_guard==true and
+            .local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.source_and_execution_hf_below_one==true and
+            .local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.actual_execution_state_1ppm_posthoc_guard_passed==true and
+            .local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.one_synthetic_block_after_source_oracle_tx0==true and
+            .local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.source_equals_execution_six_word_abi==false and
+            (.local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.original_six_abi_uint256_values|length)==6 and
+            (.local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.actual_six_abi_uint256_values|length)==6 and
+            .local_single_eoa_receipt_economic_proof.exact_local_usdc_profit_before_native_costs_base_units==2273989378 and
+            .local_single_eoa_receipt_economic_proof.no_three_post_trigger_setup_eoa_transactions==true and
+            .local_single_eoa_receipt_economic_proof.one_backrun_body_tx_assumed_eligible_but_not_verified_by_svr==true and
+            .local_single_eoa_receipt_economic_proof.real_mainnet_broadcast_or_inclusion==false and
+            .public_ethereum_transaction_broadcast==false and
+            .user_wallet_or_private_key_used==false and
+            .public_ethereum_native_gas_paid==false and
+            .user_mxn_2000_spent==false and
+            .production_pretrigger_access_proven==false and
+            .actual_mev_share_or_svr_inclusion_proven==false and
+            .mainnet_net_ev_or_profit_proven==false and
+            .nonrecourse_external_gas_sponsor_proven==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0"
+          ' "$OUT/attempt/single-eoa-local.json" > "$OUT/contract-check.log"
+          echo 'ONE successful local EOA receipt only, not Ethereum mainnet or SVR inclusion.'
+      - name: Content-address source, exact commit, original archives and failure evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-one-shot-eoa"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/weth-physical/script/NqcV2OneShotAtomicLocal.s.sol \
+             ci/nqc-census/weth-physical/script/NqcV2LocalColdReceipt.s.sol \
+             ci/nqc-census/rmc-v2-shadow/nqc_local_one_shot_eoa.py \
+             ci/nqc-census/rmc-v2-shadow/test_nqc_local_one_shot_eoa.py \
+             ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+             ci/nqc-census/rmc-v2-shadow/LOCAL_SINGLE_EOA_CONSTRUCTOR_CONTRACT.md \
+             ci/nqc-census/weth-physical/test/NqcV2FundedRouteFork.t.sol \
+             ci/nqc-census/weth-physical/foundry-time-only.toml \
+             ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol \
+             .github/workflows/nqc-v2-local-one-shot-eoa.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Save authenticated one-shot receipt OR actual failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-one-shot-eoa-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-one-shot-eoa/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
