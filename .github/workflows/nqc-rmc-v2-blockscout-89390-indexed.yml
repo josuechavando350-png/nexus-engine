@@ -1,0 +1,110 @@
+name: NQC RMC V2 Aave Blockscout 89390-block Indexed Discovery (NO LIVE)
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-v2-postwindow-resumable-shards-20261013"
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_blockscout_aave_89390_indexed_research.py"
+      - ".github/workflows/nqc-rmc-v2-blockscout-89390-indexed.yml"
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_blockscout_aave_89390_indexed_research.py"
+      - ".github/workflows/nqc-rmc-v2-blockscout-89390-indexed.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-indexer-full-window-hypothesis:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+    steps:
+      - name: Checkout immutable proposed commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Run strict 17 offline source/rounding tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-v2-indexer-89390"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_blockscout_aave_89390_indexed_research.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-v2-indexer-89390/tests.log"
+      - name: First match old 139 real logs then search new 89390 blocks
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-indexer-89390"
+          set +e
+          timeout 180s python3 ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py \
+            --out-dir "$OUT" > "$OUT/indexer.stdout" 2> "$OUT/indexer.stderr"
+          code=$?
+          set -e
+          printf 'indexer_exit=%s\n' "$code" > "$OUT/indexer-exit.txt"
+          test "$code" -eq 0
+          jq -e '
+            .status=="OLD_WINDOW_CARDINALITY_MATCH_NEW_TARGETED_INDEX_HINTS_NOT_P2"
+            and .contract=="NQC_V2_AAVE_POSTWINDOW_INDEXED_DISCOVERY_NOT_CANONICAL"
+            and .original_window.start==25880316
+            and .original_window.end==26095351
+            and .original_window.indexed_event_count==139
+            and .original_window.indexed_winner_tx_count==127
+            and .known_positive_rank1_transaction_in_original_window=="0x6313fb267755f3cfa48214bf74309505984306129ee09a558efe4801006dcbba"
+            and .post_window.start==26095352 and .post_window.end==26184741
+            and .postwindow_indexed_stats.total_aave_liquidation_logs_indexed>0
+            and .postwindow_indexed_stats.targeted_liquidation_event_count>=0
+            and .original_event_by_event_139_log_parity_certified==false
+            and .postwindow_canonical_block_receipts_independently_verified==false
+            and .indexer_full_event_completeness_certified==false
+            and .no_Nexus_capture_calibration==true
+            and .nqc_realized_pnl_usd=="0"
+            and .p2_shadow_certified==false
+            and .rmc_closed==false
+            and .commercial_score_upgrade==false
+          ' "$OUT/indexed-postwindow-research.json"
+          jq '{original_window,post_window,postwindow_indexed_stats,
+               targeted_historical_index_hints,
+               postwindow_full_RPC_two_operator_quorum,
+               nqc_realized_pnl_usd}' "$OUT/indexed-postwindow-research.json"
+      - name: Content-addressed source and explicit research-only authority
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-indexer-89390"
+          cp ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_blockscout_aave_89390_indexed_research.py "$OUT/adversarial-tests.py"
+          jq -n --arg commit "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$commit,
+              source_kind:"UNTRUSTED_INDEXED_RESEARCH_DISCOVERY_ONLY",
+              no_full_onchain_RPC_census:true,no_independent_operator_quorum:true,
+              not_prospective_Nexus_capture:true,
+              no_route_completeness_or_commercial_profit:true,
+              no_wallet_gas_or_flash_commitment:true,
+              no_Nexus_realized_PnL:true,RMC_closed:false,P2_closed:false}' > "$OUT/nonclaims.json"
+          (
+            cd "$OUT"
+            sha256sum producer.py adversarial-tests.py tests.log nonclaims.json > evidence.sha256
+            for file in raw-old-rmc016-indexer.json raw-new-postwindow-indexer.json indexed-postwindow-research.json; do
+              if test -f "$file"; then
+                sha256sum "$file" >> evidence.sha256
+              fi
+            done
+            sha256sum -c evidence.sha256
+          )
+      - name: Preserve source or exact refusal
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-indexed-aave-89390-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-v2-indexer-89390/
+          if-no-files-found: warn
+          retention-days: 30
