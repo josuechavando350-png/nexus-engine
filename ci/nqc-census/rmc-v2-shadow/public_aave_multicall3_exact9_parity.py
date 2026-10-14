@@ -195,7 +195,9 @@ def decode_aggregate3(raw):
     need(len(buf)==expected_size and read_word(buf,0)==32 and
          read_word(buf,32)==N,
          "unexpected ABI aggregate3 output length or array offset")
-    dynamic_base=64+N*32
+    # Tuple offsets are relative to the array ELEMENTS section immediately
+    # after the length word, not after the full nine-element offset table.
+    dynamic_base=64
     result=[]
     for i in range(N):
         off=read_word(buf,64+i*32)
