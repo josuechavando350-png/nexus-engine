@@ -168,6 +168,32 @@ class OneShotLocalEoaNegativeTests(unittest.TestCase):
         with self.assertRaises(one.Rejected):
             one.report_source(receipt,self.source,self.operator)
 
+    def test_failed_local_constructor_is_a_gas_loss_not_a_liquidation(self):
+        receipt=self.fake()
+        receipt["status"]="0x0"
+        receipt["contractAddress"]=None
+        receipt["logs"]=[]
+        proof=one.authenticate_failed_loopback_receipt(
+            receipt,receipt["transactionHash"],self.operator)
+        self.assertEqual(proof["status"],
+            "LOCALLY_MINED_EOA_CONSTRUCTOR_REVERTED_NO_PROFIT")
+        self.assertTrue(proof["logs_empty_due_revert"])
+        self.assertFalse(proof["actual_profit_claimed"])
+        self.assertFalse(proof["real_mainnet_transaction"])
+        self.assertGreater(proof["gas_used_by_failed_local_tx"],21_000)
+
+    def test_success_local_constructor_cannot_be_mislabeled_failure(self):
+        receipt=self.fake()
+        with self.assertRaises(one.Rejected):
+            one.authenticate_failed_loopback_receipt(
+                receipt,receipt["transactionHash"],self.operator)
+        receipt["status"]="0x0"
+        receipt["from"]="0x"+"ff"*20
+        receipt["contractAddress"]=None
+        with self.assertRaises(one.Rejected):
+            one.authenticate_failed_loopback_receipt(
+                receipt,receipt["transactionHash"],self.operator)
+
     def test_gas_price_and_cost_identity_kept_local_only(self):
         result=one.report_source(self.fake(),self.source,self.operator)
         self.assertEqual(result["synthetic_local_eoa_paid_wei"],
