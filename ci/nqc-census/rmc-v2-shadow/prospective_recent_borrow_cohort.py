@@ -105,7 +105,7 @@ def parse_borrow(raw, first, last):
          "not Aave V3 Borrow topic/ABI")
     reserve = addr_topic(ts[1], "reserve")
     beneficiary = addr_topic(ts[2], "onBehalfOf")
-    referral = qty(ts[3], "referralCode")
+    referral = int(b32(ts[3], "indexed referralCode"), 16)
     need(referral <= 65535, "uint16 referral overflow")
     data = raw.get("data")
     need(type(data) is str and HEXDATA.fullmatch(data),
