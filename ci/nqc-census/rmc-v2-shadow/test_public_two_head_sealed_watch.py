@@ -175,6 +175,23 @@ class PublicHeadChronologyTests(unittest.TestCase):
         self.assertFalse(out["builder_deadline_known"])
         self.assertTrue(out["first_seen_is_after_canonical_block_inclusion"])
 
+    def test_local_seal_after_successor_slot_timestamp_is_explicitly_negative(self):
+        report,_,_,_=self.make()
+        self.assertFalse(report["first_seal_precedes_successor_canonical_timestamp"])
+        self.assertGreater(report["first_seal_minus_successor_canonical_timestamp_ns"],0)
+        self.assertTrue(report["canonical_block_timestamp_not_measured_builder_cutoff"])
+        self.assertTrue(report["successor_slot_timestamp_derived_not_first_seen_time"])
+        self.assertFalse(report["builder_inclusion_deadline_prealigned_by_this_UTC_check"])
+        # The existing positive ordering claim is ONLY first LOCAL header
+        # observation, even when the successor slot has already occurred.
+        self.assertTrue(report["sealed_before_first_local_successor_header_observation"])
+
+    def test_no_temporal_positive_certain_builder_prediction_from_header(self):
+        report,_,_,_=self.make()
+        self.assertFalse(report["sealed_before_real_block_was_mined_proven"])
+        self.assertFalse(report["private_SVR_or_MEV_share_first_seen_proven"])
+        self.assertFalse(report["early_pending_feed_access_proven"])
+
     def test_all_observed_risk_is_at_exact_two_source_blockhashes(self):
         out,_,chain,_=self.make()
         calls=[(provider,p[1]["blockHash"])
