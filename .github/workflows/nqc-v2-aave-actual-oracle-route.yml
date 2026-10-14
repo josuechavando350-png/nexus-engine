@@ -1,0 +1,141 @@
+name: NQC V2 Actual Aave Three-Asset Oracle Routing (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/aave_three_asset_live_oracle_route.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_aave_three_asset_live_oracle_route.py'
+      - 'ci/nqc-census/rmc-v2-shadow/CANONICAL_AAVE_ASSET_ORACLE_SOURCE_TRUTH.md'
+      - '.github/workflows/nqc-v2-aave-actual-oracle-route.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-oracle-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-block-aave-oracle-path:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact source and independent Keccak-256 selector checks
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-oracle-routing"
+          mkdir -p "$OUT"
+          for test in \
+            'ADDRESSES_PROVIDER() 0542975c' \
+            'getPriceOracle() fca513a8' \
+            'getSourceOfAsset(address) 92bf2be0' \
+            'getAssetPrice(address) b3596f07' \
+            'BASE_CURRENCY() e19f4700' \
+            'BASE_CURRENCY_UNIT() 8c89b64f' \
+            'aggregator() 245a7bfc' \
+            'decimals() 313ce567' \
+            'latestRoundData() feaf968c'; do
+            read -r sig expected <<< "$test"
+            digest="$(printf '%s' "$sig" | openssl dgst -KECCAK-256 | sed 's/.*= //')"
+            actual="$(printf '%s' "$digest" | cut -c1-8)"
+            test "$actual" = "$expected"
+          done
+          echo "All nine original Ethereum method selectors authenticated."
+      - name: Source-locked offline original ABI and anti-private-SVR regressions
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-routing"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_aave_three_asset_live_oracle_route.py -v 2>&1 |
+              tee "$OUT/offline-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/aave_three_asset_live_oracle_route.py
+      - name: Actual dual-RPC Aave Pool provider Oracle three-source read
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-routing"
+          timeout 660s python3 ci/nqc-census/rmc-v2-shadow/aave_three_asset_live_oracle_route.py \
+            --out "$OUT/attempt" > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            .fixed_asset_set==["WETH","USDC","USDT"] and
+            (.precommit_sha256|test("^[0-9a-f]{64}$")) and
+            .source_address_does_not_prove_dedicated_Chainlink_SVR==true and
+            .proxy_aggregator_selector_not_private_mempool_visibility==true and
+            .first_seen_pre_inclusion_report==false and
+            .signed_or_submitted_mainnet_tx==false and
+            .nqc_live_profit_or_sponsorship_proven==false and
+            .market_wide_opportunity_recurrence_proven==false and
+            .commercial_score_upgrade==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .user_mxn2000_spent==false and
+            .OWN_CAPITAL_ZERO_INCLUDING_GAS_UNCHANGED==true and
+            .nqc_realized_pnl_usd=="0" and
+            all(.source_rpc_call_counts[]; .<=38) and
+            (.status=="CURRENT_AAVE_THREE_ASSET_ONCHAIN_ORACLE_ROUTE_NO_SVR_AUTHORITY" or
+             .status=="INCOMPLETE_AAVE_ORACLE_ROUTE_SOURCE_NOT_SVR_DENIAL") and
+            (if .status=="CURRENT_AAVE_THREE_ASSET_ONCHAIN_ORACLE_ROUTE_NO_SVR_AUTHORITY"
+             then (.errors|length)==0 and
+               .EIP1898_same_canonical_block_two_public_source_parity==true and
+               .pool_provider_oracle.canonical_aave_v3_pool=="0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2" and
+               (.pool_provider_oracle.pool_addresses_provider|test("^0x[0-9a-f]{40}$")) and
+               (.pool_provider_oracle.onchain_price_oracle|test("^0x[0-9a-f]{40}$")) and
+               (.asset_routes|length)==3 and
+               [.asset_routes[].asset_symbol]==["WETH","USDC","USDT"] and
+               all(.asset_routes[];
+                   (.aave_oracle_registered_source|test("^0x[0-9a-f]{40}$")) and
+                   (.oracle_get_asset_price_raw|test("^[1-9][0-9]*$")) and
+                   .SVR_eligible_private_update_channel_proven==false)
+             else (.errors|length)>0 and
+               .EIP1898_same_canonical_block_two_public_source_parity==false
+             end)
+          ' "$OUT/attempt/aave-oracle-source-route.json" > "$OUT/contract-check.log"
+          echo "Actual Aave public source path only. Private SVR access remains unproved."
+      - name: Exact tested code + source + failure SHA256 evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-routing"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/aave_three_asset_live_oracle_route.py \
+             ci/nqc-census/rmc-v2-shadow/test_aave_three_asset_live_oracle_route.py \
+             ci/nqc-census/rmc-v2-shadow/CANONICAL_AAVE_ASSET_ORACLE_SOURCE_TRUTH.md \
+             ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py \
+             .github/workflows/nqc-v2-aave-actual-oracle-route.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z |
+            xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Preserve source or fail-closed immutable onchain evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-aave-real-oracle-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-oracle-routing/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
