@@ -1,0 +1,121 @@
+name: NQC V2 Prospective Oracle WebSocket Visibility (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/oracle_ws_visibility_probe.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_oracle_ws_visibility_probe.py'
+      - 'ci/nqc-census/rmc-v2-shadow/ORACLE_WS_VISIBILITY_CONTRACT.md'
+      - '.github/workflows/nqc-v2-oracle-ws-visibility.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-oracle-ws-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bounded-prospective-websocket:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact source head and fail-closed offline tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-ws-oracle"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_oracle_ws_visibility_probe.py -v 2>&1 | tee "$OUT/tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/oracle_ws_visibility_probe.py
+      - name: Isolate and authenticate dependency version
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-ws-oracle"
+          python3 -m venv "$RUNNER_TEMP/nqc-ws-venv"
+          "$RUNNER_TEMP/nqc-ws-venv/bin/pip" install --disable-pip-version-check --no-deps 'websockets==14.2' \
+            2>&1 | tee "$OUT/dependency-install.log"
+          "$RUNNER_TEMP/nqc-ws-venv/bin/python" -c 'import websockets; assert websockets.__version__=="14.2"'
+          "$RUNNER_TEMP/nqc-ws-venv/bin/pip" freeze > "$OUT/dependency-freeze.txt"
+      - name: Read-only public dRPC full pending TX and newHeads subscription
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-ws-oracle"
+          timeout 160s "$RUNNER_TEMP/nqc-ws-venv/bin/python" \
+            ci/nqc-census/rmc-v2-shadow/oracle_ws_visibility_probe.py \
+            --out "$OUT/prospective-ws-observation.json" \
+            --seconds 70 --max-notifications 20000 \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            .source_id=="drpc-public-wss" and
+            .duration_requested_seconds==70 and
+            .notification_quota_requested==20000 and
+            (.status=="SOURCE_SUBSCRIPTION_OR_CHAIN_UNAVAILABLE"
+             or .status=="FULL_PENDING_TX_OBJECTS_NOT_SUPPORTED"
+             or .status=="UNVERIFIABLE_PENDING_WS_PAYLOAD"
+             or .status=="CENSORED_NO_HEAD_OR_PENDING_HEARTBEAT"
+             or .status=="PENDING_ETH_USD_CANDIDATE_UNCONFIRMED"
+             or .status=="CENSORED_PREMATURE_WS_DISCONNECT"
+             or .status=="NO_ORACLE_CANDIDATE_IN_BOUNDED_WS_STREAM_NOT_ABSENCE") and
+            .pending_first_seen_in_node_mempool_proven==false and
+            .public_mempool_completeness_proven==false and
+            .observed_before_canonical_inclusion_proven==false and
+            .price_report_acceptance_proven==false and
+            .hf_crossing_proven==false and
+            .accessible_transaction_ordering_proven==false and
+            .prospective_capture_proven==false and
+            .external_nonrecourse_gas_sponsor_proven==false and
+            .nqc_net_pnl_certified==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            .pending_notifications<=20000 and
+            (.candidate_matches|length)<=12
+          ' "$OUT/prospective-ws-observation.json" >/dev/null
+      - name: Preserve exact code, negative evidence and operator-safe logs
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-ws-oracle"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/oracle_ws_visibility_probe.py \
+             ci/nqc-census/rmc-v2-shadow/test_oracle_ws_visibility_probe.py \
+             ci/nqc-census/rmc-v2-shadow/oracle_pending_visibility_probe.py \
+             ci/nqc-census/rmc-v2-shadow/ORACLE_WS_VISIBILITY_CONTRACT.md \
+             .github/workflows/nqc-v2-oracle-ws-visibility.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload immutable scope-specific source and findings
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-oracle-ws-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-ws-oracle/
+          retention-days: 30
+          if-no-files-found: error
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
