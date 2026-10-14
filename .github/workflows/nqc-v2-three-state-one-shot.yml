@@ -1,0 +1,174 @@
+name: NQC V2 Three-Phase Oracle-to-Winner One-Shot EVM Gate (NO TRADE)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/one_shot_three_state_eligibility.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_one_shot_three_state_eligibility.py'
+      - 'ci/nqc-census/rmc-v2-shadow/THREE_STATE_ORACLE_WINNER_ORDER_CONTRACT.md'
+      - '.github/workflows/nqc-v2-three-state-one-shot.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-three-state-oracle-one-shot-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-three-historical-canonical-source-states:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Bind original successful PR726 source HEAD and 30/30 archive SHA256
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-three-state"
+          mkdir -p "$OUT"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38631895351" > "$OUT/38631895351-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11925719701" > "$OUT/11925719701-artifact.json"
+          jq -e '.id==38631895351 and .status=="completed" and
+                 .conclusion=="success" and
+                 .head_sha=="b6db90946d18e8199268acc1a5eb5ee3f4c541f4"' \
+            "$OUT/38631895351-run.json" >/dev/null
+          jq -e '.id==11925719701 and .expired==false and
+                 .workflow_run.id==38631895351 and
+                 .workflow_run.head_sha=="b6db90946d18e8199268acc1a5eb5ee3f4c541f4" and
+                 .digest=="sha256:1486986943d79a5e52da86e015a7c720f35ac979c062b658699853820e17b2b4"' \
+            "$OUT/11925719701-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11925719701/zip" \
+            --output "$OUT/11925719701.zip"
+          printf '%s  %s\n' \
+            1486986943d79a5e52da86e015a7c720f35ac979c062b658699853820e17b2b4 \
+            "$OUT/11925719701.zip" | sha256sum --check --strict
+      - name: Pin official Anvil v1.8.5 with GitHub Release digest and independent checksum asset
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-three-state"
+          BIN="$RUNNER_TEMP/nqc-three-state-foundry/bin"
+          mkdir -p "$BIN"
+          gh api repos/foundry-rs/foundry/releases/tags/v1.8.5 > "$OUT/foundry-official-release.json"
+          jq -e '.tag_name=="v1.8.5" and .draft==false and .prerelease==false and
+            any(.assets[]; .name=="foundry_v1.8.5_linux_amd64.tar.gz" and
+                ((.digest // "") | test("^sha256:[0-9a-f]{64}$")))' \
+            "$OUT/foundry-official-release.json" >/dev/null
+          expected="$(jq -r '.assets[] | select(.name=="foundry_v1.8.5_linux_amd64.tar.gz") | .digest[7:]' \
+            "$OUT/foundry-official-release.json")"
+          test "$(printf '%s' "$expected" | wc -c)" -eq 64
+          curl --fail --silent --show-error --location \
+            https://github.com/foundry-rs/foundry/releases/download/v1.8.5/foundry_v1.8.5_linux_amd64.tar.gz \
+            -o "$RUNNER_TEMP/nqc-three-state-foundry.tar.gz"
+          printf '%s  %s\n' "$expected" "$RUNNER_TEMP/nqc-three-state-foundry.tar.gz" \
+            | sha256sum --check --strict
+          curl --fail --silent --show-error --location \
+            https://github.com/foundry-rs/foundry/releases/download/v1.8.5/foundry_v1.8.5_linux_amd64.sha256 \
+            -o "$OUT/foundry-official-sha256.txt"
+          test "$(sed -n '1s/[[:space:]].*$//p' "$OUT/foundry-official-sha256.txt")" = "$expected"
+          printf '%s\n' "$expected" > "$OUT/foundry-release-verified-digest.txt"
+          tar -xzf "$RUNNER_TEMP/nqc-three-state-foundry.tar.gz" -C "$BIN" anvil
+          "$BIN/anvil" --version > "$OUT/anvil-version.txt"
+          "$BIN/anvil" --help | grep -- '--fork-transaction-hash' >/dev/null
+      - name: Strict original CREATE archive and twenty adversarial fork-mode regressions
+        env:
+          NQC_PR726_ONE_SHOT_ZIP: ${{ runner.temp }}/nqc-three-state/11925719701.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-three-state"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_one_shot_three_state_eligibility.py -v 2>&1 | tee "$OUT/offline-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/one_shot_three_state_eligibility.py
+      - name: Adversarial three-source causal EVM eth_call matrix (NO signed transaction)
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-three-state"
+          timeout 1400s python3 ci/nqc-census/rmc-v2-shadow/one_shot_three_state_eligibility.py \
+            --original-zip "$OUT/11925719701.zip" \
+            --anvil "$RUNNER_TEMP/nqc-three-state-foundry/bin/anvil" \
+            --out "$OUT/attempt" | tee "$OUT/stdout.log"
+          jq -e '
+            .status=="THREE_STATE_ONE_SHOT_EVM_ELIGIBILITY_ONLY_NO_CAPTURE" and
+            (.errors|length)==0 and
+            .source.zip_sha256=="1486986943d79a5e52da86e015a7c720f35ac979c062b658699853820e17b2b4" and
+            .source.commit=="b6db90946d18e8199268acc1a5eb5ee3f4c541f4" and
+            .source.source_one_shot_local_receipt_gas_used==3914680 and
+            .ONE_SHOT_TRANSACTION_EXACT_SOURCE_INITCODE_REUSED==true and
+            .only_eth_call_and_one_local_empty_block==true and
+            (.three_fork_rows|keys|sort)==[
+                "AFTER_ORACLE_TX0_BEFORE_WINNER_TX1",
+                "AFTER_WINNER_TX1",
+                "PRE_ORACLE_NO_TX0"
+             ] and
+            .three_fork_rows.PRE_ORACLE_NO_TX0.hf_wad>=1000000000000000000 and
+            .three_fork_rows.PRE_ORACLE_NO_TX0.dry_run_returned_evm_bytecode==false and
+            .three_fork_rows.PRE_ORACLE_NO_TX0.dry_run_rpc_error_class=="EVM_REVERT" and
+            .three_fork_rows.AFTER_ORACLE_TX0_BEFORE_WINNER_TX1.hf_wad==996350145012801388 and
+            .three_fork_rows.AFTER_ORACLE_TX0_BEFORE_WINNER_TX1.risk_abi_exactly_source_after_oracle==true and
+            .three_fork_rows.AFTER_ORACLE_TX0_BEFORE_WINNER_TX1.dry_run_returned_evm_bytecode==true and
+            .three_fork_rows.AFTER_WINNER_TX1.risk_abi_exactly_source_after_oracle==false and
+            .three_fork_rows.AFTER_WINNER_TX1.dry_run_returned_evm_bytecode==false and
+            .three_fork_rows.AFTER_WINNER_TX1.dry_run_rpc_error_class=="EVM_REVERT" and
+            .ethereum_public_mempool_or_mev_share_access_proven==false and
+            .builder_private_bundle_submission_or_winning_bid_proven==false and
+            .nonrecourse_gas_funding_proven==false and
+            .nqc_native_mainnet_gas_spent==false and
+            .nqc_realized_pnl_usd=="0" and
+            .commercial_score_upgrade==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .OWN_CAPITAL_ZERO_GAS_POLICY_UNCHANGED==true
+          ' "$OUT/attempt/three-state-oracle-order.json" > "$OUT/contract-check.log"
+          echo "Local EVM state/ordering falsification only; no confirmed private SVR access."
+      - name: Content-address exact tested code + immutable source + outcome or failure evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-three-state"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/one_shot_three_state_eligibility.py \
+             ci/nqc-census/rmc-v2-shadow/test_one_shot_three_state_eligibility.py \
+             ci/nqc-census/rmc-v2-shadow/nqc_local_one_shot_eoa.py \
+             ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py \
+             ci/nqc-census/rmc-v2-shadow/THREE_STATE_ORACLE_WINNER_ORDER_CONTRACT.md \
+             .github/workflows/nqc-v2-three-state-one-shot.yml \
+             "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Preserve immutable three-state causal evidence or exact source failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-three-state-one-shot-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-three-state/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
