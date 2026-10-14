@@ -215,8 +215,15 @@ def extract_revert_reason(response):
     # JSON-RPC errors differ across Ethereum client implementations; do not
     # mistake an upstream/provider failure for a successful negative test.
     need(type(response) is dict and type(response.get("code")) is int and
-         response["code"]<0 and type(response.get("message")) is str,
-         "not a well-formed EVM revert error")
+         type(response.get("message")) is str,
+         "not a well-formed JSON-RPC error")
+    # Anvil v1.8.5 returns EVM execution reverted with JSON-RPC code +3.
+    # Other clients may use -32000/-32015. Neither HTTP429 nor upstream
+    # transport error may be promoted to source EVM guard evidence.
+    if response["code"] not in (3,-32000,-32015):
+        return None
+    if not response["message"].lower().startswith("execution reverted"):
+        return None
     data=response.get("data")
     raw=(data if type(data) is str else
          (data.get("data") if type(data) is dict else None))
