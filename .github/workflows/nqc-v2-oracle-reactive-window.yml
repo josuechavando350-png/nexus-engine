@@ -1,0 +1,131 @@
+name: NQC V2 Historical Primary-to-Secondary Aave Price Activation (NO TRADE)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/oracle_reactive_window_ledger.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_oracle_reactive_window_ledger.py'
+      - 'ci/nqc-census/rmc-v2-shadow/ORACLE_REACTIVE_WINDOW_CONTRACT.md'
+      - '.github/workflows/nqc-v2-oracle-reactive-window.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-oracle-reactive-window-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  authenticated-oracle-window:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact source commit and 21 offline adversarial regressions
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-secondary-window"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_oracle_reactive_window_ledger.py -v 2>&1 | tee "$OUT/tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/oracle_reactive_window_ledger.py
+      - name: Authenticate original receipt-order and historical fork artifacts
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-secondary-window"
+          for item in \
+            '38519386037 11873371179 635a10da08bb5b4cea7639c555cb2ddf7b38c551 success 5e5684fb4a98b87b1d9e2f15facb03ddb093e50a6e75ff4553b79fc192e69d38' \
+            '38520341843 11873907902 d002d4c0a850801ed73911cebcbbc627822d8f12 success dfe6213f2bc32777aa1f4e31172d197e19bf82ae052fae0418331b44cae1a0b7'; do
+            read -r run_id artifact_id head conclusion digest <<< "$item"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$OUT/$run_id-run.json"
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id" > "$OUT/$artifact_id-artifact.json"
+            jq -e --argjson id "$run_id" --arg head "$head" --arg conclusion "$conclusion" \
+              '.id==$id and .status=="completed" and .conclusion==$conclusion and .head_sha==$head' \
+              "$OUT/$run_id-run.json" >/dev/null
+            jq -e --argjson id "$artifact_id" --argjson run "$run_id" \
+                --arg head "$head" --arg digest "sha256:$digest" \
+              '.id==$id and .expired==false and .digest==$digest and
+               .workflow_run.id==$run and .workflow_run.head_sha==$head' \
+               "$OUT/$artifact_id-artifact.json" >/dev/null
+            curl --fail --silent --show-error --location --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+              --output "$OUT/$artifact_id.zip"
+            printf '%s  %s\n' "$digest" "$OUT/$artifact_id.zip" | sha256sum --check --strict
+          done
+      - name: Build bounded integer oracle activation opportunity-window ledger
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-secondary-window"
+          python3 ci/nqc-census/rmc-v2-shadow/oracle_reactive_window_ledger.py \
+            --round-order-artifact "$OUT/11873371179.zip" \
+            --price-path-artifact "$OUT/11873907902.zip" \
+            --out "$OUT/oracle-reactive-windows.json" | tee "$OUT/stdout.log"
+          jq -e '
+            .schema_version==1 and
+            .status=="TWO_HISTORICAL_SECONDARY_PRICE_ACTIVATIONS_REPRODUCED_NO_CAPTURE" and
+            (.rounds|length)==2 and
+            .secondary_only_price_activation_count==2 and
+            .next_block_secondary_count==1 and
+            .same_block_secondary_count==1 and
+            .original_order_source_only_one_endpoint_complete==true and
+            .historical_selected_rounds_not_population==true and
+            .public_mempool_first_seen_proven==false and
+            .prospective_oracle_report_visibility_proven==false and
+            .confirmed_block_reactive_capture_proven==false and
+            .candidate_borrower_hf_crossing_proven==false and
+            .cold_transaction_gas_authenticated==false and
+            .external_nonrecourse_native_gas_sponsor_proven==false and
+            .nqc_net_profit_authenticated==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            all(.rounds[];.aave_price_after_secondary_raw<.aave_price_before_raw
+              and .borrower_at_risk_identified_in_this_round==false)
+          ' "$OUT/oracle-reactive-windows.json" >/dev/null
+      - name: Record immutable results, failed attempts, original source and head
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-secondary-window"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/oracle_reactive_window_ledger.py \
+             ci/nqc-census/rmc-v2-shadow/test_oracle_reactive_window_ledger.py \
+             ci/nqc-census/rmc-v2-shadow/ORACLE_REACTIVE_WINDOW_CONTRACT.md \
+             .github/workflows/nqc-v2-oracle-reactive-window.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload exact-head source and fail-closed timing evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-oracle-reactive-window-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-secondary-window/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
