@@ -266,50 +266,77 @@ def probe(samples, interval_seconds, transport_factory=None, sleeper=time.sleep)
         'source':'live_uncommitted_rpc_pending_view_only',
         'target_eth_usd_aggregator':AGGREGATOR,
         'start_utc':utc_now(), 'samples_requested_per_provider':samples,
+        'polling_order':'round_robin_drpc_then_blast_each_round',
         'providers':{},'cross_provider_overlap_hashes':[],
         'prospective_capture_proven':False,'pending_channel_exhaustive':False,
         'mempool_first_seen_time_proven':False,'private_orderflow_observed':False,
         'nqc_net_margin_proven':False,'native_gas_sponsor_nonrecourse_proven':False,
         'RMC_closed':False,'P2_shadow_certified':False,'canary_live_authorized':False,
         'commercial_score_upgrade':False,'nqc_realized_pnl_usd':'0'}
+    clients = {}
+    disabled = set()
     for provider in ('drpc','blast'):
-        rpc=RPC(provider, transport_factory(provider) if transport_factory else None)
+        rpc=RPC(provider,transport_factory(provider) if transport_factory else None)
+        clients[provider]=rpc
         row={'status':'INCOMPLETE','observations':[], 'errors':[],
              'rpc_provider_id':provider,'rpc_operator_independence_proven':False}
         result['providers'][provider]=row
         try:
             rpc.verify_chain()
-            for sample_number in range(samples):
-                if sample_number:
-                    sleeper(interval_seconds)
-                try:
-                    observed=rpc.sample()
-                    row['observations'].append(observed)
-                    if observed['status'].startswith('CENSORED_'):
-                        row['status']='CENSORED_PENDING_VIEW'
-                    elif observed['status']=='PENDING_ORACLE_CANDIDATES_IN_SINGLE_RPC_VIEW':
-                        row['status']='OBSERVED_UNCONFIRMED_RPC_VIEW'
-                except Exception as exc:
-                    row['errors'].append({'sample':sample_number,
-                                          'error_type':type(exc).__name__,
-                                          'detail':str(exc).split('https://')[0][:160]})
-                    row['status']='SOURCE_FAILURE_CENSORED'
-                    break  # no repeated hammering a failing public endpoint
-            if not row['errors'] and row['status']=='INCOMPLETE':
-                row['status']='NO_TARGET_IN_BOUNDED_VIEWS_NOT_MARKET_ABSENCE'
         except Exception as exc:
             row['errors'].append({'stage':'verify_chain','error_type':type(exc).__name__,
                                   'detail':str(exc).split('https://')[0][:160]})
             row['status']='SOURCE_FAILURE_CENSORED'
-        row['rpc_calls_consumed']=rpc.calls
-        row['rpc_transcript']=rpc.records
+            disabled.add(provider)
+    # Interleave providers within each round. Sequential provider-long runs
+    # cannot meaningfully compare ephemeral pending contents or source quality.
+    for round_index in range(samples):
+        if round_index:
+            sleeper(interval_seconds)
+        for provider in ('drpc','blast'):
+            if provider in disabled:
+                continue
+            rpc=clients[provider]
+            row=result['providers'][provider]
+            try:
+                observed=rpc.sample()
+                observed['round_index']=round_index
+                row['observations'].append(observed)
+            except Exception as exc:
+                row['errors'].append({'sample':round_index,
+                                      'error_type':type(exc).__name__,
+                                      'detail':str(exc).split('https://')[0][:160]})
+                row['status']='SOURCE_FAILURE_CENSORED'
+                disabled.add(provider)  # no repeated hammering of public endpoints
+    result['valid_pending_snapshots_per_provider'] = {}
+    result['pending_transaction_objects_examined_per_provider'] = {}
+    for provider in ('drpc','blast'):
+        row=result['providers'][provider]
+        all_observations=row['observations']
+        valid=[o for o in all_observations if o['status'] in
+                ('NO_TARGET_IN_BOUNDED_PENDING_VIEW_NOT_MARKET_ABSENCE',
+                 'PENDING_ORACLE_CANDIDATES_IN_SINGLE_RPC_VIEW')]
+        result['valid_pending_snapshots_per_provider'][provider]=len(valid)
+        result['pending_transaction_objects_examined_per_provider'][provider]=sum(
+                o['pending_transactions_count'] for o in valid)
+        if row['errors']:
+            row['status']='SOURCE_FAILURE_CENSORED'
+        elif any(o['status'].startswith('CENSORED_') for o in all_observations):
+            row['status']='CENSORED_PENDING_VIEW'
+        elif any(o['status']=='PENDING_ORACLE_CANDIDATES_IN_SINGLE_RPC_VIEW'
+                 for o in all_observations):
+            row['status']='OBSERVED_UNCONFIRMED_RPC_VIEW'
+        else:
+            row['status']='NO_TARGET_IN_BOUNDED_VIEWS_NOT_MARKET_ABSENCE'
+        row['rpc_calls_consumed']=clients[provider].calls
+        row['rpc_transcript']=clients[provider].records
     hits=[set(candidate['hash'] for sample in data['observations']
               if sample['status']=='PENDING_ORACLE_CANDIDATES_IN_SINGLE_RPC_VIEW'
               for candidate in sample['candidates'] if candidate['receipt_null_at_probe'])
           for data in result['providers'].values()]
     result['cross_provider_overlap_hashes']=sorted(hits[0]&hits[1])
     observed=any(hits)
-    usable=all(r['observations'] and not r['errors'] and
+    usable=all(len(r['observations']) == samples and not r['errors'] and
                all(o['status'] in ('NO_TARGET_IN_BOUNDED_PENDING_VIEW_NOT_MARKET_ABSENCE',
                                    'PENDING_ORACLE_CANDIDATES_IN_SINGLE_RPC_VIEW')
                    for o in r['observations'])
@@ -324,8 +351,8 @@ def probe(samples, interval_seconds, transport_factory=None, sleeper=time.sleep)
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--out',type=Path,required=True)
-    parser.add_argument('--samples',type=int,default=3)
-    parser.add_argument('--interval-seconds',type=int,default=6)
+    parser.add_argument('--samples',type=int,default=6)
+    parser.add_argument('--interval-seconds',type=int,default=3)
     args=parser.parse_args()
     need(args.out.parent.is_dir() and not args.out.exists(),'output must be a new file')
     result=probe(args.samples,args.interval_seconds)
