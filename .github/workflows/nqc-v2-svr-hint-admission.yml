@@ -1,0 +1,86 @@
+name: NQC V2 SVR Hint ABI Admission (OFFLINE ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/svr_hint_admission.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_svr_hint_admission.py'
+      - 'ci/nqc-census/rmc-v2-shadow/SVR_HINT_ADMISSION_CONTRACT.md'
+      - '.github/workflows/nqc-v2-svr-hint-admission.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-svr-hints-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-svr-abi-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact-head SHA and independent selectors
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-svr-hints"
+          mkdir -p "$OUT"
+          python3 - <<'PY' | tee "$OUT/selector-authentication.txt"
+          from nqc_local_one_shot_eoa import ethereum_keccak256
+          from svr_hint_admission import FORWARD_SELECTOR, SECONDARY_SELECTOR
+          checks = {
+              b'': 'c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470',
+              b'transfer(address,uint256)': 'a9059cbb',
+          }
+          for source, expected in checks.items():
+              assert ethereum_keccak256(source).hex().startswith(expected)
+          for signature, expected in (
+              (b'forward(address,bytes)', FORWARD_SELECTOR),
+              (b'transmitSecondary(bytes32[3],bytes,bytes32[],bytes32[],bytes32)', SECONDARY_SELECTOR),
+          ):
+              computed = ethereum_keccak256(signature)[:4]
+              assert computed == expected, (signature, computed.hex(), expected.hex())
+              print(signature.decode(), computed.hex())
+          print('Ethereum Keccak-256 exact selector and golden vectors PASS')
+          PY
+      - name: Offline adversarial parser and no-profit claims
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-svr-hints"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_svr_hint_admission.py -v 2>&1 | tee "$OUT/adversarial-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/svr_hint_admission.py
+          echo 'OFFLINE ONLY; access/capture/financing/profit not tested' | tee "$OUT/outcome.txt"
+      - name: Content-addressed source and result manifest
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-svr-hints"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/svr_hint_admission.py \
+             ci/nqc-census/rmc-v2-shadow/test_svr_hint_admission.py \
+             ci/nqc-census/rmc-v2-shadow/SVR_HINT_ADMISSION_CONTRACT.md \
+             .github/workflows/nqc-v2-svr-hint-admission.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | \
+            xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Preserve immutable offline evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-svr-hint-admission-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-svr-hints/
+          retention-days: 30
+          if-no-files-found: error
