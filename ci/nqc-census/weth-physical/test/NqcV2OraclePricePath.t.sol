@@ -15,21 +15,23 @@ interface VmNqcPricePath {
     function recordLogs() external;
     function getRecordedLogs() external returns (Log[] memory);
 }
+
 interface IAaveNqcPathPool {
     function ADDRESSES_PROVIDER() external view returns (address);
 }
+
 interface IAaveNqcPathProvider {
     function getPriceOracle() external view returns (address);
 }
+
 interface IAaveNqcPathOracle {
     function getSourceOfAsset(address asset) external view returns (address);
     function getAssetPrice(address asset) external view returns (uint256);
 }
+
 interface IChainlinkNqcPathProxy {
     function aggregator() external view returns (address);
-    function latestRoundData()
-        external view
-        returns (uint80, int256, uint256, uint256, uint80);
+    function latestRoundData() external view returns (uint80, int256, uint256, uint256, uint80);
 }
 
 /// @notice Strictly an historical fork read-only EVM experiment.
@@ -67,7 +69,7 @@ contract NqcV2OraclePricePathTest {
         require(proxy.aggregator() == AGGREGATOR, "DYNAMIC_WETH_AGGREGATOR_DRIFT");
 
         uint256 beforePrice = oracle.getAssetPrice(WETH);
-        (uint80 roundBefore, int256 answerBefore,,, ) = proxy.latestRoundData();
+        (uint80 roundBefore, int256 answerBefore,,,) = proxy.latestRoundData();
         require(beforePrice > 0 && answerBefore > 0, "BAD_CANONICAL_PRESTATE_PRICE");
 
         vm.recordLogs();
@@ -76,18 +78,20 @@ contract NqcV2OraclePricePathTest {
         uint256 matches;
         for (uint256 i; i < logs.length; ++i) {
             if (
-                logs[i].emitter == AGGREGATOR && logs[i].topics.length == 2
-                    && logs[i].topics[0] == topic && uint256(logs[i].topics[1]) == roundId
+                logs[i].emitter == AGGREGATOR && logs[i].topics.length == 2 && logs[i].topics[0] == topic
+                    && uint256(logs[i].topics[1]) == roundId
             ) {
                 ++matches;
             }
         }
         require(matches == 1, "EXPECTED_ORACLE_EVENT_NOT_REPLAYED_EXACTLY_ONCE");
-        require(oracle.getSourceOfAsset(WETH) == proxyAddress && proxy.aggregator() == AGGREGATOR,
-            "ORACLE_SOURCE_CHANGED_DURING_TX");
+        require(
+            oracle.getSourceOfAsset(WETH) == proxyAddress && proxy.aggregator() == AGGREGATOR,
+            "ORACLE_SOURCE_CHANGED_DURING_TX"
+        );
 
         uint256 afterPrice = oracle.getAssetPrice(WETH);
-        (uint80 roundAfter, int256 answerAfter,,, ) = proxy.latestRoundData();
+        (uint80 roundAfter, int256 answerAfter,,,) = proxy.latestRoundData();
         require(afterPrice > 0 && answerAfter > 0, "BAD_CANONICAL_POSTSTATE_PRICE");
 
         emit log_named_uint("NQC_AAVE_PRICE_BEFORE", beforePrice);
