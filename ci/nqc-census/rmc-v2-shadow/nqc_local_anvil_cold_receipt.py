@@ -26,6 +26,7 @@ import zipfile
 
 import postwindow_economic_envelope as historical
 import competitor_native_gas_vs_nqc_fork as oracle_evidence
+import postwindow_competition_capacity_hurdle as original_index
 
 LOCAL_URL = "http://127.0.0.1:18545"
 UPSTREAM_READ_ONLY_RPC = "https://eth.drpc.org"
@@ -135,11 +136,19 @@ def validate_original_zip(source_body:bytes):
 
 
 
-def authenticate_oracle_prefix(oracle_source_bytes):
+def authenticate_oracle_prefix(oracle_source_bytes, index_source_bytes):
     need(type(oracle_source_bytes) is bytes and
          sha256(oracle_source_bytes).hexdigest() == ORACLE_SOURCE_ZIP_SHA,
          "source oracle PR700 ZIP digest drift")
     cases, provenance = oracle_evidence.authenticate_oracle(oracle_source_bytes)
+    indexed, rows, index_proof = original_index.authenticate_index_archive(index_source_bytes)
+    winner_rows = [x for x in rows if x.get("tx_hash") == FORK_WINNER]
+    need(type(indexed) is dict and indexed.get("indexed_event_count") == 53 and
+         indexed.get("unique_indexed_winner_tx_count") == 47 and
+         len(winner_rows) == 2 and
+         all(x["block"] == PINNED_BLOCK and
+             x["transaction_index"] == 1 for x in winner_rows),
+         "PR693 source original winner is not canonical tx index 1")
     selected = cases.get(CASE)
     need(type(selected) is dict and
          selected.get("block") == PINNED_BLOCK and
@@ -152,6 +161,8 @@ def authenticate_oracle_prefix(oracle_source_bytes):
          "source oracle tx0 / winner tx1 identities not canonical")
     return {
         "source": provenance,
+        "indexer_original_winner":index_proof,
+        "indexed_winner_number_of_liquidation_logs":len(winner_rows),
         "source_oracle_trigger_tx_index": 0,
         "source_winner_tx_index_from_original_indexer": 1,
         "fork_transaction_hash_last_included": FORK_ORACLE_TX0,
@@ -353,9 +364,9 @@ def decode_local_receipts(result_file, rpc, operator, source, old_gas):
     }
 
 
-def run(source_zip, oracle_zip, workspace, forge, anvil, cast, out):
+def run(source_zip, oracle_zip, index_zip, workspace, forge, anvil, cast, out):
     inputs,provenance=validate_original_zip(source_zip)
-    oracle_prefix = authenticate_oracle_prefix(oracle_zip)
+    oracle_prefix = authenticate_oracle_prefix(oracle_zip,index_zip)
     files=check_source_files(workspace)
     out.mkdir(parents=True,exist_ok=False)
     summary={
@@ -478,6 +489,7 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--source-zip",type=Path,required=True)
     p.add_argument("--oracle-zip",type=Path,required=True)
+    p.add_argument("--index-zip",type=Path,required=True)
     p.add_argument("--workspace",type=Path,required=True)
     p.add_argument("--forge",type=Path,required=True)
     p.add_argument("--anvil",type=Path,required=True)
@@ -486,7 +498,8 @@ def main():
     args=p.parse_args()
     need(args.out.is_absolute() and not args.out.exists() and
          args.out.parent.exists(),"unique absolute output dir required")
-    doc=run(args.source_zip.read_bytes(),args.oracle_zip.read_bytes(),args.workspace,
+    doc=run(args.source_zip.read_bytes(),args.oracle_zip.read_bytes(),
+            args.index_zip.read_bytes(),args.workspace,
             args.forge,args.anvil,args.cast,args.out)
     print(doc["status"],"local_eoa_receipt_gas",
           doc.get("full_local_eoa_receipts",{}).get(
