@@ -58,7 +58,7 @@ jobs:
           printf '%s  %s\n' \
             '5a198ad15588e6e2ec692ef05ab16f51127141b3b00b0949b6ea7d945b20d1c4' \
             "$OUT/11861430884.zip" | sha256sum --check --strict
-      - name: Source-locked 18 adversarial negative/gas-conservation tests
+      - name: Source-locked 19 adversarial negative/gas-conservation tests
         env:
           NQC_PR693_GAS_SOURCE_ZIP: ${{ runner.temp }}/nqc-competitor-native-gas/11861430884.zip
         run: |
@@ -78,6 +78,7 @@ jobs:
           jq -e '
             .schema_version==1 and
             (.status=="TWO_URL_47_COMPETITOR_RECEIPTS_GAS_PARITY_NO_NQC_GAS" or
+             .status=="MISMATCH_TWO_PUBLIC_URLS_COMPETITOR_GAS_UNCERTIFIED" or
              .status=="INCOMPLETE_COMPETITOR_RECEIPT_GAS_NOT_NQC_NET") and
             .source_index_sha256=="5a198ad15588e6e2ec692ef05ab16f51127141b3b00b0949b6ea7d945b20d1c4" and
             .source_liquidation_events_indexed==53 and
