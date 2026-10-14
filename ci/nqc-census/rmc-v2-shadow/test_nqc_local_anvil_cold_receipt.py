@@ -30,6 +30,41 @@ def fake_receipts():
             "logs":[{"logIndex":hex(j)} for j in range(9)] if i==3 else [],
         }
         rows.append(receipt)
+    def word(x):
+        return f"{x:064x}"
+    def topic_address(x):
+        return "0x"+"0"*24+x[2:].lower()
+    def event(emitter,topics,words,index):
+        return {
+            "address":emitter,"topics":topics,
+            "data":"0x"+"".join(word(x) for x in words),
+            "transactionHash":rows[3]["transactionHash"],
+            "blockHash":rows[3]["blockHash"],
+            "logIndex":hex(index),
+        }
+    weth="0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+    usdc="0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+    borrower="0xc8097d434b46888a14be77dfc836d86971e3c40f"
+    funding=event(executor,[
+        app.FUNDING_COMPLETED_TOPIC,"0x"+"11"*32,
+        "0x"+"22"*32,"0x"+"33"*32],
+        [int(usdc,16),app.EXPECTED_PRINCIPAL,
+         app.EXPECTED_SURPLUS_BEFORE_NATIVE,1],0)
+    repaid=event(executor,[
+        app.FUNDING_LEG_REPAID_TOPIC,"0x"+"11"*32,"0x"+"0"*64],
+        [1,int(app.POOL,16),app.EXPECTED_PRINCIPAL,
+         app.EXPECTED_FEE,app.EXPECTED_PRINCIPAL+app.EXPECTED_FEE],1)
+    liquidation=event(app.POOL,[
+        app.AAVE_LIQUIDATION_TOPIC,topic_address(weth),
+        topic_address(usdc),topic_address(borrower)],
+        [app.EXPECTED_PRINCIPAL,app.EXPECTED_COLLATERAL,
+         int(strategy,16),0],2)
+    transfer=event(usdc,[app.ERC20_TRANSFER_TOPIC,
+                         topic_address(executor),topic_address(sender)],
+                   [app.EXPECTED_SURPLUS_BEFORE_NATIVE],3)
+    filler=[event("0x"+"cc"*20,["0x"+"ff"*32],[],4+i)
+            for i in range(6)]
+    rows[3]["logs"]=[funding,repaid,liquidation,transfer]+filler
     return sender,rows
 
 
@@ -159,6 +194,61 @@ class LocalOnlyColdReceiptTests(unittest.TestCase):
         d,_=self.make_report()
         self.assertNotEqual(d["fork_only_execute_receipt_gas_used"],2_740_350)
         self.assertNotEqual(d["fork_only_execute_receipt_gas_used"],1_115_038)
+
+    def test_local_eoa_receipt_carries_exact_liquidation_flash_and_paid_profit_events(self):
+        report,_=self.make_report()
+        proof=report["verified_atomic_execution_events"]
+        for key in (
+            "authentic_local_aave_liquidation_event",
+            "authentic_local_flash_loan_repaid_event",
+            "authentic_local_funding_completed_event",
+            "authentic_local_erc20_profit_transfer_to_ephemeral_eoa",
+            "not_a_mainnet_or_prospective_profit_witness",
+        ):
+            self.assertTrue(proof[key])
+        self.assertEqual(proof["local_profit_asset_base_units"],2_273_989_378)
+        self.assertEqual(proof["local_principal_repaid_base_units"],
+                         app.EXPECTED_PRINCIPAL+app.EXPECTED_FEE)
+        self.assertEqual(len(proof["local_atomic_event_log_sha256"]),64)
+
+    def test_forged_funded_profit_amount_is_rejected(self):
+        _,rows=fake_receipts()
+        rows[3]["logs"][0]["data"]="0x"+(
+            f"{int(self.inputs['NQC_DEBT_ASSET'],16):064x}"+
+            f"{app.EXPECTED_PRINCIPAL:064x}"+
+            f"{app.EXPECTED_SURPLUS_BEFORE_NATIVE+1:064x}"+
+            f"{1:064x}")
+        with self.assertRaises(app.Rejected):self.make_report(rows)
+
+    def test_wrong_flash_repayment_or_fee_is_rejected(self):
+        _,rows=fake_receipts()
+        rows[3]["logs"][1]["data"]="0x"+(
+            f"{1:064x}"+
+            f"{int(app.POOL,16):064x}"+
+            f"{app.EXPECTED_PRINCIPAL:064x}"+
+            f"{app.EXPECTED_FEE+1:064x}"+
+            f"{app.EXPECTED_PRINCIPAL+app.EXPECTED_FEE:064x}")
+        with self.assertRaises(app.Rejected):self.make_report(rows)
+
+    def test_wrong_liquidation_borrower_is_rejected(self):
+        _,rows=fake_receipts()
+        rows[3]["logs"][2]["topics"][3]="0x"+"0"*24+"12"*20
+        with self.assertRaises(app.Rejected):self.make_report(rows)
+
+    def test_missing_profit_transfer_cannot_be_claimed_as_paid(self):
+        _,rows=fake_receipts()
+        rows[3]["logs"].pop(3)
+        with self.assertRaises(app.Rejected):self.make_report(rows)
+
+    def test_fake_erc20_profit_sweep_amount_is_rejected(self):
+        _,rows=fake_receipts()
+        rows[3]["logs"][3]["data"]="0x"+f"{app.EXPECTED_SURPLUS_BEFORE_NATIVE-1:064x}"
+        with self.assertRaises(app.Rejected):self.make_report(rows)
+
+    def test_profit_event_missing_or_wrong_emitter_rejected(self):
+        _,rows=fake_receipts()
+        rows[3]["logs"][0]["address"]="0x"+"ab"*20
+        with self.assertRaises(app.Rejected):self.make_report(rows)
 
     def test_receipt_revert_must_fail(self):
         _,rows=fake_receipts()
