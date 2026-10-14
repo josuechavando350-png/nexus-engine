@@ -1,0 +1,421 @@
+#!/usr/bin/env python3
+"""Real local Anvil receipt gasUsed for authenticated historical NQC funded route.
+
+ONLY eth_sendRawTransaction emitted by Foundry to 127.0.0.1 ephemeral Anvil.
+Anvil forks real Ethereum as READ-ONLY history and never forwards local writes.
+A generated test-only EOA is funded using Anvil's synthetic setBalance API.
+No wallet/account/user funds, mainnet broadcast, deployment or gas expense.
+"""
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+from hashlib import sha256
+from io import BytesIO
+import json
+import os
+from pathlib import Path
+import re
+import secrets
+import shutil
+import socket
+import subprocess
+import time
+from urllib.request import Request, urlopen
+import zipfile
+
+import postwindow_economic_envelope as historical
+
+LOCAL_URL = "http://127.0.0.1:18545"
+UPSTREAM_READ_ONLY_RPC = "https://eth.drpc.org"
+SOURCE_ZIP_SHA = historical.EXPECTED_ARTIFACT_SHA256
+FORK_WINNER = "0x08db2e5d5f4e627f9fb4d12a780aac26aed725fab36b70fb9647119872d74625"
+PINNED_BLOCK = 26_142_067
+CASE = "WETH_COLLATERAL_USDC_DEBT"
+POOL = "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
+EXECUTOR_SOURCE_SHA = "1eb01ef850e8de52c89ef0825207f0a3086251f713313300a73aede1e450875e"
+OLD_ROUTE_SOURCE_SHA = "b157b28d5da13923dfa724f569f790b9dc6396ac8b47a6826c49dd718d42ace9"
+SOURCE_FOUNDRY_SHA = "1dcdefbf856d80cc3318131b7123c7d1e7a39e9fc3ac8c6fa5afa1742d9cd124"
+EXPECTED_PRINCIPAL = 48_993_353_728
+EXPECTED_FEE = 24_496_677
+EXPECTED_COLLATERAL = 20_140_477_263_386_042_567
+EXPECTED_SURPLUS_BEFORE_NATIVE = 2_273_989_378
+MAX_RPC_CALLS = 22
+MAX_RPC_REPLY_BYTES = 1_048_576
+WAIT_UP_TO_SECONDS = 320
+FORGE_UP_TO_SECONDS = 1000
+ABI_ADDRESS = re.compile(r"0x[0-9a-fA-F]{40}\Z")
+HEX32 = re.compile(r"0x[0-9a-fA-F]{64}\Z")
+EXPECTED_RECEIPTS = 4
+
+
+class Rejected(ValueError):
+    pass
+
+
+def need(ok, why):
+    if not ok:
+        raise Rejected(why)
+
+
+def canonical(obj):
+    return (json.dumps(obj, sort_keys=True, separators=(",",":"),
+                       ensure_ascii=True)+"\n").encode()
+
+
+def utc_now():
+    return datetime.now(timezone.utc).isoformat()
+
+
+def sha_file(path):
+    return sha256(path.read_bytes()).hexdigest()
+
+
+def integer(v, name, positive=True):
+    need(type(v) is int and ((v>0) if positive else (v>=0)),
+         "invalid exact integer "+name)
+    return v
+
+
+def quantity(v, name):
+    need(type(v) is str and re.fullmatch(r"0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)",v),
+         "invalid Ethereum hex quantity: "+name)
+    return int(v,16)
+
+
+def validate_original_zip(source_body:bytes):
+    need(type(source_body) is bytes and
+         sha256(source_body).hexdigest() == SOURCE_ZIP_SHA,
+         "original immutable funded-route ZIP mismatch")
+    original, proof = historical.authenticate_archive(source_body)
+    cases=historical.authenticated_cases(original)
+    case=next((x for x in cases if x["label"]==CASE),None)
+    need(case is not None and case["surplus_asset_micros"]==
+         EXPECTED_SURPLUS_BEFORE_NATIVE and
+         case["gross_call_gas_not_receipt_gas"]==1_115_038 and
+         case["block_base_fee_wei"]==1_086_577_108,
+         "not exact original WETH/USDC positive route")
+    with zipfile.ZipFile(BytesIO(source_body)) as z:
+        need("attempt/weth_collateral_usdc_debt-drpc/public-inputs.json"
+             in z.namelist(),"exact dRPC original inputs missing")
+        raw=z.read("attempt/weth_collateral_usdc_debt-drpc/public-inputs.json")
+        doc=historical.strict_json(raw)
+    exact={
+        "NQC_WINNER_TX": FORK_WINNER,
+        "NQC_WINNER_BLOCK":str(PINNED_BLOCK),
+        "NQC_PRINCIPAL":str(EXPECTED_PRINCIPAL),
+        "NQC_COLLATERAL":str(EXPECTED_COLLATERAL),
+        "NQC_DEBT_ASSET":"0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "NQC_RPC_URL":UPSTREAM_READ_ONLY_RPC,
+    }
+    for field,value in exact.items():
+        need(doc.get(field)==value,"prior source input drift: "+field)
+    need(type(doc.get("NQC_BORROWER")) is str and
+         ABI_ADDRESS.fullmatch(doc["NQC_BORROWER"]) and
+         type(doc.get("NQC_PARENT_HASH")) is str and
+         HEX32.fullmatch(doc["NQC_PARENT_HASH"]) and
+         type(doc.get("NQC_PRESTATE_ABI")) is str and
+         re.fullmatch(r"0x[0-9a-fA-F]{384}",doc["NQC_PRESTATE_ABI"]) and
+         int(doc["NQC_PRESTATE_ABI"][-64:],16)<10**18,
+         "historical borrower prestate ABI not authenticated")
+    return doc,proof
+
+
+def reject_nonlocal_url(url):
+    need(url==LOCAL_URL,"any non-loopback or altered RPC URL forbidden")
+    return url
+
+
+class LocalAnvil:
+    def __init__(self,url=LOCAL_URL):
+        self.url=reject_nonlocal_url(url)
+        self.calls=0
+        self.transcript=[]
+
+    def call(self,method,params):
+        need(self.calls < MAX_RPC_CALLS,"local Anvil RPC budget exceeded")
+        need(method in {
+            "eth_chainId","eth_blockNumber","eth_getBlockByNumber",
+            "eth_getTransactionReceipt","eth_getBalance","eth_call",
+            "anvil_nodeInfo","anvil_setBalance",
+        },"outside audited local Anvil RPC allowlist")
+        if method=="anvil_setBalance":
+            need(type(params) is list and len(params)==2 and
+                 type(params[0]) is str and ABI_ADDRESS.fullmatch(params[0]) and
+                 params[1]=="0x3635c9adc5dea00000",
+                 "only deterministic synthetic 1000 ETH local mint allowed")
+        body=json.dumps({"jsonrpc":"2.0","id":95,"method":method,
+                         "params":params},separators=(",",":")).encode()
+        req=Request(self.url,method="POST",data=body,headers={
+            "Content-Type":"application/json",
+            "User-Agent":"NQC-V2-ANVIL-LOOPBACK-ONLY-NO-MAINNET-WRITES/1"})
+        started=time.monotonic_ns()
+        try:
+            with urlopen(req,timeout=38) as resp:
+                raw=resp.read(MAX_RPC_REPLY_BYTES+1)
+            need(len(raw)<=MAX_RPC_REPLY_BYTES,
+                 "local Anvil response exceeds budget")
+            doc=historical.strict_json(raw)
+            need(type(doc) is dict and doc.get("jsonrpc")=="2.0" and
+                 doc.get("id")==95 and "error" not in doc and
+                 "result" in doc,"Anvil RPC rejected request")
+            self.calls+=1
+            result=doc["result"]
+            self.transcript.append({"method":method,
+                "result_sha256":sha256(canonical(result)).hexdigest(),
+                "elapsed_ns":time.monotonic_ns()-started})
+            return result
+        except Exception as exc:
+            self.transcript.append({"method":method,
+                "error":type(exc).__name__+":"+str(exc)[:130],
+                "elapsed_ns":time.monotonic_ns()-started})
+            raise
+
+
+def check_fork_snapshot(rpc,public_inputs):
+    need(quantity(rpc.call("eth_chainId",[]),"chain id")==1,
+         "wrong historical Ethereum fork chainId")
+    meta=rpc.call("anvil_nodeInfo",[])
+    need(type(meta) is dict,"127.0.0.1 endpoint is not an Anvil node")
+    block=rpc.call("eth_getBlockByNumber",["latest",False])
+    need(type(block) is dict,"fork did not produce a block header")
+    height=quantity(block.get("number"),"fork height")
+    need(PINNED_BLOCK-1<=height<=PINNED_BLOCK+1,
+         "fork not exactly before source winner transaction")
+    borrower=public_inputs["NQC_BORROWER"].lower()
+    source_data="0xbf92857c"+"0"*24+borrower[2:]
+    raw=rpc.call("eth_call",[{"to":POOL,"data":source_data},"latest"])
+    need(type(raw) is str and raw.lower()==
+         public_inputs["NQC_PRESTATE_ABI"].lower(),
+         "ANVIL_PRE_WINNER_AAVE_ACCOUNT_NOT_SOURCE_IDENTICAL")
+    return {"block_number":height,"block_hash":block.get("hash"),
+            "borrower":borrower,
+            "prewinner_account_sha256":sha256(bytes.fromhex(raw[2:])).hexdigest(),
+            "account_hex_matches_original_exactly":True,
+            "anvil_local_node_info_sha256":sha256(canonical(meta)).hexdigest(),
+            "fork_winner_transaction_hash":FORK_WINNER}
+
+
+def check_source_files(workspace):
+    source=workspace/"src/NqcFlashFundingExecutor.sol"
+    route=workspace/"test/NqcV2FundedRouteFork.t.sol"
+    foundry=workspace/"foundry.toml"
+    script=workspace/"script/NqcV2LocalColdReceipt.s.sol"
+    need(all(p.is_file() and not p.is_symlink() for p in
+             (source,route,foundry,script)),"missing isolated script sources")
+    need(sha_file(source)==EXECUTOR_SOURCE_SHA and
+         sha_file(route)==OLD_ROUTE_SOURCE_SHA and
+         sha_file(foundry)==SOURCE_FOUNDRY_SHA,
+         "local Foundry source changed from certified original")
+    return {str(p.relative_to(workspace)):sha_file(p) for p
+            in (source,route,foundry,script)}
+
+
+def get_test_ephemeral_eoa(cast):
+    private="0x"+secrets.token_hex(32)
+    wallet=subprocess.run([str(cast),"wallet","address","--private-key",
+                           private],text=True,capture_output=True,timeout=20)
+    need(wallet.returncode==0,"cannot derive an ephemeral nonuser local EOA")
+    addr=wallet.stdout.strip().lower()
+    need(ABI_ADDRESS.fullmatch(addr),"generated local-only EOA invalid")
+    return private,addr
+
+
+def decode_local_receipts(result_file, rpc, operator, source, old_gas):
+    need(result_file.is_file() and result_file.stat().st_size<2_000_000,
+         "no bounded real Anvil Foundry broadcast transcript")
+    obj=historical.strict_json(result_file.read_bytes())
+    txs=obj.get("transactions")
+    receipts=obj.get("receipts")
+    need(type(txs) is list and len(txs)==EXPECTED_RECEIPTS and
+         type(receipts) is list and len(receipts)==EXPECTED_RECEIPTS,
+         "not exactly three setup + one execute EOA transactions")
+    remote=[]
+    seen=set()
+    for i,record in enumerate(receipts):
+        need(type(record) is dict,"receipt source not an object")
+        h=record.get("transactionHash")
+        need(type(h) is str and HEX32.fullmatch(h)
+             and h not in seen, "transaction hash missing/duplicated")
+        seen.add(h)
+        local=rpc.call("eth_getTransactionReceipt",[h])
+        need(type(local) is dict and
+             local.get("transactionHash","").lower()==h.lower() and
+             local.get("status")=="0x1",
+             "real Anvil transaction did not mine and succeed")
+        same_keys=("blockHash","transactionHash","gasUsed","to","from","contractAddress")
+        for k in same_keys:
+            need(str(local.get(k)).lower()==str(record.get(k)).lower(),
+                 "Foundry JSON and Anvil JSON-RPC receipt differ: "+k)
+        need(local["from"].lower()==operator,
+             "unexpected EOA sent local transaction")
+        unit=quantity(local.get("gasUsed"),"local full gasUsed")
+        need(unit>21_000 and unit<12_000_000,"invalid receipt gasUsed")
+        remote.append(local)
+    strategy=remote[0].get("contractAddress")
+    coordinator=remote[1].get("contractAddress")
+    need(type(strategy) is str and ABI_ADDRESS.fullmatch(strategy)
+         and type(coordinator) is str and ABI_ADDRESS.fullmatch(coordinator)
+         and remote[2].get("to","").lower()==strategy.lower()
+         and remote[3].get("to","").lower()==coordinator.lower()
+         and remote[2]["contractAddress"] is None and
+         remote[3]["contractAddress"] is None,
+         "cold NQC setup/executor EOA target identity drift")
+    executed=remote[3]
+    gas_used=quantity(executed["gasUsed"],"full EOA execute tx gasUsed")
+    gas_price=quantity(executed["effectiveGasPrice"],"local effective gas price")
+    need(gas_used>old_gas,"cold receipt gasUsed must exceed internal route call gas")
+    logs=executed.get("logs")
+    need(type(logs) is list and len(logs)>5,
+         "missing real Aave flash/route receipt event logs")
+    return {
+        "fork_only_setup_transaction_receipt_gas_used":[
+            quantity(x["gasUsed"],"setup gas") for x in remote[:3]],
+        "fork_only_execute_receipt_gas_used":gas_used,
+        "fork_only_execute_receipt_effective_gas_price_wei":gas_price,
+        "fork_only_execute_receipt_native_wei_gas_charged":gas_used*gas_price,
+        "fork_only_execute_receipt_hash":executed["transactionHash"],
+        "fork_only_execute_receipt_block_hash":executed["blockHash"],
+        "fork_only_execute_receipt_log_count":len(logs),
+        "cold_eoa_sender":operator,
+        "isolated_strategy_contract_address":strategy.lower(),
+        "isolated_coordinator_contract_address":coordinator.lower(),
+        "source_original_gasleft_delta_after_test_setup":old_gas,
+        "full_receipt_minus_internal_call_gas":gas_used-old_gas,
+        "three_setup_deployments_are_not_included_in_execute_receipt_gas":True,
+        "fork_gas_fee_is_not_paid_on_public_ethereum":True,
+        "mainnet_competitive_inclusion_or_capture_proven":False,
+        "real_execution_gas_fee_paid_from_user_or_operator":False,
+    }
+
+
+def run(source_zip, workspace, forge, anvil, cast, out):
+    inputs,provenance=validate_original_zip(source_zip)
+    files=check_source_files(workspace)
+    out.mkdir(parents=True,exist_ok=False)
+    summary={
+        "schema_version":1,
+        "status":"INCOMPLETE_LOCAL_COLD_ANVIL_RECEIPT",
+        "source":{"archive_sha256":SOURCE_ZIP_SHA,
+                  "route_evidence":provenance,
+                  "source_files_sha256":files},
+        "experiment":"ANVIL_FORK_BEFORE_ORIGINAL_WINNER_TX_127001_ONLY",
+        "original_winner_transaction":FORK_WINNER,
+        "original_winner_block":PINNED_BLOCK,
+        "errors":[],
+        "experimental_local_rpc_url":LOCAL_URL,
+        "ethereum_mainnet_transaction_submitted":False,
+        "ethereum_mainnet_native_gas_spent":False,
+        "new_cloud_infrastructure_or_service_billed":False,
+        "user_mxn_2000_gas_spent":False,
+        "operator_private_key_or_funds_used":False,
+        "isolated_test_eoa_only":True,
+        "nqc_profit_realized_usd":"0",
+        "nqc_realized_pnl_usd":"0",
+        "RMC_closed":False,"P2_shadow_certified":False,
+        "canary_live_authorized":False,
+        "commercial_score_upgrade":False,
+        "external_nonrecourse_gas_sponsor_proven":False,
+        "source_transaction_known_in_hindsight":True,
+        "nqc_cold_execution_mainnet_gas_used_proven":False,
+        "nqc_live_capture_rate_proven":False,
+        "nqc_complete_net_economics_proven":False,
+        "no_claim_that_fork_deployments_are_production_authority":True,
+        "started_at_utc":utc_now(),
+    }
+    process=None
+    rpc=LocalAnvil()
+    private=None
+    try:
+        need(str(forge.parent)==str(anvil.parent)==str(cast.parent),
+             "Foundry binary tools not sourced from same installation")
+        need(all(p.is_file() for p in (forge,anvil,cast)),
+             "missing exact pinned Foundry binaries")
+        cmd=[str(anvil),"--host","127.0.0.1",
+             "--port","18545","--chain-id","1",
+             "--fork-url",UPSTREAM_READ_ONLY_RPC,
+             "--fork-transaction-hash",FORK_WINNER,
+             "--no-storage-caching","--compute-units-per-second","5",
+             "--fork-retries","0","--silent"]
+        with (out/"anvil.log").open("w") as log:
+            process=subprocess.Popen(cmd,cwd=workspace,stdout=log,stderr=subprocess.STDOUT)
+        limit=time.monotonic()+WAIT_UP_TO_SECONDS
+        while time.monotonic()<limit and process.poll() is None:
+            try:
+                snapshot=check_fork_snapshot(rpc,inputs)
+                summary["authenticated_pre_winner_fork"]=snapshot
+                break
+            except Exception:
+                time.sleep(3)
+        else:
+            raise Rejected("LOCAL_ANVIL_HISTORICAL_FORK_PRESTATE_NOT_VERIFIED")
+        private, operator=get_test_ephemeral_eoa(cast)
+        summary["ephemeral_test_eoa_address"]=operator
+        rpc.call("anvil_setBalance",[operator,"0x3635c9adc5dea00000"])
+        need(quantity(rpc.call("eth_getBalance",[operator,"latest"]),"local test balance")>=10**20,
+             "Anvil did not mint test-only ETH to generated EOA")
+        env={**os.environ,**inputs,
+             "NQC_LOCAL_TEST_OPERATOR":operator,
+             "ETH_RPC_URL":LOCAL_URL,
+             "NQC_FLASH_FEE":str(EXPECTED_FEE)}
+        # The generated local EOA key exists only as transient CLI argument.
+        # This never accepts or reads the user's real account, wallet or mnemonic.
+        command=[str(forge),"script",
+                 "script/NqcV2LocalColdReceipt.s.sol:NqcV2LocalColdReceiptScript",
+                 "--rpc-url",reject_nonlocal_url(LOCAL_URL),
+                 "--private-key",private,"--broadcast","--slow",
+                 "--non-interactive"]
+        script=subprocess.run(command,cwd=workspace,env=env,
+                              text=True,capture_output=True,
+                              timeout=FORGE_UP_TO_SECONDS)
+        log=(script.stdout+"\n"+script.stderr).replace(private,"[REDACTED_EPHEMERAL_KEY]")
+        (out/"forge-script.log").write_text(log)
+        private=None
+        need(script.returncode==0,"LOCAL_ANVIL_FORGE_SCRIPT_OR_TX_FAILED")
+        traces=list((workspace/"broadcast").glob(
+            "NqcV2LocalColdReceipt.s.sol/*/run-latest.json"))
+        need(len(traces)==1,"exactly one local Foundry broadcast receipt trace needed")
+        gas=decode_local_receipts(traces[0],rpc,operator,
+                                  inputs,1_115_038)
+        summary["full_local_eoa_receipts"]=gas
+        summary["status"]="HISTORICAL_LOCAL_ANVIL_FULL_EOA_RECEIPT_NO_MAINNET_CAPTURE"
+    except Exception as exc:
+        summary["errors"].append({
+            "stage":"local_Anvil_source_or_broadcast",
+            "type":type(exc).__name__,
+            "message":str(exc).split("https://")[0][:240],
+        })
+    finally:
+        if process is not None:
+            process.terminate()
+            try:process.wait(timeout=12)
+            except subprocess.TimeoutExpired:process.kill();process.wait(timeout=12)
+        summary["local_rpc_calls_recorded"]=rpc.calls
+        summary["local_rpc_transcript"]=rpc.transcript
+        summary["finished_at_utc"]=utc_now()
+        (out/"local-cold-receipt.json").write_bytes(canonical(summary))
+    return summary
+
+
+def main():
+    p=argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--source-zip",type=Path,required=True)
+    p.add_argument("--workspace",type=Path,required=True)
+    p.add_argument("--forge",type=Path,required=True)
+    p.add_argument("--anvil",type=Path,required=True)
+    p.add_argument("--cast",type=Path,required=True)
+    p.add_argument("--out",type=Path,required=True)
+    args=p.parse_args()
+    need(args.out.is_absolute() and not args.out.exists() and
+         args.out.parent.exists(),"unique absolute output dir required")
+    doc=run(args.source_zip.read_bytes(),args.workspace,
+            args.forge,args.anvil,args.cast,args.out)
+    print(doc["status"],"local_eoa_receipt_gas",
+          doc.get("full_local_eoa_receipts",{}).get(
+              "fork_only_execute_receipt_gas_used"),
+          "errors",doc["errors"])
+    return 0 if doc["status"]=="HISTORICAL_LOCAL_ANVIL_FULL_EOA_RECEIPT_NO_MAINNET_CAPTURE" else 2
+
+
+if __name__=="__main__":
+    raise SystemExit(main())
