@@ -35,7 +35,8 @@ def transport_for(events, source='drpc', reject=None):
         if method=='eth_getLogs':
             lo=int(params[0]['fromBlock'],16)
             hi=int(params[0]['toBlock'],16)
-            return [e for e in events if lo<=int(e['blockNumber'],16)<=hi]
+            return [e for e in events if lo<=int(e['blockNumber'],16)<=hi and
+                    e['topics'][0]==params[0]['topics'][0]]
         raise AssertionError('forbidden method')
     return transport
 
@@ -64,6 +65,21 @@ class PinnedOracleCadenceTests(unittest.TestCase):
           '0xc797025feeeaf2cd924c99e9205ac8ec04d5cad21c41ce637a38fb6dee6016a')
         self.assertNotIn('0xf6a97944f31ea060dfde0566e4167c1a1082551e64b60ecb14d599a9d023d451',
                          cad.EVENT_TOPICS)
+
+    def test_each_shard_requires_both_single_topic_results(self):
+        events=[event(99800,251000000000),secondary_event(99800,8)]
+        result=cad.run(factory(events))
+        self.assertTrue(result['cross_endpoint_event_parity'])
+        for provider in ('drpc','blast'):
+            src=result['sources'][provider]
+            self.assertEqual(src['shards_complete'],23)
+            log_calls=[x for x in src['transcript'] if x['method']=='eth_getLogs']
+            self.assertEqual(len(log_calls),46)
+            self.assertEqual({tuple(x['params'][0]['topics']) for x in log_calls},
+                             {(cad.NEW_TRANSMISSION_TOPIC,),
+                              (cad.SECONDARY_ROUND_TOPIC,)})
+        stats=result['two_endpoint_descriptive_cadence']
+        self.assertEqual(stats['canonical_oracle_update_events_total'],2)
 
     def test_secondary_round_id_emits_no_price_and_counts_as_update(self):
         events=[secondary_event(99700,3),event(99800,250000000000),
