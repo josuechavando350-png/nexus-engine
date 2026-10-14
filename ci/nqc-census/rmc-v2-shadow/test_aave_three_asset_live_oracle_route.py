@@ -135,7 +135,17 @@ class Fixture:
                           signed_word(8)]))
                 raise AssertionError("unapproved source selector")
             if address==AGG:
-                raise AssertionError("never eth_call to inner aggregator")
+                if data!=m.SELECTORS["latestRoundData"]:
+                    raise AssertionError("only one-hop aggregator round read authorized")
+                if self.mode=="aggregator_inner_absent":
+                    raise m.SourceSelectorUnavailable("execution reverted: optional selector")
+                if self.mode=="aggregator_inner_429":
+                    raise OSError("HTTP 429 from one-hop aggregator public source")
+                return "0x"+("".join([
+                    signed_word(8),signed_word(PRICE["WETH"]),
+                    signed_word(self.timestamp-150),
+                    signed_word(self.timestamp-1),signed_word(8),
+                ]))
             raise AssertionError("not one of the authenticated routing contracts")
         return transport
 
@@ -218,10 +228,44 @@ class ThreeAssetOracleRouteTests(unittest.TestCase):
         r,_,_=self.make()
         self.assertEqual(r["asset_routes"][0][
             "optional_resolved_one_hop_aggregator"]["address"],AGG)
+        onehop=r["asset_routes"][0]["optional_resolved_one_hop_aggregator"]
+        self.assertEqual(onehop["optional_onchain_one_hop_aggregator_round"]["status"],
+                         "SELECTOR_RESPONSE_IDENTICAL_TWO_SOURCES")
+        self.assertTrue(onehop["optional_onchain_one_hop_aggregator_round"][
+            "answer_equals_oracle_price_raw_not_a_price_unit_certification"])
+        self.assertTrue(onehop["optional_onchain_one_hop_aggregator_round"][
+            "answer_equals_source_wrapper_round_raw_if_available"])
+        self.assertTrue(onehop[
+            "still_not_a_private_svr_or_orderflow_access_certificate"])
         self.assertTrue(r["source_address_does_not_prove_dedicated_Chainlink_SVR"])
         self.assertFalse(r["asset_routes"][0]["SVR_eligible_private_update_channel_proven"])
         self.assertFalse(r["first_seen_pre_inclusion_report"])
         self.assertFalse(r["nqc_live_profit_or_sponsorship_proven"])
+
+    def test_one_hop_round_signed_age_is_measured_not_assumed_fresh(self):
+        r,fixture,_=self.make()
+        w=r["asset_routes"][0]
+        h=w["optional_source_round_data"]
+        self.assertEqual(h["signed_age_relative_to_canonical_block_seconds"],
+                         r["block"]["timestamp"]-(fixture.timestamp-1))
+        self.assertTrue(h["oracle_price_equals_source_answer_at_same_decimals"])
+        self.assertFalse(w["SVR_eligible_private_update_channel_proven"])
+
+    def test_inner_aggregator_explicit_selector_revert_is_optional_not_svr_denial(self):
+        r,_,_=self.make("aggregator_inner_absent")
+        self.assertEqual(r["status"],
+            "CURRENT_AAVE_THREE_ASSET_ONCHAIN_ORACLE_ROUTE_NO_SVR_AUTHORITY")
+        nested=r["asset_routes"][0]["optional_resolved_one_hop_aggregator"][
+            "optional_onchain_one_hop_aggregator_round"]
+        self.assertEqual(nested["status"],
+            "SOURCE_SELECTOR_UNAVAILABLE_NO_PRIVATE_ACCESS_PROOF")
+
+    def test_inner_aggregator_transport_429_is_fatal_source_incomplete(self):
+        r,_,_=self.make("aggregator_inner_429")
+        self.assertEqual(r["status"],
+            "INCOMPLETE_AAVE_ORACLE_ROUTE_SOURCE_NOT_SVR_DENIAL")
+        self.assertTrue(r["errors"])
+        self.assertFalse(r["EIP1898_same_canonical_block_two_public_source_parity"])
 
     def test_source_without_aggregator_selector_remains_explicitly_unknown(self):
         r,_,_=self.make("aggregator_absent")
