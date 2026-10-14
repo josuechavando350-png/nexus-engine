@@ -143,33 +143,21 @@ class Witness:
                     self.output['oracle_logs_invalid'] += 1
                     return
                 try:
-                    need(type(log.get('address')) is str and
-                         log['address'].lower() == AGGREGATOR, 'wrong oracle log emitter')
-                    topics = log.get('topics')
-                    need(type(topics) is list and len(topics) >= 1 and
-                         type(topics[0]) is str and
-                         topics[0].lower() in EVENT_TOPICS,
-                         'wrong oracle event')
-                    tx = b32(log.get('transactionHash'))
-                    block_hash = b32(log.get('blockHash'))
-                    bn = quantity(log.get('blockNumber'))
-                    idx = quantity(log.get('logIndex'))
-                    need(bn > 0 and log.get('removed') in (False, None),
-                         'removed or invalid oracle log')
+                    parsed_log = parse_log(log)
                 except (ValueError, TypeError) as exc:
                     if log.get('removed') is True:
                         self.output['oracle_logs_removed'] += 1
                     else:
                         self.output['oracle_logs_invalid'] += 1
                     return
-                identity = (tx, block_hash, idx)
+                identity = (parsed_log['tx_hash'], parsed_log['block_hash'],
+                            parsed_log['log_index'])
                 if identity not in self.unique_log_ids:
                     self.unique_log_ids.add(identity)
                     self.output['oracle_logs_distinct'] += 1
                     if len(self.stream_logs) < MAX_LOGS:
                         self.stream_logs[identity] = {
-                            'tx_hash': tx, 'block_hash': block_hash,
-                            'block_number': bn, 'log_index': idx,
+                            **parsed_log,
                             'observed_at_utc': when_utc,
                             'observed_ns': when_ns,
                         }
@@ -296,14 +284,33 @@ def parse_log(value):
     need(type(value) is dict and type(value.get('address')) is str and
          value['address'].lower() == AGGREGATOR, 'wrong log origin')
     topics = value.get('topics')
-    need(type(topics) is list and len(topics) >= 1 and
+    need(type(topics) is list and len(topics) >= 2 and
          type(topics[0]) is str and topics[0].lower() in EVENT_TOPICS,
-         'wrong log signature')
+         'wrong/unknown DualAggregator update signature')
     need(value.get('removed') in (False, None), 'removed log')
+    round_id = int(b32(topics[1]), 16)
+    need(0 < round_id < 2**32, 'unusable uint32 indexed round ID')
+    data = value.get('data')
+    need(type(data) is str and data.startswith('0x') and len(data)%2 == 0,
+         'bad event ABI payload')
+    topic = topics[0].lower()
+    if topic == SECONDARY_ROUND_TOPIC:
+        need(data == '0x', 'secondary round-only log must not contain price data')
+        answer = None
+        kind = 'SECONDARY_ROUND_ID_UPDATED'
+    else:
+        need(len(data) >= 66 and all(ch in '0123456789abcdefABCDEF' for ch in data[2:]),
+             'primary NewTransmission answer unparseable')
+        answer = int(data[2:66], 16)
+        need(0 < answer < 2**191, 'invalid custom primary price answer')
+        kind = 'PRIMARY_NEW_TRANSMISSION'
     return {'tx_hash': b32(value.get('transactionHash')),
             'block_hash': b32(value.get('blockHash')),
             'block_number': quantity(value.get('blockNumber')),
-            'log_index': quantity(value.get('logIndex'))}
+            'log_index': quantity(value.get('logIndex')),
+            'event_type': kind, 'event_topic0': topic,
+            'indexed_round_id': round_id, 'primary_answer_raw': answer,
+            'event_data_sha256': sha256(bytes.fromhex(data[2:])).hexdigest()}
 
 
 def verify_receipt(receipt, item, witness):
