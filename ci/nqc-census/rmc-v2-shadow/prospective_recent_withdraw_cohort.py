@@ -301,17 +301,54 @@ def collect(transport_factory=None,unix_now=None):
                 report['source_cohort']=selected
                 report['selection']=meta
                 report['anchor']['pinned_end_head']=a['last_header']
-                diff=current-a['last_header']['timestamp']
-                if diff<0 or diff>borrow.MAX_HEADER_STALENESS:
-                    report['errors'].append({'stage':'state','why':'ANCHOR_TOO_STALE_OR_IN_FUTURE'})
-                elif selected:
+                if selected:
+                    # A dense 384-block source scan can take minutes. Reading
+                    # HF at that old end block would not be current risk state.
+                    # Fix one NEW canonical state block after source selection,
+                    # then require exact two-RPC parity at that new block.
+                    new_tips={}
                     for key,rpc in clients.items():
-                        try:report['state_reports'][key]={
-                            'status':'COMPLETE_STATE','accounts':assess(rpc,a['last_header'],selected)}
+                        try:new_tips[key]=rpc.tip()
                         except Exception as exc:
-                            report['state_reports'][key]={
-                                'status':'INCOMPLETE_SOURCE','accounts':[],
-                                'error':type(exc).__name__+':'+str(exc)[:160]}
+                            report['errors'].append({'stage':'state-anchor',
+                                'provider':key,'why':type(exc).__name__+':'+str(exc)[:160]})
+                    if len(new_tips)!=2 or max(new_tips.values())-min(new_tips.values())>borrow.MAX_TIP_DRIFT:
+                        report['errors'].append({'stage':'state-anchor','why':'REPINS_DIVERGE_OR_UNAVAILABLE'})
+                    else:
+                        refreshed=min(new_tips.values())-borrow.CONFIRMATION_DEPTH
+                        report['anchor']['fresh_state_source_tips']=new_tips
+                        if refreshed<last:
+                            report['errors'].append({'stage':'state-anchor','why':'STATE_PIN_PRECEDES_EVENT_WINDOW'})
+                        else:
+                            fresh_heads={}
+                            for key,rpc in clients.items():
+                                try:fresh_heads[key]=rpc.get_header(refreshed)
+                                except Exception as exc:
+                                    report['errors'].append({'stage':'state-anchor',
+                                        'provider':key,'why':type(exc).__name__+':'+str(exc)[:160]})
+                            if (len(fresh_heads)!=2 or fresh_heads['drpc']!=fresh_heads['publicnode']):
+                                report['errors'].append({'stage':'state-anchor','why':'STATE_HEADERS_DIFFER'})
+                            else:
+                                state_head=fresh_heads['drpc']
+                                report['hf_state_anchored_at']=state_head
+                                report['anchor']['state_block_after_event_window_end']=refreshed-last
+                                effective_now=(int(datetime.now(timezone.utc).timestamp())
+                                               if unix_now is None else current)
+                                diff=effective_now-state_head['timestamp']
+                                if diff<0 or diff>borrow.MAX_HEADER_STALENESS:
+                                    report['errors'].append({'stage':'state','why':'REFRESHED_STATE_ANCHOR_STALE_OR_FUTURE'})
+                                else:
+                                    for key,rpc in clients.items():
+                                        try:report['state_reports'][key]={
+                                            'status':'COMPLETE_STATE','accounts':assess(rpc,state_head,selected)}
+                                        except Exception as exc:
+                                            report['state_reports'][key]={
+                                                'status':'INCOMPLETE_SOURCE','accounts':[],
+                                                'error':type(exc).__name__+':'+str(exc)[:160]}
+                                    final_now=(int(datetime.now(timezone.utc).timestamp())
+                                               if unix_now is None else current)
+                                    if final_now-state_head['timestamp']>borrow.MAX_HEADER_STALENESS:
+                                        report['errors'].append({'stage':'state','why':'STATE_AGED_OUT_BEFORE_EVIDENCE_CLOSEOUT'})
                 else:
                     report['state_reports']={key:{'status':'NO_WITHDRAW_EVENTS','accounts':[]}
                                              for key in clients}
