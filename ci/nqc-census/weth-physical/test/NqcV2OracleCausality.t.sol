@@ -55,9 +55,8 @@ interface IChainlinkNqcOracleProxy {
 /// @notice Historical research ONLY. No keys, no broadcast, no live gas, no oracle state override.
 /// @dev The only oracle override is a Foundry mockCall inside an ephemeral fork.
 contract NqcV2OracleCausalityTest {
-    VmNqcOracleCausality constant vm =
-        VmNqcOracleCausality(address(uint160(uint256(keccak256("hevm cheat code")))));
-    IAaveNqcOraclePool constant POOL = IAaveNqcOraclePool(0x87870Bca3F3fD6335C3F4Ce8392D69350B4fA4E2);
+    VmNqcOracleCausality constant vm = VmNqcOracleCausality(address(uint160(uint256(keccak256("hevm cheat code")))));
+    IAaveNqcOraclePool constant POOL = IAaveNqcOraclePool(0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2);
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address constant ETH_USD_DUAL_AGGREGATOR = 0x7c7FdFCa295a787ded12Bb5c1A49A8D2cC20E3F8;
 
@@ -88,7 +87,7 @@ contract NqcV2OracleCausalityTest {
         require(proxy.aggregator() == ETH_USD_DUAL_AGGREGATOR, "AAVE_WETH_AGGREGATOR_DRIFT");
 
         uint256 priceBefore = oracle.getAssetPrice(WETH);
-        (, int256 feedBefore,,, ) = proxy.latestRoundData();
+        (, int256 feedBefore,,,) = proxy.latestRoundData();
         uint256 hfBefore = healthFactor(borrower);
         require(priceBefore > 0 && feedBefore > 0, "NO_BEFORE_PRICE");
         require(hfBefore == vm.envUint("NQC_HF_BEFORE_TX0") && hfBefore >= 1 ether, "START_HF_MISMATCH");
@@ -105,7 +104,7 @@ contract NqcV2OracleCausalityTest {
         require(oracle.getSourceOfAsset(WETH) == source, "SOURCE_CHANGED_DURING_TX");
 
         uint256 priceAfter = oracle.getAssetPrice(WETH);
-        (, int256 feedAfter,,, ) = proxy.latestRoundData();
+        (, int256 feedAfter,,,) = proxy.latestRoundData();
         uint256 hfAfter = healthFactor(borrower);
         require(priceAfter > 0 && priceAfter < priceBefore, "ORACLE_PRICE_NOT_DOWN");
         require(feedAfter > 0 && feedAfter < feedBefore, "FEED_ANSWER_NOT_DOWN");
