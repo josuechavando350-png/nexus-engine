@@ -151,3 +151,41 @@ contract NqcV2OneShotAtomicLocal {
         );
     }
 }
+
+
+interface VmNqcOneShotBroadcast {
+    function envAddress(string calldata) external returns (address);
+    function envUint(string calldata) external returns (uint256);
+    function envBytes(string calldata) external returns (bytes memory);
+    function envBytes32(string calldata) external returns (bytes32);
+    function startBroadcast() external;
+    function stopBroadcast() external;
+}
+
+/// @notice ONE --broadcast EOA CREATE tx strictly to a locally validated
+///         127.0.0.1 Anvil fork. The Python runner, NOT this Solidity script,
+///         enforces that URL, exact PR698/PR700/PR723 evidence, and test keys.
+contract NqcV2OneShotBroadcastScript {
+    VmNqcOneShotBroadcast private constant vm =
+        VmNqcOneShotBroadcast(
+            address(uint160(uint256(keccak256("hevm cheat code"))))
+        );
+
+    function run() external {
+        address borrower = vm.envAddress("NQC_BORROWER");
+        uint256 principal = vm.envUint("NQC_PRINCIPAL");
+        uint256 collateral = vm.envUint("NQC_COLLATERAL");
+        uint256 premium = vm.envUint("NQC_FLASH_FEE");
+        bytes32 originalWinner = vm.envBytes32("NQC_WINNER_TX");
+        bytes32 originalParentHash = vm.envBytes32("NQC_PARENT_HASH");
+        bytes memory sourceAccount = vm.envBytes("NQC_PRESTATE_ABI");
+
+        // Nothing except one Solidity constructor runs under startBroadcast.
+        vm.startBroadcast();
+        new NqcV2OneShotAtomicLocal(
+            borrower, principal, collateral, premium,
+            originalWinner, originalParentHash, sourceAccount
+        );
+        vm.stopBroadcast();
+    }
+}
