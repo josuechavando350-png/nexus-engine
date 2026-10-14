@@ -187,7 +187,7 @@ class OracleInclusionAuditTests(unittest.TestCase):
         w,log,h1,h2=witnessed()
         result=audit.reconcile(w,audit.RPC(transport=provider(log,h1,h2)))
         self.assertEqual(result['status'],'PROSPECTIVE_ORACLE_LOGS_RECONCILED_NO_CAPTURE')
-        self.assertEqual(result['confirmed_oracle_transmissions_in_ws_head_span'],1)
+        self.assertEqual(result['confirmed_oracle_updates_in_ws_head_span'],1)
         self.assertEqual(result['confirmed_oracle_receipts_verified'],1)
         self.assertEqual(result['confirmed_oracle_with_prior_process_pending_observation'],1)
         self.assertEqual(result['oracle_pending_to_head_lead_ms'],[7000])
@@ -232,7 +232,7 @@ class OracleInclusionAuditTests(unittest.TestCase):
             if method=='eth_getLogs':return []
             return provider(log,h1,h2)(method,params)
         result=audit.reconcile(w,audit.RPC(transport=empty))
-        self.assertEqual(result['confirmed_oracle_transmissions_in_ws_head_span'],0)
+        self.assertEqual(result['confirmed_oracle_updates_in_ws_head_span'],0)
         self.assertEqual(result['status'],'INCOMPLETE_ORACLE_PENDING_TO_CANONICAL_OVERLAP')
         self.assertIn('WS_ORACLE_LOG_NOT_IN_CANONICAL_RESULT',result['source_limitations'])
         self.assertFalse(result['profitable_competitive_capture_proven'])
@@ -248,7 +248,7 @@ class OracleInclusionAuditTests(unittest.TestCase):
             return provider(log,h1,h2)(method,params)
         result=audit.reconcile(w,audit.RPC(transport=empty))
         self.assertEqual(result['status'],'NO_ORACLE_TRANSMISSIONS_IN_BOUNDED_CANONICAL_SPAN')
-        self.assertEqual(result['confirmed_oracle_transmissions_in_ws_head_span'],0)
+        self.assertEqual(result['confirmed_oracle_updates_in_ws_head_span'],0)
         self.assertFalse(result['mempool_exhaustiveness_proven'])
 
     def test_canonical_event_missing_in_ws_stream_is_not_a_clean_pass(self):
