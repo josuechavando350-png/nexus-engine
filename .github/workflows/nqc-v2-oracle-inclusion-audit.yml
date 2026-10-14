@@ -1,0 +1,119 @@
+name: NQC V2 Prospective Oracle Log/Pending/Receipt Overlap (NO TRADE)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/oracle_ws_inclusion_audit.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_oracle_ws_inclusion_audit.py'
+      - 'ci/nqc-census/rmc-v2-shadow/ORACLE_WS_INCLUSION_AUDIT_CONTRACT.md'
+      - '.github/workflows/nqc-v2-oracle-inclusion-audit.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-oracle-inclusion-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prospective-oracle-overlap:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Bind exact commit and execute adversarial local source tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-oracle-overlap"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_oracle_ws_inclusion_audit.py -v 2>&1 | tee "$OUT/tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/oracle_ws_inclusion_audit.py
+      - name: Authenticate bounded WebSocket dependency
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-overlap"
+          python3 -m venv "$RUNNER_TEMP/nqc-oracle-ws-venv"
+          "$RUNNER_TEMP/nqc-oracle-ws-venv/bin/pip" install --disable-pip-version-check --no-deps 'websockets==14.2' \
+            2>&1 | tee "$OUT/dependency-install.log"
+          "$RUNNER_TEMP/nqc-oracle-ws-venv/bin/python" -c 'import websockets; assert websockets.__version__=="14.2"'
+          "$RUNNER_TEMP/nqc-oracle-ws-venv/bin/pip" freeze > "$OUT/dependency-freeze.txt"
+      - name: Time-bounded prospective pending, oracle logs and canonical receipts (READ ONLY)
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-overlap"
+          timeout 450s "$RUNNER_TEMP/nqc-oracle-ws-venv/bin/python" \
+            ci/nqc-census/rmc-v2-shadow/oracle_ws_inclusion_audit.py \
+            --out "$OUT/prospective-oracle-overlap.json" \
+            --seconds 240 --max-notifications 24000 \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and .duration_requested_seconds==240 and
+            (.status=="PROSPECTIVE_ORACLE_LOGS_RECONCILED_NO_CAPTURE" or
+             .status=="NO_ORACLE_TRANSMISSIONS_IN_BOUNDED_CANONICAL_SPAN" or
+             .status=="INCOMPLETE_ORACLE_PENDING_TO_CANONICAL_OVERLAP") and
+            .pending_first_seen_by_node_proven==false and
+            .mempool_exhaustiveness_proven==false and
+            .before_inclusion_to_all_builders_proven==false and
+            .oracle_hf_crossing_proven==false and
+            .profitable_competitive_capture_proven==false and
+            .nonrecourse_native_gas_sponsor_proven==false and
+            .net_pnl_certified==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            .ws_observation.pending_notifications<=24000 and
+            .rpc_calls_used<=60 and
+            .sampled_pending_control_hashes<=24 and
+            .confirmed_oracle_receipts_verified<=48 and
+            (.oracle_pending_to_head_lead_ms|all(.>=0)) and
+            (.control_pending_to_head_lead_ms|all(.>=0))
+          ' "$OUT/prospective-oracle-overlap.json" >/dev/null
+          echo "Source audit complete; no PnL, capture or mempool completeness authority."
+      - name: Content-address every source and positive/negative observation
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-overlap"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/oracle_ws_inclusion_audit.py \
+             ci/nqc-census/rmc-v2-shadow/test_oracle_ws_inclusion_audit.py \
+             ci/nqc-census/rmc-v2-shadow/oracle_ws_visibility_probe.py \
+             ci/nqc-census/rmc-v2-shadow/oracle_pending_visibility_probe.py \
+             ci/nqc-census/rmc-v2-shadow/ORACLE_WS_INCLUSION_AUDIT_CONTRACT.md \
+             .github/workflows/nqc-v2-oracle-inclusion-audit.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload immutable oracle overlap / blocker artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-oracle-inclusion-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-oracle-overlap/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
