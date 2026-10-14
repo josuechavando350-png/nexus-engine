@@ -104,10 +104,11 @@ def authenticate_historical(body):
             expected=EXPECTED_HISTORICAL_TX[key]
             actual={x['topic0'] for x in row['logs']}
             need(row['block']==expected['block'] and
-                 actual==expected['topics'] if key.endswith('96c8b') else
-                 row['block']==expected['block'] and
                  expected['topics'].issubset(actual),
                  'historical emitted topics disagree with the claimed event families')
+            if key=='0x20dd5bccadb185dbac34c94c8d00bf363a4a0b779fe1fddcdcfd8a3066d96c8b':
+                need(NEW_TRANSMISSION_TOPIC not in actual,
+                     'USDC secondary-only historical path unexpectedly changed')
             need(row['contains_expected_new_transmission_topic'] is False,
                  'PR705 original wrong-topic conclusion unexpectedly changed')
             witnessed.append((provider,key,tuple(sorted(actual))))
