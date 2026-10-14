@@ -220,9 +220,23 @@ class CompetitorGasTruthTests(unittest.TestCase):
         self.assertIsNone(out["competitor_gas_statistics"])
 
     def test_wrong_fee_parity_never_promoted_to_success(self):
-        with self.assertRaises(m.Rejected):
-            m.build(self.report,self.rows,lambda name:
+        out=m.build(self.report,self.rows,lambda name:
                     fake_rpc(self.grouped,self.blocks,side=name,mutate="fee"))
+        self.assertEqual(out["status"],
+                         "MISMATCH_TWO_PUBLIC_URLS_COMPETITOR_GAS_UNCERTIFIED")
+        self.assertFalse(out["complete_two_url_receipt_parity"])
+        self.assertIsNone(out["competitor_gas_statistics"])
+        self.assertEqual(len(out["source_mismatch_ledger"]),47)
+
+    def test_first_failed_receipt_keeps_exact_source_identity_witness(self):
+        out=m.build(self.report,self.rows,lambda name:
+                    fake_rpc(self.grouped,self.blocks,side=name,mutate="revert"))
+        bad=out["sources"]["publicnode"]["rejected_receipt_identity"]
+        self.assertEqual(bad["expected_transaction_index"],3)
+        self.assertEqual(bad["returned"]["status"],"0x0")
+        self.assertEqual(out["sources"]["publicnode"]["errors"][0]["detail"],
+                         "HISTORICAL_WINNER_TRANSACTION_STATUS_NOT_SUCCESS")
+        self.assertIsNone(out["competitor_gas_statistics"])
 
     def test_pure_rpc_allowlist_blocks_broadcast(self):
         rpc=m.RPC("drpc",set(self.grouped),set(self.blocks),
