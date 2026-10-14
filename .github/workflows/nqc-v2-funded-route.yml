@@ -1,0 +1,136 @@
+name: NQC V2 Funded Historical Route (LOCAL FORK ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/postwindow_funded_route.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_postwindow_funded_route.py'
+      - 'ci/nqc-census/rmc-v2-shadow/postwindow_intrablock_attribution.py'
+      - 'ci/nqc-census/rmc-v2-shadow/postwindow_winner_prestate.py'
+      - 'ci/nqc-census/rmc-v2-shadow/verify_postwindow_competitor_receipts.py'
+      - 'ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py'
+      - 'ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py'
+      - 'ci/nqc-census/weth-physical/test/NqcV2FundedRouteFork.t.sol'
+      - 'ci/nqc-census/weth-physical/foundry-time-only.toml'
+      - 'ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol'
+      - '.github/workflows/nqc-v2-funded-route.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-funded-route-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  historical-route:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact head and offline economic evidence regressions
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = aa3883fa141aa096006e90e56d8d4150c9ee14ef
+          mkdir -p "$RUNNER_TEMP/nqc-funded-route"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_postwindow_funded_route.py -v 2>&1 | tee "$RUNNER_TEMP/nqc-funded-route/tests.log"
+      - name: Authenticate predecessor and partial attribution producer without upgrading its failed gate
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-funded-route"
+          for item in \
+            '38492277995 11861179989 42f2056039840fd9621021e88ca69aedb2242ad6 success 1c5837ad97607fda9cb60c4888a77648645c48326a93a67adcb9f121e52d7fb8' \
+            '38495688996 11864125025 edf9568378b76a2a026383e3c4060ef615955373 failure 819106f72a95eb1b894161fc3447d856fbe18c6e6f7d0dc0c5d3648e5b36a6f5'; do
+            read -r run_id artifact_id head conclusion digest <<< "$item"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$OUT/$run_id-run.json"
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id" > "$OUT/$artifact_id-artifact.json"
+            jq -e --argjson id "$run_id" --arg head "$head" --arg conclusion "$conclusion" \
+              '.id==$id and .status=="completed" and .head_sha==$head and .conclusion==$conclusion' \
+              "$OUT/$run_id-run.json" >/dev/null
+            jq -e --argjson id "$artifact_id" --argjson run "$run_id" --arg head "$head" --arg digest "sha256:$digest" \
+              '.id==$id and .expired==false and .workflow_run.id==$run and .workflow_run.head_sha==$head and .digest==$digest' \
+              "$OUT/$artifact_id-artifact.json" >/dev/null
+            curl --fail --silent --show-error --location --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+              --output "$OUT/$artifact_id.zip"
+            printf '%s  %s\n' "$digest" "$OUT/$artifact_id.zip" | sha256sum --check --strict
+          done
+      - name: Authenticate pinned Foundry
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc-foundry"
+          curl --fail --silent --show-error --location \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz \
+            --output "$RUNNER_TEMP/nqc-foundry/foundry.tar.gz"
+          printf '%s  %s\n' 'cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b' \
+            "$RUNNER_TEMP/nqc-foundry/foundry.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/nqc-foundry/foundry.tar.gz" -C "$RUNNER_TEMP/nqc-foundry" forge
+          "$RUNNER_TEMP/nqc-foundry/forge" --version | tee "$RUNNER_TEMP/nqc-funded-route/foundry-version.txt"
+          "$RUNNER_TEMP/nqc-foundry/forge" fmt --check ci/nqc-census/weth-physical/test/NqcV2FundedRouteFork.t.sol
+      - name: Two historical routes and profit-floor rollback on two endpoints
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-funded-route"
+          timeout 3900s python3 ci/nqc-census/rmc-v2-shadow/postwindow_funded_route.py \
+            --source-artifact "$OUT/11861179989.zip" --attribution-artifact "$OUT/11864125025.zip" \
+            --out-dir "$OUT/attempt" --forge "$RUNNER_TEMP/nqc-foundry/forge" \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '.status=="TWO_ENDPOINT_HISTORICAL_ROUTE_SURPLUS_BEFORE_NATIVE_COSTS"
+            and (.errors|length)==0 and (.cases|length)==2 and all(.cases[];.two_endpoint_parity==true)
+            and .attribution_producer_full_ci_passed==false and .nqc_net_margin_proven==false
+            and .external_nonrecourse_gas_funding_proven==false and .prospective_detection_proven==false
+            and .P2_shadow_certified==false and .RMC_closed==false and .commercial_score_upgrade==false
+            and .canary_live_authorized==false and .nqc_realized_pnl_usd=="0"' "$OUT/attempt/funded-route.json" >/dev/null
+      - name: Preserve exact sources and successful or failed attempts
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-funded-route"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/postwindow_funded_route.py \
+            ci/nqc-census/rmc-v2-shadow/test_postwindow_funded_route.py \
+            ci/nqc-census/rmc-v2-shadow/postwindow_intrablock_attribution.py \
+            ci/nqc-census/rmc-v2-shadow/postwindow_winner_prestate.py \
+            ci/nqc-census/rmc-v2-shadow/verify_postwindow_competitor_receipts.py \
+            ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py \
+            ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py \
+            ci/nqc-census/weth-physical/test/NqcV2FundedRouteFork.t.sol \
+            ci/nqc-census/weth-physical/foundry-time-only.toml \
+            ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol \
+            .github/workflows/nqc-v2-funded-route.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload historical evidence or blocker
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-funded-route-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-funded-route/
+          retention-days: 30
+          if-no-files-found: error
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
