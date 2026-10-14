@@ -148,7 +148,8 @@ class RPC:
                  type(params[0]) is dict,'invalid logs args')
             q=params[0]
             need(set(q)=={'address','topics','fromBlock','toBlock'} and
-                 q['address']==AGGREGATOR and q['topics']==[EVENT_TOPICS]
+                 q['address']==AGGREGATOR and type(q['topics']) is list and
+                 len(q['topics'])==1 and q['topics'][0] in EVENT_TOPICS
                  and 0<=num(q['toBlock'])-num(q['fromBlock'])<SHARD_BLOCKS,
                  'unexpected logs range or target')
         else:
@@ -199,13 +200,20 @@ def measure_source(provider,anchor,transport=None):
              'different canonical endpoint hashes')
         logs=[]
         for lo,hi in shard_ranges(first,last):
-            reply=rpc.call('eth_getLogs',[{
-                'address':AGGREGATOR, 'topics':[EVENT_TOPICS],
-                'fromBlock':hex(lo),'toBlock':hex(hi)}])
-            need(type(reply) is list and len(reply)<=MAX_EVENTS,
-                 'oversized shard response')
-            logs.extend(canonical_event(v,lo,hi) for v in reply)
-            need(len(logs)<=MAX_EVENTS,'event cap exceeded')
+            # Some public RPCs reject an OR-topic filter. Query each
+            # authenticated topic separately. Only the union of BOTH
+            # successful calls counts as a completed shard.
+            for topic in EVENT_TOPICS:
+                reply=rpc.call('eth_getLogs',[{
+                    'address':AGGREGATOR, 'topics':[topic],
+                    'fromBlock':hex(lo),'toBlock':hex(hi)}])
+                need(type(reply) is list and len(reply)<=MAX_EVENTS,
+                     'oversized shard response')
+                rows=[canonical_event(v,lo,hi) for v in reply]
+                need(all(e['topic0']==topic for e in rows),
+                     'provider returned event outside requested topic')
+                logs.extend(rows)
+                need(len(logs)<=MAX_EVENTS,'event cap exceeded')
             result['shards_complete']+=1
         need(len(logs)==len({ordered_event_identity(e) for e in logs}),
              'duplicate canonical log identity')
