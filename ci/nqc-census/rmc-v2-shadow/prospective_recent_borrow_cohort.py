@@ -42,6 +42,9 @@ MAX_LOG_EVENT_BLOCKS = 105
 MAX_RECENT_ACCOUNTS = 64
 MAX_RECEIPT_CONTROLS = 2
 MAX_RPC_CALLS_PER_SOURCE = 200
+# Only explicitly authorized dense event-block header scans may request this
+# larger, still finite RPC budget. Existing Borrow default stays at 200.
+MAX_EXPLICIT_RPC_CALLS_PER_SOURCE = 413
 MAX_REPLY_BYTES = 4_000_000
 HEX32 = re.compile(r"0x[0-9a-fA-F]{64}\Z")
 HEXADDR = re.compile(r"0x[0-9a-fA-F]{40}\Z")
@@ -155,8 +158,14 @@ def shards(first, last):
 
 
 class RPC:
-    def __init__(self, provider, transport=None):
+    def __init__(self, provider, transport=None, call_budget=None):
         need(provider in RPC_ENDPOINTS, "unapproved RPC provider")
+        if call_budget is None:
+            call_budget = MAX_RPC_CALLS_PER_SOURCE
+        need(type(call_budget) is int and
+             1 <= call_budget <= MAX_EXPLICIT_RPC_CALLS_PER_SOURCE,
+             "unbounded or invalid source-specific RPC budget")
+        self.call_budget = call_budget
         self.provider = provider
         self.url = RPC_ENDPOINTS[provider]
         self.transport = transport or self.network
@@ -195,7 +204,7 @@ class RPC:
         return reply["result"]
 
     def call(self, method, params, allowed_borrowers=None):
-        need(self.calls < MAX_RPC_CALLS_PER_SOURCE,
+        need(self.calls < self.call_budget,
              "source-specific request quota reached")
         if method in ("eth_chainId", "eth_blockNumber"):
             need(params == [], "unexpected chain/tip arguments")
