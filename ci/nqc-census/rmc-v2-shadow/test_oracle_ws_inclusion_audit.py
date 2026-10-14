@@ -188,8 +188,33 @@ class OracleInclusionAuditTests(unittest.TestCase):
             return provider(log,h1,h2)(method,params)
         result=audit.reconcile(w,audit.RPC(transport=empty))
         self.assertEqual(result['confirmed_oracle_transmissions_in_ws_head_span'],0)
-        self.assertEqual(result['status'],'NO_ORACLE_TRANSMISSIONS_IN_BOUNDED_CANONICAL_SPAN')
+        self.assertEqual(result['status'],'INCOMPLETE_ORACLE_PENDING_TO_CANONICAL_OVERLAP')
+        self.assertIn('WS_ORACLE_LOG_NOT_IN_CANONICAL_RESULT',result['source_limitations'])
         self.assertFalse(result['profitable_competitive_capture_proven'])
+
+    def test_clean_zero_oracle_logs_scope_does_not_claim_market_absence(self):
+        w,log,h1,h2=witnessed()
+        w.stream_logs.clear()
+        w.unique_log_ids.clear()
+        w.output['oracle_logs_distinct']=0
+        w.output['oracle_logs_notifications']=0
+        def empty(method,params):
+            if method=='eth_getLogs': return []
+            return provider(log,h1,h2)(method,params)
+        result=audit.reconcile(w,audit.RPC(transport=empty))
+        self.assertEqual(result['status'],'NO_ORACLE_TRANSMISSIONS_IN_BOUNDED_CANONICAL_SPAN')
+        self.assertEqual(result['confirmed_oracle_transmissions_in_ws_head_span'],0)
+        self.assertFalse(result['mempool_exhaustiveness_proven'])
+
+    def test_canonical_event_missing_in_ws_stream_is_not_a_clean_pass(self):
+        w,log,h1,h2=witnessed()
+        w.stream_logs.clear()
+        w.unique_log_ids.clear()
+        w.output['oracle_logs_distinct']=0
+        result=audit.reconcile(w,audit.RPC(transport=provider(log,h1,h2)))
+        self.assertEqual(result['status'],'INCOMPLETE_ORACLE_PENDING_TO_CANONICAL_OVERLAP')
+        self.assertIn('CANONICAL_NEW_TRANSMISSION_MISSING_IN_WS_STREAM',
+                      result['source_limitations'])
 
     def test_missing_required_subscription_censored(self):
         w,_,_,_=witnessed()
