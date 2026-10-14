@@ -1,0 +1,165 @@
+name: NQC V2 Public Aave Nine-Account Read Latency AB BA (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/public_aave_9account_rpc_latency_ab.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_public_aave_9account_rpc_latency_ab.py'
+      - 'ci/nqc-census/rmc-v2-shadow/PUBLIC_ACCOUNT_RPC_AB_LATENCY_CONTRACT.md'
+      - '.github/workflows/nqc-v2-public-rpc-latency-ab.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-public-risk-rpc-ab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fixed-canonical-block-AB-BA-real-public-rpc:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Verify exact producer head and PR728 immutable 20-member source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-aave-AB-BA"
+          mkdir -p "$OUT"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38639157922" \
+            > "$OUT/38639157922-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11928798163" \
+            > "$OUT/11928798163-artifact.json"
+          jq -e '.id==38639157922 and .status=="completed" and
+                 .conclusion=="success" and
+                 .head_sha=="d41a4b36b8b4c1034a3e1cb669d8046166b103ca"' \
+            "$OUT/38639157922-run.json" >/dev/null
+          jq -e '.id==11928798163 and .expired==false and
+                 .workflow_run.id==38639157922 and
+                 .workflow_run.head_sha=="d41a4b36b8b4c1034a3e1cb669d8046166b103ca" and
+                 .digest=="sha256:605211ce433d9e89af5f88ab97145450eb9338f94f202186207ededc21859193"' \
+            "$OUT/11928798163-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11928798163/zip" \
+            --output "$OUT/11928798163.zip"
+          printf '%s  %s\n' \
+            '605211ce433d9e89af5f88ab97145450eb9338f94f202186207ededc21859193' \
+            "$OUT/11928798163.zip" | sha256sum --check --strict
+      - name: Twenty-two adversarial no-lookahead, two-source and rate-gate tests
+        env:
+          NQC_PR728_SOURCE_ZIP: ${{ runner.temp }}/nqc-aave-AB-BA/11928798163.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-aave-AB-BA"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_public_aave_9account_rpc_latency_ab.py -v 2>&1 |
+              tee "$OUT/adversarial-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/public_aave_9account_rpc_latency_ab.py
+      - name: Four A/B B/A runs on the SAME already-mined Ethereum blockHash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-aave-AB-BA"
+          timeout 420s python3 ci/nqc-census/rmc-v2-shadow/public_aave_9account_rpc_latency_ab.py \
+            --source-zip "$OUT/11928798163.zip" \
+            --out "$OUT/attempt" > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            .source.producer_pr728_sha256=="605211ce433d9e89af5f88ab97145450eb9338f94f202186207ededc21859193" and
+            .source.producer_commit=="d41a4b36b8b4c1034a3e1cb669d8046166b103ca" and
+            .source.producer_manifest_members_verified==20 and
+            .source.cohort_fixed_using_prior_debt_snapshot==true and
+            .source.cohort_old_borrowers_with_debt==9 and
+            .source_chosen_prior_to_current_RPC==true and
+            .cohort_size==9 and
+            .precommit.file=="cohort-sealed-before-new-network.json" and
+            (.precommit.sha256|test("^[0-9a-f]{64}$")) and
+            .mode_order==["SEQUENTIAL","THREE_LANES","THREE_LANES","SEQUENTIAL"] and
+            .public_already_mined_head_only==true and
+            .builder_deadline_or_preinclusion_observation_proven==false and
+            .private_chainlink_SVR_mevshare_access_proven==false and
+            .nqc_profit_or_route_feasible_proven==false and
+            .one_sample_is_not_fullday_shadow_or_full_aave_market==true and
+            .real_ethereum_mainnet_tx_broadcast==false and
+            .fees_user_mxn2000_or_operator_funds_spent==false and
+            .nonrecourse_gas_sponsorship_proven==false and
+            .OWN_CAPITAL_ZERO_INCLUDING_GAS_UNCHANGED==true and
+            .commercial_score_upgrade==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .nqc_realized_pnl_usd=="0" and
+            (.status=="SOURCE_AUTHENTIC_AB_BA_PUBLIC_HEAD_LATENCY_NOT_SVR_ACCESS" or
+             .status=="INCOMPLETE_READ_LATENCY_BENCHMARK_NOT_MARKET_ABSENCE") and
+            (if .status=="SOURCE_AUTHENTIC_AB_BA_PUBLIC_HEAD_LATENCY_NOT_SVR_ACCESS"
+             then (.errors|length)==0 and
+               (.trials|length)==4 and
+               .latency_comparison.risk_accounts_in_each_trial==9 and
+               .latency_comparison.eth_call_count_per_provider==36 and
+               .latency_comparison.one_trial_is_not_a_reliable_speed_distribution==true and
+               .latency_comparison.network_order_provider_cache_and_load_confound_results==true and
+               (.latency_comparison.three_lanes_faster_in_this_specific_two_round_sample|type)=="boolean" and
+               all(.trials[];
+                   .raw_abi_records_identical_between_sources==true and
+                   (.accounts|length)==9 and
+                   .fixed_canonical_state_hash==.pinned_header.hash and
+                   .source_rpc_calls.drpc==9 and
+                   .source_rpc_calls.publicnode==9) and
+               .read_dispatches_per_provider.drpc<=60 and
+               .read_dispatches_per_provider.publicnode<=60
+             else (.errors|length)>0 and .latency_comparison==null
+             end)
+          ' "$OUT/attempt/public-AB-BA-latency-result.json" > "$OUT/jq-contract-check.log"
+          echo 'Public already-mined Aave ABI speed test; no builder/SVR execution or P&L.'
+      - name: Preserve every source SHA, original ABI, RPC timing and censored failure
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-aave-AB-BA"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/public_aave_9account_rpc_latency_ab.py \
+             ci/nqc-census/rmc-v2-shadow/test_public_aave_9account_rpc_latency_ab.py \
+             ci/nqc-census/rmc-v2-shadow/PUBLIC_ACCOUNT_RPC_AB_LATENCY_CONTRACT.md \
+             ci/nqc-census/rmc-v2-shadow/public_two_head_sealed_watch.py \
+             ci/nqc-census/rmc-v2-shadow/withdraw_all_83_owner_refresh.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_recent_withdraw_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py \
+             .github/workflows/nqc-v2-public-rpc-latency-ab.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload complete same-head A/B B/A source or source-provider failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-public-risk-AB-BA-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-aave-AB-BA/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
