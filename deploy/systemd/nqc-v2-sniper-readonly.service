@@ -1,25 +1,26 @@
-# NQC V2 sniper: opt-in deployment candidate, NOT enabled by this PR.
+# NQC V2 sniper: deployable service, NOT enabled by committing this file.
 # READ-ONLY RPC, no Ethereum signing, no self-funded gas.
-# Existing droplets still incur monthly hosting charges; operator must approve.
+# Continuous read-only activation authorized on 2026-10-13; access still required.
 [Unit]
 Description=NQC V2 Read-only Aave Sniper Research Observer (NO TRADE)
 Documentation=https://github.com/josuechavando350-png/nexus-engine/pull/692
 After=network-online.target
 Wants=network-online.target
-StartLimitIntervalSec=1800
-StartLimitBurst=4
-ConditionPathExists=/opt/nqc/nexus-engine/ci/nqc-census/rmc-v2-shadow/sniper_readonly_observer.py
+StartLimitIntervalSec=0
+ConditionPathExists=/opt/nqc/sniper-readonly/current/sniper_continuous_service.py
 
 [Service]
 Type=simple
 User=nqc-sniper
 Group=nqc-sniper
 StateDirectory=nqc-sniper-readonly
-WorkingDirectory=/opt/nqc/nexus-engine/ci/nqc-census/rmc-v2-shadow
+WorkingDirectory=/opt/nqc/sniper-readonly/current
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/usr/bin/python3 /opt/nqc/nexus-engine/ci/nqc-census/rmc-v2-shadow/sniper_readonly_journal.py --out-dir /var/lib/nqc-sniper-readonly --providers drpc publicnode blast --interval-seconds 300 --max-cycles 0
+EnvironmentFile=/opt/nqc/sniper-readonly/current/source.env
+ExecStart=/usr/bin/python3 /opt/nqc/sniper-readonly/current/sniper_continuous_service.py --out-dir /var/lib/nqc-sniper-readonly --interval-seconds 60 --max-cycles 0
 Restart=on-failure
 RestartSec=90
+TimeoutStopSec=15
 
 # The journal is the ONLY requested writable path. No wallet credentials.
 UMask=0077

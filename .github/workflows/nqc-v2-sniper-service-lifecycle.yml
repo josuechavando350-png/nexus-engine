@@ -1,0 +1,125 @@
+name: NQC V2 Read-only Service Lifecycle (EPHEMERAL CI HOST)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/sniper_continuous_service.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_sniper_continuous_service.py'
+      - 'deploy/install-nqc-sniper-readonly.sh'
+      - 'deploy/systemd/nqc-v2-sniper-readonly.service'
+      - '.github/workflows/nqc-v2-sniper-service-lifecycle.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-sniper-service-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ephemeral-lifecycle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Source and offline service/observer/journal regressions
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-service-evidence"
+          bash -n deploy/install-nqc-sniper-readonly.sh
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow -p 'test_sniper_*.py' -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-service-evidence/tests.log"
+      - name: Install only on this disposable Actions runner
+        run: |
+          set -euo pipefail
+          sudo bash deploy/install-nqc-sniper-readonly.sh "$GITHUB_WORKSPACE" "$(git rev-parse HEAD)" \
+            2>&1 | tee "$RUNNER_TEMP/nqc-service-evidence/install.log"
+          systemctl is-enabled nqc-v2-sniper-readonly.service
+      - name: Verify live samples, restart-on-failure, and preserved journal
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-service-evidence"
+          sudo python3 - "$OUT" <<'PY'
+          import json, pathlib, subprocess, sys, time
+          out=pathlib.Path(sys.argv[1])
+          state=pathlib.Path('/var/lib/nqc-sniper-readonly')
+          service='nqc-v2-sniper-readonly.service'
+          health_cmd=['runuser','-u','nqc-sniper','--','python3',
+              '/opt/nqc/sniper-readonly/current/sniper_continuous_service.py',
+              '--out-dir',str(state),'--health']
+          def wait_for_sequence(minimum, seconds=300):
+              deadline=time.monotonic()+seconds
+              while time.monotonic()<deadline:
+                  result=subprocess.run(health_cmd,capture_output=True,text=True)
+                  if result.returncode==0:
+                      doc=json.loads(result.stdout)
+                      if doc['sequence']>=minimum:return doc
+                  time.sleep(5)
+              raise RuntimeError('fresh verified sample sequence not observed')
+          before=wait_for_sequence(1)
+          pointer=json.loads((state/'health.json').read_text())
+          snapshot=state/pointer['journal_day_utc']/pointer['snapshot_file']
+          original=snapshot.read_bytes()
+          old_pid=subprocess.check_output(['systemctl','show',service,'-p','MainPID','--value'],text=True).strip()
+          # Kill only the dedicated observer on the EPHEMERAL CI runner.
+          subprocess.run(['systemctl','kill','--kill-whom=main','--signal=SIGKILL',service],check=True)
+          after=wait_for_sequence(before['sequence']+1)
+          new_pid=subprocess.check_output(['systemctl','show',service,'-p','MainPID','--value'],text=True).strip()
+          restarts=int(subprocess.check_output(['systemctl','show',service,'-p','NRestarts','--value'],text=True))
+          assert old_pid!='0' and new_pid!='0' and old_pid!=new_pid and restarts>=1
+          assert snapshot.read_bytes()==original
+          assert after['pinned_block']['number']>before['pinned_block']['number']
+          result={'status':'EPHEMERAL_CI_SERVICE_RESTART_AND_FRESH_SAMPLE_PASS',
+              'before':before,'after':after,'old_pid':old_pid,'new_pid':new_pid,'restarts':restarts,
+              'production_host_deployed':False,'host_reboot_verified':False,
+              'server_24_7_uptime_certified':False,'nqc_realized_pnl_usd':'0'}
+          (out/'lifecycle.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n')
+          PY
+      - name: Stop CI service and preserve original evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-service-evidence"
+          mkdir -p "$OUT/source"
+          sudo systemctl disable --now nqc-v2-sniper-readonly.service || true
+          sudo journalctl -u nqc-v2-sniper-readonly.service --no-pager > "$OUT/systemd-journal.log"
+          if sudo test -d /var/lib/nqc-sniper-readonly; then
+            sudo cp -a /var/lib/nqc-sniper-readonly "$OUT/state"
+            sudo chown -R "$(id -u):$(id -g)" "$OUT/state"
+          fi
+          sudo chown -R "$(id -u):$(id -g)" "$OUT"
+          cp ci/nqc-census/rmc-v2-shadow/sniper_{readonly_observer,readonly_journal,continuous_service}.py \
+            ci/nqc-census/rmc-v2-shadow/test_sniper_continuous_service.py \
+            deploy/install-nqc-sniper-readonly.sh deploy/systemd/nqc-v2-sniper-readonly.service \
+            .github/workflows/nqc-v2-sniper-service-lifecycle.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-service-ci-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-service-evidence/
+          retention-days: 30
+          if-no-files-found: error
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
