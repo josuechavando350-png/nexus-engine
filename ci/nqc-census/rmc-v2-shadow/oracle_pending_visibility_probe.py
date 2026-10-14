@@ -17,6 +17,8 @@ from urllib.request import Request, urlopen
 
 from verify_postwindow_competitor_receipts import PROVIDERS
 from postwindow_oracle_causality import AGGREGATOR, FORWARD_SELECTOR, INNER_SELECTOR
+PRIMARY_TRANSMIT_SELECTOR = 'b1dc65a4'
+REPORT_SELECTORS = frozenset((INNER_SELECTOR, PRIMARY_TRANSMIT_SELECTOR))
 
 MAX_RPC_BYTES = 8_000_000
 MAX_PENDING_TRANSACTIONS = 5_000
@@ -70,10 +72,11 @@ def b32(raw, name):
 
 
 def parse_oracle_payload(tx):
-    """Recognize only *specified* direct or exact forward(address,bytes) calls.
+    """Recognize both authenticated DualAggregator transmit ABI selectors.
 
-    Do not assume every forwarded call is public/available, nor that a target
-    calldata match implies the Chainlink report will be accepted.
+    transmitSecondary is 0xba0cb29e; primary transmit is 0xb1dc65a4.
+    A selector match is a pending candidate only; report signatures, actual
+    price effect, inclusion, and competitive access remain unproven.
     """
     need(type(tx) is dict, 'pending transaction must be object')
     dest, data = tx.get('to'), tx.get('input')
@@ -81,10 +84,13 @@ def parse_oracle_payload(tx):
     need(type(data) is str and HEX.fullmatch(data) and len(data) <= 250_000,
          'invalid pending calldata')
     dest, data = dest.lower(), data.lower()
-    direct = '0x'+INNER_SELECTOR
-    if dest == AGGREGATOR and data.startswith(direct):
+    direct_selector = data[2:10] if len(data) >= 10 else ''
+    if dest == AGGREGATOR and direct_selector in REPORT_SELECTORS:
         return {'kind':'direct_aggregator_report_candidate','target':AGGREGATOR,
-                'outer_method_id':direct, 'input_sha256':sha256(bytes.fromhex(data[2:])).hexdigest()}
+                'outer_method_id':'0x'+direct_selector,
+                'inner_method_id':'0x'+direct_selector,
+                'transmission_path': 'secondary' if direct_selector==INNER_SELECTOR else 'primary',
+                'input_sha256':sha256(bytes.fromhex(data[2:])).hexdigest()}
     if not data.startswith('0x'+FORWARD_SELECTOR):
         return None
     body = bytes.fromhex(data[10:])
@@ -99,11 +105,13 @@ def parse_oracle_payload(tx):
          len(body) == 96 + ((size + 31)//32)*32 and
          not any(body[96+size:]), 'malformed ETH/USD forwarding ABI')
     inner = body[96:96+size]
-    if inner[:4].hex() != INNER_SELECTOR:
+    selector = inner[:4].hex()
+    if selector not in REPORT_SELECTORS:
         return None
     return {'kind':'forwarded_aggregator_report_candidate','target':AGGREGATOR,
             'outer_method_id':'0x'+FORWARD_SELECTOR,
-            'inner_method_id':'0x'+INNER_SELECTOR,
+            'inner_method_id':'0x'+selector,
+            'transmission_path':'secondary' if selector==INNER_SELECTOR else 'primary',
             'input_sha256':sha256(bytes.fromhex(data[2:])).hexdigest()}
 
 
