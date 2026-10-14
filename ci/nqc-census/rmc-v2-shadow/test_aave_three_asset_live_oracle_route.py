@@ -117,13 +117,15 @@ class Fixture:
             if address in set(SOURCE.values()):
                 if data==m.SELECTORS["aggregator"]:
                     if self.mode=="aggregator_absent":
-                        raise ValueError("execution reverted; no ABI selector")
+                        raise m.SourceSelectorUnavailable("execution reverted; no ABI selector")
+                    if self.mode=="http429" and provider=="publicnode":
+                        raise OSError("HTTP 429 source unavailable")
                     return word(int(AGG,16)) if address==SOURCE["WETH"] else word(0)
                 if data==m.SELECTORS["decimals"]:
                     return word(8)
                 if data==m.SELECTORS["latestRoundData"]:
                     if self.mode=="round_absent":
-                        raise ValueError("execution reverted; no latestRoundData")
+                        raise m.SourceSelectorUnavailable("execution reverted; no latestRoundData")
                     val=(-1 if self.mode=="negative_round" and
                          address==SOURCE["USDT"] else 254164650000)
                     if self.mode=="round_malformed" and address==SOURCE["WETH"]:
@@ -304,6 +306,35 @@ class ThreeAssetOracleRouteTests(unittest.TestCase):
         r,_,_=self.make("round_malformed")
         self.assertEqual(r["status"],
             "INCOMPLETE_AAVE_ORACLE_ROUTE_SOURCE_NOT_SVR_DENIAL")
+
+    def test_transport_rate_limit_cannot_be_misclassified_as_optional_selector_absence(self):
+        report,_,_=self.make("http429")
+        self.assertEqual(report["status"],
+            "INCOMPLETE_AAVE_ORACLE_ROUTE_SOURCE_NOT_SVR_DENIAL")
+        self.assertFalse(report["EIP1898_same_canonical_block_two_public_source_parity"])
+        self.assertTrue(report["errors"])
+
+    def test_only_verified_JSONRPC_EVM_reverts_map_to_optional_absence(self):
+        response={"jsonrpc":"2.0","id":433,"error":{
+            "code":3,"message":"execution reverted: selector not available"}}
+        call=m.RPC.network
+        from unittest.mock import patch
+        class FakeHTTP:
+            def __enter__(self):return self
+            def __exit__(self,*args):return False
+            def read(self,n):return m.canonical(response)
+        with patch.object(m,"urlopen",return_value=FakeHTTP()):
+            with self.assertRaises(m.SourceSelectorUnavailable):
+                call(m.borrow.RPC_ENDPOINTS["drpc"],"eth_call",
+                     [{"to":m.POOL,"data":m.SELECTORS["ADDRESSES_PROVIDER"]},
+                      {"blockHash":"0x"+"ab"*32,"requireCanonical":True}])
+        response["error"]={"code":429,"message":"execution reverted: rate limit"}
+        with patch.object(m,"urlopen",return_value=FakeHTTP()):
+            with self.assertRaises(m.Rejected) as error:
+                call(m.borrow.RPC_ENDPOINTS["drpc"],"eth_call",
+                     [{"to":m.POOL,"data":m.SELECTORS["ADDRESSES_PROVIDER"]},
+                      {"blockHash":"0x"+"ab"*32,"requireCanonical":True}])
+            self.assertNotIsInstance(error.exception,m.SourceSelectorUnavailable)
 
     def test_decimals_and_zero_address_ABI_validation(self):
         self.assertIsNone(m.optional_address_word(word(0)))
