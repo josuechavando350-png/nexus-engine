@@ -1,0 +1,175 @@
+name: NQC V2 Cold Anvil Full EOA Receipt (127001 ONLY, NO TRADE)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/weth-physical/script/NqcV2LocalColdReceipt.s.sol'
+      - 'ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_nqc_local_anvil_cold_receipt.py'
+      - 'ci/nqc-census/rmc-v2-shadow/LOCAL_ANVIL_FULL_RECEIPT_CONTRACT.md'
+      - '.github/workflows/nqc-v2-local-anvil-cold-receipt.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-cold-local-receipt-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-mainnet-history-local-eoa-cold-receipt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 38
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact head and immutable PR698 producer source
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-local-cold"
+          mkdir -p "$OUT"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38498693805" > "$OUT/38498693805-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11865385506" > "$OUT/11865385506-artifact.json"
+          jq -e '
+            .id==38498693805 and .head_sha=="156e106c2efcd8bcb7f4931be3daa98309bd770b" and
+            .conclusion=="success" and .status=="completed"
+          ' "$OUT/38498693805-run.json" >/dev/null
+          jq -e '
+            .id==11865385506 and .expired==false and
+            .workflow_run.id==38498693805 and
+            .workflow_run.head_sha=="156e106c2efcd8bcb7f4931be3daa98309bd770b" and
+            .digest=="sha256:6778f8e190d13c739331f731ca532d8607e3f653ca000de746b058b4903c7d7d"
+          ' "$OUT/11865385506-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11865385506/zip" \
+            --output "$OUT/11865385506.zip"
+          printf '%s  %s\n' \
+            6778f8e190d13c739331f731ca532d8607e3f653ca000de746b058b4903c7d7d \
+            "$OUT/11865385506.zip" | sha256sum --check --strict
+      - name: Pin known Foundry binaries with original PR698 release SHA256
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-local-cold"
+          mkdir -p "$OUT/bin"
+          curl --fail --silent --show-error --location \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz \
+            --output "$OUT/foundry.tar.gz"
+          printf '%s  %s\n' \
+            cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b \
+            "$OUT/foundry.tar.gz" | sha256sum --check --strict
+          tar -xzf "$OUT/foundry.tar.gz" -C "$OUT/bin" forge anvil cast
+          "$OUT/bin/forge" --version | tee "$OUT/foundry-version.txt"
+          "$OUT/bin/anvil" --help | grep -- --fork-transaction-hash >/dev/null
+      - name: Offline original PR698 source authority and adversarial cold receipt tests
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-local-cold"
+          NQC_FUNDED_ROUTE_ZIP="$OUT/11865385506.zip" \
+            python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_nqc_local_anvil_cold_receipt.py -v 2>&1 | tee "$OUT/offline-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py
+      - name: Build isolated source-locked Foundry harness (no mainnet transactions)
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-local-cold"
+          ROOT="$RUNNER_TEMP/nqc-local-cold-fork-project"
+          mkdir -p "$ROOT/src" "$ROOT/test" "$ROOT/script"
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol "$ROOT/src/"
+          cp ci/nqc-census/weth-physical/test/NqcV2FundedRouteFork.t.sol "$ROOT/test/"
+          cp ci/nqc-census/weth-physical/foundry-time-only.toml "$ROOT/foundry.toml"
+          cp ci/nqc-census/weth-physical/script/NqcV2LocalColdReceipt.s.sol "$ROOT/script/"
+          printf '%s  %s\n' \
+            1eb01ef850e8de52c89ef0825207f0a3086251f713313300a73aede1e450875e "$ROOT/src/NqcFlashFundingExecutor.sol" \
+            b157b28d5da13923dfa724f569f790b9dc6396ac8b47a6826c49dd718d42ace9 "$ROOT/test/NqcV2FundedRouteFork.t.sol" \
+            1dcdefbf856d80cc3318131b7123c7d1e7a39e9fc3ac8c6fa5afa1742d9cd124 "$ROOT/foundry.toml" |
+            sha256sum --check --strict
+          "$OUT/bin/forge" build --root "$ROOT" > "$OUT/compile.log" 2>&1
+          echo "Original PR698 source and new local-only test script compiled."
+      - name: Send ONLY to local Anvil historical prewinner fork and inspect full EOA receipt
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-local-cold"
+          timeout 1500s python3 ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py \
+            --source-zip "$OUT/11865385506.zip" \
+            --workspace "$RUNNER_TEMP/nqc-local-cold-fork-project" \
+            --forge "$OUT/bin/forge" \
+            --anvil "$OUT/bin/anvil" \
+            --cast "$OUT/bin/cast" \
+            --out "$OUT/attempt" | tee "$OUT/stdout.log"
+          jq -e '
+            .schema_version==1 and
+            .status=="HISTORICAL_LOCAL_ANVIL_FULL_EOA_RECEIPT_NO_MAINNET_CAPTURE" and
+            (.errors|length)==0 and
+            .original_winner_block==26142067 and
+            .authenticated_pre_winner_fork.account_hex_matches_original_exactly==true and
+            .full_local_eoa_receipts.fork_only_execute_receipt_gas_used>1115038 and
+            (.full_local_eoa_receipts.fork_only_setup_transaction_receipt_gas_used|length)==3 and
+            .full_local_eoa_receipts.fork_gas_fee_is_not_paid_on_public_ethereum==true and
+            .full_local_eoa_receipts.real_execution_gas_fee_paid_from_user_or_operator==false and
+            .ethereum_mainnet_transaction_submitted==false and
+            .ethereum_mainnet_native_gas_spent==false and
+            .user_mxn_2000_gas_spent==false and
+            .operator_private_key_or_funds_used==false and
+            .source_transaction_known_in_hindsight==true and
+            .nqc_cold_execution_mainnet_gas_used_proven==false and
+            .external_nonrecourse_gas_sponsor_proven==false and
+            .nqc_complete_net_economics_proven==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0"
+          ' "$OUT/attempt/local-cold-receipt.json" > "$OUT/contract-check.log"
+          echo "FULL cold receipt only on ephemeral LOCAL Anvil. No mainnet trade."
+      - name: Preserve EXACT tested code, source, failure, binaries and receipts
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-local-cold"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/weth-physical/script/NqcV2LocalColdReceipt.s.sol \
+             ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py \
+             ci/nqc-census/rmc-v2-shadow/test_nqc_local_anvil_cold_receipt.py \
+             ci/nqc-census/rmc-v2-shadow/LOCAL_ANVIL_FULL_RECEIPT_CONTRACT.md \
+             ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+             ci/nqc-census/weth-physical/test/NqcV2FundedRouteFork.t.sol \
+             ci/nqc-census/weth-physical/foundry-time-only.toml \
+             ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol \
+             .github/workflows/nqc-v2-local-anvil-cold-receipt.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload immutable cold receipt evidence or exact stage failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-anvil-cold-receipt-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-local-cold/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
