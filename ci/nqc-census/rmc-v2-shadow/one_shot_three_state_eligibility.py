@@ -257,10 +257,20 @@ class OnlyLocalRPC:
             need(args==["0x1"],"only one local synthetic no-tx block authorized")
         if method=="eth_call":
             need(len(args)==2 and args[1]=="latest" and
-                 type(args[0]) is dict and
-                 set(args[0])=={"from","data","gas","value"} and
-                 args[0]["gas"]=="0x989680" and args[0]["value"]=="0x0",
-                 "only fixed ten-million-gas CREATE dryrun allowed")
+                 type(args[0]) is dict,"only local last-head eth_call")
+            tx=args[0]
+            risk=(set(tx)=={"to","data"} and
+                  tx.get("to")==old.POOL and
+                  type(tx.get("data")) is str and
+                  re.fullmatch(r"0xbf92857c0{24}[0-9a-f]{40}",tx["data"]))
+            create=(set(tx)=={"from","data","gas","value"} and
+                    tx.get("from")=="0x47878d4e4cb14fba4e85da0f54c3bfc589cd7e31" and
+                    tx.get("gas")=="0x989680" and tx.get("value")=="0x0" and
+                    type(tx.get("data")) is str and
+                    len(tx["data"])==2+EXPECTED_BYTES*2 and
+                    sha256(bytes.fromhex(tx["data"][2:])).hexdigest()==EXPECTED_INIT_SHA)
+            need(risk or create,"only exact source Aave risk or 10M local CREATE dryrun")
+
         body=canon({"jsonrpc":"2.0","id":4727,"method":method,"params":args})
         req=Request(self.url,data=body,method="POST",headers={
             "Content-Type":"application/json",
@@ -388,22 +398,60 @@ def run_case(mode,source,anvil,output_dir):
              q(parent.get("number"))==PARENT_BLOCK,
              "fork original canonical historical parent hash mismatch")
         row["source_parent_header_authenticated"]=True
-        # The Aave Pool implementation and exact borrower remain fixed.
-        calldata=old.borrower_call_data(source["borrower"]) \
-            if hasattr(old,"borrower_call_data") else (
-                "0xbf92857c"+"0"*24+source["borrower"][2:])
-        bal,err=client.call("eth_call",[
-            {"from":source["address"],"data":source["initcode"],
-             "gas":"0x989680","value":"0x0"},"latest"]) \
-             if False else (None,None)
-        # Account read uses exact Aave Pool 6-word risk ABI, not a mutable
-        # position-index lookup or selected future liquidation receipt.
+        # One source-identified borrower and immutable Aave Pool for each
+        # fork, BEFORE any CREATE simulation. The original historical parent
+        # must match even for the PRE_ORACLE no-TX0 negative control.
+        calldata="0xbf92857c"+"0"*24+source["borrower"][2:]
         raw,err=client.call("eth_call",[
-            {"to":old.POOL,"data":calldata},"latest"]) \
-             if False else (None,None)
-        # See AccountReader below: eth_call is allowlisted for a strictly
-        # bound CREATE and immutable Aave getUserAccountData only.
-        row["status"]="PREPARED_FOR_CANONICAL_READ"
+            {"to":old.POOL,"data":calldata},"latest"])
+        need(err is None and type(raw) is str and ABI6.fullmatch(raw),
+             "canonical Aave user risk eth_call unavailable")
+        actual=decode_account(raw)
+        row["borrower_risk_six_exact_uint256"]=actual
+        row["hf_wad"]=actual[5]
+        row["borrower_risk_abi_sha256"]=sha256(bytes.fromhex(raw[2:])).hexdigest()
+        row["risk_abi_exactly_source_after_oracle"]=(raw.lower()==source["original_abi"])
+        row["source_hf_wad"]=source["source_words"][5]
+        if mode==PRE_ORACLE:
+            need(actual[5]>=10**18 and not row["risk_abi_exactly_source_after_oracle"],
+                 "pre-oracle control already liquidatable / source compromised")
+        elif mode==AFTER_ORACLE:
+            need(row["risk_abi_exactly_source_after_oracle"] and
+                 actual[5]==EXPECTED_HF_WAD,
+                 "postoracle tx0 source is not identical to original prewinner")
+        else:
+            need(not row["risk_abi_exactly_source_after_oracle"],
+                 "source after competitor winner not changed")
+        # Local native balance is SYNTHETIC ONLY; no user key, no signing or
+        # real ETH transaction. No edits to borrower, oracle or Aave storage.
+        _,err=client.call("anvil_setBalance",[
+            source["address"],"0x3635c9adc5dea00000"])
+        need(err is None,"local test-only address balance setup unavailable")
+        dry,error=client.call("eth_call",[
+            {"from":source["address"],"data":source["initcode"],
+             "gas":"0x989680","value":"0x0"},"latest"])
+        if error is None:
+            need(type(dry) is str and EVM_RETURN.fullmatch(dry) and
+                 dry!="0x" and len(dry)<200_000,
+                 "successful local CREATE dryrun returned invalid runtime code")
+            row["dry_run_returned_evm_bytecode"]=True
+            row["dry_run_runtime_code_sha256"]=sha256(bytes.fromhex(dry[2:])).hexdigest()
+            row["status"]="EVM_ONE_SHOT_CREATE_SIMULATION_SUCCEEDED_NO_MINED_TX"
+        else:
+            reason=extract_revert_reason(error)
+            row["dry_run_evm_revert_reason"]=reason
+            row["dry_run_rpc_error_class"]="EVM_REVERT" if reason in REVERT_REASONS else "UNKNOWN_SOURCE_ERROR"
+            row["dry_run_error_response_sha256"]=sha256(canon(error)).hexdigest()
+            row["status"]=("KNOWN_EVM_CONSTRUCTOR_RISK_REJECTED"
+                           if reason in REVERT_REASONS else
+                           "INCOMPLETE_UNCLASSIFIED_SOURCE_ERROR")
+        if mode==AFTER_ORACLE:
+            need(row["dry_run_returned_evm_bytecode"] is True,
+                 "postoracle original source CREATE no longer simulations positive")
+        else:
+            need(row["dry_run_rpc_error_class"]=="EVM_REVERT" and
+                 row["dry_run_returned_evm_bytecode"] is False,
+                 "pre-oracle or post-winner local EVM did not reject correctly")
     except Exception as exc:
         row["errors"].append({"type":type(exc).__name__,
                               "message":str(exc)[:180]})
