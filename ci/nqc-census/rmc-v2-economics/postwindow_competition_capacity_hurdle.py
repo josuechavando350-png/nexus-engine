@@ -98,7 +98,8 @@ def authenticate_index_archive(raw):
                  "indexed member SHA drift: "+name)
         need(z.read("parent-source-commit.txt").decode().strip() ==
              indexed.ORIGINAL_HEAD, "original discovery head changed")
-        need(declared["producer.py"] == sha256(Path(indexed.__file__).read_bytes()).hexdigest(),
+        need(declared["producer.py"] == INDEX_PRODUCER_PY_SHA and
+             declared["producer.py"] == sha256(Path(indexed.__file__).read_bytes()).hexdigest(),
              "indexed ranking producer does not match tested repository code")
         nested=z.read("immutable-source.zip")
         need(sha256(nested).hexdigest() == indexed.ZIP_SHA,
@@ -106,8 +107,8 @@ def authenticate_index_archive(raw):
         summary=indexed.source.strict_json(z.read("indexed-market-conflicts.json"))
         computed=indexed.run(nested)
         need(summary == computed, "indexed report differs from fully replayed raw source")
-        need(sha256(canon(summary)).hexdigest() == INDEX_SUMMARY_SHA,
-             "indexed report canonical commitment drift")
+        need(declared["indexed-market-conflicts.json"] == INDEX_SUMMARY_SHA,
+             "indexed report raw commitment drift")
         rows=indexed.authenticate_archive(nested)
     return summary,rows,{
         "producer_head":INDEX_PRODUCER_SHA,
