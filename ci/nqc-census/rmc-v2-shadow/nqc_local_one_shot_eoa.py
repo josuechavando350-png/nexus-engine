@@ -269,7 +269,7 @@ def run(funded_zip,oracle_zip,index_zip,workspace,forge,anvil,cast,out):
             # the ephemeral loopback transaction receipt and optional trace.
             # Never interpret a reverted receipt as a profitable attempt.
             failed_hashes=re.findall(
-                r"Transaction Failure:\\s*(0x[0-9a-fA-F]{64})",lines)
+                r"Transaction Failure:\s*(0x[0-9a-fA-F]{64})",lines)
             if len(failed_hashes)==1:
                 bad_hash=failed_hashes[0]
                 try:
