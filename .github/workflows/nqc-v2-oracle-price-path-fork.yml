@@ -1,0 +1,150 @@
+name: NQC V2 Historical Aave Oracle Price Path by Canonical Tx (NO TRADE)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/weth-physical/test/NqcV2OraclePricePath.t.sol'
+      - 'ci/nqc-census/rmc-v2-shadow/oracle_price_path_fork.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_oracle_price_path_fork.py'
+      - 'ci/nqc-census/rmc-v2-shadow/ORACLE_PRICE_PATH_FORK_CONTRACT.md'
+      - '.github/workflows/nqc-v2-oracle-price-path-fork.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-oracle-pricepath-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  historical-weth-price-path:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Bind exact head and anti-hindsight offline mutation tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-oracle-price-path"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_oracle_price_path_fork.py -v 2>&1 | tee "$OUT/tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/oracle_price_path_fork.py
+      - name: Authenticate exactly the four historical PR709 receipts and immutable ZIP
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-price-path"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38519386037" > "$OUT/producer-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11873371179" > "$OUT/producer-artifact.json"
+          jq -e '.id==38519386037 and .status=="completed" and
+            .conclusion=="success" and
+            .head_sha=="635a10da08bb5b4cea7639c555cb2ddf7b38c551"' \
+            "$OUT/producer-run.json" >/dev/null
+          jq -e '.id==11873371179 and .expired==false and
+            .workflow_run.id==38519386037 and
+            .workflow_run.head_sha=="635a10da08bb5b4cea7639c555cb2ddf7b38c551" and
+            .digest=="sha256:5e5684fb4a98b87b1d9e2f15facb03ddb093e50a6e75ff4553b79fc192e69d38"' \
+            "$OUT/producer-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11873371179/zip" \
+            --output "$OUT/pr709-round-order.zip"
+          printf '%s  %s\n' \
+            '5e5684fb4a98b87b1d9e2f15facb03ddb093e50a6e75ff4553b79fc192e69d38' \
+            "$OUT/pr709-round-order.zip" | sha256sum --check --strict
+      - name: Authenticate Foundry v1.7.1 and exact source-format contract
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-price-path"
+          mkdir -p "$RUNNER_TEMP/nqc-foundry"
+          curl --fail --silent --show-error --location \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz \
+            --output "$RUNNER_TEMP/nqc-foundry/foundry.tar.gz"
+          printf '%s  %s\n' 'cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b' \
+            "$RUNNER_TEMP/nqc-foundry/foundry.tar.gz" | sha256sum --check --strict
+          tar -xzf "$RUNNER_TEMP/nqc-foundry/foundry.tar.gz" -C "$RUNNER_TEMP/nqc-foundry" forge
+          "$RUNNER_TEMP/nqc-foundry/forge" --version | tee "$OUT/foundry-version.txt"
+          "$RUNNER_TEMP/nqc-foundry/forge" fmt --check \
+            ci/nqc-census/weth-physical/test/NqcV2OraclePricePath.t.sol
+      - name: Four exact pre/post transaction price witnesses, one fork per source
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-price-path"
+          timeout 2850s python3 ci/nqc-census/rmc-v2-shadow/oracle_price_path_fork.py \
+            --producer-artifact "$OUT/pr709-round-order.zip" \
+            --out-dir "$OUT/attempt" \
+            --forge "$RUNNER_TEMP/nqc-foundry/forge" \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            (.status=="TWO_RPC_HISTORICAL_PRICE_PATH_PARITY_NO_LIVE_CAPTURE"
+             or .status=="ONE_RPC_HISTORICAL_PRICE_PATH_ONLY"
+             or .status=="INCOMPLETE_ORACLE_PRICE_PATH_FORK") and
+            .posthoc_historical_event_selection==true and
+            .cross_rpc_operator_independence_proven==false and
+            .production_oracle_price_mutation_performed==false and
+            .prospective_first_seen_proven==false and
+            .contemporaneous_borrower_liquidatable_proven==false and
+            .native_gas_external_nonrecourse_sponsor_proven==false and
+            .profitable_competitive_capture_proven==false and
+            .net_pnl_certified==false and .RMC_closed==false and
+            .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            .source.zip_sha256=="5e5684fb4a98b87b1d9e2f15facb03ddb093e50a6e75ff4553b79fc192e69d38" and
+            (.cases|length)==4 and
+            all(.cases[];.case.tx_hash|startswith("0x"))
+          ' "$OUT/attempt/price-path-fork.json" >/dev/null
+          echo "Historical pre/post Aave WETH prices only; no liquidation/market authority."
+      - name: Preserve exact source commit/tree, test output, positive and negative evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-price-path"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/weth-physical/test/NqcV2OraclePricePath.t.sol \
+             ci/nqc-census/weth-physical/foundry-time-only.toml \
+             ci/nqc-census/rmc-v2-shadow/oracle_price_path_fork.py \
+             ci/nqc-census/rmc-v2-shadow/test_oracle_price_path_fork.py \
+             ci/nqc-census/rmc-v2-shadow/oracle_round_transaction_order.py \
+             ci/nqc-census/rmc-v2-shadow/oracle_dual_event_family_census.py \
+             ci/nqc-census/rmc-v2-shadow/ORACLE_PRICE_PATH_FORK_CONTRACT.md \
+             .github/workflows/nqc-v2-oracle-price-path-fork.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload immutable price-path evidence or exact blocker
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-price-path-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-oracle-price-path/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
