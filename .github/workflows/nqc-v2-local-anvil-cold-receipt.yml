@@ -190,6 +190,14 @@ jobs:
             .authenticated_oracle_prefix.anvil_tx_hash_prefix_is_inclusive_at_v185_verified_by_state_only==true and
             .authenticated_pre_winner_fork.account_hex_matches_original_exactly==true and
             .full_local_eoa_receipts.fork_only_execute_receipt_gas_used>21000 and
+            .full_local_eoa_receipts.verified_atomic_execution_events.authentic_local_aave_liquidation_event==true and
+            .full_local_eoa_receipts.verified_atomic_execution_events.authentic_local_flash_loan_repaid_event==true and
+            .full_local_eoa_receipts.verified_atomic_execution_events.authentic_local_funding_completed_event==true and
+            .full_local_eoa_receipts.verified_atomic_execution_events.authentic_local_erc20_profit_transfer_to_ephemeral_eoa==true and
+            .full_local_eoa_receipts.verified_atomic_execution_events.local_profit_asset_base_units==2273989378 and
+            .full_local_eoa_receipts.verified_atomic_execution_events.local_principal_repaid_base_units==49017850405 and
+            .full_local_eoa_receipts.verified_atomic_execution_events.not_a_mainnet_or_prospective_profit_witness==true and
+            (.full_local_eoa_receipts.fork_only_full_local_execute_receipt.logs|length)>5 and
             .full_local_eoa_receipts.full_receipt_minus_gross_call_is_signed_not_overhead==true and
             .full_local_eoa_receipts.refund_amount_not_directly_certified==true and
             .full_local_eoa_receipts.gross_gasleft_is_not_receipt_gas_used==true and
