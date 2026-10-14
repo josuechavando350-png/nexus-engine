@@ -57,7 +57,11 @@ class LocalOnlyColdReceiptTests(unittest.TestCase):
         if not oracle_name:
             raise AssertionError("exact immutable PR700 oracle source ZIP not supplied")
         cls.oracle_raw=Path(oracle_name).read_bytes()
-        cls.oracle_proof=app.authenticate_oracle_prefix(cls.oracle_raw)
+        index_name=os.environ.get("NQC_PR693_EVIDENCE_ZIP")
+        if not index_name:
+            raise AssertionError("exact immutable PR693 indexer archive missing")
+        cls.index_raw=Path(index_name).read_bytes()
+        cls.oracle_proof=app.authenticate_oracle_prefix(cls.oracle_raw,cls.index_raw)
 
     def test_source_archive_full_immutable_authentication(self):
         self.assertEqual(sha256(self.raw).hexdigest(),app.SOURCE_ZIP_SHA)
@@ -79,12 +83,16 @@ class LocalOnlyColdReceiptTests(unittest.TestCase):
             "eth_usd_chainlink_answer_after_oracle_tx0_raw_8_decimals"],254_164_650_000)
         self.assertFalse(self.oracle_proof[
             "anvil_tx_hash_prefix_is_inclusive_at_v185_verified_by_state_only"])
+        self.assertEqual(self.oracle_proof["indexed_winner_number_of_liquidation_logs"],2)
+        self.assertEqual(self.oracle_proof["indexer_original_winner"]["manifest_members_verified"],6)
         self.assertGreater(self.oracle_proof["source"]["sha256_manifest_members_verified"],10)
 
     def test_oracle_zip_immutability_and_corruption_rejected(self):
         self.assertEqual(sha256(self.oracle_raw).hexdigest(),app.ORACLE_SOURCE_ZIP_SHA)
         with self.assertRaises(app.Rejected):
-            app.authenticate_oracle_prefix(self.oracle_raw[:-1]+b"x")
+            app.authenticate_oracle_prefix(self.oracle_raw[:-1]+b"x",self.index_raw)
+        with self.assertRaises(Exception):
+            app.authenticate_oracle_prefix(self.oracle_raw,self.index_raw+b"x")
 
     def test_event0_must_not_be_conflated_with_winner_transaction(self):
         self.assertEqual(app.oracle_evidence.EXPECTED[app.CASE]["tx"],app.FORK_WINNER)
