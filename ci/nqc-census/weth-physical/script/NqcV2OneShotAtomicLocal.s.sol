@@ -55,9 +55,11 @@ contract NqcV2OneShotAtomicLocal {
     ) {
         require(
             block.chainid == 1 &&
-                // Only the FIRST synthetic block immediately after oracle tx0.
-            // The source authenticated at the actual preceding historic block.
-            block.number == FIRST_HISTORICAL_BLOCK + 1,
+                // Foundry dry-runs CREATE at the source oracle-tx0 block; Anvil
+            // MINES the actual local EOA tx at sourceBlock+1. Both must pass,
+            // and the authenticated REAL local receipt is required at +1.
+            (block.number == FIRST_HISTORICAL_BLOCK ||
+                block.number == FIRST_HISTORICAL_BLOCK + 1),
             "HISTORICAL_LOCAL_FORK_ONLY"
         );
         require(
