@@ -344,6 +344,14 @@ def collect(cohort,provenance,out_dir,transport_factory=None,
         need(report["sealed_before_first_local_successor_header_observation"],
              "source decision was not sealed before locally observing successor")
         second=watch_one_head(clients,initial+1,cohort,now_fn)
+        need(second["canonical_header"]["parent_hash"]==
+             first["canonical_header"]["hash"],
+             "successor does not point to original observed canonical head")
+        # Recheck historical head identities AFTER both snapshots: the
+        # two-source parity on its own cannot protect against a short reorg.
+        need(get_paired_header(clients,initial)==first["canonical_header"] and
+             get_paired_header(clients,initial+1)==second["canonical_header"],
+             "newer canonical head replaced our sealed observed block")
         second_path=out_dir/"second-public-state-seal.json"
         second_path.write_bytes(canon(second))
         report["second_state_seal_sha256"]=sha256(second_path.read_bytes()).hexdigest()
