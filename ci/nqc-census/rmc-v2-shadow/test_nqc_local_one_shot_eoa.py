@@ -52,6 +52,9 @@ class OneShotLocalEoaNegativeTests(unittest.TestCase):
         receipt["contractAddress"]=ONE_SHOT
         receipt["to"]=None
         receipt["from"]=self.operator
+        # Exact forked oracle tx0 source is block 26,142,067; the local EOA
+        # CREATE transaction MUST be the very NEXT isolated synthetic block.
+        receipt["blockNumber"]=hex(old.PINNED_BLOCK+1)
         profit=old.EXPECTED_SURPLUS_BEFORE_NATIVE
         idx=None
         for i,log in enumerate(receipt["logs"]):
@@ -70,6 +73,24 @@ class OneShotLocalEoaNegativeTests(unittest.TestCase):
         payout=copy.deepcopy(move)
         payout["topics"][1]=address_topic(ONE_SHOT)
         payout["topics"][2]=address_topic(self.operator)
+        # EVM next-block Aave interest accrual changes 0,1,5 risk
+        # words by the exact amounts independently observed in first cast trace.
+        expected=[int(self.source["NQC_PRESTATE_ABI"][2+i*64:2+(i+1)*64],16)
+                  for i in range(6)]
+        observed=expected.copy()
+        observed[0]+=4810
+        observed[1]+=15297
+        observed[5]-=1148180630
+        original_raw=bytes.fromhex(self.source["NQC_PRESTATE_ABI"][2:])
+        observed_raw=b"".join(n.to_bytes(32,"big") for n in observed)
+        drift=copy.deepcopy(move)
+        drift["address"]=ONE_SHOT
+        drift["topics"]=[one.DRIFT_TOPIC]
+        drift["data"]="0x"+"".join(word(x) for x in (
+            [int.from_bytes(one.ethereum_keccak256(original_raw),"big"),
+             int.from_bytes(one.ethereum_keccak256(observed_raw),"big")] +
+             expected+observed+[int(self.source["NQC_WINNER_TIMESTAMP"])+1]))
+        receipt["logs"].insert(0,drift)
         receipt["logs"].append(payout)
         event=copy.deepcopy(move)
         event["address"]=ONE_SHOT
@@ -95,6 +116,44 @@ class OneShotLocalEoaNegativeTests(unittest.TestCase):
         self.assertTrue(proof["local_two_stage_erc20_profit_payout_to_test_eoa"])
         self.assertEqual(proof["exact_local_usdc_profit_before_native_costs_base_units"],2273989378)
         self.assertFalse(proof["real_mainnet_broadcast_or_inclusion"])
+
+    def test_offline_ethereum_keccak_known_transfer_event(self):
+        self.assertEqual("0x"+one.ethereum_keccak256(
+            b"Transfer(address,address,uint256)").hex(),
+            old.ERC20_TRANSFER_TOPIC)
+        self.assertEqual("0x"+one.ethereum_keccak256(
+            b"LocalOneShotStateDrift(bytes32,bytes32,uint256[6],uint256[6],uint256)"
+        ).hex(),one.DRIFT_TOPIC)
+
+    def test_actual_one_synthetic_block_interest_drift_explicitly_proven(self):
+        proof=one.report_source(self.fake(),self.source,self.operator)
+        drift=proof["local_execution_one_block_state_drift"]
+        self.assertEqual(drift["execution_minus_original_integer_deltas"],
+                         [4810,15297,0,0,0,-1148180630])
+        self.assertTrue(drift["source_and_execution_hf_below_one"])
+        self.assertFalse(drift["source_equals_execution_six_word_abi"])
+        self.assertTrue(drift["actual_execution_state_1ppm_posthoc_guard_passed"])
+
+    def test_one_ppm_exceeded_or_config_drift_rejected(self):
+        r=self.fake()
+        drift=r["logs"][0]
+        words=old._word_data(drift["data"],15,"drift")
+        words[8]+=100000000
+        drift["data"]="0x"+"".join(word(n) for n in words)
+        with self.assertRaises(one.Rejected):
+            one.report_source(r,self.source,self.operator)
+        r=self.fake()
+        words=old._word_data(r["logs"][0]["data"],15,"drift")
+        words[8+3]+=1
+        r["logs"][0]["data"]="0x"+"".join(word(n) for n in words)
+        with self.assertRaises(one.Rejected):
+            one.report_source(r,self.source,self.operator)
+
+    def test_state_drift_witness_cannot_be_omitted(self):
+        r=self.fake()
+        r["logs"].pop(0)
+        with self.assertRaises(one.Rejected):
+            one.report_source(r,self.source,self.operator)
 
     def test_one_shot_event_cannot_be_omitted(self):
         receipt=self.fake()
