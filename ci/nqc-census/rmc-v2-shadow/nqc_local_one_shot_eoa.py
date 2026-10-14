@@ -22,7 +22,7 @@ import time
 
 import nqc_local_anvil_cold_receipt as old
 
-ONE_SHOT_SCRIPT = "NqcV2OneShotAtomicLocal.s.sol:NqcV2OneShotBroadcastScript"
+ONE_SHOT_SCRIPT = "script/NqcV2OneShotAtomicLocal.s.sol:NqcV2OneShotBroadcastScript"
 LOCAL = old.LOCAL_URL
 USDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 SOURCE_WINNER = old.FORK_WINNER
