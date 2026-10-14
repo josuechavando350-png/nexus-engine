@@ -173,7 +173,9 @@ contract NqcV2FundedRouteForkTest {
         require(swapPool.code.length > 0, "PRESELECTED_POOL_MISSING");
         uint256 bps = IAaveNqcRoute(POOL).FLASHLOAN_PREMIUM_TOTAL();
         require(bps == 5, "HISTORICAL_FLASH_FEE_DRIFT");
-        fee = (principal * bps + 5000) / 10000;
+        // These historical Aave forks use percentMulCeil. Half-up rounding
+        // underquotes the USDT callback by one base unit and must fail closed.
+        fee = (principal * bps + 9999) / 10000;
         strategy = new NqcV2HistoricalRouteHarness(debt, borrower, vm.envUint("NQC_COLLATERAL"));
         executor = new NqcFlashFundingExecutor(address(this), address(strategy));
         strategy.setExecutor(address(executor));

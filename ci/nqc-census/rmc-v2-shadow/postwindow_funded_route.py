@@ -63,7 +63,7 @@ def parse_metrics(output, case):
     event = case['event']
     need(m['NQC_PRINCIPAL'] == int(event['debt_raw']) and
          m['NQC_SOLD_WETH'] == int(event['collateral_raw']), 'historical size drift')
-    need(m['NQC_FLASH_FEE'] == (m['NQC_PRINCIPAL'] * 5 + 5000) // 10000, 'fee mismatch')
+    need(m['NQC_FLASH_FEE'] == (m['NQC_PRINCIPAL'] * 5 + 9999) // 10000, 'ceil fee mismatch')
     need(m['NQC_SURPLUS'] > 0 and m['NQC_SWAP_OUTPUT'] ==
          m['NQC_PRINCIPAL'] + m['NQC_FLASH_FEE'] + m['NQC_SURPLUS'], 'economic identity mismatch')
     need(100_000 < m['NQC_EXECUTE_CALL_GAS'] < 3_000_000, 'implausible call gas')
@@ -107,8 +107,8 @@ def run_fork(case, provider, root, forge):
                 result = subprocess.run([forge, 'test', '--match-contract', CONTRACT,
                     '--fork-url', values['NQC_RPC_URL'], '--fork-block-number',
                     str(w['predecessor_block']['number']), '--no-storage-caching',
-                    '--compute-units-per-second', '20', '--fork-retries', '2',
-                    '--fork-retry-backoff', '2000', '--threads', '1', '-vvv'],
+                    '--compute-units-per-second', '5', '--fork-retries', '2',
+                    '--fork-retry-backoff', '10000', '--threads', '1', '-vvv'],
                     cwd=folder, env=dict(os.environ, **values), stdout=log,
                     stderr=subprocess.STDOUT, timeout=900, check=False)
             except subprocess.TimeoutExpired:

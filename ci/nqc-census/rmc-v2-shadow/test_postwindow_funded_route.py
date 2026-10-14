@@ -39,6 +39,19 @@ class FundedRouteEvidenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             route.parse_metrics(self.output({'NQC_SWAP_OUTPUT': 1000500, 'NQC_SURPLUS': 0}), self.case)
 
+    def test_actual_usdt_ceil_fee_accepts_one_unit_above_half_up(self):
+        self.case['event']['debt_raw'] = '3324204460'
+        changes = {'NQC_PRINCIPAL': 3324204460, 'NQC_FLASH_FEE': 1662103,
+                   'NQC_SWAP_OUTPUT': 3325876563, 'NQC_SURPLUS': 10000}
+        self.assertEqual(route.parse_metrics(self.output(changes), self.case)['NQC_FLASH_FEE'], 1662103)
+
+    def test_actual_usdt_half_up_fee_rejected_even_with_balanced_equation(self):
+        self.case['event']['debt_raw'] = '3324204460'
+        changes = {'NQC_PRINCIPAL': 3324204460, 'NQC_FLASH_FEE': 1662102,
+                   'NQC_SWAP_OUTPUT': 3325876562, 'NQC_SURPLUS': 10000}
+        with self.assertRaises(ValueError):
+            route.parse_metrics(self.output(changes), self.case)
+
     def test_historical_size_mutation_is_rejected(self):
         case = copy.deepcopy(self.case)
         case['event']['collateral_raw'] = '1'

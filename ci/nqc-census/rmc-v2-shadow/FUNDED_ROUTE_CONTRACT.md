@@ -37,6 +37,16 @@ principal + flash fee + one smallest debt unit. Inventory starts and ends at
 zero in the strategy and coordinator. USDT optional ERC20 return semantics are
 handled explicitly. All raw values use token base units (USDC/USDT 6, WETH 18).
 
+Historical flash premium uses ceil rounding: `(principal * bps + 9999) // 10000`.
+The first attempt incorrectly reused half-up arithmetic. The real USDT callback
+rejected 1,662,102 because it charged 1,662,103 base units. The coordinator's
+strict fee check caught this; it remains unchanged. Preserve failed run
+38498134103/artifact 11864219431, SHA256
+`56482467b12941720ce25834f1d4317bf1af7ccb4d0b072be753f791580718c0`.
+Regression tests accept the actual ceil fee and reject a balanced but underquoted
+half-up fee. The same attempt encountered a Blast 429 during USDT prestate replay;
+new runs use a lower public-RPC throughput budget and bounded backoff.
+
 Require exact historical debt and collateral amounts. Require actual token
 balance changes to match swap output and the identity:
 
@@ -72,6 +82,7 @@ single provider or latest state.
 
 - https://getfoundry.sh/reference/cheatcodes/create-select-fork
 - https://www.aave.com/docs/aave-v3/guides/flash-loans
+- https://github.com/aave-dao/aave-v3-origin/blob/main/src/contracts/protocol/libraries/logic/FlashLoanLogic.sol
 - https://developers.uniswap.org/docs/protocols/v3/deployments/v3-ethereum-deployments
 - https://github.com/Uniswap/v3-periphery/blob/main/contracts/interfaces/ISwapRouter.sol
 
