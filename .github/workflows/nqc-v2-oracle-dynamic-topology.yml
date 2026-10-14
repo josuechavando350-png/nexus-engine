@@ -1,0 +1,102 @@
+name: NQC V2 Dynamic Aave WETH Oracle Source and Historical Topic Truth (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/oracle_dynamic_topology_truth.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_oracle_dynamic_topology_truth.py'
+      - 'ci/nqc-census/rmc-v2-shadow/ORACLE_DYNAMIC_TOPOLOGY_CONTRACT.md'
+      - '.github/workflows/nqc-v2-oracle-dynamic-topology.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-oracle-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  two-source-historical-topic-and-current-topology:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact-head local regressions and mutation gates
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-oracle-source"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_oracle_dynamic_topology_truth.py -v 2>&1 | tee "$OUT/tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/oracle_dynamic_topology_truth.py
+      - name: Read only current pinned Aave WETH source and two historical tx0 receipts
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-source"
+          timeout 330s python3 ci/nqc-census/rmc-v2-shadow/oracle_dynamic_topology_truth.py \
+            --out "$OUT/weth-oracle-dynamic-topology.json" \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            (.status=="TWO_ENDPOINT_CURRENT_AAVE_ORACLE_TOPOLOGY_PARITY_ONLY" or
+             .status=="MISMATCH_NO_ORACLE_IDENTITY_AUTHORITY" or
+             .status=="INCOMPLETE_ORACLE_TOPOLOGY_AND_TOPIC_AUDIT") and
+            .static_oracle_target_currently_active_proven==false and
+            .price_feed_report_visible_in_public_mempool_proven==false and
+            .historical_fork_causality_recertified==false and
+            .prospective_hf_trigger_proven==false and
+            .net_capture_proven==false and
+            .external_nonrecourse_native_gas_proven==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            .anchor_rpc_calls<=50 and
+            all(.sources[];.rpc_calls<=50 and
+                (.historical_receipts|length)<=2)
+          ' "$OUT/weth-oracle-dynamic-topology.json" >/dev/null
+      - name: Archive exact code, source hash and negative/positive evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-oracle-source"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/oracle_dynamic_topology_truth.py \
+             ci/nqc-census/rmc-v2-shadow/test_oracle_dynamic_topology_truth.py \
+             ci/nqc-census/rmc-v2-shadow/oracle_newtransmission_cadence.py \
+             ci/nqc-census/rmc-v2-shadow/ORACLE_DYNAMIC_TOPOLOGY_CONTRACT.md \
+             .github/workflows/nqc-v2-oracle-dynamic-topology.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload append-only oracle source research artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-oracle-source-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-oracle-source/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
