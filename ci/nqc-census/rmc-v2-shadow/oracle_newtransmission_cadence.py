@@ -148,7 +148,7 @@ class RPC:
                  type(params[0]) is dict,'invalid logs args')
             q=params[0]
             need(set(q)=={'address','topics','fromBlock','toBlock'} and
-                 q['address']==AGGREGATOR and q['topics']==[NEW_TRANSMISSION_TOPIC]
+                 q['address']==AGGREGATOR and q['topics']==[EVENT_TOPICS]
                  and 0<=num(q['toBlock'])-num(q['fromBlock'])<SHARD_BLOCKS,
                  'unexpected logs range or target')
         else:
@@ -200,7 +200,7 @@ def measure_source(provider,anchor,transport=None):
         logs=[]
         for lo,hi in shard_ranges(first,last):
             reply=rpc.call('eth_getLogs',[{
-                'address':AGGREGATOR, 'topics':[NEW_TRANSMISSION_TOPIC],
+                'address':AGGREGATOR, 'topics':[EVENT_TOPICS],
                 'fromBlock':hex(lo),'toBlock':hex(hi)}])
             need(type(reply) is list and len(reply)<=MAX_EVENTS,
                  'oversized shard response')
@@ -266,6 +266,8 @@ def cadence(events, first_timestamp, last_timestamp):
 
 def run(transport_factory=None):
     result={'schema_version':1,'status':'INCOMPLETE_ORACLE_CADENCE_CENSUS',
+            'authenticated_event_topics':[SECONDARY_ROUND_TOPIC,NEW_TRANSMISSION_TOPIC],
+            'previous_generic_topic_filter_invalid':True,
             'started_at_utc':stamp(),'first':None,'last':None,
             'sources':{},'cross_endpoint_event_parity':False,
             'source_mismatch_ledger':[],
