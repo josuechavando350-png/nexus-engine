@@ -1,0 +1,135 @@
+name: NQC V2 All Recent Borrowers and 12-Block HF Drift (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py'
+      - 'ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_trajectory.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_prospective_recent_borrow_trajectory.py'
+      - 'ci/nqc-census/rmc-v2-shadow/FRESH_BORROW_TRAJECTORY_CONTRACT.md'
+      - '.github/workflows/nqc-v2-fresh-borrow-trajectory.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-fresh-borrow-hf-trajectory-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  two-block-canonical-hf-trajectory:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Check exact head, regression of source cohort and 16 new adversarial trajectories
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-borrow-hf-trajectory"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_prospective_recent_borrow_cohort.py -v 2>&1 | tee "$OUT/inherited-tests.log"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_prospective_recent_borrow_trajectory.py -v 2>&1 | tee "$OUT/trajectory-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_trajectory.py \
+            ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py
+      - name: Current 384-block Borrow cohort plus previous 12-block risk read
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-borrow-hf-trajectory"
+          timeout 950s python3 ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_trajectory.py \
+            --out "$OUT/dual-horizon-HF.json" \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            (.status=="TWO_URL_SAME_COHORT_TWO_BLOCK_HORIZONS_HF_TRENDS_NOT_EXECUTABLE" or
+             .status=="INCOMPLETE_FRESH_BORROW_TRAJECTORY_NOT_MARKET_ABSENCE") and
+            .nqc_realized_pnl_usd=="0" and
+            .RMC_closed==false and
+            .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            (if .status=="TWO_URL_SAME_COHORT_TWO_BLOCK_HORIZONS_HF_TRENDS_NOT_EXECUTABLE"
+             then .block_gap==12 and
+                  .selected_borrowers_before_HF<=64 and
+                  .selected_borrowers_before_HF>0 and
+                  .source_snapshot.borrower_accounts_exact_two_url_parity==true and
+                  .source_snapshot.source_reports.drpc.status=="COMPLETE_CANONICAL_BORROW_EVENT_SOURCE" and
+                  .source_snapshot.source_reports.publicnode.status=="COMPLETE_CANONICAL_BORROW_EVENT_SOURCE" and
+                  (.trajectories|length)==.selected_borrowers_before_HF and
+                  .prior_block_state_backfilled_after_recent_cohort_selection==true and
+                  .actual_two_distinct_wall_clock_time_observations_proven==false and
+                  .live_24h_continuous_sampling_proven==false and
+                  .same_transaction_prestate_witness_proven==false and
+                  .competitive_capture_proven==false and
+                  .actual_liquidation_executability_proven==false and
+                  .native_gas_nonrecourse_sponsor_proven==false and
+                  .net_pnl_certified==false and
+                  .oracle_driver_or_intervening_account_actions_reconciled==false and
+                  .unreconstructed_distinct_borrowers_in_event_window>=0 and
+                  .comparable_both_debt_active_hf_count==
+                     (.hf_declining_without_causal_attribution_count+
+                      .hf_rising_without_causal_attribution_count+
+                      .hf_unchanged_count) and
+                  all(.source_older_state[];
+                    .status=="PREVIOUS_STATE_CANONICAL" and
+                    .read_only_calls<=70 and
+                    .total_calls_in_both_stages<=270)
+             else .not_a_complete_active_borrower_census==true and
+                  .prospective_capture_proven==false and
+                  .net_profit_verified==false
+             end)
+          ' "$OUT/dual-horizon-HF.json" > "$OUT/contract-verified.log"
+          echo "A source-valid HF trend is not an oracle-causal event, pending detection, executable liquidation, or profit."
+      - name: Exact source bytes, errors, RPC commitments, commit/tree and member SHA256
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-borrow-hf-trajectory"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_trajectory.py \
+             ci/nqc-census/rmc-v2-shadow/test_prospective_recent_borrow_trajectory.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/test_prospective_recent_borrow_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+             ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py \
+             ci/nqc-census/rmc-v2-economics/postwindow_competition_capacity_hurdle.py \
+             ci/nqc-census/rmc-v2-shadow/FRESH_BORROW_TRAJECTORY_CONTRACT.md \
+             .github/workflows/nqc-v2-fresh-borrow-trajectory.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload immutable HF trajectory or exact source blocker
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-recent-borrow-trajectory-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-borrow-hf-trajectory/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint

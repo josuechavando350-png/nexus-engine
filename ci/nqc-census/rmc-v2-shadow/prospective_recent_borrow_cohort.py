@@ -39,7 +39,7 @@ MAX_TIP_DRIFT = 12
 MAX_HEADER_STALENESS = 180
 MAX_LOG_EVENTS = 320
 MAX_LOG_EVENT_BLOCKS = 105
-MAX_RECENT_ACCOUNTS = 48
+MAX_RECENT_ACCOUNTS = 64
 MAX_RECEIPT_CONTROLS = 2
 MAX_RPC_CALLS_PER_SOURCE = 200
 MAX_REPLY_BYTES = 4_000_000
@@ -371,7 +371,7 @@ def select_cohort(events):
         "selected_receivers":len(selected),
         "excess_distinct_receivers_not_reconstructed":
             len(distinct)-len(selected),
-        "selection_rule":"LATEST_48_DISTINCT_BORROW_ON_BEHALF_OF_BEFORE_HF",
+        "selection_rule":"LATEST_64_DISTINCT_BORROW_ON_BEHALF_OF_BEFORE_HF",
         "no_future_liquidation_outcome_used":True,
         "cohort_is_not_all_active_aave_positions":True,
     }
