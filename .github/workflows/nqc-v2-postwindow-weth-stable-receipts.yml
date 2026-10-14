@@ -1,0 +1,147 @@
+name: NQC RMC V2 Two-RPC Real Aave WETH USDC USDT Winner Receipt Proof (NO TRADE)
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-v2-weth-usdc-usdt-verified-receipts-20261014"
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/verify_postwindow_competitor_receipts.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_verify_postwindow_competitor_receipts.py"
+      - ".github/workflows/nqc-v2-postwindow-weth-stable-receipts.yml"
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/verify_postwindow_competitor_receipts.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_verify_postwindow_competitor_receipts.py"
+      - ".github/workflows/nqc-v2-postwindow-weth-stable-receipts.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-postwindow-weth-stable-receipts-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  authentic-weth-usdc-usdt-competitor-liquidations:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Immutable source checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Adversarial mock-only receipt preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-v2-postwindow-real-receipts"
+          python3 -m py_compile \
+            ci/nqc-census/rmc-v2-shadow/verify_postwindow_competitor_receipts.py \
+            ci/nqc-census/rmc-v2-shadow/test_verify_postwindow_competitor_receipts.py
+          python3 -m unittest discover \
+            -s ci/nqc-census/rmc-v2-shadow \
+            -p test_verify_postwindow_competitor_receipts.py -v \
+            2>&1 | tee "$RUNNER_TEMP/nqc-v2-postwindow-real-receipts/adversarial-tests.log"
+
+      - name: Authenticate source ZIP/run then fetch exact immutable evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id=38487719497
+          art_id=11860545203
+          head=ccd91241ceaa342ed40767be8104860fd4886715
+          original="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id")"
+          artifact="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$art_id")"
+          test "$(jq -r .status <<<"$original")" = completed
+          test "$(jq -r .conclusion <<<"$original")" = success
+          test "$(jq -r .head_sha <<<"$original")" = "$head"
+          test "$(jq -r .name <<<"$original")" = 'NQC RMC V2 Aave Blockscout 89390-block Indexed Discovery (NO LIVE)'
+          test "$(jq -r .expired <<<"$artifact")" = false
+          test "$(jq -r .digest <<<"$artifact")" = 'sha256:b3d82ccd21cd683424b99c020732d2e2978ce2981a51b46df177a2d22c7bb722'
+          test "$(jq -r .workflow_run.id <<<"$artifact")" = "$run_id"
+          OUT="$RUNNER_TEMP/nqc-v2-postwindow-real-receipts"
+          curl --fail --silent --show-error --location --retry 2 \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$art_id/zip" \
+            --output "$OUT/immutable-indexer.zip"
+          printf '%s  %s\n' b3d82ccd21cd683424b99c020732d2e2978ce2981a51b46df177a2d22c7bb722 \
+            "$OUT/immutable-indexer.zip" | sha256sum --check --strict
+
+      - name: Verify Aave actual winner tx/receipt/log on dRPC and BlastAPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-postwindow-real-receipts"
+          set +e
+          timeout 700s python3 \
+            ci/nqc-census/rmc-v2-shadow/verify_postwindow_competitor_receipts.py \
+            --indexer-artifact "$OUT/immutable-indexer.zip" \
+            --out "$OUT/real-competitor-receipts.json" \
+            > "$OUT/source.stdout" 2> "$OUT/source.stderr"
+          code=$?
+          set -e
+          printf 'source_exit=%s\n' "$code" > "$OUT/provider-exit-status.txt"
+          test "$code" -eq 0
+          jq -e '
+            .status=="TWO_PUBLIC_RPC_HISTORICAL_RECEIPT_PARITY_NO_NEXUS_CAPTURE"
+            and (.historical_receipt_witnesses|length)==2
+            and .rpc_provider_ids==["blast","drpc"]
+            and .historical_receipt_witnesses[0].receipt_witness.receipt_event_identity_matches==true
+            and .historical_receipt_witnesses[1].receipt_witness.receipt_event_identity_matches==true
+            and .different_public_rpc_urls_not_proven_independent_operators==true
+            and .full_89390_block_completeness_certified==false
+            and .competitive_ex_ante_Nexus_capture_probability_calibrated==false
+            and .net_execution_after_gas_builder_swap_flash_costs_proven==false
+            and .external_nonrecourse_gas_funding_proven==false
+            and .canary_live_authorized==false
+            and .RMC_closed==false and .P2_shadow_certified==false
+            and .commercial_score_upgrade==false and .nqc_realized_pnl_usd=="0"
+          ' "$OUT/real-competitor-receipts.json" >/dev/null
+          echo "NQC_WETH_STABLE_TWO_RPC_EXACT_RECEIPTS_REAL_RESEARCH_ONLY"
+
+      - name: Hash producer and results without commercial admission
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-v2-postwindow-real-receipts"
+          cp ci/nqc-census/rmc-v2-shadow/verify_postwindow_competitor_receipts.py "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_verify_postwindow_competitor_receipts.py "$OUT/negative-tests.py"
+          jq -n \
+            --arg commit "${{ github.event.pull_request.head.sha || github.sha }}" \
+            '{schema_version:1,source_commit:$commit,
+              scope:"TWO_KNOWN_HISTORICAL_COMPETITOR_RECEIPTS_NOT_FULL_CENSUS",
+              no_future_Nexus_opportunity_detection:true,
+              no_Nexus_tx_or_wallet_signature:true,
+              no_customer_native_gas_paid:true,
+              no_Nexus_production_PnL:true,
+              no_first_month_net_45k_55k_proof:true,
+              no_RMC_or_Shadow_P2_certification:true}' > "$OUT/nonclaims.json"
+          (
+            cd "$OUT"
+            sha256sum producer.py negative-tests.py nonclaims.json \
+              adversarial-tests.log > source-evidence.sha256
+            sha256sum -c source-evidence.sha256
+            if test -f real-competitor-receipts.json; then
+              sha256sum immutable-indexer.zip real-competitor-receipts.json \
+                > actual-receipt-evidence.sha256
+              sha256sum -c actual-receipt-evidence.sha256
+            fi
+          )
+
+      - name: Preserve positive witness or raw provider blockers
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-postwindow-weth-usdc-usdt-verified-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-v2-postwindow-real-receipts/
+          if-no-files-found: warn
+          retention-days: 30
