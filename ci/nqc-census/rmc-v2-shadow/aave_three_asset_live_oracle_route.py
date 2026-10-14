@@ -287,6 +287,20 @@ def one_optional(clients,address,selector,kind):
             "method":kind,"raw":result["value"]}
 
 
+def decode_round_data(raw):
+    """Five canonical ABI words, signed int256 answer, not a price source claim."""
+    need(type(raw) is str and
+         re.fullmatch(r"0x[0-9a-fA-F]{320}",raw),
+         "malformed 5-word Chainlink-compatible round ABI")
+    nums=[int(raw[2+i*64:2+(i+1)*64],16) for i in range(5)]
+    signed=nums[1] if nums[1]<2**255 else nums[1]-2**256
+    return {
+        "round_id":str(nums[0]),"signed_answer_raw":str(signed),
+        "started_at_unix":str(nums[2]),"updated_at_unix":str(nums[3]),
+        "answered_in_round":str(nums[4]),
+    }
+
+
 def collect(out,transport_factory=None,now_fn=now,reader_factory=None):
     need(isinstance(out,Path) and out.is_absolute() and out.is_dir() and
          not list(out.iterdir()),"fresh empty absolute evidence folder")
@@ -389,7 +403,8 @@ def collect(out,transport_factory=None,now_fn=now,reader_factory=None):
             if aggregator["status"]=="SELECTOR_RESPONSE_IDENTICAL_TWO_SOURCES":
                 candidate=optional_address_word(aggregator["raw"])
                 if candidate:
-                    for c in clients.values():c.authorize(candidate,[])
+                    for c in clients.values():c.authorize(
+                        candidate,[SELECTORS["latestRoundData"]])
                     resolved={"address":candidate,
                               "deployed_code":attest_code(clients,candidate),
                               "deeper_proxy_or_aggregator_chain_fully_proven":False}
@@ -400,17 +415,32 @@ def collect(out,transport_factory=None,now_fn=now,reader_factory=None):
                 decimals["value"]=v
             rounddata=one_optional(clients,source,SELECTORS["latestRoundData"],"latestRoundData()")
             if rounddata["status"]=="SELECTOR_RESPONSE_IDENTICAL_TWO_SOURCES":
-                raw=rounddata["raw"]
-                need(type(raw) is str and
-                     re.fullmatch(r"0x[0-9a-fA-F]{320}",raw),
-                     "malformed 5-word Chainlink-compatible round ABI")
-                nums=[int(raw[2+i*64:2+(i+1)*64],16) for i in range(5)]
-                # Round answer int256 is signed. Do not equate to Oracle output.
-                signed=nums[1] if nums[1]<2**255 else nums[1]-2**256
-                rounddata["decoded"]={
-                    "round_id":str(nums[0]),"signed_answer_raw":str(signed),
-                    "started_at_unix":str(nums[2]),"updated_at_unix":str(nums[3]),
-                    "answered_in_round":str(nums[4])}
+                rounddata["decoded"]=decode_round_data(rounddata["raw"])
+                rounddata["signed_age_relative_to_canonical_block_seconds"]=(
+                    header["timestamp"]-int(rounddata["decoded"]["updated_at_unix"]))
+                # Do not infer stale/freshness without exact heartbeat/config.
+                rounddata["oracle_price_equals_source_answer_at_same_decimals"]=(
+                    price==int(rounddata["decoded"]["signed_answer_raw"])
+                    if (decimals["status"]=="SELECTOR_RESPONSE_IDENTICAL_TWO_SOURCES" and
+                        decimals["value"]==len(str(unit))-1 and
+                        unit==10**decimals["value"]) else None)
+            if resolved is not None:
+                nested=one_optional(
+                    clients,resolved["address"],SELECTORS["latestRoundData"],
+                    "one_hop_aggregator.latestRoundData()")
+                if nested["status"]=="SELECTOR_RESPONSE_IDENTICAL_TWO_SOURCES":
+                    nested["decoded"]=decode_round_data(nested["raw"])
+                    nested["signed_age_relative_to_canonical_block_seconds"]=(
+                        header["timestamp"]-int(nested["decoded"]["updated_at_unix"]))
+                    nested["answer_equals_oracle_price_raw_not_a_price_unit_certification"]=(
+                        int(nested["decoded"]["signed_answer_raw"])==price)
+                    nested["answer_equals_source_wrapper_round_raw_if_available"]=(
+                        nested["decoded"]["signed_answer_raw"]==
+                        rounddata["decoded"]["signed_answer_raw"]
+                        if rounddata["status"]==
+                           "SELECTOR_RESPONSE_IDENTICAL_TWO_SOURCES" else None)
+                resolved["optional_onchain_one_hop_aggregator_round"]=nested
+                resolved["still_not_a_private_svr_or_orderflow_access_certificate"]=True
             results.append({
                 "asset_symbol":symbol,"canonical_asset":asset,
                 "aave_oracle_registered_source":source,
