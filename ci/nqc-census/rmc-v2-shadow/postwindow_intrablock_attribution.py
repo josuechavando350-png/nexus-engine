@@ -133,6 +133,8 @@ def run_fork(case, provider, root, forge):
             # Do not let one endpoint's persistent state cache stand in for another.
             # Respect public provider throughput; never disable its rate limiter.
             result = subprocess.run([forge, 'test', '--match-contract', CONTRACT,
+                                    '--fork-url', values['NQC_RPC_URL'],
+                                    '--fork-block-number', str(w['predecessor_block']['number']),
                                     '--no-storage-caching', '--compute-units-per-second', '30',
                                     '--fork-retries', '2', '--fork-retry-backoff', '2000', '-vvv'],
                                     cwd=folder, env=dict(os.environ, **values), stdout=log,
