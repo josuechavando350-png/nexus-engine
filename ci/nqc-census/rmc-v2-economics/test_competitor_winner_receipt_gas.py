@@ -212,7 +212,12 @@ class CompetitorGasTruthTests(unittest.TestCase):
         out=m.build(self.report,self.rows,lambda name:
                     fake_rpc(self.grouped,self.blocks,side=name,mutate="block"))
         self.assertEqual(out["status"],"INCOMPLETE_COMPETITOR_RECEIPT_GAS_NOT_NQC_NET")
-        self.assertEqual(out["sources"]["publicnode"]["receipts_verified"],0)
+        self.assertGreater(out["sources"]["publicnode"]["receipts_verified"],0)
+        self.assertLess(out["sources"]["publicnode"]["receipts_verified"],47)
+        self.assertEqual(out["sources"]["publicnode"]["status"],
+                         "INCOMPLETE_COMPETITOR_GAS_SOURCE")
+        self.assertTrue(out["sources"]["publicnode"]["errors"])
+        self.assertIsNone(out["competitor_gas_statistics"])
 
     def test_wrong_fee_parity_never_promoted_to_success(self):
         with self.assertRaises(m.Rejected):
