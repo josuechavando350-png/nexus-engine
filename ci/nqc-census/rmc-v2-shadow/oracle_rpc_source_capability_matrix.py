@@ -76,6 +76,48 @@ def filter_logs(raw, lo, hi):
     return sorted(observed,key=lambda x:(x['block_number'],x['log_index'],x['tx_hash']))
 
 
+def filter_address_logs(raw,lo,hi):
+    """Enumerate actual logs from the exact aggregator, classifying other topics.
+    
+    This avoids provider-dependent topic filter behavior; all log envelopes
+    still need canonical address/height/hash/tx/logIndex before classification.
+    """
+    need(type(raw) is list and len(raw)<=MAX_BLOCK_EVENTS,
+         'oversized address-only oracle logs')
+    matches=[]
+    unknown=[]
+    identities=set()
+    for row in raw:
+        need(type(row) is dict and
+             type(row.get('address')) is str and
+             row['address'].lower()==AGGREGATOR,
+             'address-only response included foreign emitter')
+        n=hex_quantity(row.get('blockNumber'))
+        need(lo<=n<=hi,'address-only log outside block range')
+        topic_list=row.get('topics')
+        need(type(topic_list) is list and len(topic_list)>0 and
+             type(topic_list[0]) is str and len(topic_list[0])==66,
+             'address-only log topics missing')
+        topic0=topic_list[0].lower()
+        log_hash=row.get('blockHash');tx_hash=row.get('transactionHash')
+        log_index=hex_quantity(row.get('logIndex'))
+        need(type(log_hash) is str and len(log_hash)==66 and
+             type(tx_hash) is str and len(tx_hash)==66 and
+             row.get('removed') in (False,None),
+             'address-only log identity incomplete/reorged')
+        identity=(log_hash.lower(),tx_hash.lower(),log_index)
+        need(identity not in identities,'duplicate address-only log')
+        identities.add(identity)
+        if topic0 in EVENT_TOPICS:
+            matches.append(parse_log(row))
+        else:
+            unknown.append(topic0)
+    matches.sort(key=lambda x:(x['block_number'],x['log_index'],x['tx_hash']))
+    return {'events':matches,
+            'raw_log_count':len(raw),
+            'unknown_topic_counts':{k:unknown.count(k) for k in sorted(set(unknown))}}
+
+
 def projected_identity(events):
     return [(e['tx_hash'],e['block_hash'],e['log_index'],
              e['event_type'],e['indexed_round_id'],e['event_data_sha256'])
@@ -134,11 +176,13 @@ class RPC:
             need(type(params) is list and len(params)==1 and type(params[0]) is dict,
                  'unapproved log arguments')
             q=params[0]
-            need(set(q)=={'address','topics','fromBlock','toBlock'} and
+            need(set(q) in ({'address','topics','fromBlock','toBlock'},
+                            {'address','fromBlock','toBlock'}) and
                  q['address']==AGGREGATOR and
-                 q['topics'] in ([SECONDARY_ROUND_TOPIC],
-                                 [NEW_TRANSMISSION_TOPIC],
-                                 [EVENT_TOPICS]) and
+                 (('topics' not in q) or
+                  q['topics'] in ([SECONDARY_ROUND_TOPIC],
+                                  [NEW_TRANSMISSION_TOPIC],
+                                  [EVENT_TOPICS])) and
                  0 <= hex_quantity(q['toBlock'])-hex_quantity(q['fromBlock'])<SHARD,
                  'unapproved log selector/span')
         else:
@@ -168,6 +212,12 @@ class RPC:
             'fromBlock':hex(lo),'toBlock':hex(hi)}]),lo,hi)
 
 
+    def address_logs(self, lo,hi):
+        return filter_address_logs(self.call('eth_getLogs',[{
+            'address':AGGREGATOR,
+            'fromBlock':hex(lo),'toBlock':hex(hi)}]),lo,hi)
+
+
 def control_receipt(receipt, tx, block):
     need(type(receipt) is dict and
          str(receipt.get('transactionHash','')).lower()==tx and
@@ -193,6 +243,8 @@ def examine_source(name, anchor, transport=None):
          'positive_controls':[],'recent_single_topic_shards':[],
          'historical_or_topic_probe':[],
          'recent_events':None,'recent_complete':False,
+         'recent_address_shards':[],'address_recent_complete':False,
+         'address_recent_events':None,'address_recent_unknown_topics':{},
          'failures':[],'calls_used':0,'rpc_transcript':[]}
     try:
         need(hex_quantity(rpc.call('eth_chainId',[]))==1,'not Ethereum')
@@ -206,8 +258,20 @@ def examine_source(name, anchor, transport=None):
             receipt=rpc.call('eth_getTransactionReceipt',[pin['tx']])
             events=control_receipt(receipt,pin['tx'],header)
             control={'tx':pin['tx'],'block':pin['block'],'expected_events':events,
-                     'individual_queries':[],'or_query':None}
+                     'individual_queries':[],'or_query':None,'address_query':None}
             row['positive_controls'].append(control)
+            try:
+                found=rpc.address_logs(pin['block'],pin['block'])
+                in_tx=[e for e in found['events'] if e['tx_hash']==pin['tx']]
+                control['address_query']={'status':
+                    'PARITY' if projected_identity(in_tx)==projected_identity(events)
+                    else 'MISMATCH',
+                    'events_for_known_tx':len(in_tx),
+                    'source_total_logs':found['raw_log_count'],
+                    'unknown_topic_counts':found['unknown_topic_counts']}
+            except Exception as exc:
+                control['address_query']={'status':'ERROR',
+                         'error':type(exc).__name__+':'+str(exc)[:140]}
             for key,topic in TYPES.items():
                 try:
                     found=rpc.logs(pin['block'],pin['block'],topic)
@@ -230,6 +294,37 @@ def examine_source(name, anchor, transport=None):
             except Exception as exc:
                 control['or_query']={'status':'ERROR',
                                     'error':type(exc).__name__+':'+str(exc)[:140]}
+        address_events=[]
+        unknown_topics={}
+        for lo in range(anchor['first']['block'],anchor['last']['block']+1,SHARD):
+            hi=min(lo+SHARD-1,anchor['last']['block'])
+            try:
+                reply=rpc.address_logs(lo,hi)
+                address_events.extend(reply['events'])
+                row['recent_address_shards'].append({
+                    'lo':lo,'hi':hi,'status':'PASS','raw_logs':reply['raw_log_count'],
+                    'selected_event_count':len(reply['events']),
+                    'unknown_topics':reply['unknown_topic_counts']})
+                for topic,count in reply['unknown_topic_counts'].items():
+                    unknown_topics[topic]=unknown_topics.get(topic,0)+count
+            except Exception as exc:
+                row['recent_address_shards'].append({
+                    'lo':lo,'hi':hi,'status':'ERROR',
+                    'error':type(exc).__name__+':'+str(exc)[:140]})
+        row['address_recent_unknown_topics']=unknown_topics
+        if len(row['recent_address_shards'])==2 and all(
+                x['status']=='PASS' for x in row['recent_address_shards']):
+            need(len(address_events)==len({(e['tx_hash'],e['block_hash'],e['log_index'])
+                for e in address_events}),'duplicate address-only event identity')
+            heights={e['block_number'] for e in address_events}
+            need(len(heights)<=12,'address-only event header budget exceeded')
+            heads={n:rpc.header(n) for n in heights}
+            need(all(e['block_hash']==heads[e['block_number']]['hash'] for e in address_events),
+                 'address-only event hash not canonical')
+            row['address_recent_events']=sorted(address_events,
+                                key=lambda x:(x['block_number'],x['log_index']))
+            row['address_recent_complete']=True
+
         all_events=[]
         # Fixed, non-adaptive, 64-block recent census. Incomplete shards never
         # promote a partial list to a complete dataset.
@@ -271,6 +366,10 @@ def run(transport_factory=None):
     out={'schema_version':1,'status':'INCOMPLETE_ORACLE_RPC_SOURCE_CAPABILITY',
          'started_at_utc':timestamp(),'recent_anchor':None,'providers':{},
          'two_source_recent_parity':False,'two_source_positive_control_parity':False,
+         'two_source_address_positive_control_parity':False,
+         'two_source_address_recent_parity':False,
+         'confirmed_address_recent_oracle_events':None,
+         'confirmed_address_recent_oracle_transactions':None,
          'confirmed_recent_oracle_update_events':None,
          'confirmed_recent_oracle_update_transactions':None,
          'net_pnl_certified':False,'prospective_detection_proven':False,
@@ -294,6 +393,20 @@ def run(transport_factory=None):
             len(p['positive_controls'])==2 and
             all(all(q['status']=='PARITY' for q in c['individual_queries']) for c in p['positive_controls'])
             for p in (a,b))
+        out['two_source_address_positive_control_parity']=all(
+            len(p['positive_controls'])==2 and all(
+                c['address_query'] is not None and
+                c['address_query']['status']=='PARITY'
+                for c in p['positive_controls'])
+            for p in (a,b))
+        if a['address_recent_complete'] and b['address_recent_complete']:
+            out['two_source_address_recent_parity']=(
+                a['address_recent_events']==b['address_recent_events'])
+            if out['two_source_address_recent_parity']:
+                events=a['address_recent_events']
+                out['confirmed_address_recent_oracle_events']=len(events)
+                out['confirmed_address_recent_oracle_transactions']=len(
+                    {e['tx_hash'] for e in events})
         if a['recent_complete'] and b['recent_complete']:
             out['two_source_recent_parity']=(
                 a['recent_events']==b['recent_events'])
@@ -301,7 +414,10 @@ def run(transport_factory=None):
                 events=a['recent_events']
                 out['confirmed_recent_oracle_update_events']=len(events)
                 out['confirmed_recent_oracle_update_transactions']=len({e['tx_hash'] for e in events})
-        if out['two_source_recent_parity'] and out['two_source_positive_control_parity']:
+        if (out['two_source_address_recent_parity'] and
+                out['two_source_address_positive_control_parity']):
+            out['status']='TWO_SOURCE_ADDRESS_ONLY_ORACLE_EVENT_PARITY'
+        elif out['two_source_recent_parity'] and out['two_source_positive_control_parity']:
             out['status']='TWO_SOURCE_ORACLE_LOG_CAPABILITY_AND_RECENT_PARITY'
     except Exception as exc:
         out['anchor_failure']=type(exc).__name__+':'+str(exc)[:160]
