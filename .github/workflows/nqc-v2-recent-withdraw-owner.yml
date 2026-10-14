@@ -28,7 +28,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - name: Exact commit and 19 adversarial withdrawal-identity tests
+      - name: Exact commit and 24 adversarial dense Withdraw/source/state tests
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
@@ -52,11 +52,21 @@ jobs:
              .status=="ZERO_WITHDRAW_EVENTS_ONLY_THIS_384_BLOCK_WINDOW" or
              .status=="INCOMPLETE_WITHDRAW_COHORT_NOT_MARKET_ABSENCE") and
             (.source_reports|keys|sort)==["drpc","publicnode"] and
-            all(.source_reports[];.rpc_calls_used<=200 and
+            all(.source_reports[];.rpc_calls_used<=413 and
                 .shards_complete<=16 and
                 (.positive_receipts|length)<=2 and
-                (.events|length)<=320) and
+                (.events|length)<=320 and
+                (if .status=="COMPLETE_CANONICAL_WITHDRAW_EVENTS"
+                 then (.event_blocks_verified<=320) and
+                      (.event_blocks_verified==(.events|map(.block_number)|unique|length)) and
+                      (.event_blocks_verified==([.canonical_header_partitions[].number_of_distinct_event_blocks]|add//0)) and
+                      all(.canonical_header_partitions[];
+                        .all_headers_authenticated==true and
+                        .number_of_distinct_event_blocks<=96)
+                 else true end)) and
             (.source_cohort|length)<=64 and
+            .hf_state_pinned_after_complete_event_discovery==true and
+            .hf_state_block_may_differ_from_event_window_end==true and
             .not_all_Aave_borrowers_or_collateral_users==true and
             .only_post_inclusion_source_state_not_pending_detection==true and
             .withdraw_is_not_automatically_collateral_withdrawal==true and
@@ -77,6 +87,9 @@ jobs:
                     .verified_selected_owner_count>0 and
                     .verified_selected_owner_count<=64 and
                     .verified_selected_owner_count==(.source_cohort|length) and
+                    .hf_state_anchored_at.number >= .anchor.last_block and
+                    .anchor.state_block_after_event_window_end ==
+                      (.hf_state_anchored_at.number-.anchor.last_block) and
                     .verified_active_debt_accounts!=null and
                     .verified_hf_lt_one_count!=null and
                     .selection.owners_omitted_due_bounded_limit>=0 and
