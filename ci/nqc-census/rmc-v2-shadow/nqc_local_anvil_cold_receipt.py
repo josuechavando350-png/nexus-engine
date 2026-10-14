@@ -55,6 +55,10 @@ FORGE_UP_TO_SECONDS = 1000
 ABI_ADDRESS = re.compile(r"0x[0-9a-fA-F]{40}\Z")
 HEX32 = re.compile(r"0x[0-9a-fA-F]{64}\Z")
 EXPECTED_RECEIPTS = 4
+FUNDING_COMPLETED_TOPIC = "0x28764d85ad04b5436000901ca0cb64944bbb7a48433836efc3ba71b61497178d"
+FUNDING_LEG_REPAID_TOPIC = "0x48b852348ea48bd0bfc4960a40580365626f57968715e1b5e5889bd79b5e21ca"
+AAVE_LIQUIDATION_TOPIC = "0xe413a321e8681d831f4dbccbca790d2952b56f977908e45be37335533e005286"
+ERC20_TRANSFER_TOPIC = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
 
 
 class Rejected(ValueError):
@@ -294,6 +298,134 @@ def get_test_ephemeral_eoa(cast):
     addr=wallet.stdout.strip().lower()
     need(ABI_ADDRESS.fullmatch(addr),"generated local-only EOA invalid")
     return private,addr
+
+
+def _topic_address(value,label):
+    need(type(value) is str and re.fullmatch(r"0x0{24}[0-9a-fA-F]{40}",value),
+         "noncanonical indexed address in "+label)
+    return "0x"+value[-40:].lower()
+
+
+def _word_data(value,length,label):
+    need(type(value) is str and
+         re.fullmatch(r"0x[0-9a-fA-F]{%d}"%(length*64),value),
+         "invalid "+label+" fixed-width event ABI")
+    return [int(value[2+i*64:2+i*64+64],16) for i in range(length)]
+
+
+def _find_required_log(logs,emitter,topic0,label):
+    found=[]
+    for log in logs:
+        if type(log) is not dict or type(log.get("address")) is not str or \
+           type(log.get("topics")) is not list or not log["topics"]:
+            continue
+        topic=log["topics"][0]
+        if type(topic) is str and topic.lower()==topic0 and \
+           log["address"].lower()==emitter.lower():
+            found.append(log)
+    need(len(found)==1,"expected exactly one "+label+" in genuine Anvil execute receipt")
+    return found[0]
+
+
+def validate_local_atomic_route_receipt(executed,coordinator,strategy,operator,source):
+    need(type(executed) is dict and type(executed.get("logs")) is list,
+         "missing local complete atomic route receipt")
+    logs=executed["logs"]
+    need(6<=len(logs)<=2048,"invalid local Aave funding+swap route log set")
+    ident=executed.get("transactionHash","").lower()
+    blockhash=executed.get("blockHash","").lower()
+    for label,emitter,topic in (
+        ("FundingExecutionCompleted",coordinator,FUNDING_COMPLETED_TOPIC),
+        ("FundingLegRepaid",coordinator,FUNDING_LEG_REPAID_TOPIC),
+        ("Aave LiquidationCall",POOL,AAVE_LIQUIDATION_TOPIC),
+        ("ERC20 USDC Transfer",source["NQC_DEBT_ASSET"],ERC20_TRANSFER_TOPIC)
+    ):
+        if label=="ERC20 USDC Transfer":
+            # The receipt can contain many ERC20 transfers; final profit
+            # transfer is selected below by exact indexed sender/recipient.
+            continue
+        log=_find_required_log(logs,emitter,topic,label)
+        need(log.get("transactionHash","").lower()==ident and
+             log.get("blockHash","").lower()==blockhash,
+             "source route log belongs to wrong local EOA receipt: "+label)
+
+    funded=_find_required_log(logs,coordinator,FUNDING_COMPLETED_TOPIC,
+                              "FundingExecutionCompleted")
+    need(len(funded["topics"])==4 and
+         all(type(x) is str and HEX32.fullmatch(x) for x in funded["topics"]),
+         "funded completion indexed topics mismatch")
+    asset_word, principal, surplus, legs=_word_data(
+        funded.get("data"),4,"FundingExecutionCompleted")
+    need(asset_word >> 160 == 0 and
+         "0x"+f"{asset_word:040x}" == source["NQC_DEBT_ASSET"].lower() and
+         principal == EXPECTED_PRINCIPAL and
+         surplus == EXPECTED_SURPLUS_BEFORE_NATIVE and legs==1,
+         "source token/principal/profit/legs mismatch in real local funding receipt")
+
+    repaid=_find_required_log(logs,coordinator,FUNDING_LEG_REPAID_TOPIC,
+                              "FundingLegRepaid")
+    need(len(repaid["topics"])==3 and
+         all(type(x) is str and HEX32.fullmatch(x) for x in repaid["topics"]) and
+         int(repaid["topics"][2],16)==0,
+         "wrong Aave funding leg index or indexed event")
+    kind,lender,amount,premium,repaid_amount=_word_data(
+        repaid.get("data"),5,"FundingLegRepaid")
+    need(kind==1 and lender >> 160 ==0 and
+         "0x"+f"{lender:040x}"==POOL and
+         amount==EXPECTED_PRINCIPAL and
+         premium==EXPECTED_FEE and
+         repaid_amount==EXPECTED_PRINCIPAL+EXPECTED_FEE,
+         "Aave flash premium/repayment failed conservation")
+
+    liquidated=_find_required_log(logs,POOL,AAVE_LIQUIDATION_TOPIC,
+                                 "Aave LiquidationCall")
+    need(len(liquidated["topics"])==4 and
+         _topic_address(liquidated["topics"][1],"collateral")==
+            "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2" and
+         _topic_address(liquidated["topics"][2],"debt")==
+            source["NQC_DEBT_ASSET"].lower() and
+         _topic_address(liquidated["topics"][3],"borrower")==
+            source["NQC_BORROWER"].lower(),
+         "wrong Aave collateral/debt/borrower in local liquidation")
+    debt, collateral, liquidator, receive_atoken = _word_data(
+        liquidated.get("data"),4,"Aave LiquidationCall")
+    need(debt==EXPECTED_PRINCIPAL and
+         collateral==EXPECTED_COLLATERAL and
+         liquidator>>160==0 and
+         "0x"+f"{liquidator:040x}"==strategy and
+         receive_atoken==0,
+         "wrong Aave liquidation amount, operator or collateral mode")
+
+    final_transfers=[]
+    for log in logs:
+        if type(log) is not dict or type(log.get("topics")) is not list or \
+           len(log["topics"])!=3 or type(log.get("address")) is not str or \
+           log["address"].lower()!=source["NQC_DEBT_ASSET"].lower() or \
+           type(log["topics"][0]) is not str or \
+           log["topics"][0].lower()!=ERC20_TRANSFER_TOPIC:
+            continue
+        if (_topic_address(log["topics"][1],"transfer from")==coordinator and
+            _topic_address(log["topics"][2],"transfer to")==operator):
+            final_transfers.append(log)
+    need(len(final_transfers)==1,
+         "must witness exactly one final USDC surplus sweep to test EOA")
+    profit_transfer=_word_data(final_transfers[0].get("data"),1,
+                               "final EOA profit transfer")[0]
+    need(profit_transfer==EXPECTED_SURPLUS_BEFORE_NATIVE,
+         "local ERC20 payout does not equal funded execution surplus")
+
+    return {
+        "authentic_local_aave_liquidation_event":True,
+        "authentic_local_flash_loan_repaid_event":True,
+        "authentic_local_funding_completed_event":True,
+        "authentic_local_erc20_profit_transfer_to_ephemeral_eoa":True,
+        "local_profit_asset_base_units":EXPECTED_SURPLUS_BEFORE_NATIVE,
+        "local_principal_repaid_base_units":EXPECTED_PRINCIPAL+EXPECTED_FEE,
+        "local_expected_collateral_seized_wei":EXPECTED_COLLATERAL,
+        "local_atomic_event_log_sha256":sha256(canonical(logs)).hexdigest(),
+        "local_receipt_full_sha256":sha256(canonical(executed)).hexdigest(),
+        "not_a_mainnet_or_prospective_profit_witness":True,
+    }
 
 
 def decode_local_receipts(result_file, rpc, operator, source, old_gas):
