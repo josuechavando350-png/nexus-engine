@@ -77,7 +77,13 @@ def open_fixed(url, *, stream=False, opener=urlopen):
     return response
 
 
-def consume_sse(source, *, now=clock, monotonic=time.monotonic):
+def consume_sse(source, *, now=clock, monotonic=time.monotonic,
+                max_seconds=MAX_STREAM_SECONDS, max_bytes=MAX_STREAM_BYTES,
+                max_events=MAX_EVENTS):
+    if not (type(max_seconds) is int and 1 <= max_seconds <= 180 and
+            type(max_bytes) is int and 1 <= max_bytes <= 6_000_000 and
+            type(max_events) is int and 1 <= max_events <= 5_000):
+        raise ValueError("unapproved extended stream budget")
     started = monotonic()
     total = 0
     messages = 0
@@ -90,7 +96,7 @@ def consume_sse(source, *, now=clock, monotonic=time.monotonic):
     chunks = []
     aggregate = sha256()
     status = "BOUNDED_SSE_NO_EVENT_DOES_NOT_PROVE_ABSENCE"
-    while monotonic()-started < MAX_STREAM_SECONDS and messages < MAX_EVENTS:
+    while monotonic()-started < max_seconds and messages < max_events:
         try:
             line = source.readline(MAX_EVENT_BYTES+1000)
         except (OSError, TimeoutError):
@@ -100,7 +106,7 @@ def consume_sse(source, *, now=clock, monotonic=time.monotonic):
             status = "BOUNDED_SSE_EOF_INCOMPLETE"
             break
         total += len(line)
-        if total > MAX_STREAM_BYTES:
+        if total > max_bytes:
             status = "BOUNDED_SSE_BYTE_CAP_INCOMPLETE"
             break
         aggregate.update(line)
