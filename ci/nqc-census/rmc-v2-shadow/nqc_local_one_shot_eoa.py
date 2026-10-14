@@ -153,6 +153,34 @@ def report_source(receipt,public_inputs,operator):
     }
 
 
+def authenticate_failed_loopback_receipt(receipt,tx_hash,operator):
+    """A reverted or rejected local tx is NEVER a successful liquidation."""
+    need(type(receipt) is dict and
+         receipt.get("transactionHash","").lower()==tx_hash.lower() and
+         receipt.get("from","").lower()==operator.lower() and
+         receipt.get("status")=="0x0" and
+         receipt.get("to") in (None,"") and
+         receipt.get("contractAddress") in (None,""),
+         "expected exact locally reverted EOA constructor receipt")
+    g=old.quantity(receipt.get("gasUsed"),"reverted local gasUsed")
+    p=old.quantity(receipt.get("effectiveGasPrice"),"reverted local price")
+    need(g>21000 and p>0,"malformed local reverted gas")
+    return {
+        "status":"LOCALLY_MINED_EOA_CONSTRUCTOR_REVERTED_NO_PROFIT",
+        "source":"127.0.0.1:18545_anvil_receipt_only",
+        "transaction_hash":tx_hash,
+        "receipt_block_hash":receipt.get("blockHash"),
+        "gas_used_by_failed_local_tx":g,
+        "effective_gas_price_wei":p,
+        "hypothetical_local_synthetic_eth_gas_debit_wei":g*p,
+        "receipt_sha256":sha256(old.canonical(receipt)).hexdigest(),
+        "logs_empty_due_revert":receipt.get("logs")==[],
+        "actual_profit_claimed":False,
+        "nqc_realized_pnl_usd":"0",
+        "real_mainnet_transaction":False,
+    }
+
+
 def run(funded_zip,oracle_zip,index_zip,workspace,forge,anvil,cast,out):
     inputs,provenance=old.validate_original_zip(funded_zip)
     oracle_source=old.authenticate_oracle_prefix(oracle_zip,index_zip)
@@ -235,6 +263,42 @@ def run(funded_zip,oracle_zip,index_zip,workspace,forge,anvil,cast,out):
             private,"[REDACTED_EPHEMERAL_ONE_SHOT_KEY]")
         (out/"forge-script.log").write_text(lines)
         private=None
+        if command.returncode != 0:
+            # First-run failed constructor evidence was previously censored:
+            # Foundry exposed only "Transaction Failure: 0x<hash>". Query ONLY
+            # the ephemeral loopback transaction receipt and optional trace.
+            # Never interpret a reverted receipt as a profitable attempt.
+            failed_hashes=re.findall(
+                r"Transaction Failure:\\s*(0x[0-9a-fA-F]{64})",lines)
+            if len(failed_hashes)==1:
+                bad_hash=failed_hashes[0]
+                try:
+                    local_failed=rpc.call("eth_getTransactionReceipt",[bad_hash])
+                    result["local_failure_receipt_witness"]=authenticate_failed_loopback_receipt(
+                        local_failed,bad_hash,operator)
+                except Exception as exc:
+                    result["local_failure_receipt_lookup_error"]={
+                        "type":type(exc).__name__,
+                        "detail":str(exc).split("https://")[0][:160],
+                    }
+                try:
+                    trace=subprocess.run([
+                        str(cast),"run",bad_hash,"--rpc-url",
+                        old.reject_nonlocal_url(LOCAL),"--trace",
+                    ],cwd=workspace,env=env,capture_output=True,text=True,timeout=90)
+                    data=(trace.stdout+"\n"+trace.stderr).replace(
+                        "0x"+"0"*64,"[INVALID_ZERO_HASH]")
+                    (out/"cast-local-failure-trace.log").write_text(data[:300_000])
+                    result["cast_local_failure_trace"]={
+                        "exit_code":trace.returncode,
+                        "sha256":sha256(data[:300_000].encode()).hexdigest(),
+                        "only_loopback_anvil_replay":True,
+                        "not_real_nqc_inclusion":True,
+                    }
+                except Exception as exc:
+                    result["cast_local_failure_trace_error"]=type(exc).__name__
+            else:
+                result["source_transaction_failure_hashes_found"]=len(failed_hashes)
         need(command.returncode==0,
              "ONE_SHOT_FORGE_TRANSACTION_CREATION_OR_EXECUTION_FAILED")
         outputs=list((workspace/"broadcast").glob(
