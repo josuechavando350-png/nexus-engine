@@ -1,0 +1,143 @@
+name: NQC V2 Real Market Commercial Hurdle (SOURCE AUTHENTICATED, NO TRADE)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-economics/postwindow_competition_capacity_hurdle.py'
+      - 'ci/nqc-census/rmc-v2-economics/test_postwindow_competition_capacity_hurdle.py'
+      - 'ci/nqc-census/rmc-v2-economics/POSTWINDOW_COMPETITION_CAPACITY_CONTRACT.md'
+      - '.github/workflows/nqc-v2-commercial-competition-hurdle.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-commercial-competition-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-bound-commercial-screen:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact commit and adversarial commercial truth tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-commercial-capacity"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-economics \
+            -p test_postwindow_competition_capacity_hurdle.py -v 2>&1 | tee "$OUT/offline-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-economics/postwindow_competition_capacity_hurdle.py
+      - name: Exact producer workflows and immutable zip digests
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-commercial-capacity"
+          for entry in \
+            '38489472232 11861430884 219b8e97ee667c0797980e3e28edf34030ad1a03 success 5a198ad15588e6e2ec692ef05ab16f51127141b3b00b0949b6ea7d945b20d1c4' \
+            '38498693805 11865385506 156e106c2efcd8bcb7f4931be3daa98309bd770b success 6778f8e190d13c739331f731ca532d8607e3f653ca000de746b058b4903c7d7d'; do
+            read -r run_id artifact_id head conclusion digest <<< "$entry"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$OUT/$run_id-run.json"
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id" > "$OUT/$artifact_id-artifact.json"
+            jq -e --argjson id "$run_id" --arg head "$head" --arg conclusion "$conclusion" \
+              '.id==$id and .status=="completed" and .conclusion==$conclusion and .head_sha==$head' \
+              "$OUT/$run_id-run.json" >/dev/null
+            jq -e --argjson id "$artifact_id" --argjson run "$run_id" \
+              --arg head "$head" --arg digest "sha256:$digest" \
+              '.id==$id and .expired==false and .digest==$digest and
+               .workflow_run.id==$run and .workflow_run.head_sha==$head' \
+              "$OUT/$artifact_id-artifact.json" >/dev/null
+            curl --fail --silent --show-error --location --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+              --output "$OUT/$artifact_id.zip"
+            printf '%s  %s\n' "$digest" "$OUT/$artifact_id.zip" | sha256sum --check --strict
+          done
+      - name: Authenticated dual-source 15-slot target feasibility screen
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-commercial-capacity"
+          python3 ci/nqc-census/rmc-v2-economics/postwindow_competition_capacity_hurdle.py \
+            --indexed-artifact "$OUT/11861430884.zip" \
+            --funded-artifact "$OUT/11865385506.zip" \
+            --out "$OUT/competition-commercial-capacity.json" | tee "$OUT/stdout.log"
+          jq -e '
+            .schema_version==1 and
+            .status=="COMMERCIAL_TARGET_UNPROVEN_15_INDEXED_TX_SENSITIVITY_ONLY" and
+            .indexed_event_count==53 and .indexed_distinct_winner_transaction_count==47 and
+            .indexed_asset_pair_count==21 and
+            .weth_usdc_indexed_winner_txs==9 and
+            .weth_usdt_indexed_winner_txs==7 and
+            .shared_winner_transaction_count==1 and
+            .weth_stable_distinct_transaction_slots==15 and
+            (.scenarios|length)==3 and
+            all(.scenarios[];(.targets|length)==2 and
+              .fractional_30d_scaling_is_descriptive_not_future_opportunity_rate==true and
+              .cost_is_synthetic_not_cold_tx_gas_or_builder_invoice==true) and
+            .historical_winner_selection_and_homogeneous_surplus_lookahead==true and
+            .indexer_source_complete_canonical_chain==false and
+            .all_competitor_winner_txs_available_to_nqc_unproven==true and
+            .scenario_outputs_are_not_upper_bounds_for_other_realized_strategies==true and
+            .no_markets_frozen_or_excluded==true and
+            .real_capture_fraction_calibrated==false and
+            .full_cold_tx_gas_measured==false and
+            .external_nonrecourse_gas_sponsor_certified==false and
+            .realizable_nqc_monthly_net_lower_bound_usd_micros==0 and
+            .net_pnl_certified==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            .scenarios[0].targets[0].possible_within_100pct_of_the_15_assumed_slots==true and
+            .scenarios[0].targets[1].possible_within_100pct_of_the_15_assumed_slots==false and
+            .scenarios[2].targets[0].possible_within_100pct_of_the_15_assumed_slots==false
+          ' "$OUT/competition-commercial-capacity.json" >/dev/null
+          echo "Commercial falsification scenario, NOT a prediction, capture certificate or net profit."
+      - name: Immutable producer/test/report source evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-commercial-capacity"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-economics/postwindow_competition_capacity_hurdle.py \
+             ci/nqc-census/rmc-v2-economics/test_postwindow_competition_capacity_hurdle.py \
+             ci/nqc-census/rmc-v2-economics/POSTWINDOW_COMPETITION_CAPACITY_CONTRACT.md \
+             ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+             .github/workflows/nqc-v2-commercial-competition-hurdle.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Preserve immutable economic evidence or blocker
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-commercial-competition-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-commercial-capacity/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
