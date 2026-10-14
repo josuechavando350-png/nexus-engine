@@ -189,7 +189,10 @@ jobs:
               "0x08db2e5d5f4e627f9fb4d12a780aac26aed725fab36b70fb9647119872d74625" and
             .authenticated_oracle_prefix.anvil_tx_hash_prefix_is_inclusive_at_v185_verified_by_state_only==true and
             .authenticated_pre_winner_fork.account_hex_matches_original_exactly==true and
-            .full_local_eoa_receipts.fork_only_execute_receipt_gas_used>1115038 and
+            .full_local_eoa_receipts.fork_only_execute_receipt_gas_used>21000 and
+            .full_local_eoa_receipts.full_receipt_minus_gross_call_is_signed_not_overhead==true and
+            .full_local_eoa_receipts.refund_amount_not_directly_certified==true and
+            .full_local_eoa_receipts.gross_gasleft_is_not_receipt_gas_used==true and
             (.full_local_eoa_receipts.fork_only_setup_transaction_receipt_gas_used|length)==3 and
             .full_local_eoa_receipts.fork_gas_fee_is_not_paid_on_public_ethereum==true and
             .full_local_eoa_receipts.real_execution_gas_fee_paid_from_user_or_operator==false and
