@@ -255,6 +255,9 @@ def derive(base_report, transport_factory=None):
         'latest_borrow_after_previous_head_count':sum(x['trajectory_class']==
             'LATEST_BORROW_AFTER_PRIOR_HEAD_NO_COMPARABLE_TREND' for x in calculated),
         'verified_current_hf_lt_one_state_count':base_report['source_verified_hf_lt_one_count'],
+        'prior_block_state_backfilled_after_recent_cohort_selection':True,
+        'actual_two_distinct_wall_clock_time_observations_proven':False,
+        'live_24h_continuous_sampling_proven':False,
         'same_transaction_prestate_witness_proven':False,
         'block_gap_is_not_local_mempool_lead_time':True,
         'same_account_source_not_complete_borrower_universe':True,
