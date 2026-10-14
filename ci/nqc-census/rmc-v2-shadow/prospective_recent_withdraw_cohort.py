@@ -22,10 +22,17 @@ POOL=borrow.POOL
 WITHDRAW_TOPIC='0x3115d1449a7b732c986cba18244e897a450f61e1bb8d589cd2e69e6c8924f9f7'
 WINDOW_BLOCKS=borrow.WINDOW_BLOCKS
 MAX_EVENTS=borrow.MAX_LOG_EVENTS
-MAX_EVENT_BLOCKS=borrow.MAX_LOG_EVENT_BLOCKS
+# Completeness-preserving cap: one distinct event block must have >=1 event.
+# Keep every event-bearing canonical header; earlier cap 105 censored source.
+MAX_EVENT_BLOCKS=min(MAX_EVENTS, WINDOW_BLOCKS)
+CANONICAL_HEADER_PARTITION=96
 MAX_COHORT=borrow.MAX_RECENT_ACCOUNTS
 MAX_CONTROLS=borrow.MAX_RECEIPT_CONTROLS
-MAX_RPC_CALLS=borrow.MAX_RPC_CALLS_PER_SOURCE
+# Upper bound per source: initial + repinned chain/tips (4), source
+# boundary headers (4), 16 log shards, <=320 event-bearing headers,
+# <=2 receipt checks, state anchor+before+after headers (3), <=64 HF reads.
+# Derived maximum = 4 + 4 + 16 + 320 + 2 + 3 + 64 = 413.
+MAX_RPC_CALLS=4+4+16+MAX_EVENT_BLOCKS+MAX_CONTROLS+3+MAX_COHORT
 DATA_WORD=re.compile(r'0x[0-9a-fA-F]{64}\Z')
 
 class Rejected(ValueError):
@@ -71,6 +78,9 @@ def event_id(e):
     return (e['block_number'],e['tx_index'],e['log_index'],e['tx_hash'])
 
 class RPC(borrow.RPC):
+    def __init__(self,provider,transport=None):
+        super().__init__(provider,transport,call_budget=MAX_RPC_CALLS)
+
     def call(self,method,params,allowed_borrowers=None):
         if method!='eth_getLogs':
             return super().call(method,params,allowed_borrowers)
@@ -150,7 +160,22 @@ def scan(rpc,first,last):
              'duplicate same Withdraw log')
         blocks=sorted({x['block_number'] for x in events})
         need(len(blocks)<=MAX_EVENT_BLOCKS,'too many Withdraw event-bearing blocks')
-        heads={n:rpc.get_header(n) for n in blocks}
+        # Independent deterministic partitions. No header is sampled, skipped
+        # or inferred from a provider's eth_getLogs response.
+        heads={}
+        out['canonical_header_partitions']=[]
+        for offset in range(0,len(blocks),CANONICAL_HEADER_PARTITION):
+            part=blocks[offset:offset+CANONICAL_HEADER_PARTITION]
+            group={n:rpc.get_header(n) for n in part}
+            need(len(group)==len(part) and not (set(group)&set(heads)),
+                 'duplicated/missing event-bearing header identities')
+            heads.update(group)
+            out['canonical_header_partitions'].append({
+                'number_of_distinct_event_blocks':len(part),
+                'lowest_event_block':part[0],
+                'highest_event_block':part[-1],
+                'all_headers_authenticated':True})
+        need(len(heads)==len(blocks),'not all event-bearing blocks were checked')
         for item in events:
             need(item['block_hash']==heads[item['block_number']]['hash'],
                  'Withdraw log block hash not canonical')
@@ -227,6 +252,9 @@ def collect(transport_factory=None,unix_now=None):
         'source_event_topic0':WITHDRAW_TOPIC,
         'source_reports':{},'state_reports':{},'errors':[],
         'anchor':None,'source_cohort':[], 'selection':{},
+        'hf_state_pinned_after_complete_event_discovery':True,
+        'hf_state_block_may_differ_from_event_window_end':True,
+        'hf_state_anchored_at':None,
         'verified_withdraw_event_count':None,
         'verified_distinct_owner_count':None,
         'verified_selected_owner_count':None,
