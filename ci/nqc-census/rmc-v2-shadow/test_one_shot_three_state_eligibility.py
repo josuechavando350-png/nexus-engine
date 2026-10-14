@@ -130,6 +130,24 @@ class ThreeStateProofTests(unittest.TestCase):
             "code":-32000,"message":"internal RPC error"
         }))
 
+    def test_anvil_positive_three_code_known_execution_revert_is_classified(self):
+        self.assertEqual(q.extract_revert_reason({
+            "code":3,
+            "message":"execution reverted: EXECUTION_STATE_EXCEEDS_ONE_PPM_DRIFT",
+            "data":"0x08c379a0",
+        }),"EXECUTION_STATE_EXCEEDS_ONE_PPM_DRIFT")
+
+    def test_http_quota_and_non_evm_jsonrpc_codes_cannot_fake_source_revert(self):
+        for code,message in (
+            (429,"execution reverted: EXECUTION_STATE_EXCEEDS_ONE_PPM_DRIFT"),
+            (-32000,"HTTP429: EXECUTION_STATE_EXCEEDS_ONE_PPM_DRIFT"),
+            (-1,"execution reverted: EXECUTION_STATE_EXCEEDS_ONE_PPM_DRIFT"),
+            (3,"rate-limit: EXECUTION_STATE_EXCEEDS_ONE_PPM_DRIFT"),
+        ):
+            with self.subTest(code=code,message=message):
+                self.assertIsNone(q.extract_revert_reason({
+                    "code":code,"message":message}))
+
     def test_only_loopback_endpoint_accepted(self):
         with self.assertRaises(q.Rejected):
             q.OnlyLocalRPC("https://eth.drpc.org")
