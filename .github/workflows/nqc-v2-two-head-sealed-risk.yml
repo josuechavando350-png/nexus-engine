@@ -1,0 +1,159 @@
+name: NQC V2 Two Public Heads Source-Sealed Active Debt Risk (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/public_two_head_sealed_watch.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_public_two_head_sealed_watch.py'
+      - 'ci/nqc-census/rmc-v2-shadow/SEALED_PUBLIC_HEAD_PROSPECTIVITY_BOUNDARY.md'
+      - '.github/workflows/nqc-v2-two-head-sealed-risk.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-two-head-sealed-risk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  two-public-canonical-heads-with-precommitted-cohort:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 13
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Bind exact head and immutable PR718 source cohort BEFORE new onchain reading
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-two-public-heads"
+          mkdir -p "$OUT"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38591219786" > "$OUT/38591219786-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11908200180" > "$OUT/11908200180-artifact.json"
+          jq -e '.id==38591219786 and .status=="completed" and .conclusion=="success"
+            and .head_sha=="4f790b91df324565e71bfa4f6002f46ae27f575b"' \
+            "$OUT/38591219786-run.json" >/dev/null
+          jq -e '.id==11908200180 and .expired==false and
+            .workflow_run.id==38591219786 and
+            .workflow_run.head_sha=="4f790b91df324565e71bfa4f6002f46ae27f575b" and
+            .digest=="sha256:551b50b111a2451a487a8cd73c2597cf83b119030162e53c4195a66ef1b3b2bf"' \
+            "$OUT/11908200180-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11908200180/zip" \
+            --output "$OUT/11908200180.zip"
+          printf '%s  %s\n' \
+            '551b50b111a2451a487a8cd73c2597cf83b119030162e53c4195a66ef1b3b2bf' \
+            "$OUT/11908200180.zip" | sha256sum --check --strict
+      - name: Twenty offline no-lookahead, exact cohort, timing, reorg and RPC-censorship tests
+        env:
+          NQC_PR718_83OWNER_SOURCE_ZIP: ${{ runner.temp }}/nqc-two-public-heads/11908200180.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-two-public-heads"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_public_two_head_sealed_watch.py -v 2>&1 | tee "$OUT/adversarial-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/public_two_head_sealed_watch.py
+      - name: Source-sealed 9 old active-debt owners, new public HEAD B and successor B+1
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-two-public-heads"
+          timeout 500s python3 ci/nqc-census/rmc-v2-shadow/public_two_head_sealed_watch.py \
+            --old-evidence-zip "$OUT/11908200180.zip" \
+            --out "$OUT/attempt" \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            .source.source_zip_sha256=="551b50b111a2451a487a8cd73c2597cf83b119030162e53c4195a66ef1b3b2bf" and
+            .source.source_manifest_entries_verified==20 and
+            .source.active9_chosen_entirely_from_pr718_old_snapshot==true and
+            .chosen_owner_count==9 and
+            .previous_indexed_owner_universe_count==83 and
+            .owner_selection_rule=="ALL_9_OLD_ACTIVE_DEBT_ACCOUNTS_FIXED_FROM_PR718_BEFORE_LIVE_RPC" and
+            .precommit_source_snapshot.file=="cohort-before-network.json" and
+            (.precommit_source_snapshot.sha256|test("^[0-9a-f]{64}$")) and
+            .first_seen_is_after_canonical_block_inclusion==true and
+            .sealed_before_real_block_was_mined_proven==false and
+            .private_SVR_or_MEV_share_first_seen_proven==false and
+            .early_pending_feed_access_proven==false and
+            .builder_deadline_known==false and
+            .public_head_observation_is_not_live_opportunity_capture==true and
+            .full_aave_borrower_census_or_no_market_claim_proven==false and
+            .zero_trades_and_zero_signed_transactions==true and
+            .competitive_win_or_pricing_route_proven==false and
+            .nonrecourse_gas_sponsor_proven==false and
+            .OWN_CAPITAL_ZERO_INCLUDING_GAS_UNCHANGED==true and
+            .user_mxn2000_spent==false and
+            .commercial_score_upgrade==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .nqc_realized_pnl_usd=="0" and
+            all(.rpc_calls_per_source[]; .<=110) and
+            (.status=="TWO_PUBLIC_CANONICAL_HEADS_AFTER_INCLUSION_ONLY_NO_CAPTURE" or
+             .status=="INCOMPLETE_PUBLIC_HEAD_TIMING_NOT_MARKET_ABSENCE") and
+            (if .status=="TWO_PUBLIC_CANONICAL_HEADS_AFTER_INCLUSION_ONLY_NO_CAPTURE"
+             then (.errors|length)==0 and
+               (.observations|length)==2 and
+               .block_height_increment==1 and
+               .sealed_before_first_local_successor_header_observation==true and
+               .all_public_sources_agreed_exact_canonical_EIP1898_state==true and
+               all(.observations[]; .source_two_public_url_raw_account_parity==true and
+                   .source_proven_active_old_borrowers_consulted==9 and
+                   (.accounts|length)==9 and
+                   .decision.candidate_signal_is_post_public_header_only==true and
+                   .decision.route_swap_funding_and_inclusion_verified==false)
+             else (.errors|length)>0 and
+               .all_public_sources_agreed_exact_canonical_EIP1898_state==false
+             end)
+          ' "$OUT/attempt/public-watch-result.json" >/dev/null
+          echo "Public already-mined HEAD decisions only; no pre-inclusion or commercial certification."
+      - name: Preserve exact source and network time provenance, including censors
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-two-public-heads"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/public_two_head_sealed_watch.py \
+             ci/nqc-census/rmc-v2-shadow/test_public_two_head_sealed_watch.py \
+             ci/nqc-census/rmc-v2-shadow/withdraw_all_83_owner_refresh.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_recent_withdraw_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py \
+             ci/nqc-census/rmc-v2-shadow/SEALED_PUBLIC_HEAD_PROSPECTIVITY_BOUNDARY.md \
+             .github/workflows/nqc-v2-two-head-sealed-risk.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload real public-head observation or exact fail-closed source blocker
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-two-head-sealed-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-two-public-heads/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
