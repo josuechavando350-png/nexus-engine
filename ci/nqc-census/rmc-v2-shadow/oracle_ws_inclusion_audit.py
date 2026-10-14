@@ -319,8 +319,8 @@ def verify_receipt(receipt, item, witness):
     head = witness.heads.get(item['block_hash'])
     lead_ms = None
     pending = witness.pending.get(item['tx_hash'])
-    if pending is not None and head is not None and
-            pending['first_observed_ns'] < head['observed_ns']:
+    if (pending is not None and head is not None and
+            pending['first_observed_ns'] < head['observed_ns']):
         lead_ms = (head['observed_ns'] - pending['first_observed_ns']) // 1_000_000
     return {'tx_hash': item['tx_hash'],
             'block_number': item['block_number'],
