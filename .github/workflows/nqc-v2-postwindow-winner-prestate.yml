@@ -1,0 +1,134 @@
+name: NQC V2 Historical Winner Predecessor HF (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/postwindow_winner_prestate.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_postwindow_winner_prestate.py'
+      - '.github/workflows/nqc-v2-postwindow-winner-prestate.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-predecessor-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  predecessor-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact source and offline mutation regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-winner-prestate"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_postwindow_winner_prestate.py -v 2>&1 | tee "$OUT/prestate-tests.log"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_verify_postwindow_competitor_receipts.py -v 2>&1 | tee "$OUT/receipt-tests.log"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_postwindow_indexed_winner_conflicts.py -v 2>&1 | tee "$OUT/indexer-tests.log"
+      - name: Authenticate and download both original Actions artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-winner-prestate"
+          while read -r run_id art_id head digest; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$OUT/run-$run_id.json"
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$art_id" > "$OUT/artifact-$art_id.json"
+            jq -e --arg head "$head" --argjson run "$run_id" \
+              '.id==$run and .status=="completed" and .conclusion=="success" and .head_sha==$head' \
+              "$OUT/run-$run_id.json" >/dev/null
+            jq -e --arg digest "sha256:$digest" --arg head "$head" \
+              --argjson run "$run_id" --argjson id "$art_id" \
+              '.id==$id and .expired==false and .digest==$digest and .workflow_run.id==$run and .workflow_run.head_sha==$head' \
+              "$OUT/artifact-$art_id.json" >/dev/null
+            curl --fail --silent --show-error --location \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$art_id/zip" \
+              --output "$OUT/$art_id.zip"
+            printf '%s  %s\n' "$digest" "$OUT/$art_id.zip" | sha256sum --check --strict
+          done <<'SOURCES'
+          38487719497 11860545203 ccd91241ceaa342ed40767be8104860fd4886715 b3d82ccd21cd683424b99c020732d2e2978ce2981a51b46df177a2d22c7bb722
+          38490008728 11860624437 1908bfc36375e79ddf057278f6f02fd9d829a0dc 3dc59eca6051d7aa11e45d1042953ae61eca29ae032b0f70c4f441f4be621931
+          SOURCES
+      - name: Observe exact parent-state HF with two RPC endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-winner-prestate"
+          set +e
+          timeout 750s python3 ci/nqc-census/rmc-v2-shadow/postwindow_winner_prestate.py \
+            --indexer-artifact "$OUT/11860545203.zip" \
+            --receipt-artifact "$OUT/11860624437.zip" --out-dir "$OUT/attempt" \
+            > "$OUT/source.stdout" 2> "$OUT/source.stderr"
+          code=$?
+          set -e
+          printf '%s\n' "$code" > "$OUT/source-exit.txt"
+          test "$code" -eq 0
+          jq -e '.status=="TWO_RPC_HISTORICAL_PREDECESSOR_ACCOUNT_PARITY_ONLY"
+            and (.witnesses|length)==2 and .rpc_provider_ids==["blast","drpc"]
+            and .rpc_operator_independence_proven==false
+            and .predecessor_is_end_of_parent_not_winner_transaction_prestate==true
+            and .prospective_detection_proven==false and .atomic_execution_proven==false
+            and .external_nonrecourse_gas_funding_proven==false
+            and .RMC_closed==false and .P2_shadow_certified==false
+            and .canary_live_authorized==false and .commercial_score_upgrade==false
+            and .nqc_realized_pnl_usd=="0"' "$OUT/attempt/predecessor-witnesses.json" >/dev/null
+      - name: Preserve source, exact commit tree, raw observations and failures
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-winner-prestate"
+          mkdir -p "$OUT/source"
+          for file in postwindow_winner_prestate.py test_postwindow_winner_prestate.py \
+            verify_postwindow_competitor_receipts.py postwindow_indexed_winner_conflicts.py \
+            blockscout_aave_89390_indexed_research.py test_verify_postwindow_competitor_receipts.py \
+            test_postwindow_indexed_winner_conflicts.py; do
+            cp "ci/nqc-census/rmc-v2-shadow/$file" "$OUT/source/"
+          done
+          cp .github/workflows/nqc-v2-postwindow-winner-prestate.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          jq -n '{scope:"HISTORICAL_PREDECESSOR_ACCOUNT_NOT_EXACT_TX_PRESTATE",
+            RMC_closed:false,P2_shadow_certified:false,canary_live_authorized:false,
+            commercial_score_upgrade:false,nqc_realized_pnl_usd:"0"}' > "$OUT/nonclaims.json"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Archive authentic evidence or blocker
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-predecessor-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-winner-prestate/
+          retention-days: 30
+          if-no-files-found: error
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Required repository lint
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
