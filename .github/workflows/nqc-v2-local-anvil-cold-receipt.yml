@@ -7,6 +7,7 @@ on:
       - 'ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py'
       - 'ci/nqc-census/rmc-v2-shadow/test_nqc_local_anvil_cold_receipt.py'
       - 'ci/nqc-census/rmc-v2-shadow/LOCAL_ANVIL_FULL_RECEIPT_CONTRACT.md'
+      - 'ci/nqc-census/rmc-v2-shadow/LOCAL_ATOMIC_RECEIPT_EVENT_PROOF_CONTRACT.md'
       - '.github/workflows/nqc-v2-local-anvil-cold-receipt.yml'
 
 permissions:
@@ -228,6 +229,7 @@ jobs:
              ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py \
              ci/nqc-census/rmc-v2-shadow/test_nqc_local_anvil_cold_receipt.py \
              ci/nqc-census/rmc-v2-shadow/LOCAL_ANVIL_FULL_RECEIPT_CONTRACT.md \
+             ci/nqc-census/rmc-v2-shadow/LOCAL_ATOMIC_RECEIPT_EVENT_PROOF_CONTRACT.md \
              ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
              ci/nqc-census/rmc-v2-economics/competitor_native_gas_vs_nqc_fork.py \
              ci/nqc-census/rmc-v2-economics/postwindow_competition_capacity_hurdle.py \
