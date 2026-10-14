@@ -1,0 +1,155 @@
+name: NQC V2 Actual Competitor Gas and Historical Route Gas Boundary (NO TRADE)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-economics/competitor_native_gas_vs_nqc_fork.py'
+      - 'ci/nqc-census/rmc-v2-economics/test_competitor_native_gas_vs_nqc_fork.py'
+      - 'ci/nqc-census/rmc-v2-economics/COMPETITOR_NATIVE_GAS_VS_NQC_CONTRACT.md'
+      - '.github/workflows/nqc-v2-verified-competitor-gas.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-verified-competitor-gas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  three-source-native-gas-ledger:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 17
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Preserve exact new producer head and request original read-only evidence
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-native-gas-economic"
+          mkdir -p "$OUT"
+          for entry in \
+            '38490008728 11860624437 1908bfc36375e79ddf057278f6f02fd9d829a0dc 3dc59eca6051d7aa11e45d1042953ae61eca29ae032b0f70c4f441f4be621931' \
+            '38498693805 11865385506 156e106c2efcd8bcb7f4931be3daa98309bd770b 6778f8e190d13c739331f731ca532d8607e3f653ca000de746b058b4903c7d7d' \
+            '38512327192 11871075488 9208aa3cb29325ecb3a90557d1c62114c697bf02 ca495ebdb9b8c7f8ed8438e5c3226b58b9c31c0d50e44ef35d6fce2cec232dde'; do
+            read -r run_id artifact_id head digest <<< "$entry"
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id" > "$OUT/$run_id-run.json"
+            gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id" > "$OUT/$artifact_id-artifact.json"
+            jq -e --argjson id "$run_id" --arg head "$head" \
+              '.id==$id and .status=="completed" and .conclusion=="success" and .head_sha==$head' \
+              "$OUT/$run_id-run.json" >/dev/null
+            jq -e --argjson id "$artifact_id" --argjson run "$run_id" \
+              --arg head "$head" --arg digest "sha256:$digest" \
+              '.id==$id and .expired==false and .digest==$digest and
+               .workflow_run.id==$run and .workflow_run.head_sha==$head' \
+              "$OUT/$artifact_id-artifact.json" >/dev/null
+            curl --fail --silent --show-error --location \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header 'Accept: application/vnd.github+json' \
+              "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+              --output "$OUT/$artifact_id.zip"
+            printf '%s  %s\n' "$digest" "$OUT/$artifact_id.zip" | sha256sum --check --strict
+          done
+      - name: Adversarial three-source evidence and fee identity tests
+        env:
+          NQC_REAL_COMPETITOR_ZIP: ${{ runner.temp }}/nqc-native-gas-economic/11860624437.zip
+          NQC_FUNDED_ROUTE_ZIP: ${{ runner.temp }}/nqc-native-gas-economic/11865385506.zip
+          NQC_ORACLE_CAUSALITY_ZIP: ${{ runner.temp }}/nqc-native-gas-economic/11871075488.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-native-gas-economic"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-economics \
+            -p test_competitor_native_gas_vs_nqc_fork.py -v 2>&1 | tee "$OUT/offline-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-economics/competitor_native_gas_vs_nqc_fork.py
+      - name: Produce actual historical competitor ETH payment and distinct NQC call sensitivity
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-native-gas-economic"
+          python3 ci/nqc-census/rmc-v2-economics/competitor_native_gas_vs_nqc_fork.py \
+            --competitor-zip "$OUT/11860624437.zip" \
+            --route-zip "$OUT/11865385506.zip" \
+            --oracle-zip "$OUT/11871075488.zip" \
+            --out "$OUT/competitor-native-gas-and-nqc-call-ledger.json" |
+            tee "$OUT/stdout.log"
+          jq -e '
+            .schema_version==1 and
+            .status=="COMPETITOR_NATIVE_GAS_FACTS_AND_NQC_GAS_SENSITIVITY_NO_NET" and
+            (.cases|length)==2 and
+            (.cases|map(.label)|sort)==["WETH_COLLATERAL_USDC_DEBT","WETH_COLLATERAL_USDT_DEBT"] and
+            all(.cases[];
+                .competitor_total_native_gas_paid_wei>0 and
+                .competitor_gas_is_not_nqc_gas==true and
+                .competitor_priority_fee_per_gas_wei_from_receipt==0 and
+                .competitor_private_side_payments_absent_proven==false and
+                .nqc_internal_execute_call_gasleft_delta_not_transaction_gas_used>0 and
+                .cold_nqc_transaction_receipt_gas_used_verified==false and
+                .actual_nqc_native_gas_payment_verified==false and
+                .nqc_native_gas_sponsor_nonrecourse_verified==false and
+                .nqc_transaction_was_submitted==false and
+                .nqc_competitive_capture_proven==false and
+                .nqc_net_profit_proven==false and
+                (.hypothetical_nqc_full_tx_gas_sensitivity|length)==3 and
+                all(.hypothetical_nqc_full_tx_gas_sensitivity[];
+                    .synthetic_not_nqc_receipt_or_expected_net==true and
+                    .builder_failed_bid_sponsor_and_operating_costs_missing==true)) and
+            .historical_chainlink_usd_fx_is_not_fiat_settlement==true and
+            .no_nqc_cold_whole_transaction_receipt==true and
+            .no_actual_nqc_gas_or_priority_fee_payment==true and
+            .no_calibrated_mev_builder_inclusion_failed_attempt_sponsor_costs==true and
+            .no_prospective_capture_rate==true and
+            .no_45000_55000_monthly_net_forecast==true and
+            .no_source_exhaustive_de_fi_opportunity_census==true and
+            .no_gas_spending_from_mxn2000==true and
+            .OWN_CAPITAL_ZERO_INCLUDING_NATIVE_GAS_POLICY_UNCHANGED==true and
+            .commercial_score_upgrade==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .nqc_realized_pnl_usd=="0"
+          ' "$OUT/competitor-native-gas-and-nqc-call-ledger.json" >/dev/null
+          echo "Native ETH receipts belong to HISTORICAL COMPETITORS; NQC cold gas + net margin UNKNOWN."
+      - name: Authenticate new code commit/tree and preserve every source and failure
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-native-gas-economic"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-economics/competitor_native_gas_vs_nqc_fork.py \
+             ci/nqc-census/rmc-v2-economics/test_competitor_native_gas_vs_nqc_fork.py \
+             ci/nqc-census/rmc-v2-economics/COMPETITOR_NATIVE_GAS_VS_NQC_CONTRACT.md \
+             ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+             .github/workflows/nqc-v2-verified-competitor-gas.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload evidence, bounded sensitivity and original source failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-native-gas-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-native-gas-economic/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
