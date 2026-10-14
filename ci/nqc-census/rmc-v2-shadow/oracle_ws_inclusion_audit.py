@@ -68,6 +68,8 @@ def basic_report(seconds):
         'generic_ocr2_topic_filter_was_invalidated': True,
         'ws_observation': base.report_template(),
         'oracle_logs_subscription': {'accepted': False},
+        'oracle_primary_logs_subscription': {'accepted': False},
+        'single_topic_subscription_mode': True,
         'oracle_logs_notifications': 0,
         'oracle_logs_distinct': 0,
         'oracle_logs_removed': 0,
@@ -124,12 +126,14 @@ class Witness:
         need(type(value) is dict and value.get('jsonrpc') == '2.0',
              'invalid JSON-RPC envelope')
 
-        if value.get('id') == 4:
+        if value.get('id') in (4,5):
+            subscription_key = ('oracle_logs_subscription' if value['id']==4
+                                else 'oracle_primary_logs_subscription')
             token = value.get('result')
             if 'error' in value or type(token) is not str or not base.VALID_SUB_ID.fullmatch(token):
-                self.output['source_limitations'].append('ORACLE_LOGS_SUBSCRIPTION_REJECTED')
+                self.output['source_limitations'].append('ORACLE_LOGS_SUBSCRIPTION_REJECTED_'+str(value['id']))
             else:
-                self.output['oracle_logs_subscription'] = {
+                self.output[subscription_key] = {
                     'accepted': True, 'subscription_id': token.lower()}
             return
 
@@ -138,7 +142,12 @@ class Witness:
             need(type(params) is dict and type(params.get('subscription')) is str,
                  'malformed subscription notification')
             log_sub = self.output['oracle_logs_subscription']
-            if log_sub.get('accepted') and params['subscription'].lower() == log_sub.get('subscription_id'):
+            primary_sub = self.output['oracle_primary_logs_subscription']
+            is_secondary = (log_sub.get('accepted') and
+                            params['subscription'].lower() == log_sub.get('subscription_id'))
+            is_primary = (primary_sub.get('accepted') and
+                          params['subscription'].lower() == primary_sub.get('subscription_id'))
+            if is_secondary or is_primary:
                 self.output['oracle_logs_notifications'] += 1
                 log = params.get('result')
                 if type(log) is not dict:
@@ -146,6 +155,9 @@ class Witness:
                     return
                 try:
                     parsed_log = parse_log(log)
+                    expected_topic = SECONDARY_ROUND_TOPIC if is_secondary else NEW_TRANSMISSION_TOPIC
+                    need(parsed_log['event_topic0'] == expected_topic,
+                         'subscription returned event of the wrong source topic')
                 except (ValueError, TypeError) as exc:
                     if log.get('removed') is True:
                         self.output['oracle_logs_removed'] += 1
@@ -250,7 +262,8 @@ class RPC:
             arg = params[0]
             need(set(arg) == {'address', 'topics', 'fromBlock', 'toBlock'} and
                  arg['address'] == AGGREGATOR and
-                 arg['topics'] == [EVENT_TOPICS] and
+                 type(arg['topics']) is list and
+                 len(arg['topics'])==1 and arg['topics'][0] in EVENT_TOPICS and
                  0 <= quantity(arg['toBlock']) - quantity(arg['fromBlock']) <= 35,
                  'unbounded oracle getLogs scan')
         elif method == 'eth_getTransactionReceipt':
@@ -368,7 +381,8 @@ def reconcile(witness, rpc):
     if not (stream['chain_id_verified'] and
             stream['subscriptions']['newHeads']['accepted'] and
             stream['subscriptions']['drpc_pendingTransactions']['accepted'] and
-            out['oracle_logs_subscription']['accepted']):
+            out['oracle_logs_subscription']['accepted'] and
+            out['oracle_primary_logs_subscription']['accepted']):
         out['source_limitations'].append('MISSING_REQUIRED_WS_SUBSCRIPTION')
         return finalize(out, rpc)
     heads = list(witness.heads.values())
@@ -388,11 +402,21 @@ def reconcile(witness, rpc):
             chain_head = witness.heads.get(b32(head.get('hash')))
             need(chain_head is not None and chain_head['number'] == height,
                  'head hash/height disagrees with current canonical')
-        raw_logs = rpc.call('eth_getLogs', [{
-            'address': AGGREGATOR, 'topics': [EVENT_TOPICS],
-            'fromBlock': hex(first), 'toBlock': hex(last)}])
-        need(type(raw_logs) is list and len(raw_logs) <= 100,
-             'source returned oversized oracle log corpus')
+        raw_logs = []
+        # The public RPC rejected OR-topic filters. Require each exact
+        # source event in a separate canonical query; never substitute
+        # a single successful topic for complete oracle update evidence.
+        for topic in EVENT_TOPICS:
+            subset = rpc.call('eth_getLogs', [{
+                'address': AGGREGATOR, 'topics': [topic],
+                'fromBlock': hex(first), 'toBlock': hex(last)}])
+            need(type(subset) is list and len(subset) <= 100,
+                 'source returned oversized oracle log subset')
+            need(all(type(x) is dict and type(x.get('topics')) is list and
+                     x['topics'] and x['topics'][0].lower() == topic
+                     for x in subset), 'source returned wrong event topic')
+            raw_logs.extend(subset)
+        need(len(raw_logs) <= 100, 'union too large')
         logs = [parse_log(v) for v in raw_logs]
         need(len(logs) == len({(v['tx_hash'], v['block_hash'], v['log_index'])
                                for v in logs}), 'duplicate canonical event')
@@ -507,7 +531,10 @@ async def observe(seconds, max_notifications, connector=None):
                      (3, 'eth_subscribe', ['drpc_pendingTransactions']),
                      (4, 'eth_subscribe', ['logs',
                                           {'address': AGGREGATOR,
-                                           'topics': [EVENT_TOPICS]}]))
+                                           'topics': [SECONDARY_ROUND_TOPIC]}]),
+                     (5, 'eth_subscribe', ['logs',
+                                          {'address': AGGREGATOR,
+                                           'topics': [NEW_TRANSMISSION_TOPIC]}]))
             for rid, name, params in calls:
                 await ws.send(json.dumps({'jsonrpc':'2.0','id':rid,
                                           'method':name,'params':params}))
