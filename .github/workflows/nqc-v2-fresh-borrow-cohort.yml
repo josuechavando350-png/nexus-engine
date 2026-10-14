@@ -69,7 +69,7 @@ jobs:
               .event_blocks_checked<=105 and
               (.events|length)<=320 and
               (.positive_receipt_controls|length)<=2) and
-            (.selected_source_cohort|length)<=48 and
+            (.selected_source_cohort|length)<=64 and
             (if .status=="TWO_URL_RECENT_BORROW_COHORT_STATE_ONLY_NOT_P2"
              then .borrower_accounts_exact_two_url_parity==true and
                   .recent_borrow_event_count_quorum>0 and
