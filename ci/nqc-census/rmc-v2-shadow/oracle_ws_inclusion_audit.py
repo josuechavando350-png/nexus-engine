@@ -76,6 +76,8 @@ def basic_report(seconds):
         'sampled_control_receipts_verified': 0,
         'control_pending_to_head_lead_ms': [],
         'confirmed_oracle_updates_in_ws_head_span': None,
+        'distinct_confirmed_oracle_update_transactions': None,
+        'oracle_update_kinds': {'SECONDARY_ROUND_ID_UPDATED': 0, 'PRIMARY_NEW_TRANSMISSION': 0},
         'confirmed_primary_new_transmissions': None,
         'confirmed_secondary_round_updates': None,
         'confirmed_oracle_receipts_verified': 0,
@@ -340,6 +342,8 @@ def verify_receipt(receipt, item, witness):
             'block_number': item['block_number'],
             'block_hash': item['block_hash'],
             'receipt_status': 1,
+            'event_type': item['event_type'],
+            'event_topic0': item['event_topic0'],
             'gas_used': gas,
             'effective_gas_price_wei': effective,
             'was_seen_pending_in_this_process': pending is not None,
@@ -393,6 +397,11 @@ def reconcile(witness, rpc):
         need(len(logs) == len({(v['tx_hash'], v['block_hash'], v['log_index'])
                                for v in logs}), 'duplicate canonical event')
         out['confirmed_oracle_updates_in_ws_head_span'] = len(logs)
+        out['distinct_confirmed_oracle_update_transactions'] = len({x['tx_hash'] for x in logs})
+        out['oracle_update_kinds'] = {
+            'SECONDARY_ROUND_ID_UPDATED': sum(e['event_type']=='SECONDARY_ROUND_ID_UPDATED' for e in logs),
+            'PRIMARY_NEW_TRANSMISSION': sum(e['event_type']=='PRIMARY_NEW_TRANSMISSION' for e in logs),
+        }
         # Scope is restricted to block hashes witnessed by the same WS,
         # and the first block is left-censored at subscription start.
         for item in logs[:MAX_LOGS]:
