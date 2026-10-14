@@ -484,6 +484,10 @@ def decode_local_receipts(result_file, rpc, operator, source, old_gas):
         executed,coordinator.lower(),strategy.lower(),operator.lower(),source)
     return {
         "verified_atomic_execution_events":events,
+        # Original full local Anvil execute receipt, including every log
+        # and hashes, is self-contained evidence. It is NOT a public Ethereum
+        # tx receipt: the parent history was forked and 4 EOA txs were LOCAL.
+        "fork_only_full_local_execute_receipt":executed,
         "fork_only_setup_transaction_receipt_gas_used":[
             quantity(x["gasUsed"],"setup gas") for x in remote[:3]],
         "fork_only_execute_receipt_gas_used":gas_used,
