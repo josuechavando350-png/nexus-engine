@@ -232,7 +232,18 @@ class CompetitorGasTruthTests(unittest.TestCase):
         out=m.build(self.report,self.rows,lambda name:
                     fake_rpc(self.grouped,self.blocks,side=name,mutate="revert"))
         bad=out["sources"]["publicnode"]["rejected_receipt_identity"]
-        self.assertEqual(bad["expected_transaction_index"],3)
+        # Producer iterates tx hashes in lexicographic order, NOT the
+        # original fixture insertion order. Authenticate the exact earliest
+        # selected transaction identity instead of assuming tx-index=3.
+        first_hash=sorted(self.grouped)[0]
+        self.assertEqual(bad["source_tx"],first_hash)
+        self.assertEqual(bad["expected_transaction_index"],
+                         self.grouped[first_hash]["transaction_index"])
+        self.assertEqual(bad["expected_block"],
+                         self.grouped[first_hash]["block_number"])
+        self.assertEqual(bad["returned"]["transactionHash"],first_hash)
+        self.assertEqual(bad["returned"]["transactionIndex"],
+                         hex(self.grouped[first_hash]["transaction_index"]))
         self.assertEqual(bad["returned"]["status"],"0x0")
         self.assertEqual(out["sources"]["publicnode"]["errors"][0]["detail"],
                          "HISTORICAL_WINNER_TRANSACTION_STATUS_NOT_SUCCESS")
