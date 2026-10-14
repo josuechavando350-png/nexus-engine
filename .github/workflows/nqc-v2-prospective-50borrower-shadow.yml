@@ -1,0 +1,138 @@
+name: NQC V2 50 Borrowers Prospective Aave HF Cohort (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_prospective_50borrower_state.py'
+      - 'ci/nqc-census/rmc-v2-shadow/PROSPECTIVE_50BORROWER_SHADOW_CONTRACT.md'
+      - '.github/workflows/nqc-v2-prospective-50borrower-shadow.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-50borrowers-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prospectively-pinned-50-borrowers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact commit and adversarial prospective cohort tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-50borrower-cohort"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_prospective_50borrower_state.py -v 2>&1 | tee "$OUT/negative-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py
+      - name: Authenticate original competitor index source archive
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-50borrower-cohort"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38489472232" > "$OUT/38489472232-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11861430884" > "$OUT/11861430884-artifact.json"
+          jq -e '.id==38489472232 and .head_sha=="219b8e97ee667c0797980e3e28edf34030ad1a03" and .status=="completed" and .conclusion=="success"' \
+            "$OUT/38489472232-run.json" >/dev/null
+          jq -e '.id==11861430884 and .expired==false and .workflow_run.id==38489472232 and .workflow_run.head_sha=="219b8e97ee667c0797980e3e28edf34030ad1a03" and .digest=="sha256:5a198ad15588e6e2ec692ef05ab16f51127141b3b00b0949b6ea7d945b20d1c4"' \
+            "$OUT/11861430884-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11861430884/zip" \
+            --output "$OUT/11861430884.zip"
+          printf '%s  %s\n' '5a198ad15588e6e2ec692ef05ab16f51127141b3b00b0949b6ea7d945b20d1c4' \
+            "$OUT/11861430884.zip" | sha256sum --check --strict
+      - name: Actual same-block 50-borrower risk state with dRPC and PublicNode (no trade)
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-50borrower-cohort"
+          timeout 690s python3 ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py \
+            --indexed-artifact "$OUT/11861430884.zip" \
+            --out "$OUT/current-50borrower-state.json" \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and .chain_id==1 and
+            (.status=="TWO_PUBLIC_RPC_SAME_BLOCK_50_HF_PARITY_NOT_P2" or
+             .status=="INCOMPLETE_DUAL_RPC_COHORT") and
+            .cohort_seed_count==50 and
+            .weth_stable_history_borrower_count==18 and
+            (.providers|keys|sort)==["drpc","publicnode"] and
+            all(.providers[]; .calls_used<=65) and
+            .seed_is_prior_liquidation_survivors_with_hindsight_selection==true and
+            .no_live_borrower_discovery_census==true and
+            .indexed_liquidation_history_not_full_market_position_set==true and
+            .state_snapshot_not_transaction_prestate==true and
+            .block_confirmation_delay_not_early_competitive_signal==true and
+            .actual_trade_route_proven==false and
+            .realized_net_pnl_certified==false and
+            .competitive_inclusion_proven==false and
+            .sponsor_nonrecourse_native_gas_proven==false and
+            .shadow_P2_certified==false and
+            .RMC_closed==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            (if .status=="TWO_PUBLIC_RPC_SAME_BLOCK_50_HF_PARITY_NOT_P2"
+               then .verified_dual_rpc_account_count==50 and
+                    .source_verified_hf_candidate_count!=null and
+                    .source_verified_near_50bps_count!=null and
+                    .source_verified_debt_active_count!=null and
+                    .source_verified_no_debt_count!=null
+               else .verified_dual_rpc_account_count==0 and
+                    .source_verified_hf_candidate_count==null and
+                    .source_verified_no_debt_count==null
+               end)
+          ' "$OUT/current-50borrower-state.json" >/dev/null
+          echo "Snapshot is strictly known-history cohort only; no new market completeness, Shadow P2 or PnL authority."
+      - name: Preserve exact source bytes, failures, RPC transcripts and source code head
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-50borrower-cohort"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py \
+             ci/nqc-census/rmc-v2-shadow/test_prospective_50borrower_state.py \
+             ci/nqc-census/rmc-v2-shadow/PROSPECTIVE_50BORROWER_SHADOW_CONTRACT.md \
+             ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py \
+             ci/nqc-census/rmc-v2-economics/postwindow_competition_capacity_hurdle.py \
+             .github/workflows/nqc-v2-prospective-50borrower-shadow.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload source-authenticated snapshot or incomplete-source blocker
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-50borrowers-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-50borrower-cohort/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
