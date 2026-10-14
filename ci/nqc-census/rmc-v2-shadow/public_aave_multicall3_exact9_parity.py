@@ -449,8 +449,8 @@ def collect(cohort,source,out,transport_factory=None,now_fn=clock):
         owners=[x["borrower"] for x in cohort]
         full=encode_aggregate3(owners)
         need(full.startswith(AGGREGATE3_SELECTOR),"wrong exact Multicall3 method selector")
-        doc["exact_allowlisted_multicall3_input_sha256"]=
-            sha256(bytes.fromhex(full[2:])).hexdigest()
+        doc["exact_allowlisted_multicall3_input_sha256"]=sha256(
+            bytes.fromhex(full[2:])).hexdigest()
         doc["multicall3_call3_targets"]=N
         code={}
         for p,rpc in clients.items():
