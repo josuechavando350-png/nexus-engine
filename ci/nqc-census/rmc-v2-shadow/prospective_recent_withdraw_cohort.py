@@ -22,10 +22,17 @@ POOL=borrow.POOL
 WITHDRAW_TOPIC='0x3115d1449a7b732c986cba18244e897a450f61e1bb8d589cd2e69e6c8924f9f7'
 WINDOW_BLOCKS=borrow.WINDOW_BLOCKS
 MAX_EVENTS=borrow.MAX_LOG_EVENTS
-MAX_EVENT_BLOCKS=borrow.MAX_LOG_EVENT_BLOCKS
+# Completeness-preserving cap: one distinct event block must have >=1 event.
+# Keep every event-bearing canonical header; earlier cap 105 censored source.
+MAX_EVENT_BLOCKS=min(MAX_EVENTS, WINDOW_BLOCKS)
+CANONICAL_HEADER_PARTITION=96
 MAX_COHORT=borrow.MAX_RECENT_ACCOUNTS
 MAX_CONTROLS=borrow.MAX_RECEIPT_CONTROLS
-MAX_RPC_CALLS=borrow.MAX_RPC_CALLS_PER_SOURCE
+# Upper bound per source: initial + repinned chain/tips (4), source
+# boundary headers (4), 16 log shards, <=320 event-bearing headers,
+# <=2 receipt checks, state anchor+before+after headers (3), <=64 HF reads.
+# Derived maximum = 4 + 4 + 16 + 320 + 2 + 3 + 64 = 413.
+MAX_RPC_CALLS=4+4+16+MAX_EVENT_BLOCKS+MAX_CONTROLS+3+MAX_COHORT
 DATA_WORD=re.compile(r'0x[0-9a-fA-F]{64}\Z')
 
 class Rejected(ValueError):
@@ -71,6 +78,9 @@ def event_id(e):
     return (e['block_number'],e['tx_index'],e['log_index'],e['tx_hash'])
 
 class RPC(borrow.RPC):
+    def __init__(self,provider,transport=None):
+        super().__init__(provider,transport,call_budget=MAX_RPC_CALLS)
+
     def call(self,method,params,allowed_borrowers=None):
         if method!='eth_getLogs':
             return super().call(method,params,allowed_borrowers)
@@ -150,7 +160,22 @@ def scan(rpc,first,last):
              'duplicate same Withdraw log')
         blocks=sorted({x['block_number'] for x in events})
         need(len(blocks)<=MAX_EVENT_BLOCKS,'too many Withdraw event-bearing blocks')
-        heads={n:rpc.get_header(n) for n in blocks}
+        # Independent deterministic partitions. No header is sampled, skipped
+        # or inferred from a provider's eth_getLogs response.
+        heads={}
+        out['canonical_header_partitions']=[]
+        for offset in range(0,len(blocks),CANONICAL_HEADER_PARTITION):
+            part=blocks[offset:offset+CANONICAL_HEADER_PARTITION]
+            group={n:rpc.get_header(n) for n in part}
+            need(len(group)==len(part) and not (set(group)&set(heads)),
+                 'duplicated/missing event-bearing header identities')
+            heads.update(group)
+            out['canonical_header_partitions'].append({
+                'number_of_distinct_event_blocks':len(part),
+                'lowest_event_block':part[0],
+                'highest_event_block':part[-1],
+                'all_headers_authenticated':True})
+        need(len(heads)==len(blocks),'not all event-bearing blocks were checked')
         for item in events:
             need(item['block_hash']==heads[item['block_number']]['hash'],
                  'Withdraw log block hash not canonical')
@@ -227,6 +252,9 @@ def collect(transport_factory=None,unix_now=None):
         'source_event_topic0':WITHDRAW_TOPIC,
         'source_reports':{},'state_reports':{},'errors':[],
         'anchor':None,'source_cohort':[], 'selection':{},
+        'hf_state_pinned_after_complete_event_discovery':True,
+        'hf_state_block_may_differ_from_event_window_end':True,
+        'hf_state_anchored_at':None,
         'verified_withdraw_event_count':None,
         'verified_distinct_owner_count':None,
         'verified_selected_owner_count':None,
@@ -273,17 +301,54 @@ def collect(transport_factory=None,unix_now=None):
                 report['source_cohort']=selected
                 report['selection']=meta
                 report['anchor']['pinned_end_head']=a['last_header']
-                diff=current-a['last_header']['timestamp']
-                if diff<0 or diff>borrow.MAX_HEADER_STALENESS:
-                    report['errors'].append({'stage':'state','why':'ANCHOR_TOO_STALE_OR_IN_FUTURE'})
-                elif selected:
+                if selected:
+                    # A dense 384-block source scan can take minutes. Reading
+                    # HF at that old end block would not be current risk state.
+                    # Fix one NEW canonical state block after source selection,
+                    # then require exact two-RPC parity at that new block.
+                    new_tips={}
                     for key,rpc in clients.items():
-                        try:report['state_reports'][key]={
-                            'status':'COMPLETE_STATE','accounts':assess(rpc,a['last_header'],selected)}
+                        try:new_tips[key]=rpc.tip()
                         except Exception as exc:
-                            report['state_reports'][key]={
-                                'status':'INCOMPLETE_SOURCE','accounts':[],
-                                'error':type(exc).__name__+':'+str(exc)[:160]}
+                            report['errors'].append({'stage':'state-anchor',
+                                'provider':key,'why':type(exc).__name__+':'+str(exc)[:160]})
+                    if len(new_tips)!=2 or max(new_tips.values())-min(new_tips.values())>borrow.MAX_TIP_DRIFT:
+                        report['errors'].append({'stage':'state-anchor','why':'REPINS_DIVERGE_OR_UNAVAILABLE'})
+                    else:
+                        refreshed=min(new_tips.values())-borrow.CONFIRMATION_DEPTH
+                        report['anchor']['fresh_state_source_tips']=new_tips
+                        if refreshed<last:
+                            report['errors'].append({'stage':'state-anchor','why':'STATE_PIN_PRECEDES_EVENT_WINDOW'})
+                        else:
+                            fresh_heads={}
+                            for key,rpc in clients.items():
+                                try:fresh_heads[key]=rpc.get_header(refreshed)
+                                except Exception as exc:
+                                    report['errors'].append({'stage':'state-anchor',
+                                        'provider':key,'why':type(exc).__name__+':'+str(exc)[:160]})
+                            if (len(fresh_heads)!=2 or fresh_heads['drpc']!=fresh_heads['publicnode']):
+                                report['errors'].append({'stage':'state-anchor','why':'STATE_HEADERS_DIFFER'})
+                            else:
+                                state_head=fresh_heads['drpc']
+                                report['hf_state_anchored_at']=state_head
+                                report['anchor']['state_block_after_event_window_end']=refreshed-last
+                                effective_now=(int(datetime.now(timezone.utc).timestamp())
+                                               if unix_now is None else current)
+                                diff=effective_now-state_head['timestamp']
+                                if diff<0 or diff>borrow.MAX_HEADER_STALENESS:
+                                    report['errors'].append({'stage':'state','why':'REFRESHED_STATE_ANCHOR_STALE_OR_FUTURE'})
+                                else:
+                                    for key,rpc in clients.items():
+                                        try:report['state_reports'][key]={
+                                            'status':'COMPLETE_STATE','accounts':assess(rpc,state_head,selected)}
+                                        except Exception as exc:
+                                            report['state_reports'][key]={
+                                                'status':'INCOMPLETE_SOURCE','accounts':[],
+                                                'error':type(exc).__name__+':'+str(exc)[:160]}
+                                    final_now=(int(datetime.now(timezone.utc).timestamp())
+                                               if unix_now is None else current)
+                                    if final_now-state_head['timestamp']>borrow.MAX_HEADER_STALENESS:
+                                        report['errors'].append({'stage':'state','why':'STATE_AGED_OUT_BEFORE_EVIDENCE_CLOSEOUT'})
                 else:
                     report['state_reports']={key:{'status':'NO_WITHDRAW_EVENTS','accounts':[]}
                                              for key in clients}
