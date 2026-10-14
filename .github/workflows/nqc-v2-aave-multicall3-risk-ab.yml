@@ -1,0 +1,163 @@
+name: NQC V2 Exact Aave Risk Multicall3 One Public RPC AB BA (NO TRADE)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/public_aave_multicall3_exact9_parity.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_public_aave_multicall3_exact9_parity.py'
+      - 'ci/nqc-census/rmc-v2-shadow/VERIFIED_MULTICALL3_RISK_BATCH_CONTRACT.md'
+      - '.github/workflows/nqc-v2-aave-multicall3-risk-ab.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-multicall3-risk-ab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  immutable-9-Aave-Pool-accounts-on-one-block-hash:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Validate PR729 source run SUCCESS and full source artifact exact digest
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-multicall3-risk"
+          mkdir -p "$OUT"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38642172907" > "$OUT/38642172907-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11931141484" > "$OUT/11931141484-artifact.json"
+          jq -e '.id==38642172907 and .status=="completed" and .conclusion=="success" and
+                  .head_sha=="222f3c3c67ea2b2217886783731ff1a04debc72e"' \
+            "$OUT/38642172907-run.json" > /dev/null
+          jq -e '.id==11931141484 and .expired==false and
+                  .workflow_run.id==38642172907 and
+                  .workflow_run.head_sha=="222f3c3c67ea2b2217886783731ff1a04debc72e" and
+                  .digest=="sha256:cd26e9863aae362f7bda90e4a1343ee1fefa63a5cf66e4384dc33aa31646332c"' \
+            "$OUT/11931141484-artifact.json" > /dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11931141484/zip" \
+            --output "$OUT/11931141484.zip"
+          printf '%s  %s\n' \
+            'cd26e9863aae362f7bda90e4a1343ee1fefa63a5cf66e4384dc33aa31646332c' \
+            "$OUT/11931141484.zip" | sha256sum --check --strict
+      - name: Run strict immutable-source ABI offsets, subcall, corruption and no-write tests
+        env:
+          NQC_PR729_SOURCE_ZIP: ${{ runner.temp }}/nqc-multicall3-risk/11931141484.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-multicall3-risk"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_public_aave_multicall3_exact9_parity.py -v 2>&1 |
+            tee "$OUT/adversarial-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/public_aave_multicall3_exact9_parity.py
+      - name: Compare raw Aave userAccountData via nine direct calls vs ONE Multicall3 at same block
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-multicall3-risk"
+          timeout 400s python3 ci/nqc-census/rmc-v2-shadow/public_aave_multicall3_exact9_parity.py \
+            --prior-evidence-zip "$OUT/11931141484.zip" \
+            --out "$OUT/attempt" > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            .source.previous_ABBA_zip_sha256=="cd26e9863aae362f7bda90e4a1343ee1fefa63a5cf66e4384dc33aa31646332c" and
+            .source.previous_ABBA_head=="222f3c3c67ea2b2217886783731ff1a04debc72e" and
+            .source.previous_ABBA_manifest_sha256_members==20 and
+            .source.selection_known_before_current_RPC==true and
+            .source.sample_is_old_Withdraw_debt_owners_not_all_Aave==true and
+            .all_nine_old_debt_owner_accounts_source_frozen==true and
+            .precommit.file=="cohort-precommitted-before-RPC.json" and
+            (.precommit.sha256|test("^[0-9a-f]{64}$")) and
+            .trial_order==["SEQUENTIAL","MULTICALL3","MULTICALL3","SEQUENTIAL"] and
+            .contract_writes_or_mainnet_tx_submitted==false and
+            .multicall3_only_simulated_eth_call_not_contract_write==true and
+            .private_SVR_or_before_block_builder_access_proven==false and
+            .public_canonical_head_already_mined_before_snapshot==true and
+            .independent_provider_operator_or_mev_searcher_verified==false and
+            .economic_liquidation_route_or_flash_funding_verified==false and
+            .nonrecourse_native_gas_sponsor_proven==false and
+            .OWN_CAPITAL_ZERO_INCLUDING_GAS_UNCHANGED==true and
+            .user_mxn2000_spent==false and
+            .commercial_score_upgrade==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .nqc_realized_pnl_usd=="0" and
+            (.status=="ONE_MULTICALL3_PUBLIC_AAVE_NINE_RISK_ABBA_PARITY_NO_SVR" or
+             .status=="INCOMPLETE_MULTICALL3_PUBLIC_RISK_NOT_MARKET_ZERO") and
+            (if .status=="ONE_MULTICALL3_PUBLIC_AAVE_NINE_RISK_ABBA_PARITY_NO_SVR"
+             then (.errors|length)==0 and
+               .multicall3_deployment_code.same_runtime_code_on_two_public_sources==true and
+               .multicall3_deployment_code.contract_source_code_proven_by_two_RPC_code_bytes_alone==false and
+               .multicall3_call3_targets==9 and
+               (.trials|length)==4 and
+               .comparison.two_trials_per_mode_insufficient_for_latency_distribution==true and
+               .comparison.no_private_mev_orderflow_or_winning_builder_inclusion==true and
+               (.comparison.batched_faster_only_in_this_exact_two_pair_sample|type)=="boolean" and
+               (.comparison.sequential_mean_ns|type)=="number" and
+               (.comparison.multicall3_mean_ns|type)=="number" and
+               .per_provider_RPC_calls.drpc<=30 and .per_provider_RPC_calls.publicnode<=30 and
+               (.eth_mainnet_source_block.hash as $h |
+                 all(.trials[];
+                   .account_count==9 and
+                   .raw_Aave_account_ABI_from_both_providers_identical==true and
+                   .canonical_block_hash==$h))
+             else (.errors|length)>0 and .comparison==null
+             end)
+          ' "$OUT/attempt/multicall-vs-single-RPC.json" > "$OUT/jq-contract-check.log"
+          echo "Multicall3 read-only Ethereum Aave risk; not SVR access, bid or net profit."
+      - name: Record original source, tested code, run and failures with SHA256 manifest
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-multicall3-risk"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/public_aave_multicall3_exact9_parity.py \
+             ci/nqc-census/rmc-v2-shadow/test_public_aave_multicall3_exact9_parity.py \
+             ci/nqc-census/rmc-v2-shadow/VERIFIED_MULTICALL3_RISK_BATCH_CONTRACT.md \
+             ci/nqc-census/rmc-v2-shadow/public_aave_9account_rpc_latency_ab.py \
+             ci/nqc-census/rmc-v2-shadow/public_two_head_sealed_watch.py \
+             ci/nqc-census/rmc-v2-shadow/withdraw_all_83_owner_refresh.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_recent_withdraw_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py \
+             .github/workflows/nqc-v2-aave-multicall3-risk-ab.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload complete real read-only Multicall3 proof or source failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-aave-9risk-multicall-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-multicall3-risk/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
