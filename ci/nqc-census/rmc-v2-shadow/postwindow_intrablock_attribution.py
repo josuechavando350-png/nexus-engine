@@ -11,6 +11,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import time
 import zipfile
 
 import postwindow_winner_prestate as pre
@@ -90,7 +91,10 @@ def parse_metrics(output, count):
 
 
 def canonical_check(case, provider, transcript):
-    rpc = pre.RPC(provider, transcript=transcript)
+    def paced_read(url, method, params):
+        time.sleep(1)
+        return pre.RPC.fetch(url, method, params)
+    rpc = pre.RPC(provider, transport=paced_read, transcript=transcript)
     rpc.chain()
     w = case['witness']
     for label in ('predecessor_block', 'winner_block'):
@@ -126,7 +130,11 @@ def run_fork(case, provider, root, forge):
     try:
         canonical_check(case, provider, transcript)
         with (folder/'forge.log').open('xb') as log:
-            result = subprocess.run([forge, 'test', '--match-contract', CONTRACT, '-vvv'],
+            # Do not let one endpoint's persistent state cache stand in for another.
+            # Respect public provider throughput; never disable its rate limiter.
+            result = subprocess.run([forge, 'test', '--match-contract', CONTRACT,
+                                    '--no-storage-caching', '--compute-units-per-second', '30',
+                                    '--fork-retries', '2', '--fork-retry-backoff', '2000', '-vvv'],
                                     cwd=folder, env=dict(os.environ, **values), stdout=log,
                                     stderr=subprocess.STDOUT, timeout=600, check=False)
         write(folder/'exit.json', {'returncode': result.returncode})
