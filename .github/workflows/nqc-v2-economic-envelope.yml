@@ -1,0 +1,126 @@
+name: NQC V2 Historical Economic Sensitivity (NO NET AUTHORITY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_postwindow_economic_envelope.py'
+      - 'ci/nqc-census/rmc-v2-shadow/ECONOMIC_ENVELOPE_CONTRACT.md'
+      - '.github/workflows/nqc-v2-economic-envelope.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-economic-envelope-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-artifact-sensitivity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Bind to PR head and test all offline rejection/rounding invariants
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          mkdir -p "$RUNNER_TEMP/nqc-economic"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_postwindow_economic_envelope.py -v \
+            > "$RUNNER_TEMP/nqc-economic/tests.log" 2>&1
+          cat "$RUNNER_TEMP/nqc-economic/tests.log"
+      - name: Authenticate original successful CI and source ZIP (not a new fork)
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-economic"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38498693805" > "$OUT/source-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11865385506" > "$OUT/source-artifact.json"
+          jq -e '.id==38498693805 and .status=="completed" and .conclusion=="success"
+            and .head_sha=="156e106c2efcd8bcb7f4931be3daa98309bd770b"' \
+            "$OUT/source-run.json" >/dev/null
+          jq -e '.id==11865385506 and .expired==false and .workflow_run.id==38498693805
+            and .workflow_run.head_sha=="156e106c2efcd8bcb7f4931be3daa98309bd770b"
+            and .digest=="sha256:6778f8e190d13c739331f731ca532d8607e3f653ca000de746b058b4903c7d7d"' \
+            "$OUT/source-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location \
+            --retry 3 --retry-delay 3 --retry-all-errors \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11865385506/zip" \
+            --output "$OUT/source-11865385506.zip"
+          printf '%s  %s\n' \
+            '6778f8e190d13c739331f731ca532d8607e3f653ca000de746b058b4903c7d7d' \
+            "$OUT/source-11865385506.zip" | sha256sum --check --strict
+      - name: Exact integer economic sensitivity, with mandatory negative authority
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-economic"
+          python3 ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+            --source-artifact "$OUT/source-11865385506.zip" \
+            --out "$OUT/sensitivity.json" | tee "$OUT/stdout.log"
+          jq -e '.status=="HISTORICAL_SENSITIVITY_ONLY_NO_NET_OR_CAPTURE_AUTHORITY"
+            and .source.zip_sha256=="6778f8e190d13c739331f731ca532d8607e3f653ca000de746b058b4903c7d7d"
+            and .source.commit=="156e106c2efcd8bcb7f4931be3daa98309bd770b"
+            and .source.tree=="233afb3f65f562f9a045ad2f4e03ee35b71da7a8"
+            and .stress_inputs_are_synthetic==true
+            and .eth_usd_quote_authenticated==false
+            and .stablecoin_one_usd_assumption_authenticated==false
+            and .total_transaction_gas_used_authenticated==false
+            and .real_builder_payments_authenticated==false
+            and .failed_attempt_costs_authenticated==false
+            and .sponsor_contract_nonrecourse_authenticated==false
+            and .prospective_detection_and_inclusion_authenticated==false
+            and .nqc_net_pnl_certified==false
+            and .capital_constraint_own_capital_zero_fulfilled==false
+            and .shadow_p2_certified==false and .canary_authorized==false
+            and .RMC_closed==false and .commercial_upgrade_authorized==false
+            and .nqc_realized_pnl_usd=="0"
+            and (.cases | length)==2
+            and all(.cases[]; .scenarios_count==216)
+            and (.cases|map(.label)|sort)==["WETH_COLLATERAL_USDC_DEBT","WETH_COLLATERAL_USDT_DEBT"]' \
+            "$OUT/sensitivity.json" >/dev/null
+      - name: Preserve head, exact code, contract and artifact manifest
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-economic"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+            ci/nqc-census/rmc-v2-shadow/test_postwindow_economic_envelope.py \
+            ci/nqc-census/rmc-v2-shadow/ECONOMIC_ENVELOPE_CONTRACT.md \
+            .github/workflows/nqc-v2-economic-envelope.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Archive sensitivity output, tests and failures as immutable evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-economic-envelope-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-economic/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
