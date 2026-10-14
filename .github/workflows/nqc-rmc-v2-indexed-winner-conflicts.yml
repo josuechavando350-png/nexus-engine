@@ -1,0 +1,123 @@
+name: NQC RMC V2 Postwindow Aave Winner Conflict Ranking (NO LIVE)
+
+on:
+  push:
+    branches:
+      - "nqc/rmc-v2-indexed-winner-conflicts-20261014"
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_postwindow_indexed_winner_conflicts.py"
+      - ".github/workflows/nqc-rmc-v2-indexed-winner-conflicts.yml"
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_postwindow_indexed_winner_conflicts.py"
+      - ".github/workflows/nqc-rmc-v2-indexed-winner-conflicts.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-postwindow-indexed-conflicts-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  authenticated-indexed-winner-conflict-sets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Checkout exact proposed commit without write credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Validate offline adversarial classification
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          OUT="$RUNNER_TEMP/nqc-postwindow-indexed-conflicts"
+          mkdir -p "$OUT"
+          python3 -m py_compile \
+            ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py \
+            ci/nqc-census/rmc-v2-shadow/test_postwindow_indexed_winner_conflicts.py
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_postwindow_indexed_winner_conflicts.py -v \
+            2>&1 | tee "$OUT/adversarial-tests.log"
+
+      - name: Authenticate original source GitHub Actions run and ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_id=38487719497
+          artifact_id=11860545203
+          head=ccd91241ceaa342ed40767be8104860fd4886715
+          digest=b3d82ccd21cd683424b99c020732d2e2978ce2981a51b46df177a2d22c7bb722
+          original="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run_id")"
+          artifact="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id")"
+          test "$(jq -r .status <<<"$original")" = completed
+          test "$(jq -r .conclusion <<<"$original")" = success
+          test "$(jq -r .head_sha <<<"$original")" = "$head"
+          test "$(jq -r .name <<<"$original")" = 'NQC RMC V2 Aave Blockscout 89390-block Indexed Discovery (NO LIVE)'
+          test "$(jq -r .expired <<<"$artifact")" = false
+          test "$(jq -r .digest <<<"$artifact")" = "sha256:$digest"
+          test "$(jq -r .workflow_run.id <<<"$artifact")" = "$run_id"
+          test "$(jq -r .name <<<"$artifact")" = "nqc-v2-indexed-aave-89390-$head-$run_id"
+          OUT="$RUNNER_TEMP/nqc-postwindow-indexed-conflicts"
+          curl --fail --silent --show-error --location --retry 2 \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" \
+            --output "$OUT/immutable-source.zip"
+          printf '%s  %s\n' "$digest" "$OUT/immutable-source.zip" | sha256sum --check --strict
+          printf '%s\n' "$head" > "$OUT/parent-source-commit.txt"
+
+      - name: Rank actual indexed event transaction conflict sets without value claims
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-postwindow-indexed-conflicts"
+          python3 ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py \
+            --artifact-zip "$OUT/immutable-source.zip" \
+            --out "$OUT/indexed-market-conflicts.json"
+          jq -e '
+             .status=="INDEXER_DISCOVERY_RANKING_ONLY_NOT_CANONICAL_P2_OR_PNL"
+             and .indexed_event_count==53 and .unique_indexed_winner_tx_count==47
+             and .unique_indexed_pair_count==21
+             and (.transaction_conflict_sets | length)==47
+             and .ranked_pairs[0].indexed_event_count==10
+             and .ranked_pairs[0].distinct_historical_winner_tx_count==9
+             and .ranked_pairs[1].indexed_event_count==8
+             and .ranked_pairs[1].distinct_historical_winner_tx_count==7
+             and .source_rest_indexer_full_onchain_completeness==false
+             and .block_and_tx_receipt_independent_quorum==false
+             and .price_oracle_token_decimals_gas_flash_swap_net_cost_proven==false
+             and .capturable_future_opportunities_established==false
+             and .first_month_45000_55000_net_usd_proven==false
+             and .P2_shadow_certified==false and .RMC_closed==false
+             and .nqc_realized_pnl_usd=="0"
+          ' "$OUT/indexed-market-conflicts.json" >/dev/null
+          cp ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py "$OUT/producer.py"
+          cp ci/nqc-census/rmc-v2-shadow/test_postwindow_indexed_winner_conflicts.py "$OUT/negative-tests.py"
+          (
+            cd "$OUT"
+            sha256sum immutable-source.zip indexed-market-conflicts.json \
+              producer.py negative-tests.py adversarial-tests.log \
+              parent-source-commit.txt > evidence.sha256
+            sha256sum -c evidence.sha256
+          )
+          echo NQC_POSTWINDOW_53_INDEXED_EVENTS_47_TX_21_PAIRS_NO_PNL
+
+      - name: Preserve source-locked market and conflict-set evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-postwindow-winner-conflicts-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-postwindow-indexed-conflicts/
+          if-no-files-found: warn
+          retention-days: 30
