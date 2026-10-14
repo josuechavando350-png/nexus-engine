@@ -163,10 +163,10 @@ class RPC:
              parsed.get("id")==433,"invalid public Ethereum JSON-RPC envelope")
         if "error" in parsed:
             err=parsed["error"]
-            if type(err) is dict and type(err.get("code")) is int and
+            if (type(err) is dict and type(err.get("code")) is int and
                 err["code"] in (3,-32000,-32015) and
                 type(err.get("message")) is str and
-                err["message"].lower().startswith("execution reverted"):
+                err["message"].lower().startswith("execution reverted")):
                 raise SourceSelectorUnavailable("optional EVM selector execution reverted")
             raise Rejected("provider error, rate limit or arbitrary JSON-RPC failure")
         need("result" in parsed,"missing Ethereum JSON-RPC result")
