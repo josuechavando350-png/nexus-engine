@@ -115,7 +115,7 @@ jobs:
           tar -xzf "$RUNNER_TEMP/nqc-one-shot-foundry.tar.gz" -C "$BIN" forge anvil cast
           "$BIN/forge" --version > "$OUT/foundry-version.txt"
           "$BIN/anvil" --help | grep -- '--fork-transaction-hash' >/dev/null
-      - name: Original source-gated 16 offline one-receipt and failure-path tests
+      - name: Original source-gated 20 offline single-receipt, Keccak and one-block Aave drift tests
         env:
           NQC_PR723_SOURCE_ZIP: ${{ runner.temp }}/nqc-one-shot-eoa/11922091704.zip
         run: |
@@ -166,6 +166,14 @@ jobs:
             .local_single_eoa_receipt_economic_proof.local_source_flash_repaid_event_verified==true and
             .local_single_eoa_receipt_economic_proof.local_source_funded_completion_event_verified==true and
             .local_single_eoa_receipt_economic_proof.local_two_stage_erc20_profit_payout_to_test_eoa==true and
+            .local_single_eoa_receipt_economic_proof.local_original_exact_prestate_checked_before_synthetic_broadcast==true and
+            .local_single_eoa_receipt_economic_proof.local_execution_uses_strict_1ppm_posthoc_drift_guard==true and
+            .local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.source_and_execution_hf_below_one==true and
+            .local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.actual_execution_state_1ppm_posthoc_guard_passed==true and
+            .local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.one_synthetic_block_after_source_oracle_tx0==true and
+            .local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.source_equals_execution_six_word_abi==false and
+            (.local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.original_six_abi_uint256_values|length)==6 and
+            (.local_single_eoa_receipt_economic_proof.local_execution_one_block_state_drift.actual_six_abi_uint256_values|length)==6 and
             .local_single_eoa_receipt_economic_proof.exact_local_usdc_profit_before_native_costs_base_units==2273989378 and
             .local_single_eoa_receipt_economic_proof.no_three_post_trigger_setup_eoa_transactions==true and
             .local_single_eoa_receipt_economic_proof.one_backrun_body_tx_assumed_eligible_but_not_verified_by_svr==true and
