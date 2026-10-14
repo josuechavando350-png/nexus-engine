@@ -45,7 +45,8 @@ jobs:
             > "$OUT/stdout.log" 2> "$OUT/stderr.log"
           jq -e '
             .schema_version==1 and
-            (.status=="TWO_SOURCE_ORACLE_LOG_CAPABILITY_AND_RECENT_PARITY" or
+            (.status=="TWO_SOURCE_ADDRESS_ONLY_ORACLE_EVENT_PARITY" or
+             .status=="TWO_SOURCE_ORACLE_LOG_CAPABILITY_AND_RECENT_PARITY" or
              .status=="INCOMPLETE_ORACLE_RPC_SOURCE_CAPABILITY") and
             .prospective_detection_proven==false and
             .net_pnl_certified==false and
@@ -56,6 +57,8 @@ jobs:
             .canary_live_authorized==false and
             .nqc_realized_pnl_usd=="0" and
             (.providers|keys|sort)==["blast","drpc"] and
+            .two_source_address_recent_parity != null and
+            .two_source_address_positive_control_parity != null and
             all(.providers[];.calls_used<=30)
           ' "$OUT/oracle-rpc-source-matrix.json" >/dev/null
           echo "Provider compatibility research only; missing data is not a zero or trade signal."
