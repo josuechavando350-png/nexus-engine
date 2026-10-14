@@ -62,6 +62,10 @@ class Rejected(ValueError):
     pass
 
 
+class SourceSelectorUnavailable(Rejected):
+    """Only an explicit EVM execution revert for an optional feed selector."""
+
+
 def need(ok,why):
     if not ok:raise Rejected(why)
 
@@ -156,8 +160,16 @@ class RPC:
         need(len(raw)<=MAX_BYTES,"oversized Ethereum read")
         parsed=parse_json(raw)
         need(type(parsed) is dict and parsed.get("jsonrpc")=="2.0" and
-             parsed.get("id")==433 and "error" not in parsed and
-             "result" in parsed,"RPC/provider failure, do not infer oracle absence")
+             parsed.get("id")==433,"invalid public Ethereum JSON-RPC envelope")
+        if "error" in parsed:
+            err=parsed["error"]
+            if type(err) is dict and type(err.get("code")) is int and
+                err["code"] in (3,-32000,-32015) and
+                type(err.get("message")) is str and
+                err["message"].lower().startswith("execution reverted"):
+                raise SourceSelectorUnavailable("optional EVM selector execution reverted")
+            raise Rejected("provider error, rate limit or arbitrary JSON-RPC failure")
+        need("result" in parsed,"missing Ethereum JSON-RPC result")
         return parsed["result"]
 
     def authorize(self,address,selectors,*,code=True):
@@ -263,8 +275,10 @@ def one_optional(clients,address,selector,kind):
     def attempt(client):
         try:
             return {"ok":True,"value":client.read(address,selector)}
-        except Exception as exc:
-            return {"ok":False,"type":type(exc).__name__}
+        except SourceSelectorUnavailable:
+            return {"ok":False,"type":"EXPLICIT_EVM_SELECTOR_REVERT"}
+        # All other errors (HTTP403/429, provider outage, source timeout,
+        # malformed JSON) remain fatal INCOMPLETE, never an absent feed.
     result=paired(clients,attempt)
     if not result["ok"]:
         return {"status":"SOURCE_SELECTOR_UNAVAILABLE_NO_PRIVATE_ACCESS_PROOF",
@@ -312,8 +326,7 @@ def collect(out,transport_factory=None,now_fn=now,reader_factory=None):
             transport=transport_factory(provider) if transport_factory else None
             clients[provider]=(reader_factory(provider,transport)
                               if reader_factory else RPC(provider,transport))
-        tips=paired(clients,lambda c:c.tip()) if False else {
-            p:c.tip() for p,c in clients.items()}
+        tips={p:c.tip() for p,c in clients.items()}
         report["provider_tips"]=tips
         need(abs(tips["drpc"]-tips["publicnode"])<=MAX_TIP_DRIFT,
              "public Ethereum source tips too divergent")
