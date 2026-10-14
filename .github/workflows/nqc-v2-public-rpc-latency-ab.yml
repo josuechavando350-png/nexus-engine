@@ -109,12 +109,13 @@ jobs:
                .latency_comparison.one_trial_is_not_a_reliable_speed_distribution==true and
                .latency_comparison.network_order_provider_cache_and_load_confound_results==true and
                (.latency_comparison.three_lanes_faster_in_this_specific_two_round_sample|type)=="boolean" and
-               all(.trials[];
+               (.pinned_header.hash as $expected |
+                 all(.trials[];
                    .raw_abi_records_identical_between_sources==true and
                    (.accounts|length)==9 and
-                   .fixed_canonical_state_hash==.pinned_header.hash and
+                   .fixed_canonical_state_hash==$expected and
                    .source_rpc_calls.drpc==9 and
-                   .source_rpc_calls.publicnode==9) and
+                   .source_rpc_calls.publicnode==9)) and
                .read_dispatches_per_provider.drpc<=60 and
                .read_dispatches_per_provider.publicnode<=60
              else (.errors|length)>0 and .latency_comparison==null
