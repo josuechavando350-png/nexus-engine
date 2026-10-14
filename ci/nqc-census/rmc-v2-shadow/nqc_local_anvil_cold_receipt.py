@@ -339,7 +339,12 @@ def decode_local_receipts(result_file, rpc, operator, source, old_gas):
     executed=remote[3]
     gas_used=quantity(executed["gasUsed"],"full EOA execute tx gasUsed")
     gas_price=quantity(executed["effectiveGasPrice"],"local effective gas price")
-    need(gas_used>old_gas,"cold receipt gasUsed must exceed internal route call gas")
+    # PR698 gasleft() is a GROSS internal call delta; EIP-2200/3529
+    # post-transaction refunds may reduce receipt gasUsed. Receipt gasUsed is
+    # NET of refunds and adds intrinsic/entry gas. Comparing either direction
+    # as a strict inequality is unsound. Preserve the signed difference.
+    need(old_gas>0,"source gross call gas invalid")
+    signed_difference=gas_used-old_gas
     logs=executed.get("logs")
     need(type(logs) is list and len(logs)>5,
          "missing real Aave flash/route receipt event logs")
@@ -356,7 +361,10 @@ def decode_local_receipts(result_file, rpc, operator, source, old_gas):
         "isolated_strategy_contract_address":strategy.lower(),
         "isolated_coordinator_contract_address":coordinator.lower(),
         "source_original_gasleft_delta_after_test_setup":old_gas,
-        "full_receipt_minus_internal_call_gas":gas_used-old_gas,
+        "full_receipt_minus_internal_call_gas":signed_difference,
+        "full_receipt_minus_gross_call_is_signed_not_overhead":True,
+        "refund_amount_not_directly_certified":True,
+        "gross_gasleft_is_not_receipt_gas_used":True,
         "three_setup_deployments_are_not_included_in_execute_receipt_gas":True,
         "fork_gas_fee_is_not_paid_on_public_ethereum":True,
         "mainnet_competitive_inclusion_or_capture_proven":False,
