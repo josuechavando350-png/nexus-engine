@@ -5,6 +5,7 @@ on:
     paths:
       - 'ci/nqc-census/weth-physical/script/NqcV2OneShotAtomicLocal.s.sol'
       - 'ci/nqc-census/rmc-v2-shadow/nqc_local_one_shot_eoa.py'
+      - 'ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py'
       - 'ci/nqc-census/rmc-v2-shadow/test_nqc_local_one_shot_eoa.py'
       - 'ci/nqc-census/rmc-v2-shadow/LOCAL_SINGLE_EOA_CONSTRUCTOR_CONTRACT.md'
       - '.github/workflows/nqc-v2-local-one-shot-eoa.yml'
@@ -178,6 +179,22 @@ jobs:
             .local_single_eoa_receipt_economic_proof.no_three_post_trigger_setup_eoa_transactions==true and
             .local_single_eoa_receipt_economic_proof.one_backrun_body_tx_assumed_eligible_but_not_verified_by_svr==true and
             .local_single_eoa_receipt_economic_proof.real_mainnet_broadcast_or_inclusion==false and
+            .one_shot_eoa_submission_footprint.one_and_only_local_block_tx_identity_verified==true and
+            .one_shot_eoa_submission_footprint.constructor_args_embed_exact_source_hash_parent_borrower_and_abi==true and
+            .one_shot_eoa_submission_footprint.no_second_eoa_in_locally_mined_block==true and
+            .one_shot_eoa_submission_footprint.local_block_number==26142068 and
+            .one_shot_eoa_submission_footprint.local_eoa_receipt_gas_used_units==
+              .local_single_eoa_receipt_economic_proof.one_and_only_local_eoa_tx_actual_gas_used and
+            .one_shot_eoa_submission_footprint.actual_create_initcode_and_constructor_args_bytes>0 and
+            .one_shot_eoa_submission_footprint.actual_create_initcode_and_constructor_args_bytes<=49152 and
+            (.one_shot_eoa_submission_footprint.actual_create_initcode_and_args_sha256|test("^[0-9a-f]{64}$")) and
+            .one_shot_eoa_submission_footprint.eip1559_transaction_type==2 and
+            .one_shot_eoa_submission_footprint.eoa_nonce==0 and
+            .one_shot_eoa_submission_footprint.eoa_native_value_wei==0 and
+            .one_shot_eoa_submission_footprint.one_transaction_is_not_mev_share_svr_relay_admission==true and
+            .one_shot_eoa_submission_footprint.original_same_block_competitor_slot_access_unproven==true and
+            .one_shot_eoa_submission_footprint.source_is_post_oracle_tx0_next_synthetic_block_not_real_winner_slot==true and
+            .one_shot_eoa_submission_footprint.nqc_paid_no_public_ethereum_gas==true and
             .public_ethereum_transaction_broadcast==false and
             .user_wallet_or_private_key_used==false and
             .public_ethereum_native_gas_paid==false and
