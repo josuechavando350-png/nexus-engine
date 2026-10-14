@@ -1,0 +1,91 @@
+name: NQC V2 Flashbots MEV-Share Access Witness (ONE SHOT READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/svr_channel_access_probe.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_svr_channel_access_probe.py'
+      - 'ci/nqc-census/rmc-v2-shadow/SVR_READONLY_CHANNEL_ACCESS_CONTRACT.md'
+      - '.github/workflows/nqc-v2-flashbots-channel-access.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-flashbots-access-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bounded-read-only-flashbots-sse:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Require exact PR revision and preflight offline security tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-flashbots-readonly"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_svr_channel_access_probe.py -v 2>&1 | tee "$OUT/offline-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/svr_channel_access_probe.py
+      - name: Bounded one-shot Flashbots documented PUBLIC SSE GET
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-flashbots-readonly"
+          timeout 95s python3 ci/nqc-census/rmc-v2-shadow/svr_channel_access_probe.py \
+            --out "$OUT/attempt" > "$OUT/status.json" 2> "$OUT/stderr.log"
+          python3 - <<'PY'
+          import json, pathlib
+          p=pathlib.Path(__import__('os').environ['RUNNER_TEMP'])/'nqc-flashbots-readonly'/'status.json'
+          d=json.loads(p.read_text())
+          assert d['schema_version']==1
+          assert d['nqc_realized_pnl_usd']=='0'
+          assert not d['svr_feed_access_proven']
+          assert not d['NQC_pre_inclusion_edge_proven']
+          assert not d['builder_cutoff_proven']
+          assert not d['net_EV_or_inclusion_proven']
+          assert not d['native_gas_finance_proven']
+          assert not d['live_authorized']
+          assert d['precommit_sha256']==__import__('hashlib').sha256(
+              (p.parent/'attempt'/'precommit-before-network.json').read_bytes()).hexdigest()
+          assert d['result'] in (
+              'BLOCKED_SOURCE_ACCESS_CONTROL',
+              'INCOMPLETE_SOURCE_RATE_LIMIT',
+              'INCOMPLETE_SOURCE_TRANSPORT_OR_FRAMING',
+              'PUBLIC_MEV_SHARE_SSE_HTTP_200_NOT_SVR_ACCESS_PROOF')
+          print('SOURCE CHECK, NOT PREINCLUSION OR P&L:',d['result'])
+          PY
+      - name: Content-addressed exact source, result and failure manifest
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-flashbots-readonly"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/svr_channel_access_probe.py \
+             ci/nqc-census/rmc-v2-shadow/test_svr_channel_access_probe.py \
+             ci/nqc-census/rmc-v2-shadow/SVR_READONLY_CHANNEL_ACCESS_CONTRACT.md \
+             ci/nqc-census/rmc-v2-shadow/svr_hint_admission.py \
+             .github/workflows/nqc-v2-flashbots-channel-access.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | \
+            xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Preserve immutable read-only access evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-flashbots-sse-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-flashbots-readonly/
+          retention-days: 30
+          if-no-files-found: error
