@@ -73,30 +73,38 @@ def canonical_event(raw, lo, hi):
     need(type(raw.get('address')) is str and
          raw['address'].lower() == AGGREGATOR, 'wrong emitter')
     topics=raw.get('topics')
-    need(type(topics) is list and len(topics)>=1 and
-         type(topics[0]) is str and topics[0].lower()==NEW_TRANSMISSION_TOPIC,
-         'not a NewTransmission topic')
-    need(raw.get('removed') in (False,None), 'removed/reorg event')
+    need(type(topics) is list and len(topics)>=2 and
+         type(topics[0]) is str and topics[0].lower() in EVENT_TOPICS,
+         'event topic not authenticated DualAggregator update')
+    need(raw.get('removed') in (False,None),'removed/reorg event')
     block=num(raw.get('blockNumber'))
-    need(lo <= block <= hi, 'event outside bounded shard')
+    need(lo<=block<=hi,'event outside bounded shard')
     data=raw.get('data')
-    need(type(data) is str and HEX.fullmatch(data) and len(data)>=66,
-         'unparseable NewTransmission data')
-    # NewTransmission indexed aggregatorRoundId, first data word = int192 answer.
-    # Reject nonpositive prices: the contract's expected ETH/USD domain.
-    first=int(data[2:66],16)
-    need(0<first<2**191, 'nonpositive/out-of-range oracle price answer')
+    need(type(data) is str and HEX.fullmatch(data),'invalid event data')
+    topic=topics[0].lower()
+    indexed_round=int(hash32(topics[1]),16)
+    need(0<indexed_round<2**32,'invalid indexed round')
+    kind='SECONDARY_ROUND_ID_UPDATED' if topic==SECONDARY_ROUND_TOPIC else 'PRIMARY_NEW_TRANSMISSION'
+    if kind=='SECONDARY_ROUND_ID_UPDATED':
+        need(data=='0x','secondary event unexpectedly has data')
+        answer_raw=None
+    else:
+        need(len(data)>=66,'primary NewTransmission answer missing')
+        answer_raw=int(data[2:66],16)
+        need(0<answer_raw<2**191,'bad primary answer')
     return {'block_number':block,'block_hash':hash32(raw.get('blockHash')),
             'tx_hash':hash32(raw.get('transactionHash')),
             'log_index':num(raw.get('logIndex')),
-            'topic0':NEW_TRANSMISSION_TOPIC,
-            'answer_raw':first,
+            'event_type':kind,'topic0':topic,
+            'indexed_round_id':indexed_round,
+            'answer_raw':answer_raw,
             'event_data_sha256':sha256(bytes.fromhex(data[2:])).hexdigest()}
 
 
 def ordered_event_identity(v):
     return (v['block_number'],v['log_index'],v['block_hash'],v['tx_hash'],
-            v['event_data_sha256'],v['answer_raw'])
+            v['event_data_sha256'],v.get('event_type') or '',
+            v.get('indexed_round_id') or 0,v['answer_raw'] or 0)
 
 
 class RPC:
