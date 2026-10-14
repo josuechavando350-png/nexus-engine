@@ -184,10 +184,23 @@ class LocalOnlyColdReceiptTests(unittest.TestCase):
         rows[2]["from"]="0x"+"00"*20
         with self.assertRaises(app.Rejected):self.make_report(rows)
 
-    def test_receipt_gas_below_internal_call_fails(self):
+    def test_refund_adjusted_receipt_may_be_below_gross_gasleft(self):
+        # This can happen even when the complete EOA transaction succeeds:
+        # gross gasleft does not account for transaction-level refunds.
         _,rows=fake_receipts()
         rows[3]["gasUsed"]=hex(1_000_000)
-        with self.assertRaises(app.Rejected):self.make_report(rows)
+        doc,_=self.make_report(rows)
+        self.assertEqual(doc["fork_only_execute_receipt_gas_used"],1_000_000)
+        self.assertEqual(doc["full_receipt_minus_internal_call_gas"],-115_038)
+        self.assertTrue(doc["full_receipt_minus_gross_call_is_signed_not_overhead"])
+        self.assertTrue(doc["refund_amount_not_directly_certified"])
+        self.assertTrue(doc["gross_gasleft_is_not_receipt_gas_used"])
+
+    def test_successful_receipt_must_still_exceed_intrinsic_gas(self):
+        _,rows=fake_receipts()
+        rows[3]["gasUsed"]=hex(20_000)
+        with self.assertRaises(app.Rejected):
+            self.make_report(rows)
 
     def test_rewrite_execution_or_setup_target_fails(self):
         _,rows=fake_receipts()
