@@ -78,10 +78,13 @@ def endpoint(reject_or=False,reject_secondary=False,wrong_receipt=False,
 class OracleSourceMatrixTests(unittest.TestCase):
     def test_historical_positive_and_exact_recent_source_parity(self):
         output=m.run(lambda name:endpoint())
-        self.assertEqual(output['status'],'TWO_SOURCE_ADDRESS_ONLY_ORACLE_EVENT_PARITY')
+        self.assertEqual(output['status'],'TWO_SOURCE_ADDRESS_ONLY_ORACLE_EVENT_PARITY',
+                         output['providers'])
         self.assertTrue(output['two_source_recent_parity'])
         self.assertTrue(output['two_source_positive_control_parity'])
-        self.assertTrue(output['two_source_address_positive_control_parity'])
+        self.assertTrue(output['two_source_address_positive_control_parity'],
+                        [(name,[(c['block'],c['address_query']) for c in row['positive_controls']])
+                         for name,row in output['providers'].items()])
         self.assertTrue(output['two_source_address_recent_parity'])
         self.assertEqual(output['confirmed_address_recent_oracle_events'],2)
         self.assertEqual(output['confirmed_recent_oracle_update_events'],2)
@@ -101,12 +104,16 @@ class OracleSourceMatrixTests(unittest.TestCase):
         self.assertEqual(output['providers']['drpc']['positive_controls'][0]
                          ['or_query']['status'],'ERROR')
         self.assertEqual(output['confirmed_recent_oracle_update_events'],2)
-        self.assertTrue(output['two_source_address_positive_control_parity'])
+        self.assertTrue(output['two_source_address_positive_control_parity'],
+                        [(name,[(c['block'],c['address_query']) for c in row['positive_controls']])
+                         for name,row in output['providers'].items()])
 
     def test_address_only_recovers_primary_event_when_topic_rpc_rejects(self):
         output=m.run(lambda name:endpoint(reject_or=True,
                          reject_secondary=(name=='blast')))
-        self.assertTrue(output['two_source_address_positive_control_parity'])
+        self.assertTrue(output['two_source_address_positive_control_parity'],
+                        [(name,[(c['block'],c['address_query']) for c in row['positive_controls']])
+                         for name,row in output['providers'].items()])
         self.assertTrue(output['two_source_address_recent_parity'])
         self.assertEqual(output['confirmed_address_recent_oracle_events'],2)
         self.assertEqual(output['status'],'TWO_SOURCE_ADDRESS_ONLY_ORACLE_EVENT_PARITY')
