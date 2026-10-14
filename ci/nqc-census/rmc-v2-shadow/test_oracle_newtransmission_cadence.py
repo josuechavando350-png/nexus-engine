@@ -17,7 +17,7 @@ def hdr(n):
 def event(n, answer, index=5):
     # NewTransmission first unindexed data word is the signed int192 answer.
     return {'address':cad.AGGREGATOR,'topics':[cad.NEW_TRANSMISSION_TOPIC,
-            '0x'+'01'*32],
+            '0x'+f'{1:064x}'],
             'blockNumber':hex(n),'blockHash':h(n),
             'transactionHash':h(n*100+index),
             'logIndex':hex(index),'removed':False,
@@ -178,7 +178,7 @@ class PinnedOracleCadenceTests(unittest.TestCase):
             rpc.call('eth_sendRawTransaction',['0xdeadbeef'])
         with self.assertRaises(ValueError):
             rpc.call('eth_getLogs',[{'address':cad.AGGREGATOR,
-              'topics':[cad.NEW_TRANSMISSION_TOPIC],'fromBlock':'0x1','toBlock':'0x100'}])
+              'topics':[cad.EVENT_TOPICS],'fromBlock':'0x1','toBlock':'0x100'}])
         self.assertEqual(rpc.calls,0)
 
     def test_wrong_rpc_chain_is_not_truth(self):
