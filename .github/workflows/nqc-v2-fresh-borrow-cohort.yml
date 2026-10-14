@@ -22,7 +22,7 @@ jobs:
     env:
       PYTHONDONTWRITEBYTECODE: '1'
       PYTHONUNBUFFERED: '1'
-      PYTHONPATH: ci/nqc-census/rmc-v2-shadow
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -100,6 +100,10 @@ jobs:
           cp ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py \
              ci/nqc-census/rmc-v2-shadow/test_prospective_recent_borrow_cohort.py \
              ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py \
+             ci/nqc-census/rmc-v2-economics/postwindow_competition_capacity_hurdle.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+             ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py \
              ci/nqc-census/rmc-v2-shadow/FRESH_BORROW_PROSPECTIVE_CONTRACT.md \
              .github/workflows/nqc-v2-fresh-borrow-cohort.yml "$OUT/source/"
           git rev-parse HEAD > "$OUT/code-commit.txt"
