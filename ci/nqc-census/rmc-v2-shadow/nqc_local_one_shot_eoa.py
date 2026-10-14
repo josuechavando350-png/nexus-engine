@@ -76,7 +76,8 @@ def report_source(receipt,public_inputs,operator):
     coordinator=old._topic_address(log["topics"][3],"coordinator")
     winner,profit,source_block=old._word_data(log.get("data"),3,"OneShot")
     need(winner==int(SOURCE_WINNER,16) and profit==EXPECTED_GROSS and
-         old.PINNED_BLOCK<=source_block<=old.PINNED_BLOCK+8,
+         old.PINNED_BLOCK<=source_block<=old.PINNED_BLOCK+8 and
+         source_block==old.quantity(receipt.get("blockNumber"),"one-shot receipt block"),
          "one-shot original winner/profit/block mismatch")
 
     aave=unique(old.POOL,old.AAVE_LIQUIDATION_TOPIC,"Aave LiquidationCall")
