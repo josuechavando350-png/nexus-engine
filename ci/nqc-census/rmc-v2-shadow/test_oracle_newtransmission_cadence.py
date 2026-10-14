@@ -47,7 +47,51 @@ def factory(events, blast_events=None, error_on_blast=None):
         name, error_on_blast if name=='blast' else None)
 
 
+def secondary_event(n, round_id=5, index=7):
+    return {'address':cad.AGGREGATOR,
+            'topics':[cad.SECONDARY_ROUND_TOPIC,'0x'+f'{round_id:064x}'],
+            'blockNumber':hex(n),'blockHash':h(n),
+            'transactionHash':h(n*100+index),
+            'logIndex':hex(index),'removed':False,'data':'0x'}
+
+
 class PinnedOracleCadenceTests(unittest.TestCase):
+
+    def test_historical_dualaggregator_topic_constants_not_generic_ocr2(self):
+        self.assertEqual(cad.SECONDARY_ROUND_TOPIC,
+          '0x8d530b9ddc4b318d28fdd4c3a21fcfecece54c1a72a824f262985b99afef009b')
+        self.assertEqual(cad.NEW_TRANSMISSION_TOPIC,
+          '0xc797025feeeaf2cd924c99e9205ac8ec04d5cad21c41ce637a38fb6dee6016a')
+        self.assertNotIn('0xf6a97944f31ea060dfde0566e4167c1a1082551e64b60ecb14d599a9d023d451',
+                         cad.EVENT_TOPICS)
+
+    def test_secondary_round_id_emits_no_price_and_counts_as_update(self):
+        events=[secondary_event(99700,3),event(99800,250000000000),
+                secondary_event(99820,4)]
+        result=cad.run(factory(events))
+        self.assertEqual(result['status'],
+           'TWO_ENDPOINT_PINNED_ORACLE_EVENT_PARITY_DESCRIPTIVE_ONLY')
+        stats=result['two_endpoint_descriptive_cadence']
+        self.assertEqual(stats['canonical_oracle_update_events_total'],3)
+        self.assertEqual(stats['canonical_secondary_round_events'],2)
+        self.assertEqual(stats['canonical_new_transmission_events'],1)
+        self.assertEqual(stats['price_direction_primary_only_bps'],[])
+        self.assertFalse(stats['secondary_event_contains_price_value'])
+
+    def test_secondary_payload_must_be_empty_and_topic_exact(self):
+        log=secondary_event(99800,5)
+        clean=cad.canonical_event(log,99800,99800)
+        self.assertEqual(clean['event_type'],'SECONDARY_ROUND_ID_UPDATED')
+        self.assertIsNone(clean['answer_raw'])
+        invalid=copy.deepcopy(log)
+        invalid['data']='0x00'
+        with self.assertRaises(ValueError):
+            cad.canonical_event(invalid,99800,99800)
+        wrong=copy.deepcopy(log)
+        wrong['topics'][0]='0xf6a97944f31ea060dfde0566e4167c1a1082551e64b60ecb14d599a9d023d451'
+        with self.assertRaises(ValueError):
+            cad.canonical_event(wrong,99800,99800)
+
     def test_both_endpoint_parity_and_arrival_interval(self):
         # tip 100000, selected stable end 99984
         events=[event(99700,250000000000),event(99800,247500000000)]
