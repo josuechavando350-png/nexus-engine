@@ -228,7 +228,7 @@ def build(index_report,source_rows,route_cases,provenance):
                     max(0,target*USD_MICROS-per_30d_micros),
             })
         result.append({
-            "synthetic_complete_cost_per_captured_transaction_usd":cost,
+            "synthetic_assumed_combined_cost_per_captured_tx_usd":cost,
             "all_15_distinct_source_txs_proxy_residual_usd_micros_30d":
                 per_30d_micros,
             "economically_positive_slot_count_under_assumptions":
@@ -295,7 +295,7 @@ def main():
         f.write(canon(report))
     print(report["status"])
     for row in report['scenarios']:
-        print("assumed_cost_usd",row['synthetic_complete_cost_per_captured_transaction_usd'],
+        print("assumed_cost_usd",row['synthetic_assumed_combined_cost_per_captured_tx_usd'],
               "monthly_proxy_usd",row['all_15_distinct_source_txs_proxy_residual_usd_micros_30d']/USD_MICROS,
               "targets",[(x['target_usd'],x['capture_share_bps_necessary_under_assumptions'])
                          for x in row['targets']])
