@@ -192,6 +192,28 @@ class LocalOnlyColdReceiptTests(unittest.TestCase):
         with self.assertRaises(app.Rejected):
             app.check_fork_snapshot(Stub(),self.inputs)
 
+    def test_exact_six_field_prewinner_drift_has_reproducible_witness(self):
+        raw="0x"+("00"*192)
+        class Stub:
+            def call(self,method,params):
+                if method=="eth_chainId":return "0x1"
+                if method=="anvil_nodeInfo":return {"anvil":"loopback"}
+                if method=="eth_getBlockByNumber":
+                    return {"number":hex(app.PINNED_BLOCK),
+                            "timestamp":"0x123",
+                            "hash":"0x"+"aa"*32,
+                            "parentHash":"0x"+"bb"*32}
+                if method=="eth_call":return raw
+                raise AssertionError(method)
+        with self.assertRaises(app.PrestateDrift) as caught:
+            app.check_fork_snapshot(Stub(),self.inputs)
+        witness=caught.exception.witness
+        self.assertEqual(len(witness["source_expected_six_uint256_words"]),6)
+        self.assertEqual(witness["anvil_observed_six_uint256_words"],[0]*6)
+        self.assertEqual(len(witness["observed_minus_expected_six_exact_integer_deltas"]),6)
+        self.assertEqual(witness["anvil_local_latest_block_number"],app.PINNED_BLOCK)
+        self.assertTrue(witness["cannot_promote_any_nqc_route_or_full_transaction_gas"])
+
     def test_no_presumed_external_native_gas_sponsor_or_real_profit(self):
         # Model explicitly retains non-claims and no route profit promotion.
         source=self.inputs
