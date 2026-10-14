@@ -24,6 +24,17 @@ contract NqcV2OneShotAtomicLocal {
     uint256 internal constant EXPECTED_PREMIUM = 24_496_677;
     uint256 internal constant EXPECTED_WETH = 20_140_477_263_386_042_567;
 
+    /// @notice Exact original PR698 state and bounded local next-block state.
+    /// @dev 1ppm drift bound is a POST-HOC experimental tolerance, not a
+    ///      certification of all market regimes or arbitrary future delays.
+    event LocalOneShotStateDrift(
+        bytes32 originalAccountKeccak,
+        bytes32 actualExecutionAccountKeccak,
+        uint256[6] originalWords,
+        uint256[6] executionWords,
+        uint256 localBlockTimestamp
+    );
+
     event LocalOneShotLiquidation(
         address indexed ephemeralOperator,
         address indexed strategy,
@@ -44,8 +55,9 @@ contract NqcV2OneShotAtomicLocal {
     ) {
         require(
             block.chainid == 1 &&
-                block.number >= FIRST_HISTORICAL_BLOCK &&
-                block.number <= LAST_HISTORICAL_BLOCK,
+                // Only the FIRST synthetic block immediately after oracle tx0.
+            // The source authenticated at the actual preceding historic block.
+            block.number == FIRST_HISTORICAL_BLOCK + 1,
             "HISTORICAL_LOCAL_FORK_ONLY"
         );
         require(
@@ -65,15 +77,45 @@ contract NqcV2OneShotAtomicLocal {
         (bool ok, bytes memory currentAccount) = AAVE.staticcall(
             abi.encodeWithSignature("getUserAccountData(address)", borrower)
         );
+        require(ok && currentAccount.length == 192, "EXECUTION_AAVE_ABI_REQUIRED");
+        // The exact six-word historical tx0 prestate was independently proved
+        // by nqc_local_one_shot_eoa.py BEFORE synthetic CREATE. EVM execution
+        // advances one locally mined block; normalized debt/collateral
+        // interest indices change minutely. Do NOT claim byte-identical
+        // execution-time ABI or overwrite Aave storage to force equality.
+        uint256[6] memory originalWords =
+            abi.decode(originalPreWinnerAccountABI, (uint256[6]));
+        uint256[6] memory executionWords =
+            abi.decode(currentAccount, (uint256[6]));
+        for (uint256 i; i < 6; ++i) {
+            if (i == 0 || i == 1 || i == 5) {
+                uint256 sourceWord = originalWords[i];
+                require(sourceWord > 0, "NONPOSITIVE_CANONICAL_RISK_WORD");
+                uint256 tolerance = sourceWord / 1_000_000 + 1;
+                require(
+                    executionWords[i] >= sourceWord - tolerance &&
+                        executionWords[i] <= sourceWord + tolerance,
+                    "EXECUTION_STATE_EXCEEDS_ONE_PPM_DRIFT"
+                );
+            } else {
+                // Non-debt risk configuration, available borrowing and LTV
+                // MUST be byte-for-byte unchanged across this one local block.
+                require(executionWords[i] == originalWords[i],
+                    "SOURCE_ACCOUNT_CONFIG_CHANGED");
+            }
+        }
         require(
-            ok && keccak256(currentAccount) == keccak256(originalPreWinnerAccountABI),
-            "EXACT_ORACLE_TX0_PREWINNER_ABI_REQUIRED"
+            originalWords[5] > 0 && originalWords[5] < 1 ether &&
+                executionWords[5] > 0 && executionWords[5] < 1 ether,
+            "PREWINNER_OR_EXECUTION_HF_NOT_LIQUIDATABLE"
         );
-        (,,,,, uint256 hf) = abi.decode(
-            originalPreWinnerAccountABI,
-            (uint256, uint256, uint256, uint256, uint256, uint256)
+        emit LocalOneShotStateDrift(
+            keccak256(originalPreWinnerAccountABI),
+            keccak256(currentAccount),
+            originalWords,
+            executionWords,
+            block.timestamp
         );
-        require(hf > 0 && hf < 1 ether, "NOT_LIQUIDATABLE_PREWINNER");
         require(
             IAaveNqcRoute(AAVE).FLASHLOAN_PREMIUM_TOTAL() == 5 &&
                 (principal * 5 + 9_999) / 10_000 == premium,
