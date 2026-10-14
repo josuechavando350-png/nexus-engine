@@ -274,6 +274,20 @@ def run(funded_zip,oracle_zip,index_zip,workspace,forge,anvil,cast,out):
                 bad_hash=failed_hashes[0]
                 try:
                     local_failed=rpc.call("eth_getTransactionReceipt",[bad_hash])
+                    result["unclassified_local_failure_receipt"]={
+                        "source":"127.0.0.1:18545_only",
+                        "original_failure_tx_hash":bad_hash,
+                        "fields":{k:local_failed.get(k) for k in (
+                            "transactionHash","blockHash","blockNumber",
+                            "from","to","contractAddress",
+                            "status","gasUsed","effectiveGasPrice",
+                            "type","cumulativeGasUsed","revertReason")}
+                            if type(local_failed) is dict else None,
+                        "full_response_sha256":sha256(
+                            old.canonical(local_failed)).hexdigest(),
+                        "never_proof_of_renewable_profit":True,
+                        "real_mainnet_transaction":False,
+                    }
                     result["local_failure_receipt_witness"]=authenticate_failed_loopback_receipt(
                         local_failed,bad_hash,operator)
                 except Exception as exc:
@@ -284,7 +298,7 @@ def run(funded_zip,oracle_zip,index_zip,workspace,forge,anvil,cast,out):
                 try:
                     trace=subprocess.run([
                         str(cast),"run",bad_hash,"--rpc-url",
-                        old.reject_nonlocal_url(LOCAL),"--trace",
+                        old.reject_nonlocal_url(LOCAL),"--trace-depth","20",
                     ],cwd=workspace,env=env,capture_output=True,text=True,timeout=90)
                     data=(trace.stdout+"\n"+trace.stderr).replace(
                         "0x"+"0"*64,"[INVALID_ZERO_HASH]")
