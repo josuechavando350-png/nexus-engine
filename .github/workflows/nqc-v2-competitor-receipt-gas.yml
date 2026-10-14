@@ -1,0 +1,158 @@
+name: NQC V2 47 Historical Competitor Receipt Gas (NO NQC GAS AUTHORITY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-economics/competitor_winner_receipt_gas.py'
+      - 'ci/nqc-census/rmc-v2-economics/test_competitor_winner_receipt_gas.py'
+      - 'ci/nqc-census/rmc-v2-economics/COMPETITOR_WINNER_NATIVE_GAS_CONTRACT.md'
+      - '.github/workflows/nqc-v2-competitor-receipt-gas.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-competitor-paid-gas-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bounded-competing-liquidator-gas:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-economics:ci/nqc-census/rmc-v2-shadow
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Authenticate exact head and original 47-winner producer GH run
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-competitor-native-gas"
+          mkdir -p "$OUT"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38489472232" \
+            > "$OUT/38489472232-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11861430884" \
+            > "$OUT/11861430884-artifact.json"
+          jq -e '
+            .id==38489472232 and .status=="completed" and .conclusion=="success" and
+            .head_sha=="219b8e97ee667c0797980e3e28edf34030ad1a03"
+          ' "$OUT/38489472232-run.json" >/dev/null
+          jq -e '
+            .id==11861430884 and .expired==false and
+            .workflow_run.id==38489472232 and
+            .workflow_run.head_sha=="219b8e97ee667c0797980e3e28edf34030ad1a03" and
+            .digest=="sha256:5a198ad15588e6e2ec692ef05ab16f51127141b3b00b0949b6ea7d945b20d1c4"
+          ' "$OUT/11861430884-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11861430884/zip" \
+            --output "$OUT/11861430884.zip"
+          printf '%s  %s\n' \
+            '5a198ad15588e6e2ec692ef05ab16f51127141b3b00b0949b6ea7d945b20d1c4' \
+            "$OUT/11861430884.zip" | sha256sum --check --strict
+      - name: Source-locked 18 adversarial negative/gas-conservation tests
+        env:
+          NQC_PR693_GAS_SOURCE_ZIP: ${{ runner.temp }}/nqc-competitor-native-gas/11861430884.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-competitor-native-gas"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-economics \
+            -p test_competitor_winner_receipt_gas.py -v 2>&1 | tee "$OUT/tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-economics/competitor_winner_receipt_gas.py
+      - name: Read real complete receipts and effective gas of 47 distinct competitor wins
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-competitor-native-gas"
+          timeout 630s python3 ci/nqc-census/rmc-v2-economics/competitor_winner_receipt_gas.py \
+            --indexed-artifact "$OUT/11861430884.zip" \
+            --out "$OUT/historical-winner-gas-receipts.json" \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            (.status=="TWO_URL_47_COMPETITOR_RECEIPTS_GAS_PARITY_NO_NQC_GAS" or
+             .status=="INCOMPLETE_COMPETITOR_RECEIPT_GAS_NOT_NQC_NET") and
+            .source_index_sha256=="5a198ad15588e6e2ec692ef05ab16f51127141b3b00b0949b6ea7d945b20d1c4" and
+            .source_liquidation_events_indexed==53 and
+            .source_unique_competitor_winner_transactions==47 and
+            .source_unique_asset_pairs==21 and
+            .source_unique_event_bearing_blocks==45 and
+            (.sources|keys|sort)==["drpc","publicnode"] and
+            all(.sources[]; .rpc_calls_used<=110 and
+              .blocks_verified<=45 and .receipts_verified<=47 and
+              (.witnesses|length)<=47) and
+            .hindsight_selected_historical_winner_transactions==true and
+            .blockscout_indexer_not_exhaustive_ethereum_liquidations==true and
+            .two_public_rpc_urls_do_not_prove_independent_operators==true and
+            .these_are_competitor_transactions_not_nqc_transactions==true and
+            .cold_nqc_complete_transaction_gas_used_verified==false and
+            .builder_out_of_band_inclusion_payments_established==false and
+            .true_nqc_competitive_capture_rate_calibrated==false and
+            .nqc_gross_route_surplus_in_this_universe_established==false and
+            .nonrecourse_external_native_gas_payer_committed==false and
+            .nqc_net_ev_proven==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            (if .status=="TWO_URL_47_COMPETITOR_RECEIPTS_GAS_PARITY_NO_NQC_GAS"
+               then .complete_two_url_receipt_parity==true and
+                    .competitor_gas_statistics.sample_size_distinct_paid_competitor_transactions==47 and
+                    .competitor_gas_statistics.source_aave_liquidation_logs_verified==53 and
+                    all(.sources[]; .status=="FULL_47_COMPETITOR_RECEIPTS_CANONICAL_GAS_WITNESS" and
+                       .receipts_verified==47 and .blocks_verified==45 and
+                       (.witnesses|length)==47 and .errors==[]) and
+                    .competitor_gas_statistics.not_equivalent_to_nqc_cold_transaction_gas==true
+               else .complete_two_url_receipt_parity==false and
+                    .competitor_gas_statistics==null
+               end)
+          ' "$OUT/historical-winner-gas-receipts.json" >/dev/null
+          echo "Only historical actual COMPETITOR receipts admitted; NQC route cold gas and profits remain unverified."
+      - name: Preserve exact source/code/tree, all RPC transcripts and failure ledgers
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-competitor-native-gas"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-economics/competitor_winner_receipt_gas.py \
+             ci/nqc-census/rmc-v2-economics/test_competitor_winner_receipt_gas.py \
+             ci/nqc-census/rmc-v2-economics/COMPETITOR_WINNER_NATIVE_GAS_CONTRACT.md \
+             ci/nqc-census/rmc-v2-economics/postwindow_competition_capacity_hurdle.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py \
+             ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+             .github/workflows/nqc-v2-competitor-receipt-gas.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload immutable 47-receipt gas evidence or censored source artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-winner-native-gas-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-competitor-native-gas/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
