@@ -57,6 +57,31 @@ jobs:
           printf '%s  %s\n' \
             6778f8e190d13c739331f731ca532d8607e3f653ca000de746b058b4903c7d7d \
             "$OUT/11865385506.zip" | sha256sum --check --strict
+      - name: Authenticate PR700 historical oracle tx0 from immutable causal source
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-local-cold"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38512327192" \
+            > "$OUT/38512327192-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11871075488" \
+            > "$OUT/11871075488-artifact.json"
+          jq -e '.id==38512327192 and
+            .head_sha=="9208aa3cb29325ecb3a90557d1c62114c697bf02" and
+            .status=="completed" and .conclusion=="success"' \
+            "$OUT/38512327192-run.json" >/dev/null
+          jq -e '.id==11871075488 and .expired==false and
+            .workflow_run.id==38512327192 and
+            .workflow_run.head_sha=="9208aa3cb29325ecb3a90557d1c62114c697bf02" and
+            .digest=="sha256:ca495ebdb9b8c7f8ed8438e5c3226b58b9c31c0d50e44ef35d6fce2cec232dde"' \
+            "$OUT/11871075488-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11871075488/zip" \
+            --output "$OUT/11871075488.zip"
+          printf '%s  %s\n' \
+            ca495ebdb9b8c7f8ed8438e5c3226b58b9c31c0d50e44ef35d6fce2cec232dde \
+            "$OUT/11871075488.zip" | sha256sum --check --strict
       - name: Authenticate official Foundry v1.8.5 release and source archive before fork replay
         run: |
           set -euo pipefail
@@ -89,6 +114,7 @@ jobs:
           set -euo pipefail
           OUT="$RUNNER_TEMP/nqc-local-cold"
           NQC_FUNDED_ROUTE_ZIP="$OUT/11865385506.zip" \
+          NQC_ORACLE_CAUSALITY_ZIP="$OUT/11871075488.zip" \
             python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
             -p test_nqc_local_anvil_cold_receipt.py -v 2>&1 | tee "$OUT/offline-tests.log"
           python3 -m py_compile ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py
@@ -115,6 +141,7 @@ jobs:
           OUT="$RUNNER_TEMP/nqc-local-cold"
           timeout 1500s python3 ci/nqc-census/rmc-v2-shadow/nqc_local_anvil_cold_receipt.py \
             --source-zip "$OUT/11865385506.zip" \
+            --oracle-zip "$OUT/11871075488.zip" \
             --workspace "$RUNNER_TEMP/nqc-local-cold-fork-project" \
             --forge "$RUNNER_TEMP/nqc-foundry-v185/bin/forge" \
             --anvil "$RUNNER_TEMP/nqc-foundry-v185/bin/anvil" \
@@ -125,6 +152,13 @@ jobs:
             .status=="HISTORICAL_LOCAL_ANVIL_FULL_EOA_RECEIPT_NO_MAINNET_CAPTURE" and
             (.errors|length)==0 and
             .original_winner_block==26142067 and
+            .authenticated_oracle_prefix.source_oracle_trigger_tx_index==0 and
+            .authenticated_oracle_prefix.source_winner_tx_index_from_original_indexer==1 and
+            .authenticated_oracle_prefix.fork_transaction_hash_last_included==
+              "0x20dd5bccadb185dbac34c94c8d00bf363a4a0b779fe1fddcdcfd8a3066d96c8b" and
+            .authenticated_oracle_prefix.excluded_original_competitor_winner==
+              "0x08db2e5d5f4e627f9fb4d12a780aac26aed725fab36b70fb9647119872d74625" and
+            .authenticated_oracle_prefix.anvil_tx_hash_prefix_is_inclusive_at_v185_verified_by_state_only==true and
             .authenticated_pre_winner_fork.account_hex_matches_original_exactly==true and
             .full_local_eoa_receipts.fork_only_execute_receipt_gas_used>1115038 and
             (.full_local_eoa_receipts.fork_only_setup_transaction_receipt_gas_used|length)==3 and
@@ -155,6 +189,7 @@ jobs:
              ci/nqc-census/rmc-v2-shadow/test_nqc_local_anvil_cold_receipt.py \
              ci/nqc-census/rmc-v2-shadow/LOCAL_ANVIL_FULL_RECEIPT_CONTRACT.md \
              ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+             ci/nqc-census/rmc-v2-economics/competitor_native_gas_vs_nqc_fork.py \
              ci/nqc-census/weth-physical/test/NqcV2FundedRouteFork.t.sol \
              ci/nqc-census/weth-physical/foundry-time-only.toml \
              ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol \
