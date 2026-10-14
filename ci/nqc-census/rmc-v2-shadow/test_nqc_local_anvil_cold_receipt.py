@@ -84,7 +84,7 @@ class LocalOnlyColdReceiptTests(unittest.TestCase):
         self.assertFalse(self.oracle_proof[
             "anvil_tx_hash_prefix_is_inclusive_at_v185_verified_by_state_only"])
         self.assertEqual(self.oracle_proof["indexed_winner_number_of_liquidation_logs"],2)
-        self.assertEqual(self.oracle_proof["indexer_original_winner"]["manifest_members_verified"],6)
+        self.assertEqual(self.oracle_proof["indexer_original_winner"]["verified_manifest_members"],6)
         self.assertGreater(self.oracle_proof["source"]["sha256_manifest_members_verified"],10)
 
     def test_oracle_zip_immutability_and_corruption_rejected(self):
