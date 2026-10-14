@@ -190,7 +190,9 @@ class WithdrawSourceTests(unittest.TestCase):
 
     def test_caps_preserved(self):
         self.assertEqual(w.MAX_COHORT,64)
-        self.assertEqual(w.MAX_RPC_CALLS,200)
+        self.assertEqual(w.MAX_RPC_CALLS,413)
+        self.assertEqual(w.MAX_EVENT_BLOCKS,320)
+        self.assertEqual(w.CANONICAL_HEADER_PARTITION,96)
         self.assertEqual(w.MAX_EVENTS,320)
 
     def test_no_captured_profit_or_independent_operator_claim(self):
@@ -202,6 +204,57 @@ class WithdrawSourceTests(unittest.TestCase):
         self.assertFalse(d['P2_shadow_certified'])
         self.assertFalse(d['RMC_closed'])
         self.assertEqual(d['nqc_realized_pnl_usd'],'0')
+
+
+    def test_many_event_bearing_blocks_all_authenticated_no_sampling(self):
+        # Previous hard threshold 105 rejected this exact well-formed case.
+        all_events=[withdrawal(LAST-i,1,fixture.address(i%45+1))
+                    for i in range(1,161)]
+        src=w.RPC('drpc',source_factory(data=all_events)('drpc'))
+        data=w.scan(src,FIRST,LAST)
+        self.assertEqual(data['status'],'COMPLETE_CANONICAL_WITHDRAW_EVENTS')
+        self.assertEqual(len(data['events']),160)
+        self.assertEqual(data['event_blocks_verified'],160)
+        self.assertEqual([x['number_of_distinct_event_blocks']
+                         for x in data['canonical_header_partitions']],[96,64])
+        self.assertEqual(src.calls,2+16+160+2+2)
+
+    def test_dense_event_blocks_current_cohort_reanchored_after_scan(self):
+        all_events=[withdrawal(LAST-i,1,fixture.address(i%45+1))
+                    for i in range(1,161)]
+        result=w.collect(transport_factory=source_factory(data=all_events),unix_now=TIME)
+        self.assertEqual(result['status'],'DUAL_RPC_RECENT_WITHDRAW_OWNERS_RISK_ONLY_NOT_P2')
+        self.assertEqual(result['verified_withdraw_event_count'],160)
+        self.assertEqual(result['verified_distinct_owner_count'],45)
+        self.assertEqual(result['verified_selected_owner_count'],45)
+        self.assertEqual(result['source_reports']['drpc']['event_blocks_verified'],160)
+        self.assertTrue(result['hf_state_pinned_after_complete_event_discovery'])
+        self.assertEqual(result['hf_state_anchored_at']['number'],LAST)
+        self.assertEqual(result['verified_hf_lt_one_count'],1)
+
+    def test_above_320_events_censored_not_trimmed_or_market_zero(self):
+        # 321 canonical-looking events across 160 distinct event blocks.
+        all_events=[withdrawal(LAST-(i%160)-1, i+1,fixture.address(i%45+1))
+                    for i in range(321)]
+        result=w.collect(transport_factory=source_factory(data=all_events),unix_now=TIME)
+        self.assertEqual(result['status'],'INCOMPLETE_WITHDRAW_COHORT_NOT_MARKET_ABSENCE')
+        self.assertIsNone(result['verified_withdraw_event_count'])
+        self.assertTrue(all(source['errors'] for source in result['source_reports'].values()))
+
+    def test_explicit_rpc_budget_preserves_original_borrow_default_and_rejects_unbounded(self):
+        self.assertEqual(w.borrow.RPC('drpc').call_budget,200)
+        self.assertEqual(w.RPC('drpc').call_budget,413)
+        with self.assertRaises(w.borrow.Rejected):
+            w.borrow.RPC('drpc',call_budget=414)
+        rpc=w.RPC('drpc',source_factory()('drpc'))
+        rpc.calls=rpc.call_budget
+        with self.assertRaises(Exception):rpc.call('eth_chainId',[])
+
+    def test_state_pin_rechecked_after_source_scan_and_not_retrocausal(self):
+        data=w.collect(transport_factory=source_factory(),unix_now=TIME)
+        self.assertTrue(data['hf_state_block_may_differ_from_event_window_end'])
+        self.assertEqual(data['hf_state_anchored_at']['number'],LAST)
+        self.assertFalse(data['real_liquidation_route_proven'])
 
     def test_no_hidden_liquidator_selection(self):
         data=w.collect(transport_factory=source_factory(),unix_now=TIME)
