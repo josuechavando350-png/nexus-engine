@@ -53,6 +53,12 @@ class Rejected(ValueError):
     pass
 
 
+class PrestateDrift(Rejected):
+    def __init__(self,witness):
+        super().__init__("ANVIL_PRE_WINNER_AAVE_ACCOUNT_NOT_SOURCE_IDENTICAL")
+        self.witness=witness
+
+
 def need(ok, why):
     if not ok:
         raise Rejected(why)
@@ -185,9 +191,31 @@ def check_fork_snapshot(rpc,public_inputs):
     borrower=public_inputs["NQC_BORROWER"].lower()
     source_data="0xbf92857c"+"0"*24+borrower[2:]
     raw=rpc.call("eth_call",[{"to":POOL,"data":source_data},"latest"])
-    need(type(raw) is str and raw.lower()==
-         public_inputs["NQC_PRESTATE_ABI"].lower(),
-         "ANVIL_PRE_WINNER_AAVE_ACCOUNT_NOT_SOURCE_IDENTICAL")
+    expected=public_inputs["NQC_PRESTATE_ABI"].lower()
+    if type(raw) is not str or raw.lower()!=expected:
+        got=(raw.lower() if type(raw) is str else "")
+        source_words=[int(expected[2+i*64:2+(i+1)*64],16) for i in range(6)]
+        real_words=([int(got[2+i*64:2+(i+1)*64],16) for i in range(6)]
+                    if re.fullmatch(r"0x[0-9a-f]{384}",got) else None)
+        raise PrestateDrift({
+            "source_expected_prewinner_abi_sha256":
+                sha256(bytes.fromhex(expected[2:])).hexdigest(),
+            "anvil_observed_abi_sha256":
+                sha256(bytes.fromhex(got[2:])).hexdigest()
+                if re.fullmatch(r"0x[0-9a-f]{384}",got) else None,
+            "source_expected_six_uint256_words":source_words,
+            "anvil_observed_six_uint256_words":real_words,
+            "observed_minus_expected_six_exact_integer_deltas":
+                [b-a for a,b in zip(source_words,real_words)]
+                if real_words is not None else None,
+            "anvil_local_latest_block_number":height,
+            "anvil_local_latest_block_timestamp":
+                quantity(block.get("timestamp"),"local timestamp"),
+            "anvil_local_latest_block_hash":block.get("hash"),
+            "anvil_local_latest_parent_hash":block.get("parentHash"),
+            "source_authenticated_parent_hash":public_inputs["NQC_PARENT_HASH"],
+            "cannot_promote_any_nqc_route_or_full_transaction_gas":True,
+        })
     return {"block_number":height,"block_hash":block.get("hash"),
             "borrower":borrower,
             "prewinner_account_sha256":sha256(bytes.fromhex(raw[2:])).hexdigest(),
@@ -345,6 +373,11 @@ def run(source_zip, workspace, forge, anvil, cast, out):
                 snapshot=check_fork_snapshot(rpc,inputs)
                 summary["authenticated_pre_winner_fork"]=snapshot
                 break
+            except PrestateDrift as exc:
+                # Proven deterministically wrong prewinner state. Do not waste
+                # 320 seconds pretending this is an RPC startup readiness issue.
+                summary["failed_exact_prewinner_state_witness"]=exc.witness
+                raise
             except Exception:
                 time.sleep(3)
         else:
