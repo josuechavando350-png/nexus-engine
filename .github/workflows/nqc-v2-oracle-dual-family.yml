@@ -1,0 +1,144 @@
+name: NQC V2 ETH/USD Dual Oracle Event Family Truth (NO TRADE)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/oracle_ws_inclusion_audit.py'
+      - 'ci/nqc-census/rmc-v2-shadow/oracle_newtransmission_cadence.py'
+      - 'ci/nqc-census/rmc-v2-shadow/oracle_dual_event_family_census.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_oracle_dual_event_family_census.py'
+      - 'ci/nqc-census/rmc-v2-shadow/ORACLE_DUAL_EVENT_FAMILY_CONTRACT.md'
+      - '.github/workflows/nqc-v2-oracle-dual-family.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-dual-family-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  historical-positive-and-current-dual-census:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact commit and adversarial primary/secondary evidence tests
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-dual-oracle"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_oracle_dual_event_family_census.py -v 2>&1 | tee "$OUT/tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/oracle_dual_event_family_census.py
+      - name: Authenticate historical false-zero correction source from PR705
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-dual-oracle"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38517409335" > "$OUT/source-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11872860122" > "$OUT/source-artifact.json"
+          jq -e '.id==38517409335 and .status=="completed" and
+            .conclusion=="success" and
+            .head_sha=="7a0f089c69a288f81089df7d7c51809d99f24b2e"' \
+            "$OUT/source-run.json" >/dev/null
+          jq -e '.id==11872860122 and .expired==false and
+            .workflow_run.id==38517409335 and
+            .workflow_run.head_sha=="7a0f089c69a288f81089df7d7c51809d99f24b2e" and
+            .digest=="sha256:4f817f9b9c889ffb983c395d2f6e2d9bc3aed387ec34bfc70dafdb60bfd53121"' \
+            "$OUT/source-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11872860122/zip" \
+            --output "$OUT/pr705-source.zip"
+          printf '%s  %s\n' \
+            '4f817f9b9c889ffb983c395d2f6e2d9bc3aed387ec34bfc70dafdb60bfd53121' \
+            "$OUT/pr705-source.zip" | sha256sum --check --strict
+      - name: Bounded primary and secondary source families at 720 current pinned blocks
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-dual-oracle"
+          timeout 570s python3 ci/nqc-census/rmc-v2-shadow/oracle_dual_event_family_census.py \
+            --historical-artifact "$OUT/pr705-source.zip" \
+            --out "$OUT/dual-event-census.json" > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            (.status=="TWO_ENDPOINT_DUAL_FAMILY_PINNED_CENSUS_NO_CAPTURE" or
+             .status=="SINGLE_SOURCE_DUAL_FAMILY_DESCRIPTIVE_ONLY" or
+             .status=="MISMATCH_DUAL_FAMILY_NO_SOURCE_AUTHORITY" or
+             .status=="INCOMPLETE_DUAL_FAMILY_ORACLE_SOURCE_CENSUS") and
+            .window_selection_precedes_event_query==true and
+            .does_not_use_winning_transaction_to_select_window==true and
+            .historical_wrong_topic_zero_findings_invalidated==true and
+            .oracle_source_active_at_current_tip_verified==false and
+            .future_signal_public_mempool_visibility_proven==false and
+            .prospective_aave_hf_trigger_proven==false and
+            .competing_builder_inclusion_proven==false and
+            .full_transaction_gas_authenticated==false and
+            .external_nonrecourse_gas_sponsorship_proven==false and
+            .net_capture_pnl_proven==false and
+            .RMC_closed==false and
+            .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            (.sources|keys|sort)==["blast","drpc"] and
+            all(.sources[];.rpc_calls_used<=125 and
+              .shards_complete_by_family.PRIMARY_NEW_TRANSMISSION<=23 and
+              .shards_complete_by_family.SECONDARY_ROUND_ID_UPDATED<=23 and
+              (.events|length)<=250) and
+            ((.status=="INCOMPLETE_DUAL_FAMILY_ORACLE_SOURCE_CENSUS" and
+              (.mismatch_ledger|length)>0) or
+             (.positive_control.pr705_zip_sha256==
+              "4f817f9b9c889ffb983c395d2f6e2d9bc3aed387ec34bfc70dafdb60bfd53121"))
+          ' "$OUT/dual-event-census.json" >/dev/null
+          echo "Only corrected primary/secondary oracle event source counts. NO CAPTURE AUTHORITY."
+      - name: Immutable exact source and positive/negative attempt evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-dual-oracle"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/oracle_dual_event_family_census.py \
+             ci/nqc-census/rmc-v2-shadow/test_oracle_dual_event_family_census.py \
+             ci/nqc-census/rmc-v2-shadow/oracle_newtransmission_cadence.py \
+             ci/nqc-census/rmc-v2-shadow/oracle_ws_inclusion_audit.py \
+             ci/nqc-census/rmc-v2-shadow/oracle_dynamic_topology_truth.py \
+             ci/nqc-census/rmc-v2-shadow/ORACLE_DUAL_EVENT_FAMILY_CONTRACT.md \
+             .github/workflows/nqc-v2-oracle-dual-family.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload content-addressed corrected oracle event evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-dual-oracle-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-dual-oracle/
+          retention-days: 30
+          if-no-files-found: error
+
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint

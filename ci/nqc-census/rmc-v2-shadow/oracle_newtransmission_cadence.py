@@ -18,7 +18,7 @@ import time
 from urllib.request import Request, urlopen
 
 from oracle_pending_visibility_probe import canon, strict_json
-from oracle_ws_inclusion_audit import AGGREGATOR, NEW_TRANSMISSION_TOPIC
+from oracle_ws_inclusion_audit import AGGREGATOR, NEW_TRANSMISSION_TOPIC, SECONDARY_ROUND_TOPIC
 
 PROVIDERS = {'drpc': 'https://eth.drpc.org',
              'blast': 'https://eth-mainnet.public.blastapi.io'}
@@ -135,7 +135,7 @@ class RPC:
                  type(params[0]) is dict,'invalid logs args')
             q=params[0]
             need(set(q)=={'address','topics','fromBlock','toBlock'} and
-                 q['address']==AGGREGATOR and q['topics']==[NEW_TRANSMISSION_TOPIC]
+                 q['address']==AGGREGATOR and q['topics'] in ([NEW_TRANSMISSION_TOPIC], [SECONDARY_ROUND_TOPIC])
                  and 0<=num(q['toBlock'])-num(q['fromBlock'])<SHARD_BLOCKS,
                  'unexpected logs range or target')
         else:
