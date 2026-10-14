@@ -1,0 +1,165 @@
+name: NQC V2 All 83 Withdraw Owner Current Aave HF (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/withdraw_all_83_owner_refresh.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_withdraw_all_83_owner_refresh.py'
+      - 'ci/nqc-census/rmc-v2-shadow/ALL_83_WITHDRAW_OWNER_REFRESH_CONTRACT.md'
+      - '.github/workflows/nqc-v2-all-83-withdraw-owners.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-v2-all-83-withdraw-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  all-83-owners-canonical-current-hf:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Bind exact head and fetch only one already-authenticated PR717 corpus
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-all-83-withdraw"
+          mkdir -p "$OUT"
+          gh api "repos/$GITHUB_REPOSITORY/actions/runs/38585339954" \
+            > "$OUT/38585339954-run.json"
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/11905790765" \
+            > "$OUT/11905790765-artifact.json"
+          jq -e '
+            .id==38585339954 and .status=="completed" and
+            .conclusion=="success" and
+            .head_sha=="e0f589b8f1e47ffda04ef6e2c9031f695222fa42"
+          ' "$OUT/38585339954-run.json" >/dev/null
+          jq -e '
+            .id==11905790765 and .expired==false and
+            .workflow_run.id==38585339954 and
+            .workflow_run.head_sha=="e0f589b8f1e47ffda04ef6e2c9031f695222fa42" and
+            .digest=="sha256:0cf05f5acf279948dbdf92b5b52183c129175850fdd311c13e3356d7ede289a2"
+          ' "$OUT/11905790765-artifact.json" >/dev/null
+          curl --fail --silent --show-error --location \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/11905790765/zip" \
+            --output "$OUT/11905790765.zip"
+          printf '%s  %s\n' \
+            '0cf05f5acf279948dbdf92b5b52183c129175850fdd311c13e3356d7ede289a2' \
+            "$OUT/11905790765.zip" | sha256sum --check --strict
+      - name: 20 adversarial source and exact 83-account risk-state tests
+        env:
+          NQC_PR717_EVIDENCE_ZIP: ${{ runner.temp }}/nqc-all-83-withdraw/11905790765.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-all-83-withdraw"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_withdraw_all_83_owner_refresh.py -v 2>&1 | tee "$OUT/offline-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/withdraw_all_83_owner_refresh.py
+      - name: Fresh canonical blockHash, all 83 owners, exact two-source HF agreement
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-all-83-withdraw"
+          timeout 620s python3 ci/nqc-census/rmc-v2-shadow/withdraw_all_83_owner_refresh.py \
+            --producer-zip "$OUT/11905790765.zip" \
+            --out "$OUT/all-83-withdraw-owner-risk.json" \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and .current_chain_id==1 and
+            .source.producer_zip_sha256=="0cf05f5acf279948dbdf92b5b52183c129175850fdd311c13e3356d7ede289a2" and
+            .source.source_head=="e0f589b8f1e47ffda04ef6e2c9031f695222fa42" and
+            .source.manifest_members_sha256_verified==18 and
+            .source_indexed_withdraw_events==149 and
+            .source_distinct_withdraw_owners==83 and
+            .previously_state_verified_owners==64 and
+            .previously_unobserved_owners==19 and
+            .previously_unobserved_owner_event_count==24 and
+            .selected_owner_count_before_any_new_HF_reads==83 and
+            .selected_prior_to_current_risk_state==true and
+            .window_not_live_complete_aave_position_universe==true and
+            .source_intermediate_block_ancestry_not_independently_rechecked==true and
+            .prospective_pre_inclusion_observation_proven==false and
+            .source_census_complete_aave_active_accounts==false and
+            .liquidation_route_executable_proven==false and
+            .cold_standalone_nqc_transaction_gas_verified==false and
+            .competitive_inclusion_or_winrate_proven==false and
+            .nonrecourse_native_gas_sponsor_proven==false and
+            .net_profit_or_positive_ev_certified==false and
+            .RMC_closed==false and .P2_shadow_certified==false and
+            .canary_live_authorized==false and
+            .commercial_score_upgrade==false and
+            .nqc_realized_pnl_usd=="0" and
+            (.status=="TWO_URL_ALL_83_WITHDRAW_OWNER_HF_VERIFIED_NOT_P2" or
+             .status=="INCOMPLETE_ALL_83_WITHDRAW_OWNER_CURRENT_STATE") and
+            all(.providers[]; .calls_used<=95) and
+            (if .status=="TWO_URL_ALL_83_WITHDRAW_OWNER_HF_VERIFIED_NOT_P2"
+               then .two_public_url_exact_account_parity==true and
+                    .verified_all_owner_accounts==83 and
+                    .verified_19_omitted_accounts==19 and
+                    .active_debt_count+.zero_debt_count==83 and
+                    .fresh_pinned_block.number>=26191487 and
+                    .hf_below_one_with_debt_count>=0 and
+                    all(.providers[]; .status=="COMPLETE_83_OWNER_CURRENT_STATE"
+                      and (.accounts|length)==83)
+               else .two_public_url_exact_account_parity==false and
+                    .verified_all_owner_accounts==null and
+                    .active_debt_count==null and
+                    .hf_below_one_with_debt_count==null
+               end)
+          ' "$OUT/all-83-withdraw-owner-risk.json" >/dev/null
+          echo "A complete source read is NOT a verified profitable liquidation or forecast."
+      - name: Preserve original producer source, all network outcomes and exact tested bytes
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-all-83-withdraw"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/withdraw_all_83_owner_refresh.py \
+             ci/nqc-census/rmc-v2-shadow/test_withdraw_all_83_owner_refresh.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_recent_withdraw_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_recent_borrow_cohort.py \
+             ci/nqc-census/rmc-v2-shadow/prospective_50borrower_state.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_economic_envelope.py \
+             ci/nqc-census/rmc-v2-shadow/postwindow_indexed_winner_conflicts.py \
+             ci/nqc-census/rmc-v2-shadow/blockscout_aave_89390_indexed_research.py \
+             ci/nqc-census/rmc-v2-economics/postwindow_competition_capacity_hurdle.py \
+             ci/nqc-census/rmc-v2-shadow/ALL_83_WITHDRAW_OWNER_REFRESH_CONTRACT.md \
+             .github/workflows/nqc-v2-all-83-withdraw-owners.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload immutable all-83 risk evidence or exact failure classification
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-all-83-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-all-83-withdraw/
+          retention-days: 30
+          if-no-files-found: error
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
