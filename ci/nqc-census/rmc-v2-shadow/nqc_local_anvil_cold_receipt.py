@@ -25,11 +25,18 @@ from urllib.request import Request, urlopen
 import zipfile
 
 import postwindow_economic_envelope as historical
+import competitor_native_gas_vs_nqc_fork as oracle_evidence
 
 LOCAL_URL = "http://127.0.0.1:18545"
 UPSTREAM_READ_ONLY_RPC = "https://eth.drpc.org"
 SOURCE_ZIP_SHA = historical.EXPECTED_ARTIFACT_SHA256
 FORK_WINNER = "0x08db2e5d5f4e627f9fb4d12a780aac26aed725fab36b70fb9647119872d74625"
+# Authenticated PR700 confirms this is the immediately preceding canonical
+# tx index 0 Chainlink update; the selected winner is tx index 1.
+# Anvil v1.8.5 --fork-transaction-hash replays the requested tx INCLUSIVELY.
+# Fork at tx0 instead of tx1 to obtain the source-locked PRE-winner state.
+FORK_ORACLE_TX0 = "0x20dd5bccadb185dbac34c94c8d00bf363a4a0b779fe1fddcdcfd8a3066d96c8b"
+ORACLE_SOURCE_ZIP_SHA = oracle_evidence.ORACLE_ZIP_SHA
 PINNED_BLOCK = 26_142_067
 CASE = "WETH_COLLATERAL_USDC_DEBT"
 POOL = "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
@@ -125,6 +132,35 @@ def validate_original_zip(source_body:bytes):
          int(doc["NQC_PRESTATE_ABI"][-64:],16)<10**18,
          "historical borrower prestate ABI not authenticated")
     return doc,proof
+
+
+
+def authenticate_oracle_prefix(oracle_source_bytes):
+    need(type(oracle_source_bytes) is bytes and
+         sha256(oracle_source_bytes).hexdigest() == ORACLE_SOURCE_ZIP_SHA,
+         "source oracle PR700 ZIP digest drift")
+    cases, provenance = oracle_evidence.authenticate_oracle(oracle_source_bytes)
+    selected = cases.get(CASE)
+    need(type(selected) is dict and
+         selected.get("block") == PINNED_BLOCK and
+         selected.get("historical_trigger_price_causal_only") is True and
+         selected.get("eth_usd_chainlink_answer_raw_8_decimals") == 254_164_650_000,
+         "oracle causal trigger changed or wrong block/price")
+    need(FORK_ORACLE_TX0 == oracle_evidence.EXPECTED[CASE]["trigger"] and
+         FORK_ORACLE_TX0 != FORK_WINNER and
+         oracle_evidence.EXPECTED[CASE]["tx"] == FORK_WINNER,
+         "source oracle tx0 / winner tx1 identities not canonical")
+    return {
+        "source": provenance,
+        "source_oracle_trigger_tx_index": 0,
+        "source_winner_tx_index_from_original_indexer": 1,
+        "fork_transaction_hash_last_included": FORK_ORACLE_TX0,
+        "excluded_original_competitor_winner": FORK_WINNER,
+        "eth_usd_chainlink_answer_after_oracle_tx0_raw_8_decimals":
+            selected["eth_usd_chainlink_answer_raw_8_decimals"],
+        "source_price_causality_not_prospective_svr_visibility": True,
+        "anvil_tx_hash_prefix_is_inclusive_at_v185_verified_by_state_only": False,
+    }
 
 
 def reject_nonlocal_url(url):
@@ -317,8 +353,9 @@ def decode_local_receipts(result_file, rpc, operator, source, old_gas):
     }
 
 
-def run(source_zip, workspace, forge, anvil, cast, out):
+def run(source_zip, oracle_zip, workspace, forge, anvil, cast, out):
     inputs,provenance=validate_original_zip(source_zip)
+    oracle_prefix = authenticate_oracle_prefix(oracle_zip)
     files=check_source_files(workspace)
     out.mkdir(parents=True,exist_ok=False)
     summary={
@@ -327,7 +364,8 @@ def run(source_zip, workspace, forge, anvil, cast, out):
         "source":{"archive_sha256":SOURCE_ZIP_SHA,
                   "route_evidence":provenance,
                   "source_files_sha256":files},
-        "experiment":"ANVIL_FORK_BEFORE_ORIGINAL_WINNER_TX_127001_ONLY",
+        "experiment":"ANVIL_V185_AFTER_AUTHENTICATED_ORACLE_TX0_BEFORE_WINNER_TX1",
+        "authenticated_oracle_prefix":oracle_prefix,
         "original_winner_transaction":FORK_WINNER,
         "original_winner_block":PINNED_BLOCK,
         "errors":[],
@@ -362,7 +400,7 @@ def run(source_zip, workspace, forge, anvil, cast, out):
         cmd=[str(anvil),"--host","127.0.0.1",
              "--port","18545","--chain-id","1",
              "--fork-url",UPSTREAM_READ_ONLY_RPC,
-             "--fork-transaction-hash",FORK_WINNER,
+             "--fork-transaction-hash",FORK_ORACLE_TX0,
              "--no-storage-caching","--compute-units-per-second","5",
              "--retries","0","--silent"]
         with (out/"anvil.log").open("w") as log:
@@ -372,6 +410,7 @@ def run(source_zip, workspace, forge, anvil, cast, out):
             try:
                 snapshot=check_fork_snapshot(rpc,inputs)
                 summary["authenticated_pre_winner_fork"]=snapshot
+                summary["authenticated_oracle_prefix"]["anvil_tx_hash_prefix_is_inclusive_at_v185_verified_by_state_only"] = True
                 break
             except PrestateDrift as exc:
                 # Proven deterministically wrong prewinner state. Do not waste
@@ -438,6 +477,7 @@ def run(source_zip, workspace, forge, anvil, cast, out):
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument("--source-zip",type=Path,required=True)
+    p.add_argument("--oracle-zip",type=Path,required=True)
     p.add_argument("--workspace",type=Path,required=True)
     p.add_argument("--forge",type=Path,required=True)
     p.add_argument("--anvil",type=Path,required=True)
@@ -446,7 +486,7 @@ def main():
     args=p.parse_args()
     need(args.out.is_absolute() and not args.out.exists() and
          args.out.parent.exists(),"unique absolute output dir required")
-    doc=run(args.source_zip.read_bytes(),args.workspace,
+    doc=run(args.source_zip.read_bytes(),args.oracle_zip.read_bytes(),args.workspace,
             args.forge,args.anvil,args.cast,args.out)
     print(doc["status"],"local_eoa_receipt_gas",
           doc.get("full_local_eoa_receipts",{}).get(
