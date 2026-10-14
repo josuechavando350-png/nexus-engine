@@ -176,7 +176,8 @@ class FiftyFourOldBorrowOwnerTests(unittest.TestCase):
         self.assertEqual(report["new_active_debt_count"],54)
         self.assertEqual(report["new_no_debt_count"],0)
         self.assertEqual(report["new_HF_below_one_count"],1)
-        self.assertEqual(report["new_HF_1_to_1_02_count"],1)
+        # Fixture i=1 has HF=1.015 and i=40 has HF=1.020 exactly.
+        self.assertEqual(report["new_HF_1_to_1_02_count"],2)
         self.assertTrue(report["full_fiftyfour_EIP1898_source_parity"])
         self.assertTrue(report["one_mainnet_Multicall3_eth_call_per_source"])
         self.assertEqual(len(report["all_fiftyfour_original_borrowers"]),54)
@@ -261,7 +262,7 @@ class FiftyFourOldBorrowOwnerTests(unittest.TestCase):
     def test_exact_five_out_of_54_controls_not_full_independent_direct_audit(self):
         r,_,_=self.make()
         self.assertEqual(len(r["original_five_direct_controls"]["publicnode"]),5)
-        self.assertFalse(r["economic_liquidation_route_or_flash_funding_verified"])
+        self.assertFalse(r["profit_route_or_flash_gas_quote_proven"])
         self.assertFalse(r["builder_inclusion_and_captured_opportunities_proven"])
         self.assertTrue(r["not_preinclusion_or_private_SVR_feed"])
 
