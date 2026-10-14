@@ -1,0 +1,105 @@
+name: NQC V2 Oracle Pending Visibility (READ ONLY, NO MARKET AUTHORITY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/oracle_pending_visibility_probe.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_oracle_pending_visibility_probe.py'
+      - 'ci/nqc-census/rmc-v2-shadow/ORACLE_PENDING_VISIBILITY_CONTRACT.md'
+      - '.github/workflows/nqc-v2-oracle-pending-visibility.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-oracle-pending-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bounded-readonly-pending-observability:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Bind exact SHA and run adversarial offline regressions
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-pending-visibility"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_oracle_pending_visibility_probe.py -v 2>&1 | tee "$OUT/unit-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/oracle_pending_visibility_probe.py
+      - name: Bounded read-only live pending-view audit (no transaction submission)
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-pending-visibility"
+          timeout 360s python3 ci/nqc-census/rmc-v2-shadow/oracle_pending_visibility_probe.py \
+            --out "$OUT/pending-probe.json" --samples 3 --interval-seconds 6 \
+            > "$OUT/stdout.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version == 1 and
+            (.status == "PENDING_ORACLE_REPORT_OBSERVED_UNCALIBRATED" or
+             .status == "BOUNDED_OBSERVATION_NO_TARGET_NOT_EXHAUSTIVE" or
+             .status == "INCOMPLETE_PENDING_SOURCE_CAPABILITY") and
+            .samples_requested_per_provider == 3 and
+            .prospective_capture_proven == false and
+            .pending_channel_exhaustive == false and
+            .mempool_first_seen_time_proven == false and
+            .private_orderflow_observed == false and
+            .nqc_net_margin_proven == false and
+            .native_gas_sponsor_nonrecourse_proven == false and
+            .RMC_closed == false and
+            .P2_shadow_certified == false and
+            .canary_live_authorized == false and
+            .commercial_score_upgrade == false and
+            .nqc_realized_pnl_usd == "0" and
+            (.providers|keys|sort)==["blast","drpc"] and
+            all(.providers[];.rpc_calls_consumed<=30 and
+              (.observations|length)<=3)
+          ' "$OUT/pending-probe.json" >/dev/null
+          echo "A completed observer is not a profitable/capturable opportunity."
+      - name: Preserve immutable source, positive/negative evidence and errors
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-pending-visibility"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/oracle_pending_visibility_probe.py \
+             ci/nqc-census/rmc-v2-shadow/test_oracle_pending_visibility_probe.py \
+             ci/nqc-census/rmc-v2-shadow/ORACLE_PENDING_VISIBILITY_CONTRACT.md \
+             ci/nqc-census/rmc-v2-shadow/postwindow_oracle_causality.py \
+             ci/nqc-census/rmc-v2-shadow/verify_postwindow_competitor_receipts.py \
+             .github/workflows/nqc-v2-oracle-pending-visibility.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload exact-head observer audit artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-v2-oracle-pending-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-pending-visibility/
+          retention-days: 30
+          if-no-files-found: error
+  repository-lint:
+    runs-on: ubuntu-24.04
+    container: node:24
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm lint
