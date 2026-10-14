@@ -1,5 +1,12 @@
 # NQC V2 — Prospective oracle NewTransmission / pending / receipt reconciliation
 
+## Correction notice: inherited wrong generic NewTransmission selector
+
+The historical DualAggregator 0x7c7FdFCa295a787ded12Bb5c1A49A8D2cC20E3F8 does **not** use generic OCR2 topic 0xf6a97944... for its positive oracle price-update witnesses. Its actual topics are 0x8d530b9ddc4b318d28fdd4c3a21fcfecece54c1a72a824f262985b99afef009b (SecondaryRoundIdUpdated) and 0xc797025feeeaf2cd924c99e9205ac8ec04d5cad21c41ce637a38fb6dee6016a (custom NewTransmission). The old #703 zero-event numerator is not authoritative for oracle update absence.
+
+The corrected pending detector admits both official function selectors: transmitSecondary 0xba0cb29e and primary transmit 0xb1dc65a4, direct or forwarded. A positive oracle log/receipt is counted as a source event, while the number of **distinct update transactions** is separately deduplicated by hash. None of these gates prove private orderflow access, capture, net EV or revenue.
+
+
 ## Decision-grade question
 
 PR #702 proved a 73-second, 3,396-full-pending-transaction public WebSocket stream, not the availability of the target ETH/USD updates before inclusion. A meaningful capture hypothesis must test *the positive-control denominator*: which updates actually appeared on Ethereum during our prospective observation window, which of those transactions were seen in the pending stream before the local head notification, and whether their receipts match.

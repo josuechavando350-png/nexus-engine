@@ -1,5 +1,10 @@
 # NQC V2 — Prospective public-RPC pending view for ETH/USD oracle
 
+## Correction notice: missing primary transmit selector
+
+The previous pending matcher only recognized the historical transmitSecondary selector 0xba0cb29e. The corrected matcher also recognizes primary transmit 0xb1dc65a4, both as direct calls to the authenticated DualAggregator address or ABI-validated forward(address,bytes) calls to that address. This broadens *candidate classification*, not proof that the report will land on chain or cause HF < 1. Old zero target observations cannot be treated as a complete oracle report census.
+
+
 This is the next research step after #700's authenticated historical price-freeze causality, not a trading strategy or certification of market capture.
 
 ## Narrow objective

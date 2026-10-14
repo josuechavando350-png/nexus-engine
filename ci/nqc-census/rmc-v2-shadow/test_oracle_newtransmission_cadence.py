@@ -17,7 +17,7 @@ def hdr(n):
 def event(n, answer, index=5):
     # NewTransmission first unindexed data word is the signed int192 answer.
     return {'address':cad.AGGREGATOR,'topics':[cad.NEW_TRANSMISSION_TOPIC,
-            '0x'+'01'*32],
+            '0x'+f'{1:064x}'],
             'blockNumber':hex(n),'blockHash':h(n),
             'transactionHash':h(n*100+index),
             'logIndex':hex(index),'removed':False,
@@ -35,7 +35,8 @@ def transport_for(events, source='drpc', reject=None):
         if method=='eth_getLogs':
             lo=int(params[0]['fromBlock'],16)
             hi=int(params[0]['toBlock'],16)
-            return [e for e in events if lo<=int(e['blockNumber'],16)<=hi]
+            return [e for e in events if lo<=int(e['blockNumber'],16)<=hi and
+                    e['topics'][0]==params[0]['topics'][0]]
         raise AssertionError('forbidden method')
     return transport
 
@@ -47,7 +48,66 @@ def factory(events, blast_events=None, error_on_blast=None):
         name, error_on_blast if name=='blast' else None)
 
 
+def secondary_event(n, round_id=5, index=7):
+    return {'address':cad.AGGREGATOR,
+            'topics':[cad.SECONDARY_ROUND_TOPIC,'0x'+f'{round_id:064x}'],
+            'blockNumber':hex(n),'blockHash':h(n),
+            'transactionHash':h(n*100+index),
+            'logIndex':hex(index),'removed':False,'data':'0x'}
+
+
 class PinnedOracleCadenceTests(unittest.TestCase):
+
+    def test_historical_dualaggregator_topic_constants_not_generic_ocr2(self):
+        self.assertEqual(cad.SECONDARY_ROUND_TOPIC,
+          '0x8d530b9ddc4b318d28fdd4c3a21fcfecece54c1a72a824f262985b99afef009b')
+        self.assertEqual(cad.NEW_TRANSMISSION_TOPIC,
+          '0xc797025feeeaf2cd924c99e9205ac8ec04d5cad21c41ce637a38fb6dee6016a')
+        self.assertNotIn('0xf6a97944f31ea060dfde0566e4167c1a1082551e64b60ecb14d599a9d023d451',
+                         cad.EVENT_TOPICS)
+
+    def test_each_shard_requires_both_single_topic_results(self):
+        events=[event(99800,251000000000),secondary_event(99800,8)]
+        result=cad.run(factory(events))
+        self.assertTrue(result['cross_endpoint_event_parity'])
+        for provider in ('drpc','blast'):
+            src=result['sources'][provider]
+            self.assertEqual(src['shards_complete'],23)
+            log_calls=[x for x in src['transcript'] if x['method']=='eth_getLogs']
+            self.assertEqual(len(log_calls),46)
+            self.assertEqual({tuple(x['params'][0]['topics']) for x in log_calls},
+                             {(cad.NEW_TRANSMISSION_TOPIC,),
+                              (cad.SECONDARY_ROUND_TOPIC,)})
+        stats=result['two_endpoint_descriptive_cadence']
+        self.assertEqual(stats['canonical_oracle_update_events_total'],2)
+
+    def test_secondary_round_id_emits_no_price_and_counts_as_update(self):
+        events=[secondary_event(99700,3),event(99800,250000000000),
+                secondary_event(99820,4)]
+        result=cad.run(factory(events))
+        self.assertEqual(result['status'],
+           'TWO_ENDPOINT_PINNED_ORACLE_EVENT_PARITY_DESCRIPTIVE_ONLY')
+        stats=result['two_endpoint_descriptive_cadence']
+        self.assertEqual(stats['canonical_oracle_update_events_total'],3)
+        self.assertEqual(stats['canonical_secondary_round_events'],2)
+        self.assertEqual(stats['canonical_new_transmission_events'],1)
+        self.assertEqual(stats['price_direction_primary_only_bps'],[])
+        self.assertFalse(stats['secondary_event_contains_price_value'])
+
+    def test_secondary_payload_must_be_empty_and_topic_exact(self):
+        log=secondary_event(99800,5)
+        clean=cad.canonical_event(log,99800,99800)
+        self.assertEqual(clean['event_type'],'SECONDARY_ROUND_ID_UPDATED')
+        self.assertIsNone(clean['answer_raw'])
+        invalid=copy.deepcopy(log)
+        invalid['data']='0x00'
+        with self.assertRaises(ValueError):
+            cad.canonical_event(invalid,99800,99800)
+        wrong=copy.deepcopy(log)
+        wrong['topics'][0]='0xf6a97944f31ea060dfde0566e4167c1a1082551e64b60ecb14d599a9d023d451'
+        with self.assertRaises(ValueError):
+            cad.canonical_event(wrong,99800,99800)
+
     def test_both_endpoint_parity_and_arrival_interval(self):
         # tip 100000, selected stable end 99984
         events=[event(99700,250000000000),event(99800,247500000000)]
@@ -134,7 +194,7 @@ class PinnedOracleCadenceTests(unittest.TestCase):
             rpc.call('eth_sendRawTransaction',['0xdeadbeef'])
         with self.assertRaises(ValueError):
             rpc.call('eth_getLogs',[{'address':cad.AGGREGATOR,
-              'topics':[cad.NEW_TRANSMISSION_TOPIC],'fromBlock':'0x1','toBlock':'0x100'}])
+              'topics':[cad.EVENT_TOPICS],'fromBlock':'0x1','toBlock':'0x100'}])
         self.assertEqual(rpc.calls,0)
 
     def test_wrong_rpc_chain_is_not_truth(self):

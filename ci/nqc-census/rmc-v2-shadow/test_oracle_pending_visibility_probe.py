@@ -17,8 +17,8 @@ def pending(head=None, txs=None):
             'parentHash':head['hash'],'transactions':txs if txs is not None else []}
 
 
-def oracle_tx(kind='forward'):
-    inner=bytes.fromhex(p.INNER_SELECTOR)+bytes.fromhex('42'*64)
+def oracle_tx(kind='forward', selector=None):
+    inner=bytes.fromhex(selector or p.INNER_SELECTOR)+bytes.fromhex('42'*64)
     if kind=='direct':
         data='0x'+inner.hex()
         dest=p.AGGREGATOR
@@ -42,6 +42,25 @@ class OraclePendingTests(unittest.TestCase):
     def test_direct_aggregator_target(self):
         self.assertEqual(p.parse_oracle_payload(oracle_tx('direct'))['kind'],
                          'direct_aggregator_report_candidate')
+
+    def test_primary_transmit_forwarded_is_detected(self):
+        tx=oracle_tx(selector=p.PRIMARY_TRANSMIT_SELECTOR)
+        parsed=p.parse_oracle_payload(tx)
+        self.assertEqual(parsed['inner_method_id'],'0x'+p.PRIMARY_TRANSMIT_SELECTOR)
+        self.assertEqual(parsed['transmission_path'],'primary')
+        self.assertEqual(parsed['kind'],'forwarded_aggregator_report_candidate')
+
+    def test_primary_transmit_direct_is_detected(self):
+        tx=oracle_tx('direct',selector=p.PRIMARY_TRANSMIT_SELECTOR)
+        parsed=p.parse_oracle_payload(tx)
+        self.assertEqual(parsed['inner_method_id'],'0x'+p.PRIMARY_TRANSMIT_SELECTOR)
+        self.assertEqual(parsed['transmission_path'],'primary')
+        self.assertEqual(parsed['kind'],'direct_aggregator_report_candidate')
+
+    def test_only_source_authenticated_report_selectors_admitted(self):
+        self.assertEqual(p.REPORT_SELECTORS,{'ba0cb29e','b1dc65a4'})
+        tx=oracle_tx(selector='deadbeef')
+        self.assertIsNone(p.parse_oracle_payload(tx))
 
     def test_non_oracle_target_is_ignored(self):
         tx=oracle_tx()

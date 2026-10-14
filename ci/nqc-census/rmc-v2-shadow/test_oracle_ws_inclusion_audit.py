@@ -44,8 +44,8 @@ def sample_log(txhash, bn, block_hash, idx=7, removed=False):
     return {'address':AGGREGATOR,'transactionHash':txhash,
         'blockHash':block_hash,'blockNumber':hex(bn),
         'logIndex':hex(idx),'removed':removed,
-        'topics':[audit.NEW_TRANSMISSION_TOPIC,'0x'+'00'*32],
-        'data':'0x'+'01'*64}
+        'topics':[audit.NEW_TRANSMISSION_TOPIC,'0x'+f'{1:064x}'],
+        'data':'0x'+(251000000000).to_bytes(32,'big').hex()+'00'*64}
 
 
 def streamed_log(log):
@@ -130,6 +130,51 @@ class OracleInclusionAuditTests(unittest.TestCase):
         self.assertEqual(w.output['oracle_logs_invalid'],1)
         self.assertEqual(w.output['oracle_logs_distinct'],1)
 
+    def test_authentic_historical_secondary_round_topic_without_price(self):
+        w, primary, h1, h2 = witnessed()
+        secondary = copy.deepcopy(primary)
+        secondary['logIndex'] = '0x8'
+        secondary['topics'][0] = audit.SECONDARY_ROUND_TOPIC
+        secondary['data'] = '0x'
+        w.incoming(streamed_log(secondary))
+        self.assertEqual(w.output['oracle_logs_distinct'], 2)
+        parsed = audit.parse_log(secondary)
+        self.assertEqual(parsed['event_type'], 'SECONDARY_ROUND_ID_UPDATED')
+        self.assertIsNone(parsed['primary_answer_raw'])
+        self.assertEqual(parsed['event_topic0'], audit.SECONDARY_ROUND_TOPIC)
+
+    def test_generic_ocr2_topic_rejected(self):
+        w, primary, h1, h2 = witnessed()
+        forged = copy.deepcopy(primary)
+        forged['topics'][0] = '0xf6a97944f31ea060dfde0566e4167c1a1082551e64b60ecb14d599a9d023d451'
+        forged['logIndex'] = '0x8'
+        w.incoming(streamed_log(forged))
+        self.assertEqual(w.output['oracle_logs_invalid'], 1)
+        self.assertEqual(w.output['oracle_logs_distinct'], 1)
+
+    def test_multi_event_same_oracle_tx_is_not_two_winners(self):
+        w, primary, h1, h2 = witnessed()
+        secondary = copy.deepcopy(primary)
+        secondary['logIndex'] = '0x8'
+        secondary['topics'][0] = audit.SECONDARY_ROUND_TOPIC
+        secondary['data'] = '0x'
+        w.incoming(streamed_log(secondary))
+        def both(method,params):
+            if method=='eth_getLogs': return [primary,secondary]
+            if method=='eth_getTransactionReceipt':
+                raw = canonical_receipt(primary)
+                raw['logs'] = [primary,secondary]
+                return raw
+            return provider(primary,h1,h2)(method,params)
+        result = audit.reconcile(w,audit.RPC(transport=both))
+        self.assertEqual(result['status'],'PROSPECTIVE_ORACLE_LOGS_RECONCILED_NO_CAPTURE')
+        self.assertEqual(result['confirmed_oracle_updates_in_ws_head_span'],2)
+        self.assertEqual(result['distinct_confirmed_oracle_update_transactions'],1)
+        self.assertEqual(result['oracle_update_kinds'],{
+            'SECONDARY_ROUND_ID_UPDATED':1,'PRIMARY_NEW_TRANSMISSION':1})
+        self.assertEqual(result['confirmed_oracle_receipts_verified'],2)
+        self.assertFalse(result['profitable_competitive_capture_proven'])
+
     def test_mined_pending_metadata_rejected(self):
         w=audit.Witness(120)
         w.incoming(ack(1,'0x1'));w.incoming(ack(2,'0xaaa'))
@@ -142,7 +187,7 @@ class OracleInclusionAuditTests(unittest.TestCase):
         w,log,h1,h2=witnessed()
         result=audit.reconcile(w,audit.RPC(transport=provider(log,h1,h2)))
         self.assertEqual(result['status'],'PROSPECTIVE_ORACLE_LOGS_RECONCILED_NO_CAPTURE')
-        self.assertEqual(result['confirmed_oracle_transmissions_in_ws_head_span'],1)
+        self.assertEqual(result['confirmed_oracle_updates_in_ws_head_span'],1)
         self.assertEqual(result['confirmed_oracle_receipts_verified'],1)
         self.assertEqual(result['confirmed_oracle_with_prior_process_pending_observation'],1)
         self.assertEqual(result['oracle_pending_to_head_lead_ms'],[7000])
@@ -187,7 +232,7 @@ class OracleInclusionAuditTests(unittest.TestCase):
             if method=='eth_getLogs':return []
             return provider(log,h1,h2)(method,params)
         result=audit.reconcile(w,audit.RPC(transport=empty))
-        self.assertEqual(result['confirmed_oracle_transmissions_in_ws_head_span'],0)
+        self.assertEqual(result['confirmed_oracle_updates_in_ws_head_span'],0)
         self.assertEqual(result['status'],'INCOMPLETE_ORACLE_PENDING_TO_CANONICAL_OVERLAP')
         self.assertIn('WS_ORACLE_LOG_NOT_IN_CANONICAL_RESULT',result['source_limitations'])
         self.assertFalse(result['profitable_competitive_capture_proven'])
@@ -203,7 +248,7 @@ class OracleInclusionAuditTests(unittest.TestCase):
             return provider(log,h1,h2)(method,params)
         result=audit.reconcile(w,audit.RPC(transport=empty))
         self.assertEqual(result['status'],'NO_ORACLE_TRANSMISSIONS_IN_BOUNDED_CANONICAL_SPAN')
-        self.assertEqual(result['confirmed_oracle_transmissions_in_ws_head_span'],0)
+        self.assertEqual(result['confirmed_oracle_updates_in_ws_head_span'],0)
         self.assertFalse(result['mempool_exhaustiveness_proven'])
 
     def test_canonical_event_missing_in_ws_stream_is_not_a_clean_pass(self):

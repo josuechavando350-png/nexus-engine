@@ -1,5 +1,12 @@
 # NQC V2 — Authenticated ETH/USD NewTransmission arrival cadence
 
+## Correction notice: actual DualAggregator update events (PR #706)
+
+The original #704 filter used generic OCR2 topic 0xf6a97944..., which the source-authenticated first transactions do not emit. **The old zero-event count is INVALID for all ETH/USD price updates.** The corrected filter queries the exact source-contract OR topics: SecondaryRoundIdUpdated(uint32 indexed), topic 0x8d530b9ddc4b318d28fdd4c3a21fcfecece54c1a72a824f262985b99afef009b; and source-specific NewTransmission(uint32 indexed,int192,...), topic 0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a.
+
+Positive historical receipts: ETH/USD tx0 in 26,142,067 emitted the secondary-round event only; tx0 in 26,149,038 emitted both event types (plus legacy events). A secondary update has **no unindexed price answer**; price change is derived only from primary NewTransmission data or an authenticated block-specific oracle read. Event counts and distinct update transactions are separate; neither equals NQC liquidations or revenue.
+
+
 ## Question
 
 How frequently has the *specific* Ethereum ETH/USD DualAggregator contract actually emitted Chainlink NewTransmission events in a recent, pinned, contiguous sample? This determines an evidence-based minimum run horizon for the next prospective pending-to-confirmed overlap experiment. It does not itself demonstrate detection in advance or any profitable liquidation.

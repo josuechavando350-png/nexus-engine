@@ -21,7 +21,9 @@ from urllib.request import Request, urlopen
 import oracle_ws_visibility_probe as base
 from oracle_pending_visibility_probe import AGGREGATOR, parse_oracle_payload, strict_json, canon
 
-NEW_TRANSMISSION_TOPIC = '0xf6a97944f31ea060dfde0566e4167c1a1082551e64b60ecb14d599a9d023d451'
+NEW_TRANSMISSION_TOPIC = '0xc797025feeeaf2cd924c99e9205ac8ec04d5cad21c41ce637a38fb6dee6016a'
+SECONDARY_ROUND_TOPIC = '0x8d530b9ddc4b318d28fdd4c3a21fcfecece54c1a72a824f262985b99afef009b'
+EVENT_TOPICS = [SECONDARY_ROUND_TOPIC, NEW_TRANSMISSION_TOPIC]
 HTTP_RPC = 'https://eth.drpc.org'
 MAX_SECONDS = 360
 MAX_WS_NOTIFICATIONS = 30_000
@@ -60,9 +62,14 @@ def basic_report(seconds):
         'duration_requested_seconds': seconds,
         'source': 'Ethereum public dRPC single-operator WebSocket + HTTP',
         'oracle_aggregator': AGGREGATOR,
-        'new_transmission_topic0': NEW_TRANSMISSION_TOPIC,
+        'primary_new_transmission_topic0': NEW_TRANSMISSION_TOPIC,
+        'secondary_round_topic0': SECONDARY_ROUND_TOPIC,
+        'oracle_update_topics': EVENT_TOPICS,
+        'generic_ocr2_topic_filter_was_invalidated': True,
         'ws_observation': base.report_template(),
         'oracle_logs_subscription': {'accepted': False},
+        'oracle_primary_logs_subscription': {'accepted': False},
+        'single_topic_subscription_mode': True,
         'oracle_logs_notifications': 0,
         'oracle_logs_distinct': 0,
         'oracle_logs_removed': 0,
@@ -70,7 +77,11 @@ def basic_report(seconds):
         'sampled_pending_control_hashes': 0,
         'sampled_control_receipts_verified': 0,
         'control_pending_to_head_lead_ms': [],
-        'confirmed_oracle_transmissions_in_ws_head_span': None,
+        'confirmed_oracle_updates_in_ws_head_span': None,
+        'distinct_confirmed_oracle_update_transactions': None,
+        'oracle_update_kinds': {'SECONDARY_ROUND_ID_UPDATED': 0, 'PRIMARY_NEW_TRANSMISSION': 0},
+        'confirmed_primary_new_transmissions': None,
+        'confirmed_secondary_round_updates': None,
         'confirmed_oracle_receipts_verified': 0,
         'confirmed_oracle_with_prior_process_pending_observation': 0,
         'confirmed_oracle_without_prior_process_pending_observation': 0,
@@ -115,12 +126,14 @@ class Witness:
         need(type(value) is dict and value.get('jsonrpc') == '2.0',
              'invalid JSON-RPC envelope')
 
-        if value.get('id') == 4:
+        if value.get('id') in (4,5):
+            subscription_key = ('oracle_logs_subscription' if value['id']==4
+                                else 'oracle_primary_logs_subscription')
             token = value.get('result')
             if 'error' in value or type(token) is not str or not base.VALID_SUB_ID.fullmatch(token):
-                self.output['source_limitations'].append('ORACLE_LOGS_SUBSCRIPTION_REJECTED')
+                self.output['source_limitations'].append('ORACLE_LOGS_SUBSCRIPTION_REJECTED_'+str(value['id']))
             else:
-                self.output['oracle_logs_subscription'] = {
+                self.output[subscription_key] = {
                     'accepted': True, 'subscription_id': token.lower()}
             return
 
@@ -129,40 +142,36 @@ class Witness:
             need(type(params) is dict and type(params.get('subscription')) is str,
                  'malformed subscription notification')
             log_sub = self.output['oracle_logs_subscription']
-            if log_sub.get('accepted') and params['subscription'].lower() == log_sub.get('subscription_id'):
+            primary_sub = self.output['oracle_primary_logs_subscription']
+            is_secondary = (log_sub.get('accepted') and
+                            params['subscription'].lower() == log_sub.get('subscription_id'))
+            is_primary = (primary_sub.get('accepted') and
+                          params['subscription'].lower() == primary_sub.get('subscription_id'))
+            if is_secondary or is_primary:
                 self.output['oracle_logs_notifications'] += 1
                 log = params.get('result')
                 if type(log) is not dict:
                     self.output['oracle_logs_invalid'] += 1
                     return
                 try:
-                    need(type(log.get('address')) is str and
-                         log['address'].lower() == AGGREGATOR, 'wrong oracle log emitter')
-                    topics = log.get('topics')
-                    need(type(topics) is list and len(topics) >= 1 and
-                         type(topics[0]) is str and
-                         topics[0].lower() == NEW_TRANSMISSION_TOPIC,
-                         'wrong oracle event')
-                    tx = b32(log.get('transactionHash'))
-                    block_hash = b32(log.get('blockHash'))
-                    bn = quantity(log.get('blockNumber'))
-                    idx = quantity(log.get('logIndex'))
-                    need(bn > 0 and log.get('removed') in (False, None),
-                         'removed or invalid oracle log')
+                    parsed_log = parse_log(log)
+                    expected_topic = SECONDARY_ROUND_TOPIC if is_secondary else NEW_TRANSMISSION_TOPIC
+                    need(parsed_log['event_topic0'] == expected_topic,
+                         'subscription returned event of the wrong source topic')
                 except (ValueError, TypeError) as exc:
                     if log.get('removed') is True:
                         self.output['oracle_logs_removed'] += 1
                     else:
                         self.output['oracle_logs_invalid'] += 1
                     return
-                identity = (tx, block_hash, idx)
+                identity = (parsed_log['tx_hash'], parsed_log['block_hash'],
+                            parsed_log['log_index'])
                 if identity not in self.unique_log_ids:
                     self.unique_log_ids.add(identity)
                     self.output['oracle_logs_distinct'] += 1
                     if len(self.stream_logs) < MAX_LOGS:
                         self.stream_logs[identity] = {
-                            'tx_hash': tx, 'block_hash': block_hash,
-                            'block_number': bn, 'log_index': idx,
+                            **parsed_log,
                             'observed_at_utc': when_utc,
                             'observed_ns': when_ns,
                         }
@@ -253,7 +262,8 @@ class RPC:
             arg = params[0]
             need(set(arg) == {'address', 'topics', 'fromBlock', 'toBlock'} and
                  arg['address'] == AGGREGATOR and
-                 arg['topics'] == [NEW_TRANSMISSION_TOPIC] and
+                 type(arg['topics']) is list and
+                 len(arg['topics'])==1 and arg['topics'][0] in EVENT_TOPICS and
                  0 <= quantity(arg['toBlock']) - quantity(arg['fromBlock']) <= 35,
                  'unbounded oracle getLogs scan')
         elif method == 'eth_getTransactionReceipt':
@@ -289,14 +299,33 @@ def parse_log(value):
     need(type(value) is dict and type(value.get('address')) is str and
          value['address'].lower() == AGGREGATOR, 'wrong log origin')
     topics = value.get('topics')
-    need(type(topics) is list and len(topics) >= 1 and
-         type(topics[0]) is str and topics[0].lower() == NEW_TRANSMISSION_TOPIC,
-         'wrong log signature')
+    need(type(topics) is list and len(topics) >= 2 and
+         type(topics[0]) is str and topics[0].lower() in EVENT_TOPICS,
+         'wrong/unknown DualAggregator update signature')
     need(value.get('removed') in (False, None), 'removed log')
+    round_id = int(b32(topics[1]), 16)
+    need(0 < round_id < 2**32, 'unusable uint32 indexed round ID')
+    data = value.get('data')
+    need(type(data) is str and data.startswith('0x') and len(data)%2 == 0,
+         'bad event ABI payload')
+    topic = topics[0].lower()
+    if topic == SECONDARY_ROUND_TOPIC:
+        need(data == '0x', 'secondary round-only log must not contain price data')
+        answer = None
+        kind = 'SECONDARY_ROUND_ID_UPDATED'
+    else:
+        need(len(data) >= 66 and all(ch in '0123456789abcdefABCDEF' for ch in data[2:]),
+             'primary NewTransmission answer unparseable')
+        answer = int(data[2:66], 16)
+        need(0 < answer < 2**191, 'invalid custom primary price answer')
+        kind = 'PRIMARY_NEW_TRANSMISSION'
     return {'tx_hash': b32(value.get('transactionHash')),
             'block_hash': b32(value.get('blockHash')),
             'block_number': quantity(value.get('blockNumber')),
-            'log_index': quantity(value.get('logIndex'))}
+            'log_index': quantity(value.get('logIndex')),
+            'event_type': kind, 'event_topic0': topic,
+            'indexed_round_id': round_id, 'primary_answer_raw': answer,
+            'event_data_sha256': sha256(bytes.fromhex(data[2:])).hexdigest()}
 
 
 def verify_receipt(receipt, item, witness):
@@ -326,6 +355,8 @@ def verify_receipt(receipt, item, witness):
             'block_number': item['block_number'],
             'block_hash': item['block_hash'],
             'receipt_status': 1,
+            'event_type': item['event_type'],
+            'event_topic0': item['event_topic0'],
             'gas_used': gas,
             'effective_gas_price_wei': effective,
             'was_seen_pending_in_this_process': pending is not None,
@@ -350,7 +381,8 @@ def reconcile(witness, rpc):
     if not (stream['chain_id_verified'] and
             stream['subscriptions']['newHeads']['accepted'] and
             stream['subscriptions']['drpc_pendingTransactions']['accepted'] and
-            out['oracle_logs_subscription']['accepted']):
+            out['oracle_logs_subscription']['accepted'] and
+            out['oracle_primary_logs_subscription']['accepted']):
         out['source_limitations'].append('MISSING_REQUIRED_WS_SUBSCRIPTION')
         return finalize(out, rpc)
     heads = list(witness.heads.values())
@@ -370,15 +402,30 @@ def reconcile(witness, rpc):
             chain_head = witness.heads.get(b32(head.get('hash')))
             need(chain_head is not None and chain_head['number'] == height,
                  'head hash/height disagrees with current canonical')
-        raw_logs = rpc.call('eth_getLogs', [{
-            'address': AGGREGATOR, 'topics': [NEW_TRANSMISSION_TOPIC],
-            'fromBlock': hex(first), 'toBlock': hex(last)}])
-        need(type(raw_logs) is list and len(raw_logs) <= 100,
-             'source returned oversized oracle log corpus')
+        raw_logs = []
+        # The public RPC rejected OR-topic filters. Require each exact
+        # source event in a separate canonical query; never substitute
+        # a single successful topic for complete oracle update evidence.
+        for topic in EVENT_TOPICS:
+            subset = rpc.call('eth_getLogs', [{
+                'address': AGGREGATOR, 'topics': [topic],
+                'fromBlock': hex(first), 'toBlock': hex(last)}])
+            need(type(subset) is list and len(subset) <= 100,
+                 'source returned oversized oracle log subset')
+            need(all(type(x) is dict and type(x.get('topics')) is list and
+                     x['topics'] and x['topics'][0].lower() == topic
+                     for x in subset), 'source returned wrong event topic')
+            raw_logs.extend(subset)
+        need(len(raw_logs) <= 100, 'union too large')
         logs = [parse_log(v) for v in raw_logs]
         need(len(logs) == len({(v['tx_hash'], v['block_hash'], v['log_index'])
                                for v in logs}), 'duplicate canonical event')
-        out['confirmed_oracle_transmissions_in_ws_head_span'] = len(logs)
+        out['confirmed_oracle_updates_in_ws_head_span'] = len(logs)
+        out['distinct_confirmed_oracle_update_transactions'] = len({x['tx_hash'] for x in logs})
+        out['oracle_update_kinds'] = {
+            'SECONDARY_ROUND_ID_UPDATED': sum(e['event_type']=='SECONDARY_ROUND_ID_UPDATED' for e in logs),
+            'PRIMARY_NEW_TRANSMISSION': sum(e['event_type']=='PRIMARY_NEW_TRANSMISSION' for e in logs),
+        }
         # Scope is restricted to block hashes witnessed by the same WS,
         # and the first block is left-censored at subscription start.
         for item in logs[:MAX_LOGS]:
@@ -453,12 +500,12 @@ def finalize(out, rpc):
     out['run_finished_at_utc'] = now_utc()
     if out['source_limitations']:
         out['status'] = 'INCOMPLETE_ORACLE_PENDING_TO_CANONICAL_OVERLAP'
-    elif (out['confirmed_oracle_transmissions_in_ws_head_span'] is not None and
-          out['confirmed_oracle_transmissions_in_ws_head_span'] ==
+    elif (out['confirmed_oracle_updates_in_ws_head_span'] is not None and
+          out['confirmed_oracle_updates_in_ws_head_span'] ==
           out['confirmed_oracle_receipts_verified'] and
           out['confirmed_oracle_receipts_verified'] > 0):
         out['status'] = 'PROSPECTIVE_ORACLE_LOGS_RECONCILED_NO_CAPTURE'
-    elif out['confirmed_oracle_transmissions_in_ws_head_span'] == 0:
+    elif out['confirmed_oracle_updates_in_ws_head_span'] == 0:
         out['status'] = 'NO_ORACLE_TRANSMISSIONS_IN_BOUNDED_CANONICAL_SPAN'
     else:
         out['status'] = 'INCOMPLETE_ORACLE_PENDING_TO_CANONICAL_OVERLAP'
@@ -483,6 +530,9 @@ async def observe(seconds, max_notifications, connector=None):
                      (2, 'eth_subscribe', ['newHeads']),
                      (3, 'eth_subscribe', ['drpc_pendingTransactions']),
                      (4, 'eth_subscribe', ['logs',
+                                          {'address': AGGREGATOR,
+                                           'topics': [SECONDARY_ROUND_TOPIC]}]),
+                     (5, 'eth_subscribe', ['logs',
                                           {'address': AGGREGATOR,
                                            'topics': [NEW_TRANSMISSION_TOPIC]}]))
             for rid, name, params in calls:
@@ -524,7 +574,7 @@ def main():
         f.write(canon(report))
     print(report['status'], 'pending',report['ws_observation']['pending_notifications'],
           'oracle_logs_ws', report['oracle_logs_distinct'],
-          'canonical_new_transmissions', report['confirmed_oracle_transmissions_in_ws_head_span'],
+          'canonical_oracle_updates', report['confirmed_oracle_updates_in_ws_head_span'],
           'receipts_verified',report['confirmed_oracle_receipts_verified'],
           'prior_pending',report['confirmed_oracle_with_prior_process_pending_observation'],
           'controls',report['sampled_control_receipts_verified'],
