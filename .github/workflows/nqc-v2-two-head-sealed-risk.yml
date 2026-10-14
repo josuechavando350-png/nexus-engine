@@ -54,7 +54,7 @@ jobs:
           printf '%s  %s\n' \
             '551b50b111a2451a487a8cd73c2597cf83b119030162e53c4195a66ef1b3b2bf' \
             "$OUT/11908200180.zip" | sha256sum --check --strict
-      - name: Twenty offline no-lookahead, exact cohort, timing, reorg and RPC-censorship tests
+      - name: Twenty-two offline no-lookahead, slot-time, reorg and RPC-censorship tests
         env:
           NQC_PR718_83OWNER_SOURCE_ZIP: ${{ runner.temp }}/nqc-two-public-heads/11908200180.zip
         run: |
@@ -105,6 +105,11 @@ jobs:
                (.observations|length)==2 and
                .block_height_increment==1 and
                .sealed_before_first_local_successor_header_observation==true and
+               (.first_seal_minus_successor_canonical_timestamp_ns|type)=="number" and
+               (.first_seal_precedes_successor_canonical_timestamp|type)=="boolean" and
+               .canonical_block_timestamp_not_measured_builder_cutoff==true and
+               .successor_slot_timestamp_derived_not_first_seen_time==true and
+               .builder_inclusion_deadline_prealigned_by_this_UTC_check==false and
                .all_public_sources_agreed_exact_canonical_EIP1898_state==true and
                all(.observations[]; .source_two_public_url_raw_account_parity==true and
                    .source_proven_active_old_borrowers_consulted==9 and
