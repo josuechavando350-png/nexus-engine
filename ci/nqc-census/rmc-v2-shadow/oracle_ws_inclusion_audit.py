@@ -399,10 +399,20 @@ def reconcile(witness, rpc):
             except Exception as exc:
                 out['source_limitations'].append('ORACLE_RECEIPT_FAILED_'+type(exc).__name__)
         seen_ws_logs = set(witness.stream_logs)
+        canonical_ids = {(item['tx_hash'], item['block_hash'], item['log_index'])
+                         for item in logs}
+        # The first observed block can predate our subscription start.
+        # Never use it as evidence that an update was invisible while pending.
         for item in logs:
             key = (item['tx_hash'], item['block_hash'], item['log_index'])
-            if key not in seen_ws_logs:
+            if item['block_number'] > first and key not in seen_ws_logs:
                 out['ws_logs_vs_canonical_missing'].append(item['tx_hash'])
+        if out['ws_logs_vs_canonical_missing']:
+            out['source_limitations'].append('CANONICAL_NEW_TRANSMISSION_MISSING_IN_WS_STREAM')
+        ws_extra = [key[0] for key in seen_ws_logs if
+                    key[1] in witness.heads and key not in canonical_ids]
+        if ws_extra:
+            out['source_limitations'].append('WS_ORACLE_LOG_NOT_IN_CANONICAL_RESULT')
         # Deterministically preselected *ordinary* pending transactions,
         # not a cherry-picked set of successfully included transactions.
         # Confirm receipts in the same WS head span only; others censored.
@@ -441,13 +451,14 @@ def finalize(out, rpc):
     out['rpc_transcript'] = rpc.transcript
     out['rpc_calls_used'] = rpc.calls
     out['run_finished_at_utc'] = now_utc()
-    if (out['confirmed_oracle_transmissions_in_ws_head_span'] is not None and
-            out['confirmed_oracle_receipts_verified'] > 0 and
-            not any(x.startswith('CANONICAL_RECONCILIATION_FAILED')
-                    for x in out['source_limitations'])):
+    if out['source_limitations']:
+        out['status'] = 'INCOMPLETE_ORACLE_PENDING_TO_CANONICAL_OVERLAP'
+    elif (out['confirmed_oracle_transmissions_in_ws_head_span'] is not None and
+          out['confirmed_oracle_transmissions_in_ws_head_span'] ==
+          out['confirmed_oracle_receipts_verified'] and
+          out['confirmed_oracle_receipts_verified'] > 0):
         out['status'] = 'PROSPECTIVE_ORACLE_LOGS_RECONCILED_NO_CAPTURE'
-    elif (out['confirmed_oracle_transmissions_in_ws_head_span'] == 0 and
-          not out['source_limitations']):
+    elif out['confirmed_oracle_transmissions_in_ws_head_span'] == 0:
         out['status'] = 'NO_ORACLE_TRANSMISSIONS_IN_BOUNDED_CANONICAL_SPAN'
     else:
         out['status'] = 'INCOMPLETE_ORACLE_PENDING_TO_CANONICAL_OVERLAP'
