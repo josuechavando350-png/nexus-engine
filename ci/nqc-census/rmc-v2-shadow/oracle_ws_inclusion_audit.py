@@ -21,7 +21,9 @@ from urllib.request import Request, urlopen
 import oracle_ws_visibility_probe as base
 from oracle_pending_visibility_probe import AGGREGATOR, parse_oracle_payload, strict_json, canon
 
-NEW_TRANSMISSION_TOPIC = '0xf6a97944f31ea060dfde0566e4167c1a1082551e64b60ecb14d599a9d023d451'
+NEW_TRANSMISSION_TOPIC = '0xc797025feeeaf2cd924c99e9205ac8ec04d5cad21c41ce637a38fb6dee6016a'
+SECONDARY_ROUND_TOPIC = '0x8d530b9ddc4b318d28fdd4c3a21fcfecece54c1a72a824f262985b99afef009b'
+EVENT_TOPICS = [SECONDARY_ROUND_TOPIC, NEW_TRANSMISSION_TOPIC]
 HTTP_RPC = 'https://eth.drpc.org'
 MAX_SECONDS = 360
 MAX_WS_NOTIFICATIONS = 30_000
@@ -60,7 +62,10 @@ def basic_report(seconds):
         'duration_requested_seconds': seconds,
         'source': 'Ethereum public dRPC single-operator WebSocket + HTTP',
         'oracle_aggregator': AGGREGATOR,
-        'new_transmission_topic0': NEW_TRANSMISSION_TOPIC,
+        'primary_new_transmission_topic0': NEW_TRANSMISSION_TOPIC,
+        'secondary_round_topic0': SECONDARY_ROUND_TOPIC,
+        'oracle_update_topics': EVENT_TOPICS,
+        'generic_ocr2_topic_filter_was_invalidated': True,
         'ws_observation': base.report_template(),
         'oracle_logs_subscription': {'accepted': False},
         'oracle_logs_notifications': 0,
@@ -70,7 +75,9 @@ def basic_report(seconds):
         'sampled_pending_control_hashes': 0,
         'sampled_control_receipts_verified': 0,
         'control_pending_to_head_lead_ms': [],
-        'confirmed_oracle_transmissions_in_ws_head_span': None,
+        'confirmed_oracle_updates_in_ws_head_span': None,
+        'confirmed_primary_new_transmissions': None,
+        'confirmed_secondary_round_updates': None,
         'confirmed_oracle_receipts_verified': 0,
         'confirmed_oracle_with_prior_process_pending_observation': 0,
         'confirmed_oracle_without_prior_process_pending_observation': 0,
@@ -141,7 +148,7 @@ class Witness:
                     topics = log.get('topics')
                     need(type(topics) is list and len(topics) >= 1 and
                          type(topics[0]) is str and
-                         topics[0].lower() == NEW_TRANSMISSION_TOPIC,
+                         topics[0].lower() in EVENT_TOPICS,
                          'wrong oracle event')
                     tx = b32(log.get('transactionHash'))
                     block_hash = b32(log.get('blockHash'))
@@ -253,7 +260,7 @@ class RPC:
             arg = params[0]
             need(set(arg) == {'address', 'topics', 'fromBlock', 'toBlock'} and
                  arg['address'] == AGGREGATOR and
-                 arg['topics'] == [NEW_TRANSMISSION_TOPIC] and
+                 arg['topics'] == [EVENT_TOPICS] and
                  0 <= quantity(arg['toBlock']) - quantity(arg['fromBlock']) <= 35,
                  'unbounded oracle getLogs scan')
         elif method == 'eth_getTransactionReceipt':
@@ -290,7 +297,7 @@ def parse_log(value):
          value['address'].lower() == AGGREGATOR, 'wrong log origin')
     topics = value.get('topics')
     need(type(topics) is list and len(topics) >= 1 and
-         type(topics[0]) is str and topics[0].lower() == NEW_TRANSMISSION_TOPIC,
+         type(topics[0]) is str and topics[0].lower() in EVENT_TOPICS,
          'wrong log signature')
     need(value.get('removed') in (False, None), 'removed log')
     return {'tx_hash': b32(value.get('transactionHash')),
@@ -371,14 +378,14 @@ def reconcile(witness, rpc):
             need(chain_head is not None and chain_head['number'] == height,
                  'head hash/height disagrees with current canonical')
         raw_logs = rpc.call('eth_getLogs', [{
-            'address': AGGREGATOR, 'topics': [NEW_TRANSMISSION_TOPIC],
+            'address': AGGREGATOR, 'topics': [EVENT_TOPICS],
             'fromBlock': hex(first), 'toBlock': hex(last)}])
         need(type(raw_logs) is list and len(raw_logs) <= 100,
              'source returned oversized oracle log corpus')
         logs = [parse_log(v) for v in raw_logs]
         need(len(logs) == len({(v['tx_hash'], v['block_hash'], v['log_index'])
                                for v in logs}), 'duplicate canonical event')
-        out['confirmed_oracle_transmissions_in_ws_head_span'] = len(logs)
+        out['confirmed_oracle_updates_in_ws_head_span'] = len(logs)
         # Scope is restricted to block hashes witnessed by the same WS,
         # and the first block is left-censored at subscription start.
         for item in logs[:MAX_LOGS]:
@@ -453,12 +460,12 @@ def finalize(out, rpc):
     out['run_finished_at_utc'] = now_utc()
     if out['source_limitations']:
         out['status'] = 'INCOMPLETE_ORACLE_PENDING_TO_CANONICAL_OVERLAP'
-    elif (out['confirmed_oracle_transmissions_in_ws_head_span'] is not None and
-          out['confirmed_oracle_transmissions_in_ws_head_span'] ==
+    elif (out['confirmed_oracle_updates_in_ws_head_span'] is not None and
+          out['confirmed_oracle_updates_in_ws_head_span'] ==
           out['confirmed_oracle_receipts_verified'] and
           out['confirmed_oracle_receipts_verified'] > 0):
         out['status'] = 'PROSPECTIVE_ORACLE_LOGS_RECONCILED_NO_CAPTURE'
-    elif out['confirmed_oracle_transmissions_in_ws_head_span'] == 0:
+    elif out['confirmed_oracle_updates_in_ws_head_span'] == 0:
         out['status'] = 'NO_ORACLE_TRANSMISSIONS_IN_BOUNDED_CANONICAL_SPAN'
     else:
         out['status'] = 'INCOMPLETE_ORACLE_PENDING_TO_CANONICAL_OVERLAP'
@@ -484,7 +491,7 @@ async def observe(seconds, max_notifications, connector=None):
                      (3, 'eth_subscribe', ['drpc_pendingTransactions']),
                      (4, 'eth_subscribe', ['logs',
                                           {'address': AGGREGATOR,
-                                           'topics': [NEW_TRANSMISSION_TOPIC]}]))
+                                           'topics': [EVENT_TOPICS]}]))
             for rid, name, params in calls:
                 await ws.send(json.dumps({'jsonrpc':'2.0','id':rid,
                                           'method':name,'params':params}))
@@ -524,7 +531,7 @@ def main():
         f.write(canon(report))
     print(report['status'], 'pending',report['ws_observation']['pending_notifications'],
           'oracle_logs_ws', report['oracle_logs_distinct'],
-          'canonical_new_transmissions', report['confirmed_oracle_transmissions_in_ws_head_span'],
+          'canonical_oracle_updates', report['confirmed_oracle_updates_in_ws_head_span'],
           'receipts_verified',report['confirmed_oracle_receipts_verified'],
           'prior_pending',report['confirmed_oracle_with_prior_process_pending_observation'],
           'controls',report['sampled_control_receipts_verified'],
