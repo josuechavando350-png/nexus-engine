@@ -338,11 +338,25 @@ def collect(cohort,provenance,out_dir,transport_factory=None,
         report["observations"].append(first)
         observed=wait_next_height(clients,initial,now_fn,sleeper)
         report["first_local_successor_head"]=observed
+        first_seal=first["risk_snapshot_sealed_by_this_process"]
         report["sealed_before_first_local_successor_header_observation"]=(
-            first["risk_snapshot_sealed_by_this_process"]["local_monotonic_ns"]<=
+            first_seal["local_monotonic_ns"]<=
             observed["first_successor_public_header_seen_by_this_process"]["local_monotonic_ns"])
         need(report["sealed_before_first_local_successor_header_observation"],
              "source decision was not sealed before locally observing successor")
+        # Public header observation time is NOT actual mining/consensus time.
+        # Comparing UTC wallclock seal to Ethereum successor slot timestamp
+        # is a REQUIRED anti-lookahead diagnostic. A NEGATIVE result proves
+        # the local seal came after the successor's canonical timestamp;
+        # even a POSITIVE result does NOT prove a builder cutoff was met.
+        slot_ns=observed["successor_header"]["timestamp"]*1_000_000_000
+        report["first_seal_minus_successor_canonical_timestamp_ns"]=(
+            first_seal["utc_unix_ns"]-slot_ns)
+        report["first_seal_precedes_successor_canonical_timestamp"]=(
+            first_seal["utc_unix_ns"]<slot_ns)
+        report["canonical_block_timestamp_not_measured_builder_cutoff"]=True
+        report["successor_slot_timestamp_derived_not_first_seen_time"]=True
+        report["builder_inclusion_deadline_prealigned_by_this_UTC_check"]=False
         second=watch_one_head(clients,initial+1,cohort,now_fn)
         need(second["canonical_header"]["parent_hash"]==
              first["canonical_header"]["hash"],
