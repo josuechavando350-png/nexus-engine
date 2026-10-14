@@ -231,37 +231,40 @@ def measure_source(provider,anchor,transport=None):
 
 
 def cadence(events, first_timestamp, last_timestamp):
-    need(type(events) is list and last_timestamp>first_timestamp,'invalid cadence scope')
+    need(type(events) is list and last_timestamp>first_timestamp,
+         'invalid cadence scope')
     raw=sorted(events,key=ordered_event_identity)
     unique_blocks=[]
-    for event in raw:
-        if not unique_blocks or unique_blocks[-1]['number']!=event['block_number']:
-            unique_blocks.append({'number':event['block_number'],
-                                  'timestamp':event['block_timestamp'],
-                                  'answer_raw':event['answer_raw']})
+    for e in raw:
+        if not unique_blocks or unique_blocks[-1]['number']!=e['block_number']:
+            unique_blocks.append({'number':e['block_number'],
+                                  'timestamp':e['block_timestamp']})
     intervals=[b['timestamp']-a['timestamp']
                for a,b in zip(unique_blocks,unique_blocks[1:])]
     need(all(v>=0 for v in intervals),'nonmonotonic historical timestamps')
-    changes=[]
-    for a,b in zip(unique_blocks,unique_blocks[1:]):
-        changes.append((b['answer_raw']-a['answer_raw'])*10_000//a['answer_raw'])
+    # Only PRIMARY NewTransmission carries an ABI-encoded answer.
+    # SecondaryRoundIdUpdated carries a round ID and NO price.
+    primaries=[e for e in raw if e.get('event_type')=='PRIMARY_NEW_TRANSMISSION']
+    changes=[(b['answer_raw']-a['answer_raw'])*10_000//a['answer_raw']
+             for a,b in zip(primaries,primaries[1:])]
     interval_seconds=last_timestamp-first_timestamp
-    return {
-      'window_elapsed_seconds':interval_seconds,
-      'canonical_new_transmission_events':len(raw),
+    return {'window_elapsed_seconds':interval_seconds,
+      'canonical_oracle_update_events_total':len(raw),
+      'canonical_new_transmission_events':len(primaries),
+      'canonical_secondary_round_events':sum(
+          e.get('event_type')=='SECONDARY_ROUND_ID_UPDATED' for e in raw),
       'unique_event_blocks':len(unique_blocks),
-      'events_per_observed_hour_descriptive_only':
-            len(raw)*3600/interval_seconds,
+      'events_per_observed_hour_descriptive_only':len(raw)*3600/interval_seconds,
       'unique_block_interarrival_seconds':intervals,
       'median_interarrival_seconds':statistics.median(intervals) if intervals else None,
       'min_interarrival_seconds':min(intervals) if intervals else None,
       'max_interarrival_seconds':max(intervals) if intervals else None,
-      'price_direction_event_changes_bps':changes,
+      'price_direction_primary_only_bps':changes,
       'downward_changes_of_at_least_50bps':sum(x<=-50 for x in changes),
       'downward_changes_of_at_least_100bps':sum(x<=-100 for x in changes),
+      'secondary_event_contains_price_value':False,
       'future_arrival_rate_calibrated':False,
-      'price_updates_are_not_liquidations':True,
-    }
+      'price_updates_are_not_liquidations':True}
 
 
 def run(transport_factory=None):
