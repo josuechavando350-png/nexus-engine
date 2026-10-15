@@ -1,0 +1,104 @@
+name: NQC V2 SVR Auction + Native Finance Source Truth (OFFLINE ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/svr_auction_finance_gate.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_svr_auction_finance_gate.py'
+      - 'ci/nqc-census/rmc-v2-shadow/SVR_EXECUTOR_AUCTION_CAPITAL_CONTRACT.md'
+      - '.github/workflows/nqc-v2-auction-native-finance-source-gate.yml'
+      - 'ci/nqc-census/weth-physical/script/NqcV2OneShotAtomicLocal.s.sol'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-v2-auction-native-finance-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit-historical-one-shot-source-and-native-escrow:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact tested HEAD and actual PR725 Solidity git object
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-svr-exec-finance"
+          mkdir -p "$OUT"
+          SOURCE='ci/nqc-census/weth-physical/script/NqcV2OneShotAtomicLocal.s.sol'
+          test "$(git hash-object "$SOURCE")" = '129c1bef538c2a459a1a9d393efa837d698bb965'
+          sha256sum "$SOURCE" > "$OUT/original-one-shot-source.sha256"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+      - name: Offline adversarial integer finance and historical-only source controls
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-svr-exec-finance"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_svr_auction_finance_gate.py -v 2>&1 | tee "$OUT/adversarial-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/svr_auction_finance_gate.py
+      - name: Source-authenticated blocked admission and integer scenarios
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-svr-exec-finance"
+          python3 ci/nqc-census/rmc-v2-shadow/svr_auction_finance_gate.py \
+            --source ci/nqc-census/weth-physical/script/NqcV2OneShotAtomicLocal.s.sol \
+            --out "$OUT/auction-financing-admission.json"
+          jq -e '
+            .schema_version==1 and
+            .classification=="BLOCKED_NOT_A_PRODUCTION_SVR_BID_EXECUTOR" and
+            .source_authority.git_blob_sha1=="129c1bef538c2a459a1a9d393efa837d698bb965" and
+            .source_authority.hardcoded_historical_block_guard==true and
+            .source_authority.production_current_block_admissible==false and
+            .source_authority.explicit_native_coinbase_payment_in_constructor==false and
+            .source_authority.external_gas_sponsor_certified_by_source==false and
+            (.financial_experiments_only|length)==3 and
+            all(.financial_experiments_only[];
+                .independent_gas_sponsor_verified==false and
+                .bid_competitiveness_verified==false and
+                .mainnet_inclusion_or_profit_proven==false and
+                .positive_math_not_transaction_admissibility==true) and
+            .PFT_closed==true and .RMC_closed==false and
+            .Shadow_P2_certified==false and .LIVE_authorized==false and
+            .OWN_CAPITAL_zero_including_gas_mandate_unchanged==true and
+            .NQC_realized_PNL_USD=="0" and
+            .commercial_score_upgraded==false and
+            .external_transactions_sent==false and
+            .wallet_or_private_keys_used==false and
+            .signed_transactions_or_bids_made==false and
+            .new_paid_provider_or_infrastructure==false
+          ' "$OUT/auction-financing-admission.json" > "$OUT/source-contract-check.log"
+      - name: Content-addressed source and all failures, no private data
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-svr-exec-finance"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/svr_auction_finance_gate.py \
+             ci/nqc-census/rmc-v2-shadow/test_svr_auction_finance_gate.py \
+             ci/nqc-census/rmc-v2-shadow/SVR_EXECUTOR_AUCTION_CAPITAL_CONTRACT.md \
+             .github/workflows/nqc-v2-auction-native-finance-source-gate.yml \
+             ci/nqc-census/weth-physical/script/NqcV2OneShotAtomicLocal.s.sol \
+             "$OUT/source/"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | \
+            xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Preserve exact source and fail-closed audit evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-svr-exec-finance-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-svr-exec-finance/
+          retention-days: 30
+          if-no-files-found: error
