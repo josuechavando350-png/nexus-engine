@@ -247,7 +247,7 @@ contract Nqc4337SponsoredMorphoLocalTest {
         require(executor.used(bytes32(uint256(101))), "EXECUTION_ID_NOT_CONSUMED");
     }
 
-    function testFailedAtomicSwapRevertsMorphoButStillChargesSponsor() public {
+    function testRevertedSwapChargesSponsorAndRollsBackMorpho() public {
         dex.setRate(8 * 10 ** 17);
         uint256 beforeVault = address(sponsor).balance;
         uint256 beforeBeneficiary = BENEFICIARY.balance;
@@ -318,7 +318,7 @@ contract Nqc4337SponsoredMorphoLocalTest {
         require(address(sponsor).balance == vaultAfter, "FORGED_SPONSOR_CHARGED");
     }
 
-    function testFailedOpConsumesIntentAndCannotFreelyRetry() public {
+    function testRevertedExecutionConsumesIntentAndCannotFreelyRetry() public {
         dex.setRate(8 * 10 ** 17);
         bytes memory payload = _payload(bytes32(uint256(107)));
         bytes32 digest = _digest(payload);
