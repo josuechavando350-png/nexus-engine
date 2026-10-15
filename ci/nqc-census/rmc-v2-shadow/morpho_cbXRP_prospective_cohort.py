@@ -165,9 +165,10 @@ def compare(frozen, followup):
 
 
 class Client:
-    def __init__(self, transport=None):
+    def __init__(self, transport=None, raw_dir=None):
         self.transport=transport or self._http
         self.calls=0
+        self.raw_dir=raw_dir
     @staticmethod
     def _http(body):
         data=json.dumps(body,separators=(",", ":")).encode()
@@ -188,6 +189,10 @@ class Client:
         vars={"first":first,"market":[MARKET],"near":near,"users":users}
         query=(QUERY.replace("orderBy: BorrowShares", "orderBy: HealthFactor").replace("orderDirection: Desc", "orderDirection: Asc") if label=="NEAR_RISK" else QUERY)
         raw=self.transport({"operationName":"NqcCandidates","query":query,"variables":vars})
+        # Immutable API JSON before parsing. Do not lose original source if a
+        # numeric scalar has a different schema from our fail-closed assumption.
+        if self.raw_dir is not None:
+            file_write(self.raw_dir/("raw-"+label.lower()+".json"),raw)
         return validate_graphql(raw,label,first)
 
 
@@ -198,7 +203,7 @@ def file_write(path,obj):
 def run(out, wait_seconds=35, client=None, sleeper=None):
     need(type(wait_seconds) is int and 0 <= wait_seconds <=60,"INVALID_WAIT")
     out.mkdir(parents=True,exist_ok=True)
-    client=client or Client()
+    client=client or Client(raw_dir=out)
     sleeper=sleeper or time.sleep
     context={"scope":"Base-Morpho-cbXRP-USDC", "market":MARKET,"chain_id":CHAIN,
             "parent_PR743_head":PARENT_HEAD,"source":"official_public_morpho_graphql_single_indexer",

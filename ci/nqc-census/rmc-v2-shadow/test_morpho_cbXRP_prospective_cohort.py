@@ -111,3 +111,13 @@ class Spec(unittest.TestCase):
         with self.assertRaises(p.Rejected):c.query('extra')
 
 if __name__=='__main__':unittest.main()
+
+class RawSourceDiagnostic(unittest.TestCase):
+    def test_unparseable_source_preserved_before_rejection(self):
+        bad=row();bad['state']['borrowAssets']=3.14159
+        with tempfile.TemporaryDirectory() as d:
+            archive=Path(d)
+            cli=p.Client(lambda _:response([bad]),raw_dir=archive)
+            with self.assertRaises(p.Rejected):cli.query('TOP_DEBT')
+            raw=json.loads((archive/'raw-top_debt.json').read_text())
+            self.assertEqual(raw['data']['marketPositions']['items'][0]['state']['borrowAssets'],3.14159)
