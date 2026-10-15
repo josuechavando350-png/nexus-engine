@@ -7,7 +7,7 @@ import argparse, collections, datetime as dt, hashlib, json, os, pathlib, re, sy
 
 API='https://api.morpho.org/graphql'
 PAGE_SIZE=100
-MAX_PAGES=5
+MAX_QUERIES=650
 DAYS=30
 QUERY='''query RecentBlueLiquidations($skip:Int!,$since:Int!,$until:Int!){
   marketTransactions(first:100,skip:$skip,orderBy:Timestamp,orderDirection:Asc,
@@ -107,54 +107,66 @@ def request_page(skip,since,until):
     require(type(doc) is dict and not doc.get('errors'),'GraphQL errors: '+repr(doc.get('errors'))[:850])
     return doc['data']['marketTransactions']
 
+def source_bisect(ds,de,fetch,trace,budget):
+    """Never use indexer skip. Recursively partition time until returned count is complete.
+    Children must add exactly to parent indexed count; single-second congestion rejects.
+    """
+    require(type(ds) is int and type(de) is int and ds<=de,'invalid shard')
+    require(budget[0]>0,'finite source call budget exhausted')
+    budget[0]-=1
+    raw=fetch(0,ds,de)
+    require(type(raw) is dict and type(raw.get('items')) is list and type(raw.get('pageInfo')) is dict,
+            'malformed indexer response')
+    items=raw['items']; meta=raw['pageInfo']; total=req_int(meta.get('countTotal'),'countTotal')
+    require(req_int(meta.get('count'),'count')==len(items),'page count mismatch')
+    require(len(items)<=PAGE_SIZE,'provider exceeded page limit')
+    entry={'from':ds,'through':de,'count_total':total,'returned':len(items),'complete':len(items)==total}
+    trace.append(entry)
+    if total==len(items):
+        return [validate_event(e,ds,de) for e in items],total
+    require(ds<de,'multiple events in an undrainable single-second indexer interval')
+    mid=ds+(de-ds)//2
+    left,ln=source_bisect(ds,mid,fetch,trace,budget)
+    right,rn=source_bisect(mid+1,de,fetch,trace,budget)
+    require(total==ln+rn,'indexer totals diverged between disjoint temporal shards')
+    return left+right,total
+
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--out',required=True);args=ap.parse_args()
     out=pathlib.Path(args.out);out.mkdir(parents=True,exist_ok=True)
     now=int(dt.datetime.now(dt.timezone.utc).timestamp());since=now-30*24*3600
-    result=None;day_reports=[];records=[];ids=set();pages_read=0;all_days_complete=True
+    result=None;day_reports=[];records=[];ids=set();source_trace=[];budget=[MAX_QUERIES];all_days_complete=True
     for day_idx in range(DAYS):
         ds=since+day_idx*86400;de=min(now,ds+86399)
-        pages=[];day_status={'day_index':day_idx,'start':ds,'end':de,'pages_read':0,'status':'INCOMPLETE'}
+        day_status={'day_index':day_idx,'start':ds,'end':de,'status':'INCOMPLETE'}
         try:
-            for i in range(MAX_PAGES):
-                page=request_page(i*PAGE_SIZE,ds,de)
-                pages.append(page);pages_read+=1
-                day_status['pages_read']=len(pages)
-                day_status.setdefault('provider_pages',[]).append({
-                   'page':i,'count':page.get('pageInfo',{}).get('count'),
-                   'count_total':page.get('pageInfo',{}).get('countTotal'),
-                   'first_timestamp':page.get('items',[{}])[0].get('timestamp') if page.get('items') else None,
-                   'last_timestamp':page.get('items',[{}])[-1].get('timestamp') if page.get('items') else None})
-                provisional=consume(pages,ds,de)
-                if provisional['status']=='COMPLETE_MORPHO_API_WINDOW_INDEX_ONLY':break
-                time.sleep(.3)
-            day=consume(pages,ds,de)
-            day_status['status']=day['status']
-            day_status['claimed_indexer_count']=day['claimed_indexer_count']
-            day_status['event_count']=day['event_count']
-            if day['status']!='COMPLETE_MORPHO_API_WINDOW_INDEX_ONLY':all_days_complete=False
-            for e in day['events']:
-                require(e['id'] not in ids,'duplicate event across disjoint day windows')
+            day_events,day_total=source_bisect(ds,de,request_page,source_trace,budget)
+            day_status['status']='COMPLETE_MORPHO_API_DAY_INDEX_ONLY'
+            day_status['claimed_indexer_count']=day_total
+            day_status['event_count']=len(day_events)
+            require(day_total==len(day_events),'day total mismatch')
+            for e in day_events:
+                require(e['id'] not in ids,'duplicate event across disjoint time windows')
                 ids.add(e['id']);records.append(e)
         except (BadEvidence,urllib.error.URLError,OSError,KeyError,TypeError,ValueError) as exc:
             day_status['status']='INCOMPLETE';day_status['error']=type(exc).__name__+': '+str(exc)[:850]
             all_days_complete=False
-            # No retries or alternate providers on API errors. Preserve day provenance.
+            # No network retry, evasion or alternate provider on denial: preserve diagnostics and stop.
             day_reports.append(day_status)
             break
         day_reports.append(day_status)
-        time.sleep(.2)
+        time.sleep(.15)
     result={'status':'COMPLETE_MORPHO_API_WINDOW_INDEX_ONLY' if all_days_complete and len(day_reports)==DAYS else 'INCOMPLETE_MORPHO_API_WINDOW',
             'window_start_unix':since,'window_end_unix':now,'days_scoped':DAYS,'days_attempted':len(day_reports),
             'daily_source_provenance':day_reports,'event_count':len(records),**aggregate_records(records),
-            'source':'public_morpho_single_api_indexer_no_independent_rpc_quorum',
+            'source_query_trace':source_trace,'source':'public_morpho_single_api_indexer_no_independent_rpc_quorum',
             'nqc_pnl_usd':'0','gas_sponsor_proven':False,'market_canonical_completeness_proven':False,'competitive_capture_proven':False,
             'events':records}
     if result is not None and 'events' in result:
         events=result.pop('events')
         (out/'liquidations.jsonl').write_text(''.join(json.dumps(e,sort_keys=True,separators=(',',':'))+'\n' for e in events))
         result['events_sha256']=hashlib.sha256((out/'liquidations.jsonl').read_bytes()).hexdigest()
-    result['pages_read']=pages_read;result['max_pages_per_day']=MAX_PAGES
+    result['queries_used']=MAX_QUERIES-budget[0];result['max_queries']=MAX_QUERIES
     (out/'census.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n')
     (out/'result-status.txt').write_text(result['status']+'\n')
     print(result['status'],'events=',result.get('event_count',0),'unique_winners=',result.get('unique_winning_transactions',0),'markets=',len(result.get('markets',[])),'pages=',len(pages))

@@ -1,5 +1,5 @@
 import copy, unittest
-from morpho_competition_30d import consume,validate_event,BadEvidence,PAGE_SIZE,aggregate_records
+from morpho_competition_30d import consume,validate_event,BadEvidence,PAGE_SIZE,aggregate_records,source_bisect
 SINCE=1000;UNTIL=3000
 EX={'chain':{'id':1},'txHash':'0x'+'a'*64,'logIndex':2,'timestamp':2000,'blockNumber':10001,
     'market':{'marketId':'0x'+'b'*64,'loanAsset':{'symbol':'USDC','decimals':6},'collateralAsset':{'symbol':'WETH','decimals':18}},
@@ -47,6 +47,28 @@ class Proof(unittest.TestCase):
         r=consume([page([EX,x],2)],SINCE,UNTIL);self.assertEqual(r['markets'][0]['distinct_liquidator_count'],2);self.assertEqual(r['markets'][0]['leading_liquidator_event_share_bps'],5000)
     def test_false_income_prohibited(self):
         r=consume([page([EX],1)],SINCE,UNTIL);self.assertEqual(r['nqc_pnl_usd'],'0');self.assertFalse(r['gas_sponsor_proven']);self.assertFalse(r['competitive_capture_proven']);self.assertFalse(r['market_canonical_completeness_proven'])
+    def test_temporal_bisect_rescues_short_page(self):
+        samples=[]
+        for i in range(4):
+            x=copy.deepcopy(EX);x['timestamp']=2000+i*100;x['logIndex']=i;samples.append(x)
+        def fetch(skip,lo,hi):
+            found=[e for e in samples if lo<=e['timestamp']<=hi]
+            return page(found[:2],len(found))
+        trace=[]
+        records,total=source_bisect(2000,2400,fetch,trace,[30])
+        self.assertEqual(total,4);self.assertEqual(len(records),4)
+        self.assertTrue(len(trace)>1)
+    def test_bisect_rejects_parent_child_total_drift(self):
+        def fetch(skip,lo,hi):
+            if lo==1000 and hi==1002:return page([EX],3)
+            return page([],0)
+        with self.assertRaises(BadEvidence):source_bisect(1000,1002,fetch,[],[10])
+    def test_same_second_unpageable_rejected(self):
+        def fetch(skip,lo,hi):return page([EX],2)
+        with self.assertRaises(BadEvidence):source_bisect(1000,1000,fetch,[],[10])
+    def test_budget_bounded(self):
+        def fetch(skip,lo,hi):return page([EX],3)
+        with self.assertRaises(BadEvidence):source_bisect(1000,1400,fetch,[],[1])
     def test_aggregate_two_days_unique_winners(self):
         x=copy.deepcopy(EX);y=copy.deepcopy(EX);y['logIndex']=3;y['timestamp']=2900
         a=consume([page([x],1)],1000,2499)
