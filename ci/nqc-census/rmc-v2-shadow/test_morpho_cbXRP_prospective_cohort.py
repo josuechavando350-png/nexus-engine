@@ -121,3 +121,25 @@ class RawSourceDiagnostic(unittest.TestCase):
             with self.assertRaises(p.Rejected):cli.query('TOP_DEBT')
             raw=json.loads((archive/'raw-top_debt.json').read_text())
             self.assertEqual(raw['data']['marketPositions']['items'][0]['state']['borrowAssets'],3.14159)
+
+class VerifiedOriginalApiScalarTypes(unittest.TestCase):
+    def test_observed_api_int_loan_collateral(self):
+        valid=row();valid['state']['borrowAssets']=204836190116
+        valid['state']['collateral']=470934168784
+        state=p.validate_graphql(response([valid]),'observed')
+        self.assertEqual(state['rows'][0]['debt_raw'],'204836190116')
+        self.assertEqual(state['rows'][0]['collateral_raw'],'470934168784')
+    def test_reject_float_even_integral_looking(self):
+        valid=row();valid['state']['borrowAssets']=1000000.0
+        with self.assertRaises(p.Rejected):p.validate_graphql(response([valid]),'float')
+    def test_reject_bool_and_negative(self):
+        for v in (True,False,-1):
+            with self.subTest(v=v):
+                valid=row();valid['state']['collateral']=v
+                with self.assertRaises(p.Rejected):p.validate_graphql(response([valid]),'unsafe')
+    def test_reject_uint256_overflow(self):
+        valid=row();valid['state']['borrowAssets']=2**256
+        with self.assertRaises(p.Rejected):p.validate_graphql(response([valid]),'overflow')
+    def test_reject_leading_zero_raw(self):
+        valid=row();valid['state']['borrowAssets']='01234'
+        with self.assertRaises(p.Rejected):p.validate_graphql(response([valid]),'zero-prefix')

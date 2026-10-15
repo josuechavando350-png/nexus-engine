@@ -24,6 +24,7 @@ POS_RE = re.compile(r"0x[0-9a-fA-F]{40}\Z")
 ID_RE = re.compile(r"0x[0-9a-fA-F]{64}\Z")
 MAX_ROWS = 30
 MAX_UNION = 60
+MAX_UINT256 = (1 << 256) - 1
 RISK_CUTOFF = Decimal("1.08")
 QUERY = """query NqcCandidates($first: Int!, $market: [String!], $near: Float, $users: [String!]) {
   marketPositions(
@@ -75,6 +76,17 @@ def valid_decimal(v, name, *, nonnegative=True):
     return d
 
 
+def uint_base(v, name):
+    # GraphQL API actually emits BigInt borrowShares as a decimal string,
+    # while borrowAssets and collateral arrive as JSON int scalars. An int
+    # parsed from JSON remains exact in Python; floats are never accepted.
+    need(type(v) in (str, int), "BAD_" + name + "_TYPE")
+    need((type(v) is int and 0 <= v <= MAX_UINT256) or
+         (type(v) is str and bool(re.fullmatch(r"(0|[1-9][0-9]*)",v)) and
+          len(v)<=78 and int(v)<=MAX_UINT256), "BAD_" + name + "_AMOUNT")
+    return str(v)
+
+
 def validate_graphql(body, label, first=MAX_ROWS):
     need(type(body) is dict and not body.get("errors"), label + "_GRAPHQL_ERROR")
     res = body.get("data", {}).get("marketPositions")
@@ -102,9 +114,9 @@ def validate_graphql(body, label, first=MAX_ROWS):
         shares=state.get("borrowShares")
         loan=state.get("borrowAssets")
         collateral=state.get("collateral")
-        for name, value in (("SHARES",shares),("LOAN",loan),("COLLATERAL",collateral)):
-            need(type(value) is str and bool(re.fullmatch(r"(0|[1-9][0-9]*)",value)) and len(value)<80,
-                 label+"_BAD_"+name)
+        shares=uint_base(shares,label+"_SHARES")
+        loan=uint_base(loan,label+"_LOAN")
+        collateral=uint_base(collateral,label+"_COLLATERAL")
         usd=state.get("borrowAssetsUsd")
         colusd=state.get("collateralUsd")
         usd=valid_decimal(usd, "USD") if usd is not None else None
@@ -136,7 +148,7 @@ def freeze(first, near):
     need(all(bool(POS_RE.fullmatch(x["borrower"])) for x in candidates),"FREEZE_MALFORMED_ADDRESS")
     return {"market_id":MARKET,"chain_id":CHAIN,"frozen_at_utc":now(),
             "top_borrower_page":{"count_total":first["count_total"],"rows_returned":first["rows_returned"],"fully_enumerated":first["complete_page"]},
-            "near_hf_page":{"count_total":near["count_total"],"rows_returned":near["rows_returned"],"fully_enumerated":near["complete_page"],"api_hf_lte":str(RISK_CUTOFF)},
+            "near_hf_page":{"count_total":near["count_total"],"rows_returned":near["rows_returned"],"fully_enumerated":near["complete_page"],"api_hf_lte":str(RISK_CUTOFF),"api_filter_proven_onchain":False},
             "cohort":candidates,"cohort_size":len(candidates)}
 
 
@@ -237,7 +249,7 @@ def run(out, wait_seconds=35, client=None, sleeper=None):
                 "second_sample_time_utc":now(),"wait_requested_seconds":wait_seconds,
                 "queries_executed":client.calls,"first_top_page_total":top["count_total"],
                 "first_risk_page_total":near["count_total"],"observations":evidence,
-                "single_indexer_only":True,"zero_new_external_chain_calls":True,
+                "single_indexer_only":True,"indexer_hf_filter_not_independently_verified":True,"zero_new_external_chain_calls":True,
                 "nqc_realized_pnl_usd":"0","shadow_p2_certified":False,
                 "canary_authorized":False,"commercial_score_not_automatically_promoted":True}
     except Rejected as e:
