@@ -1,0 +1,60 @@
+name: NQC Morpho Base canonical three tx and economic truth (READ ONLY)
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc-v2-shadow/morpho_base_cbXRP_economics.py"
+      - "ci/nqc-census/rmc-v2-shadow/test_morpho_base_cbXRP_economics.py"
+      - "ci/nqc-census/rmc-v2-shadow/MORPHO_BASE_REAL_LIQUIDATION_ECONOMICS.md"
+      - ".github/workflows/nqc-v2-morpho-base-real-economics.yml"
+  push:
+    branches:
+      - "nqc/v2-morpho-base-cbXRP-economic-20261014"
+permissions:
+  contents: read
+jobs:
+  strict-source-three-tx:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Strict offline source negative tests
+        run: |
+          set -euo pipefail
+          cd ci/nqc-census/rmc-v2-shadow
+          python3 -m unittest test_morpho_base_cbXRP_economics -v
+          python3 -m py_compile morpho_base_cbXRP_economics.py
+      - name: One bounded Base public read
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc-base-cbxrp"
+          python3 ci/nqc-census/rmc-v2-shadow/morpho_base_cbXRP_economics.py \
+            --out "$RUNNER_TEMP/nqc-base-cbxrp" > "$RUNNER_TEMP/nqc-base-cbxrp/source.log" \
+            2> "$RUNNER_TEMP/nqc-base-cbxrp/errors.log"
+          python3 - "$RUNNER_TEMP/nqc-base-cbxrp/canonical-liquidation-audit.json" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          assert d["status"] in ("CANONICAL_SELECTED_THREE_NOT_PROFIT","INCOMPLETE_CANONICAL_SELECTED_THREE")
+          assert d["nqc_pnl_usd"]=="0" and not d["net_profit_proven"] and not d["external_gas_payer_proven"]
+          if d["status"]=="CANONICAL_SELECTED_THREE_NOT_PROFIT":assert len(d["selected_transactions"])==3
+          print(d["status"],len(d["selected_transactions"]))
+          PY
+      - name: Immutable code manifest and source-negative diagnostics
+        if: always()
+        run: |
+          set -euo pipefail
+          o="$RUNNER_TEMP/nqc-base-cbxrp"
+          mkdir -p "$o/source"
+          cp ci/nqc-census/rmc-v2-shadow/morpho_base_cbXRP_economics.py \
+            ci/nqc-census/rmc-v2-shadow/test_morpho_base_cbXRP_economics.py \
+            ci/nqc-census/rmc-v2-shadow/MORPHO_BASE_REAL_LIQUIDATION_ECONOMICS.md \
+            .github/workflows/nqc-v2-morpho-base-real-economics.yml "$o/source/"
+          git rev-parse HEAD > "$o/code-commit.txt"
+          git rev-parse HEAD^{tree} > "$o/code-tree.txt"
+          (cd "$o"; find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256; sha256sum -c manifest.sha256)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: nqc-base-cbxrp-real-economics
+          path: "/home/runner/work/_temp/nqc-base-cbxrp/"
+          if-no-files-found: error
+          retention-days: 30
