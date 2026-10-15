@@ -1,10 +1,6 @@
 name: NQC Compound III Single Real Read-Only Quote Diagnostic
 on:
-  push:
-    branches:
-      - nqc/v2-compound3-usdc-discount-collateral-readonly-20261014
-    paths:
-      - .github/workflows/nqc-compound-quote-diagnostic-once.yml
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
