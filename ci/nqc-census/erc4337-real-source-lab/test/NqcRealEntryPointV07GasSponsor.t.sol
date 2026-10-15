@@ -14,6 +14,7 @@ import {IEntryPoint} from "../lib/account-abstraction/contracts/interfaces/IEntr
 import {PackedUserOperation} from "../lib/account-abstraction/contracts/interfaces/PackedUserOperation.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
+import {NqcMorphoNativeCallbackLab, NqcMarketParams} from "../src/NqcMorphoNativeCallbackLab.sol";
 
 interface Vm4337Nqc {
     function deal(address who, uint256 newBalance) external;
@@ -21,6 +22,8 @@ interface Vm4337Nqc {
     function addr(uint256 privateKey) external returns (address);
     function txGasPrice(uint256 price) external;
     function fee(uint256 basefee) external;
+    function readFile(string calldata path) external view returns (string memory);
+    function parseJsonBytes(string calldata json, string calldata key) external pure returns (bytes memory);
 }
 
 contract Nqc4337MockOnlyLiquidationTarget {
@@ -229,5 +232,222 @@ contract NqcRealEntryPointV07GasSponsorTest {
         PackedUserOperation[] memory ops = new PackedUserOperation[](1);
         ops[0] = op;
         entryPoint.handleOps(ops, BENEFICIARY);
+    }
+
+    function _deployPinnedOfficialMorphoBytecode() private returns (NqcFullMorphoLocal) {
+        // Run original Morpho forge build with solc 0.8.19 BEFORE this solc 0.8.23 suite.
+        // Read compiled original bytecode; never mock the Morpho contract itself.
+        string memory json = vm.readFile(
+            "../morpho-native-lab/out/Morpho.sol/Morpho.json"
+        );
+        bytes memory creation = vm.parseJsonBytes(json, ".bytecode.object");
+        require(creation.length > 800, "ORIGINAL_MORPHO_BYTECODE_NOT_BUILT");
+        bytes memory init = abi.encodePacked(creation, abi.encode(address(this)));
+        address deployed;
+        assembly ("memory-safe") {
+            deployed := create(0, add(init, 32), mload(init))
+        }
+        require(deployed != address(0) && deployed.code.length > 0,
+            "MORPHO_BYTECODE_CANNOT_DEPLOY");
+        return NqcFullMorphoLocal(deployed);
+    }
+
+    function _setupMorphoIntegration(uint256 mockRate)
+        private returns (
+            NqcFullMorphoLocal morpho,
+            NqcLocalERC20 usd,
+            NqcLocalERC20 collateral,
+            NqcLocalBorrower borrower,
+            NqcMorphoNativeCallbackLab executor,
+            NqcMarketParams memory market
+        )
+    {
+        morpho = _deployPinnedOfficialMorphoBytecode();
+        usd = new NqcLocalERC20();
+        collateral = new NqcLocalERC20();
+        NqcLocalOracle oracle = new NqcLocalOracle(13 * 10 ** 35);
+        morpho.enableIrm(address(0));
+        morpho.enableLltv(625 * 10 ** 15);
+        market = NqcMarketParams({
+            loanToken: address(usd),
+            collateralToken: address(collateral),
+            oracle: address(oracle),
+            irm: address(0),
+            lltv: 625 * 10 ** 15
+        });
+        morpho.createMarket(market);
+        usd.mint(address(this), 100_000e6);
+        usd.approve(address(morpho), 100_000e6);
+        morpho.supply(market, 100_000e6, 0, address(this), "");
+        borrower = new NqcLocalBorrower();
+        collateral.mint(address(borrower), 1_000e6);
+        borrower.open(morpho, market, collateral, 1_000e6, 700e6);
+        NqcLocalDex dex = new NqcLocalDex(usd, collateral, mockRate);
+        usd.mint(address(dex), 100_000e6);
+        executor = new NqcMorphoNativeCallbackLab(
+            address(morpho), address(dex), address(account), market
+        );
+        oracle.setPrice(1e36); // Synthetic unhealthy position ONLY.
+    }
+
+    function _signedMorphoUserOp(
+        address sponsorAddress, NqcMorphoNativeCallbackLab executor,
+        NqcMarketParams memory market, address borrower, bytes32 identity
+    ) private returns (PackedUserOperation memory op) {
+        op = _op(sponsorAddress, OWNER_KEY);
+        bytes memory liquidationCall = abi.encodeCall(
+            NqcMorphoNativeCallbackLab.execute,
+            (market, borrower, 500e6, 600e6, 50e6, 490e6,
+             block.number, identity)
+        );
+        op.callData = abi.encodeCall(
+            Nqc4337EIP712SignedAccountTestOnly.execute,
+            (address(executor), liquidationCall)
+        );
+        op.accountGasLimits = bytes32((uint256(500_000) << 128) | uint256(1_800_000));
+        bytes32 userOpHash = entryPoint.getUserOpHash(op);
+        bytes32 digest = MessageHashUtils.toEthSignedMessageHash(userOpHash);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(OWNER_KEY, digest);
+        op.signature = abi.encodePacked(r, s, v);
+    }
+
+    function testOfficialEntryPointToPinnedMorphoCallbackLocalSuccess() public {
+        (
+            NqcFullMorphoLocal morpho,
+            NqcLocalERC20 usd,
+            NqcLocalERC20 collateral,
+            NqcLocalBorrower borrower,
+            NqcMorphoNativeCallbackLab executor,
+            NqcMarketParams memory market
+        ) = _setupMorphoIntegration(11 * 10 ** 17);
+        bytes32 id = keccak256(abi.encode(market));
+        (, uint128 debtSharesBefore,) = morpho.position(id, address(borrower));
+        uint256 sponsorBefore = entryPoint.balanceOf(address(paymaster));
+        uint256 beneficiaryBefore = BENEFICIARY.balance;
+        PackedUserOperation memory op = _signedMorphoUserOp(
+            address(paymaster), executor, market, address(borrower),
+            bytes32(uint256(201))
+        );
+        _submit(op); // Authentic EIP-4337 EntryPoint, authentic Morpho.
+        (, uint128 debtSharesAfter,) = morpho.position(id, address(borrower));
+        require(debtSharesAfter < debtSharesBefore, "REAL_MORPHO_DEBT_NOT_REPAID");
+        require(usd.balanceOf(address(account)) >= 50e6, "MORPHO_PROFIT_NOT_ROUTED_TO_ACCOUNT");
+        require(address(account).balance == 0, "ACCOUNT_PAID_NATIVE_GAS");
+        require(entryPoint.balanceOf(address(paymaster)) < sponsorBefore,
+            "PAYMASTER_NOT_CHARGED_BY_OFFICIAL_ENTRYPOINT");
+        require(BENEFICIARY.balance > beneficiaryBefore, "BUNDLER_FEE_NOT_PAID");
+        require(usd.balanceOf(address(executor)) == 0 && collateral.balanceOf(address(executor)) == 0,
+            "EXECUTOR_HAS_STRANDED_ASSETS");
+        require(executor.used(bytes32(uint256(201))), "EXECUTION_ID_NOT_CONSUMED");
+    }
+
+    function testOfficialEntryPointToPinnedMorphoFailedSwapStillBillsSponsor() public {
+        (
+            NqcFullMorphoLocal morpho,
+            NqcLocalERC20 usd,
+            NqcLocalERC20 collateral,
+            NqcLocalBorrower borrower,
+            NqcMorphoNativeCallbackLab executor,
+            NqcMarketParams memory market
+        ) = _setupMorphoIntegration(8 * 10 ** 17);
+        bytes32 id = keccak256(abi.encode(market));
+        (, uint128 debtSharesBefore, uint128 collBefore) = morpho.position(id, address(borrower));
+        uint256 morphoCash = usd.balanceOf(address(morpho));
+        uint256 sponsorBefore = entryPoint.balanceOf(address(paymaster));
+        uint256 beneficiaryBefore = BENEFICIARY.balance;
+        PackedUserOperation memory op = _signedMorphoUserOp(
+            address(paymaster), executor, market, address(borrower),
+            bytes32(uint256(202))
+        );
+        _submit(op); // Application reverts, EntryPoint handles and pays sponsor gas.
+        (, uint128 debtSharesAfter, uint128 collAfter) = morpho.position(id, address(borrower));
+        require(debtSharesAfter == debtSharesBefore && collAfter == collBefore,
+            "MORPHO_ROLLBACK_FAILED");
+        require(usd.balanceOf(address(morpho)) == morphoCash, "MORPHO_CASH_CHANGED");
+        require(usd.balanceOf(address(account)) == 0, "FAILED_CALL_COLLECTED_USD");
+        require(!executor.used(bytes32(uint256(202))), "FAILED_MORPHO_OP_CONSUMED_EXECUTION_ID");
+        require(entryPoint.balanceOf(address(paymaster)) < sponsorBefore,
+            "FAILED_OPERATION_WAS_FALSELY_FREE");
+        require(BENEFICIARY.balance > beneficiaryBefore, "FAILED_OP_BUNDLER_NOT_PAID");
+        require(address(account).balance == 0, "ACCOUNT_WAS_CHARGED_NATIVE");
+    }
+
+}
+
+
+// Typed Morpho interfaces are restricted to official ABI; the deployed bytecode
+// comes exclusively from the separately pinned/compiled upstream Morpho.sol.
+interface NqcFullMorphoLocal {
+    function enableIrm(address irm) external;
+    function enableLltv(uint256 lltv) external;
+    function createMarket(NqcMarketParams calldata market) external;
+    function supply(NqcMarketParams calldata market, uint256 assets, uint256 shares,
+        address onBehalf, bytes calldata data) external returns (uint256, uint256);
+    function supplyCollateral(NqcMarketParams calldata market, uint256 assets,
+        address onBehalf, bytes calldata data) external;
+    function borrow(NqcMarketParams calldata market, uint256 assets, uint256 shares,
+        address onBehalf, address receiver) external returns (uint256, uint256);
+    function position(bytes32 marketId, address borrower) external view returns (
+        uint256 supplyShares, uint128 borrowShares, uint128 collateral);
+}
+
+contract NqcLocalERC20 {
+    mapping(address => uint256) public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
+    function mint(address to, uint256 amount) external { balanceOf[to] += amount; }
+    function approve(address to, uint256 amount) external returns (bool) {
+        allowance[msg.sender][to] = amount;
+        return true;
+    }
+    function transfer(address to, uint256 amount) external returns (bool) {
+        require(balanceOf[msg.sender] >= amount, "TOKEN_LOW");
+        balanceOf[msg.sender] -= amount;
+        balanceOf[to] += amount;
+        return true;
+    }
+    function transferFrom(address from, address to, uint256 amount) external returns (bool) {
+        require(balanceOf[from] >= amount && allowance[from][msg.sender] >= amount,
+            "TOKEN_ALLOWANCE_LOW");
+        allowance[from][msg.sender] -= amount;
+        balanceOf[from] -= amount;
+        balanceOf[to] += amount;
+        return true;
+    }
+}
+
+contract NqcLocalOracle {
+    uint256 public price;
+    constructor(uint256 initialPrice) { price = initialPrice; }
+    function setPrice(uint256 value) external { price = value; }
+}
+
+contract NqcLocalDex {
+    NqcLocalERC20 private immutable loan;
+    NqcLocalERC20 private immutable collateral;
+    uint256 private immutable numerator;
+    constructor(NqcLocalERC20 loan_, NqcLocalERC20 collateral_, uint256 rate) {
+        loan = loan_;
+        collateral = collateral_;
+        numerator = rate;
+    }
+    function swapExactCollateral(
+        address collateral_, address loan_, uint256 amountIn, uint256 minLoanOut
+    ) external returns (uint256 out) {
+        require(collateral_ == address(collateral) && loan_ == address(loan), "ASSETS");
+        require(collateral.transferFrom(msg.sender, address(this), amountIn), "PULL");
+        out = amountIn * numerator / 1e18;
+        require(out >= minLoanOut, "TEST_SHORT_DEX");
+        require(loan.transfer(msg.sender, out), "PAY_OUT");
+    }
+}
+
+contract NqcLocalBorrower {
+    function open(
+        NqcFullMorphoLocal morpho, NqcMarketParams memory market,
+        NqcLocalERC20 collateral, uint256 collateralAssets, uint256 borrowAssets
+    ) external {
+        collateral.approve(address(morpho), collateralAssets);
+        morpho.supplyCollateral(market, collateralAssets, address(this), "");
+        morpho.borrow(market, borrowAssets, 0, address(this), address(this));
     }
 }
