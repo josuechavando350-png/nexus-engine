@@ -1,0 +1,195 @@
+name: NQC V2 Prospectively Pinned wsNET Commercial Gate (READ ONLY ONCE)
+on:
+  push:
+    branches:
+      - nqc/wsnet-venue-one-shot-20261015
+    paths:
+      - .github/workflows/nqc-wsnet-prospective-commercial-one-shot.yml
+permissions:
+  contents: read
+jobs:
+  prospective:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: One official Morpho GraphQL borrower discovery and one pinned Robinhood onchain state
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import datetime, hashlib, json, os, pathlib, re, urllib.request, urllib.error
+          from decimal import Decimal, getcontext
+          getcontext().prec=45
+          MARKET='0xaa586d26a6fe62d9c0f0948fede6e2130500ac7a655587447e2d4a37e6330589'
+          MORPHO='0x9d53d5e3bd5e8d4cbfa6db1ca238aea02e651010'
+          USDG='0x5fc5360d0400a0fd4f2af552add042d716f1d168'
+          WSNET='0x63c12667638f2ae6fc6ae09b43d98ec84a8586ea'
+          NET='0xca9c78dd337a67f6e0077f65f5e9218719d30edf'
+          SNET='0xb773ec2c326b7f98a5a83fc098825492f020a4c7'
+          PAIR='0x59f95461e68e0c77605299791e1449f175165b54'
+          API='https://api.morpho.org/graphql'
+          RPC='https://rpc.mainnet.chain.robinhood.com'
+          Q='query{marketPositions(first:100,skip:0,where:{chainId_in:[4663],marketUniqueKey_in:["'+MARKET+'"]},orderBy:HealthFactor,orderDirection:Asc){pageInfo{count countTotal}items{market{marketId}user{address}}}}'
+          SELECTORS={'params':'0x2c3c9157','market':'0x5c60e39a','position':'0x93c52062','price':'0xa035b1fe','token0':'0x0dfe1681','token1':'0xd21220a7','reserves':'0x0902f1ac','totalSupply':'0x18160ddd','balanceOf':'0x70a08231'}
+          MAX_RPC=36
+          def utc(): return datetime.datetime.now(datetime.timezone.utc).isoformat()
+          def w(n):
+            assert isinstance(n,int) and n>=0 and n<2**256
+            return f'{n:064x}'
+          def address(a):
+            if not isinstance(a,str) or not re.fullmatch(r'0x[0-9a-fA-F]{40}',a):raise ValueError('INVALID_ADDRESS')
+            return w(int(a,16))
+          def words(s,k):
+            if not isinstance(s,str) or not re.fullmatch(r'0x(?:[0-9a-fA-F]{64})+',s) or len(s)<2+64*k:raise ValueError('INVALID_ABI_WORDS')
+            return [int(s[2+64*i:2+64*(i+1)],16) for i in range(k)]
+          def outv2(amt,rnet,rusdg):
+            if rnet<=0 or rusdg<=0:raise ValueError('BAD_PAIR_RESERVES')
+            x=amt*997
+            return x*rusdg//(rnet*1000+x)
+          def req(url,obj,label,receipt,maxbytes):
+            body=json.dumps(obj,separators=(',',':')).encode()
+            record={'request':obj,'utc':utc(),'request_sha256':hashlib.sha256(body).hexdigest()}
+            try:
+              request=urllib.request.Request(url,body,headers={'Content-Type':'application/json','Accept':'application/json','User-Agent':'NQC-V2-Propective-ReadOnly-Once'},method='POST')
+              with urllib.request.urlopen(request,timeout=12) as res:
+                if res.status!=200:raise ValueError('UNEXPECTED_HTTP_STATUS')
+                raw=res.read(maxbytes+1)
+              if len(raw)>maxbytes:raise ValueError('SOURCE_RESPONSE_TOO_LARGE')
+              record['response_sha256']=hashlib.sha256(raw).hexdigest()
+              doc=json.loads(raw)
+              record['response']=doc
+              return doc
+            except urllib.error.HTTPError as e:
+              record['http_error']=e.code
+              raise ValueError('HTTP_'+str(e.code)+'_STOP_NO_RETRY') from e
+            except (urllib.error.URLError,TimeoutError,OSError) as e:
+              record['transport_error']=type(e).__name__
+              raise ValueError('TRANSPORT_'+type(e).__name__+'_STOP') from e
+            finally:
+              receipt.append(record)
+          rpc_receipts=[];gql_receipts=[]
+          report={'status':'INCOMPLETE_SOURCE','created_utc':utc(),'source_scope':'single official Robinhood RPC and one public Morpho API snapshot','chain_id':4663,'market_id':MARKET,
+                  'no_live_transaction':True,'owner_capital_used_usd':'0','nqc_realized_pnl_usd':'0','financier_without_recourse_confirmed':False,
+                  'preinclusion_competitive_advantage_proven':False,'margin_executable_proven':False,
+                  'source_not_full_coverage_if_pagination_truncated':True,'onchain_observations':[]}
+          def rpc(method,params):
+            if method not in ('eth_chainId','eth_blockNumber','eth_getBlockByNumber','eth_getCode','eth_call'):raise ValueError('DISALLOWED_RPC_METHOD')
+            if len(rpc_receipts)>=MAX_RPC:raise ValueError('36_RPC_CALL_LIMIT')
+            rid=len(rpc_receipts)+1
+            doc=req(RPC,{'jsonrpc':'2.0','id':rid,'method':method,'params':params},'RPC',rpc_receipts,350000)
+            if not isinstance(doc,dict) or doc.get('jsonrpc')!='2.0' or doc.get('id')!=rid:raise ValueError('RPC_RESPONSE_ID_MISMATCH')
+            if doc.get('error') is not None:
+              err=doc['error'];raise ValueError('RPC_ERROR_'+str(err.get('code','UNKNOWN') if isinstance(err,dict) else 'UNKNOWN')+'_STOP')
+            if doc.get('result') is None:raise ValueError('RPC_NULL_RESULT_STOP')
+            return doc['result']
+          def call(to,data,b):
+            address(to)
+            if not re.fullmatch('0x[0-9a-fA-F]+',data):raise ValueError('NON_VIEW_CALLDATA')
+            return rpc('eth_call',[{'to':to,'data':data},hex(b)])
+          def header(n):
+            h=rpc('eth_getBlockByNumber',[hex(n),False])
+            if not isinstance(h,dict) or h.get('number')!=hex(n) or not re.fullmatch('0x[0-9a-fA-F]{64}',h.get('hash','')):raise ValueError('BLOCK_HEADER_INCONSISTENT')
+            return h
+          try:
+            # Public indexer is used ONLY to discover potential borrowers, never to certify HF.
+            gql=req(API,{'query':Q},'GQL',gql_receipts,850000)
+            if not isinstance(gql,dict) or gql.get('errors'):raise ValueError('MORPHO_GRAPHQL_SCHEMA_OR_SOURCE_ERROR')
+            page=gql.get('data',{}).get('marketPositions',{})
+            items=page.get('items');pi=page.get('pageInfo',{})
+            if not isinstance(items,list) or not isinstance(pi.get('countTotal'),int) or len(items)>100:raise ValueError('MORPHO_POSITION_PAGE_INCOMPLETE')
+            report['indexed_position_count']=pi['countTotal']
+            report['indexed_page_count']=len(items)
+            report['complete_indexed_page']=pi['countTotal']==len(items)
+            accounts=[];seen=set()
+            for x in items:
+              if x['market']['marketId'].lower()!=MARKET:raise ValueError('CROSS_MARKET_CONTAMINATION')
+              a=x['user']['address'].lower();address(a)
+              if a in seen:raise ValueError('DUPLICATE_INDEXED_BORROWER')
+              seen.add(a);accounts.append(a)
+            if int(rpc('eth_chainId',[]),16)!=4663:raise ValueError('WRONG_RPC_CHAIN')
+            b=int(rpc('eth_blockNumber',[]),16)-8
+            if b<=0:raise ValueError('INVALID_HEIGHT')
+            initial=header(b)
+            report['block']={k:initial.get(k) for k in ('number','hash','stateRoot','timestamp','parentHash')}
+            code=rpc('eth_getCode',[MORPHO,hex(b)])
+            if not isinstance(code,str) or len(code)<70:raise ValueError('MORPHO_NOT_DEPLOYED')
+            rawp=words(call(MORPHO,SELECTORS['params']+MARKET[2:],b),5)
+            asaddr=lambda n:'0x'+f'{n:040x}'
+            loan,coll,oracle,irm,lltv=asaddr(rawp[0]),asaddr(rawp[1]),asaddr(rawp[2]),asaddr(rawp[3]),rawp[4]
+            if loan!=USDG or coll!=WSNET or lltv!=625000000000000000 or int(oracle,16)==0:raise ValueError('MORPHO_MARKET_ID_PARAMS_DRIFT')
+            report['market_params']={'loan':loan,'collateral':coll,'oracle':oracle,'lltv':str(lltv)}
+            m=words(call(MORPHO,SELECTORS['market']+MARKET[2:],b),6)
+            if m[3]<=0:raise ValueError('MORPHO_NO_BORROW_SHARES')
+            oracleprice=words(call(oracle,SELECTORS['price'],b),1)[0]
+            if oracleprice<=0:raise ValueError('ORACLE_ZERO')
+            report['oracle_price_raw']=str(oracleprice)
+            tok0=words(call(PAIR,SELECTORS['token0'],b),1)[0]
+            tok1=words(call(PAIR,SELECTORS['token1'],b),1)[0]
+            if asaddr(tok0)!=USDG or asaddr(tok1)!=NET:raise ValueError('POOL_TOKENS_NOT_USDG_NET')
+            pool=words(call(PAIR,SELECTORS['reserves'],b),3)
+            if pool[0]<=0 or pool[1]<=0:raise ValueError('NET_USDG_NO_RESERVES')
+            backing=words(call(SNET,SELECTORS['balanceOf']+address(WSNET),b),1)[0]
+            supply=words(call(WSNET,SELECTORS['totalSupply'],b),1)[0]
+            if backing<=0 or supply<=0:raise ValueError('WRAPPER_BACKING_NOT_AVAILABLE')
+            report['pool']={'usdg_reserve_micro':str(pool[0]),'net_reserve_raw':str(pool[1]),'snet_backing_raw':str(backing),'wsnet_supply_wei':str(supply)}
+            for user in accounts[:12]:
+              s=words(call(MORPHO,SELECTORS['position']+MARKET[2:]+address(user),b),3)
+              borrowshares, collateral=s[1],s[2]
+              if borrowshares<=0:continue
+              debt=(borrowshares*(m[2]+1)+(m[3]+1000000)-1)//(m[3]+1000000)
+              if debt<=0:continue
+              collateral_value=collateral*oracleprice//10**36
+              hf=Decimal(collateral_value)*Decimal(lltv)/(Decimal(debt)*Decimal(10**18))
+              candidate={'borrower':user,'collateral_wei':str(collateral),'debt_usdg_micro_lower_bound':str(debt),'health_factor_unaccrued_upper_bound':str(hf),'hf_upper_below_1':hf<1}
+              if hf<Decimal('1.05'):
+                # Liquidation incentive numerator/denominator at LLTV=62.5%; purely illustrative.
+                repay=min(debt,collateral_value*71//80,25000*10**6)
+                seized=min(collateral,repay*80*10**36//(71*oracleprice))
+                estimated_net=seized*backing//supply
+                q0=outv2(estimated_net,pool[1],pool[0]);q5=outv2(estimated_net*95//100,pool[1],pool[0])
+                candidate['conditional_model_not_executable_quote']={'repay_micro':str(repay),'seized_wsnet_wei':str(seized),'gross_micro_no_tax_before_outer_costs':str(q0-repay),'gross_micro_5pct_tax_before_outer_costs':str(q5-repay),'requires_actual_atomic_unstake_flash_gas_and_sponsor':True}
+              report['onchain_observations'].append(candidate)
+            final=header(b)
+            if any(initial.get(k)!=final.get(k) for k in ('number','hash','parentHash','stateRoot')):raise ValueError('BLOCK_REORG_ABORT')
+            report['block_header_rechecked']=True
+            report['borrowers_rechecked_onchain']=len(report['onchain_observations'])
+            report['hf_upper_below_1_count']=sum(int(x['hf_upper_below_1']) for x in report['onchain_observations'])
+            report['status']='READONLY_PROSPECTIVE_SNAPSHOT_NOT_EXECUTABLE_PROFIT_PROOF'
+          except Exception as exc:
+            report['status']='INCOMPLETE_SOURCE'
+            report['blocking_reason']=str(exc)[:160]
+            report['blocker_type']=type(exc).__name__
+          finally:
+            report['completed_utc']=utc()
+            report['rpc_request_count']=len(rpc_receipts)
+            report['morpho_graphql_request_count']=len(gql_receipts)
+            pathlib.Path('out').mkdir(exist_ok=True)
+            pathlib.Path('out/real_prospective_snapshot.json').write_text(json.dumps(report,sort_keys=True,indent=2)+'\n')
+            pathlib.Path('out/raw_rpc_receipts.json').write_text(json.dumps(rpc_receipts,sort_keys=True,indent=2)+'\n')
+            pathlib.Path('out/raw_morpho_api_receipt.json').write_text(json.dumps(gql_receipts,sort_keys=True,indent=2)+'\n')
+            print('NQC_PROSPECTIVE_GATE',report['status'],'BORROWERS',report.get('borrowers_rechecked_onchain',0),
+                  'HF_LE_1_CANDIDATES',report.get('hf_upper_below_1_count',0),'BLOCKER',report.get('blocking_reason','NONE'),
+                  'REALIZED_PNL_USD',report['nqc_realized_pnl_usd'])
+          PY
+          python3 - <<'PY'
+          import json
+          r=json.load(open('out/real_prospective_snapshot.json'))
+          assert r['nqc_realized_pnl_usd']=='0' and r['owner_capital_used_usd']=='0'
+          assert not r['margin_executable_proven'] and not r['financier_without_recourse_confirmed']
+          assert not r['no_live_transaction'] is False
+          assert r['status'] in ('INCOMPLETE_SOURCE','READONLY_PROSPECTIVE_SNAPSHOT_NOT_EXECUTABLE_PROFIT_PROOF')
+          print('ECONOMIC_GATE_FUNDING_AND_CAPTURE: NOT CERTIFIED;',r['status'])
+          PY
+          git rev-parse HEAD > out/source-head.txt || true
+          cd out
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum -c manifest.sha256
+      - name: Preserve original API/RPC receipts and invalid observations
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-wsnet-prospective-commercial-one-shot
+          path: out/
+          retention-days: 14
+          if-no-files-found: error
