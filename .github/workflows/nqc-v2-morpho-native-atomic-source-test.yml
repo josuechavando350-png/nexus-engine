@@ -1,0 +1,119 @@
+name: NQC V2 Native Morpho Callback Atomic SOURCE LAB (LOCAL ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-t36/contracts/src/NqcMorphoNativeCallbackLab.sol'
+      - 'ci/nqc-t36/contracts/test/NqcMorphoNativeCallbackLab.t.sol'
+      - 'ci/nqc-t36/contracts/MORPHO_NATIVE_CALLBACK_ATOMIC_LAB.md'
+      - '.github/workflows/nqc-v2-morpho-native-atomic-source-test.yml'
+  push:
+    branches:
+      - 'nqc/v2-morpho-native-callback-atomic-local-20261014'
+    paths:
+      - 'ci/nqc-t36/contracts/src/NqcMorphoNativeCallbackLab.sol'
+      - 'ci/nqc-t36/contracts/test/NqcMorphoNativeCallbackLab.t.sol'
+      - 'ci/nqc-t36/contracts/MORPHO_NATIVE_CALLBACK_ATOMIC_LAB.md'
+      - '.github/workflows/nqc-v2-morpho-native-atomic-source-test.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-native-morpho-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  source-authenticated-local-morpho:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout NQC draft-only exact HEAD
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Checkout exact public official Morpho Blue source for LOCAL EVM
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: morpho-org/morpho-blue
+          ref: 8e26ca6a8dbc5089edcd67fb576248810fd2870a
+          path: ci/nqc-t36/contracts/lib/morpho-blue
+          persist-credentials: false
+
+      - name: Authenticate original source bytes and preserve original T36
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'SOURCE_HEAD=${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
+          test "$(git -C ci/nqc-t36/contracts/lib/morpho-blue rev-parse HEAD)" = '8e26ca6a8dbc5089edcd67fb576248810fd2870a'
+          test "$(git -C ci/nqc-t36/contracts/lib/morpho-blue hash-object src/Morpho.sol)" = 'ab064b646bf161b1510e2575a99412cdc2a43ebb'
+          test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = 'aa3883fa141aa096006e90e56d8d4150c9ee14ef'
+          grep -q 'if (data.length > 0) IMorphoLiquidateCallback(msg.sender).onMorphoLiquidate' ci/nqc-t36/contracts/lib/morpho-blue/src/Morpho.sol
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('ci/nqc-t36/contracts/lib/morpho-blue/src/Morpho.sol').read_text()
+          assert s.index('safeTransfer(msg.sender, seizedAssets)') < s.index('onMorphoLiquidate(repaidAssets, data)') < s.index('safeTransferFrom(msg.sender, address(this), repaidAssets)')
+          lab=Path('ci/nqc-t36/contracts/src/NqcMorphoNativeCallbackLab.sol').read_text()
+          assert '.flashLoan(' not in lab
+          print('Official upstream transfer -> callback -> repay source identity PASS')
+          PY
+
+      - name: Install pinned official Foundry v1.7.1 (0 user funds)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/foundry"
+          curl --fail --location --retry 2 --max-time 160 \
+            -o "$RUNNER_TEMP/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  $RUNNER_TEMP/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
+          echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/foundry/forge" --version
+
+      - name: Compile exact public Morpho.sol and execute LOCAL full protocol callback suite
+        working-directory: ci/nqc-t36/contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-native-morpho-source"
+          mkdir -p "$OUT"
+          forge test --match-contract NqcMorphoNativeCallbackLabTest -vv 2>&1 | tee "$OUT/protocol-authentic-mock-token-tests.txt"
+          grep -q 'testActualUpstreamMorphoSyntheticLiquidationAtomicWithNoFlashLoan' "$OUT/protocol-authentic-mock-token-tests.txt"
+          grep -q 'testRouterUnderpaysRevertsAtomicState' "$OUT/protocol-authentic-mock-token-tests.txt"
+          forge inspect NqcMorphoNativeCallbackLab methodIdentifiers > "$OUT/method-ids.json"
+
+      - name: Generate immutable evidence with explicit NO P&L and zero-capital limits
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-native-morpho-source"
+          cp ci/nqc-t36/contracts/src/NqcMorphoNativeCallbackLab.sol "$OUT/engine-lab.sol"
+          cp ci/nqc-t36/contracts/test/NqcMorphoNativeCallbackLab.t.sol "$OUT/test-lab.sol"
+          cp ci/nqc-t36/contracts/MORPHO_NATIVE_CALLBACK_ATOMIC_LAB.md "$OUT/scope-contract.md"
+          cp .github/workflows/nqc-v2-morpho-native-atomic-source-test.yml "$OUT/workflow.yml"
+          git rev-parse HEAD > "$OUT/nqc-code-commit.txt"
+          git rev-parse HEAD^{tree} > "$OUT/nqc-code-tree.txt"
+          git -C ci/nqc-t36/contracts/lib/morpho-blue rev-parse HEAD > "$OUT/public-morpho-upstream-commit.txt"
+          git -C ci/nqc-t36/contracts/lib/morpho-blue hash-object src/Morpho.sol > "$OUT/public-morpho-source-blob.txt"
+          jq -n --arg head '${{ github.event.pull_request.head.sha || github.sha }}' \
+           '{status:"LOCAL_SOURCE_ONLY_MORPHO_CALLBACK_PROOF",source_head:$head,authentic_morpho_upstream_source:true,
+             direct_native_liquidate_without_separate_flash:true,unmodified_upstream_test_source:true,
+             actual_base_chain_unhealthy_borrower_proven:false,real_base_dex_execution:false,
+             local_mock_router_and_oracle:true,actual_tx_native_gas_financed:false,
+             builder_competition_or_inclusion_proven:false,commercial_edge_over_upstream_bot_proven:false,
+             external_sponsor_nonrecourse_proven:false,nqc_realized_pnl_usd:"0",commercial_upgrade:false,
+             economic_validation_stage:4,live_or_canary_authorized:false,owner_capital_spent_usd:"0"}' \
+             > "$OUT/source-only-decision.json"
+          (cd "$OUT" && sha256sum *.sol *.txt *.json *.md *.yml > archive.sha256 && sha256sum -c archive.sha256)
+
+      - name: Upload LOCAL no-capital source evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-morpho-native-source-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-native-morpho-source/
+          retention-days: 30
+          if-no-files-found: error
