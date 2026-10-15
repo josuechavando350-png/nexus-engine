@@ -29,13 +29,24 @@ POSITIVE = (
      "tx_hash":"0x53de29056359c29351d353fff7542daf50416053842385e9cb6013834140dc40"},
 )
 RPCS={"drpc":"https://eth.drpc.org", "publicnode":"https://ethereum-rpc.publicnode.com"}
+# Existing NQC PR694/PR700 historically used the legitimate public BlastAPI RPC.
+# This is only a predeclared ALTERNATIVE after PublicNode returned JSON-RPC null
+# for the original economic-causal oracle TX0; never retry denied access.
+BLAST_PUBLIC_URL="https://eth-mainnet.public.blastapi.io"
 MEV_SHARE="https://mev-share.flashbots.net"
 HISTORY_INFO=MEV_SHARE+"/api/v1/history/info"
 HISTORY=MEV_SHARE+"/api/v1/history"
 SECONDARY_TOPIC="0x8d530b9ddc4b318d28fdd4c3a21fcfecece54c1a72a824f262985b99afef009b"
 PRIMARY_TOPIC="0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a"
 ROUND_SELECTOR="0xfeaf968c"
-MAX_RPC_CALLS=18
+# Authenticated effective Aave V3 Ethereum WETH price path: PR700 and PR732.
+WETH_PROXY="0x5424384b256154046e9667ddfaaa5e550145215e"
+AAVE_ORACLE="0x54586be62e3c3580375ae3723c145253060ca0c2"
+WETH_ASSET="0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+AGGREGATOR_SELECTOR="0x245a7bfc"
+AAVE_PRICE_SELECTOR="0xb3596f07"
+AAVE_WETH_PRICE_CALL=AAVE_PRICE_SELECTOR+"0"*24+WETH_ASSET[2:]
+MAX_RPC_CALLS=28
 MAX_HISTORY_PAGES=4
 MAX_HISTORY_ROWS=1600
 MAX_HISTORY_BODY_BYTES=8_000_000
@@ -115,15 +126,18 @@ def decode_round(raw):
     return {"round_id":str(rid),"answer_raw":str(ans),"updated_at":updated}
 
 class RPC:
-    def __init__(self,label,transport=None,monotonic=time.monotonic,sleeper=time.sleep):
-        require(label in RPCS,"unapproved provider")
-        self.label=label;self.transport=transport or self._real
+    def __init__(self,label,transport=None,monotonic=time.monotonic,sleeper=time.sleep,*,controls=POSITIVE):
+        require(label in RPCS or label=="blast","unapproved provider")
+        self.label=label;self.url=BLAST_PUBLIC_URL if label=="blast" else RPCS[label]
+        self.transport=transport or self._real
         self.monotonic=monotonic;self.sleeper=sleeper
         self.calls=0;self.last=None;self.pins=set();self.transcript=[]
+        self.controls=tuple(controls)
+        self.mismatch_ledger=[]
 
     @staticmethod
     def _real(url,method,params):
-        require(url in RPCS.values(),"unapproved source URL")
+        require(url in tuple(RPCS.values())+(BLAST_PUBLIC_URL,),"unapproved source URL")
         body=canonical({"jsonrpc":"2.0","id":404,"method":method,"params":params})
         require(len(body)<=1200,"RPC request too large")
         req=Request(url,data=body,method="POST",headers={"Content-Type":"application/json",
@@ -144,20 +158,25 @@ class RPC:
             require(type(params) is list and len(params)==2 and
                     params[1] is False and type(params[0]) is str and
                     HEXQ.fullmatch(params[0]) and int(params[0],16) in
-                    {b+offset for b in (q["block"] for q in POSITIVE) for offset in (0,-1)},
+                    {b+offset for b in (q["block"] for q in self.controls) for offset in (0,-1)},
                     "unapproved header height")
         elif method in ("eth_getTransactionReceipt","eth_getTransactionByHash"):
             require(type(params) is list and len(params)==1 and
-                    params[0] in [q["tx_hash"] for q in POSITIVE],
+                    params[0] in [q["tx_hash"] for q in self.controls],
                     "arbitrary transaction query forbidden")
         elif method=="eth_call":
-            require(type(params) is list and len(params)==2 and params[0]==
-                    {"to":WETH_AGGREGATOR,"data":ROUND_SELECTOR} and
+            allowed=(
+                {"to":WETH_AGGREGATOR,"data":ROUND_SELECTOR},
+                {"to":WETH_PROXY,"data":ROUND_SELECTOR},
+                {"to":WETH_PROXY,"data":AGGREGATOR_SELECTOR},
+                {"to":AAVE_ORACLE,"data":AAVE_WETH_PRICE_CALL},
+            )
+            require(type(params) is list and len(params)==2 and params[0] in allowed and
                     type(params[1]) is dict and
                     params[1].get("requireCanonical") is True and
                     set(params[1])=={"blockHash","requireCanonical"} and
                     params[1]["blockHash"] in self.pins,
-                    "only canonical pinned WETH aggregator round allowed")
+                    "only canonical pinned WETH effective Aave price route allowed")
         else:raise Rejected("Ethereum method not read-only allowlisted")
         if self.last is not None:
             remain=MIN_REQUEST_GAP_SEC-(self.monotonic()-self.last)
@@ -166,7 +185,7 @@ class RPC:
         beg=clock();entry={"source":self.label,"method":method,
                            "request_sha256":sha256(canonical(params)).hexdigest()}
         try:
-            value=self.transport(RPCS[self.label],method,params)
+            value=self.transport(self.url,method,params)
             entry["result_sha256"]=sha256(canonical(value)).hexdigest()
             return value
         except Exception as error:
@@ -176,13 +195,59 @@ class RPC:
             entry["elapsed_monotonic_ns"]=clock()["monotonic_ns"]-beg["monotonic_ns"]
             self.transcript.append(entry)
 
+def sanitized_mismatch(method,a,b,*,peer="publicnode"):
+    """Only mismatching FIELD NAMES and content hashes; no private source payload."""
+    entry={"method":method,"second_provider":peer,"source_values_bitwise_identical":False,
+           "drpc_result_sha256":sha256(canonical(a)).hexdigest(),
+           "secondary_provider_result_sha256":sha256(canonical(b)).hexdigest(),
+           "canonical_authority_promoted":False}
+    if type(a) is not dict or type(b) is not dict:
+        entry["shape"]="NOT_TWO_DICTIONARIES"
+        return entry
+    keys_a=set(a);keys_b=set(b)
+    entry["only_drpc_fields"]=sorted(keys_a-keys_b)
+    entry["only_secondary_provider_fields"]=sorted(keys_b-keys_a)
+    entry["changed_shared_fields"]=sorted(k for k in keys_a&keys_b if a[k]!=b[k])
+    important=("transactionHash","blockHash","blockNumber","transactionIndex",
+               "status","gasUsed","effectiveGasPrice")
+    entry["required_receipt_fields_identical"]=(
+        all(k in a and k in b and a[k]==b[k] for k in important))
+    if method=="eth_getTransactionReceipt" and type(a.get("logs")) is list and type(b.get("logs")) is list:
+        la,lb=a["logs"],b["logs"]
+        entry["drpc_log_count"]=len(la)
+        entry["publicnode_log_count"]=len(lb)
+        changed=[]
+        for i in range(min(len(la),len(lb),20)):
+            x,y=la[i],lb[i]
+            if type(x) is dict and type(y) is dict:
+                changed.append({"log_position":i,
+                                "changed_keys":sorted(k for k in set(x)&set(y) if x[k]!=y[k]),
+                                "only_drpc_keys":sorted(set(x)-set(y)),
+                                "only_secondary_provider_keys":sorted(set(y)-set(x))})
+            elif x!=y:
+                changed.append({"log_position":i,"different_log_shape":True})
+        entry["log_field_deltas"]=[x for x in changed if x.get("changed_keys") or
+            x.get("only_drpc_keys") or x.get("only_secondary_provider_keys") or x.get("different_log_shape")]
+        entry["logs_compared_up_to_first_20"] = True
+    return entry
+
+
 def same(clients,method,params):
+    require(set(clients) in ({"drpc","publicnode"},{"drpc","blast"}),
+            "unauthorized dual RPC source pairing")
+    peer="blast" if "blast" in clients else "publicnode"
     a=clients["drpc"].call(method,params)
-    b=clients["publicnode"].call(method,params)
-    require(a==b,"dual-RPC source disagreement on "+method)
+    b=clients[peer].call(method,params)
+    if a!=b:
+        row=sanitized_mismatch(method,a,b,peer=peer)
+        for c in clients.values():
+            if not hasattr(c,"mismatch_ledger"):
+                c.mismatch_ledger=[]
+            c.mismatch_ledger.append(row)
+        raise Rejected("dual-RPC source disagreement on "+method)
     return a
 
-def verified_transaction(control,clients):
+def verified_transaction(control,clients,*,effective_aave_price=False):
     height,txhash=control["block"],control["tx_hash"]
     heads={}
     for h in (height-1,height):
@@ -226,9 +291,27 @@ def verified_transaction(control,clients):
             pass
     prices={}
     for h in (height-1,height):
-        prices[h]=decode_round(same(clients,"eth_call",[
-            {"to":WETH_AGGREGATOR,"data":ROUND_SELECTOR},
-            {"blockHash":heads[h]["hash"],"requireCanonical":True}]))
+        pin={"blockHash":heads[h]["hash"],"requireCanonical":True}
+        if effective_aave_price:
+            # The real Aave Oracle reads the WETH proxy, NOT an interchangeable
+            # direct DualAggregator latestRoundData(); PR700 used this same path.
+            aggregator_word=same(clients,"eth_call",[
+                {"to":WETH_PROXY,"data":AGGREGATOR_SELECTOR},pin])
+            require(type(aggregator_word) is str and HEXBLOB.fullmatch(aggregator_word)
+                    and len(aggregator_word)==66 and
+                    int(aggregator_word,16)==int(WETH_AGGREGATOR,16),
+                    "historical Aave WETH proxy no longer targets frozen DualAggregator")
+            prices[h]=decode_round(same(clients,"eth_call",[
+                {"to":WETH_PROXY,"data":ROUND_SELECTOR},pin]))
+            oracle_word=same(clients,"eth_call",[
+                {"to":AAVE_ORACLE,"data":AAVE_WETH_PRICE_CALL},pin])
+            require(type(oracle_word) is str and HEXBLOB.fullmatch(oracle_word)
+                    and len(oracle_word)==66 and
+                    int(oracle_word,16)==int(prices[h]["answer_raw"]),
+                    "Aave Oracle.getAssetPrice(WETH) does not match canonical proxy price")
+        else:
+            prices[h]=decode_round(same(clients,"eth_call",[
+                {"to":WETH_AGGREGATOR,"data":ROUND_SELECTOR},pin]))
     # Recheck original heads to reject any reorg in the evidence interval.
     for h in (height-1,height):
         require(canonical_header(same(clients,"eth_getBlockByNumber",[hex(h),False]),h)==heads[h],
@@ -242,6 +325,8 @@ def verified_transaction(control,clients):
             "tx_input_forwarded_report_decoded":report is not None,
             "report_median_raw":report["median_signed_int192_raw"] if report else None,
             "price_before":prices[height-1],"price_after":prices[height],
+            "effective_Aave_WETH_proxy_price_verified":effective_aave_price,
+            "direct_dual_aggregator_not_substituted_for_Aave_proxy":effective_aave_price,
             "round_advanced":prices[height-1]["round_id"]!=prices[height]["round_id"] or
                              prices[height-1]["updated_at"]!=prices[height]["updated_at"],
             "feed_report_median_matches_after_if_decoded":
@@ -249,9 +334,12 @@ def verified_transaction(control,clients):
             "expected_event_double_keccak":"0x"+keccak256(bytes.fromhex(txhash[2:])).hex()}
 
 class Archive:
-    def __init__(self,opener=urlopen,monotonic=time.monotonic,sleeper=time.sleep):
+    def __init__(self,opener=urlopen,monotonic=time.monotonic,sleeper=time.sleep,*,controls=POSITIVE,max_pages=MAX_HISTORY_PAGES):
         self.opener=opener;self.monotonic=monotonic;self.sleeper=sleeper
         self.last=None;self.calls=0;self.log=[]
+        self.controls=tuple(controls)
+        require(type(max_pages) is int and 1<=max_pages<=8,"invalid archival page budget")
+        self.max_pages=max_pages
 
     def get(self,url):
         if url != HISTORY_INFO:
@@ -265,13 +353,13 @@ class Archive:
                     all(v.isascii() and v.isdecimal() for k,v in pairs),
                     "unapproved or duplicated archive parameters")
             args={k:int(v) for k,v in pairs}
-            require(args["blockStart"] in {c["block"]-8 for c in POSITIVE} and
+            require(args["blockStart"] in {c["block"]-8 for c in self.controls} and
                     args["blockEnd"]==args["blockStart"]+9 and
                     1<=args["limit"]<=400 and
                     args["offset"]%args["limit"]==0 and
-                    args["offset"]//args["limit"]<MAX_HISTORY_PAGES,
+                    args["offset"]//args["limit"]<self.max_pages,
                     "archive request outside fixed positive-control windows")
-        require(self.calls<1+MAX_HISTORY_PAGES*len(POSITIVE),"archive request hard budget")
+        require(self.calls<1+self.max_pages*len(self.controls),"archive request hard budget")
         if self.last is not None:
             lag=0.4-(self.monotonic()-self.last)
             if lag>0:self.sleeper(lag)
@@ -317,7 +405,7 @@ class Archive:
             result["status"]="INCOMPLETE_TARGET_RANGE_NOT_ARCHIVED"
             return result
         limit=min(400,meta["maxLimit"])
-        for p in range(MAX_HISTORY_PAGES):
+        for p in range(self.max_pages):
             query=urlencode({"blockStart":lo,"blockEnd":hi,
                              "limit":limit,"offset":p*limit})
             rows=self.get(HISTORY+"?"+query)
@@ -380,14 +468,22 @@ class Archive:
         result["status"]="INCOMPLETE_ARCHIVE_PAGINATION_CAP"
         return result
 
-def run(out:Path,*,rpc_clients=None,archive=None):
+def run(out:Path,*,rpc_clients=None,archive=None,controls=POSITIVE,require_decrease=False):
     require(out.is_absolute() and not out.exists() and out.parent.is_dir(),
             "fresh absolute output path expected")
     out.mkdir()
-    source={"schema_version":1,"predeclared_blockscout_secondary_controls":list(POSITIVE),
-            "target":WETH_AGGREGATOR,"public_rpc_provider_ids":list(RPCS),
-            "history_source":MEV_SHARE,"max_history_pages_per_control":MAX_HISTORY_PAGES,
-            "max_history_rows_per_control":MAX_HISTORY_ROWS,"read_only":True,
+    controls=tuple(controls)
+    require(len(controls)==2 and len({q["tx_hash"] for q in controls})==2,
+            "exactly two distinct predeclared controls required")
+    source={"schema_version":1,"predeclared_blockscout_secondary_controls":list(controls),
+            "target":WETH_AGGREGATOR,
+            "public_rpc_provider_ids":["drpc","blast"] if require_decrease else list(RPCS),
+            "excluded_publicnode_null_receipt_first_attempt":require_decrease,
+            "historical_effective_Aave_WETH_proxy_source":WETH_PROXY if require_decrease else None,
+            "historical_Aave_Oracle_price_address":AAVE_ORACLE if require_decrease else None,
+            "history_source":MEV_SHARE,"require_decreasing_price":require_decrease,
+            "max_history_pages_per_control":8 if require_decrease else MAX_HISTORY_PAGES,
+            "max_history_rows_per_control":3200 if require_decrease else MAX_HISTORY_ROWS,"read_only":True,
             "created_before_network":clock()}
     (out/"source-precommit.json").write_bytes(canonical(source))
     result={"schema_version":1,"precommit_sha256":sha256(canonical(source)).hexdigest(),
@@ -398,14 +494,25 @@ def run(out:Path,*,rpc_clients=None,archive=None):
             "nonrecourse_native_gas_funded":False,"net_pnl_proven":False,
             "RMC_closed":False,"shadow_certified":False,"live_authorized":False,
             "nqc_realized_pnl_usd":"0"}
-    clients=rpc_clients if rpc_clients is not None else {s:RPC(s) for s in RPCS}
-    archive=archive if archive is not None else Archive()
+    clients=rpc_clients if rpc_clients is not None else {
+        s:RPC(s,controls=controls) for s in
+        (["drpc","blast"] if require_decrease else list(RPCS))}
+    archive=archive if archive is not None else Archive(controls=controls,max_pages=8 if require_decrease else MAX_HISTORY_PAGES)
     try:
-        require(set(clients)==set(RPCS),"required dual-provider identities")
+        require(set(clients)==({"drpc","blast"} if require_decrease else set(RPCS)),
+                "required exactly two declared provider identities")
         require(all(quantity(x.call("eth_chainId",[]))==1 for x in clients.values()),
                 "Ethereum mainnet identity mismatch")
-        for control in POSITIVE:
-            result["positive_controls"].append(verified_transaction(control,clients))
+        for control in controls:
+            verified=verified_transaction(control,clients,effective_aave_price=require_decrease)
+            if require_decrease:
+                initial=int(verified["price_before"]["answer_raw"])
+                final=int(verified["price_after"]["answer_raw"])
+                require(verified["round_advanced"] and initial>final>0,
+                        "historical source did not cause a lower canonical WETH price")
+                require(verified["feed_report_median_matches_after_if_decoded"] is not False,
+                        "decoded report contradicts canonical price")
+            result["positive_controls"].append(verified)
         result["status"]="ONCHAIN_POSITIVE_CONTROLS_CERTIFIED_ARCHIVE_PENDING"
         meta=archive.info()
         result["archive_info"]={"minBlock":meta["minBlock"],
@@ -422,7 +529,9 @@ def run(out:Path,*,rpc_clients=None,archive=None):
             result["status"]="INCOMPLETE_POST_ONCHAIN_ARCHIVE_READ"
         else:
             result["status"]="INCOMPLETE_SOURCE_CONTROLS"
-    result["source_call_log"]={s:{"call_count":c.calls,"log":c.transcript} for s,c in clients.items()}
+    result["source_call_log"]={s:{"call_count":c.calls,"log":c.transcript,
+            "sanitized_mismatch_ledger":getattr(c,"mismatch_ledger",[])}
+            for s,c in clients.items()}
     result["archive_calls"]=archive.log
     result["finished"]=clock()
     (out/"oracle-to-mev-share-archive-witness.json").write_bytes(canonical(result))

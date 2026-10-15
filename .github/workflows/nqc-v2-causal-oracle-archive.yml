@@ -1,0 +1,110 @@
+name: NQC V2 Historical HF Trigger Oracle Hints in MEV-Share Archive (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/svr_archive_positive_controls.py'
+      - 'ci/nqc-census/rmc-v2-shadow/svr_hf_trigger_archive_audit.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_svr_hf_trigger_archive_audit.py'
+      - 'ci/nqc-census/rmc-v2-shadow/SVR_HF_TRIGGER_ARCHIVE_CONTRACT.md'
+      - '.github/workflows/nqc-v2-causal-oracle-archive.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-hf-oracle-archive-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  authentic-causal-oracle-controls:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Original chain/head SHA and offline adversarial controls
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-hf-causal-archive"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_svr_hf_trigger_archive_audit.py -v 2>&1 | tee "$OUT/new-adversarial.log"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_svr_archive_positive_controls.py -v 2>&1 | tee "$OUT/parent-regression.log"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_svr_hint_admission.py -v 2>&1 | tee "$OUT/oracle-abi-regression.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/svr_archive_positive_controls.py \
+            ci/nqc-census/rmc-v2-shadow/svr_hf_trigger_archive_audit.py
+      - name: Two precommitted price-moving oracle TX0s versus bounded historical hints
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-hf-causal-archive"
+          timeout 600s python3 ci/nqc-census/rmc-v2-shadow/svr_hf_trigger_archive_audit.py \
+            --out "$OUT/attempt" > "$OUT/run.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            (.precommit_sha256|test("^[0-9a-f]{64}$")) and
+            .actual_NQC_process_first_seen_proven==false and
+            .independent_builder_cutoff_proven==false and
+            .prospective_preinclusion_delivery_proven==false and
+            .historical_oracle_causality_is_not_prospectivity==true and
+            .winning_inclusion_proven==false and
+            .nonrecourse_native_gas_sponsor_proven==false and
+            .monthly_net_pnl_certified==false and
+            .realized_NQC_profit_USD=="0" and
+            .PFT_closed==true and .RMC_closed==false and
+            .Shadow_P2_certified==false and
+            .canary_or_LIVE_authorized==false and
+            .operator_capital_usd=="0" and
+            .MXN2000_reserved_spent==false and
+            (
+              .status=="TWO_HISTORICAL_HF_TRIGGER_ORACLE_HINT_LINKS_NO_CAPTURE_AUTHORITY" or
+              .status=="PARTIAL_HISTORICAL_HF_TRIGGER_HINT_LINK_NOT_RECALL" or
+              .status=="NO_COMPLETE_HINT_LINK_IN_TWO_BOUNDED_HISTORICAL_WINDOWS" or
+              (.status|startswith("INCOMPLETE_"))
+            ) and
+            (if (.status|startswith("INCOMPLETE_")) then true
+             else (.authenticated_price_drops|length)==2 and
+                  all(.authenticated_price_drops[];
+                      .canonical_receipt_verified==true and
+                      .effective_Aave_WETH_proxy_price_verified==true and
+                      .oracle_round_advanced==true and
+                      ((.price_before_raw|tonumber)>(.price_after_raw|tonumber))) and
+                  (.historical_archive_matches|length)==2 and
+                  all(.historical_archive_matches[]; .archive_complete==true)
+             end)
+          ' "$OUT/attempt/causal-oracle-hints-report.json" > "$OUT/contract-check.log"
+          echo 'Historical source truth only. Do not promote to net P&L, live or gas sponsorship.'
+      - name: SHA256 immutable source/manifests including any negative report
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-hf-causal-archive"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/svr_archive_positive_controls.py \
+             ci/nqc-census/rmc-v2-shadow/svr_hf_trigger_archive_audit.py \
+             ci/nqc-census/rmc-v2-shadow/test_svr_hf_trigger_archive_audit.py \
+             ci/nqc-census/rmc-v2-shadow/SVR_HF_TRIGGER_ARCHIVE_CONTRACT.md \
+             .github/workflows/nqc-v2-causal-oracle-archive.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | \
+            xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Preserve exact source and positive/negative historical witness
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-price-trigger-oracle-archive-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-hf-causal-archive/
+          retention-days: 30
+          if-no-files-found: error
