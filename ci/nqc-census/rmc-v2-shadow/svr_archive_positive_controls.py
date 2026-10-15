@@ -29,6 +29,10 @@ POSITIVE = (
      "tx_hash":"0x53de29056359c29351d353fff7542daf50416053842385e9cb6013834140dc40"},
 )
 RPCS={"drpc":"https://eth.drpc.org", "publicnode":"https://ethereum-rpc.publicnode.com"}
+# Existing NQC PR694/PR700 historically used the legitimate public BlastAPI RPC.
+# This is only a predeclared ALTERNATIVE after PublicNode returned JSON-RPC null
+# for the original economic-causal oracle TX0; never retry denied access.
+BLAST_PUBLIC_URL="https://eth-mainnet.public.blastapi.io"
 MEV_SHARE="https://mev-share.flashbots.net"
 HISTORY_INFO=MEV_SHARE+"/api/v1/history/info"
 HISTORY=MEV_SHARE+"/api/v1/history"
@@ -116,8 +120,9 @@ def decode_round(raw):
 
 class RPC:
     def __init__(self,label,transport=None,monotonic=time.monotonic,sleeper=time.sleep,*,controls=POSITIVE):
-        require(label in RPCS,"unapproved provider")
-        self.label=label;self.transport=transport or self._real
+        require(label in RPCS or label=="blast","unapproved provider")
+        self.label=label;self.url=BLAST_PUBLIC_URL if label=="blast" else RPCS[label]
+        self.transport=transport or self._real
         self.monotonic=monotonic;self.sleeper=sleeper
         self.calls=0;self.last=None;self.pins=set();self.transcript=[]
         self.controls=tuple(controls)
@@ -125,7 +130,7 @@ class RPC:
 
     @staticmethod
     def _real(url,method,params):
-        require(url in RPCS.values(),"unapproved source URL")
+        require(url in tuple(RPCS.values())+(BLAST_PUBLIC_URL,),"unapproved source URL")
         body=canonical({"jsonrpc":"2.0","id":404,"method":method,"params":params})
         require(len(body)<=1200,"RPC request too large")
         req=Request(url,data=body,method="POST",headers={"Content-Type":"application/json",
@@ -168,7 +173,7 @@ class RPC:
         beg=clock();entry={"source":self.label,"method":method,
                            "request_sha256":sha256(canonical(params)).hexdigest()}
         try:
-            value=self.transport(RPCS[self.label],method,params)
+            value=self.transport(self.url,method,params)
             entry["result_sha256"]=sha256(canonical(value)).hexdigest()
             return value
         except Exception as error:
@@ -178,18 +183,18 @@ class RPC:
             entry["elapsed_monotonic_ns"]=clock()["monotonic_ns"]-beg["monotonic_ns"]
             self.transcript.append(entry)
 
-def sanitized_mismatch(method,a,b):
+def sanitized_mismatch(method,a,b,*,peer="publicnode"):
     """Only mismatching FIELD NAMES and content hashes; no private source payload."""
-    entry={"method":method,"source_values_bitwise_identical":False,
+    entry={"method":method,"second_provider":peer,"source_values_bitwise_identical":False,
            "drpc_result_sha256":sha256(canonical(a)).hexdigest(),
-           "publicnode_result_sha256":sha256(canonical(b)).hexdigest(),
+           "secondary_provider_result_sha256":sha256(canonical(b)).hexdigest(),
            "canonical_authority_promoted":False}
     if type(a) is not dict or type(b) is not dict:
         entry["shape"]="NOT_TWO_DICTIONARIES"
         return entry
     keys_a=set(a);keys_b=set(b)
     entry["only_drpc_fields"]=sorted(keys_a-keys_b)
-    entry["only_publicnode_fields"]=sorted(keys_b-keys_a)
+    entry["only_secondary_provider_fields"]=sorted(keys_b-keys_a)
     entry["changed_shared_fields"]=sorted(k for k in keys_a&keys_b if a[k]!=b[k])
     important=("transactionHash","blockHash","blockNumber","transactionIndex",
                "status","gasUsed","effectiveGasPrice")
@@ -206,20 +211,23 @@ def sanitized_mismatch(method,a,b):
                 changed.append({"log_position":i,
                                 "changed_keys":sorted(k for k in set(x)&set(y) if x[k]!=y[k]),
                                 "only_drpc_keys":sorted(set(x)-set(y)),
-                                "only_publicnode_keys":sorted(set(y)-set(x))})
+                                "only_secondary_provider_keys":sorted(set(y)-set(x))})
             elif x!=y:
                 changed.append({"log_position":i,"different_log_shape":True})
         entry["log_field_deltas"]=[x for x in changed if x.get("changed_keys") or
-            x.get("only_drpc_keys") or x.get("only_publicnode_keys") or x.get("different_log_shape")]
+            x.get("only_drpc_keys") or x.get("only_secondary_provider_keys") or x.get("different_log_shape")]
         entry["logs_compared_up_to_first_20"] = True
     return entry
 
 
 def same(clients,method,params):
+    require(set(clients) in ({"drpc","publicnode"},{"drpc","blast"}),
+            "unauthorized dual RPC source pairing")
+    peer="blast" if "blast" in clients else "publicnode"
     a=clients["drpc"].call(method,params)
-    b=clients["publicnode"].call(method,params)
+    b=clients[peer].call(method,params)
     if a!=b:
-        row=sanitized_mismatch(method,a,b)
+        row=sanitized_mismatch(method,a,b,peer=peer)
         for c in clients.values():
             if not hasattr(c,"mismatch_ledger"):
                 c.mismatch_ledger=[]
@@ -436,7 +444,9 @@ def run(out:Path,*,rpc_clients=None,archive=None,controls=POSITIVE,require_decre
     require(len(controls)==2 and len({q["tx_hash"] for q in controls})==2,
             "exactly two distinct predeclared controls required")
     source={"schema_version":1,"predeclared_blockscout_secondary_controls":list(controls),
-            "target":WETH_AGGREGATOR,"public_rpc_provider_ids":list(RPCS),
+            "target":WETH_AGGREGATOR,
+            "public_rpc_provider_ids":["drpc","blast"] if require_decrease else list(RPCS),
+            "excluded_publicnode_null_receipt_first_attempt":require_decrease,
             "history_source":MEV_SHARE,"require_decreasing_price":require_decrease,
             "max_history_pages_per_control":8 if require_decrease else MAX_HISTORY_PAGES,
             "max_history_rows_per_control":3200 if require_decrease else MAX_HISTORY_ROWS,"read_only":True,
@@ -450,10 +460,13 @@ def run(out:Path,*,rpc_clients=None,archive=None,controls=POSITIVE,require_decre
             "nonrecourse_native_gas_funded":False,"net_pnl_proven":False,
             "RMC_closed":False,"shadow_certified":False,"live_authorized":False,
             "nqc_realized_pnl_usd":"0"}
-    clients=rpc_clients if rpc_clients is not None else {s:RPC(s,controls=controls) for s in RPCS}
+    clients=rpc_clients if rpc_clients is not None else {
+        s:RPC(s,controls=controls) for s in
+        (["drpc","blast"] if require_decrease else list(RPCS))}
     archive=archive if archive is not None else Archive(controls=controls,max_pages=8 if require_decrease else MAX_HISTORY_PAGES)
     try:
-        require(set(clients)==set(RPCS),"required dual-provider identities")
+        require(set(clients)==({"drpc","blast"} if require_decrease else set(RPCS)),
+                "required exactly two declared provider identities")
         require(all(quantity(x.call("eth_chainId",[]))==1 for x in clients.values()),
                 "Ethereum mainnet identity mismatch")
         for control in controls:

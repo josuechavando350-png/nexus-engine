@@ -80,8 +80,8 @@ class FakeArchive:
 
 
 def fake_runner(out,*,controls,require_decrease,mode='normal',archived=True,linked=False,root=None):
-    clients={name:FakeRPC(name,mode if name=='publicnode' else 'normal',root)
-             for name in base.RPCS}
+    clients={name:FakeRPC(name,mode if name=='blast' else 'normal',root)
+             for name in ('drpc','blast')}
     archive=FakeArchive(archived=archived,linked=linked)
     data=base.run(out,controls=controls,require_decrease=require_decrease,
                   rpc_clients=clients,archive=archive)
@@ -99,6 +99,14 @@ class HistoricalCausalArchiveTests(unittest.TestCase):
         self.assertEqual([c['block'] for c in base.POSITIVE],[26193643,26193944])
         self.assertNotEqual(set(c['tx_hash'] for c in base.POSITIVE),
                             set(c['tx_hash'] for c in gate.CAUSAL_CONTROLS))
+
+    def test_historical_blast_fallback_is_explicit_not_a_publicnode_pass(self):
+        self.assertEqual(base.BLAST_PUBLIC_URL,"https://eth-mainnet.public.blastapi.io")
+        rpc=base.RPC("blast",controls=gate.CAUSAL_CONTROLS,transport=lambda *a:None)
+        self.assertEqual(rpc.url,base.BLAST_PUBLIC_URL)
+        self.assertEqual(base.RPC("publicnode").url,
+                         "https://ethereum-rpc.publicnode.com")
+        self.assertNotEqual(rpc.url,base.RPC("publicnode").url)
 
     def test_new_rpc_rejects_old_or_arbitrary_transaction(self):
         rpc=base.RPC('drpc',controls=gate.CAUSAL_CONTROLS,transport=lambda *args:None)
@@ -120,7 +128,7 @@ class HistoricalCausalArchiveTests(unittest.TestCase):
         mismatch=base.sanitized_mismatch("eth_getTransactionReceipt",a,b)
         self.assertIn("effectiveGasPrice",mismatch["changed_shared_fields"])
         self.assertIn("logs",mismatch["changed_shared_fields"])
-        self.assertEqual(mismatch["log_field_deltas"][0]["only_publicnode_keys"],["removed"])
+        self.assertEqual(mismatch["log_field_deltas"][0]["only_secondary_provider_keys"],["removed"])
         self.assertFalse(mismatch["canonical_authority_promoted"])
         self.assertFalse(mismatch["required_receipt_fields_identical"])
 
