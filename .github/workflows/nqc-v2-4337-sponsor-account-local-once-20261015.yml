@@ -34,7 +34,7 @@ jobs:
           test "$(git -C ci/nqc-census/morpho-native-lab/lib/morpho-blue rev-parse HEAD)" = '8e26ca6a8dbc5089edcd67fb576248810fd2870a'
           test "$(git -C ci/nqc-census/morpho-native-lab/lib/morpho-blue hash-object src/Morpho.sol)" = 'ab064b646bf161b1510e2575a99412cdc2a43ebb'
           test "$(git hash-object ci/nqc-census/morpho-native-lab/src/NqcMorphoNativeCallbackLab.sol)" = '33ba05d21472f4eaffb98c42f5cc2fd4454c6555'
-          grep -Fq 'NOT ERC-4337 compliant' ci/nqc-census/morpho-native-lab/test/Nqc4337SponsoredMorphoLocal.t.sol
+          grep -Fq 'NOT compliant with the EIP-4337' ci/nqc-census/morpho-native-lab/test/Nqc4337SponsoredMorphoLocal.t.sol
           grep -Fq 'No real NQC P&L' ci/nqc-census/morpho-native-lab/NQC_4337_SPONSOR_ACCOUNT_SCOPE.md
       - name: Install immutable pinned Foundry 1.7.1
         shell: bash
