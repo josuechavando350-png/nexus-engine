@@ -1,0 +1,50 @@
+name: NQC V2 Morpho 30D Cross-Market Competition Snapshot (READ ONLY)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/morpho_competition_30d.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_morpho_competition_30d.py'
+      - 'ci/nqc-census/rmc-v2-shadow/MORPHO_30D_INDEXER_CENSUS_CONTRACT.md'
+      - '.github/workflows/nqc-v2-morpho-30d-competition.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  market-indexer-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Negative identity and anti-profit tests
+        run: |
+          set -euo pipefail
+          cd ci/nqc-census/rmc-v2-shadow
+          python3 -m unittest test_morpho_competition_30d -v
+          python3 -m py_compile morpho_competition_30d.py
+      - name: One finite public Morpho GraphQL snapshot
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/rmc-v2-shadow/morpho_competition_30d.py --out "$RUNNER_TEMP/nqc-morpho-census"
+          python3 - "$RUNNER_TEMP/nqc-morpho-census/census.json" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          assert d['status'] in ('COMPLETE_MORPHO_API_WINDOW_INDEX_ONLY','INCOMPLETE_MORPHO_API_WINDOW')
+          assert d['nqc_pnl_usd']=='0' and not d['gas_sponsor_proven']
+          assert not d['competitive_capture_proven'] and not d['market_canonical_completeness_proven']
+          print('NQC certified observation type:',d['status'])
+          PY
+      - name: SHA256 source and attempt manifest
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-morpho-census"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/morpho_competition_30d.py ci/nqc-census/rmc-v2-shadow/test_morpho_competition_30d.py ci/nqc-census/rmc-v2-shadow/MORPHO_30D_INDEXER_CENSUS_CONTRACT.md .github/workflows/nqc-v2-morpho-30d-competition.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse HEAD^{tree} > "$OUT/code-tree.txt"
+          (cd "$OUT" && find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256 && sha256sum -c manifest.sha256)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-morpho-30d-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-morpho-census/
+          retention-days: 21
+          if-no-files-found: error
