@@ -1,0 +1,73 @@
+name: NQC V2 Morpho Risk-Ordered Borrower Frontier (READ ONLY)
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/morpho_cbxrp_risk_order_frontier.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_morpho_cbxrp_risk_order_frontier.py'
+      - 'ci/nqc-census/rmc-v2-shadow/MORPHO_RISK_ORDERED_PROSPECTIVE_CONTRACT.md'
+      - '.github/workflows/nqc-v2-morpho-risk-order-frontier.yml'
+permissions:
+  contents: read
+jobs:
+  only-source-risk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Original source hashes and 27 adversarial risk-first tests
+        run: |
+          set -euo pipefail
+          test "$(git hash-object ci/nqc-census/rmc-v2-shadow/morpho_base_cbXRP_economics.py)" = 2f2e1839b97628d9d0f1d5705b69c1e003f0ca03
+          test "$(git hash-object ci/nqc-census/rmc-v2-shadow/morpho_cbXRP_liquidation_exit_quotes.py)" = ee046737f64a097d9bc99e7b93019d7b63559c05
+          test "$(git hash-object ci/nqc-census/rmc-v2-shadow/morpho_base_cbXRP_prospective_risk.py)" = b1e29e04e3ac5b88ecf2fc06a2e09ad789a9f55c
+          cd ci/nqc-census/rmc-v2-shadow
+          python3 -m py_compile morpho_cbxrp_risk_order_frontier.py
+          python3 -m unittest -v test_morpho_cbxrp_risk_order_frontier |& tee "$RUNNER_TEMP/nqc-risk-negative-tests.log"
+      - name: One bounded official Morpho risk-source observation (NO CHAIN TRANSACTIONS)
+        # Exact source was captured once on PR open; no blind repeat during code-only CI fixes.
+        if: github.event.action == 'opened'
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-current-risk"
+          mkdir -p "$OUT"
+          python3 ci/nqc-census/rmc-v2-shadow/morpho_cbxrp_risk_order_frontier.py --out "$OUT" --delay 45 | tee "$OUT/source-observer.log"
+          python3 - "$OUT/prospective-risk-report.json" <<'PY'
+          import json,sys
+          r=json.load(open(sys.argv[1]))
+          assert r['status'] in ('INCOMPLETE_PROSPECTIVE_MORPHO_INDEXER','RISK_FIRST_TWO_SNAPSHOTS_INDEXER_ONLY')
+          assert r['call_count'] <= 4
+          assert r.get('realized_nqc_pnl_usd') == '0' and not r['commercial_promotion_allowed']
+          if r['status'].startswith('TWO_SNAPSHOTS'):
+            assert r['elapsed_seconds'] >= 30
+            assert not r['can_execute_a_liquidation_now_proven']
+            assert not r['zero_recourse_native_gas_sponsor_proven']
+          print('RESULT',r['status'],'observed_frozen_cohort',r.get('first_cohort_size'))
+          PY
+      - name: Source evidence manifest SHA256 and exact checked-out code HEAD
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-current-risk"
+          mkdir -p "$OUT/source"
+          git rev-parse HEAD > "$OUT/head-commit.txt"
+          git rev-parse HEAD^{tree} > "$OUT/head-tree.txt"
+          cp "$RUNNER_TEMP/nqc-risk-negative-tests.log" "$OUT/tests.log" || true
+          cp ci/nqc-census/rmc-v2-shadow/morpho_cbxrp_risk_order_frontier.py \
+             ci/nqc-census/rmc-v2-shadow/test_morpho_cbxrp_risk_order_frontier.py \
+             ci/nqc-census/rmc-v2-shadow/MORPHO_RISK_ORDERED_PROSPECTIVE_CONTRACT.md \
+             .github/workflows/nqc-v2-morpho-risk-order-frontier.yml "$OUT/source/"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum -c manifest.sha256
+      - name: Upload bounded source evidence whether API complete or denied
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-cbxrp-risk-frontier-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-current-risk/
+          if-no-files-found: error
+          retention-days: 14
