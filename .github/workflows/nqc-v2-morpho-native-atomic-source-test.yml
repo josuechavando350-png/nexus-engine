@@ -3,17 +3,19 @@ name: NQC V2 Native Morpho Callback Atomic SOURCE LAB (LOCAL ONLY)
 on:
   pull_request:
     paths:
-      - 'ci/nqc-t36/contracts/src/NqcMorphoNativeCallbackLab.sol'
-      - 'ci/nqc-t36/contracts/test/NqcMorphoNativeCallbackLab.t.sol'
-      - 'ci/nqc-t36/contracts/MORPHO_NATIVE_CALLBACK_ATOMIC_LAB.md'
+      - 'ci/nqc-census/morpho-native-lab/src/NqcMorphoNativeCallbackLab.sol'
+      - 'ci/nqc-census/morpho-native-lab/test/NqcMorphoNativeCallbackLab.t.sol'
+      - 'ci/nqc-census/morpho-native-lab/MORPHO_NATIVE_CALLBACK_ATOMIC_LAB.md'
+      - 'ci/nqc-census/morpho-native-lab/foundry.toml'
       - '.github/workflows/nqc-v2-morpho-native-atomic-source-test.yml'
   push:
     branches:
       - 'nqc/v2-morpho-native-callback-atomic-local-20261014'
     paths:
-      - 'ci/nqc-t36/contracts/src/NqcMorphoNativeCallbackLab.sol'
-      - 'ci/nqc-t36/contracts/test/NqcMorphoNativeCallbackLab.t.sol'
-      - 'ci/nqc-t36/contracts/MORPHO_NATIVE_CALLBACK_ATOMIC_LAB.md'
+      - 'ci/nqc-census/morpho-native-lab/src/NqcMorphoNativeCallbackLab.sol'
+      - 'ci/nqc-census/morpho-native-lab/test/NqcMorphoNativeCallbackLab.t.sol'
+      - 'ci/nqc-census/morpho-native-lab/MORPHO_NATIVE_CALLBACK_ATOMIC_LAB.md'
+      - 'ci/nqc-census/morpho-native-lab/foundry.toml'
       - '.github/workflows/nqc-v2-morpho-native-atomic-source-test.yml'
 
 permissions:
@@ -39,7 +41,7 @@ jobs:
         with:
           repository: morpho-org/morpho-blue
           ref: 8e26ca6a8dbc5089edcd67fb576248810fd2870a
-          path: ci/nqc-t36/contracts/lib/morpho-blue
+          path: ci/nqc-census/morpho-native-lab/lib/morpho-blue
           persist-credentials: false
 
       - name: Authenticate original source bytes and preserve original T36
@@ -48,15 +50,15 @@ jobs:
           set -euo pipefail
           echo 'SOURCE_HEAD=${{ github.event.pull_request.head.sha || github.sha }}'
           test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha || github.sha }}'
-          test "$(git -C ci/nqc-t36/contracts/lib/morpho-blue rev-parse HEAD)" = '8e26ca6a8dbc5089edcd67fb576248810fd2870a'
-          test "$(git -C ci/nqc-t36/contracts/lib/morpho-blue hash-object src/Morpho.sol)" = 'ab064b646bf161b1510e2575a99412cdc2a43ebb'
+          test "$(git -C ci/nqc-census/morpho-native-lab/lib/morpho-blue rev-parse HEAD)" = '8e26ca6a8dbc5089edcd67fb576248810fd2870a'
+          test "$(git -C ci/nqc-census/morpho-native-lab/lib/morpho-blue hash-object src/Morpho.sol)" = 'ab064b646bf161b1510e2575a99412cdc2a43ebb'
           test "$(git hash-object ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol)" = 'aa3883fa141aa096006e90e56d8d4150c9ee14ef'
-          grep -q 'if (data.length > 0) IMorphoLiquidateCallback(msg.sender).onMorphoLiquidate' ci/nqc-t36/contracts/lib/morpho-blue/src/Morpho.sol
+          grep -q 'if (data.length > 0) IMorphoLiquidateCallback(msg.sender).onMorphoLiquidate' ci/nqc-census/morpho-native-lab/lib/morpho-blue/src/Morpho.sol
           python3 - <<'PY'
           from pathlib import Path
-          s=Path('ci/nqc-t36/contracts/lib/morpho-blue/src/Morpho.sol').read_text()
+          s=Path('ci/nqc-census/morpho-native-lab/lib/morpho-blue/src/Morpho.sol').read_text()
           assert s.index('safeTransfer(msg.sender, seizedAssets)') < s.index('onMorphoLiquidate(repaidAssets, data)') < s.index('safeTransferFrom(msg.sender, address(this), repaidAssets)')
-          lab=Path('ci/nqc-t36/contracts/src/NqcMorphoNativeCallbackLab.sol').read_text()
+          lab=Path('ci/nqc-census/morpho-native-lab/src/NqcMorphoNativeCallbackLab.sol').read_text()
           assert '.flashLoan(' not in lab
           print('Official upstream transfer -> callback -> repay source identity PASS')
           PY
@@ -75,7 +77,7 @@ jobs:
           "$RUNNER_TEMP/foundry/forge" --version
 
       - name: Compile exact public Morpho.sol and execute LOCAL full protocol callback suite
-        working-directory: ci/nqc-t36/contracts
+        working-directory: ci/nqc-census/morpho-native-lab
         shell: bash
         run: |
           set -euo pipefail
@@ -91,14 +93,15 @@ jobs:
         run: |
           set -euo pipefail
           OUT="$RUNNER_TEMP/nqc-native-morpho-source"
-          cp ci/nqc-t36/contracts/src/NqcMorphoNativeCallbackLab.sol "$OUT/engine-lab.sol"
-          cp ci/nqc-t36/contracts/test/NqcMorphoNativeCallbackLab.t.sol "$OUT/test-lab.sol"
-          cp ci/nqc-t36/contracts/MORPHO_NATIVE_CALLBACK_ATOMIC_LAB.md "$OUT/scope-contract.md"
+          cp ci/nqc-census/morpho-native-lab/src/NqcMorphoNativeCallbackLab.sol "$OUT/engine-lab.sol"
+          cp ci/nqc-census/morpho-native-lab/test/NqcMorphoNativeCallbackLab.t.sol "$OUT/test-lab.sol"
+          cp ci/nqc-census/morpho-native-lab/MORPHO_NATIVE_CALLBACK_ATOMIC_LAB.md "$OUT/scope-contract.md"
+          cp ci/nqc-census/morpho-native-lab/foundry.toml "$OUT/foundry-project.toml"
           cp .github/workflows/nqc-v2-morpho-native-atomic-source-test.yml "$OUT/workflow.yml"
           git rev-parse HEAD > "$OUT/nqc-code-commit.txt"
           git rev-parse HEAD^{tree} > "$OUT/nqc-code-tree.txt"
-          git -C ci/nqc-t36/contracts/lib/morpho-blue rev-parse HEAD > "$OUT/public-morpho-upstream-commit.txt"
-          git -C ci/nqc-t36/contracts/lib/morpho-blue hash-object src/Morpho.sol > "$OUT/public-morpho-source-blob.txt"
+          git -C ci/nqc-census/morpho-native-lab/lib/morpho-blue rev-parse HEAD > "$OUT/public-morpho-upstream-commit.txt"
+          git -C ci/nqc-census/morpho-native-lab/lib/morpho-blue hash-object src/Morpho.sol > "$OUT/public-morpho-source-blob.txt"
           jq -n --arg head '${{ github.event.pull_request.head.sha || github.sha }}' \
            '{status:"LOCAL_SOURCE_ONLY_MORPHO_CALLBACK_PROOF",source_head:$head,authentic_morpho_upstream_source:true,
              direct_native_liquidate_without_separate_flash:true,unmodified_upstream_test_source:true,
@@ -108,7 +111,7 @@ jobs:
              external_sponsor_nonrecourse_proven:false,nqc_realized_pnl_usd:"0",commercial_upgrade:false,
              economic_validation_stage:4,live_or_canary_authorized:false,owner_capital_spent_usd:"0"}' \
              > "$OUT/source-only-decision.json"
-          (cd "$OUT" && sha256sum *.sol *.txt *.json *.md *.yml > archive.sha256 && sha256sum -c archive.sha256)
+          (cd "$OUT" && sha256sum *.sol *.txt *.json *.md *.yml *.toml > archive.sha256 && sha256sum -c archive.sha256)
 
       - name: Upload LOCAL no-capital source evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

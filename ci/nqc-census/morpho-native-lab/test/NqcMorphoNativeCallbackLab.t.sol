@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.19;
 
 // Solidity SOURCE from immutable official morpho-org/morpho-blue git revision,
 // checked out ONLY inside CI. This is a synthetic market with REAL Morpho.sol,

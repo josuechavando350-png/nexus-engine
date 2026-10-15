@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.19;
 
 /// @notice Research-only one-transaction Morpho Blue liquidation, with NO extra flash loan.
 /// @dev Requires the authentic protocol's ordering: collateral transfer -> callback -> loan repayment.
