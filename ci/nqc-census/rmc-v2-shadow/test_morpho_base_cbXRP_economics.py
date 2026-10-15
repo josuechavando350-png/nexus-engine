@@ -24,4 +24,18 @@ class Check(unittest.TestCase):
   self.assertEqual(len(m.S),3)
   self.assertEqual(sum(row[1] for row in m.S["0x049327359c7be3409a6f0d2f2f0d1d41b32ba7d109d583be0bfe6c696932c0aa"][3]),154844072724)
  def test_profit_claim_absent(self):self.assertEqual(m.SOURCE,"f65c2b526fe93d105b096716515b4eac7b98698cb331048d3c6a8cf936b65ce4")
+ def test_api_model_claims_not_profit(self):
+  item={"marketId":m.MARKET,"lltv":str(86*10**16),
+   "loanAsset":{"address":"0x"+"1"*40,"symbol":"USDC","decimals":6},
+   "collateralAsset":{"address":"0x"+"2"*40,"symbol":"cbXRP","decimals":6},
+   "oracle":{"address":"0x"+"3"*40}}
+  out=m.parse_morpho_indexer_market(item)
+  self.assertTrue(out["not_market_sale_or_realized_pnl"])
+  self.assertEqual(out["status"],"MORPHO_OFFICIAL_SINGLE_INDEXER_MARKET_NOT_CANONICAL")
+ def test_api_rejects_fake_usdc_units(self):
+  item={"marketId":m.MARKET,"lltv":str(86*10**16),
+   "loanAsset":{"address":"0x"+"1"*40,"symbol":"USDC","decimals":18},
+   "collateralAsset":{"address":"0x"+"2"*40,"symbol":"cbXRP","decimals":6}}
+  with self.assertRaises(m.Incomplete):m.parse_morpho_indexer_market(item)
 if __name__=="__main__":unittest.main()
+

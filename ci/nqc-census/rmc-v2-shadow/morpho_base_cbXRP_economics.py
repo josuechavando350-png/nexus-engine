@@ -108,8 +108,10 @@ class Provider:
    with urllib.request.urlopen(req,timeout=13) as resp:
     need(resp.status==200,"HTTP_STATUS_DENIED")
     ans=json.loads(resp.read(2000000))
-  except (urllib.error.HTTPError,urllib.error.URLError,TimeoutError,OSError,ValueError) as e:
-   raise Incomplete("RPC_SOURCE_"+type(e).__name__) from e
+  except urllib.error.HTTPError as e:
+   raise Incomplete("RPC_HTTP_"+str(e.code)+"_"+method) from e
+  except (urllib.error.URLError,TimeoutError,OSError,ValueError) as e:
+   raise Incomplete("RPC_SOURCE_"+type(e).__name__+"_"+method) from e
   need(isinstance(ans,dict) and ans.get("id")==self.n and not ans.get("error") and ans.get("result") is not None,"RPC_REJECTED_OR_NULL")
   time.sleep(0.08)
   return ans["result"]
@@ -154,6 +156,45 @@ def run():
    "market_params":market,"token_decimals":dec,"lif_wad":str(lif(market["lltv"])),
    "selected_transactions":out,"read_only_calls":[a.n,b.n],"full_market_30day_proven":False,
    "dex_exit_proven":False,"net_profit_proven":False,"external_gas_payer_proven":False,"nqc_pnl_usd":"0"}
+
+def parse_morpho_indexer_market(item):
+ need(isinstance(item,dict) and item.get("marketId","").lower()==MARKET,"API_MARKET_ID_INVALID")
+ loan=item.get("loanAsset") or {};coll=item.get("collateralAsset") or {}
+ need(loan.get("symbol")=="USDC" and coll.get("symbol")=="cbXRP","API_TOKEN_LABEL_MISMATCH")
+ for obj in (loan,coll):
+  need(isinstance(obj.get("address"),str) and bool(re.fullmatch(r"0x[0-9a-fA-F]{40}",obj["address"])),"API_TOKEN_ADDRESS_INVALID")
+  need(type(obj.get("decimals")) is int and 0<=obj["decimals"]<=18,"API_DECIMAL_INVALID")
+ need(loan["decimals"]==6,"API_LOAN_NOT_6_DECIMALS")
+ ll=item.get("lltv")
+ need(isinstance(ll,str) and ll.isdecimal() and 0<int(ll)<WAD,"API_LLTV_NOT_WAD")
+ f=lif(int(ll))
+ prior_indexer_total_raw=1281537248484
+ theoretical_raw=prior_indexer_total_raw*(f-WAD)//WAD
+ return {"status":"MORPHO_OFFICIAL_SINGLE_INDEXER_MARKET_NOT_CANONICAL",
+    "market_id":MARKET,"loan_address":loan["address"].lower(),"collateral_address":coll["address"].lower(),
+    "collateral_decimals":coll["decimals"],"loan_decimals":loan["decimals"],
+    "oracle_address":(item.get("oracle") or {}).get("address"),"lltv_wad":ll,
+    "lif_wad":str(f),"pr741_23day_nominal_loan_repaid_raw":str(prior_indexer_total_raw),
+    "pr741_23day_theoretical_oracle_incentive_loan_raw_floor":str(theoretical_raw),
+    "pr741_23day_theoretical_oracle_incentive_loan_units_if_usdc_par":f"{theoretical_raw//1000000}.{theoretical_raw%1000000:06d}",
+    "not_market_sale_or_realized_pnl":True,
+    "not_current_chain_rpc_or_deployed_provenance":True}
+def official_morpho_market_only():
+ endpoint="https://api.morpho.org/graphql"
+ query="query Market($id:String!,$chain:Int!){marketById(marketId:$id,chainId:$chain){marketId lltv loanAsset{address symbol decimals} collateralAsset{address symbol decimals} oracle{address}}}"
+ payload=json.dumps({"query":query,"variables":{"id":MARKET,"chain":BASE}}).encode()
+ req=urllib.request.Request(endpoint,payload,{"Content-Type":"application/json",
+ "User-Agent":"NQC-Morpho-Market-Metadata-ReadOnly/1.0"})
+ try:
+  with urllib.request.urlopen(req,timeout=15) as resp:
+   need(resp.status==200,"MORPHO_INDEXER_NOT_200")
+   body=json.loads(resp.read(500000))
+  need(isinstance(body,dict) and not body.get("errors") and isinstance(body.get("data"),dict),"MORPHO_GQL_ERROR")
+  return parse_morpho_indexer_market(body["data"].get("marketById"))
+ except urllib.error.HTTPError as e: return {"status":"MORPHO_METADATA_INCOMPLETE","code":"HTTP_"+str(e.code)}
+ except (urllib.error.URLError,TimeoutError,OSError,ValueError,Incomplete,TypeError,KeyError) as e:
+  return {"status":"MORPHO_METADATA_INCOMPLETE","code":str(e)[:160]}
+
 def main():
  parser=argparse.ArgumentParser();parser.add_argument("--out",required=True);args=parser.parse_args()
  out=Path(args.out);out.mkdir(parents=True,exist_ok=True)
@@ -162,6 +203,7 @@ def main():
   result={"status":"INCOMPLETE_CANONICAL_SELECTED_THREE","source_error":str(e),
     "source_zip_sha256":SOURCE,"selected_transactions":[],"net_profit_proven":False,
     "external_gas_payer_proven":False,"nqc_pnl_usd":"0"}
+ result["official_morpho_indexer_market"]=official_morpho_market_only()
  (out/"canonical-liquidation-audit.json").write_text(json.dumps(result,sort_keys=True,indent=2))
  print(result["status"],result.get("source_error",""),"selected",len(result["selected_transactions"]))
 if __name__=="__main__":main()

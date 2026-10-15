@@ -14,3 +14,7 @@ A SUCCESS in source job can mean status INCOMPLETE source, since tests passing m
 
 Official docs: https://docs.morpho.org/developers/contracts/addresses/ ; https://docs.morpho.org/learn/concepts/liquidation/ ; https://basehub.org/api-reference/rpc-overview/ .
 OWN_CAPITAL=USD0 (gas included); owner MXN2000 untouched; no signatures, funds, live transactions, orders, merges or disclosures. NQC P&L USD0, commercial 5.6/10, economic scale 4/10 until new decisive proof.
+
+## Revision: additionally read official Morpho API market metadata
+
+The original canonical RPC 403/429 issue, if any, must be retained with its literal HTTP status and failing method. Separately call the *official public Morpho GraphQL marketById* once to source the immutable market loan/collateral contract addresses, decimals and LLTV. It is the SAME INDEXER trust tier as PR741 and NEVER upgrades Base onchain verification. Only when the API returns valid market ID, USDC (6 decimals), cbXRP collateral and WAD LLTV may this producer compute an illustrative **oracle-pricing-model incentive** from PR741 23-day nominal debt. This is not DEX sale consideration, searcher profit, market accessibility, monthly repetition, an underwriter quote or own-capital-zero execution. An API error must yield MORPHO_METADATA_INCOMPLETE, not a fallback of invented metadata.
