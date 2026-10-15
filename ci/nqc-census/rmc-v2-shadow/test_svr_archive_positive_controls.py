@@ -114,6 +114,7 @@ class Tests(unittest.TestCase):
         for case in m.POSITIVE:
             rec=m.verified_transaction(case,peers)
             self.assertTrue(rec['canonical_receipt_verified'])
+            self.assertEqual(rec['canonical_tx_block_timestamp'],200+case['block'])
             self.assertTrue(rec['round_advanced'])
             self.assertEqual(rec['oracle_topics'],[m.SECONDARY_TOPIC])
             self.assertTrue(m.HEX32.fullmatch(rec['expected_event_double_keccak']))
@@ -176,6 +177,8 @@ class Tests(unittest.TestCase):
 
     def test_archive_bounded_exact_match_from_synthetic_public_history(self):
         control={"block_number":26193944,
+                 "canonical_tx_block_timestamp":1792020040,
+                 "report_median_raw":"241555715191",
                  "expected_event_double_keccak":"0x"+"cc"*32}
         observed=[]
         def opener(req,timeout):
@@ -193,6 +196,13 @@ class Tests(unittest.TestCase):
         self.assertEqual(res["matching_double_hash_hint_partial"],1)
         self.assertEqual(res["target_report_decoded_unauthenticated"],0)
         self.assertTrue(res["archive_complete_in_bounded_range"])
+        self.assertEqual(len(res["matching_archive_source_timings"]),1)
+        self.assertEqual(res["matching_archive_source_timings"][0][
+            "nominal_included_slot_minus_source_timestamp_seconds"],40)
+        self.assertTrue(res["matching_archive_source_timings"][0][
+            "source_archive_tip_before_included_height"])
+        self.assertFalse(res["matching_archive_source_timings"][0][
+            "NQC_process_first_seen_proven"])
         self.assertEqual(len(observed),2)
 
     def test_archive_4_page_cap_is_incomplete_not_no_hint(self):

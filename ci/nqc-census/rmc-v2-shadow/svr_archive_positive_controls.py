@@ -234,6 +234,8 @@ def verified_transaction(control,clients):
         require(canonical_header(same(clients,"eth_getBlockByNumber",[hex(h),False]),h)==heads[h],
                 "canonical block reorg during verification")
     return {"label":control["label"],"tx_hash":txhash,"block_number":height,
+            "canonical_tx_block_timestamp":heads[height]["timestamp"],
+            "canonical_prior_block_timestamp":heads[height-1]["timestamp"],
             "canonical_block_hash":heads[height]["hash"],
             "oracle_topics":sorted(set(z["topics"][0].lower() for z in relevant)),
             "oracle_logs":len(relevant),"canonical_receipt_verified":True,
@@ -307,7 +309,9 @@ class Archive:
                 "hint_rows_with_forward_selector":0,"hint_rows_with_complete_forward_calldata":0,
                 "target_report_decoded_unauthenticated":0,"exact_double_hash_matches":0,
                 "matching_double_hash_with_decodable_target":0,
-                "matching_double_hash_hint_partial":0,"archive_complete_in_bounded_range":False,
+                "matching_double_hash_hint_partial":0,
+                "matching_archive_source_timings":[],"matching_timings_truncated":False,
+                "archive_complete_in_bounded_range":False,
                 "status":"INCOMPLETE_ARCHIVE_SCOPE_NOT_VERIFIED"}
         if not meta["minBlock"]<=lo or not meta["maxBlock"]>=hi:
             result["status"]="INCOMPLETE_TARGET_RANGE_NOT_ARCHIVED"
@@ -323,7 +327,8 @@ class Archive:
             result["hint_rows"]+=len(rows)
             for row in rows:
                 require(type(row) is dict and type(row.get("block")) is int and
-                        lo<=row["block"]<=hi and type(row.get("timestamp")) is int,
+                        lo<=row["block"]<=hi and type(row.get("timestamp")) is int and
+                        row["timestamp"]>0,
                         "archive row outside frozen historical range")
                 hint=row.get("hint")
                 if type(hint) is not dict:
@@ -347,6 +352,27 @@ class Archive:
                     if match:result["matching_double_hash_with_decodable_target"]+=1
                 elif match:
                     result["matching_double_hash_hint_partial"]+=1
+                if match:
+                    # Historical source timestamps are NOT process first-seen or builder cutoff.
+                    price_confirmed=(verdict["report"]["median_signed_int192_raw"]==
+                       control["report_median_raw"]
+                       if verdict["result"]=="TARGET_PRICE_DECODED_UNAUTHENTICATED" and
+                          type(control.get("report_median_raw")) is str else None)
+                    timing={
+                        "archive_tip_block_when_hint_generated":row["block"],
+                        "archive_source_timestamp_epoch":row["timestamp"],
+                        "included_consensus_block_timestamp_epoch":control.get("canonical_tx_block_timestamp"),
+                        "source_archive_tip_before_included_height":row["block"]<height,
+                        "nominal_included_slot_minus_source_timestamp_seconds":(
+                           control["canonical_tx_block_timestamp"]-row["timestamp"]
+                           if type(control.get("canonical_tx_block_timestamp")) is int else None),
+                        "hint_price_matches_onchain_transmit_report":price_confirmed,
+                        "NQC_process_first_seen_proven":False,
+                        "actual_builder_cutoff_known":False,
+                    }
+                    if len(result["matching_archive_source_timings"])<8:
+                        result["matching_archive_source_timings"].append(timing)
+                    else:result["matching_timings_truncated"]=True
             if len(rows)<limit:
                 result["archive_complete_in_bounded_range"]=True
                 result["status"]="BOUNDED_PUBLIC_ARCHIVE_EXHAUSTED_NOT_PRIVATE_ACCESS"
