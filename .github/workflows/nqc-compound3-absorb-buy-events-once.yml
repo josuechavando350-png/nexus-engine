@@ -1,0 +1,193 @@
+name: NQC Compound III Absorb-to-Buy Chronology ONCE (READ ONLY)
+on:
+  push:
+    branches:
+      - nqc/compound3-absorb-buy-events-once-20261015
+    paths:
+      - .github/workflows/nqc-compound3-absorb-buy-events-once.yml
+permissions:
+  contents: read
+jobs:
+  chronology:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: One pinned historical Ethereum source test, no transactions
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/raw
+          python3 - <<'PY'
+          import json,urllib.request,urllib.error,hashlib,time,datetime,pathlib
+          from collections import Counter
+          OUT=pathlib.Path("out")
+          RPCS=["https://ethereum-rpc.publicnode.com","https://eth.drpc.org"]
+          COMET="0xc3d688b66703497daa19211eedff47f25384cdc3"
+          BUY="0xf891b2a411b0e66a5f0a6ff1368670fefa287a13f541eb633a386a1a9cc7046b"
+          ABSORB256="0x9850ab1af75177e4a9201c65a2cf7976d5d28e40ef63494b44366f86b2f9412e"
+          ABSORB128="0x28e243e5d248be5aa67a39daccfa326bdd0c43be03a4efa41780039abbc86fd4"
+          START=26199216-49152+1
+          END=26199216
+          Q="0x61ffe014ba17989e743c5f6cb21bf9697530b21e"
+          WETH="0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+          USDC="0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+          counters=[0,0]
+          receipts=[]
+          deadline=time.monotonic()+525
+          report={"status":"INCOMPLETE","chain_id":1,"comet":COMET,"window_start":START,"window_end":END,
+             "topic0":{"buy":BUY,"absorb_uint256":ABSORB256,"absorb_uint128":ABSORB128},
+             "rpc_sources":RPCS,"provider_independence_unproven":True,"own_capital_usd":"0",
+             "nqc_realized_pnl_usd":"0","canary_authorized":False,
+             "onchain_transactions_sent":0,"source_grade":"E2_IF_BOTH_INDEPENDENT_QUORUMS_SUCCEED",
+             "net_profit_certified":False,"capture_probability_certified":False}
+          class Stop(Exception):pass
+          def need(cond,msg):
+              if not cond:raise Stop(msg)
+          def number(s):
+              need(isinstance(s,str) and s.startswith("0x"),"INVALID_RPC_NUMBER")
+              return int(s,16)
+          def rpc(i,method,params):
+              need(method in ("eth_chainId","eth_getBlockByNumber","eth_getLogs","eth_getTransactionReceipt","eth_call"),"WRITE_FORBIDDEN")
+              need(time.monotonic()<deadline,"TIME_BUDGET_EXHAUSTED")
+              need(counters[i]<45,"RPC_CALL_BUDGET_EXHAUSTED")
+              counters[i]+=1
+              idx=counters[i]
+              payload=json.dumps({"jsonrpc":"2.0","id":idx,"method":method,"params":params},separators=(",",":")).encode()
+              req=urllib.request.Request(RPCS[i],data=payload,method="POST",headers={"Content-Type":"application/json","User-Agent":"NQC-Once-ReadOnly/20261015"})
+              rec={"provider_index":i,"request_id":idx,"method":method,"request_sha256":hashlib.sha256(payload).hexdigest()}
+              try:
+                  with urllib.request.urlopen(req,timeout=15) as resp:
+                      rec["http_status"]=resp.status
+                      raw=resp.read(750001)
+                  need(resp.status==200,"RPC_HTTP_NON200")
+                  need(len(raw)<=750000,"RPC_BODY_CAP")
+                  doc=json.loads(raw)
+                  (OUT/"raw"/("source%d-call%03d.json"%(i,idx))).write_bytes(raw)
+                  rec["response_sha256"]=hashlib.sha256(raw).hexdigest()
+                  need(isinstance(doc,dict) and doc.get("id")==idx and doc.get("jsonrpc")=="2.0","RPC_ENVELOPE_BAD")
+                  if doc.get("error") is not None:
+                      e=doc["error"]
+                      rec["jsonrpc_error_code"]=e.get("code") if isinstance(e,dict) else "INVALID"
+                      raise Stop("RPC_JSONRPC_ERROR_"+str(rec["jsonrpc_error_code"])+"_"+method)
+                  need(doc.get("result") is not None,"RPC_NULL_RESULT")
+                  return doc["result"]
+              except urllib.error.HTTPError as e:
+                  rec["http_status"]=e.code
+                  raise Stop("RPC_HTTP_"+str(e.code)+"_"+method) from e
+              except (urllib.error.URLError,TimeoutError,OSError) as e:
+                  raise Stop("RPC_TRANSPORT_"+type(e).__name__+"_"+method) from e
+              finally:
+                  receipts.append(rec)
+          def both(method,params,label):
+              a=rpc(0,method,params);b=rpc(1,method,params)
+              need(a==b,"TWO_SOURCE_DIVERGENCE_"+label)
+              return a
+          def header(h,label):
+              d=both("eth_getBlockByNumber",[hex(h),False],label)
+              need(isinstance(d,dict) and number(d.get("number"))==h,"HEADER_BAD_"+label)
+              need(isinstance(d.get("hash"),str) and len(d["hash"])==66,"HEADER_HASH_BAD")
+              return {k:d.get(k) for k in ("number","hash","parentHash","stateRoot","receiptsRoot","timestamp")}
+          def parse_log(e):
+              need(isinstance(e,dict) and e.get("address","").lower()==COMET,"FOREIGN_LOG")
+              need(e.get("removed") is False,"REMOVED_OR_UNPROVEN_LOG")
+              t=e.get("topics")
+              need(isinstance(t,list) and len(t) in (3,4),"BAD_TOPICS")
+              name={BUY:"buy",ABSORB256:"absorb_uint256",ABSORB128:"absorb_uint128"}.get(t[0].lower())
+              need(name is not None,"UNKNOWN_EVENT_TOPIC")
+              need(len(t)==(3 if name=="buy" else 4),"BAD_EVENT_LAYOUT")
+              raw=e.get("data")
+              need(isinstance(raw,str) and raw.startswith("0x") and len(raw)==130,"BAD_EVENT_DATA")
+              v=int(raw[2:66],16);w=int(raw[66:130],16)
+              if name=="absorb_uint128":need(v<2**128,"UINT128_OVERFLOW")
+              block=number(e["blockNumber"])
+              need(START<=block<=END,"OUTSIDE_WINDOW")
+              tx=e["transactionHash"].lower()
+              need(len(tx)==66 and len(e["blockHash"])==66,"INVALID_TX_OR_BLOCK_HASH")
+              asset="0x"+t[2][-40:].lower() if name=="buy" else "0x"+t[3][-40:].lower()
+              if name=="buy":
+                  return {"kind":"buy","tx":tx,"block":block,"log_index":number(e["logIndex"]),
+                    "tx_index":number(e["transactionIndex"]),"asset":asset,
+                    "buyer":"0x"+t[1][-40:].lower(),"base_usdc_raw":str(v),"collateral_raw":str(w)}
+              return {"kind":"absorb","signature":name,"tx":tx,"block":block,"log_index":number(e["logIndex"]),
+                 "tx_index":number(e["transactionIndex"]),"asset":asset,"absorbed_raw":str(v),
+                 "borrower":"0x"+t[2][-40:].lower(),"usd_value_raw":str(w)}
+          def quote_data(weth,fee):
+              word=lambda x:format(x,"064x")
+              return "0xc6a5026a"+"".join(map(word,[int(WETH,16),int(USDC,16),weth,fee,0]))
+          try:
+              need(both("eth_chainId",[],"chain")=="0x1","WRONG_CHAIN")
+              first=header(START,"first");last=header(END,"last")
+              report["first_header"]=first;report["last_header"]=last
+              event_rows=[]
+              for start in range(START,END+1,2048):
+                  end=min(start+2047,END)
+                  filt={"address":COMET,"fromBlock":hex(start),"toBlock":hex(end),
+                        "topics":[[ABSORB256,ABSORB128,BUY]]}
+                  logs=both("eth_getLogs",[filt],"logs_"+str(start))
+                  need(isinstance(logs,list),"INVALID_LOG_ARRAY")
+                  event_rows.extend(map(parse_log,logs))
+              need(header(END,"final")["hash"]==last["hash"],"CHAIN_REORG_OR_HEADER_CHANGED")
+              keys=[(e["tx"],e["log_index"]) for e in event_rows]
+              need(len(keys)==len(set(keys)),"DUPLICATE_LOGS")
+              buys=[e for e in event_rows if e["kind"]=="buy"]
+              absorbs=[e for e in event_rows if e["kind"]=="absorb"]
+              report["event_summary"]={"buy_logs":len(buys),"buy_txs":len(set(e["tx"] for e in buys)),
+                 "absorb_logs":len(absorbs),"absorb_txs":len(set(e["tx"] for e in absorbs)),
+                 "buyers":len(set(e["buyer"] for e in buys)),
+                 "assets_with_buys":len(set(e["asset"] for e in buys)),
+                 "buy_usdc_spent_raw":str(sum(int(e["base_usdc_raw"]) for e in buys)),
+                 "absorbs_by_signature":dict(Counter(e["signature"] for e in absorbs))}
+              report["event_chronology"] = sorted(event_rows,key=lambda e:(e["block"],e["tx_index"],e["log_index"]))
+              # Winner's SAME-BLOCK post-state DEX quotes are NOT prestate tradable profit.
+              historical=[]
+              for e in sorted((x for x in buys if x["asset"]==WETH),key=lambda a:int(a["base_usdc_raw"]),reverse=True)[:3]:
+                  r={"tx":e["tx"],"block":e["block"],"buy_base_usdc_raw":e["base_usdc_raw"],
+                     "collateral_weth_wei":e["collateral_raw"],"winner_not_nqc":True,
+                     "post_block_not_pre_execution":True}
+                  receipt=both("eth_getTransactionReceipt",[e["tx"]],"winner_receipt")
+                  need(isinstance(receipt,dict) and number(receipt["status"])==1,"WINNER_TX_RECEIPT_FAILURE")
+                  r["whole_tx_gas_cost_wei"]=str(number(receipt["gasUsed"])*number(receipt["effectiveGasPrice"]))
+                  for fee in (500,3000):
+                      raw=both("eth_call",[{"to":Q,"data":quote_data(int(e["collateral_raw"]),fee)},hex(e["block"])],"dex_quote")
+                      need(isinstance(raw,str) and len(raw)>=258,"DEX_QUOTE_BAD_RESULT")
+                      received=int(raw[2:66],16)
+                      r["uniswap_fee_"+str(fee)]={"usdc_out_raw":str(received),
+                        "gross_spread_raw_usdc_pre_gas":str(received-int(e["base_usdc_raw"])),
+                        "not_executable_proof":True}
+                  historical.append(r)
+              report["selected_weth_winner_analyses"]=historical
+              need(header(END,"postquotes")["hash"]==last["hash"],"FINAL_BLOCK_HEADER_CHANGED")
+              report["status"]="PASS_HISTORICAL_CHAIN_EVENTS_NOT_NQC_EXECUTABILITY"
+          except Stop as e:
+              report["source_blocker"]=str(e)
+              report["status"]="INCOMPLETE_NO_PROFITABILITY_CLAIM"
+          except Exception as e:
+              report["source_blocker"]="UNEXPECTED_"+type(e).__name__
+              report["status"]="INCOMPLETE_NO_PROFITABILITY_CLAIM"
+          finally:
+              report["request_counts"]=counters
+              report["receipts"]=receipts
+              report["observed_utc"]=datetime.datetime.now(datetime.timezone.utc).isoformat()
+              (OUT/"result.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
+              print("NQC_ECONOMIC_EVENT_CENSUS",report["status"],"BUY_LOGS",report.get("event_summary",{}).get("buy_logs"),
+                    "BLOCKER",report.get("source_blocker"),"NET_PROFIT_USD=UNVERIFIED")
+          PY
+      - name: Preserve hashes and full raw receipt evidence even if source fails
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out/source
+          printf '%s\n' "$GITHUB_SHA" > out/commit.txt
+          cp .github/workflows/nqc-compound3-absorb-buy-events-once.yml out/source/workflow.yml
+          cd out
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum -c manifest.sha256
+      - name: Upload one-shot source result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-compound-absorb-buy-once
+          path: out/
+          retention-days: 14
+          if-no-files-found: warn
