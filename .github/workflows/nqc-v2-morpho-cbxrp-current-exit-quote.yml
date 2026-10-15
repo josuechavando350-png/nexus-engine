@@ -1,0 +1,70 @@
+name: NQC V2 Morpho cbXRP exact size DEX exit quotes (READ ONLY)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/morpho_cbXRP_liquidation_exit_quotes.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_morpho_cbXRP_liquidation_exit_quotes.py'
+      - 'ci/nqc-census/rmc-v2-shadow/MORPHO_CBXRP_CURRENT_EXIT_QUOTE_CONTRACT.md'
+      - '.github/workflows/nqc-v2-morpho-cbxrp-current-exit-quote.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  indexer-only-no-trade:
+    name: bounded independent fresh DEX quotes and strict offline source tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Offline negative tests and bytecode check
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-morpho-cbxrp-exit-quotes"
+          mkdir -p "$OUT/source"
+          (cd ci/nqc-census/rmc-v2-shadow && python3 -m unittest test_morpho_cbXRP_liquidation_exit_quotes -v) 2>&1 | tee "$OUT/adversarial-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/morpho_cbXRP_liquidation_exit_quotes.py
+      - name: Exactly six bounded public quote GET calls, no wallets or mainnet transaction
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-morpho-cbxrp-exit-quotes"
+          python3 ci/nqc-census/rmc-v2-shadow/morpho_cbXRP_liquidation_exit_quotes.py \
+            --parent ci/nqc-census/rmc-v2-shadow/morpho_base_cbXRP_economics.py \
+            --out "$OUT/quote-result.json" 2>&1 | tee "$OUT/quote-transport.log"
+          python3 - "$OUT/quote-result.json" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          assert d['status'] in ('FRESH_QUOTE_SNAPSHOT_SOURCE_ONLY','INCOMPLETE_PUBLIC_DEX_QUOTES')
+          assert d['network_http_calls'] <= 6
+          assert d['realized_nqc_pnl_usd']=='0' and d['guaranteed_nqc_profit_usdc']=='0'
+          assert not d['native_gas_sponsor_proven'] and not d['builder_inclusion_proven']
+          assert not d['historical_full_receipt_parity_proven']
+          assert not d['competitive_winning_probability_proven']
+          assert len(d['selected_historical_cases'])==3
+          print('NQC_STATUS',d['status'],'QUOTES',d['quotes_admitted'],'OF SIX')
+          PY
+      - name: Immutable source and output SHA256 evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-morpho-cbxrp-exit-quotes"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/morpho_cbXRP_liquidation_exit_quotes.py "$OUT/source/"
+          cp ci/nqc-census/rmc-v2-shadow/test_morpho_cbXRP_liquidation_exit_quotes.py "$OUT/source/"
+          cp ci/nqc-census/rmc-v2-shadow/MORPHO_CBXRP_CURRENT_EXIT_QUOTE_CONTRACT.md "$OUT/source/"
+          cp .github/workflows/nqc-v2-morpho-cbxrp-current-exit-quote.yml "$OUT/source/"
+          cp ci/nqc-census/rmc-v2-shadow/morpho_base_cbXRP_economics.py "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse HEAD^{tree} > "$OUT/code-tree.txt"
+          (cd "$OUT" && find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256 && sha256sum -c manifest.sha256)
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: nqc-morpho-cbxrp-current-exit-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-morpho-cbxrp-exit-quotes/
+          if-no-files-found: error
+          retention-days: 30
