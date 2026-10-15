@@ -56,7 +56,7 @@ jobs:
           forge test --match-contract Nqc4337SponsoredMorphoLocalTest -vv \
             2>&1 | tee "$RUNNER_TEMP/nqc-aa-local/forge-test.txt"
           grep -Fq 'testLocalSponsorPaysAndSmartAccountReceivesAtomicMorphoSurplus' "$RUNNER_TEMP/nqc-aa-local/forge-test.txt"
-          grep -Fq 'testFailedAtomicSwapRevertsMorphoButStillChargesSponsor' "$RUNNER_TEMP/nqc-aa-local/forge-test.txt"
+          grep -Fq 'testRevertedSwapChargesSponsorAndRollsBackMorpho' "$RUNNER_TEMP/nqc-aa-local/forge-test.txt"
           grep -Fq 'testSponsorCannotPayFromNothingAndNoApplicationExecutes' "$RUNNER_TEMP/nqc-aa-local/forge-test.txt"
           grep -Eq '7 tests passed, 0 failed' "$RUNNER_TEMP/nqc-aa-local/forge-test.txt"
       - name: Preserve reproducible evidence and explicit noncommercial status
