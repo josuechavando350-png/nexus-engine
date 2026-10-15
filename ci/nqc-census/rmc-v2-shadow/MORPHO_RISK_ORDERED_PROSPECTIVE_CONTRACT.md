@@ -1,0 +1,13 @@
+# NQC MORPHO-RISK-FIRST-002: prospectively freeze smallest indexed health factors
+
+**Why**: PR744 froze the largest 50 BorrowShares borrowers on Base Morpho cbXRP/USDC, and none crossed HF=1 during one 45sec window. Debt ranking does NOT cover smaller debtors who are nearer insolvency. This experiment selects up to **100 lowest-source-HealthFactor accounts under indexer filter 1.15** BEFORE a 45-second second observation. Freeze initial addresses and distinguish first HF<1, HF<=1.01, HF<=1.03 and newly crossed. This is a one-shot experiment, not background monitoring.
+
+Base market 0xd4a903dc6d949519060c7707f9604fdc9772c046e05c2e3a8fce0bd7196e4109, USDC 6 decimals 0x833589fcd6edb6e08f4c7c32d4f71b54bda02913, cbXRP 6 decimals 0xcb585250f852c6c6bf90434ab21a00f02833a4af, immutable LLTV 62.5%, oracle 0x031b2efc8d70042ac8d9f5c793c4149ec4b60fde.
+
+**Source**: Morpho's free GraphQL marketById+marketPositions(first:100, orderBy:HealthFactor, orderDirection:Asc, where:{healthFactor_lte:1.15,marketUniqueKey_in:[EXACT_MARKET]}) + pageInfo count/countTotal and its official REST oracle read. FOUR HTTP calls total, no signing, native RPC, retries or fallback on 403/429. Derive HF using integer raw amounts and immutable price/LLTV; require market/oracle/token/chain identity, duplicate-user rejection, complete page counts and nondecreasing oracle index height. PR744 original script Git blob b1e29e04e3ac5b88ecf2fc06a2e09ad789a9f55c is retained and pinned byte-exact in CI. New producer source is a distinct file.
+
+**Trust boundary**: Source ordering/filter described by an independent public integration, not guaranteed Morpho schema; GraphQL error => INCOMPLETE source, not silently broadened search. If API reports countTotal >100, our sample is NOT complete. The public Morpho API has no SLA and may return asynchronous account/oracle state: no same-block canonical Morpho risk certification, no first-seen builder timing, no proven competing-capture chance, no fresh DEX exit, no flash/gas payer and no NQC net income.
+
+NQC commercial baseline 5.9/10 from Compound PR745 source-only positive global gate; economic validation 4/10; any new movement must be supported by commercial evidence, not tests passing. Realized P&L USD0, OWN_CAPITAL USD0 including gas, user's MXN2000 untouched; RMC OPEN; Shadow P2 NOT CERTIFIED; Canary/LIVE unauthorized; no contract deployments, wallets, emails, funds, signatures, PR merge or public posting.
+
+Official reference: https://docs.morpho.org/developers/api/morpho/ . Independent public monitoring reference (NOT production authority): https://github.com/symbioticfi/vault-solver/blob/stage/docs/OEV-PLAN.md .
