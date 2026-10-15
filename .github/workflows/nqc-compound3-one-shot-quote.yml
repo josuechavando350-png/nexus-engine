@@ -1,0 +1,122 @@
+name: NQC Compound III One-Shot Source Quote Evidence (READ ONLY)
+on:
+  push:
+    branches:
+      - nqc/compound3-one-shot-quote-20261015
+    paths:
+      - .github/workflows/nqc-compound3-one-shot-quote.yml
+permissions:
+  contents: read
+jobs:
+  once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: One bounded paired-Ethereum eth_call audit; no trade
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import sys, pathlib, json, hashlib, urllib.request, urllib.error, time, re, datetime, traceback
+          sys.path.insert(0,"ci/nqc-census/rmc-v2-shadow")
+          import compound3_discount_inventory_gate as c
+          calls=[]
+          SAFE_METHODS={'eth_chainId','eth_blockNumber','eth_getBlockByNumber','eth_getCode','eth_call'}
+          class TransportBlocked(c.Incomplete):pass
+          def recorded_ask(self, method, args):
+              c.need(method in SAFE_METHODS,'WRITE_OR_UNLISTED_RPC_FORBIDDEN')
+              self.n += 1
+              c.need(self.n <= c.MAX_RPC_CALLS, 'MAX_84_READ_CALLS_EXCEEDED')
+              q={'jsonrpc':'2.0','id':self.n,'method':method,'params':args}
+              body=json.dumps(q,separators=(',',':')).encode()
+              record={'provider':self.url,'id':self.n,'method':method}
+              if method=='eth_call':
+                  record.update({'to':args[0].get('to'),'data':args[0].get('data'),'at_block':args[1]})
+              else: record['params']=args
+              req=urllib.request.Request(self.url,body,headers={'Content-Type':'application/json','User-Agent':'NQC-READ-ONLY-ONE-SHOT-20261015'},method='POST')
+              try:
+                  with urllib.request.urlopen(req,timeout=15) as response:
+                      if response.status!=200:raise c.Incomplete('HTTP_NON200_'+str(response.status))
+                      raw=response.read(1000000)
+              except urllib.error.HTTPError as err:
+                  record['http_error']=err.code;calls.append(record)
+                  raise TransportBlocked('RPC_HTTP_'+str(err.code)+'_'+method) from err
+              except (TimeoutError,OSError,urllib.error.URLError) as err:
+                  record['transport_error']=type(err).__name__;calls.append(record)
+                  raise c.Incomplete('RPC_TRANSPORT_'+type(err).__name__+'_'+method) from err
+              record['raw_sha256']=hashlib.sha256(raw).hexdigest()
+              try: parsed=json.loads(raw)
+              except (ValueError,UnicodeDecodeError):
+                  record['decode_error']='INVALID_JSON'; calls.append(record)
+                  raise c.Incomplete('INVALID_JSON_'+method)
+              if not isinstance(parsed,dict) or parsed.get('id')!=self.n:
+                  record['protocol_error']='INVALID_RESPONSE_OR_ID';calls.append(record)
+                  raise c.Incomplete('MISMATCH_ID_OR_STRUCTURE_'+method)
+              if parsed.get('error') is not None:
+                  error=parsed['error']; error=error if isinstance(error,dict) else {'message':str(error)}
+                  record['jsonrpc_error']={'code':error.get('code'),'message':str(error.get('message',''))[:180]}
+                  if error.get('data') is not None:
+                      record['error_data_prefix']=str(error['data'])[:160]
+                      record['error_data_sha256']=hashlib.sha256(str(error['data']).encode()).hexdigest()
+                  calls.append(record)
+                  raise c.Incomplete('RPC_JSONRPC_ERROR_'+str(error.get('code'))+'_'+method)
+              if parsed.get('result') is None:
+                  record['protocol_error']='NULL_RESULT';calls.append(record)
+                  raise c.Incomplete('RPC_NULL_'+method)
+              res=parsed['result']
+              record['result']=res if isinstance(res,(str,int,bool)) else str(res)[:500]
+              calls.append(record)
+              time.sleep(.10)
+              return res
+          c.Provider.ask=recorded_ask
+          report={'execution':'ONE_SHOT_READ_ONLY','method_allowlist':sorted(SAFE_METHODS),'contract':c.COMET,
+                  'provider_allowlist':list(c.PROVIDERS),'principal_for_quote_usdc':'1000',
+                  'own_capital_usd':'0','nqc_realized_pnl_usd':'0',
+                  'dex_exit_certified':False,'gas_financier_certified':False,'commercial_promotion_allowed':False,
+                  'onchain_broadcast':False}
+          try:
+              result=c.attempt()
+              report.update({'observer_status':result['status'],'block':result.get('block'),
+                 'global_gate':result.get('certified_global_gate'),'assets':result.get('assets'),
+                 'quotes':result.get('quotes'),
+                 'full_final_header_witness':True,
+                 'quote_source_only':bool(result.get('quotes'))})
+          except c.Incomplete as exc:
+              report['observer_status']='INCOMPLETE'
+              report['source_blocker']=str(exc)
+              report['full_final_header_witness']=False
+              if hasattr(exc,'global_gate_checkpoint'):
+                  report['global_gate']=exc.global_gate_checkpoint
+              report['quote_source_only']=False
+          except Exception as exc:
+              report['observer_status']='INCOMPLETE_UNEXPECTED'
+              report['source_blocker']='UNEXPECTED_'+type(exc).__name__
+              report['quote_source_only']=False
+              report['full_final_header_witness']=False
+          report['requests_by_provider']={p:sum(v['provider']==p for v in calls) for p in c.PROVIDERS}
+          report['quote_rpc_responses']=[x for x in calls if x['method']=='eth_call' and
+                                      str(x.get('data','')).startswith('0x7ac88ed1')]
+          report['captured_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+          pathlib.Path('out/report.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          pathlib.Path('out/request_receipts.json').write_text(json.dumps(calls,indent=2,sort_keys=True)+'\n')
+          print('SOURCE_RESULT',report['observer_status'],report.get('source_blocker','NONE'),
+                'RPC_QUOTES',len(report['quote_rpc_responses']),'REALIZED_NQC_USD',0)
+          PY
+          git rev-parse HEAD > out/exact-head.txt
+          git rev-parse HEAD^{tree} > out/exact-tree.txt
+          cp .github/workflows/nqc-compound3-one-shot-quote.yml out/workflow-source.yml
+          cp ci/nqc-census/rmc-v2-shadow/compound3_discount_inventory_gate.py out/observer-source.py
+          cd out
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum -c manifest.sha256
+      - name: Preserve exact raw read receipts, including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-compound3-one-shot-quote-receipt
+          path: out/
+          retention-days: 14
+          if-no-files-found: warn
