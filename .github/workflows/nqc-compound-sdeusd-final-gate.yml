@@ -1,0 +1,99 @@
+name: NQC Compound sdeUSD ONE Final Source-Economic Quote
+on:
+  push:
+    branches:
+      - nqc/v2-compound3-usdc-discount-collateral-readonly-20261014
+    paths:
+      - .github/workflows/nqc-compound-sdeusd-final-gate.yml
+permissions:
+  contents: read
+jobs:
+  source-and-exit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Same-block legitimate 50 USDC source quote with one DEX preview
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc-sdeusd/source"
+          python3 - <<'PY'
+          import os,sys,json,urllib.request,urllib.error,urllib.parse,datetime,decimal
+          from pathlib import Path
+          sys.path.insert(0,str(Path('ci/nqc-census/rmc-v2-shadow').resolve()))
+          import compound3_discount_inventory_gate as c
+          sdeusd='0x5c5b196abe0d54485975d1ec29617d42d9198326'
+          base_raw=50*10**6
+          out=Path(os.environ['RUNNER_TEMP'])/'nqc-sdeusd'
+          res={'status':'INCOMPLETE','read_only':True,'own_capital_usd':'0','realized_nqc_pnl_usd':'0','live_authorized':False,'start_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+          try:
+            ps=[c.Provider(x) for x in c.PROVIDERS]
+            for p in ps:c.need(c.hexi(p.ask('eth_chainId',[]),'chain')==1,'WRONG_CHAIN')
+            heads=[c.hexi(p.ask('eth_blockNumber',[]),'head') for p in ps]
+            c.need(max(heads)-min(heads)<=4,'HEAD_GAP')
+            height=min(heads)
+            header=c.block_identity(ps[0].block(height),ps[1].block(height))
+            code=[p.ask('eth_getCode',[c.COMET,hex(height)]) for p in ps]
+            c.source_value_quorum(*code,'COMET_CODE')
+            c.need(len(code[0])>20,'EMPTY_COMET_CODE')
+            def pair(name,*args):
+              return c.source_value_quorum(*(p.get(name,height,*args) for p in ps),name)
+            base_reserve=c.signed(pair('getReserves'))
+            target=c.uint_word(pair('targetReserves'),'target')
+            paused=bool(c.uint_word(pair('isBuyPaused'),'paused',8))
+            count=c.uint_word(pair('numAssets'),'count',8)
+            c.need(c.addr_word(pair('baseToken'),'base')==c.USDC,'WRONG_BASE')
+            c.need(count==13,'ASSET_UNIVERSE_CHANGED')
+            info=c.asset_info(pair('getAssetInfo',10),10)
+            c.need(info['asset']==sdeusd and info['scale']==10**18,'BAD_SDEUSD_ASSET')
+            balance=c.uint_word(pair('getCollateralReserves',sdeusd),'balance')
+            data='0x'+c.S['quoteCollateral']+c.enc_addr(sdeusd)+c.enc_uint(base_raw)
+            raw=c.source_value_quorum(*(p.ask('eth_call',[{'to':c.COMET,'data':data},hex(height)]) for p in ps),'quote_sdeusd')
+            amount=c.uint_word(raw,'quote_out')
+            c.block_identity(header,ps[0].block(height))
+            c.block_identity(header,ps[1].block(height))
+            res.update({'block':header,'asset':sdeusd,'base_usdc_raw':str(base_raw),'collateral_quoted_raw':str(amount),'collateral_inventory_raw':str(balance),'global_buy_gate_open':base_reserve<target and not paused,'quote_within_inventory':0<amount<=balance,'same_block_two_provider':True,'rpc_calls':[p.n for p in ps]})
+            if not res['global_buy_gate_open'] or not res['quote_within_inventory']:
+              res['status']='FAIL_THIS_BLOCK_NO_INVENTORY_OR_GATE'
+            else:
+              res['status']='SOURCE_QUOTE_POSITIVE_DEX_PENDING'
+              url='https://aggregator-api.kyberswap.com/ethereum/api/v1/routes?'+urllib.parse.urlencode({'tokenIn':sdeusd,'tokenOut':c.USDC,'amountIn':str(amount),'gasInclude':'true'})
+              request=urllib.request.Request(url,headers={'X-Client-Id':'nqc-readonly-research','Accept':'application/json'})
+              try:
+                with urllib.request.urlopen(request,timeout=12) as response:dex=json.loads(response.read(200000))
+                route=dex.get('data',{}).get('routeSummary') if isinstance(dex,dict) else None
+                if isinstance(route,dict) and str(route.get('amountIn'))==str(amount) and str(route.get('tokenOut','')).lower()==c.USDC:
+                  dexout=int(route['amountOut'])
+                  res['dex_indicative_other_time']={'output_usdc_raw':str(dexout),'gross_usdc_before_gas_flash_mev':str(decimal.Decimal(dexout-base_raw)/decimal.Decimal(10**6)),'swap_gas_usd':str(route.get('gasUsd')),'quote_timestamp':str(route.get('timestamp')),'same_block':False,'pnl_realized':False}
+                else:res['dex_status']='NO_VALID_ROUTE'
+              except urllib.error.HTTPError as err:res['dex_status']='HTTP_'+str(err.code)
+              except Exception as err:res['dex_status']='ERROR_'+type(err).__name__
+          except Exception as err:
+            res['error_type']=type(err).__name__
+            res['error_code']=str(err)[:140]
+          res['finish_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+          (out/'source-result.json').write_text(json.dumps(res,indent=2,sort_keys=True)+'\n')
+          print('FINAL',res['status'],res.get('error_code'),res.get('dex_status'))
+          PY
+      - name: Save source exact-head and SHA-256
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-sdeusd"
+          mkdir -p "$OUT/source"
+          git rev-parse HEAD > "$OUT/head.txt"
+          git rev-parse HEAD^{tree} > "$OUT/tree.txt"
+          cp .github/workflows/nqc-compound-sdeusd-final-gate.yml ci/nqc-census/rmc-v2-shadow/compound3_discount_inventory_gate.py "$OUT/source/"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum -c manifest.sha256
+      - name: Archive bounded read-only evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-final-sdeusd-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-sdeusd/
+          retention-days: 14
+          if-no-files-found: error

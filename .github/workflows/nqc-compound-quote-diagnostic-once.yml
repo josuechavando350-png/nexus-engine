@@ -1,0 +1,166 @@
+name: NQC Compound III Single Real Read-Only Quote Diagnostic
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  read-only-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Single source attempt and raw quote error classification, no retry
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc-quote/source"
+          python3 - <<'PY'
+          import os,sys,json,io,hashlib,urllib.request,urllib.error,datetime,urllib.parse
+          from pathlib import Path
+          sys.path.insert(0,str(Path('ci/nqc-census/rmc-v2-shadow').resolve()))
+          import compound3_discount_inventory_gate as c
+          out=Path(os.environ['RUNNER_TEMP'])/'nqc-quote'
+          quote_responses=[]
+          real_open=urllib.request.urlopen
+          class Buffered:
+            def __init__(self,data,status):
+              self.data=io.BytesIO(data);self.status=status
+            def __enter__(self):return self
+            def __exit__(self,*args):self.data.close()
+            def read(self,n=-1):return self.data.read(n)
+          def capture(req,timeout=15):
+            request_bytes=getattr(req,'data',None) or b''
+            typ=None;asset=None;pin=None;call_data=''
+            try:
+              payload=json.loads(request_bytes) if request_bytes else {}
+              if payload.get('method')=='eth_call':
+                params=payload.get('params',[])
+                call_data=params[0].get('data','')
+                pin=params[1]
+                if call_data.startswith('0x7ac88ed1'):typ='quoteCollateral'
+                if call_data.startswith('0x9ff567f8'):typ='getCollateralReserves'
+                if call_data.startswith('0xc8c7fe6b'):typ='getAssetInfo'
+                if typ in ('quoteCollateral','getCollateralReserves'):
+                  asset='0x'+call_data[34:74].lower()
+                if typ=='quoteCollateral':
+                  qty=int(call_data[74:138],16)
+                else:qty=None
+              elif payload.get('method')=='eth_getBlockByNumber':typ='block_header'
+            except Exception:pass
+            if typ is None:return real_open(req,timeout=timeout)
+            try:
+              response=real_open(req,timeout=timeout)
+            except urllib.error.HTTPError as error:
+              quote_responses.append({'kind':typ,'http_status':error.code,'asset':asset,'provider':req.full_url})
+              raise
+            with response as r:data=r.read(1000001);status=r.status
+            entry={'kind':typ,'http_status':status,'provider':req.full_url,'response_sha256':hashlib.sha256(data).hexdigest()}
+            if asset:entry['asset']=asset
+            if pin:entry['pin_block']=pin
+            if typ=='quoteCollateral':entry['base_input_raw']=str(qty)
+            try:
+              body=json.loads(data)
+              err=body.get('error')
+              entry['rpc_error_code']=err.get('code') if isinstance(err,dict) else None
+              raw=body.get('result')
+              entry['has_result']=raw is not None
+              if raw is not None and typ!='block_header':
+                entry['raw_result']=raw
+              if typ=='block_header' and isinstance(raw,dict):
+                entry['block_number']=raw.get('number')
+                entry['block_hash']=raw.get('hash')
+                entry['state_root']=raw.get('stateRoot')
+            except Exception:entry['bad_json']=True
+            quote_responses.append(entry)
+            return Buffered(data,status)
+          urllib.request.urlopen=capture
+          result={'status':'INCOMPLETE','read_only':True,'nqc_realized_pnl_usd':'0','own_capital_usd':'0','live_authorized':False,'created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+          try:
+            source=c.attempt()
+            result['source']=source
+            result['status']='REAL_SOURCE_READ_ONLY_RESULT'
+            for q in source.get('quotes',[]):
+              if not q.get('full_1000_usdc_purchase_has_sufficient_reserves'):continue
+              token=q['collateral_asset'];amount=q['collateral_out_raw_at_quoted_block']
+              url='https://aggregator-api.kyberswap.com/ethereum/api/v1/routes?'+urllib.parse.urlencode({'tokenIn':token,'tokenOut':c.USDC,'amountIn':amount,'gasInclude':'true'})
+              request=urllib.request.Request(url,headers={'X-Client-Id':'nqc-public-readonly','Accept':'application/json'})
+              try:
+                with real_open(request,timeout=12) as response: dex=json.loads(response.read(200000))
+                route=dex.get('data',{}).get('routeSummary') if isinstance(dex,dict) else None
+                if isinstance(route,dict) and str(route.get('amountIn'))==amount and str(route.get('tokenOut','')).lower()==c.USDC:
+                  result['dex_quote_independent_time']={'tokenIn':token,'collateralAmountRaw':amount,'usdcAmountOutRaw':str(route.get('amountOut')),'swapGasUsd':str(route.get('gasUsd')),'quoteTimestamp':str(route.get('timestamp')),'same_block':False,'profit_proven':False}
+                else:result['dex_status']='NO_VERIFIABLE_ROUTE'
+              except urllib.error.HTTPError as error:result['dex_status']='HTTP_'+str(error.code)
+              except Exception as error:result['dex_status']='INCOMPLETE_'+type(error).__name__
+              break
+          except Exception as error:
+            result['error_type']=type(error).__name__
+            result['error_code']=str(error)[:140]
+          # Reconcile already successful exact-input quotes before the unrelated failing asset.
+          pairs=[]
+          reserves={}
+          asset_scale={}
+          for q in quote_responses:
+            if q.get('kind')=='getAssetInfo' and q.get('has_result'):
+              try:
+                x=int((q.get('raw_result') or '')[2+64:2+128],16)
+                scale=int((q.get('raw_result') or '')[2+64*3:2+64*4],16)
+                asset_scale['0x'+format(x,'040x')]=scale
+              except Exception:pass
+            if q.get('kind')=='getCollateralReserves' and q.get('has_result'):
+              reserves.setdefault((q.get('asset'),q.get('pin_block')),[]).append(int(q['raw_result'],16))
+          matches={}
+          for q in quote_responses:
+            if q.get('kind')=='quoteCollateral' and q.get('has_result') and q.get('pin_block') and q.get('asset'):
+              key=(q['asset'],q['pin_block'],q.get('base_input_raw'))
+              matches.setdefault(key,[]).append(int(q['raw_result'],16))
+          for key,vals in matches.items():
+            asset,block,base_raw=key
+            bal=reserves.get((asset,block),[])
+            if len(vals)!=2 or vals[0]!=vals[1] or len(bal)!=2 or bal[0]!=bal[1]:continue
+            qty=vals[0]
+            row={'asset':asset,'block':block,'usdc_input_raw':base_raw,'collateral_quoted_raw':str(qty),'collateral_inventory_raw':str(bal[0]),'collateral_scale':asset_scale.get(asset),'within_inventory':qty>0 and qty<=bal[0],'two_rpc_values_agree':True,'final_same_block_tail_not_rechecked':True}
+            pairs.append(row)
+          result['two_provider_quoted_assets_before_failure']=pairs
+          for q in pairs[:3]:
+            if not q['within_inventory']:continue
+            import decimal
+            dex_url='https://aggregator-api.kyberswap.com/ethereum/api/v1/routes?'+urllib.parse.urlencode({'tokenIn':q['asset'],'tokenOut':c.USDC,'amountIn':q['collateral_quoted_raw'],'gasInclude':'true'})
+            req=urllib.request.Request(dex_url,headers={'X-Client-Id':'nqc-public-readonly','Accept':'application/json'})
+            try:
+              with real_open(req,timeout=12) as response:dex=json.loads(response.read(200000))
+              route=dex.get('data',{}).get('routeSummary') if isinstance(dex,dict) else None
+              if isinstance(route,dict) and str(route.get('amountIn'))==q['collateral_quoted_raw'] and str(route.get('tokenOut','')).lower()==c.USDC:
+                out_raw=int(route['amountOut'])
+                q['dex_indicative_other_time']={'amount_out_usdc_raw':str(out_raw),'gross_spread_usdc_before_buy_gas_mev':str((decimal.Decimal(out_raw)-decimal.Decimal(int(q['usdc_input_raw'])))/decimal.Decimal(10**6)),'swap_gas_usd':str(route.get('gasUsd')),'dex_timestamp':str(route.get('timestamp')),'same_block_proven':False,'realized_pnl':False}
+              else:q['dex_status']='NO_VALID_ROUTE'
+            except urllib.error.HTTPError as error:
+              q['dex_status']='HTTP_'+str(error.code)
+              if error.code in (401,403,429):break
+            except Exception as error:q['dex_status']='ERROR_'+type(error).__name__
+          result['raw_quote_diagnostics']=quote_responses
+          result['finished_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+          (out/'read-only-quote.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+          print('READ_ONLY_STATUS',result['status'],'ERROR',result.get('error_code'),'QUOTE_CALLS',len(quote_responses))
+          PY
+      - name: Preserve immutable source and SHA-256 manifest
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-quote"
+          mkdir -p "$OUT/source"
+          git rev-parse HEAD > "$OUT/head.txt"
+          git rev-parse HEAD^{tree} > "$OUT/tree.txt"
+          cp ci/nqc-census/rmc-v2-shadow/compound3_discount_inventory_gate.py .github/workflows/nqc-compound-quote-diagnostic-once.yml "$OUT/source/"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum -c manifest.sha256
+      - name: Upload source evidence regardless of outcome
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-compound-real-quote-ONCE-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-quote/
+          retention-days: 14
+          if-no-files-found: error
