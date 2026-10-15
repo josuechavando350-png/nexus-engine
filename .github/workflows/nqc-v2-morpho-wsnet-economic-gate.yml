@@ -1,0 +1,86 @@
+name: NQC V2 Morpho wsNET 23D Economic Gate (OFFLINE)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/morpho_wsnet_23d_economic_gate.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_morpho_wsnet_23d_economic_gate.py'
+      - 'ci/nqc-census/rmc-v2-shadow/MORPHO_WSNET_23D_ECONOMIC_FALSIFICATION.md'
+      - '.github/workflows/nqc-v2-morpho-wsnet-economic-gate.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  source-locked-no-trade-wsnet-23d:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout EXACT PR HEAD; never persist credentials
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Download and SHA-check ONE original same-repo artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha }}'
+          OUT="$RUNNER_TEMP/nqc-wsnet-23d"
+          mkdir -p "$OUT"
+          curl --fail --silent --show-error --location --max-time 90 \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            'https://api.github.com/repos/josuechavando350-png/nexus-engine/actions/artifacts/11944154144/zip' \
+            -o "$OUT/11944154144.zip"
+          echo "f65c2b526fe93d105b096716515b4eac7b98698cb331048d3c6a8cf936b65ce4  $OUT/11944154144.zip" | sha256sum -c -
+      - name: 24 adversarial tests and deterministic source-bound model
+        shell: bash
+        env:
+          NQC_PR741_CERTIFIED_SOURCE_ZIP: ${{ runner.temp }}/nqc-wsnet-23d/11944154144.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-wsnet-23d"
+          cd ci/nqc-census/rmc-v2-shadow
+          python3 -m unittest -v test_morpho_wsnet_23d_economic_gate 2>&1 | tee "$OUT/offline-tests.log"
+          python3 morpho_wsnet_23d_economic_gate.py \
+            --source-zip "$NQC_PR741_CERTIFIED_SOURCE_ZIP" \
+            --output "$OUT/wsnet_23d_conditional_economics.json" | tee "$OUT/terminal-status.log"
+          python3 - "$OUT/wsnet_23d_conditional_economics.json" <<'PY'
+          import json,sys
+          r=json.load(open(sys.argv[1]))
+          assert r['status']=='INDEXED_WSNET_USDG_23D_CONDITIONAL_CAPACITY_NOT_PROFIT'
+          assert r['source_30d_complete'] is False and r['nqc_realized_pnl_usd']=='0'
+          assert r['source_total_repaid_nominal_usdg_not_profit']=='526735.979790'
+          assert r['source_distinct_winning_txs']==164
+          assert r['source_distinct_liquidator_addresses']==52
+          s=r['segments']['excluding_both_peak_and_top_three']
+          assert s['source_loan_principal_usdg_not_profit']=='183167.261965'
+          assert s['model'][3]['nqc_50pct_oracle_model_share_usdg_before_costs']=='3353.766743'
+          assert s['model'][3]['exceeds_5000_nominal_not_monthly'] is False
+          assert not r['external_gas_sponsor_proven']
+          assert not r['same_block_executable_quote_proven']
+          PY
+      - name: Preserve source, report, exact commit/tree digests
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-wsnet-23d"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/morpho_wsnet_23d_economic_gate.py "$OUT/source/"
+          cp ci/nqc-census/rmc-v2-shadow/test_morpho_wsnet_23d_economic_gate.py "$OUT/source/"
+          cp ci/nqc-census/rmc-v2-shadow/MORPHO_WSNET_23D_ECONOMIC_FALSIFICATION.md "$OUT/source/"
+          cp .github/workflows/nqc-v2-morpho-wsnet-economic-gate.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse HEAD^{tree} > "$OUT/code-tree.txt"
+          (cd "$OUT" && find . -type f -not -name manifest.sha256 -not -name '11944154144.zip' -print0 \
+            | sort -z | xargs -0 sha256sum > manifest.sha256 && sha256sum -c manifest.sha256)
+      - name: Store reproducible evidence, including failure logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-wsnet-23d-economic-gate-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-wsnet-23d/
+          retention-days: 30
+          if-no-files-found: warn
