@@ -34,6 +34,13 @@ jobs:
           ref: dbb6104ce834628e473d2173bbc9d47f81a9eec3
           path: ci/nqc-census/erc4337-real-source-lab/lib/openzeppelin-contracts
           persist-credentials: false
+      - name: Checkout immutable original Morpho 0.8.19 code for the same EVM
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: morpho-org/morpho-blue
+          ref: 8e26ca6a8dbc5089edcd67fb576248810fd2870a
+          path: ci/nqc-census/morpho-native-lab/lib/morpho-blue
+          persist-credentials: false
       - name: Verify immutable official EIP4337 and OpenZeppelin sources
         shell: bash
         run: |
@@ -43,6 +50,9 @@ jobs:
           test "$(git -C "$LAB/lib/account-abstraction" rev-parse HEAD)" = '7af70c8993a6f42973f520ae0752386a5032abe7'
           test "$(git -C "$LAB/lib/account-abstraction" hash-object contracts/core/EntryPoint.sol)" = '44501524df76c23eef6e60fda97dd9440fad01b7'
           test "$(git -C "$LAB/lib/openzeppelin-contracts" rev-parse HEAD)" = 'dbb6104ce834628e473d2173bbc9d47f81a9eec3'
+          test "$(git -C ci/nqc-census/morpho-native-lab/lib/morpho-blue rev-parse HEAD)" = '8e26ca6a8dbc5089edcd67fb576248810fd2870a'
+          test "$(git -C ci/nqc-census/morpho-native-lab/lib/morpho-blue hash-object src/Morpho.sol)" = 'ab064b646bf161b1510e2575a99412cdc2a43ebb'
+          test "$(git hash-object ci/nqc-census/morpho-native-lab/src/NqcMorphoNativeCallbackLab.sol)" = '33ba05d21472f4eaffb98c42f5cc2fd4454c6555'
           grep -Fq 'NOT Morpho' "$LAB/README.md"
           grep -Fq 'NO real gas sponsor' "$LAB/README.md"
           echo 'Official EntryPoint and OpenZeppelin source identity PASS'
@@ -57,6 +67,16 @@ jobs:
           tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
           echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
           "$RUNNER_TEMP/foundry/forge" --version
+      - name: Separately compile and EVM-test authentic Morpho with pinned Solidity 0.8.19
+        shell: bash
+        run: |
+          set -euo pipefail
+          LAB=ci/nqc-census/morpho-native-lab
+          (cd "$LAB" && forge test --match-contract NqcMorphoNativeCallbackLabTest -vv)
+          test -s "$LAB/out/Morpho.sol/Morpho.json"
+          mkdir -p ci/nqc-census/erc4337-real-source-lab/src
+          cp "$LAB/src/NqcMorphoNativeCallbackLab.sol" ci/nqc-census/erc4337-real-source-lab/src/NqcMorphoNativeCallbackLab.sol
+          test "$(git hash-object ci/nqc-census/erc4337-real-source-lab/src/NqcMorphoNativeCallbackLab.sol)" = '33ba05d21472f4eaffb98c42f5cc2fd4454c6555'
       - name: Execute actual official EIP4337 v0.7 handleOps sponsored UserOperation suite
         shell: bash
         working-directory: ci/nqc-census/erc4337-real-source-lab
@@ -67,7 +87,9 @@ jobs:
             2>&1 | tee "$RUNNER_TEMP/nqc-aa-authentic-v07/forge-test.txt"
           grep -Fq 'testRealEntryPointV07SuccessfullyDebitsSponsorNotAccount' "$RUNNER_TEMP/nqc-aa-authentic-v07/forge-test.txt"
           grep -Fq 'testRealEntryPointV07ChargesSponsorForRevertedExecution' "$RUNNER_TEMP/nqc-aa-authentic-v07/forge-test.txt"
-          grep -Eq '5 tests passed, 0 failed' "$RUNNER_TEMP/nqc-aa-authentic-v07/forge-test.txt"
+          grep -Fq 'testOfficialEntryPointToPinnedMorphoCallbackLocalSuccess' "$RUNNER_TEMP/nqc-aa-authentic-v07/forge-test.txt"
+          grep -Fq 'testOfficialEntryPointToPinnedMorphoFailedSwapStillBillsSponsor' "$RUNNER_TEMP/nqc-aa-authentic-v07/forge-test.txt"
+          grep -Eq '7 tests passed, 0 failed' "$RUNNER_TEMP/nqc-aa-authentic-v07/forge-test.txt"
       - name: Archive local EIP4337 official source verification and no-commercial-upgrade status
         if: always()
         shell: bash
@@ -86,7 +108,7 @@ jobs:
            source_commit:$code, original_entrypoint_executed_locally:true,
            official_source_authenticated:true,
            real_useroperation_v07_tested_locally:true,
-           original_morpho_integrated_in_same_evm:false,
+           original_morpho_integrated_in_same_evm:true,
            external_sponsor_found:false, real_gas_paid:false,
            operator_native_gas_funded:false,
            founder_money_spent_usd:"0", actual_nqc_profit_usd:"0",
