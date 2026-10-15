@@ -78,7 +78,8 @@ class Provider:
  def block(self,height):return self.ask('eth_getBlockByNumber',[hex(height),False])
  def get(self,name,height,*args):
   tx={'to':COMET,'data':selector(name,*args)}
-  return self.ask('eth_call',[tx,hex(height)])
+  try:return self.ask('eth_call',[tx,hex(height)])
+  except Incomplete as e:raise Incomplete('CALL_'+name+'_'+str(e)) from e
 
 def asset_info(raw,ix):
  need(type(raw) is str and bool(re.fullmatch(r'0x[0-9a-fA-F]{512}',raw)),'BAD_ASSET_INFO_ABI')
@@ -144,26 +145,42 @@ def attempt():
  # No asset enumeration is necessary or permitted for a negative GLOBAL gate.
  # Crucially, do not call a skipped collateral inventory ZERO.
  global_buy_gate_open=(reserves<target and not paused)
+ # A second exact header witness certifies the global gate BEFORE riskier
+ # collateral enumeration. If later provider queries fail, this checkpoint is
+ # genuine two-provider same-block evidence, not a guessed partial inventory.
+ early_tail=[p.block(height) for p in ps]
+ block_identity(*early_tail);block_identity(headers[0],early_tail[0])
+ checkpoint={'certified_global_gate_only':True,'block':bh,
+             'reserve_base_signed_raw_usdc':str(reserves),
+             'target_reserve_raw_usdc':str(target),
+             'num_assets':n,'is_buy_paused':paused,
+             'global_buy_gate_open':global_buy_gate_open,
+             'full_collateral_inventory_certified':False,
+             'dex_exit_quote_certified':False,'nqc_realized_profit_usd':'0'}
  assets=[]
  quotes=[]
  if global_buy_gate_open:
-  need(n<=MAX_ASSETS,'ASSET_ENUMERATION_OUTSIDE_CAP')
-  for ix in range(n):
-   info=source_value_quorum(*(p.get('getAssetInfo',height,ix) for p in ps),'asset_'+str(ix))
-   a=asset_info(info,ix)
-   bal=source_value_quorum(*(p.get('getCollateralReserves',height,a['asset']) for p in ps),'balance_'+str(ix))
-   a['reserves_raw']=str(uint_word(bal,'collateral_reserves'))
-   assets.append(a)
-  decision=gate(reserves,target,paused,assets)
-  decision['inventory_evaluated']=True
-  for a in assets:
-   if int(a['reserves_raw'])<=0:continue
-   q=source_value_quorum(*(p.get('quoteCollateral',height,a['asset'],QUOTE_USDC_RAW) for p in ps),'quote_'+a['asset'])
-   amount=uint_word(q,'quote_out')
-   quotes.append({'collateral_asset':a['asset'],'usdc_in_raw':str(QUOTE_USDC_RAW),
-                  'collateral_out_raw_at_quoted_block':str(amount),
-                  'full_1000_usdc_purchase_has_sufficient_reserves':0<amount<=int(a['reserves_raw']),
-                  'dex_sale_output_proven':False,'pnl_proven':False})
+  try:
+   need(n<=MAX_ASSETS,'ASSET_ENUMERATION_OUTSIDE_CAP')
+   for ix in range(n):
+    info=source_value_quorum(*(p.get('getAssetInfo',height,ix) for p in ps),'asset_'+str(ix))
+    a=asset_info(info,ix)
+    bal=source_value_quorum(*(p.get('getCollateralReserves',height,a['asset']) for p in ps),'balance_'+str(ix))
+    a['reserves_raw']=str(uint_word(bal,'collateral_reserves'))
+    assets.append(a)
+   decision=gate(reserves,target,paused,assets)
+   decision['inventory_evaluated']=True
+   for a in assets:
+    if int(a['reserves_raw'])<=0:continue
+    q=source_value_quorum(*(p.get('quoteCollateral',height,a['asset'],QUOTE_USDC_RAW) for p in ps),'quote_'+a['asset'])
+    amount=uint_word(q,'quote_out')
+    quotes.append({'collateral_asset':a['asset'],'usdc_in_raw':str(QUOTE_USDC_RAW),
+                   'collateral_out_raw_at_quoted_block':str(amount),
+                   'full_1000_usdc_purchase_has_sufficient_reserves':0<amount<=int(a['reserves_raw']),
+                   'dex_sale_output_proven':False,'pnl_proven':False})
+  except Incomplete as e:
+   e.global_gate_checkpoint=checkpoint
+   raise
  else:
   decision=gate(reserves,target,paused,[])
   decision['inventory_evaluated']=False
@@ -176,7 +193,7 @@ def attempt():
  block_identity(*tail);block_identity(headers[0],tail[0])
  return {'status':('SAME_BLOCK_COMET_DISCOUNT_RESERVE_GATE_SOURCE_ONLY' if global_buy_gate_open else 'SAME_BLOCK_COMET_GLOBAL_BUY_GATE_CLOSED_SOURCE_ONLY'),
          'source_chain':'Ethereum mainnet 1','comet':COMET,'block':bh,'reserve_base_signed_raw_usdc':str(reserves),
-         'target_reserve_raw_usdc':str(target),'asset_count':n,'collateral_inventory_was_fully_enumerated':global_buy_gate_open,'assets':assets,
+         'target_reserve_raw_usdc':str(target),'asset_count':n,'collateral_inventory_was_fully_enumerated':global_buy_gate_open,'certified_global_gate':checkpoint,'assets':assets,
          'gate':decision,'quotes':quotes,
          'rpc_counts':[p.n for p in ps],
          'quote_is_not_own_capital_or_net_profit':True,
@@ -192,7 +209,10 @@ def main(argv=None):
  out={'status':'INCOMPLETE_COMPOUND_READONLY_RESERVES','realized_nqc_pnl_usd':'0',
       'commercial_promotion_allowed':False,'user_mainnet_transaction_authorized':False}
  try:out=attempt()
- except Incomplete as e:out['source_blocker']=str(e)
+ except Incomplete as e:
+  out['source_blocker']=str(e)
+  if hasattr(e,'global_gate_checkpoint'):
+   out['certified_global_gate']=e.global_gate_checkpoint
  except Exception as e:out['source_blocker']='UNEXPECTED_'+type(e).__name__
  out['observed_utc']=utc()
  (p/'discount-reserves.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')

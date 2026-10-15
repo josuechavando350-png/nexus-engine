@@ -128,6 +128,43 @@ class Check(unittest.TestCase):
   # and request two block headers plus final replay, no arbitrary RPCs.
   self.assertGreaterEqual(c.MAX_RPC_CALLS, 2+2+1+5+2*24+24+2)
   self.assertLess(c.MAX_RPC_CALLS,100)
+ def test_source_incomplete_preserves_dual_rpc_global_gate_but_never_inventory(self):
+  class Fake:
+   def __init__(self):self.n=0
+   def ask(self,method,args):
+    self.n+=1
+    if method=='eth_chainId':return '0x1'
+    if method=='eth_blockNumber':return hex(24000000)
+    if method=='eth_getBlockByNumber':return block()
+    if method=='eth_getCode':return '0x'+'abcdef'*40
+    raise AssertionError('UNKNOWN_RPC:'+method)
+   def block(self,height):return self.ask('eth_getBlockByNumber',[hex(height),False])
+   def get(self,name,height,*args):
+    self.n+=1
+    vals={'getReserves':wd(1_000_000000), 'targetReserves':wd(20_000_000000),
+          'numAssets':wd(12),'baseToken':wd(int(c.USDC,16)), 'isBuyPaused':wd(0)}
+    if name=='getAssetInfo':raise c.Incomplete('CALL_getAssetInfo_RPC_NULL_OR_ERROR_eth_call')
+    if name not in vals:raise AssertionError('Unexpected call '+name)
+    return vals[name]
+  with patch.object(c,'Provider',side_effect=[Fake(),Fake()]):
+   with self.assertRaises(c.Incomplete) as exc:c.attempt()
+  ckp=exc.exception.global_gate_checkpoint
+  self.assertTrue(ckp['certified_global_gate_only'])
+  self.assertTrue(ckp['global_buy_gate_open'])
+  self.assertEqual(ckp['num_assets'],12)
+  self.assertFalse(ckp['full_collateral_inventory_certified'])
+  self.assertEqual(ckp['nqc_realized_profit_usd'],'0')
+ def test_main_writes_checkpoint_without_fabricating_full_sale(self):
+  exc=c.Incomplete('CALL_getAssetInfo_RPC_NULL_OR_ERROR_eth_call')
+  exc.global_gate_checkpoint={'certified_global_gate_only':True,
+                              'global_buy_gate_open':True,
+                              'full_collateral_inventory_certified':False}
+  with tempfile.TemporaryDirectory() as d:
+   with patch.object(c,'attempt',side_effect=exc):c.main(['--out',d])
+   out=json.loads((Path(d)/'discount-reserves.json').read_text())
+   self.assertEqual(out['status'],'INCOMPLETE_COMPOUND_READONLY_RESERVES')
+   self.assertTrue(out['certified_global_gate']['global_buy_gate_open'])
+   self.assertFalse(out['commercial_promotion_allowed'])
  def test_source_error_fail_closed_integrated(self):
   with tempfile.TemporaryDirectory() as tmp:
    with patch.object(c,'attempt',side_effect=c.Incomplete('RPC_HTTP_403_eth_call')):

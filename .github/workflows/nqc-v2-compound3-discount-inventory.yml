@@ -18,7 +18,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - name: 25+ offline adversarial accounting / transport regression tests
+      - name: 28 offline adversarial accounting / transport regression tests
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/comet-economic/source"
@@ -35,6 +35,11 @@ jobs:
           r=json.load(open(sys.argv[1]))
           assert r['status'] in ['INCOMPLETE_COMPOUND_READONLY_RESERVES','SAME_BLOCK_COMET_DISCOUNT_RESERVE_GATE_SOURCE_ONLY','SAME_BLOCK_COMET_GLOBAL_BUY_GATE_CLOSED_SOURCE_ONLY']
           assert r['realized_nqc_pnl_usd']=='0' and not r['commercial_promotion_allowed']
+          if 'certified_global_gate' in r:
+            c=r['certified_global_gate']
+            assert c['certified_global_gate_only'] and not c['full_collateral_inventory_certified']
+            assert c['nqc_realized_profit_usd']=='0'
+            assert 'block' in c and 'hash' in c['block']
           if r['status'].startswith('SAME_BLOCK'):
             assert not r['user_mainnet_transaction_authorized']
             assert not r['morpho_usdc_flash_capacity_proven']
