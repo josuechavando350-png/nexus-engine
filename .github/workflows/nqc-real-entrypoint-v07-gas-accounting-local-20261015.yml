@@ -44,7 +44,7 @@ jobs:
           test "$(git -C "$LAB/lib/account-abstraction" hash-object contracts/core/EntryPoint.sol)" = '44501524df76c23eef6e60fda97dd9440fad01b7'
           test "$(git -C "$LAB/lib/openzeppelin-contracts" rev-parse HEAD)" = 'dbb6104ce834628e473d2173bbc9d47f81a9eec3'
           grep -Fq 'NOT Morpho' "$LAB/README.md"
-          grep -Fq 'NOT a real gas sponsor' "$LAB/README.md"
+          grep -Fq 'NO real gas sponsor' "$LAB/README.md"
           echo 'Official EntryPoint and OpenZeppelin source identity PASS'
       - name: Install pinned official Foundry v1.7.1
         shell: bash
