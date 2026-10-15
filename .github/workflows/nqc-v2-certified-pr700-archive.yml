@@ -1,0 +1,127 @@
+name: NQC V2 Certified PR700 HF-Trigger MEV-Share Archive Correlation (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/svr_certified_causality_archive.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_svr_certified_causality_archive.py'
+      - 'ci/nqc-census/rmc-v2-shadow/SVR_CERTIFIED_CAUSALITY_ARCHIVE_CONTRACT.md'
+      - '.github/workflows/nqc-v2-certified-pr700-archive.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-certified-hf-history-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-certified-hf-trigger-archive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Authenticate exact head and recover immutable PRE-EXISTING producer ZIP (READ ONLY)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-hf-original-archive"
+          mkdir -p "$OUT"
+          curl --silent --show-error --fail --location --retry 0 --max-time 90 \
+            --proto '=https' --proto-redir '=https' --max-redirs 3 \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --header "Authorization: Bearer ${GH_TOKEN}" \
+            --output "$OUT/pr700-original-certified.zip" \
+            'https://api.github.com/repos/josuechavando350-png/nexus-engine/actions/artifacts/11871075488/zip'
+          printf '%s  %s\n' \
+            'ca495ebdb9b8c7f8ed8438e5c3226b58b9c31c0d50e44ef35d6fce2cec232dde' \
+            "$OUT/pr700-original-certified.zip" | sha256sum --check --strict
+          echo 'Immutable original PR700 official ZIP bytes SHA256 PASS, no substitution.'
+      - name: Source-authenticate all 93 old members and run offline adversarial and regression tests
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-hf-original-archive"
+          NQC_PR700_CERT_ZIP="$OUT/pr700-original-certified.zip" \
+            python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_svr_certified_causality_archive.py' -v 2>&1 | tee "$OUT/new-adversarial-tests.log"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p 'test_svr_archive_positive_controls.py' -v 2>&1 | tee "$OUT/pr736-regression-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/svr_certified_causality_archive.py
+      - name: One bounded public historical Flashbots archive comparison; NO ETHEREUM RPC
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-hf-original-archive"
+          timeout 440s python3 ci/nqc-census/rmc-v2-shadow/svr_certified_causality_archive.py \
+            --pr700-zip "$OUT/pr700-original-certified.zip" \
+            --out "$OUT/attempt" > "$OUT/run.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            .pr700_original_artifact_sha256_authenticated==true and
+            .new_ethereum_rpc_calls==0 and
+            (.precommit_sha256|test("^[0-9a-f]{64}$")) and
+            (.historical_source_controls|length)==2 and
+            all(.historical_source_controls[];
+                .original_two_provider_fork_parity==true and
+                .historically_selected_winner_with_hindsight==true and
+                .archive_positive_eligible_for_historical_test==true) and
+            (.archive_calls|length)<=17 and
+            .network_local_first_seen_before_inclusion_proven==false and
+            .builder_deadline_proven==false and
+            .NQC_execution_or_bid_submitted==false and
+            .nonrecourse_native_gas_sponsor_proven==false and
+            .realized_nqc_pnl_usd=="0" and
+            .PFT_closed==true and
+            .RMC_closed==false and
+            .Shadow_P2_certified==false and
+            .Canary_or_LIVE_authorized==false and
+            .monthly_profit_predictability_proven==false and
+            .operator_capital_usd=="0" and
+            .user_MXN2000_spent==false and
+            (
+               .status=="TWO_CERTIFIED_HF_TRIGGER_HINTS_FOUND_RETROSPECTIVE_ONLY" or
+               .status=="ONE_CERTIFIED_HF_TRIGGER_HINT_FOUND_NOT_CAPTURE_RECALL" or
+               .status=="ZERO_COMPLETE_MATCHES_IN_TWO_BOUNDED_ARCHIVE_WINDOWS_NOT_PRIVATE_DENIAL" or
+               (.status|startswith("INCOMPLETE_"))
+            ) and
+            (if (.status|startswith("INCOMPLETE_")) then true
+             else (.errors|length)==0 and
+                  (.history|length)==2 and
+                  all(.history[]; .archive_complete_in_bounded_range==true)
+             end)
+          ' "$OUT/attempt/certified-hf-trigger-hint-archive.json" > "$OUT/contract-check.log"
+          echo 'Historical source/archive only. No prospectivity, inclusion, funding, win or net revenue.'
+      - name: Preserve exact source, original producer ZIP and all negative-source SHA256
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-hf-original-archive"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/svr_certified_causality_archive.py \
+             ci/nqc-census/rmc-v2-shadow/test_svr_certified_causality_archive.py \
+             ci/nqc-census/rmc-v2-shadow/SVR_CERTIFIED_CAUSALITY_ARCHIVE_CONTRACT.md \
+             .github/workflows/nqc-v2-certified-pr700-archive.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | \
+            xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Preserve immutable original/derived source-evidence artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-certified-hf-hints-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-hf-original-archive/
+          retention-days: 30
+          if-no-files-found: error
