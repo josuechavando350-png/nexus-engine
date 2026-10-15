@@ -1,0 +1,97 @@
+name: NQC V2 SVR WETH Positive Oracle Controls versus Flashbots Archive (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/svr_archive_positive_controls.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_svr_archive_positive_controls.py'
+      - 'ci/nqc-census/rmc-v2-shadow/SVR_ARCHIVE_POSITIVE_CONTROLS_CONTRACT.md'
+      - '.github/workflows/nqc-v2-svr-archive-positive-controls.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-svr-archive-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  exact-positive-oracle-receipts-versus-archive:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow:ci/nqc-census/rmc-v2-economics
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact-head offline controls (Keccak, authenticated receipt and fail-closed archive)
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-svr-positive-archive"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_svr_archive_positive_controls.py -v 2>&1 | tee "$OUT/positive-tests.log"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_svr_hint_admission.py -v 2>&1 | tee "$OUT/abi-regression-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/svr_archive_positive_controls.py
+      - name: Authenticate 2 real WETH transmissions and query finite historical MEV-Share hints
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-svr-positive-archive"
+          timeout 480s python3 ci/nqc-census/rmc-v2-shadow/svr_archive_positive_controls.py \
+            --out "$OUT/attempt" > "$OUT/run.log" 2> "$OUT/stderr.log"
+          jq -e '
+            .schema_version==1 and
+            (.precommit_sha256|test("^[0-9a-f]{64}$")) and
+            .private_first_seen_proven==false and
+            .builder_cutoff_proven==false and
+            .bundles_or_bids_submitted==false and
+            .win_inclusion_proven==false and
+            .nonrecourse_native_gas_funded==false and
+            .net_pnl_proven==false and
+            .RMC_closed==false and
+            .shadow_certified==false and
+            .live_authorized==false and
+            .nqc_realized_pnl_usd=="0" and
+            all(.source_call_log[]; .call_count<=18) and
+            (.archive_calls|length)<=9 and
+            (.status=="ONCHAIN_CONTROLS_AND_ARCHIVE_BOUNDED_READ_COMPLETE_NO_PROSPECTIVE_AUTHORITY" or
+             (.status|startswith("INCOMPLETE_"))) and
+            (if .status=="ONCHAIN_CONTROLS_AND_ARCHIVE_BOUNDED_READ_COMPLETE_NO_PROSPECTIVE_AUTHORITY"
+              then (.source_errors|length)==0 and
+                   (.positive_controls|length)==2 and
+                   all(.positive_controls[]; .canonical_receipt_verified==true) and
+                   (.archive|length)==2 and
+                   all(.archive[]; .archive_complete_in_bounded_range==true and .hint_rows<=1600)
+              else true end)
+          ' "$OUT/attempt/oracle-to-mev-share-archive-witness.json" > "$OUT/contract-check.log"
+          echo 'Read-only onchain source positive controls; archive cannot prove preinclusion.'
+      - name: Signed-revision source manifest and negative-preserving evidence
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-svr-positive-archive"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/svr_archive_positive_controls.py \
+             ci/nqc-census/rmc-v2-shadow/test_svr_archive_positive_controls.py \
+             ci/nqc-census/rmc-v2-shadow/SVR_ARCHIVE_POSITIVE_CONTROLS_CONTRACT.md \
+             .github/workflows/nqc-v2-svr-archive-positive-controls.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | \
+            xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Publish immutable source/negative evidence without original hints
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-svr-positive-archive-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-svr-positive-archive/
+          retention-days: 30
+          if-no-files-found: error
