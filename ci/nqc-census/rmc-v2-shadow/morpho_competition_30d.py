@@ -7,7 +7,8 @@ import argparse, collections, datetime as dt, hashlib, json, os, pathlib, re, sy
 
 API='https://api.morpho.org/graphql'
 PAGE_SIZE=100
-MAX_PAGES=20
+MAX_PAGES=5
+DAYS=30
 QUERY='''query RecentBlueLiquidations($skip:Int!,$since:Int!,$until:Int!){
   marketTransactions(first:100,skip:$skip,orderBy:Timestamp,orderDirection:Asc,
     where:{type_in:[Liquidation],timestamp_gte:$since,timestamp_lte:$until}){
@@ -74,6 +75,14 @@ def consume(pages,since,until):
         require(len(items)==PAGE_SIZE,'short page with remaining events')
     if complete:
         require(len(events)==total,'count mismatch')
+    report=aggregate_records(events)
+    return {'status':'COMPLETE_MORPHO_API_WINDOW_INDEX_ONLY' if complete else 'INCOMPLETE_MORPHO_API_WINDOW',
+       'window_start_unix':since,'window_end_unix':until,'event_count':len(events),'claimed_indexer_count':total,
+       **report,'events':events,'nqc_pnl_usd':'0','gas_sponsor_proven':False,'market_canonical_completeness_proven':False,'competitive_capture_proven':False,
+       'source':'public_morpho_single_api_indexer_no_independent_rpc_quorum',
+       'notes':'Indexed observation, never a complete executable opportunity universe; events != unique winning transactions; no USD profit inferred from raw tokens.'}
+
+def aggregate_records(events):
     counts=collections.Counter((e['chain_id'],e['market_id'],e['loan'],e['collateral']) for e in events)
     by_market={}
     for key,n in counts.items():
@@ -83,14 +92,10 @@ def consume(pages,since,until):
         by_market[str(key[0])+':'+key[1]]={'chain_id':key[0],'market_id':key[1],'loan_symbol':key[2],'collateral_symbol':key[3],
                      'liquidation_event_count':n,'distinct_tx_count':len(wins),'distinct_liquidator_count':len(liqs),
                      'leading_liquidator_event_share_bps':10000*top//n}
-    return {'status':'COMPLETE_MORPHO_API_WINDOW_INDEX_ONLY' if complete else 'INCOMPLETE_MORPHO_API_WINDOW',
-       'window_start_unix':since,'window_end_unix':until,'event_count':len(events),'claimed_indexer_count':total,
-       'unique_winning_transactions':len(set(x['win_id'] for x in events)),
+    return {'unique_winning_transactions':len(set(x['win_id'] for x in events)),
        'unique_liquidator_addresses':len(set(x['liquidator'] for x in events)),
-       'markets': sorted(by_market.values(),key=lambda x:(-x['distinct_tx_count'],-x['liquidation_event_count'],x['chain_id'],x['market_id'])),
-       'events':events,'nqc_pnl_usd':'0','gas_sponsor_proven':False,'market_canonical_completeness_proven':False,'competitive_capture_proven':False,
-       'source':'public_morpho_single_api_indexer_no_independent_rpc_quorum',
-       'notes':'Indexed observation, never a complete executable opportunity universe; events != unique winning transactions; no USD profit inferred from raw tokens.'}
+       'markets': sorted(by_market.values(),key=lambda x:(-x['distinct_tx_count'],-x['liquidation_event_count'],x['chain_id'],x['market_id']))}
+
 
 def request_page(skip,since,until):
     body=json.dumps({'query':QUERY,'variables':{'skip':skip,'since':since,'until':until}},separators=(',',':')).encode()
@@ -106,24 +111,50 @@ def main():
     ap=argparse.ArgumentParser();ap.add_argument('--out',required=True);args=ap.parse_args()
     out=pathlib.Path(args.out);out.mkdir(parents=True,exist_ok=True)
     now=int(dt.datetime.now(dt.timezone.utc).timestamp());since=now-30*24*3600
-    result=None;pages=[];errors=[]
-    try:
-        for i in range(MAX_PAGES):
-            page=request_page(i*PAGE_SIZE,since,now);pages.append(page)
-            provisional=consume(pages,since,now)
-            if provisional['status']=='COMPLETE_MORPHO_API_WINDOW_INDEX_ONLY':break
-            time.sleep(.30)
-        result=consume(pages,since,now)
-    except (BadEvidence,urllib.error.URLError,OSError,KeyError,TypeError,ValueError) as exc:
-        errors.append(type(exc).__name__+': '+str(exc)[:1250])
-        result={'status':'INCOMPLETE_MORPHO_API_WINDOW','window_start_unix':since,'window_end_unix':now,
-                'pages_read':len(pages),'error':errors[-1],'source':'public_morpho_single_api_indexer_no_independent_rpc_quorum',
-                'nqc_pnl_usd':'0','gas_sponsor_proven':False,'market_canonical_completeness_proven':False,'competitive_capture_proven':False}
+    result=None;day_reports=[];records=[];ids=set();pages_read=0;all_days_complete=True
+    for day_idx in range(DAYS):
+        ds=since+day_idx*86400;de=min(now,ds+86399)
+        pages=[];day_status={'day_index':day_idx,'start':ds,'end':de,'pages_read':0,'status':'INCOMPLETE'}
+        try:
+            for i in range(MAX_PAGES):
+                page=request_page(i*PAGE_SIZE,ds,de)
+                pages.append(page);pages_read+=1
+                day_status['pages_read']=len(pages)
+                day_status.setdefault('provider_pages',[]).append({
+                   'page':i,'count':page.get('pageInfo',{}).get('count'),
+                   'count_total':page.get('pageInfo',{}).get('countTotal'),
+                   'first_timestamp':page.get('items',[{}])[0].get('timestamp') if page.get('items') else None,
+                   'last_timestamp':page.get('items',[{}])[-1].get('timestamp') if page.get('items') else None})
+                provisional=consume(pages,ds,de)
+                if provisional['status']=='COMPLETE_MORPHO_API_WINDOW_INDEX_ONLY':break
+                time.sleep(.3)
+            day=consume(pages,ds,de)
+            day_status['status']=day['status']
+            day_status['claimed_indexer_count']=day['claimed_indexer_count']
+            day_status['event_count']=day['event_count']
+            if day['status']!='COMPLETE_MORPHO_API_WINDOW_INDEX_ONLY':all_days_complete=False
+            for e in day['events']:
+                require(e['id'] not in ids,'duplicate event across disjoint day windows')
+                ids.add(e['id']);records.append(e)
+        except (BadEvidence,urllib.error.URLError,OSError,KeyError,TypeError,ValueError) as exc:
+            day_status['status']='INCOMPLETE';day_status['error']=type(exc).__name__+': '+str(exc)[:850]
+            all_days_complete=False
+            # No retries or alternate providers on API errors. Preserve day provenance.
+            day_reports.append(day_status)
+            break
+        day_reports.append(day_status)
+        time.sleep(.2)
+    result={'status':'COMPLETE_MORPHO_API_WINDOW_INDEX_ONLY' if all_days_complete and len(day_reports)==DAYS else 'INCOMPLETE_MORPHO_API_WINDOW',
+            'window_start_unix':since,'window_end_unix':now,'days_scoped':DAYS,'days_attempted':len(day_reports),
+            'daily_source_provenance':day_reports,'event_count':len(records),**aggregate_records(records),
+            'source':'public_morpho_single_api_indexer_no_independent_rpc_quorum',
+            'nqc_pnl_usd':'0','gas_sponsor_proven':False,'market_canonical_completeness_proven':False,'competitive_capture_proven':False,
+            'events':records}
     if result is not None and 'events' in result:
         events=result.pop('events')
         (out/'liquidations.jsonl').write_text(''.join(json.dumps(e,sort_keys=True,separators=(',',':'))+'\n' for e in events))
         result['events_sha256']=hashlib.sha256((out/'liquidations.jsonl').read_bytes()).hexdigest()
-    result['pages_read']=len(pages);result['max_pages']=MAX_PAGES
+    result['pages_read']=pages_read;result['max_pages_per_day']=MAX_PAGES
     (out/'census.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n')
     (out/'result-status.txt').write_text(result['status']+'\n')
     print(result['status'],'events=',result.get('event_count',0),'unique_winners=',result.get('unique_winning_transactions',0),'markets=',len(result.get('markets',[])),'pages=',len(pages))
