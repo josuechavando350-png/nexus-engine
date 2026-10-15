@@ -1,0 +1,680 @@
+{
+  "chain_id": 8453,
+  "cohort": [
+    {
+      "borrow_shares": "195497201738590846",
+      "borrow_usd_api": "204770.93922719924",
+      "borrower": "0xc9001b11ac00f736ae41a41eb9e5f57cb62d662b",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "470934168784",
+      "collateral_usd_api": "611793.541460774",
+      "debt_raw": "204836240434"
+    },
+    {
+      "borrow_shares": "194991185815159797",
+      "borrow_usd_api": "204240.9195898256",
+      "borrower": "0x19a730c405b1192b98e163b7c1de10170484da92",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "380733377134",
+      "collateral_usd_api": "494613.12554699497",
+      "debt_raw": "204306051774"
+    },
+    {
+      "borrow_shares": "193673338532556602",
+      "borrow_usd_api": "202860.55801247622",
+      "borrower": "0xe38c35a7dba2baf7214bad0f67aff3043515e6aa",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "338104847404",
+      "collateral_usd_api": "439234.1343853992",
+      "debt_raw": "202925250001"
+    },
+    {
+      "borrow_shares": "193206031663407168",
+      "borrow_usd_api": "202371.0836582604",
+      "borrower": "0x71bc27e8c7f28c1ddae6f15fa951290ddd248ad5",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "333010427297",
+      "collateral_usd_api": "432615.9411738125",
+      "debt_raw": "202435619554"
+    },
+    {
+      "borrow_shares": "192909084230618957",
+      "borrow_usd_api": "202060.05002651236",
+      "borrower": "0x58ff55a85d6729234a1855827a56d82b9bf62f57",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "279388048946",
+      "collateral_usd_api": "362954.7721029511",
+      "debt_raw": "202124486734"
+    },
+    {
+      "borrow_shares": "192688441246124875",
+      "borrow_usd_api": "201828.94047207193",
+      "borrower": "0x201e8828ea7f1898b7c3fb692813ef4bf62234fc",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "400817531494",
+      "collateral_usd_api": "520704.57683173916",
+      "debt_raw": "201893303479"
+    },
+    {
+      "borrow_shares": "192480622543003018",
+      "borrow_usd_api": "201611.26354098404",
+      "borrower": "0x6da182629ee3105b9e1385826f4beefa6984a06d",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "373112260192",
+      "collateral_usd_api": "484712.4845808233",
+      "debt_raw": "201675557131"
+    },
+    {
+      "borrow_shares": "192395158375344030",
+      "borrow_usd_api": "201521.7452372637",
+      "borrower": "0xd3e5b0a531d0b7c8c10fd26c80c0c79c2dbcfc49",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "374479372663",
+      "collateral_usd_api": "486488.5089928296",
+      "debt_raw": "201586010280"
+    },
+    {
+      "borrow_shares": "192345203947690020",
+      "borrow_usd_api": "201469.42113735634",
+      "borrower": "0x4d38890fcce73d8696ed065d7fe0a7fe579d0179",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "1048083752627",
+      "collateral_usd_api": "1361572.1968589409",
+      "debt_raw": "201533669494"
+    },
+    {
+      "borrow_shares": "192173497663675887",
+      "borrow_usd_api": "201289.569677771",
+      "borrower": "0xdab7f1906f7fcbe028091d463b087163a67200f3",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "302813511120",
+      "collateral_usd_api": "393386.9373900704",
+      "debt_raw": "201353760680"
+    },
+    {
+      "borrow_shares": "192143015389578872",
+      "borrow_usd_api": "201257.64142565228",
+      "borrower": "0xc9081aa2be482ec7ef135a769710c9b417594096",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "301000436527",
+      "collateral_usd_api": "391031.56077968737",
+      "debt_raw": "201321822246"
+    },
+    {
+      "borrow_shares": "192119890908483821",
+      "borrow_usd_api": "201233.4199958372",
+      "borrower": "0x7fd8e42e9ce1781942dccee6dccb9d77195b6aca",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "424942241587",
+      "collateral_usd_api": "552045.1394896178",
+      "debt_raw": "201297593092"
+    },
+    {
+      "borrow_shares": "191819230529691211",
+      "borrow_usd_api": "200918.49728831073",
+      "borrower": "0xb211ad4e125aebe81829ed298b386a1776e4ba60",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "301005490711",
+      "collateral_usd_api": "391038.1267019192",
+      "debt_raw": "200982569956"
+    },
+    {
+      "borrow_shares": "191704327927254837",
+      "borrow_usd_api": "200798.14408880164",
+      "borrower": "0xea5f08a66224fa95ded7aef19cd1d3a0016b01d9",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "289285713655",
+      "collateral_usd_api": "375812.89059570327",
+      "debt_raw": "200862178376"
+    },
+    {
+      "borrow_shares": "191648896195286680",
+      "borrow_usd_api": "200740.082859458",
+      "borrower": "0xde2253e0e51d7e5e994dd45fd92c171520574ca8",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "259983325823",
+      "collateral_usd_api": "337745.974212707",
+      "debt_raw": "200804098631"
+    },
+    {
+      "borrow_shares": "191438038154555465",
+      "borrow_usd_api": "200519.2224135892",
+      "borrower": "0x7c96496d06de20345220e72c683225524faa0ac1",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "291473682320",
+      "collateral_usd_api": "378655.2944535968",
+      "debt_raw": "200583167753"
+    },
+    {
+      "borrow_shares": "191285490063514521",
+      "borrow_usd_api": "200359.43794866328",
+      "borrower": "0xaff83edf1e64b0f9090bd914f55703ffcb212cb4",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "431618787346",
+      "collateral_usd_api": "560718.6820893629",
+      "debt_raw": "200423332333"
+    },
+    {
+      "borrow_shares": "191280868432311101",
+      "borrow_usd_api": "200354.59708240975",
+      "borrower": "0x75d871189219172514178ad4ab4e35444c8c2d0c",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "275280589619",
+      "collateral_usd_api": "357618.7458499398",
+      "debt_raw": "200418489923"
+    },
+    {
+      "borrow_shares": "191116429575225874",
+      "borrow_usd_api": "200182.35779231266",
+      "borrower": "0xef842e244298e03593ed6d7897493fa5c1eb482b",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "300026312763",
+      "collateral_usd_api": "389766.07046935905",
+      "debt_raw": "200246195706"
+    },
+    {
+      "borrow_shares": "191048062349652746",
+      "borrow_usd_api": "200110.74745276402",
+      "borrower": "0x05501dc242d2d5cc6797c7fac249fb132b9ff783",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "271689109266",
+      "collateral_usd_api": "352953.0311282365",
+      "debt_raw": "200174562530"
+    },
+    {
+      "borrow_shares": "190426102450021057",
+      "borrow_usd_api": "199459.2838427275",
+      "borrower": "0xf2152464ff26450d2e1711a39849f0469a6daed4",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "308972826850",
+      "collateral_usd_api": "401388.5432050863",
+      "debt_raw": "199522891169"
+    },
+    {
+      "borrow_shares": "186247355133891521",
+      "borrow_usd_api": "195082.31064222893",
+      "borrower": "0x1b69cfacb886683043f5c59bde8eec9ea1c05ab9",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "279536126396",
+      "collateral_usd_api": "363147.1404498474",
+      "debt_raw": "195144522157"
+    },
+    {
+      "borrow_shares": "181260175358997065",
+      "borrow_usd_api": "189858.55563443256",
+      "borrower": "0x4c9fd34b283509c8770d118aa41a213ea0b7a2de",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "295586494785",
+      "collateral_usd_api": "383998.2750018621",
+      "debt_raw": "189919101300"
+    },
+    {
+      "borrow_shares": "175054193452269936",
+      "borrow_usd_api": "183358.18257260174",
+      "borrower": "0x1438cf2c769c6886df20c761876887cb83177879",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "244158936743",
+      "collateral_usd_api": "317188.4108027204",
+      "debt_raw": "183416655277"
+    },
+    {
+      "borrow_shares": "173796654496080359",
+      "borrow_usd_api": "182040.99014868512",
+      "borrower": "0x00557c48bd638ebfc0bef5828c1fc391aed2e8ac",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "320954792921",
+      "collateral_usd_api": "416954.3907102015",
+      "debt_raw": "182099042802"
+    },
+    {
+      "borrow_shares": "172812215858678145",
+      "borrow_usd_api": "181009.85301408003",
+      "borrower": "0x804a1d177005bf3063ddceb52bc014c5f54b0b30",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "279668986588",
+      "collateral_usd_api": "363319.7399611394",
+      "debt_raw": "181067576839"
+    },
+    {
+      "borrow_shares": "169475568485084014",
+      "borrow_usd_api": "177514.9261790539",
+      "borrower": "0x6aa8df46d10817bf6918a9a498bf911a61962681",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "296413370739",
+      "collateral_usd_api": "385072.4747558375",
+      "debt_raw": "177571535476"
+    },
+    {
+      "borrow_shares": "160245485713126575",
+      "borrow_usd_api": "167846.99895744366",
+      "borrower": "0x8e904f07e4b07e809e66ec770b460f6a29725b20",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "601497840606",
+      "collateral_usd_api": "781409.6289414442",
+      "debt_raw": "167900525164"
+    },
+    {
+      "borrow_shares": "157590514969965631",
+      "borrow_usd_api": "165066.08522649546",
+      "borrower": "0x138f196c16d36224cd4aaf8f413291e68e44f62f",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "538596648849",
+      "collateral_usd_api": "699694.294998944",
+      "debt_raw": "165118724603"
+    },
+    {
+      "borrow_shares": "154258422713092797",
+      "borrow_usd_api": "161575.92958694082",
+      "borrower": "0x07136c6c1780d9f1bfc657f7425ce6de975573f4",
+      "cohort_sources": [
+        "top_debt"
+      ],
+      "collateral_raw": "373790300447",
+      "collateral_usd_api": "485593.3309418562",
+      "debt_raw": "161627455957"
+    },
+    {
+      "borrow_shares": "168954491610410",
+      "borrow_usd_api": "176.9691307565592",
+      "borrower": "0x21021646323853232b9d79e61154aa9dbf077b33",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "219739249",
+      "collateral_usd_api": "285.4646408239305",
+      "debt_raw": "177025566"
+    },
+    {
+      "borrow_shares": "48888848398970",
+      "borrow_usd_api": "51.207972838909654",
+      "borrower": "0x85ca8fdb56630636e72c70b86c708cf1c6ec0747",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "63589577",
+      "collateral_usd_api": "82.60961954252731",
+      "debt_raw": "51224303"
+    },
+    {
+      "borrow_shares": "12397818784053",
+      "borrow_usd_api": "12.985929802568673",
+      "borrower": "0x57df1f3724750956591bee3b6f2ebb40465c7486",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "16141653",
+      "collateral_usd_api": "20.96972296446467",
+      "debt_raw": "12990071"
+    },
+    {
+      "borrow_shares": "4371288337983932",
+      "borrow_usd_api": "4578.647727733861",
+      "borrower": "0xf84fc996a887899af3da705e0fda0a6d9542e47c",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "5693110781",
+      "collateral_usd_api": "7395.956032729554",
+      "debt_raw": "4580107853"
+    },
+    {
+      "borrow_shares": "44076505634394474",
+      "borrow_usd_api": "46167.348566941386",
+      "borrower": "0x301a4ed3bb64cc7520ef9bdad62c8128237c9b06",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "57421254443",
+      "collateral_usd_api": "74596.31290189091",
+      "debt_raw": "46182071279"
+    },
+    {
+      "borrow_shares": "62647321377397",
+      "borrow_usd_api": "65.619101147385",
+      "borrower": "0xc9e56189c73e37bb7b36b831f6b98d0ee4b07f25",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "81615164",
+      "collateral_usd_api": "106.02677301880733",
+      "debt_raw": "65640027"
+    },
+    {
+      "borrow_shares": "4918154449087874",
+      "borrow_usd_api": "5151.455349070768",
+      "borrower": "0xc76644ec496784da4ce2cf6872ee7238c4aafcd5",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "6408161434",
+      "collateral_usd_api": "8324.88283464814",
+      "debt_raw": "5153098142"
+    },
+    {
+      "borrow_shares": "982211569708654",
+      "borrow_usd_api": "1028.8044215045156",
+      "borrower": "0x3648be12033a116ebcc7ccc88cb194415e00d8df",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "1280137398",
+      "collateral_usd_api": "1663.0345474847372",
+      "debt_raw": "1029132506"
+    },
+    {
+      "borrow_shares": "10876268702916726",
+      "borrow_usd_api": "11392.202741216117",
+      "borrower": "0xcb493f715f7bf89d54e505e1ef3ca0d3122a576a",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "14191385196",
+      "collateral_usd_api": "18436.11779054631",
+      "debt_raw": "11395835701"
+    },
+    {
+      "borrow_shares": "15829913469004660",
+      "borrow_usd_api": "16580.831950587442",
+      "borrower": "0x919813fc8bc44585c74cc38c3db9094761ae4ffd",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "20655125793",
+      "collateral_usd_api": "26833.203865513566",
+      "debt_raw": "16586119558"
+    },
+    {
+      "borrow_shares": "1143049342466202",
+      "borrow_usd_api": "1197.2718034585662",
+      "borrower": "0x38026a5cd71eaa02f1c4f6a6abfa357e1b90a43e",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "1491594426",
+      "collateral_usd_api": "1937.7397029015367",
+      "debt_raw": "1197653612"
+    },
+    {
+      "borrow_shares": "3628597227880528",
+      "borrow_usd_api": "3800.725820096725",
+      "borrower": "0xf9ad8b049647ee47c5e68643c14297c0062f8d02",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "4736835847",
+      "collateral_usd_api": "6153.6532497468115",
+      "debt_raw": "3801937867"
+    },
+    {
+      "borrow_shares": "1869866183731819",
+      "borrow_usd_api": "1958.5664205187156",
+      "borrower": "0x1de9dec1a291522def20a74dea5e9318f80ceaee",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "2441011911",
+      "collateral_usd_api": "3171.133930746033",
+      "debt_raw": "1959191005"
+    },
+    {
+      "borrow_shares": "353518295539110",
+      "borrow_usd_api": "370.28802759233497",
+      "borrower": "0x56da5407f057e4e8acb69956b0b6f4c69d84ac52",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "461514320",
+      "collateral_usd_api": "599.556156642278",
+      "debt_raw": "370406112"
+    },
+    {
+      "borrow_shares": "37131285109636",
+      "borrow_usd_api": "38.892669174470264",
+      "borrower": "0x6dd698590761d5bb029556fe5156118983b550e9",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "48500881",
+      "collateral_usd_api": "63.007799641242954",
+      "debt_raw": "38905072"
+    },
+    {
+      "borrow_shares": "16286249869817694",
+      "borrow_usd_api": "17058.815433228392",
+      "borrower": "0x6c736b640a5397d0017d3b6535d4aff60db17de5",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "21278091240",
+      "collateral_usd_api": "27642.50219698085",
+      "debt_raw": "17064255469"
+    },
+    {
+      "borrow_shares": "14639824249092",
+      "borrow_usd_api": "15.3342879139849",
+      "borrower": "0x2b1d50c5701b66bbcb0960281e7641c871e5daf9",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "19127956",
+      "collateral_usd_api": "24.84924797952662",
+      "debt_raw": "15339178"
+    },
+    {
+      "borrow_shares": "1787724773580347",
+      "borrow_usd_api": "1872.5284949099496",
+      "borrower": "0x940e883bb95a7ac5a8c45f4d56451b576297c68b",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "2336095614",
+      "collateral_usd_api": "3034.836509252243",
+      "debt_raw": "1873125642"
+    },
+    {
+      "borrow_shares": "5211414588356065",
+      "borrow_usd_api": "5458.626775471485",
+      "borrower": "0x16ffd09aacb24d496cf24d8c524768ec6026d0f8",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "6810820892",
+      "collateral_usd_api": "8847.980269791957",
+      "debt_raw": "5460367525"
+    },
+    {
+      "borrow_shares": "77322504061683027",
+      "borrow_usd_api": "80990.42666212346",
+      "borrower": "0x967aa05a531f65642547e93a4978202227b70160",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "101087049499",
+      "collateral_usd_api": "131322.8219742524",
+      "debt_raw": "81016254412"
+    },
+    {
+      "borrow_shares": "61558275378657",
+      "borrow_usd_api": "64.47839491723298",
+      "borrower": "0xf46c8435a5d79a22eb9d5f1fc08dd4417b19164b",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "80484412",
+      "collateral_usd_api": "104.55780598169444",
+      "debt_raw": "64498957"
+    },
+    {
+      "borrow_shares": "39884601402351",
+      "borrow_usd_api": "41.77659349446523",
+      "borrower": "0x1b651f3be1a43a665da724b0f046bf5e0996545a",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "52152611",
+      "collateral_usd_api": "67.75178505841333",
+      "debt_raw": "41789916"
+    },
+    {
+      "borrow_shares": "220244666785085",
+      "borrow_usd_api": "230.6923414891228",
+      "borrower": "0x9947ca4839c051ec3c1c116c50b1e9ffeb322a96",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "288076513",
+      "collateral_usd_api": "374.24201041733494",
+      "debt_raw": "230765909"
+    },
+    {
+      "borrow_shares": "3621608384094370",
+      "borrow_usd_api": "3793.405448554425",
+      "borrower": "0xf797fdc46d003af938fd6e45330aaf52e222a333",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "4737090176",
+      "collateral_usd_api": "6153.983650150774",
+      "debt_raw": "3794615161"
+    },
+    {
+      "borrow_shares": "145334492646340",
+      "borrow_usd_api": "152.22867745742852",
+      "borrower": "0x040f343c6229df49f71df1a6c293cd6676932a70",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "190181077",
+      "collateral_usd_api": "247.06543361906765",
+      "debt_raw": "152277223"
+    },
+    {
+      "borrow_shares": "717503775314873",
+      "borrow_usd_api": "751.5397688695319",
+      "borrower": "0x19da2dbdd5ab60709f16956f8c6b914709127546",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "938939526",
+      "collateral_usd_api": "1219.7822453874937",
+      "debt_raw": "751779434"
+    },
+    {
+      "borrow_shares": "26308641892654",
+      "borrow_usd_api": "27.55663622177599",
+      "borrower": "0x7baf79f34988296ff9a7039753d01e8c2902c131",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "34445401",
+      "collateral_usd_api": "44.74823714584215",
+      "debt_raw": "27565424"
+    },
+    {
+      "borrow_shares": "145401942395635",
+      "borrow_usd_api": "152.29932692739732",
+      "borrower": "0x83a9b46ada5258514da4d17c35007d6e12e2b7bf",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "190407576",
+      "collateral_usd_api": "247.35967989494335",
+      "debt_raw": "152347895"
+    },
+    {
+      "borrow_shares": "26851527338873035",
+      "borrow_usd_api": "28125.27455069524",
+      "borrower": "0x410ae7c45ea4dca01730d0a879d0247c456dd74c",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "35163960893",
+      "collateral_usd_api": "45681.722823522454",
+      "debt_raw": "28134243667"
+    },
+    {
+      "borrow_shares": "1867165617545944",
+      "borrow_usd_api": "1955.737748578803",
+      "borrower": "0x76d138833b5604697bac9e5ea7c2630529d2d032",
+      "cohort_sources": [
+        "near_hf_indexer"
+      ],
+      "collateral_raw": "2445471003",
+      "collateral_usd_api": "3176.9267652167687",
+      "debt_raw": "1956361431"
+    }
+  ],
+  "cohort_size": 60,
+  "frozen_at_utc": "2026-10-15T04:14:58.680328+00:00",
+  "market_id": "0xd4a903dc6d949519060c7707f9604fdc9772c046e05c2e3a8fce0bd7196e4109",
+  "near_hf_page": {
+    "api_filter_proven_onchain": false,
+    "api_hf_lte": "1.08",
+    "count_total": 628,
+    "fully_enumerated": false,
+    "rows_returned": 30
+  },
+  "top_borrower_page": {
+    "count_total": 20859,
+    "fully_enumerated": false,
+    "rows_returned": 30
+  }
+}
