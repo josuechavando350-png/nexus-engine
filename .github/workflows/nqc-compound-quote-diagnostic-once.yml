@@ -34,20 +34,47 @@ jobs:
             def __exit__(self,*args):self.data.close()
             def read(self,n=-1):return self.data.read(n)
           def capture(req,timeout=15):
-            quoted=b'7ac88ed1' in (getattr(req,'data',None) or b'')
+            request_bytes=getattr(req,'data',None) or b''
+            typ=None;asset=None;pin=None;call_data=''
+            try:
+              payload=json.loads(request_bytes) if request_bytes else {}
+              if payload.get('method')=='eth_call':
+                params=payload.get('params',[])
+                call_data=params[0].get('data','')
+                pin=params[1]
+                if call_data.startswith('0x7ac88ed1'):typ='quoteCollateral'
+                if call_data.startswith('0x9ff567f8'):typ='getCollateralReserves'
+                if call_data.startswith('0xc8c7fe6b'):typ='getAssetInfo'
+                if typ in ('quoteCollateral','getCollateralReserves'):
+                  asset='0x'+call_data[34:74].lower()
+                if typ=='quoteCollateral':
+                  qty=int(call_data[74:138],16)
+                else:qty=None
+              elif payload.get('method')=='eth_getBlockByNumber':typ='block_header'
+            except Exception:pass
+            if typ is None:return real_open(req,timeout=timeout)
             try:
               response=real_open(req,timeout=timeout)
             except urllib.error.HTTPError as error:
-              if quoted:quote_responses.append({'http_status':error.code,'method':'quoteCollateral'})
+              quote_responses.append({'kind':typ,'http_status':error.code,'asset':asset,'provider':req.full_url})
               raise
-            if not quoted:return response
             with response as r:data=r.read(1000001);status=r.status
-            entry={'http_status':status,'response_sha256':hashlib.sha256(data).hexdigest(),'method':'quoteCollateral'}
+            entry={'kind':typ,'http_status':status,'provider':req.full_url,'response_sha256':hashlib.sha256(data).hexdigest()}
+            if asset:entry['asset']=asset
+            if pin:entry['pin_block']=pin
+            if typ=='quoteCollateral':entry['base_input_raw']=str(qty)
             try:
               body=json.loads(data)
               err=body.get('error')
               entry['rpc_error_code']=err.get('code') if isinstance(err,dict) else None
-              entry['has_result']=body.get('result') is not None
+              raw=body.get('result')
+              entry['has_result']=raw is not None
+              if raw is not None and typ!='block_header':
+                entry['raw_result']=raw
+              if typ=='block_header' and isinstance(raw,dict):
+                entry['block_number']=raw.get('number')
+                entry['block_hash']=raw.get('hash')
+                entry['state_root']=raw.get('stateRoot')
             except Exception:entry['bad_json']=True
             quote_responses.append(entry)
             return Buffered(data,status)
@@ -74,6 +101,48 @@ jobs:
           except Exception as error:
             result['error_type']=type(error).__name__
             result['error_code']=str(error)[:140]
+          # Reconcile already successful exact-input quotes before the unrelated failing asset.
+          pairs=[]
+          reserves={}
+          asset_scale={}
+          for q in quote_responses:
+            if q.get('kind')=='getAssetInfo' and q.get('has_result'):
+              try:
+                x=int((q.get('raw_result') or '')[2+64:2+128],16)
+                scale=int((q.get('raw_result') or '')[2+64*3:2+64*4],16)
+                asset_scale['0x'+format(x,'040x')]=scale
+              except Exception:pass
+            if q.get('kind')=='getCollateralReserves' and q.get('has_result'):
+              reserves.setdefault((q.get('asset'),q.get('pin_block')),[]).append(int(q['raw_result'],16))
+          matches={}
+          for q in quote_responses:
+            if q.get('kind')=='quoteCollateral' and q.get('has_result') and q.get('pin_block') and q.get('asset'):
+              key=(q['asset'],q['pin_block'],q.get('base_input_raw'))
+              matches.setdefault(key,[]).append(int(q['raw_result'],16))
+          for key,vals in matches.items():
+            asset,block,base_raw=key
+            bal=reserves.get((asset,block),[])
+            if len(vals)!=2 or vals[0]!=vals[1] or len(bal)!=2 or bal[0]!=bal[1]:continue
+            qty=vals[0]
+            row={'asset':asset,'block':block,'usdc_input_raw':base_raw,'collateral_quoted_raw':str(qty),'collateral_inventory_raw':str(bal[0]),'collateral_scale':asset_scale.get(asset),'within_inventory':qty>0 and qty<=bal[0],'two_rpc_values_agree':True,'final_same_block_tail_not_rechecked':True}
+            pairs.append(row)
+          result['two_provider_quoted_assets_before_failure']=pairs
+          for q in pairs[:3]:
+            if not q['within_inventory']:continue
+            import decimal
+            dex_url='https://aggregator-api.kyberswap.com/ethereum/api/v1/routes?'+urllib.parse.urlencode({'tokenIn':q['asset'],'tokenOut':c.USDC,'amountIn':q['collateral_quoted_raw'],'gasInclude':'true'})
+            req=urllib.request.Request(dex_url,headers={'X-Client-Id':'nqc-public-readonly','Accept':'application/json'})
+            try:
+              with real_open(req,timeout=12) as response:dex=json.loads(response.read(200000))
+              route=dex.get('data',{}).get('routeSummary') if isinstance(dex,dict) else None
+              if isinstance(route,dict) and str(route.get('amountIn'))==q['collateral_quoted_raw'] and str(route.get('tokenOut','')).lower()==c.USDC:
+                out_raw=int(route['amountOut'])
+                q['dex_indicative_other_time']={'amount_out_usdc_raw':str(out_raw),'gross_spread_usdc_before_buy_gas_mev':str((decimal.Decimal(out_raw)-decimal.Decimal(int(q['usdc_input_raw'])))/decimal.Decimal(10**6)),'swap_gas_usd':str(route.get('gasUsd')),'dex_timestamp':str(route.get('timestamp')),'same_block_proven':False,'realized_pnl':False}
+              else:q['dex_status']='NO_VALID_ROUTE'
+            except urllib.error.HTTPError as error:
+              q['dex_status']='HTTP_'+str(error.code)
+              if error.code in (401,403,429):break
+            except Exception as error:q['dex_status']='ERROR_'+type(error).__name__
           result['raw_quote_diagnostics']=quote_responses
           result['finished_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
           (out/'read-only-quote.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
