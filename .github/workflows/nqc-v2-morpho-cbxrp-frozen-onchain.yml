@@ -1,0 +1,82 @@
+name: NQC V2 Morpho cbXRP 3 Frozen Borrowers Single RPC State (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/morpho_cbXRP_chain_truth.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_morpho_cbXRP_chain_truth.py'
+      - 'ci/nqc-census/rmc-v2-shadow/NQC_ORIGINAL_FROZEN_COHORT_60.json'
+      - 'ci/nqc-census/rmc-v2-shadow/MORPHO_SOURCE_PINNED_ONCHAIN_CHECK_CONTRACT.md'
+      - '.github/workflows/nqc-v2-morpho-cbxrp-frozen-onchain.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  original-frozen-source-to-readonly-morpho-rpc:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Pin exact PR HEAD
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Source of truth and adversarial validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          SRC=ci/nqc-census/rmc-v2-shadow
+          test "$(git hash-object "$SRC/morpho_base_cbXRP_economics.py")" = 2f2e1839b97628d9d0f1d5705b69c1e003f0ca03
+          test "$(sha256sum "$SRC/NQC_ORIGINAL_FROZEN_COHORT_60.json" | cut -d' ' -f1)" = a739994c1d6e7bfa4e22c06a114b0a632928962af9a0d59616667503b18980c3
+          cd "$SRC"
+          python3 -m unittest -v test_morpho_cbXRP_chain_truth
+          python3 -m py_compile morpho_cbXRP_chain_truth.py
+      - name: Single official documented public Morpho RPC bounded read
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-morpho-stale-onchain"
+          SRC=ci/nqc-census/rmc-v2-shadow
+          mkdir -p "$OUT"
+          git rev-parse HEAD > "$OUT/source-commit.txt"
+          git rev-parse HEAD^{tree} > "$OUT/source-tree.txt"
+          python3 "$SRC/morpho_cbXRP_chain_truth.py" \
+            --source "$SRC/NQC_ORIGINAL_FROZEN_COHORT_60.json" \
+            --out "$OUT/attempt" | tee "$OUT/summary.log"
+          python3 - "$OUT/attempt/decision.json" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          assert d['status'] in ('INCOMPLETE_NO_ONCHAIN_RISK_AUTHORITY',
+                                 'SINGLE_PROVIDER_PINNED_BASE_MORPHO_STALE_RISK_ONLY'),d['status']
+          assert d['realized_nqc_pnl_usd']=='0' and d['transactions_broadcast']==0
+          assert not d['gas_sponsor_proven'] and not d['authorizes_trade']
+          assert not d['oracle_IRM_accrued_HF_proven']
+          assert d['source_rpc_calls']<=12
+          PY
+      - name: Immutable source and attempt manifest
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-morpho-stale-onchain"
+          SRC=ci/nqc-census/rmc-v2-shadow
+          mkdir -p "$OUT/source" "$OUT/attempt"
+          cp "$SRC/morpho_cbXRP_chain_truth.py" \
+             "$SRC/test_morpho_cbXRP_chain_truth.py" \
+             "$SRC/NQC_ORIGINAL_FROZEN_COHORT_60.json" \
+             "$SRC/MORPHO_SOURCE_PINNED_ONCHAIN_CHECK_CONTRACT.md" \
+             "$SRC/morpho_base_cbXRP_economics.py" \
+             '.github/workflows/nqc-v2-morpho-cbxrp-frozen-onchain.yml' "$OUT/source/"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum -c manifest.sha256
+      - name: Upload source-positive or exact fail-closed result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-morpho-cbxrp-single-onchain-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-morpho-stale-onchain/
+          if-no-files-found: error
+          retention-days: 14
