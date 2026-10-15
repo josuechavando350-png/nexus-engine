@@ -169,7 +169,7 @@ def main():
     result['queries_used']=MAX_QUERIES-budget[0];result['max_queries']=MAX_QUERIES
     (out/'census.json').write_text(json.dumps(result,sort_keys=True,indent=2)+'\n')
     (out/'result-status.txt').write_text(result['status']+'\n')
-    print(result['status'],'events=',result.get('event_count',0),'unique_winners=',result.get('unique_winning_transactions',0),'markets=',len(result.get('markets',[])),'pages=',len(pages))
+    print(result['status'],'events=',result.get('event_count',0),'unique_winners=',result.get('unique_winning_transactions',0),'markets=',len(result.get('markets',[])),'queries=',result['queries_used'],'days=',result['days_attempted'])
     # No source-only failure can assert a zero market count, nor that a complete canonical onchain census was proved.
     return 0
 if __name__=='__main__':sys.exit(main())

@@ -1,4 +1,6 @@
-import copy, unittest
+import copy, unittest, tempfile, io, sys, contextlib, json
+from unittest.mock import patch
+import morpho_competition_30d as module
 from morpho_competition_30d import consume,validate_event,BadEvidence,PAGE_SIZE,aggregate_records,source_bisect
 SINCE=1000;UNTIL=3000
 EX={'chain':{'id':1},'txHash':'0x'+'a'*64,'logIndex':2,'timestamp':2000,'blockNumber':10001,
@@ -47,6 +49,18 @@ class Proof(unittest.TestCase):
         r=consume([page([EX,x],2)],SINCE,UNTIL);self.assertEqual(r['markets'][0]['distinct_liquidator_count'],2);self.assertEqual(r['markets'][0]['leading_liquidator_event_share_bps'],5000)
     def test_false_income_prohibited(self):
         r=consume([page([EX],1)],SINCE,UNTIL);self.assertEqual(r['nqc_pnl_usd'],'0');self.assertFalse(r['gas_sponsor_proven']);self.assertFalse(r['competitive_capture_proven']);self.assertFalse(r['market_canonical_completeness_proven'])
+    def test_main_full_output_offline_no_name_error(self):
+        with tempfile.TemporaryDirectory() as temp:
+            with patch.object(sys,'argv',['morpho_competition_30d.py','--out',temp]),\
+                patch.object(module,'request_page',return_value=page([],0)),\
+                patch.object(module.time,'sleep',return_value=None),\
+                contextlib.redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(module.main(),0)
+            with open(temp+'/census.json') as evidence:
+                report=json.load(evidence)
+            self.assertEqual(report['status'],'COMPLETE_MORPHO_API_WINDOW_INDEX_ONLY')
+            self.assertEqual(report['days_attempted'],30)
+            self.assertIn('queries=',output.getvalue())
     def test_temporal_bisect_rescues_short_page(self):
         samples=[]
         for i in range(4):
