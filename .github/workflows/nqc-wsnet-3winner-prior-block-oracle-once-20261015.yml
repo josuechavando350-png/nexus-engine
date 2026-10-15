@@ -1,0 +1,184 @@
+name: NQC Morpho Three Historical Winner Prior-State Gate (READ ONLY ONCE)
+on:
+  push:
+    branches:
+      - nqc/wsnet-venue-one-shot-20261015
+    paths:
+      - .github/workflows/nqc-wsnet-3winner-prior-block-oracle-once-20261015.yml
+permissions:
+  contents: read
+jobs:
+  historical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Read exact historical B-1 state and re-check three original Morpho winner receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import json,hashlib,urllib.request,urllib.error,datetime,os,pathlib,re
+          RPC="https://rpc.mainnet.chain.robinhood.com"
+          MORPHO="0x9d53d5e3bd5e8d4cbfa6db1ca238aea02e651010"
+          MARKET="0xaa586d26a6fe62d9c0f0948fede6e2130500ac7a655587447e2d4a37e6330589"
+          WSNET="0x63c12667638f2ae6fc6ae09b43d98ec84a8586ea"
+          USDG="0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+          SNET="0xb773ec2c326b7f98a5a83fc098825492f020a4c7"
+          NET="0xca9c78dd337a67f6e0077f65f5e9218719d30edf"
+          PAIR="0x59f95461e68e0c77605299791e1449f175165b54"
+          EVENT="0xa4946ede45d0c6f06a0f5ce92c9ad3b4751452d2fe0e25010783bcab57a67e41"
+          ROWS=[
+          ("p90",74921250,"0x0b352de158a179940d3cead47ffac3cbd35d3d2da9a6ddf98a30ad34540e2f84",
+          "0x57abe790fae81b3532c65dce0b4c87995cc62eb23b65f7bf90fbc353374184ee",
+          "0x4b3189cdb8292d0967ebc4d15b76547b4062c8a53bda415c1676d1fac4e9643d",
+          "0x9b422e571eb2cb9837efdc4f9087194d65fb070a",2,7703016226,7160649793538586846),
+          ("largest",78275839,"0xf027c6374428643b65f55c0edc8a8e2f8dacd677214ac",
+          "0x47c48bffb17cf1da7407380129ff2bf9cd759a531456396ec2930e9115dca442",
+          "0x63986a9f1d123b4c2bc55ccc3cb0a048bccf44f4a9eb952c5461a826ca71f75a",
+          "0x74d09665900a5f29bac25befd30c73a5962d44e7",4,31634465959,36230112742208816396),
+          ("median",78275863,"0x104a7e0f08e3cb9e40c53b775a57c2c96bc008b5ba03d6dac91c61a96a55c129",
+          "0x1c5c49a43e2e8b69551cec992dad24703c0d101e7a3fdadee644ca057cd2cc58",
+          "0x5acc41345f4e16673c6a3c42cfe507c787d793ef7e82a6cd2fb8364fe41ee24d",
+          "0x28e8bade28a29c1c9e958364c55bf4143ba37af8",43,284162606,325511250063414815)
+          ]
+          OUT=pathlib.Path("out");OUT.mkdir(exist_ok=True)
+          requests=[]
+          report={"schema":"NQC-V2-SINGLE-RPC-3-LIQUIDATIONS-PRIOR-BLOCK-20261015",
+                  "status":"INCOMPLETE","source_scope":"Robinhood chain 4663 official public RPC; archived at B-1","archival_sources":1,
+                  "no_competitor_first_seen_or_pre_tx_race_claim":True,
+                  "hf_is_unaccrued_as_of_end_prior_block":True,
+                  "dex_exit_is_model_not_atomic_simulation":True,
+                  "gas_financing_proven":False,"nqc_realized_pnl_usd":"0","own_capital_usd":"0",
+                  "run_id":os.environ.get("GITHUB_RUN_ID"),"code_sha":os.environ.get("GITHUB_SHA"),
+                  "created_at_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  "samples":[]}
+          class Stop(Exception): pass
+          def w(x):return format(int(x),"064x")
+          def ad(x):return w(int(x,16))
+          def wds(value,count):
+              if not isinstance(value,str) or not re.fullmatch(r"0x(?:[0-9a-fA-F]{64})+",value) or len(value)<2+64*count:raise Stop("BAD_ABI_LENGTH")
+              return [int(value[2+i*64:2+(i+1)*64],16) for i in range(count)]
+          def rpc(method,params):
+              if method not in ("eth_chainId","eth_getBlockByNumber","eth_getCode","eth_getTransactionReceipt","eth_call"):raise Stop("UNAUTHORIZED_METHOD")
+              if len(requests)>=63:raise Stop("QUERY_CAP_63")
+              rid=len(requests)+1
+              q={"jsonrpc":"2.0","id":rid,"method":method,"params":params}
+              raw=json.dumps(q,separators=(",",":")).encode()
+              rec={"id":rid,"request":q,"utc":datetime.datetime.now(datetime.timezone.utc).isoformat()}
+              try:
+                  post=urllib.request.Request(RPC,raw,method="POST",headers={"Content-Type":"application/json","User-Agent":"NQC-PriorBlock-OneShot-ReadOnly/20261015"})
+                  with urllib.request.urlopen(post,timeout=12) as response:
+                      if response.status!=200:raise Stop("HTTP_NON200")
+                      content=response.read(350001)
+                  if len(content)>350000:raise Stop("MAX_BYTES_350000")
+                  rec["sha256"]=hashlib.sha256(content).hexdigest()
+                  msg=json.loads(content)
+                  if not isinstance(msg,dict) or msg.get("jsonrpc")!="2.0" or msg.get("id")!=rid:raise Stop("WRONG_JSONRPC_ID")
+                  if msg.get("error") is not None:
+                      err=msg["error"];rec["error"]=err
+                      raise Stop("JSONRPC_ERROR_"+str(err.get("code","unknown") if isinstance(err,dict) else "unknown")+"_NO_RETRY")
+                  if msg.get("result") is None:raise Stop("NULL_SOURCE_RESULT")
+                  val=msg["result"];rec["result"]=val
+                  return val
+              except urllib.error.HTTPError as e:
+                  rec["http_error"]=e.code;raise Stop("HTTP_"+str(e.code)+"_NO_RETRY") from e
+              except (urllib.error.URLError,TimeoutError,OSError) as e:
+                  rec["transport_error"]=type(e).__name__;raise Stop("TRANSPORT_"+type(e).__name__+"_NO_RETRY") from e
+              except (ValueError,UnicodeError) as e:
+                  rec["parse_error"]=type(e).__name__;raise Stop("INVALID_RPC_RESPONSE") from e
+              finally: requests.append(rec)
+          def call(address,data,block):
+              if not re.fullmatch(r"0x[0-9a-f]{40}",address) or not re.fullmatch(r"0x[0-9a-f]+",data):raise Stop("INVALID_CALL")
+              return rpc("eth_call",[{"to":address,"data":data},hex(block)])
+          def header(b,expect):
+              o=rpc("eth_getBlockByNumber",[hex(b),False])
+              if not isinstance(o,dict) or o.get("hash","").lower()!=expect or int(o.get("number","0x0"),16)!=b:raise Stop("BLOCK_HEADER_MISMATCH")
+              return o
+          def model(x,r_net,r_usdg):
+              if x<=0 or r_net<=0 or r_usdg<=0:return 0
+              fee=x*997
+              return fee*r_usdg//(r_net*1000+fee)
+          def one(row):
+              name,b,beforehash,afterhash,tx,borrower,logix,debt,seized=row
+              rec={"name":name,"block":b,"before_block":b-1,"winner_tx":tx,"borrower":borrower,
+                   "historical_repaid_usdg_raw":str(debt),"historical_seized_wsnet_raw":str(seized),
+                   "pre_winner_visibility_not_proven":True,"status":"INCOMPLETE"}
+              prev=header(b-1,beforehash);after=header(b,afterhash)
+              rec["before_header"]={k:prev.get(k) for k in ("number","hash","stateRoot","timestamp")}
+              rec["winning_header"]={k:after.get(k) for k in ("number","hash","stateRoot","timestamp")}
+              rec["block_timestamp_gap_seconds"]=int(after["timestamp"],16)-int(prev["timestamp"],16)
+              receipt=rpc("eth_getTransactionReceipt",[tx])
+              if receipt.get("status")!="0x1" or receipt.get("blockHash","").lower()!=afterhash:raise Stop("RECEIPT_WRONG_BLOCK_OR_FAILED")
+              found=[l for l in receipt.get("logs",[]) if l.get("address","").lower()==MORPHO and int(l.get("logIndex","0x0"),16)==logix]
+              if len(found)!=1:raise Stop("NO_ORIGINAL_LIQUIDATE_LOG")
+              topics=found[0].get("topics",[])
+              if len(topics)!=4 or topics[0].lower()!=EVENT or topics[1].lower()!=MARKET or topics[3][-40:].lower()!=borrower[2:]:raise Stop("BAD_EVENT_BORROWER_OR_MARKET")
+              rec["receipt_gas_used"]=str(int(receipt["gasUsed"],16))
+              rec["effective_gas_price_wei"]=str(int(receipt["effectiveGasPrice"],16))
+              rec["native_fee_eth"]=str(int(receipt["gasUsed"],16)*int(receipt["effectiveGasPrice"],16)/10**18)
+              code=rpc("eth_getCode",[MORPHO,hex(b-1)])
+              if not isinstance(code,str) or len(code)<30:raise Stop("NO_HISTORICAL_MORPHO_CODE")
+              marketpars=wds(call(MORPHO,"0x2c3c9157"+MARKET[2:],b-1),5)
+              loan,coll,oracle,irm,lltv=marketpars
+              if loan!=int(USDG,16) or coll!=int(WSNET,16) or lltv!=625000000000000000:raise Stop("HISTORICAL_MARKET_PARAMS_DRIFT")
+              price=wds(call("0x"+format(oracle,"040x"),"0xa035b1fe",b-1),1)[0]
+              mar=wds(call(MORPHO,"0x5c60e39a"+MARKET[2:],b-1),6)
+              pos=wds(call(MORPHO,"0x93c52062"+MARKET[2:]+ad(borrower),b-1),3)
+              borrowed=(pos[1]*(mar[2]+1)+(mar[3]+1000000)-1)//(mar[3]+1000000)
+              maxdebt=(pos[2]*price//10**36)*lltv//10**18
+              if borrowed<=0:raise Stop("NO_BORROW_IN_PRESTATE")
+              rec["previous_block_economics"]={"borrowed_assets_raw":str(borrowed),"max_borrow_raw":str(maxdebt),
+                  "collateral_wei":str(pos[2]),"oracle_price_raw":str(price),
+                  "unaccrued_healthy":maxdebt>=borrowed,
+                  "hf_numerator":str(maxdebt),"hf_denominator":str(borrowed),
+                  "last_interest_update_ts":str(mar[4]),
+                  "repaid_amount_fits_previous_debt":debt<=borrowed}
+              if maxdebt<borrowed:rec["status"]="UNHEALTHY_AT_PREVIOUS_BLOCK_END_UNACCRUED"
+              else:rec["status"]="HEALTHY_AT_PREVIOUS_BLOCK_END_UNACCRUED"
+              # Reconstruct exact historical reserves for route used by actual winner, then conservative model, not a quote of Morpho contract.
+              reserves=wds(call(PAIR,"0x0902f1ac",b-1),3)
+              supply=wds(call(WSNET,"0x18160ddd",b-1),1)[0]
+              backing=wds(call(SNET,"0x70a08231"+ad(WSNET),b-1),1)[0]
+              if supply<=0 or backing<=0 or reserves[0]<=0 or reserves[1]<=0:raise Stop("NONPOSITIVE_HISTORICAL_ROUTE_STATE")
+              rec["route_pool_reserves_prior"]={"usdg_raw":str(reserves[0]),"net_raw":str(reserves[1]),
+                   "wrapper_supply_raw":str(supply),"snet_backing_raw":str(backing)}
+              indicative_net=seized*backing//supply
+              exits={}
+              for fee in (0,500):
+                  tok=indicative_net*(10000-fee)//10000
+                  usdg=model(tok,reserves[1],reserves[0])
+                  exits[str(fee)]={"net_token_raw_conditional":str(tok),"sale_usdg_raw_conditional":str(usdg),
+                                 "sale_minus_historical_repay_raw":str(usdg-debt),"assumed_fee_bps":fee,
+                                 "not_actual_atomic_swap":True}
+              rec["indicative_routes"]=exits
+              rec["header_immutable_recheck"]=header(b-1,beforehash)["stateRoot"]==prev["stateRoot"]
+              if not rec["header_immutable_recheck"]:raise Stop("HISTORICAL_REORG")
+              rec["source_state_risk"]="single RPC historical state, no builder first-seen, IRM accrual and actual balance deltas not included"
+              return rec
+          try:
+              if int(rpc("eth_chainId",[]),16)!=4663:raise Stop("WRONG_CHAIN")
+              for row in ROWS:report["samples"].append(one(row))
+              report["status"]="HISTORICAL_PRIOR_BLOCK_READ_COMPLETE_WITH_UNACCRUED_HF_AND_CONDITIONAL_ROUTE"
+          except Exception as e:
+              report["status"]="INCOMPLETE_ARCHIVAL_RPC_OR_STATE"
+              report["blocker_type"]=type(e).__name__
+              report["blocker"]=str(e)[:160]
+          finally:
+              report["completed_utc"]=datetime.datetime.now(datetime.timezone.utc).isoformat()
+              report["request_count"]=len(requests)
+              pathlib.Path("out/report.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
+              pathlib.Path("out/rpc_raw_receipts.json").write_text(json.dumps(requests,indent=2,sort_keys=True)+"\n")
+              print("NQC_PRIOR_WINNER",report["status"],"COMPLETE_ROWS",len(report["samples"]),"RPC",len(requests),
+                    "ERROR",report.get("blocker","NONE"),"NQC_REALIZED_USD",0)
+          PY
+          sha256sum out/report.json out/rpc_raw_receipts.json > out/manifest.sha256
+          sha256sum -c out/manifest.sha256
+      - name: Preserve source results even if unavailable
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-prior-block-3winner-once
+          path: out/
+          retention-days: 14
+          if-no-files-found: error
