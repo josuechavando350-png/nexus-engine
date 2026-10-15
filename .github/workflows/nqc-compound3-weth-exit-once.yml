@@ -1,0 +1,151 @@
+name: NQC Compound III Same-Block WETH-to-USDC Economic Exit (ONCE READ ONLY)
+on:
+  push:
+    branches:
+      - nqc/compound3-one-shot-quote-20261015
+    paths:
+      - .github/workflows/nqc-compound3-weth-exit-once.yml
+permissions:
+  contents: read
+jobs:
+  exit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Read-only exact-block Uniswap quote, no wallet or transaction
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import json,urllib.request,urllib.error,hashlib,time,datetime,pathlib
+          URLS=['https://ethereum-rpc.publicnode.com','https://eth.drpc.org']
+          PIN=26199216
+          HASH='0xdc72c612a7b041b10d22fdd6198579e2004f0252eb15980abe9a02bff7b00e9a'
+          USDC='0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
+          WETH='0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+          QUOTER='0x61ffe014ba17989e743c5f6cb21bf9697530b21e'
+          COMET='0xc3d688b66703497daa19211eedff47f25384cdc3'
+          WETH_RESERVE_WEI=1932917990
+          WETH_QUOTED_WEI=430231548441256777
+          DEUSD_FEED='0x7badab7109afbbf48ecd8d6498caacd2630b45b9'
+          calls=[]; count={u:0 for u in URLS}
+          class Blocked(Exception):pass
+          def enc(x):return format(int(x),'064x')
+          def addr(x):return enc(int(x,16))
+          def rpc(u,method,params):
+              if method not in ('eth_chainId','eth_getBlockByNumber','eth_call'):raise Blocked('METHOD_DENIED')
+              count[u]+=1
+              if count[u]>20:raise Blocked('READ_CALL_BUDGET_EXCEEDED')
+              obj={'jsonrpc':'2.0','id':count[u],'method':method,'params':params}
+              entry={'provider':u,'id':count[u],'method':method,'params':params}
+              req=urllib.request.Request(u,json.dumps(obj,separators=(',',':')).encode(),method='POST',
+                                         headers={'Content-Type':'application/json','User-Agent':'NQC-ONE-SHOT-EXIT-READONLY'})
+              try:
+                  with urllib.request.urlopen(req,timeout=12) as ans:
+                      if ans.status!=200:raise Blocked('HTTP_NON200_'+str(ans.status))
+                      raw=ans.read(150000)
+              except urllib.error.HTTPError as er:
+                  entry['http_error']=er.code;calls.append(entry);raise Blocked('HTTP_'+str(er.code))
+              except (TimeoutError,OSError,urllib.error.URLError) as er:
+                  entry['transport_error']=type(er).__name__;calls.append(entry);raise Blocked('TRANSPORT_'+type(er).__name__)
+              entry['response_sha256']=hashlib.sha256(raw).hexdigest()
+              try: doc=json.loads(raw)
+              except ValueError:
+                  entry['bad_json']=True;calls.append(entry);raise Blocked('BAD_JSON')
+              if not isinstance(doc,dict) or doc.get('id')!=count[u]:
+                  entry['bad_response_id']=True;calls.append(entry);raise Blocked('BAD_JSONRPC_ID')
+              if doc.get('error') is not None:
+                  err=doc['error']
+                  entry['rpc_error']={'code':err.get('code'),'message':str(err.get('message',''))[:200]} if isinstance(err,dict) else str(err)[:200]
+                  calls.append(entry);return None
+              res=doc.get('result')
+              if res is None:entry['null_result']=True
+              entry['result']=res
+              calls.append(entry)
+              return res
+          report={'status':'INCOMPLETE','asset':'WETH','block':PIN,'expected_block_hash':HASH,
+                  'compound_quote_for_1000_usdc_weth_wei':str(WETH_QUOTED_WEI),
+                  'compound_reserve_weth_wei':str(WETH_RESERVE_WEI),
+                  'pnl_realized_usd':'0','own_capital_usd':'0','trade_transmitted':False,
+                  'gas_sponsor_verified':False,'full_route_executable':False,
+                  'amount_available_to_buy_1000_usdc':False,'quoter_version':'UniswapV3 QuoterV2',
+                  'same_block_canonical_header_verified':False}
+          try:
+              for u in URLS:
+                  chain=rpc(u,'eth_chainId',[])
+                  if chain!='0x1':raise Blocked('CHAIN_MISMATCH_'+u)
+              headers=[]
+              for u in URLS:
+                  h=rpc(u,'eth_getBlockByNumber',[hex(PIN),False])
+                  if not isinstance(h,dict) or h.get('hash','').lower()!=HASH or int(h.get('number','0x0'),16)!=PIN:
+                      raise Blocked('BLOCK_HASH_OR_HEIGHT_MISMATCH')
+                  headers.append(h)
+              for k in ('hash','stateRoot','parentHash','timestamp'):
+                  if headers[0][k]!=headers[1][k]:raise Blocked('TWO_RPC_HEADER_DISAGREEMENT_'+k)
+              report['block_header']={k:headers[0][k] for k in ('number','hash','stateRoot','parentHash','timestamp')}
+              report['same_block_header_initially_matched']=True
+              out=[]
+              # Direct on-chain quote for both actual reserve and unavailable 1000-USDC-size collateral.
+              for fee in (500,3000):
+                  for label,amt in (('all_observed_weth_reserve',WETH_RESERVE_WEI),
+                                    ('hypothetical_1000_usdc_weth_quote',WETH_QUOTED_WEI)):
+                      data='0xc6a5026a'+addr(WETH)+addr(USDC)+enc(amt)+enc(fee)+enc(0)
+                      xs=[]
+                      for u in URLS:
+                          raw=rpc(u,'eth_call',[{'to':QUOTER,'data':data},hex(PIN)])
+                          xs.append(raw)
+                      rec={'label':label,'fee_pips':fee,'weth_input_wei':str(amt),
+                           'two_provider_raw_outputs':xs,'same_block':PIN,'success':False}
+                      if all(isinstance(x,str) and x.startswith('0x') and len(x)>=258 for x in xs) and xs[0].lower()==xs[1].lower():
+                          v=xs[0][2:]
+                          words=[int(v[i:i+64],16) for i in range(0,256,64)]
+                          rec.update({'usdc_out_raw':str(words[0]),'usdc_out':format(words[0]/1e6,'.8f'),
+                                      'sqrt_price_after':str(words[1]),'ticks_crossed':words[2],
+                                      'swap_only_gas_estimate':words[3],'success':True})
+                      out.append(rec)
+              report['uniswap_quotes']=out
+              # Investigate shared DEUSD/SDEUSD feed, not a separate collateral sale.
+              feed_data='0x41976e09'+addr(DEUSD_FEED)
+              feed=[]
+              for u in URLS:
+                  feed.append(rpc(u,'eth_call',[{'to':COMET,'data':feed_data},hex(PIN)]))
+              report['deusd_shared_feed_price_raw_both_rpc']=feed
+              factor=[]
+              for u in URLS:factor.append(rpc(u,'eth_call',[{'to':COMET,'data':'0x1f5954bd'},hex(PIN)]))
+              report['storefront_price_factor_raw_both_rpc']=factor
+              tail=[]
+              for u in URLS:
+                  h=rpc(u,'eth_getBlockByNumber',[hex(PIN),False])
+                  if h.get('hash','').lower()!=HASH or h.get('stateRoot')!=headers[0]['stateRoot']:
+                      raise Blocked('FINAL_BLOCK_RECHECK_MISMATCH')
+                  tail.append(h)
+              report['same_block_canonical_header_verified']=True
+              report['status']='READ_ONLY_QUOTE_RESULTS_CAPTURED'
+          except Blocked as e:report['source_blocker']=str(e)
+          finally:
+              report['rpc_call_counts']=count
+              report['observed_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+              pathlib.Path('out/economic-exit.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+              pathlib.Path('out/rpc-evidence.json').write_text(json.dumps(calls,indent=2,sort_keys=True)+'\n')
+              print('G2_REAL_DEX',report['status'],'RPC_CALLS',count,
+                    'HEADER_FINAL',report['same_block_canonical_header_verified'],
+                    'QUOTES_OK',sum(int(x['success']) for x in report.get('uniswap_quotes',[])),
+                    'P_AND_L',report['pnl_realized_usd'])
+          PY
+          git rev-parse HEAD > out/head.txt
+          git rev-parse HEAD^{tree} > out/tree.txt
+          cp .github/workflows/nqc-compound3-weth-exit-once.yml out/workflow.yml
+          cd out
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum -c manifest.sha256
+      - name: Preserve pinned-block quote receipts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-compound3-weth-uniswap-once
+          path: out/
+          retention-days: 14
+          if-no-files-found: warn
