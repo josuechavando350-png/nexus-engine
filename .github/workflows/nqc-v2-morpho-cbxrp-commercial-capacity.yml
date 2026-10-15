@@ -1,0 +1,83 @@
+name: NQC V2 Morpho cbXRP 23D Commercial-Capacity Stress (OFFLINE)
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/morpho_capacity_falsification.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_morpho_capacity_falsification.py'
+      - 'ci/nqc-census/rmc-v2-shadow/MORPHO_COMMERCIAL_CAPACITY_DOWNSIDE_CONTRACT.md'
+      - '.github/workflows/nqc-v2-morpho-cbxrp-commercial-capacity.yml'
+permissions:
+  contents: read
+  actions: read
+jobs:
+  source-locked-23day-commercial-stress:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact PR commit only
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Authenticate exact source and obtain ONE original GH artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.event.pull_request.head.sha }}'
+          mkdir -p "$RUNNER_TEMP/nqc-market-capacity"
+          curl --fail --silent --show-error --location --max-time 90 \
+            -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            'https://api.github.com/repos/josuechavando350-png/nexus-engine/actions/artifacts/11944154144/zip' \
+            -o "$RUNNER_TEMP/nqc-market-capacity/11944154144.zip"
+          echo "f65c2b526fe93d105b096716515b4eac7b98698cb331048d3c6a8cf936b65ce4  $RUNNER_TEMP/nqc-market-capacity/11944154144.zip" | sha256sum -c -
+      - name: Original immutable ZIP tests, adversarial source checks, economic fail-closed report
+        shell: bash
+        env:
+          NQC_ORIGINAL_MORPHO_INDEXER_ZIP: ${{ runner.temp }}/nqc-market-capacity/11944154144.zip
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-market-capacity"
+          cd ci/nqc-census/rmc-v2-shadow
+          python3 -m unittest -v test_morpho_capacity_falsification 2>&1 | tee "$OUT/offline-adversarial-tests.log"
+          python3 morpho_capacity_falsification.py \
+            --source-zip "$NQC_ORIGINAL_MORPHO_INDEXER_ZIP" \
+            --output "$OUT/morpho-historic-capacity-sensitivity.json" \
+            | tee "$OUT/terminal-status.log"
+          python3 - "$OUT/morpho-historic-capacity-sensitivity.json" <<'PY'
+          import json,sys
+          r=json.load(open(sys.argv[1]))
+          assert r['status']=='SOURCE_LOCKED_23D_MORPHO_MARKET_CAPACITY_SENSITIVITY_NOT_PROFIT'
+          assert r['source_30d_window_complete'] is False and r['nqc_realized_pnl_usd']=='0'
+          assert r['top_three_liquidator_debt_share_percent']=='82.06'
+          s=r['segments']['excluding_both_peak_and_top_three']
+          assert s['principal_usdc_source_indexed']=='65856.799247'
+          assert s['hypothetical_exit_haircuts'][0]['nqc_50percent_before_all_other_costs_usdc']=='4174.022476'
+          assert s['hypothetical_exit_haircuts'][0]['could_pass_5000_only_if_100pct_captured_before_costs'] is False
+          assert not r['external_gas_sponsor_proven'] and not r['direct_competitor_advantage_proven']
+          PY
+      - name: Seal report and source, preserve no-profit boundary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-market-capacity"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/morpho_capacity_falsification.py "$OUT/source/"
+          cp ci/nqc-census/rmc-v2-shadow/test_morpho_capacity_falsification.py "$OUT/source/"
+          cp ci/nqc-census/rmc-v2-shadow/MORPHO_COMMERCIAL_CAPACITY_DOWNSIDE_CONTRACT.md "$OUT/source/"
+          cp .github/workflows/nqc-v2-morpho-cbxrp-commercial-capacity.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse HEAD^{tree} > "$OUT/code-tree.txt"
+          (cd "$OUT" && find . -type f -not -name manifest.sha256 -not -name '11944154144.zip' -print0 \
+             | sort -z | xargs -0 sha256sum > manifest.sha256 && sha256sum -c manifest.sha256)
+      - name: Upload immutable evidence (even on source failure)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-cbxrp-commercial-stress-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-market-capacity/
+          retention-days: 30
+          if-no-files-found: warn
