@@ -1,0 +1,162 @@
+name: NQC wsNET to NET UniswapV2 Reserve Model (READ ONLY ONCE)
+on:
+  push:
+    branches:
+      - nqc/wsnet-venue-one-shot-20261015
+    paths:
+      - .github/workflows/nqc-wsnet-net-usdg-v2-source-once-20261015.yml
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: One same-block chain-4663 read, no state changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import json,datetime,urllib.request,urllib.error,hashlib,sys,pathlib,os,re
+          RPC="https://rpc.mainnet.chain.robinhood.com"
+          WS="0x63c12667638f2ae6fc6ae09b43d98ec84a8586ea"
+          SN="0xb773ec2c326b7f98a5a83fc098825492f020a4c7"
+          NET="0xca9c78dd337a67f6e0077f65f5e9218719d30edf"
+          USDG="0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+          PAIR="0x59f95461e68e0c77605299791e1449f175165b54"
+          SAMPLES=[("median",325511250063414815,284162606),
+          ("p90",7160649793538586846,7703016226),
+          ("largest",36230112742208816396,31634465959)]
+          out=pathlib.Path("out");out.mkdir(exist_ok=True)
+          records=[]
+          result={"status":"INCOMPLETE","schema":"NQC_CHAIN4663_NET_V2_BOUNDED_RESERVES_20261015",
+           "source_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+           "rpc":"single official Robinhood endpoint","no_transfers_or_live_executions":True,
+           "no_capital_spent":True,"NQC_realized_profit_usd":"0",
+           "hypothetical_input_sizes_are_from_prior_third_party_winners":True,
+           "wrapped_token_backing_assumption_is_NOT_exact_preview":True,
+           "sNET_redemption_1_to_1_NET_not_certified_at_this_block":True,
+           "NET_AMM_transfer_levy_scenarios_only":True,
+           "current_borrowers_liquidatable_unverified":True,
+           "external_gas_sponsor_unverified":True,"quotes":[]}
+          class Err(Exception):pass
+          def word(x):return format(int(x),"064x")
+          def req(method,params):
+              assert method in ("eth_chainId","eth_blockNumber","eth_getBlockByNumber","eth_getCode","eth_call")
+              if len(records)>=25:raise Err("RPC_REQUEST_BUDGET_EXCEEDED")
+              n=len(records)+1
+              q={"jsonrpc":"2.0","id":n,"method":method,"params":params}
+              record={"id":n,"method":method,"request":q,"utc":datetime.datetime.now(datetime.timezone.utc).isoformat()}
+              try:
+                  request=urllib.request.Request(RPC,json.dumps(q,separators=(",",":")).encode(),
+                            method="POST",headers={"Content-Type":"application/json","User-Agent":"NQC-NET-USDG-ReserveGate-Oneshot"})
+                  with urllib.request.urlopen(request,timeout=12) as response:
+                      if response.status!=200:raise Err("NON_200_HTTP")
+                      raw=response.read(150001)
+                  if len(raw)>150000:raise Err("RESPONSE_OVER_BUDGET")
+                  record["raw_sha256"]=hashlib.sha256(raw).hexdigest()
+                  doc=json.loads(raw)
+                  if not isinstance(doc,dict) or doc.get("id")!=n or doc.get("jsonrpc")!="2.0":
+                      raise Err("JSON_RPC_WRONG_ENVELOPE")
+                  if doc.get("error") is not None:
+                      record["error"]=doc["error"]
+                      raise Err("JSON_RPC_ERROR_"+str(doc["error"].get("code","UNKNOWN")))
+                  value=doc.get("result")
+                  if value is None:raise Err("NULL_RESPONSE")
+                  record["result"]=value
+                  return value
+              except urllib.error.HTTPError as e:
+                  record["http_error"]=e.code;raise Err("HTTP_"+str(e.code)+"_STOP")
+              except (TimeoutError,OSError,urllib.error.URLError) as e:
+                  record["transport_error"]=type(e).__name__;raise Err("RPC_TRANSPORT_"+type(e).__name__)
+              except (ValueError,UnicodeError) as e:
+                  record["parse_error"]=type(e).__name__;raise Err("RPC_BAD_JSON")
+              finally:records.append(record)
+          def call(to,data,b):
+              x=req("eth_call",[{"to":to,"data":data},hex(b)])
+              if not isinstance(x,str) or not x.startswith("0x") or len(x)<66 or len(x[2:])%64:
+                  raise Err("INVALID_ABI_RESULT")
+              return x
+          def u256(x):
+              if len(x)!=66:raise Err("BAD_U256_WORD")
+              return int(x,16)
+          def block(b):
+              v=req("eth_getBlockByNumber",[hex(b),False])
+              if not isinstance(v,dict) or int(v.get("number","0x0"),16)!=b:
+                  raise Err("BLOCK_IDENTITY_INVALID")
+              return v
+          def amount_out(net_input,reserve_in,reserve_out):
+              q=net_input*997
+              return q*reserve_out//(reserve_in*1000+q)
+          def do():
+              if int(req("eth_chainId",[]),16)!=4663:raise Err("CHAIN_NOT_4663")
+              head=int(req("eth_blockNumber",[]),16);b=head-8
+              original=block(b)
+              result["block"]={k:original.get(k) for k in ("number","hash","stateRoot","timestamp","baseFeePerGas")}
+              result["snapshot_block"]=b
+              for label,addr in (("wrapped",WS),("sNET",SN),("NET",NET),("pair",PAIR)):
+                  code=req("eth_getCode",[addr,hex(b)])
+                  if not isinstance(code,str) or len(code)<30:raise Err("CONTRACT_CODE_MISSING_"+label)
+              tok0=int(call(PAIR,"0x0dfe1681",b),16)
+              tok1=int(call(PAIR,"0xd21220a7",b),16)
+              pool_tokens=("0x"+format(tok0,"040x"),"0x"+format(tok1,"040x"))
+              if pool_tokens!=(USDG,NET):raise Err("POOL_NOT_EXACT_USDG_NET")
+              packed=call(PAIR,"0x0902f1ac",b)
+              if len(packed)<2+64*3:raise Err("BAD_RESERVE_ABI")
+              reserve_usdg=int(packed[2:66],16)
+              reserve_net=int(packed[66:130],16)
+              if reserve_usdg<=0 or reserve_net<=0:raise Err("NON_POSITIVE_RESERVES")
+              result["usdg_reserve_raw"]=str(reserve_usdg)
+              result["net_reserve_raw"]=str(reserve_net)
+              result["pool_tokens"]=pool_tokens
+              result["wsnet_total_supply_raw_18"]=str(u256(call(WS,"0x18160ddd",b)))
+              result["snet_balance_backing_wrapped_raw"]=str(u256(call(SN,"0x70a08231"+word(int(WS,16)),b)))
+              for asset,label,expected in ((USDG,"usdg",6),(NET,"net",9),(SN,"snet",9),(WS,"wsnet",18)):
+                  actual=u256(call(asset,"0x313ce567",b))
+                  if actual!=expected:raise Err("DECIMALS_MISMATCH_"+label)
+              supply=int(result["wsnet_total_supply_raw_18"]);backing=int(result["snet_balance_backing_wrapped_raw"])
+              if supply==0 or backing==0:raise Err("WRAPPER_BACKING_UNAVAILABLE")
+              result["backing_ratio_sNET_raw_per_1_wsNET_raw_1e18"]=str(backing*10**18//supply)
+              # Read same block pair reserves and total wrapper backing. Model is a stress screen, NOT atomic unwind proof.
+              for name,seized_wei,repay_usdg_micro in SAMPLES:
+                  indicative_net_raw=seized_wei*backing//supply
+                  q={"sample":name,"original_debt_usdg_micro":str(repay_usdg_micro),
+                     "original_seized_wsnet_wei":str(seized_wei),
+                     "indicative_net_raw_assuming_backing_proportionality_and_1_to_1_unstake":str(indicative_net_raw),
+                     "gross_profit_certified":False,"onchain_atomic_unwrap_simulated":False}
+                  for tax_bp in (0,500):
+                      received_net_raw=indicative_net_raw*(10000-tax_bp)//10000
+                      received_usdg=amount_out(received_net_raw,reserve_net,reserve_usdg)
+                      q["tax_"+str(tax_bp)+"bps"]={"quote_out_usdg_micro":str(received_usdg),
+                           "diff_vs_historical_repay_usdg_micro":str(received_usdg-repay_usdg_micro),
+                           "hypothetical_only":True,"not_prospective_capture":True}
+                  result["quotes"].append(q)
+              tail=block(b)
+              for k in ("number","hash","stateRoot","parentHash"):
+                  if original.get(k)!=tail.get(k):raise Err("END_STATE_REORG_"+k)
+              result["header_rechecked"]=True
+              result["status"]="REAL_PAIR_RESERVES_WRAPPER_BACKING_READ_MODEL_NOT_EXECUTABLE_QUOTE"
+          try:do()
+          except Exception as e:
+              result["status"]="INCOMPLETE_SOURCE"
+              result["blocker"]=str(e)[:160]
+              result["blocker_kind"]=type(e).__name__
+          finally:
+              result["rpc_calls"]=len(records)
+              result["finished_utc"]=datetime.datetime.now(datetime.timezone.utc).isoformat()
+              (out/"net_v2_model.json").write_text(json.dumps(result,indent=2,sort_keys=True)+"\n")
+              (out/"rpc_receipts.json").write_text(json.dumps(records,indent=2,sort_keys=True)+"\n")
+              print("NQC_NET_V2",result["status"],"quotes",len(result["quotes"]),"rpc",len(records),"blocker",result.get("blocker","NONE"),
+                    "NQC_REALIZED",result["NQC_realized_profit_usd"])
+          PY
+          sha256sum out/net_v2_model.json out/rpc_receipts.json > out/manifest.sha256
+          sha256sum -c out/manifest.sha256
+      - name: Preserve original RPC responses regardless of result
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-net-v2-wrapper-backing-readonly-once
+          path: out/
+          retention-days: 14
+          if-no-files-found: error
