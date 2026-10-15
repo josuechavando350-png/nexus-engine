@@ -115,11 +115,12 @@ def decode_round(raw):
     return {"round_id":str(rid),"answer_raw":str(ans),"updated_at":updated}
 
 class RPC:
-    def __init__(self,label,transport=None,monotonic=time.monotonic,sleeper=time.sleep):
+    def __init__(self,label,transport=None,monotonic=time.monotonic,sleeper=time.sleep,*,controls=POSITIVE):
         require(label in RPCS,"unapproved provider")
         self.label=label;self.transport=transport or self._real
         self.monotonic=monotonic;self.sleeper=sleeper
         self.calls=0;self.last=None;self.pins=set();self.transcript=[]
+        self.controls=tuple(controls)
 
     @staticmethod
     def _real(url,method,params):
@@ -144,11 +145,11 @@ class RPC:
             require(type(params) is list and len(params)==2 and
                     params[1] is False and type(params[0]) is str and
                     HEXQ.fullmatch(params[0]) and int(params[0],16) in
-                    {b+offset for b in (q["block"] for q in POSITIVE) for offset in (0,-1)},
+                    {b+offset for b in (q["block"] for q in self.controls) for offset in (0,-1)},
                     "unapproved header height")
         elif method in ("eth_getTransactionReceipt","eth_getTransactionByHash"):
             require(type(params) is list and len(params)==1 and
-                    params[0] in [q["tx_hash"] for q in POSITIVE],
+                    params[0] in [q["tx_hash"] for q in self.controls],
                     "arbitrary transaction query forbidden")
         elif method=="eth_call":
             require(type(params) is list and len(params)==2 and params[0]==
@@ -249,9 +250,12 @@ def verified_transaction(control,clients):
             "expected_event_double_keccak":"0x"+keccak256(bytes.fromhex(txhash[2:])).hex()}
 
 class Archive:
-    def __init__(self,opener=urlopen,monotonic=time.monotonic,sleeper=time.sleep):
+    def __init__(self,opener=urlopen,monotonic=time.monotonic,sleeper=time.sleep,*,controls=POSITIVE,max_pages=MAX_HISTORY_PAGES):
         self.opener=opener;self.monotonic=monotonic;self.sleeper=sleeper
         self.last=None;self.calls=0;self.log=[]
+        self.controls=tuple(controls)
+        require(type(max_pages) is int and 1<=max_pages<=8,"invalid archival page budget")
+        self.max_pages=max_pages
 
     def get(self,url):
         if url != HISTORY_INFO:
@@ -265,13 +269,13 @@ class Archive:
                     all(v.isascii() and v.isdecimal() for k,v in pairs),
                     "unapproved or duplicated archive parameters")
             args={k:int(v) for k,v in pairs}
-            require(args["blockStart"] in {c["block"]-8 for c in POSITIVE} and
+            require(args["blockStart"] in {c["block"]-8 for c in self.controls} and
                     args["blockEnd"]==args["blockStart"]+9 and
                     1<=args["limit"]<=400 and
                     args["offset"]%args["limit"]==0 and
-                    args["offset"]//args["limit"]<MAX_HISTORY_PAGES,
+                    args["offset"]//args["limit"]<self.max_pages,
                     "archive request outside fixed positive-control windows")
-        require(self.calls<1+MAX_HISTORY_PAGES*len(POSITIVE),"archive request hard budget")
+        require(self.calls<1+self.max_pages*len(self.controls),"archive request hard budget")
         if self.last is not None:
             lag=0.4-(self.monotonic()-self.last)
             if lag>0:self.sleeper(lag)
@@ -317,7 +321,7 @@ class Archive:
             result["status"]="INCOMPLETE_TARGET_RANGE_NOT_ARCHIVED"
             return result
         limit=min(400,meta["maxLimit"])
-        for p in range(MAX_HISTORY_PAGES):
+        for p in range(self.max_pages):
             query=urlencode({"blockStart":lo,"blockEnd":hi,
                              "limit":limit,"offset":p*limit})
             rows=self.get(HISTORY+"?"+query)
@@ -380,14 +384,18 @@ class Archive:
         result["status"]="INCOMPLETE_ARCHIVE_PAGINATION_CAP"
         return result
 
-def run(out:Path,*,rpc_clients=None,archive=None):
+def run(out:Path,*,rpc_clients=None,archive=None,controls=POSITIVE,require_decrease=False):
     require(out.is_absolute() and not out.exists() and out.parent.is_dir(),
             "fresh absolute output path expected")
     out.mkdir()
-    source={"schema_version":1,"predeclared_blockscout_secondary_controls":list(POSITIVE),
+    controls=tuple(controls)
+    require(len(controls)==2 and len({q["tx_hash"] for q in controls})==2,
+            "exactly two distinct predeclared controls required")
+    source={"schema_version":1,"predeclared_blockscout_secondary_controls":list(controls),
             "target":WETH_AGGREGATOR,"public_rpc_provider_ids":list(RPCS),
-            "history_source":MEV_SHARE,"max_history_pages_per_control":MAX_HISTORY_PAGES,
-            "max_history_rows_per_control":MAX_HISTORY_ROWS,"read_only":True,
+            "history_source":MEV_SHARE,"require_decreasing_price":require_decrease,
+            "max_history_pages_per_control":8 if require_decrease else MAX_HISTORY_PAGES,
+            "max_history_rows_per_control":3200 if require_decrease else MAX_HISTORY_ROWS,"read_only":True,
             "created_before_network":clock()}
     (out/"source-precommit.json").write_bytes(canonical(source))
     result={"schema_version":1,"precommit_sha256":sha256(canonical(source)).hexdigest(),
@@ -398,14 +406,22 @@ def run(out:Path,*,rpc_clients=None,archive=None):
             "nonrecourse_native_gas_funded":False,"net_pnl_proven":False,
             "RMC_closed":False,"shadow_certified":False,"live_authorized":False,
             "nqc_realized_pnl_usd":"0"}
-    clients=rpc_clients if rpc_clients is not None else {s:RPC(s) for s in RPCS}
-    archive=archive if archive is not None else Archive()
+    clients=rpc_clients if rpc_clients is not None else {s:RPC(s,controls=controls) for s in RPCS}
+    archive=archive if archive is not None else Archive(controls=controls,max_pages=8 if require_decrease else MAX_HISTORY_PAGES)
     try:
         require(set(clients)==set(RPCS),"required dual-provider identities")
         require(all(quantity(x.call("eth_chainId",[]))==1 for x in clients.values()),
                 "Ethereum mainnet identity mismatch")
-        for control in POSITIVE:
-            result["positive_controls"].append(verified_transaction(control,clients))
+        for control in controls:
+            verified=verified_transaction(control,clients)
+            if require_decrease:
+                initial=int(verified["price_before"]["answer_raw"])
+                final=int(verified["price_after"]["answer_raw"])
+                require(verified["round_advanced"] and initial>final>0,
+                        "historical source did not cause a lower canonical WETH price")
+                require(verified["feed_report_median_matches_after_if_decoded"] is not False,
+                        "decoded report contradicts canonical price")
+            result["positive_controls"].append(verified)
         result["status"]="ONCHAIN_POSITIVE_CONTROLS_CERTIFIED_ARCHIVE_PENDING"
         meta=archive.info()
         result["archive_info"]={"minBlock":meta["minBlock"],
