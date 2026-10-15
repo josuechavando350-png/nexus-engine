@@ -1,0 +1,78 @@
+name: NQC V2 Morpho cbXRP Frozen Prospective Cohort (API READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/morpho_cbXRP_prospective_cohort.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_morpho_cbXRP_prospective_cohort.py'
+      - 'ci/nqc-census/rmc-v2-shadow/MORPHO_CBXRP_PROSPECTIVE_COHORT_CONTRACT.md'
+      - '.github/workflows/nqc-v2-morpho-cbxrp-prospective-cohort.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-prospective-api-witness:
+    name: one-shot-source-censoring-not-trading
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout exact PR head, never an implicit merge commit
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Offline adversarial tests and Python compile
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd ci/nqc-census/rmc-v2-shadow
+          python3 -m unittest test_morpho_cbXRP_prospective_cohort -v
+          python3 -m py_compile morpho_cbXRP_prospective_cohort.py
+      - name: Single finite public API prospective observation
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-morpho-prospective"
+          mkdir -p "$OUT"
+          git rev-parse HEAD > "$OUT/source-commit.txt"
+          git rev-parse HEAD^{tree} > "$OUT/source-tree.txt"
+          python3 ci/nqc-census/rmc-v2-shadow/morpho_cbXRP_prospective_cohort.py \
+            --out "$OUT/attempt" --wait-seconds 35 | tee "$OUT/api-execution.log"
+          python3 - "$OUT/attempt/decision.json" <<'PY'
+          import json,sys
+          x=json.load(open(sys.argv[1]))
+          assert x['status'] in ('TWO_TIME_ORDERED_MORPHO_API_SNAPSHOTS_INDEXER_ONLY',
+                                  'SOURCE_CENSORED_UNIVERSE_BUT_FIXED_COHORT_VALID',
+                                  'INCOMPLETE_MORPHO_PROSPECTIVE_SOURCE'),x['status']
+          assert x['nqc_realized_pnl_usd']=='0'
+          assert x['canary_authorized'] is False and x['shadow_p2_certified'] is False
+          assert x['commercial_score_not_automatically_promoted'] is True
+          assert x['queries_executed'] <=4
+          PY
+      - name: Content-addressed exact source and evidence manifest
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-morpho-prospective"
+          mkdir -p "$OUT/source" "$OUT/attempt"
+          for file in \
+            'ci/nqc-census/rmc-v2-shadow/morpho_cbXRP_prospective_cohort.py' \
+            'ci/nqc-census/rmc-v2-shadow/test_morpho_cbXRP_prospective_cohort.py' \
+            'ci/nqc-census/rmc-v2-shadow/MORPHO_CBXRP_PROSPECTIVE_COHORT_CONTRACT.md' \
+            '.github/workflows/nqc-v2-morpho-cbxrp-prospective-cohort.yml'; do
+            cp "$file" "$OUT/source/$(basename "$file")"
+          done
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum -c manifest.sha256
+      - name: Upload complete or fail-closed source evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-morpho-cbxrp-prospective-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-morpho-prospective/
+          if-no-files-found: error
+          retention-days: 14
