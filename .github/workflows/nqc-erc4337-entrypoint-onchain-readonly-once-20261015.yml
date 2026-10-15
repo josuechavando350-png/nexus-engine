@@ -1,0 +1,119 @@
+name: NQC ERC4337 EntryPoint on Robinhood Real Code and L2 Clock (READ ONLY)
+on:
+  push:
+    branches:
+      - nqc/aa4337-sponsored-morpho-local-20261015
+    paths:
+      - .github/workflows/nqc-erc4337-entrypoint-onchain-readonly-once-20261015.yml
+permissions:
+  contents: read
+jobs:
+  one-shot-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read deployed EntryPoint code and ArbSys L2 block from frozen Robinhood block
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import json,urllib.request,urllib.error,datetime,hashlib,os,re,pathlib
+          RPC="https://rpc.mainnet.chain.robinhood.com"
+          EXPECTED_CHAIN_ID=4663
+          ENTRYPOINTS={
+           "v0.7":"0x0000000071727de22e5e9d8baf0edac6f37da032",
+           "v0.6":"0x5ff137d4b0fdcd49dca30c7cf57e578a026d2789",
+           "v0.8":"0x4337084d9e255ff0702461cf8895ce9e3b5ff108"
+          }
+          ARBSYS="0x0000000000000000000000000000000000000064"
+          ARB_BLOCK_NUMBER_SELECTOR="0xa3b1b31d"
+          OUT=pathlib.Path("out");OUT.mkdir(exist_ok=True)
+          receipts=[]
+          report={"schema":"NQC-V2-ERC4337-ENTRYPOINT-ONCHAIN-SOURCE-READ-ONLY-20261015",
+           "status":"INCOMPLETE","expected_chain_id":EXPECTED_CHAIN_ID,
+           "native_funding_source_authenticated":False,
+           "external_gas_sponsor_confirmed":False,"actual_useroperation_executed":False,
+           "external_bundler_compatibility_proven":False,"nqc_realized_usd":"0",
+           "owner_capital_used_usd":"0","transactions_sent":False,"checks":{},
+           "code_commit":os.environ.get("GITHUB_SHA"),"run_id":os.environ.get("GITHUB_RUN_ID"),
+           "started_utc":datetime.datetime.now(datetime.timezone.utc).isoformat()}
+          class Stop(Exception):pass
+          def rpc(method,params):
+              if method not in ("eth_chainId","eth_blockNumber","eth_getBlockByNumber","eth_getCode","eth_call"):raise Stop("UNAUTHORIZED_METHOD")
+              if len(receipts)>=9:raise Stop("MAX_RPC_CALLS_9")
+              i=len(receipts)+1
+              data={"jsonrpc":"2.0","method":method,"params":params,"id":i}
+              raw=json.dumps(data,separators=(",",":")).encode()
+              rec={"id":i,"request":data}
+              try:
+                  req=urllib.request.Request(RPC,raw,headers={"Content-Type":"application/json","User-Agent":"Mozilla/5.0 NQC-source-only-4337-one-shot/1.0"},method="POST")
+                  with urllib.request.urlopen(req,timeout=13) as r:
+                      if r.status!=200:raise Stop("HTTP_NON200")
+                      resp=r.read(520001)
+                  if len(resp)>520000:raise Stop("RPC_RESPONSE_TOO_LONG")
+                  rec["response_sha256"]=hashlib.sha256(resp).hexdigest()
+                  response=json.loads(resp)
+                  if not isinstance(response,dict) or response.get("id")!=i or response.get("jsonrpc")!="2.0":raise Stop("BAD_RESPONSE_ID")
+                  if response.get("error") is not None:
+                      rec["error"]=response["error"]
+                      raise Stop("RPC_ERROR_"+str(response["error"].get("code","unknown"))+"_STOP")
+                  value=response.get("result")
+                  if value is None:raise Stop("MISSING_RESULT")
+                  rec["result"]=value
+                  return value
+              except urllib.error.HTTPError as e:
+                  rec["http_error"]=e.code;raise Stop("HTTP_"+str(e.code)+"_NO_RETRY") from e
+              except (urllib.error.URLError,TimeoutError,OSError) as e:
+                  rec["transport_error"]=type(e).__name__;raise Stop("TRANSPORT_"+type(e).__name__+"_NO_RETRY") from e
+              finally:receipts.append(rec)
+          try:
+              chain=int(rpc("eth_chainId",[]),16)
+              if chain!=EXPECTED_CHAIN_ID:raise Stop("WRONG_CHAIN_"+str(chain))
+              report["checks"]["chain_id"]=chain
+              block=int(rpc("eth_blockNumber",[]),16)
+              head=rpc("eth_getBlockByNumber",[hex(block),False])
+              if not isinstance(head,dict) or int(head.get("number","0x0"),16)!=block:raise Stop("BAD_HEADER")
+              hash0=head["hash"]
+              report["checks"]["snapshot_block"]={"number":block,"hash":hash0,"timestamp":head.get("timestamp"),"l1BlockNumber":head.get("l1BlockNumber")}
+              report["checks"]["entrypoints"]={}
+              for vers,addr in ENTRYPOINTS.items():
+                  code=rpc("eth_getCode",[addr,hex(block)])
+                  if not isinstance(code,str) or not re.fullmatch(r"0x[0-9a-fA-F]*",code):raise Stop("MALFORMED_CODE_"+vers)
+                  count=len(code[2:])//2
+                  report["checks"]["entrypoints"][vers]={"address":addr,"code_bytes":count,
+                     "sha256_of_bytecode":hashlib.sha256(bytes.fromhex(code[2:])).hexdigest(),
+                     "non_empty":count>0,"is_source_authentic_deployment":False}
+              arb=rpc("eth_call",[{"to":ARBSYS,"data":ARB_BLOCK_NUMBER_SELECTOR},hex(block)])
+              if not isinstance(arb,str) or not re.fullmatch(r"0x[0-9a-fA-F]{64}",arb):raise Stop("INVALID_ARBSYS_RESULT")
+              l2=int(arb,16)
+              report["checks"]["arb_sys"]={"address":ARBSYS,"selector":ARB_BLOCK_NUMBER_SELECTOR,
+                 "reported_l2_block":l2,"rpc_l2_block":block,"same_number":l2==block}
+              recheck=rpc("eth_getBlockByNumber",[hex(block),False])
+              if not isinstance(recheck,dict) or recheck.get("hash")!=hash0 or recheck.get("stateRoot")!=head.get("stateRoot"):raise Stop("HEADER_REORG")
+              if report["checks"]["entrypoints"]["v0.7"]["code_bytes"]<=0:raise Stop("ENTRYPOINT_V07_NOT_DEPLOYED_AT_BLOCK")
+              if l2!=block:raise Stop("ARB_SYS_L2_MISMATCH")
+              report["status"]="ONCHAIN_ENTRYPOINT_V07_CODE_AND_ARBSYS_VERIFIED_SINGLE_RPC"
+          except Exception as e:
+              report["status"]="INCOMPLETE_SOURCE_RPC_OR_DEPLOYMENT"
+              report["blocker_type"]=type(e).__name__
+              report["blocker"]=str(e)[:130]
+          finally:
+              report["completed_utc"]=datetime.datetime.now(datetime.timezone.utc).isoformat()
+              report["rpc_call_count"]=len(receipts)
+              OUT.joinpath("report.json").write_text(json.dumps(report,sort_keys=True,indent=2)+"\n")
+              OUT.joinpath("original_responses.json").write_text(json.dumps(receipts,sort_keys=True,indent=2)+"\n")
+              print("NQC_AA_ONCHAIN_READ",report["status"],"SNAPSHOT",report["checks"].get("snapshot_block",{}).get("number"),
+                 "V07_BYTES",report["checks"].get("entrypoints",{}).get("v0.7",{}).get("code_bytes"),
+                 "RPC",len(receipts),"BLOCKER",report.get("blocker","none"))
+          PY
+          sha256sum out/report.json out/original_responses.json > out/manifest.sha256
+          sha256sum -c out/manifest.sha256
+      - name: Preserve evidence including source RPC failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-erc4337-robinhood-readonly-${{ github.run_id }}
+          path: out/
+          retention-days: 21
+          if-no-files-found: error
