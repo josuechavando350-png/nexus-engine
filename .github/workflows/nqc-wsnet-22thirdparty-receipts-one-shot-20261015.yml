@@ -1,0 +1,172 @@
+name: NQC V2 22 Historical Winner Receipts Economic Evidence (READ ONLY ONCE)
+on:
+  push:
+    branches:
+      - nqc/wsnet-venue-one-shot-20261015
+    paths:
+      - .github/workflows/nqc-wsnet-22thirdparty-receipts-one-shot-20261015.yml
+permissions:
+  contents: read
+jobs:
+  receipts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Verify previously selected 22 Morpho winner ERC20 cashflow receipts once
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import json,hashlib,urllib.request,urllib.error,os,datetime,pathlib,re
+          MARKET="0xaa586d26a6fe62d9c0f0948fede6e2130500ac7a655587447e2d4a37e6330589"
+          MORPHO="0x9d53d5e3bd5e8d4cbfa6db1ca238aea02e651010"
+          USDG="0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+          NET="0xca9c78dd337a67f6e0077f65f5e9218719d30edf"
+          MAIN_PAIR="0x59f95461e68e0c77605299791e1449f175165b54"
+          LIQUIDATE="0xa4946ede45d0c6f06a0f5ce92c9ad3b4751452d2fe0e25010783bcab57a67e41"
+          TRANSFER="0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+          SWAPV2="0xd78ad95fa46c994b6551d0da85fc275fe613ce37657fb8d5e3d130840159d822"
+          RPC="https://rpc.mainnet.chain.robinhood.com"
+          SOURCE_SHA="f65c2b526fe93d105b096716515b4eac7b98698cb331048d3c6a8cf936b65ce4"
+          SAMPLE_DATA="0xf9e0d2e116d99e2eb8ef2cf236f7cd7f06225e92a6dfd9162f98c7d8e1974842 66744162 2 0xce468830c627acaa07db28113641e717df5f0be2 194034131 93436250743843184 false systematic\n0x55d67345cba9ca86dbbd13a44727214c36689f6579675c1c2dadd895e66fb430 67679114 2 0x68a2192fba539a2fa9d9ebadfabcd3c83ded2ef4 170781446 94890960725927595 false systematic\n0x6bc4a7ed44f6495f69d8323e66bbfdbb857dfac3c9106d404916723e7bdbd4fb 70298596 2 0x93f3b7a259e6ca77e9f5102ad9ee9e29fa34ed6e 44575356 22251110088202454 false systematic\n0x463862d0067725614c9e0b77decbc14e41d56fa78f2e1429277502717b1f1f04 72467400 2 0xdd7d64615639926ada1c1bb985895c407a6a88e8 11127974 6506711684212419 false systematic\n0x366e9a3270786990e6b8ae7927bd85c4f0a9ce72be14b66a45e7b17b19647065 73676123 2 0x3586aa1db9523bb223916b8ec0405261c8a625e1 318779064 229706370130435793 true systematic\n0x5362d77208452da536630212224d3895e60e608cc5018bee57c6d0cea7c4d824 73914642 118 0x5d7e2a54f87cf601bd93bf885d7f54ea9a0fd862 537029906 437845836202429655 false systematic\n0x68cea7d7d7ff08cbddabfa4d8b12990cd430490a139d96e47743ec7d85f03732 74915313 4 0xad389f432f7ce2d3f2c57f0083915cf1f364af95 1911050760 1741619488935667331 false systematic\n0x31037e9ebd1585ec50963807a7d1da1e641971e2df04ba48a937aacb538a0f8c 74936436 2 0xad389f432f7ce2d3f2c57f0083915cf1f364af95 8007376 7952057305321565 false systematic\n0x1b971c7fd776f08a4797560b8d0c224474c746cb0058e1f1e5d145eb5d825500 75295462 2 0xad389f432f7ce2d3f2c57f0083915cf1f364af95 17767417 14378360586411947 false systematic\n0xc46c04e075a92a60a2d6252963cf96adfe5f83df13b977704b09add2b287fc50 77861727 2 0x3586aa1db9523bb223916b8ec0405261c8a625e1 211816862 215748195208364470 true systematic\n0x8576ce0ef6aa57a5800a180d736f0b55c96f7eb644d98c0cdbd3f279dc72b753 78275858 62 0x4a13bdfb8b7995f1fc537222b13558218390b3cf 934813283 1070838440459104221 false systematic\n0x529a937f31f913482abc3654669b57295d0191615a5c645bd8d25a9676949ae4 79320426 2 0x7961e142750f3b44bf8b844d433c387b8cbb316f 1704643366 2177192340205975506 false systematic\n0x1587ff36a749248565802c6d90ac296def2aec833266e66a4a66fc98e8b7d32b 66779826 2 0x088725dab04dbf125e7f6ff777ef715a402bbc7e 29087724919 14963804175900413952 false outside_top3\n0x7df42cd0929042730d4eaf6e2da595a6c5dbcda6f8b523184db06becdcb54717 70291717 2 0xacc343bd27538d4f7d1ad053aba59a128e417163 20693155083 10147294243572339630 false outside_top3\n0x06a91ddded03af3f18bafb3fd19e10b6d7214b45273ed965cb118e3ec1b103f2 66762020 2 0xce468830c627acaa07db28113641e717df5f0be2 15547351377 7685523238027279482 false outside_top3\n0x31e2ab7e7a41a429662d8fea6999863174e2e407959b65d99973cfbe101ab167 74921598 4 0xad389f432f7ce2d3f2c57f0083915cf1f364af95 14670563319 13661836087266464421 false outside_top3\n0xf99cc5ba3b20f97817184dcac4f0cb14c12d398ebd269189082e4a9ef7f0fb98 73304355 7 0x5820e320fd59b275f783ee7bded23fd05620a214 10420080807 6791581163829002985 false outside_top3\n0x6f89e3c7903c21661a3e6d5f0ae58a678ad316a8d560bc4f704547356faa5fb8 78275857 104 0xf5623988974e9fd63be3b896c0e975f2ffd74f54 8230840660 9427619194945228214 false outside_top3\n0x9df1e325c795cccc9b7fc87d05b0ba3130673c2b1708902d5b07db2be8b0d5e4 67690646 2 0x53df34c5443155be14c5a639a58eb87195478054 24787839615 14379505212687300077 true top3\n0x48c60d1a12ec76b2ec27055187914481a16e42e30c502fb78449a68bdb77eae3 73670747 2 0x3586aa1db9523bb223916b8ec0405261c8a625e1 19316353257 13796157026183173480 true top3\n0x2f6fe58f0813f36883944f65bd863fce0d522d9729b3b2329a3fe4c6de71a22f 73897183 2 0x3586aa1db9523bb223916b8ec0405261c8a625e1 14360662360 10791981235078311725 true top3\n0xa0b9fffee4f8f10af61e4cc4cd55f8711f2b7674dd3ff147e4addb8cce6b9673 73306906 2 0x3586aa1db9523bb223916b8ec0405261c8a625e1 8925577000 5834102216877370761 true top3"
+          samples=[]
+          for line in SAMPLE_DATA.splitlines():
+              a=line.split()
+              if len(a)!=8:raise ValueError("BAD_FROZEN_SOURCE_ROW")
+              tx,block,ix,caller,repay,seized,is_top3,stratum=a
+              samples.append({"tx":tx,"block":int(block),"log_index":int(ix),"caller":caller,
+                "repay":int(repay),"seized":int(seized),"top3":is_top3=="true","stratum":stratum})
+          if len(samples)!=22 or len({x["tx"] for x in samples})!=22:raise ValueError("DUPLICATE_OR_MISSING_SAMPLE")
+          def utc():return datetime.datetime.now(datetime.timezone.utc).isoformat()
+          out=pathlib.Path("out");out.mkdir(exist_ok=True)
+          rpc_calls=[]
+          report={"status":"INCOMPLETE","original_morpho_source_zip_sha256":SOURCE_SHA,
+            "historical_source_single_indexer_only":True,"preselected_sample_count":22,
+            "sampling":"12 systematic chronological + 6 largest single-event outside original top3 + 4 largest single-event top3; excludes 3 previously studied",
+            "sampling_is_size_enriched_not_random_population_estimate":True,
+            "no_nqc_trades":True,"no_net_profit_certificate":True,"no_blockstate_claim":True,
+            "original_profit_subject_to_tokens_and_costs":True,
+            "nqc_realized_profit_usd":"0","own_capital_usd":"0",
+            "branch_head":os.environ.get("GITHUB_SHA"),"run_id":os.environ.get("GITHUB_RUN_ID"),
+            "created_utc":utc(),"cases":[]}
+          class Blocked(Exception):pass
+          def topic_addr(t):
+              if not isinstance(t,str) or not re.fullmatch(r"0x[0-9a-fA-F]{64}",t):raise Blocked("BAD_ADDRESS_TOPIC")
+              return "0x"+t[-40:].lower()
+          def word_data(x,k):
+              if not isinstance(x,str) or not re.fullmatch(r"0x[0-9a-fA-F]+",x) or len(x)<2+64*k:raise Blocked("BAD_EVENT_DATA")
+              return int(x[2+(k-1)*64:2+k*64],16)
+          def ask(method,params):
+              if method not in ("eth_chainId","eth_getTransactionReceipt"):raise Blocked("DISALLOWED_READ_METHOD")
+              if len(rpc_calls)>=23:raise Blocked("READ_CALL_CAP_23")
+              i=len(rpc_calls)+1
+              q={"jsonrpc":"2.0","id":i,"method":method,"params":params}
+              payload=json.dumps(q,separators=(",",":")).encode()
+              entry={"id":i,"request":q,"utc":utc()}
+              try:
+                  post=urllib.request.Request(RPC,payload,method="POST",headers={"Content-Type":"application/json","User-Agent":"NQC-22-RealReceipts-Once/20261015"})
+                  with urllib.request.urlopen(post,timeout=12) as res:
+                      if res.status!=200:raise Blocked("RPC_HTTP_NON200")
+                      raw=res.read(650001)
+                  if len(raw)>650000:raise Blocked("RESPONSE_OVER_LIMIT")
+                  entry["response_sha256"]=hashlib.sha256(raw).hexdigest()
+                  j=json.loads(raw)
+                  if not isinstance(j,dict) or j.get("id")!=i or j.get("jsonrpc")!="2.0":raise Blocked("JSON_RPC_RESPONSE_MISMATCH")
+                  if j.get("error") is not None:
+                      entry["jsonrpc_error"]=j["error"]
+                      raise Blocked("JSON_RPC_SOURCE_ERROR_"+str(j["error"].get("code","unknown") if isinstance(j["error"],dict) else "unknown")+"_NO_RETRY")
+                  if j.get("result") is None:raise Blocked("NULL_RECEIPT")
+                  entry["result"]=j["result"]
+                  return j["result"]
+              except urllib.error.HTTPError as e:
+                  entry["http_error"]=e.code;raise Blocked("HTTP_"+str(e.code)+"_STOP_NO_RETRY")
+              except (urllib.error.URLError,TimeoutError,OSError) as e:
+                  entry["transport_error"]=type(e).__name__;raise Blocked("TRANSPORT_"+type(e).__name__)
+              finally:rpc_calls.append(entry)
+          def analyze(source,rcpt):
+              tx=source["tx"];caller=source["caller"]
+              if (not isinstance(rcpt,dict) or rcpt.get("status")!="0x1" or rcpt.get("transactionHash","").lower()!=tx
+                  or int(rcpt.get("blockNumber","0x0"),16)!=source["block"]):raise Blocked("RECEIPT_IDENTITY_OR_STATUS_DRIFT")
+              logs=rcpt.get("logs",[])
+              if not isinstance(logs,list) or len(logs)>1500:raise Blocked("MALFORMED_RECEIPT_LOGS")
+              matching=[x for x in logs if x.get("address","").lower()==MORPHO and len(x.get("topics",[]))==4
+                       and x["topics"][0].lower()==LIQUIDATE and x["topics"][1].lower()==MARKET]
+              expected=[x for x in matching if int(x.get("logIndex","0x0"),16)==source["log_index"]]
+              if len(expected)!=1 or len(matching)!=1:raise Blocked("NOT_SINGLE_TARGET_LIQUIDATION")
+              liquidate=expected[0]
+              if topic_addr(liquidate["topics"][2])!=caller:raise Blocked("INDEXER_CALLER_MISMATCH")
+              if word_data(liquidate["data"],1)!=source["repay"] or word_data(liquidate["data"],3)!=source["seized"]:
+                  raise Blocked("INDEXER_REPAY_OR_SEIZE_MISMATCH")
+              # If other markets are liquidated in the same TX, do not treat USDG proceeds as solely attributable.
+              other_morpho=[x for x in logs if x.get("address","").lower()==MORPHO and len(x.get("topics",[]))==4
+                       and x["topics"][0].lower()==LIQUIDATE and x not in matching]
+              v2_pool_swap_addrs={x["address"].lower() for x in logs if x.get("topics") and x["topics"][0].lower()==SWAPV2}
+              usdg_transfers=[]
+              for x in logs:
+                  if x.get("address","").lower()!=USDG or len(x.get("topics",[]))!=3 or x["topics"][0].lower()!=TRANSFER:continue
+                  usdg_transfers.append({"from":topic_addr(x["topics"][1]),"to":topic_addr(x["topics"][2]),
+                                         "raw":word_data(x.get("data",""),1)})
+              swap_pool_out=sum(x["raw"] for x in usdg_transfers if x["from"] in v2_pool_swap_addrs)
+              swap_pool_to_caller=sum(x["raw"] for x in usdg_transfers if x["from"] in v2_pool_swap_addrs and x["to"]==caller)
+              swap_pool_to_other=sum(x["raw"] for x in usdg_transfers if x["from"] in v2_pool_swap_addrs and x["to"]!=caller)
+              stable_from_main_pair=sum(x["raw"] for x in usdg_transfers if x["from"]==MAIN_PAIR)
+              in_to_caller=sum(x["raw"] for x in usdg_transfers if x["to"]==caller)
+              out_of_caller=sum(x["raw"] for x in usdg_transfers if x["from"]==caller)
+              caller_net=in_to_caller-out_of_caller
+              repaid_to_morpho=sum(x["raw"] for x in usdg_transfers if x["to"]==MORPHO)
+              flash_from_morpho=sum(x["raw"] for x in usdg_transfers if x["from"]==MORPHO)
+              gas=int(rcpt.get("gasUsed","0x0"),16)*int(rcpt.get("effectiveGasPrice","0x0"),16)
+              source_allows_single= len(other_morpho)==0
+              result={"tx":tx,"indexer_block":source["block"],"liquidator_caller":caller,
+               "gas_payer":rcpt.get("from"),"transaction_index":int(rcpt.get("transactionIndex","0x0"),16),
+               "source_stratum":source["stratum"],"in_historical_top3":source["top3"],
+               "repaid_raw_usdg":str(source["repay"]),"seized_wsnet_raw":str(source["seized"]),
+               "no_additional_morpho_liquidations":source_allows_single,
+               "v2_swap_event_count":sum(x.get("topics") and x["topics"][0].lower()==SWAPV2 for x in logs),
+               "v2_swap_pool_addresses":sorted(v2_pool_swap_addrs),
+               "v2_swap_usdg_out_raw":str(swap_pool_out),
+               "v2_swap_usdg_to_caller_raw":str(swap_pool_to_caller),
+               "v2_swap_usdg_to_other_raw":str(swap_pool_to_other),
+               "direct_main_pair_usdg_out_raw":str(stable_from_main_pair),
+               "v2_swap_proceeds_minus_liquidation_repay_raw":str(swap_pool_out-source["repay"]),
+               "caller_erc20_usdg_net_transfer_change_raw":str(caller_net),
+               "total_usdg_to_morpho_raw":str(repaid_to_morpho),
+               "total_usdg_from_morpho_raw":str(flash_from_morpho),
+               "gas_cost_wei":str(gas),
+               "gas_eth":f"{gas/10**18:.12f}",
+               "is_executed_third_party_tx":True,"nqc_prospectively_detected":False,
+               "no_recourse_sponsor_known":False}
+              result["route_class"]="V2_SWAP_CONSISTENT" if source_allows_single and swap_pool_out>0 else "NOT_SIMPLE_V2_PROCEEDS"
+              result["gross_proceeds_minus_repay_is_valid_as_revenue_proxy"]=source_allows_single and swap_pool_out>0
+              return result
+          try:
+              if int(ask("eth_chainId",[]),16)!=4663:raise Blocked("WRONG_CHAIN")
+              for x in samples:
+                  receipt=ask("eth_getTransactionReceipt",[x["tx"]])
+                  report["cases"].append(analyze(x,receipt))
+              report["status"]="ALL_RECEIPTS_VERIFIED_SOURCE_BOUNDED_NOT_PNL"
+          except Exception as exc:
+              report["status"]="INCOMPLETE_FROZEN_SAMPLE"
+              report["blocker"]=str(exc)[:170]
+              report["blocker_type"]=type(exc).__name__
+          finally:
+              report["ended_utc"]=utc()
+              report["rpc_count"]=len(rpc_calls)
+              report["verified_count"]=len(report["cases"])
+              out.joinpath("report.json").write_text(json.dumps(report,indent=2,sort_keys=True)+"\n")
+              out.joinpath("rpc_original_receipts.json").write_text(json.dumps(rpc_calls,indent=2,sort_keys=True)+"\n")
+              print("NQC_REAL_22_RECEIPTS",report["status"],"VERIFIED",report["verified_count"],
+                    "V2_ROUTES",sum(x["route_class"]=="V2_SWAP_CONSISTENT" for x in report["cases"]),
+                    "NO_MONEY_SPENT",True,"BLOCKER",report.get("blocker","none"))
+          PY
+          sha256sum out/report.json out/rpc_original_receipts.json > out/manifest.sha256
+          sha256sum -c out/manifest.sha256
+      - name: Archive successful and incomplete read-only source proofs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-wsnet-22thirdparty-receipts-once
+          path: out/
+          retention-days: 14
+          if-no-files-found: error
