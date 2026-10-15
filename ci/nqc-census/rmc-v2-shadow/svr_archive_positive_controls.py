@@ -121,6 +121,7 @@ class RPC:
         self.monotonic=monotonic;self.sleeper=sleeper
         self.calls=0;self.last=None;self.pins=set();self.transcript=[]
         self.controls=tuple(controls)
+        self.mismatch_ledger=[]
 
     @staticmethod
     def _real(url,method,params):
@@ -177,10 +178,53 @@ class RPC:
             entry["elapsed_monotonic_ns"]=clock()["monotonic_ns"]-beg["monotonic_ns"]
             self.transcript.append(entry)
 
+def sanitized_mismatch(method,a,b):
+    """Only mismatching FIELD NAMES and content hashes; no private source payload."""
+    entry={"method":method,"source_values_bitwise_identical":False,
+           "drpc_result_sha256":sha256(canonical(a)).hexdigest(),
+           "publicnode_result_sha256":sha256(canonical(b)).hexdigest(),
+           "canonical_authority_promoted":False}
+    if type(a) is not dict or type(b) is not dict:
+        entry["shape"]="NOT_TWO_DICTIONARIES"
+        return entry
+    keys_a=set(a);keys_b=set(b)
+    entry["only_drpc_fields"]=sorted(keys_a-keys_b)
+    entry["only_publicnode_fields"]=sorted(keys_b-keys_a)
+    entry["changed_shared_fields"]=sorted(k for k in keys_a&keys_b if a[k]!=b[k])
+    important=("transactionHash","blockHash","blockNumber","transactionIndex",
+               "status","gasUsed","effectiveGasPrice")
+    entry["required_receipt_fields_identical"]=(
+        all(k in a and k in b and a[k]==b[k] for k in important))
+    if method=="eth_getTransactionReceipt" and type(a.get("logs")) is list and type(b.get("logs")) is list:
+        la,lb=a["logs"],b["logs"]
+        entry["drpc_log_count"]=len(la)
+        entry["publicnode_log_count"]=len(lb)
+        changed=[]
+        for i in range(min(len(la),len(lb),20)):
+            x,y=la[i],lb[i]
+            if type(x) is dict and type(y) is dict:
+                changed.append({"log_position":i,
+                                "changed_keys":sorted(k for k in set(x)&set(y) if x[k]!=y[k]),
+                                "only_drpc_keys":sorted(set(x)-set(y)),
+                                "only_publicnode_keys":sorted(set(y)-set(x))})
+            elif x!=y:
+                changed.append({"log_position":i,"different_log_shape":True})
+        entry["log_field_deltas"]=[x for x in changed if x.get("changed_keys") or
+            x.get("only_drpc_keys") or x.get("only_publicnode_keys") or x.get("different_log_shape")]
+        entry["logs_compared_up_to_first_20"] = True
+    return entry
+
+
 def same(clients,method,params):
     a=clients["drpc"].call(method,params)
     b=clients["publicnode"].call(method,params)
-    require(a==b,"dual-RPC source disagreement on "+method)
+    if a!=b:
+        row=sanitized_mismatch(method,a,b)
+        for c in clients.values():
+            if not hasattr(c,"mismatch_ledger"):
+                c.mismatch_ledger=[]
+            c.mismatch_ledger.append(row)
+        raise Rejected("dual-RPC source disagreement on "+method)
     return a
 
 def verified_transaction(control,clients):
@@ -438,7 +482,9 @@ def run(out:Path,*,rpc_clients=None,archive=None,controls=POSITIVE,require_decre
             result["status"]="INCOMPLETE_POST_ONCHAIN_ARCHIVE_READ"
         else:
             result["status"]="INCOMPLETE_SOURCE_CONTROLS"
-    result["source_call_log"]={s:{"call_count":c.calls,"log":c.transcript} for s,c in clients.items()}
+    result["source_call_log"]={s:{"call_count":c.calls,"log":c.transcript,
+            "sanitized_mismatch_ledger":getattr(c,"mismatch_ledger",[])}
+            for s,c in clients.items()}
     result["archive_calls"]=archive.log
     result["finished"]=clock()
     (out/"oracle-to-mev-share-archive-witness.json").write_bytes(canonical(result))

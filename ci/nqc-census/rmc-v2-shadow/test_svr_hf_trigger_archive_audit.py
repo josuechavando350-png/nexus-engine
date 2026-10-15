@@ -109,6 +109,21 @@ class HistoricalCausalArchiveTests(unittest.TestCase):
             rpc.call('eth_sendRawTransaction',[])
         self.assertEqual(rpc.calls,0)
 
+    def test_raw_receipt_dissent_is_recorded_not_normalized_to_pass(self):
+        a={"transactionHash":"0x"+"11"*32,"blockHash":"0x"+"22"*32,
+           "blockNumber":"0x1","transactionIndex":"0x0","status":"0x1",
+           "gasUsed":"0x5208","effectiveGasPrice":"0x5",
+           "logs":[{"logIndex":"0x0","address":base.WETH_AGGREGATOR}]}
+        b=dict(a)
+        b["effectiveGasPrice"]="0x6"
+        b["logs"]=[dict(a["logs"][0],removed=False)]
+        mismatch=base.sanitized_mismatch("eth_getTransactionReceipt",a,b)
+        self.assertIn("effectiveGasPrice",mismatch["changed_shared_fields"])
+        self.assertIn("logs",mismatch["changed_shared_fields"])
+        self.assertEqual(mismatch["log_field_deltas"][0]["only_publicnode_keys"],["removed"])
+        self.assertFalse(mismatch["canonical_authority_promoted"])
+        self.assertFalse(mismatch["required_receipt_fields_identical"])
+
     def test_new_archive_denies_old_scope_and_foreign_host(self):
         calls=[]
         def fake(*args,**kwargs):
