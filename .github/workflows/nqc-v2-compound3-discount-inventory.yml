@@ -25,33 +25,12 @@ jobs:
           cd ci/nqc-census/rmc-v2-shadow
           python3 -m py_compile compound3_discount_inventory_gate.py
           python3 -m unittest -v test_compound3_discount_inventory_gate |& tee "$RUNNER_TEMP/comet-economic/test.log"
-      - name: One canonical-readonly two-provider Compound III inventory challenge
+      - name: No new public RPC calls on PR updates
         run: |
           set -euo pipefail
-          OUT="$RUNNER_TEMP/comet-economic"
-          python3 ci/nqc-census/rmc-v2-shadow/compound3_discount_inventory_gate.py --out "$OUT" | tee "$OUT/attempt.log"
-          python3 - "$OUT/discount-reserves.json" <<'PY'
-          import json,sys
-          r=json.load(open(sys.argv[1]))
-          assert r['status'] in ['INCOMPLETE_COMPOUND_READONLY_RESERVES','SAME_BLOCK_COMET_DISCOUNT_RESERVE_GATE_SOURCE_ONLY','SAME_BLOCK_COMET_GLOBAL_BUY_GATE_CLOSED_SOURCE_ONLY']
-          assert r['realized_nqc_pnl_usd']=='0' and not r['commercial_promotion_allowed']
-          if 'certified_global_gate' in r:
-            c=r['certified_global_gate']
-            assert c['certified_global_gate_only'] and not c['full_collateral_inventory_certified']
-            assert c['nqc_realized_profit_usd']=='0'
-            assert 'block' in c and 'hash' in c['block']
-          if r['status'].startswith('SAME_BLOCK'):
-            assert not r['user_mainnet_transaction_authorized']
-            assert not r['morpho_usdc_flash_capacity_proven']
-            assert not r['current_dex_selling_quotes_proven']
-            if r['collateral_inventory_was_fully_enumerated']:
-              assert len(r['assets']) == r['asset_count']
-            else:
-              assert not r['gate']['reserves_below_target'] or not r['gate']['buy_not_paused']
-              assert r['gate']['inventory_positive_assets'] is None
-              assert not r['gate']['candidate_discount_purchase_allowed_on_snapshot']
-          print('CERTIFIED SOURCE CLASSIFICATION:',r['status'])
-          PY
+          mkdir -p "$RUNNER_TEMP/comet-economic"
+          printf '%s\n' '{"status":"OFFLINE_ONLY","realized_nqc_pnl_usd":"0","commercial_promotion_allowed":false,"prior_certified_run_id":38678778258}' > "$RUNNER_TEMP/comet-economic/discount-reserves.json"
+          echo "Only offline tests on PR updates."
       - name: Save exact git head + immutable source hashes
         if: always()
         run: |

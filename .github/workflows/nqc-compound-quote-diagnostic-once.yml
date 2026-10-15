@@ -1,0 +1,101 @@
+name: NQC Compound III Single Real Read-Only Quote Diagnostic
+on:
+  push:
+    branches:
+      - nqc/v2-compound3-usdc-discount-collateral-readonly-20261014
+    paths:
+      - .github/workflows/nqc-compound-quote-diagnostic-once.yml
+permissions:
+  contents: read
+jobs:
+  read-only-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Single source attempt and raw quote error classification, no retry
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc-quote/source"
+          python3 - <<'PY'
+          import os,sys,json,io,hashlib,urllib.request,urllib.error,datetime,urllib.parse
+          from pathlib import Path
+          sys.path.insert(0,str(Path('ci/nqc-census/rmc-v2-shadow').resolve()))
+          import compound3_discount_inventory_gate as c
+          out=Path(os.environ['RUNNER_TEMP'])/'nqc-quote'
+          quote_responses=[]
+          real_open=urllib.request.urlopen
+          class Buffered:
+            def __init__(self,data,status):
+              self.data=io.BytesIO(data);self.status=status
+            def __enter__(self):return self
+            def __exit__(self,*args):self.data.close()
+            def read(self,n=-1):return self.data.read(n)
+          def capture(req,timeout=15):
+            quoted=b'7ac88ed1' in (getattr(req,'data',None) or b'')
+            try:
+              response=real_open(req,timeout=timeout)
+            except urllib.error.HTTPError as error:
+              if quoted:quote_responses.append({'http_status':error.code,'method':'quoteCollateral'})
+              raise
+            if not quoted:return response
+            with response as r:data=r.read(1000001);status=r.status
+            entry={'http_status':status,'response_sha256':hashlib.sha256(data).hexdigest(),'method':'quoteCollateral'}
+            try:
+              body=json.loads(data)
+              err=body.get('error')
+              entry['rpc_error_code']=err.get('code') if isinstance(err,dict) else None
+              entry['has_result']=body.get('result') is not None
+            except Exception:entry['bad_json']=True
+            quote_responses.append(entry)
+            return Buffered(data,status)
+          urllib.request.urlopen=capture
+          result={'status':'INCOMPLETE','read_only':True,'nqc_realized_pnl_usd':'0','own_capital_usd':'0','live_authorized':False,'created_utc':datetime.datetime.now(datetime.timezone.utc).isoformat()}
+          try:
+            source=c.attempt()
+            result['source']=source
+            result['status']='REAL_SOURCE_READ_ONLY_RESULT'
+            for q in source.get('quotes',[]):
+              if not q.get('full_1000_usdc_purchase_has_sufficient_reserves'):continue
+              token=q['collateral_asset'];amount=q['collateral_out_raw_at_quoted_block']
+              url='https://aggregator-api.kyberswap.com/ethereum/api/v1/routes?'+urllib.parse.urlencode({'tokenIn':token,'tokenOut':c.USDC,'amountIn':amount,'gasInclude':'true'})
+              request=urllib.request.Request(url,headers={'X-Client-Id':'nqc-public-readonly','Accept':'application/json'})
+              try:
+                with real_open(request,timeout=12) as response: dex=json.loads(response.read(200000))
+                route=dex.get('data',{}).get('routeSummary') if isinstance(dex,dict) else None
+                if isinstance(route,dict) and str(route.get('amountIn'))==amount and str(route.get('tokenOut','')).lower()==c.USDC:
+                  result['dex_quote_independent_time']={'tokenIn':token,'collateralAmountRaw':amount,'usdcAmountOutRaw':str(route.get('amountOut')),'swapGasUsd':str(route.get('gasUsd')),'quoteTimestamp':str(route.get('timestamp')),'same_block':False,'profit_proven':False}
+                else:result['dex_status']='NO_VERIFIABLE_ROUTE'
+              except urllib.error.HTTPError as error:result['dex_status']='HTTP_'+str(error.code)
+              except Exception as error:result['dex_status']='INCOMPLETE_'+type(error).__name__
+              break
+          except Exception as error:
+            result['error_type']=type(error).__name__
+            result['error_code']=str(error)[:140]
+          result['raw_quote_diagnostics']=quote_responses
+          result['finished_utc']=datetime.datetime.now(datetime.timezone.utc).isoformat()
+          (out/'read-only-quote.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+          print('READ_ONLY_STATUS',result['status'],'ERROR',result.get('error_code'),'QUOTE_CALLS',len(quote_responses))
+          PY
+      - name: Preserve immutable source and SHA-256 manifest
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-quote"
+          mkdir -p "$OUT/source"
+          git rev-parse HEAD > "$OUT/head.txt"
+          git rev-parse HEAD^{tree} > "$OUT/tree.txt"
+          cp ci/nqc-census/rmc-v2-shadow/compound3_discount_inventory_gate.py .github/workflows/nqc-compound-quote-diagnostic-once.yml "$OUT/source/"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum -c manifest.sha256
+      - name: Upload source evidence regardless of outcome
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-compound-real-quote-ONCE-${{ github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-quote/
+          retention-days: 14
+          if-no-files-found: error
