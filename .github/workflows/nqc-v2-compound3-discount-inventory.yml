@@ -1,0 +1,67 @@
+name: NQC V2 Compound III USDC Real Discount Inventory Gate (READ ONLY)
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - ci/nqc-census/rmc-v2-shadow/compound3_discount_inventory_gate.py
+      - ci/nqc-census/rmc-v2-shadow/test_compound3_discount_inventory_gate.py
+      - ci/nqc-census/rmc-v2-shadow/COMPOUND3_DISCOUNT_INVENTORY_CONTRACT.md
+      - .github/workflows/nqc-v2-compound3-discount-inventory.yml
+permissions:
+  contents: read
+jobs:
+  compound-reserve-source-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: 24 offline adversarial accounting / transport regression tests
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/comet-economic/source"
+          cd ci/nqc-census/rmc-v2-shadow
+          python3 -m py_compile compound3_discount_inventory_gate.py
+          python3 -m unittest -v test_compound3_discount_inventory_gate |& tee "$RUNNER_TEMP/comet-economic/test.log"
+      - name: One canonical-readonly two-provider Compound III inventory challenge
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/comet-economic"
+          python3 ci/nqc-census/rmc-v2-shadow/compound3_discount_inventory_gate.py --out "$OUT" | tee "$OUT/attempt.log"
+          python3 - "$OUT/discount-reserves.json" <<'PY'
+          import json,sys
+          r=json.load(open(sys.argv[1]))
+          assert r['status'] in ['INCOMPLETE_COMPOUND_READONLY_RESERVES','SAME_BLOCK_COMET_DISCOUNT_RESERVE_GATE_SOURCE_ONLY']
+          assert r['realized_nqc_pnl_usd']=='0' and not r['commercial_promotion_allowed']
+          if r['status'].startswith('SAME_BLOCK'):
+            assert not r['user_mainnet_transaction_authorized']
+            assert not r['morpho_usdc_flash_capacity_proven']
+            assert not r['current_dex_selling_quotes_proven']
+            assert len(r['assets']) == r['asset_count']
+          print('CERTIFIED SOURCE CLASSIFICATION:',r['status'])
+          PY
+      - name: Save exact git head + immutable source hashes
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/comet-economic"
+          mkdir -p "$OUT/source"
+          git rev-parse HEAD > "$OUT/source-commit.txt"
+          git rev-parse HEAD^{tree} > "$OUT/source-tree.txt"
+          cp ci/nqc-census/rmc-v2-shadow/compound3_discount_inventory_gate.py \
+             ci/nqc-census/rmc-v2-shadow/test_compound3_discount_inventory_gate.py \
+             ci/nqc-census/rmc-v2-shadow/COMPOUND3_DISCOUNT_INVENTORY_CONTRACT.md \
+             .github/workflows/nqc-v2-compound3-discount-inventory.yml "$OUT/source/"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | xargs -0 sha256sum > manifest.sha256
+          sha256sum -c manifest.sha256
+      - name: Upload exact source even when public RPC refuses
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-compound3-discount-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/comet-economic/
+          retention-days: 14
+          if-no-files-found: error
