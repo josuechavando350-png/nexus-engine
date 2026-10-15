@@ -39,7 +39,14 @@ HISTORY=MEV_SHARE+"/api/v1/history"
 SECONDARY_TOPIC="0x8d530b9ddc4b318d28fdd4c3a21fcfecece54c1a72a824f262985b99afef009b"
 PRIMARY_TOPIC="0xc797025feeeaf2cd924c99e9205acb8ec04d5cad21c41ce637a38fb6dee6016a"
 ROUND_SELECTOR="0xfeaf968c"
-MAX_RPC_CALLS=18
+# Authenticated effective Aave V3 Ethereum WETH price path: PR700 and PR732.
+WETH_PROXY="0x5424384b256154046e9667ddfaaa5e550145215e"
+AAVE_ORACLE="0x54586be62e3c3580375ae3723c145253060ca0c2"
+WETH_ASSET="0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+AGGREGATOR_SELECTOR="0x245a7bfc"
+AAVE_PRICE_SELECTOR="0xb3596f07"
+AAVE_WETH_PRICE_CALL=AAVE_PRICE_SELECTOR+"0"*24+WETH_ASSET[2:]
+MAX_RPC_CALLS=28
 MAX_HISTORY_PAGES=4
 MAX_HISTORY_ROWS=1600
 MAX_HISTORY_BODY_BYTES=8_000_000
@@ -158,13 +165,18 @@ class RPC:
                     params[0] in [q["tx_hash"] for q in self.controls],
                     "arbitrary transaction query forbidden")
         elif method=="eth_call":
-            require(type(params) is list and len(params)==2 and params[0]==
-                    {"to":WETH_AGGREGATOR,"data":ROUND_SELECTOR} and
+            allowed=(
+                {"to":WETH_AGGREGATOR,"data":ROUND_SELECTOR},
+                {"to":WETH_PROXY,"data":ROUND_SELECTOR},
+                {"to":WETH_PROXY,"data":AGGREGATOR_SELECTOR},
+                {"to":AAVE_ORACLE,"data":AAVE_WETH_PRICE_CALL},
+            )
+            require(type(params) is list and len(params)==2 and params[0] in allowed and
                     type(params[1]) is dict and
                     params[1].get("requireCanonical") is True and
                     set(params[1])=={"blockHash","requireCanonical"} and
                     params[1]["blockHash"] in self.pins,
-                    "only canonical pinned WETH aggregator round allowed")
+                    "only canonical pinned WETH effective Aave price route allowed")
         else:raise Rejected("Ethereum method not read-only allowlisted")
         if self.last is not None:
             remain=MIN_REQUEST_GAP_SEC-(self.monotonic()-self.last)
@@ -235,7 +247,7 @@ def same(clients,method,params):
         raise Rejected("dual-RPC source disagreement on "+method)
     return a
 
-def verified_transaction(control,clients):
+def verified_transaction(control,clients,*,effective_aave_price=False):
     height,txhash=control["block"],control["tx_hash"]
     heads={}
     for h in (height-1,height):
@@ -279,9 +291,27 @@ def verified_transaction(control,clients):
             pass
     prices={}
     for h in (height-1,height):
-        prices[h]=decode_round(same(clients,"eth_call",[
-            {"to":WETH_AGGREGATOR,"data":ROUND_SELECTOR},
-            {"blockHash":heads[h]["hash"],"requireCanonical":True}]))
+        pin={"blockHash":heads[h]["hash"],"requireCanonical":True}
+        if effective_aave_price:
+            # The real Aave Oracle reads the WETH proxy, NOT an interchangeable
+            # direct DualAggregator latestRoundData(); PR700 used this same path.
+            aggregator_word=same(clients,"eth_call",[
+                {"to":WETH_PROXY,"data":AGGREGATOR_SELECTOR},pin])
+            require(type(aggregator_word) is str and HEXBLOB.fullmatch(aggregator_word)
+                    and len(aggregator_word)==66 and
+                    int(aggregator_word,16)==int(WETH_AGGREGATOR,16),
+                    "historical Aave WETH proxy no longer targets frozen DualAggregator")
+            prices[h]=decode_round(same(clients,"eth_call",[
+                {"to":WETH_PROXY,"data":ROUND_SELECTOR},pin]))
+            oracle_word=same(clients,"eth_call",[
+                {"to":AAVE_ORACLE,"data":AAVE_WETH_PRICE_CALL},pin])
+            require(type(oracle_word) is str and HEXBLOB.fullmatch(oracle_word)
+                    and len(oracle_word)==66 and
+                    int(oracle_word,16)==int(prices[h]["answer_raw"]),
+                    "Aave Oracle.getAssetPrice(WETH) does not match canonical proxy price")
+        else:
+            prices[h]=decode_round(same(clients,"eth_call",[
+                {"to":WETH_AGGREGATOR,"data":ROUND_SELECTOR},pin]))
     # Recheck original heads to reject any reorg in the evidence interval.
     for h in (height-1,height):
         require(canonical_header(same(clients,"eth_getBlockByNumber",[hex(h),False]),h)==heads[h],
@@ -295,6 +325,8 @@ def verified_transaction(control,clients):
             "tx_input_forwarded_report_decoded":report is not None,
             "report_median_raw":report["median_signed_int192_raw"] if report else None,
             "price_before":prices[height-1],"price_after":prices[height],
+            "effective_Aave_WETH_proxy_price_verified":effective_aave_price,
+            "direct_dual_aggregator_not_substituted_for_Aave_proxy":effective_aave_price,
             "round_advanced":prices[height-1]["round_id"]!=prices[height]["round_id"] or
                              prices[height-1]["updated_at"]!=prices[height]["updated_at"],
             "feed_report_median_matches_after_if_decoded":
@@ -447,6 +479,8 @@ def run(out:Path,*,rpc_clients=None,archive=None,controls=POSITIVE,require_decre
             "target":WETH_AGGREGATOR,
             "public_rpc_provider_ids":["drpc","blast"] if require_decrease else list(RPCS),
             "excluded_publicnode_null_receipt_first_attempt":require_decrease,
+            "historical_effective_Aave_WETH_proxy_source":WETH_PROXY if require_decrease else None,
+            "historical_Aave_Oracle_price_address":AAVE_ORACLE if require_decrease else None,
             "history_source":MEV_SHARE,"require_decreasing_price":require_decrease,
             "max_history_pages_per_control":8 if require_decrease else MAX_HISTORY_PAGES,
             "max_history_rows_per_control":3200 if require_decrease else MAX_HISTORY_ROWS,"read_only":True,
@@ -470,7 +504,7 @@ def run(out:Path,*,rpc_clients=None,archive=None,controls=POSITIVE,require_decre
         require(all(quantity(x.call("eth_chainId",[]))==1 for x in clients.values()),
                 "Ethereum mainnet identity mismatch")
         for control in controls:
-            verified=verified_transaction(control,clients)
+            verified=verified_transaction(control,clients,effective_aave_price=require_decrease)
             if require_decrease:
                 initial=int(verified["price_before"]["answer_raw"])
                 final=int(verified["price_after"]["answer_raw"])

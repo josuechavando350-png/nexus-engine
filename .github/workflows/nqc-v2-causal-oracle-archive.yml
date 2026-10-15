@@ -75,6 +75,7 @@ jobs:
              else (.authenticated_price_drops|length)==2 and
                   all(.authenticated_price_drops[];
                       .canonical_receipt_verified==true and
+                      .effective_Aave_WETH_proxy_price_verified==true and
                       .oracle_round_advanced==true and
                       ((.price_before_raw|tonumber)>(.price_after_raw|tonumber))) and
                   (.historical_archive_matches|length)==2 and

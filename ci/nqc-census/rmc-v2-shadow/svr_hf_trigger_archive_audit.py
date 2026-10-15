@@ -103,6 +103,7 @@ def audit(out: Path, *, source_runner=base.run) -> dict[str, Any]:
             result["authenticated_price_drops"].append({
                 "label":row["label"],"block":row["block_number"],
                 "canonical_receipt_verified":row["canonical_receipt_verified"],
+                "effective_Aave_WETH_proxy_price_verified":row.get("effective_Aave_WETH_proxy_price_verified",False),
                 "oracle_round_advanced":row["round_advanced"],
                 "price_before_raw":row["price_before"]["answer_raw"],
                 "price_after_raw":row["price_after"]["answer_raw"],

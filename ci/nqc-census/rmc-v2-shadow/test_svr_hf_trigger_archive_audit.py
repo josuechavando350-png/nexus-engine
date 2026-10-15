@@ -57,7 +57,16 @@ class FakeRPC:
             before=block+1 in {q['block'] for q in gate.CAUSAL_CONTROLS}
             val=250000000000 if before or self.mode=='no_decrease' else 240000000000
             rid=100 if before else 101
-            return price(rid,val,block)
+            tx=args[0]
+            if tx=={'to':base.WETH_PROXY,'data':base.AGGREGATOR_SELECTOR}:
+                return '0x'+word(int(base.WETH_AGGREGATOR,16))
+            if tx=={'to':base.AAVE_ORACLE,'data':base.AAVE_WETH_PRICE_CALL}:
+                return '0x'+word(val)
+            if tx=={'to':base.WETH_PROXY,'data':base.ROUND_SELECTOR}:
+                return price(rid,val,block)
+            if tx=={'to':base.WETH_AGGREGATOR,'data':base.ROUND_SELECTOR}:
+                return price(97,250000000000,block)  # Deliberately stale direct aggregator
+            raise AssertionError('unapproved simulated contract target')
         raise AssertionError('only read-only RPC allowed')
 
 
@@ -143,6 +152,19 @@ class HistoricalCausalArchiveTests(unittest.TestCase):
             arc.get('https://evil.invalid/api/v1/history?blockStart=26142059&blockEnd=26142068&limit=400&offset=0')
         self.assertEqual(calls,[])
 
+    def test_effective_aave_path_does_not_substitute_aggregator_round(self):
+        with tempfile.TemporaryDirectory() as directory:
+            evidence,_,clients=fake_runner(Path(directory)/'attempt',
+                controls=gate.CAUSAL_CONTROLS,require_decrease=True)
+            self.assertEqual(evidence['source_errors'],[])
+            self.assertTrue(all(c['effective_Aave_WETH_proxy_price_verified']
+                                for c in evidence['positive_controls']))
+            observed=[params[0] for method,params in clients['drpc'].seen
+                      if method=='eth_call']
+            self.assertIn({'to':base.WETH_PROXY,'data':base.ROUND_SELECTOR},observed)
+            self.assertIn({'to':base.AAVE_ORACLE,'data':base.AAVE_WETH_PRICE_CALL},observed)
+            self.assertNotIn({'to':base.WETH_AGGREGATOR,'data':base.ROUND_SELECTOR},observed)
+
     def test_archive_pagination_cannot_be_unlimited(self):
         with self.assertRaises(base.Rejected):
             base.Archive(controls=gate.CAUSAL_CONTROLS,max_pages=99)
@@ -158,7 +180,7 @@ class HistoricalCausalArchiveTests(unittest.TestCase):
             self.assertTrue(all(int(r['price_after']['answer_raw'])<int(r['price_before']['answer_raw'])
                                 for r in evidence['positive_controls']))
             self.assertEqual(archive.received,[26142067,26149038])
-            self.assertLessEqual(clients['drpc'].calls,18)
+            self.assertLessEqual(clients['drpc'].calls,28)
 
     def test_no_price_decrease_rejects_without_archive_lookup(self):
         with tempfile.TemporaryDirectory() as directory:
