@@ -18,11 +18,12 @@ jobs:
         with:
           persist-credentials: false
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Offline original capital/market identity and 24 adversarial tests
+      - name: Original source hashes and 27 adversarial risk-first tests
         run: |
           set -euo pipefail
           test "$(git hash-object ci/nqc-census/rmc-v2-shadow/morpho_base_cbXRP_economics.py)" = 2f2e1839b97628d9d0f1d5705b69c1e003f0ca03
           test "$(git hash-object ci/nqc-census/rmc-v2-shadow/morpho_cbXRP_liquidation_exit_quotes.py)" = ee046737f64a097d9bc99e7b93019d7b63559c05
+          test "$(git hash-object ci/nqc-census/rmc-v2-shadow/morpho_base_cbXRP_prospective_risk.py)" = b1e29e04e3ac5b88ecf2fc06a2e09ad789a9f55c
           cd ci/nqc-census/rmc-v2-shadow
           python3 -m py_compile morpho_cbxrp_risk_order_frontier.py
           python3 -m unittest -v test_morpho_base_cbXRP_prospective_risk |& tee "$RUNNER_TEMP/nqc-risk-negative-tests.log"
