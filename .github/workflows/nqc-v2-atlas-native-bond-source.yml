@@ -1,0 +1,134 @@
+name: NQC V2 Atlas Native Bond Source and Deployed Contract Gate (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - 'ci/nqc-census/rmc-v2-shadow/atlas_bond_truth.py'
+      - 'ci/nqc-census/rmc-v2-shadow/test_atlas_bond_truth.py'
+      - 'ci/nqc-census/rmc-v2-shadow/ATLAS_BONDED_GAS_SOURCE_CONTRACT.md'
+      - '.github/workflows/nqc-v2-atlas-native-bond-source.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-atlas-capital-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bounded-atlas-bond-source-truth:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 14
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTHONUNBUFFERED: '1'
+      PYTHONPATH: ci/nqc-census/rmc-v2-shadow
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - name: Exact source commit, Ethereum Keccak selectors and offline adversarial matrix
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          OUT="$RUNNER_TEMP/nqc-atlas-capital"
+          mkdir -p "$OUT"
+          python3 -m unittest discover -s ci/nqc-census/rmc-v2-shadow \
+            -p test_atlas_bond_truth.py -v 2>&1 | tee "$OUT/adversarial-source-tests.log"
+          python3 -m py_compile ci/nqc-census/rmc-v2-shadow/atlas_bond_truth.py
+      - name: Authenticate exact upstream FastLane Atlas source admission guard
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-atlas-capital"
+          mkdir -p "$OUT/upstream-temp"
+          for rel in src/contracts/helpers/Sorter.sol src/contracts/atlas/AtlETH.sol src/contracts/solver/SolverBase.sol; do
+            curl --fail --silent --show-error --location --retry 0 --max-time 35 \
+              --output "$OUT/upstream-temp/$(basename "$rel")" \
+              "https://raw.githubusercontent.com/FastLane-Labs/atlas/083dccd05a2c92e0e9cae90ac404504f741bc493/$rel"
+          done
+          python3 - "$OUT" <<'PY'
+          import hashlib, json, sys
+          from pathlib import Path
+          root=Path(sys.argv[1])/"upstream-temp"
+          entries={
+            'Sorter.sol':('517f0a39d0199091027702b29bcb697e04d0bcdb',[
+               b'ATLAS.balanceOfBonded(solverOp.from)',
+               b'if (solverBalance < maxSolverCost)',
+               b'solverOp.maxFeePerGas * (executionGas + calldataGas)']),
+            'AtlETH.sol':('9f868fced242a19d14917742398a6d5ebeee0a93',[
+               b'function depositAndBond(uint256 amountToBond) external payable',
+               b'_mint(msg.sender, msg.value)',b'_bond(msg.sender, amountToBond)']),
+            'SolverBase.sol':('f23db0ddaaabd9d14be1150b531153bb9e4f2a1f',[
+               b'IAtlas(_atlas).reconcile',b'function atlasSolverCall('])
+          }
+          report={'source_repo':'FastLane-Labs/atlas',
+                  'exact_commit':'083dccd05a2c92e0e9cae90ac404504f741bc493',
+                  'deployed_bytecode_equivalence_proven':False,'files':[]}
+          for name,(wanted,tests) in entries.items():
+              data=(root/name).read_bytes()
+              sha=hashlib.sha1(b'blob '+str(len(data)).encode()+b'\x00'+data).hexdigest()
+              assert sha==wanted,(name,sha,wanted)
+              assert all(anchor in data for anchor in tests),name
+              report['files'].append({'file':name,'git_blob_sha1':sha,
+                   'file_sha256':hashlib.sha256(data).hexdigest(),
+                   'critical_guards_present':len(tests)})
+          (Path(sys.argv[1])/'upstream-guards-attested.json').write_text(
+              json.dumps(report,sort_keys=True,indent=2)+'\n')
+          print('Pinned upstream guard read-only source: PASS (no deployed-equivalence claim)')
+          PY
+          # Do not upload third-party source files; retain SHA/provenance only.
+          rm -rf "$OUT/upstream-temp"
+      - name: One finite three-chain dual-provider onchain read-only challenge
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-atlas-capital"
+          timeout 540s python3 ci/nqc-census/rmc-v2-shadow/atlas_bond_truth.py \
+            --out "$OUT/attempt" > "$OUT/mainnet-readout.log" 2> "$OUT/source-errors.log"
+          jq -e '
+            .schema_version==1 and
+            (.original_seal_sha256|test("^[0-9a-f]{64}$")) and
+            .PFT_closed==true and .RMC_closed==false and
+            .Shadow_certified==false and .LIVE_authorized==false and
+            .atlas_sponsored_own_capital_zero_proven==false and
+            .NQC_realized_pnl_USD=="0" and
+            .source_admission.zero_bond_source_guard_from_pinned_Sorter==true and
+            .source_admission.actual_third_party_sponsor_proven==false and
+            .source_admission.nonrecourse_gas_proven==false and
+            (.chains|keys|sort)==["arbitrum","base","bnb"] and
+            all(.transcripts[]; all(.[]; length<=11)) and
+            (.status=="ALL_THREE_CHAIN_ONCHAIN_INTERFACE_PARITY_SOURCE_ONLY" or
+             .status=="INCOMPLETE_MULTI_CHAIN_SOURCE") and
+            (if .status=="ALL_THREE_CHAIN_ONCHAIN_INTERFACE_PARITY_SOURCE_ONLY"
+             then (.errors|length)==0 and
+               all(.chains[]; .deployed_solver_gas_limit>0 and
+                      .escrow_duration_in_blocks>0 and
+                      (.contracts|length)==2 and
+                      .deployed_bytecode_equivalent_to_pinned_source_proven==false)
+             else (.errors|length)>0 end)
+          ' "$OUT/attempt/atlas-bond-viability.json" > "$OUT/contract-check.log"
+          echo 'No external sponsor, winning bid, live signed operation or NQC profit proved.'
+      - name: Preserve exact-head source and negative evidence hashes
+        if: always()
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-atlas-capital"
+          mkdir -p "$OUT/source"
+          cp ci/nqc-census/rmc-v2-shadow/atlas_bond_truth.py \
+             ci/nqc-census/rmc-v2-shadow/test_atlas_bond_truth.py \
+             ci/nqc-census/rmc-v2-shadow/ATLAS_BONDED_GAS_SOURCE_CONTRACT.md \
+             .github/workflows/nqc-v2-atlas-native-bond-source.yml "$OUT/source/"
+          git rev-parse HEAD > "$OUT/code-commit.txt"
+          git rev-parse 'HEAD^{tree}' > "$OUT/code-tree.txt"
+          cd "$OUT"
+          find . -type f ! -name manifest.sha256 -print0 | sort -z | \
+            xargs -0 sha256sum > manifest.sha256
+          sha256sum --check --strict manifest.sha256
+      - name: Upload source or fail-closed report, no private data
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-atlas-bond-${{ github.event.pull_request.head.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-atlas-capital/
+          retention-days: 30
+          if-no-files-found: error
