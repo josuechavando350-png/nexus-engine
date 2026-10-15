@@ -37,5 +37,17 @@ class Check(unittest.TestCase):
    "loanAsset":{"address":"0x"+"1"*40,"symbol":"USDC","decimals":18},
    "collateralAsset":{"address":"0x"+"2"*40,"symbol":"cbXRP","decimals":6}}
   with self.assertRaises(m.Incomplete):m.parse_morpho_indexer_market(item)
+ def test_economic_haircut_zero(self):
+  self.assertEqual(m.scenario_loan_micro(1000000,10**18,0),0)
+ def test_economic_haircut_loss(self):
+  self.assertEqual(m.scenario_loan_micro(1000000,10**18,500),-50000)
+ def test_economic_oracle_bonus(self):
+  self.assertGreater(m.scenario_loan_micro(1000000,1126760563380281690,500),0)
+  self.assertLess(m.scenario_loan_micro(1000000,1126760563380281690,1200),0)
+ def test_reject_fake_cost(self):
+  with self.assertRaises(m.Incomplete):m.scenario_loan_micro(1000000,10**18,12001,0)
+ def test_unverified_lltv_no_profit(self):
+  self.assertEqual(m.frozen_indexer_envelope({"status":"DENIED"})["status"],"NO_VALIDATED_INDEXER_LLTV")
 if __name__=="__main__":unittest.main()
+
 

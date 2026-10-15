@@ -195,6 +195,63 @@ def official_morpho_market_only():
  except (urllib.error.URLError,TimeoutError,OSError,ValueError,Incomplete,TypeError,KeyError) as e:
   return {"status":"MORPHO_METADATA_INCOMPLETE","code":str(e)[:160]}
 
+
+def scenario_loan_micro(debt_raw,factor_wad,haircut_bps,cost_raw=0):
+ need(type(debt_raw) is int and debt_raw>0 and type(factor_wad) is int and WAD<=factor_wad<=115*10**16,"SCENARIO_BAD_DEBT_FACTOR")
+ need(type(haircut_bps) is int and 0<=haircut_bps<=10000 and type(cost_raw) is int and 0<=cost_raw,"SCENARIO_BAD_COST")
+ oracle_collateral_raw=debt_raw*factor_wad//WAD
+ sale_raw=oracle_collateral_raw*(10000-haircut_bps)//10000
+ return sale_raw-debt_raw-cost_raw
+def frozen_indexer_envelope(meta):
+ if meta.get("status")!="MORPHO_OFFICIAL_SINGLE_INDEXER_MARKET_NOT_CANONICAL":
+  return {"status":"NO_VALIDATED_INDEXER_LLTV"}
+ factor=int(meta["lif_wad"])
+ rows=[]
+ for tx,record in S.items():
+  debt=sum(x[1] for x in record[3]);output={}
+  for pct in (0,300,500,1000,1200):
+   output[str(pct)]=str(scenario_loan_micro(debt,factor,pct,0))
+  rows.append({"original_tx":tx,"source_nominal_usdc_repaid_raw":str(debt),
+    "oracle_value_bonus_raw":str(scenario_loan_micro(debt,factor,0,0)),
+    "hypothetical_net_before_all_fees_usdc_raw_by_collateral_haircut_bps":output,
+    "all_haircuts_illustrative":True,"included_real_gas_or_builder_cost":False})
+ return {"status":"INDEXER_LLTV_CONDITIONAL_PRICE_HAIRCUT_ONLY","rows":rows,
+   "real_dex_exact_output_proven":False,"profit_or_ev_proven":False}
+def public_dex_liquidity_sample(meta):
+ if meta.get("status")!="MORPHO_OFFICIAL_SINGLE_INDEXER_MARKET_NOT_CANONICAL":
+  return {"status":"DEX_TOKEN_ID_NOT_ADMITTED"}
+ token=meta["collateral_address"]
+ endpoint="https://api.dexscreener.com/latest/dex/tokens/"+token
+ req=urllib.request.Request(endpoint,headers={"Accept":"application/json",
+  "User-Agent":"NQC-DeFi-Single-ReadOnly-Market-Liquidity-2026"})
+ try:
+  with urllib.request.urlopen(req,timeout=16) as response:
+   need(response.status==200,"DEX_API_NOT_200")
+   body=json.loads(response.read(2500000))
+  need(isinstance(body,dict) and isinstance(body.get("pairs"),list),"DEX_MISSING_PAIRS")
+  valid=[]
+  from decimal import Decimal,InvalidOperation
+  for p in body["pairs"]:
+   if not isinstance(p,dict) or p.get("chainId")!="base":continue
+   t=[(p.get("baseToken") or {}).get("address",""),(p.get("quoteToken") or {}).get("address","")]
+   if not any(isinstance(a,str) and a.lower()==token for a in t):continue
+   amount=(p.get("liquidity") or {}).get("usd")
+   try:
+    amt=Decimal(str(amount))
+    if not amt.is_finite() or amt<0:continue
+   except (InvalidOperation,ValueError):continue
+   other=t[0] if t[1].lower()==token else t[1]
+   valid.append({"pair":p.get("pairAddress"),"dex":p.get("dexId"),
+     "quote_asset_other_address":other.lower(),"reported_liquidity_usd":str(amt)})
+  valid.sort(key=lambda x:Decimal(x["reported_liquidity_usd"]),reverse=True)
+  return {"status":"PUBLIC_DEX_INDEXER_LIQUIDITY_SAMPLE_NOT_SWAP_QUOTE","endpoint":endpoint,
+    "matching_pair_count_returned":len(valid),"top_five_reported_pairs":valid[:5],
+    "complete_dex_universe_proven":False,"aggregated_trade_execution_proven":False,
+    "live_fee_slippage_or_23day_historical_liquidity_proven":False}
+ except urllib.error.HTTPError as e:return {"status":"DEX_SOURCE_INCOMPLETE","error":"HTTP_"+str(e.code)}
+ except (urllib.error.URLError,TimeoutError,OSError,ValueError,Incomplete,TypeError) as e:
+  return {"status":"DEX_SOURCE_INCOMPLETE","error":str(e)[:160]}
+
 def main():
  parser=argparse.ArgumentParser();parser.add_argument("--out",required=True);args=parser.parse_args()
  out=Path(args.out);out.mkdir(parents=True,exist_ok=True)
@@ -204,6 +261,8 @@ def main():
     "source_zip_sha256":SOURCE,"selected_transactions":[],"net_profit_proven":False,
     "external_gas_payer_proven":False,"nqc_pnl_usd":"0"}
  result["official_morpho_indexer_market"]=official_morpho_market_only()
+ result["source_only_haircut_envelopes"]=frozen_indexer_envelope(result["official_morpho_indexer_market"])
+ result["independent_dex_liquidity_indexer"]=public_dex_liquidity_sample(result["official_morpho_indexer_market"])
  (out/"canonical-liquidation-audit.json").write_text(json.dumps(result,sort_keys=True,indent=2))
  print(result["status"],result.get("source_error",""),"selected",len(result["selected_transactions"]))
 if __name__=="__main__":main()
