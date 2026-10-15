@@ -1,0 +1,101 @@
+name: NQC V2 Morpho 4337-Shaped Operator and Sponsor Mock (LOCAL ONLY)
+on:
+  push:
+    branches:
+      - nqc/aa4337-sponsored-morpho-local-20261015
+    paths:
+      - '.github/workflows/nqc-v2-4337-sponsor-account-local-once-20261015.yml'
+      - 'ci/nqc-census/morpho-native-lab/test/Nqc4337SponsoredMorphoLocal.t.sol'
+      - 'ci/nqc-census/morpho-native-lab/NQC_4337_SPONSOR_ACCOUNT_SCOPE.md'
+permissions:
+  contents: read
+jobs:
+  sponsored-local-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact research-only NQC branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Checkout official unmodified Morpho source for the local test
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: morpho-org/morpho-blue
+          ref: 8e26ca6a8dbc5089edcd67fb576248810fd2870a
+          path: ci/nqc-census/morpho-native-lab/lib/morpho-blue
+          persist-credentials: false
+      - name: Verify original source commits and negative-scope document
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+          test "$(git -C ci/nqc-census/morpho-native-lab/lib/morpho-blue rev-parse HEAD)" = '8e26ca6a8dbc5089edcd67fb576248810fd2870a'
+          test "$(git -C ci/nqc-census/morpho-native-lab/lib/morpho-blue hash-object src/Morpho.sol)" = 'ab064b646bf161b1510e2575a99412cdc2a43ebb'
+          test "$(git hash-object ci/nqc-census/morpho-native-lab/src/NqcMorphoNativeCallbackLab.sol)" = '33ba05d21472f4eaffb98c42f5cc2fd4454c6555'
+          grep -Fq 'NOT ERC-4337 compliant' ci/nqc-census/morpho-native-lab/test/Nqc4337SponsoredMorphoLocal.t.sol
+          grep -Fq 'No real NQC P&L' ci/nqc-census/morpho-native-lab/NQC_4337_SPONSOR_ACCOUNT_SCOPE.md
+      - name: Install immutable pinned Foundry 1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/foundry"
+          curl --fail --location --retry 2 --max-time 160 -o "$RUNNER_TEMP/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  $RUNNER_TEMP/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
+          echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/foundry/forge" --version
+      - name: Run 7 source authentic Morpho + mock sponsor authorization and fee tests
+        shell: bash
+        working-directory: ci/nqc-census/morpho-native-lab
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc-aa-local"
+          forge test --match-contract Nqc4337SponsoredMorphoLocalTest -vv \
+            2>&1 | tee "$RUNNER_TEMP/nqc-aa-local/forge-test.txt"
+          grep -Fq 'testLocalSponsorPaysAndSmartAccountReceivesAtomicMorphoSurplus' "$RUNNER_TEMP/nqc-aa-local/forge-test.txt"
+          grep -Fq 'testFailedAtomicSwapRevertsMorphoButStillChargesSponsor' "$RUNNER_TEMP/nqc-aa-local/forge-test.txt"
+          grep -Fq 'testSponsorCannotPayFromNothingAndNoApplicationExecutes' "$RUNNER_TEMP/nqc-aa-local/forge-test.txt"
+          grep -Eq '7 tests passed, 0 failed' "$RUNNER_TEMP/nqc-aa-local/forge-test.txt"
+      - name: Preserve reproducible evidence and explicit noncommercial status
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-aa-local"
+          mkdir -p "$OUT"
+          cp ci/nqc-census/morpho-native-lab/src/NqcMorphoNativeCallbackLab.sol "$OUT/NqcMorphoNativeCallbackLab.sol"
+          cp ci/nqc-census/morpho-native-lab/test/Nqc4337SponsoredMorphoLocal.t.sol "$OUT/Nqc4337SponsoredMorphoLocal.t.sol"
+          cp ci/nqc-census/morpho-native-lab/NQC_4337_SPONSOR_ACCOUNT_SCOPE.md "$OUT/SCOPE.md"
+          cp ci/nqc-census/morpho-native-lab/foundry.toml "$OUT/foundry.toml"
+          cp .github/workflows/nqc-v2-4337-sponsor-account-local-once-20261015.yml "$OUT/workflow.yml"
+          echo '${{ github.sha }}' > "$OUT/commit.txt"
+          echo '8e26ca6a8dbc5089edcd67fb576248810fd2870a' > "$OUT/morpho-source-commit.txt"
+          jq -n --arg sha '${{ github.sha }}' '{
+            status:"LOCAL_MORPHO_SOURCE_PLUS_4337_ACCOUNTING_MODEL",
+            code_commit:$sha,
+            authentic_morpho:true,
+            authentic_erc4337_entrypoint:false,
+            actual_pack_useroperation_simulation:false,
+            external_sponsor_confirmed:false,
+            synthetic_native_sponsor_funds_only:true,
+            realistic_gas_cost_quote:false,
+            production_smart_account:false,
+            onchain_deployment:false,
+            transaction_broadcast:false,
+            capital_spent_usd:"0",
+            realized_nqc_pnl_usd:"0",
+            economic_validation_level:4,
+            live_authorized:false
+          }' > "$OUT/verdict.json"
+          (cd "$OUT" && sha256sum *.sol *.md *.toml *.yml *.txt *.json > manifest.sha256 && sha256sum -c manifest.sha256)
+      - name: Upload local artifacts even on failed test
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-aa-local-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-aa-local/
+          retention-days: 21
+          if-no-files-found: error
