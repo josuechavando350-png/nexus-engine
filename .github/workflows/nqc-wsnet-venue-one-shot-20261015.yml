@@ -1,0 +1,179 @@
+name: NQC V2 wsNET USDG One-Shot Real Quotes (READ ONLY)
+on:
+  push:
+    branches:
+      - nqc/wsnet-venue-one-shot-20261015
+    paths:
+      - .github/workflows/nqc-wsnet-venue-one-shot-20261015.yml
+permissions:
+  contents: read
+jobs:
+  quote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: One bounded public Robinhood RPC snapshot, no transactions or retries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import json, os, hashlib, urllib.request, urllib.error, datetime, re, pathlib, sys
+          URL="https://rpc.mainnet.chain.robinhood.com"
+          QUOTER_V4="0x8dc178efb8111bb0973dd9d722ebeff267c98f94"
+          STATE_VIEW="0xf3334192d15450cdd385c8b70e03f9a6bd9e673b"
+          QUOTER_V3="0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7"
+          USDG="0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+          WSNET="0x63c12667638f2ae6fc6ae09b43d98ec84a8586ea"
+          MORPHO_MARKET="0xaa586d26a6fe62d9c0f0948fede6e2130500ac7a655587447e2d4a37e6330589"
+          POOL_IDS={2500:"0xb4bfce1802fc358e95c8f2bf5354cae06c6ebaa3e3fbb20cdb7bf4ff53f46331",12500:"0xe896221f31c64effdc29d69e1eb846c7e4dc76e9e95c060e73edf10a17a25aa8"}
+          SAMPLES=[
+            ("median","0x5acc41345f4e16673c6a3c42cfe507c787d793ef7e82a6cd2fb8364fe41ee24d",78275863,325511250063414815,284162606),
+            ("p90","0x4b3189cdb8292d0967ebc4d15b76547b4062c8a53bda415c1676d1fac4e9643d",74921250,7160649793538586846,7703016226),
+            ("largest","0x63986a9f1d123b4c2bc55ccc3cb0a048bccf44f4a9eb952c5461a826ca71f75a",78275839,36230112742208816396,31634465959)]
+          ALLOW={"eth_chainId","eth_blockNumber","eth_getBlockByNumber","eth_getCode","eth_call","eth_gasPrice"}
+          ROOT=pathlib.Path("out");ROOT.mkdir(exist_ok=True)
+          calls=[]
+          report={"schema":"nqc-v2-wsnet-same-block-readonly-g2-v1","created_utc":datetime.datetime.now(datetime.timezone.utc).isoformat(),
+           "original_source_zip_sha256":"f65c2b526fe93d105b096716515b4eac7b98698cb331048d3c6a8cf936b65ce4",
+           "chain_id":4663,"rpc_authority":"single official Robinhood public endpoint; NOT independent quorum",
+           "rpc_url":URL,"workflow_commit":os.environ.get("GITHUB_SHA"),"workflow_run_id":os.environ.get("GITHUB_RUN_ID"),
+           "historical_principal_not_current_liquidation":True,"no_live_transaction":True,"own_capital_usd":"0",
+           "realized_nqc_pnl_usd":"0","no_funded_gas_verified":True,"dex_quote_is_not_executable_trade":True,
+           "status":"INCOMPLETE_NOT_STARTED","venues":[],"pool_states":[],"runtime_codes":[]}
+          class Blocked(Exception): pass
+          def w(n):
+              assert type(n) is int and 0<=n<2**256
+              return f"{n:064x}"
+          def a(s):
+              assert re.fullmatch(r"0x[0-9a-fA-F]{40}",s)
+              return w(int(s,16))
+          def rp(method,params,soft=False):
+              assert method in ALLOW
+              if len(calls)>=28:raise Blocked("READ_ONLY_RPC_BUDGET_28")
+              rid=len(calls)+1
+              query=json.dumps({"jsonrpc":"2.0","id":rid,"method":method,"params":params},separators=(",",":")).encode()
+              entry={"id":rid,"method":method,"request":json.loads(query),"time_utc":datetime.datetime.now(datetime.timezone.utc).isoformat()}
+              try:
+                  req=urllib.request.Request(URL,query,headers={"Content-Type":"application/json","User-Agent":"NQC-V2-ReadOnly-OneShot/20261015"},method="POST")
+                  with urllib.request.urlopen(req,timeout=12) as res:
+                      if res.status!=200:raise Blocked("HTTP_STATUS_"+str(res.status))
+                      raw=res.read(65537)
+                  if len(raw)>65536:raise Blocked("RESPONSE_TOO_LARGE")
+                  entry["raw_sha256"]=hashlib.sha256(raw).hexdigest()
+                  doc=json.loads(raw)
+                  if not isinstance(doc,dict) or doc.get("id")!=rid or doc.get("jsonrpc")!="2.0":
+                      raise Blocked("BAD_JSON_RPC_ENVELOPE")
+                  if doc.get("error") is not None:
+                      er=doc["error"];entry["rpc_error"]=er
+                      if not soft or (isinstance(er,dict) and (er.get("code") in (-32005,429,403) or "rate limit" in str(er.get("message","")).lower())):
+                          raise Blocked("RPC_ERROR_"+str(er.get("code","unknown") if isinstance(er,dict) else "unknown"))
+                      entry["result_class"]="CONTRACT_REVERT_OR_UNAVAILABLE"
+                      return None
+                  result=doc.get("result")
+                  if result is None:raise Blocked("NULL_RPC_RESULT")
+                  entry["result"]=result
+                  return result
+              except urllib.error.HTTPError as e:
+                  entry["http_error"]=e.code
+                  raise Blocked("HTTP_"+str(e.code)+"_STOP_NO_RETRY")
+              except (TimeoutError,urllib.error.URLError,OSError) as e:
+                  entry["transport_error"]=type(e).__name__
+                  raise Blocked("TRANSPORT_"+type(e).__name__+"_STOP_NO_RETRY")
+              except (json.JSONDecodeError,UnicodeError) as e:
+                  entry["decode_error"]=type(e).__name__
+                  raise Blocked("INVALID_JSON_STOP")
+              finally:
+                  calls.append(entry)
+          def v4data(fee,amount):
+              tick={2500:25,12500:125}[fee]
+              return "0xaa9d21cb"+w(32)+a(USDG)+a(WSNET)+w(fee)+w(tick)+w(0)+w(0)+w(amount)+w(256)+w(0)
+          def v3data(amount):
+              return "0xc6a5026a"+a(WSNET)+a(USDG)+w(amount)+w(10000)+w(0)
+          def unpack(raw,minwords):
+              if not isinstance(raw,str) or not re.fullmatch(r"0x(?:[0-9a-fA-F]{64})+",raw) or len(raw)<2+64*minwords:
+                  raise ValueError("INVALID_QUOTER_ABI_OUTPUT")
+              return [int(raw[2+i:2+i+64],16) for i in range(0,64*minwords,64)]
+          def block(h):
+              b=rp("eth_getBlockByNumber",[hex(h),False])
+              if not isinstance(b,dict) or int(b.get("number","0x0"),16)!=h or not re.fullmatch(r"0x[0-9a-fA-F]{64}",b.get("hash","")):
+                  raise Blocked("BAD_BLOCK_IDENTITY")
+              return b
+          def main():
+              assert len(SAMPLES)==3 and len({s[1] for s in SAMPLES})==3
+              assert v4data(2500,SAMPLES[0][3]).startswith("0xaa9d21cb"+w(32)+a(USDG)+a(WSNET))
+              if int(rp("eth_chainId",[]),16)!=4663:raise Blocked("NOT_ROBINHOOD_4663")
+              head=int(rp("eth_blockNumber",[]),16)
+              if head<100:raise Blocked("HEAD_INVALID")
+              height=head-8
+              h=block(height)
+              report["block"]={k:h.get(k) for k in ("number","hash","parentHash","stateRoot","timestamp","baseFeePerGas")}
+              report["snapshot_block"]=height
+              report["snapshot_is_consensus_finalized"]=False
+              for name,address in (("UniswapV4Quoter",QUOTER_V4),("UniswapV4StateView",STATE_VIEW),("UniswapV3QuoterV2",QUOTER_V3)):
+                  code=rp("eth_getCode",[address,hex(height)])
+                  if not isinstance(code,str) or not code.startswith("0x") or len(code)<30:raise Blocked("NO_DEPLOYED_CODE_"+name)
+                  report["runtime_codes"].append({"contract":name,"address":address,"bytecode_sha256":hashlib.sha256(bytes.fromhex(code[2:])).hexdigest(),"code_length_bytes":len(code[2:])//2})
+              for fee,pid in POOL_IDS.items():
+                  state={"fee_nominal_pips":fee,"pool_id":pid,"at_block":height}
+                  for name,selector in (("slot0","0xc815641c"),("active_liquidity","0xfa6793d5")):
+                      raw=rp("eth_call",[{"to":STATE_VIEW,"data":selector+pid[2:]},hex(height)],soft=True)
+                      state[name+"_raw"]=raw
+                  report["pool_states"].append(state)
+              for label,tx,historical_block,seized,debt in SAMPLES:
+                  for fee in (2500,12500,10000):
+                      venue="UniswapV3_1pct" if fee==10000 else "UniswapV4_"+str(fee)
+                      target=QUOTER_V3 if fee==10000 else QUOTER_V4
+                      data=v3data(seized) if fee==10000 else v4data(fee,seized)
+                      rec={"sample":label,"historical_winner_tx":tx,"historical_block_not_quote_block":historical_block,
+                           "historical_debt_usdg_micro":str(debt),"seized_wsnet_wei":str(seized),"venue":venue,"at_block":height,
+                           "quote_result":"INCOMPLETE"}
+                      raw=rp("eth_call",[{"to":target,"data":data},hex(height)],soft=True)
+                      if raw is not None:
+                          try:
+                              words=unpack(raw,4 if fee==10000 else 2)
+                              out=words[0]
+                              rec.update({"quote_result":"READ_ONLY_QUOTE_RECEIVED","usdg_output_micro":str(out),
+                                          "gross_before_outer_gas_and_finance_micro":str(out-debt),
+                                          "gross_before_outer_costs_positive":out>debt,
+                                          "quoter_only_gas_units":str(words[3] if fee==10000 else words[1])})
+                          except ValueError as exc:rec["quote_result"]="INCOMPLETE_"+str(exc)
+                      else:rec["quote_result"]="RPC_REVERT_OR_ROUTE_UNAVAILABLE"
+                      report["venues"].append(rec)
+              report["current_eth_gas_price_wei"]=str(int(rp("eth_gasPrice",[]),16))
+              h2=block(height)
+              for k in ("hash","stateRoot","number","parentHash"):
+                  if h2.get(k)!=h.get(k):raise Blocked("BLOCK_RECHECK_MISMATCH_"+k)
+              report["header_rechecked_same_height_hash"]=True
+              n=sum(x.get("quote_result")=="READ_ONLY_QUOTE_RECEIVED" for x in report["venues"])
+              report["status"]="SINGLE_SOURCE_SAME_BLOCK_QUOTES_RECEIVED_NO_NET_PROFIT_PROOF" if n else "NO_VALID_DEX_QUOTE_IN_SELECTED_POOLS_AT_THIS_BLOCK"
+              report["quotes_received"]=n
+          try:
+              main()
+          except Exception as exc:
+              report["status"]="INCOMPLETE_SOURCE_BLOCKED"
+              report["source_blocker"]=str(exc)[:180]
+              report["source_blocker_type"]=type(exc).__name__
+          finally:
+              report["captured_utc"]=datetime.datetime.now(datetime.timezone.utc).isoformat()
+              report["request_count"]=len(calls)
+              pathlib.Path("out/report.json").write_text(json.dumps(report,sort_keys=True,indent=2)+"\n")
+              pathlib.Path("out/rpc_receipts.json").write_text(json.dumps(calls,sort_keys=True,indent=2)+"\n")
+              print("NQC_G2_REAL",report["status"],"quotes",report.get("quotes_received",0),
+                    "block",report.get("snapshot_block"),"blocker",report.get("source_blocker","NONE"),
+                    "NQC_REALIZED_PNL_USD",0)
+          PY
+          python3 - <<'PY'
+          import pathlib,hashlib,os
+          f=pathlib.Path("out")
+          for x in sorted(f.iterdir()):
+              if x.is_file(): print("SHA256",hashlib.sha256(x.read_bytes()).hexdigest(),x.name)
+          PY
+      - name: Preserve complete source receipts including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-wsnet-venue-readonly-one-shot
+          path: out/
+          retention-days: 14
+          if-no-files-found: error
