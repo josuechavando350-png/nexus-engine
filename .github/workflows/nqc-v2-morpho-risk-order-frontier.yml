@@ -26,8 +26,10 @@ jobs:
           test "$(git hash-object ci/nqc-census/rmc-v2-shadow/morpho_base_cbXRP_prospective_risk.py)" = b1e29e04e3ac5b88ecf2fc06a2e09ad789a9f55c
           cd ci/nqc-census/rmc-v2-shadow
           python3 -m py_compile morpho_cbxrp_risk_order_frontier.py
-          python3 -m unittest -v test_morpho_base_cbXRP_prospective_risk |& tee "$RUNNER_TEMP/nqc-risk-negative-tests.log"
+          python3 -m unittest -v test_morpho_cbxrp_risk_order_frontier |& tee "$RUNNER_TEMP/nqc-risk-negative-tests.log"
       - name: One bounded official Morpho risk-source observation (NO CHAIN TRANSACTIONS)
+        # Exact source was captured once on PR open; no blind repeat during code-only CI fixes.
+        if: github.event.action == 'opened'
         run: |
           set -euo pipefail
           OUT="$RUNNER_TEMP/nqc-current-risk"
