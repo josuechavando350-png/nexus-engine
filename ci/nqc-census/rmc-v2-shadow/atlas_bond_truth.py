@@ -160,6 +160,7 @@ class Readonly:
         self.wait=wait;self.monotonic=monotonic;self.last=None
         self.calls=0;self.transcript=[]
         self.pinned_height=None
+        self.noncanonical_header_field_deltas=[]
 
     @staticmethod
     def http(url,method,params):
@@ -240,6 +241,23 @@ class Readonly:
 def matched(clients,method,params):
     left=clients[0].call(method,params)
     right=clients[1].call(method,params)
+    if method=="eth_getBlockByNumber":
+        expected=quantity(params[0])
+        left_identity=header(left,expected)
+        right_identity=header(right,expected)
+        need(left_identity==right_identity,
+             "same-block canonical header identity disagrees across RPCs")
+        # Different RPC implementations can add or omit ancillary header keys.
+        # Never silently discard those differences, but never treat unknown
+        # extension fields as a different canonical Ethereum block either.
+        identity_keys={"number","hash","parentHash","stateRoot","timestamp"}
+        extra=sorted(k for k in (set(left)|set(right))-identity_keys
+                     if left.get(k)!=right.get(k))
+        if extra:
+            delta={"height":expected,"optional_mismatching_key_names":extra}
+            clients[0].noncanonical_header_field_deltas.append(delta)
+            clients[1].noncanonical_header_field_deltas.append(delta)
+        return left
     need((left.lower() if type(left) is str else left)==
          (right.lower() if type(right) is str else right),
          "same-block dual-public-provider parity failed for "+method)
@@ -284,6 +302,7 @@ def snapshot(chain,clients):
             "deployed_bonded_total_native_wei":str(result["bondedTotalSupply()"]),
             "deployed_solver_gas_limit":result["getSolverGasLimit()"],
             "escrow_duration_in_blocks":result["ESCROW_DURATION()"],
+            "optional_header_field_differences_logged":clients[0].noncanonical_header_field_deltas,
             "dual_endpoint_operator_independence_proven":False,
             "deployed_bytecode_equivalent_to_pinned_source_proven":False}
 

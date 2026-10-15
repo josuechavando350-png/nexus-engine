@@ -28,6 +28,7 @@ class Fixture:
             result={'number':params[0], 'hash':H, 'parentHash':P,
                     'stateRoot':ROOT,'timestamp':'0x77359400'}
             if self.mode=='fork':result['hash']='0x'+'aa'*32
+            if self.mode=='noncanonical_extension':result['providerInternalExtra']='0x01'
             return result
         if method=='eth_getCode':
             if params[0].lower()==data['atlas'].lower():return '0x' if self.mode=='no_code' else self.expect_code['atlas']
@@ -139,6 +140,14 @@ class AtlasTest(unittest.TestCase):
     def test_headers_diverge(self):
         c,_=construct('bnb',modeB='fork')
         with self.assertRaises(gate.Reject):gate.snapshot('bnb',c)
+
+    def test_optional_header_extension_parity_retained_and_disclosed(self):
+        c,_=construct('bnb',modeB='noncanonical_extension')
+        result=gate.snapshot('bnb',c)
+        self.assertEqual(result['deployed_solver_gas_limit'],1100000)
+        self.assertEqual(len(result['optional_header_field_differences_logged']),2)
+        self.assertEqual(result['optional_header_field_differences_logged'][0]['optional_mismatching_key_names'],
+                         ['providerInternalExtra'])
 
     def test_bytecode_divergence_censored(self):
         c,_=construct('base',modeB='bytecode_diverged')
