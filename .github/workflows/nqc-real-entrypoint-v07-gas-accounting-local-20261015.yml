@@ -1,0 +1,102 @@
+name: NQC Authentic EIP4337 v0.7 UserOperation and Paymaster Gas Accounting (LOCAL)
+on:
+  push:
+    branches:
+      - nqc/aa4337-sponsored-morpho-local-20261015
+    paths:
+      - '.github/workflows/nqc-real-entrypoint-v07-gas-accounting-local-20261015.yml'
+      - 'ci/nqc-census/erc4337-real-source-lab/foundry.toml'
+      - 'ci/nqc-census/erc4337-real-source-lab/test/NqcRealEntryPointV07GasSponsor.t.sol'
+      - 'ci/nqc-census/erc4337-real-source-lab/README.md'
+permissions:
+  contents: read
+jobs:
+  authentic-aa-local:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout NQC exact research-only branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Checkout immutable original eth-infinitism 4337 v0.7.0 source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: eth-infinitism/account-abstraction
+          ref: 7af70c8993a6f42973f520ae0752386a5032abe7
+          path: ci/nqc-census/erc4337-real-source-lab/lib/account-abstraction
+          persist-credentials: false
+      - name: Checkout immutable official OpenZeppelin contracts 5.0.2
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          repository: OpenZeppelin/openzeppelin-contracts
+          ref: dbb6104ce834628e473d2173bbc9d47f81a9eec3
+          path: ci/nqc-census/erc4337-real-source-lab/lib/openzeppelin-contracts
+          persist-credentials: false
+      - name: Verify immutable official EIP4337 and OpenZeppelin sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          LAB=ci/nqc-census/erc4337-real-source-lab
+          test "$(git rev-parse HEAD)" = '${{ github.sha }}'
+          test "$(git -C "$LAB/lib/account-abstraction" rev-parse HEAD)" = '7af70c8993a6f42973f520ae0752386a5032abe7'
+          test "$(git -C "$LAB/lib/account-abstraction" hash-object contracts/core/EntryPoint.sol)" = '44501524df76c23eef6e60fda97dd9440fad01b7'
+          test "$(git -C "$LAB/lib/openzeppelin-contracts" rev-parse HEAD)" = 'dbb6104ce834628e473d2173bbc9d47f81a9eec3'
+          grep -Fq 'NOT Morpho' "$LAB/README.md"
+          grep -Fq 'NOT a real gas sponsor' "$LAB/README.md"
+          echo 'Official EntryPoint and OpenZeppelin source identity PASS'
+      - name: Install pinned official Foundry v1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/foundry"
+          curl --fail --location --retry 2 --max-time 160 -o "$RUNNER_TEMP/foundry.tar.gz" \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  $RUNNER_TEMP/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/foundry.tar.gz" -C "$RUNNER_TEMP/foundry"
+          echo "$RUNNER_TEMP/foundry" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/foundry/forge" --version
+      - name: Execute actual official EIP4337 v0.7 handleOps sponsored UserOperation suite
+        shell: bash
+        working-directory: ci/nqc-census/erc4337-real-source-lab
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/nqc-aa-authentic-v07"
+          forge test --match-contract NqcRealEntryPointV07GasSponsorTest -vv \
+            2>&1 | tee "$RUNNER_TEMP/nqc-aa-authentic-v07/forge-test.txt"
+          grep -Fq 'testRealEntryPointV07SuccessfullyDebitsSponsorNotAccount' "$RUNNER_TEMP/nqc-aa-authentic-v07/forge-test.txt"
+          grep -Fq 'testRealEntryPointV07ChargesSponsorForRevertedExecution' "$RUNNER_TEMP/nqc-aa-authentic-v07/forge-test.txt"
+          grep -Eq '5 tests passed, 0 failed' "$RUNNER_TEMP/nqc-aa-authentic-v07/forge-test.txt"
+      - name: Archive local EIP4337 official source verification and no-commercial-upgrade status
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/nqc-aa-authentic-v07"
+          mkdir -p "$OUT"
+          cp ci/nqc-census/erc4337-real-source-lab/test/NqcRealEntryPointV07GasSponsor.t.sol "$OUT/test.sol"
+          cp ci/nqc-census/erc4337-real-source-lab/foundry.toml "$OUT/foundry.toml"
+          cp ci/nqc-census/erc4337-real-source-lab/README.md "$OUT/SCOPE.md"
+          cp .github/workflows/nqc-real-entrypoint-v07-gas-accounting-local-20261015.yml "$OUT/workflow.yml"
+          git rev-parse HEAD > "$OUT/nqc-commit.txt"
+          git -C ci/nqc-census/erc4337-real-source-lab/lib/account-abstraction rev-parse HEAD > "$OUT/official-4337-commit.txt"
+          git -C ci/nqc-census/erc4337-real-source-lab/lib/openzeppelin-contracts rev-parse HEAD > "$OUT/official-oz-commit.txt"
+          jq -n --arg code '${{ github.sha }}' '{scope:"ORIGINAL_ENTRYPOINT_V07_LOCAL_NOT_REAL_MORPHO_OR_ONCHAIN",
+           source_commit:$code, original_entrypoint_executed_locally:true,
+           official_source_authenticated:true,
+           real_useroperation_v07_tested_locally:true,
+           original_morpho_integrated_in_same_evm:false,
+           external_sponsor_found:false, real_gas_paid:false,
+           operator_native_gas_funded:false,
+           founder_money_spent_usd:"0", actual_nqc_profit_usd:"0",
+           economic_validation_level:4,live_authorized:false}' > "$OUT/verdict.json"
+          (cd "$OUT" && sha256sum *.sol *.toml *.md *.yml *.txt *.json > manifest.sha256 && sha256sum -c manifest.sha256)
+      - name: Upload evidence and failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-real-erc4337-v07-source-${{ github.run_id }}
+          path: ${{ runner.temp }}/nqc-aa-authentic-v07/
+          retention-days: 21
+          if-no-files-found: error
