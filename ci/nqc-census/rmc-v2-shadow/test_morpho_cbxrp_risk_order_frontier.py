@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-import morpho_base_cbXRP_prospective_risk as m
+import morpho_cbxrp_risk_order_frontier as m
 
 U1='0x'+'1'*40
 U2='0x'+'2'*40
