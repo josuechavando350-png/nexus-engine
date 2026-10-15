@@ -1,0 +1,172 @@
+name: NQC wsNET WETH USDG Two-Hop Route Gate ONCE (READ ONLY)
+on:
+  push:
+    branches:
+      - nqc/wsnet-venue-one-shot-20261015
+    paths:
+      - .github/workflows/nqc-wsnet-v3-two-hop-once-20261015.yml
+permissions:
+  contents: read
+jobs:
+  two-hop:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Inspect two-hop Uniswap route at source-pinned prior block
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import json,hashlib,urllib.request,urllib.error,datetime,pathlib,re
+          URL="https://rpc.mainnet.chain.robinhood.com"
+          PIN=89444867
+          HASH="0xba5519438e7957db2442c520882d1d32082e9f12b9b29c46f5cdf88ba4be9447"
+          ROOT="0x084dfe35bd0919845632a76a79245f7642a39750cae5143feaf169f5131fce95"
+          FACTORY="0x1f7d7550b1b028f7571e69a784071f0205fd2efa"
+          QUOTER="0x33e885ed0ec9bf04ecfb19341582aadcb4c8a9e7"
+          WSNET="0x63c12667638f2ae6fc6ae09b43d98ec84a8586ea"
+          WETH="0x0bd7d308f8e1639fab988df18a8011f41eacadd73"
+          USDG="0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+          FEES=(100,500,3000,10000)
+          SAMPLES=[("small",325511250063414815,284162606),("intermediate",7160649793538586846,7703016226),("large",36230112742208816396,31634465959)]
+          ALLOW={"eth_chainId","eth_getBlockByNumber","eth_getCode","eth_call"}
+          OUTPUT=pathlib.Path("out");OUTPUT.mkdir(exist_ok=True)
+          receipts=[]
+          result={"status":"INCOMPLETE","test":"V3_WSNET_WETH_USDG_TWO_HOP","quoted_block":PIN,"expected_hash":HASH,
+          "expected_state_root":ROOT,"source":"single official Robinhood RPC no independent quorum","historical_reference_not_current_liquidation":True,
+          "realized_nqc_pnl_usd":"0","own_capital_used_usd":"0","live_authorized":False,"no_signed_or_broadcast_transactions":True,"candidate_pools":{},"routes":[]}
+          class Blocked(Exception):pass
+          def wd(x):
+           if type(x) is not int or x<0 or x>=2**256:raise ValueError("WORD_RANGE")
+           return f"{x:064x}"
+          def ad(addr):
+           if not re.fullmatch(r"0x[0-9a-f]{40}",addr):raise ValueError("ADDRESS_FORMAT")
+           return wd(int(addr,16))
+          def req(method,params,allow_contract_failure=False):
+           if method not in ALLOW or len(receipts)>=39:raise Blocked("READ_CALL_BOUND_EXCEEDED")
+           idx=len(receipts)+1
+           request={"jsonrpc":"2.0","id":idx,"method":method,"params":params}
+           entry={"request":request,"utc":datetime.datetime.now(datetime.timezone.utc).isoformat()}
+           try:
+            q=urllib.request.Request(URL,json.dumps(request,separators=(",",":")).encode(),method="POST",
+                 headers={"Content-Type":"application/json","User-Agent":"NQC-ONE-SHOT-MULTIHOP-READONLY"})
+            with urllib.request.urlopen(q,timeout=12) as response:
+             if response.status!=200:raise Blocked("HTTP_NON200")
+             raw=response.read(65537)
+            if len(raw)>65536:raise Blocked("OVERSIZED_RPC")
+            entry["response_sha256"]=hashlib.sha256(raw).hexdigest()
+            payload=json.loads(raw)
+            if not isinstance(payload,dict) or payload.get("id")!=idx or payload.get("jsonrpc")!="2.0":raise Blocked("BAD_RPC_ENVELOPE")
+            if payload.get("error") is not None:
+             err=payload["error"];entry["rpc_error"]=err
+             code=err.get("code") if isinstance(err,dict) else None
+             if allow_contract_failure and code==3:return None
+             raise Blocked("RPC_ERROR_"+str(code))
+            ret=payload.get("result")
+            if ret is None:raise Blocked("NULL_RPC_RESULT")
+            if method=="eth_getCode":
+             entry["code_sha256"]=hashlib.sha256(bytes.fromhex(ret[2:])).hexdigest()
+             entry["code_size"]=len(ret[2:])//2
+            else:entry["result"]=ret
+            return ret
+           except urllib.error.HTTPError as e:
+            entry["http_error"]=e.code
+            raise Blocked("RPC_HTTP_"+str(e.code)+"_STOP_NO_RETRY")
+           except (urllib.error.URLError,TimeoutError,OSError) as e:
+            entry["transport_error"]=type(e).__name__
+            raise Blocked("RPC_TRANSPORT_"+type(e).__name__+"_STOP_NO_RETRY")
+           finally:receipts.append(entry)
+          def header():
+           h=req("eth_getBlockByNumber",[hex(PIN),False])
+           if not isinstance(h,dict) or h.get("hash","").lower()!=HASH or h.get("stateRoot","").lower()!=ROOT or int(h.get("number","0"),16)!=PIN:
+            raise Blocked("PINNED_HEADER_MISMATCH")
+           return h
+          def getpool(a,b,fee):
+           data="0x1698ee82"+ad(a)+ad(b)+wd(fee)
+           raw=req("eth_call",[{"to":FACTORY,"data":data},hex(PIN)])
+           if not isinstance(raw,str) or not re.fullmatch(r"0x[0-9a-fA-F]{64}",raw):raise Blocked("FACTORY_BAD_ABI")
+           n=int(raw,16)
+           if n>=2**160:raise Blocked("NONCANONICAL_POOL_ADDR")
+           return "0x"+f"{n:040x}"
+          def quote(path_tokens,fees,amount):
+           if len(path_tokens)!=3 or len(fees)!=2:raise Blocked("BAD_PATH")
+           binary=bytes.fromhex(path_tokens[0][2:])+fees[0].to_bytes(3,"big")+bytes.fromhex(path_tokens[1][2:])+fees[1].to_bytes(3,"big")+bytes.fromhex(path_tokens[2][2:])
+           l=len(binary)
+           calldata="0xcdca1753"+wd(64)+wd(amount)+wd(l)+binary.hex().ljust(((l+31)//32)*64,"0")
+           raw=req("eth_call",[{"to":QUOTER,"data":calldata},hex(PIN)],True)
+           if raw is None:return None
+           if not isinstance(raw,str) or not re.fullmatch(r"0x[0-9a-fA-F]+",raw) or len(raw)<2+256:
+            raise Blocked("QUOTE_BAD_ABI")
+           return {"out_usdg_micro":str(int(raw[2:66],16)),
+                   "gas_estimate_only":str(int(raw[194:258],16)),
+                   "raw_output_sha256":hashlib.sha256(bytes.fromhex(raw[2:])).hexdigest()}
+          def work():
+           if int(req("eth_chainId",[]),16)!=4663:raise Blocked("CHAIN_MISMATCH")
+           h=header()
+           for name,address in [("factory",FACTORY),("quoter",QUOTER)]:
+            code=req("eth_getCode",[address,hex(PIN)])
+            if not isinstance(code,str) or len(code)<30:raise Blocked("NO_DEPLOYMENT_"+name)
+           result["source_header"]={k:h[k] for k in ("number","hash","stateRoot","timestamp")}
+           inventories={}
+           for pair,(a,b) in {"wsnet_weth":(WSNET,WETH),"weth_usdg":(WETH,USDG)}.items():
+            candidates=[]
+            for fee in FEES:
+             pool=getpool(a,b,fee)
+             row={"fee_pips":fee,"pool":pool,"exists":int(pool,16)!=0}
+             if row["exists"]:
+              liq=req("eth_call",[{"to":pool,"data":"0x1a686502"},hex(PIN)],True)
+              if liq is not None:
+               if not re.fullmatch(r"0x[0-9a-fA-F]{64}",liq):raise Blocked("POOL_LIQUIDITY_INVALID_ABI")
+               row["active_liquidity"]=str(int(liq,16))
+              else:row["active_liquidity"]=None
+             candidates.append(row)
+            result["candidate_pools"][pair]=candidates
+            inventories[pair]=sorted((x for x in candidates if x["exists"]),key=lambda x:(-(int(x.get("active_liquidity") or "0")>0),x["fee_pips"]))
+           if not inventories["wsnet_weth"] or not inventories["weth_usdg"]:
+            result["status"]="NEGATIVE_NO_TWO_HOP_POOL_AT_PIN"
+            header()
+            return
+           selected_a=inventories["wsnet_weth"][:2]
+           selected_b=inventories["weth_usdg"][:2]
+           result["fee_path_selection"]="Up to 2 existing pools per leg, active-liquidity-first then lowest fee, frozen before quote"
+           for sample,amount,debt in SAMPLES:
+            for first in selected_a:
+             for second in selected_b:
+              row={"sample":sample,"wsnet_input_wei":str(amount),"historical_debt_usdg_micro":str(debt),
+                   "fee_wsnet_weth":first["fee_pips"],"fee_weth_usdg":second["fee_pips"],"block":PIN}
+              q=quote((WSNET,WETH,USDG),(first["fee_pips"],second["fee_pips"]),amount)
+              if q is None:row["status"]="CONTRACT_QUOTER_REVERT"
+              else:
+               row.update(q)
+               row["status"]="QUOTE_READ_ONLY"
+               row["gross_diff_vs_historical_debt_micro"]=str(int(q["out_usdg_micro"])-debt)
+               row["before_costs_positive"]=int(q["out_usdg_micro"])>debt
+              result["routes"].append(row)
+           header()
+           result["status"]="SOURCE_QUOTES_OBTAINED_NO_HISTORICAL_PROFIT_CLAIM"
+          try:work()
+          except Exception as exc:
+           result["status"]="INCOMPLETE_SOURCE"
+           result["reason"]=type(exc).__name__+": "+str(exc)[:170]
+          finally:
+           result["requests"]=len(receipts)
+           result["closed_utc"]=datetime.datetime.now(datetime.timezone.utc).isoformat()
+           (OUTPUT/"multihop.json").write_text(json.dumps(result,indent=2,sort_keys=True)+"\n")
+           (OUTPUT/"rpc_receipts.json").write_text(json.dumps(receipts,indent=2,sort_keys=True)+"\n")
+           print("MULTIHOP",result["status"],"ROUTES",len(result["routes"]),"RPC",len(receipts),"BLOCK",PIN,"P_AND_L",0)
+          PY
+          python3 - <<'PY'
+          from pathlib import Path
+          import hashlib
+          for file in sorted(Path("out").glob("*.json")):
+              print(file.name, hashlib.sha256(file.read_bytes()).hexdigest())
+          PY
+      - name: Archive exact raw source and negative outcomes
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-wsnet-uniswap-v3-twohop-20261015
+          path: out/
+          retention-days: 14
+          if-no-files-found: error
