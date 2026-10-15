@@ -13,7 +13,7 @@ This test uses the actual official `PackedUserOperation`, `IAccount.validateUser
 - Direct execution by a non-EntryPoint caller is rejected.
 
 ## Out of scope (material blockers)
-- Mock target is **NOT Morpho** and not a genuine liquidation; authentic Morpho source callback was validated in the separate `morpho-native-lab`, using a mocked ERC-4337 EntryPoint for sponsorship. These two proofs are not the same as a single end-to-end *real EntryPoint -> real Morpho* test.
+- The first five tests use a mock target (**NOT Morpho**). Two further tests DO execute authentic EntryPoint v0.7 -> ECDSA-signed UserOperation -> NQC callback executor from PR #749 -> unmodified actual Morpho.sol, with its binary compiled separately under pinned solc 0.8.19. The original Morpho bytecode is read from its compiled artifact into the same LOCAL EVM as the v0.7 EntryPoint (built under solc 0.8.23); one liquidation succeeds and one reverts while the sponsor is charged. These two tests establish genuine combined source integration, NOT a real Robinhood transaction.
 - Official EntryPoint v0.7 is executed in local Forge EVM, NOT a fork at chain 4663. Robinhood deployed EntryPoint code exists, but deployed bytecode has not been matched to this checkout or simulated using a real bundler.
 - Sponsor's native balance comes from Foundry `vm.deal`, not external financing. A production paymaster requires an actual deposit or billing counterparty; chargeback risk on failed operations exists and is measured.
 - No onchain DEX quote, gas estimate on Robinhood, mempool/sequence ordering, profitable Morpho borrower or ability to pay gas out of USDG surplus after an atomic callback.

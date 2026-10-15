@@ -104,7 +104,7 @@ jobs:
           git rev-parse HEAD > "$OUT/nqc-commit.txt"
           git -C ci/nqc-census/erc4337-real-source-lab/lib/account-abstraction rev-parse HEAD > "$OUT/official-4337-commit.txt"
           git -C ci/nqc-census/erc4337-real-source-lab/lib/openzeppelin-contracts rev-parse HEAD > "$OUT/official-oz-commit.txt"
-          jq -n --arg code '${{ github.sha }}' '{scope:"ORIGINAL_ENTRYPOINT_V07_LOCAL_NOT_REAL_MORPHO_OR_ONCHAIN",
+          jq -n --arg code '${{ github.sha }}' '{scope:"LOCAL_ORIGINAL_ENTRYPOINT_V07_AND_ORIGINAL_MORPHO_SOURCE_SYNTHETIC_DEX",
            source_commit:$code, original_entrypoint_executed_locally:true,
            official_source_authenticated:true,
            real_useroperation_v07_tested_locally:true,
