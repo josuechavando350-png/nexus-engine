@@ -1,0 +1,141 @@
+name: NQC wsNET V2 pool candidates ONE SHOT READ ONLY
+on:
+  push:
+    branches:
+      - nqc/wsnet-venue-one-shot-20261015
+    paths:
+      - .github/workflows/nqc-wsnet-v2-candidate-once-20261015.yml
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Bounded official Robinhood V2 factory+reserves read only
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          python3 - <<'PY'
+          import json,hashlib,urllib.request,urllib.error,datetime,pathlib,re
+          URL="https://rpc.mainnet.chain.robinhood.com"
+          PIN=89444867
+          BLOCK_HASH="0xba5519438e7957db2442c520882d1d32082e9f12b9b29c46f5cdf88ba4be9447"
+          BLOCK_STATE="0x084dfe35bd0919845632a76a79245f7642a39750cae5143feaf169f5131fce95"
+          FACTORY="0x8bceaa40b9acdfaedf85adf4ff01f5ad6517937f"
+          WSNET="0x63c12667638f2ae6fc6ae09b43d98ec84a8586ea"
+          WETH="0x0bd7d308f8e1639fab988df18a8011f41eacad73"
+          USDG="0x5fc5360d0400a0fd4f2af552add042d716f1d168"
+          SAMPLES=(("small",325511250063414815,284162606),("intermediate",7160649793538586846,7703016226),("large",36230112742208816396,31634465959))
+          A={"eth_chainId","eth_getBlockByNumber","eth_getCode","eth_call"}
+          outdir=pathlib.Path("out");outdir.mkdir(exist_ok=True)
+          raw_calls=[]
+          out={"status":"INCOMPLETE","source":"official Robinhood RPC only, not an independent quorum","factory":FACTORY,"block":PIN,
+          "expected_block_hash":BLOCK_HASH,"economic_comparison":"current read-only pool amounts vs historical debt, NOT historical execution",
+          "contract_profit_usd":"0","own_capital_usd":"0","no_trades":True,"pool_sources":{},"candidate_routes":[]}
+          class Fail(Exception):pass
+          def word(n):return f"{n:064x}"
+          def addr(a):
+           if not re.fullmatch(r"0x[0-9a-f]{40}",a):raise Fail("ADDRESS_INVALID")
+           return word(int(a,16))
+          def ask(method,params):
+           if method not in A or len(raw_calls)>=25:raise Fail("READ_ALLOWLIST_OR_LIMIT")
+           idx=len(raw_calls)+1; q={"jsonrpc":"2.0","id":idx,"method":method,"params":params}
+           rec={"query":q}
+           try:
+            req=urllib.request.Request(URL,json.dumps(q,separators=(",",":")).encode(),headers={"Content-Type":"application/json","User-Agent":"NQC-V2-V2-POOL-ONCE-READONLY"},method="POST")
+            with urllib.request.urlopen(req,timeout=12) as response:
+             if response.status!=200:raise Fail("HTTP_NON_200")
+             data=response.read(65537)
+            if len(data)>65536:raise Fail("RPC_RESPONSE_TOO_LONG")
+            rec["raw_sha256"]=hashlib.sha256(data).hexdigest()
+            obj=json.loads(data)
+            if not isinstance(obj,dict) or obj.get("jsonrpc")!="2.0" or obj.get("id")!=idx:raise Fail("RPC_BAD_ENVELOPE")
+            if obj.get("error"):raise Fail("RPC_ERROR_"+str(obj["error"].get("code","unknown")))
+            res=obj.get("result")
+            if res is None:raise Fail("RPC_NULL")
+            if method=="eth_getCode":rec["code_sha256"]=hashlib.sha256(bytes.fromhex(res[2:])).hexdigest()
+            else:rec["result"]=res
+            return res
+           except urllib.error.HTTPError as e:
+            rec["http_error"]=e.code;raise Fail("HTTP_"+str(e.code)+"_STOP")
+           except (urllib.error.URLError,TimeoutError,OSError) as e:
+            rec["transport_error"]=type(e).__name__;raise Fail("TRANSPORT_"+type(e).__name__+"_STOP")
+           finally:raw_calls.append(rec)
+          def header():
+           h=ask("eth_getBlockByNumber",[hex(PIN),False])
+           if h.get("hash","").lower()!=BLOCK_HASH or h.get("stateRoot","").lower()!=BLOCK_STATE or int(h.get("number","0x0"),16)!=PIN:raise Fail("BLOCK_MISMATCH")
+           return h
+          def call(to,data):
+           ret=ask("eth_call",[{"to":to,"data":data},hex(PIN)])
+           if not isinstance(ret,str) or not re.fullmatch(r"0x[0-9a-fA-F]+",ret):raise Fail("BAD_ABI_RESULT")
+           return ret
+          def get_pair(a,b):
+           raw=call(FACTORY,"0xe6a43905"+addr(a)+addr(b))
+           if len(raw)!=66 or int(raw,16)>=2**160:raise Fail("GETPAIR_RESULT_INVALID")
+           return "0x"+f"{int(raw,16):040x}"
+          def v2pool(pair,expected):
+           token0=call(pair,"0x0dfe1681")
+           token1=call(pair,"0xd21220a7")
+           reserves=call(pair,"0x0902f1ac")
+           if len(token0)!=66 or len(token1)!=66 or len(reserves)<2+64*3:raise Fail("PAIR_ABI_LENGTH")
+           actual=("0x"+token0[-40:].lower(),"0x"+token1[-40:].lower())
+           if set(actual)!=set(expected):raise Fail("WRONG_POOL_TOKENS")
+           r0=int(reserves[2:66],16);r1=int(reserves[66:130],16)
+           return {"pool":pair,"token0":actual[0],"token1":actual[1],"reserve0":str(r0),"reserve1":str(r1)}
+          def amountout(amount,ain,aout,pool):
+           a=pool["token0"]
+           r0=int(pool["reserve0"]);r1=int(pool["reserve1"])
+           if ain==a:r_in,r_out=r0,r1
+           elif aout==a:r_in,r_out=r1,r0
+           else:raise Fail("POOL_ROUTE_ASSET_MISMATCH")
+           if min(r_in,r_out)<=0:return 0
+           return amount*997*r_out//(r_in*1000+amount*997)
+          def calc():
+           if int(ask("eth_chainId",[]),16)!=4663:raise Fail("WRONG_CHAIN")
+           header()
+           if len(ask("eth_getCode",[FACTORY,hex(PIN)]))<30:raise Fail("UNDEPLOYED_V2_FACTORY")
+           p={}
+           for key,a,b in (("wsnet_usdg",WSNET,USDG),("wsnet_weth",WSNET,WETH),("weth_usdg",WETH,USDG)):
+            pool=get_pair(a,b)
+            if int(pool,16)==0:
+             out["pool_sources"][key]={"exists":False,"address":pool}
+            else:
+             data=v2pool(pool,(a,b))
+             out["pool_sources"][key]={"exists":True,**data}
+             p[key]=data
+           for label,amount,debt in SAMPLES:
+            for route in (("wsnet_usdg",),("wsnet_weth","weth_usdg")):
+             if any(k not in p for k in route):continue
+             if len(route)==1:received=amountout(amount,WSNET,USDG,p["wsnet_usdg"])
+             else:
+              intermediate=amountout(amount,WSNET,WETH,p["wsnet_weth"])
+              received=amountout(intermediate,WETH,USDG,p["weth_usdg"])
+             out["candidate_routes"].append({"sample":label,"route":list(route),"wsnet_input_wei":str(amount),
+                    "received_usdg_micro_reserve_formula_only":str(received),
+                    "historic_debt_usdg_micro":str(debt),
+                    "gross_differential_usdg_micro":str(received-debt),
+                    "not_a_fully_executable_swap_quote":True,
+                    "unknown_fee_on_transfer":True})
+           header()
+           out["status"]="READ_ONLY_V2_POOL_DATA_NO_EXECUTION_CERTIFICATE"
+          calc_error=None
+          try:calc()
+          except Exception as e:
+           out["status"]="INCOMPLETE_RPC_OR_VALIDATION"
+           out["error"]=type(e).__name__+":"+str(e)[:180]
+          finally:
+           out["reads"]=len(raw_calls)
+           out["ended_at"]=datetime.datetime.now(datetime.timezone.utc).isoformat()
+           (outdir/"v2_route.json").write_text(json.dumps(out,sort_keys=True,indent=2)+"\n")
+           (outdir/"rpc_receipts.json").write_text(json.dumps(raw_calls,sort_keys=True,indent=2)+"\n")
+           print("V2_POOL_GATE",out["status"],"pairs",len(out["pool_sources"]),"routes",len(out["candidate_routes"]),"reads",len(raw_calls))
+          PY
+      - name: Archive canonical read evidence incl errors
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-wsnet-v2-pool-quote-bound-20261015
+          path: out/
+          retention-days: 14
+          if-no-files-found: error
