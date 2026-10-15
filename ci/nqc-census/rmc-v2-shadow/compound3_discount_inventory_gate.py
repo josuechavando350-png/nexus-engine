@@ -16,8 +16,8 @@ COMET='0xc3d688b66703497daa19211eedff47f25384cdc3'
 USDC='0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'
 PROVIDERS=('https://ethereum-rpc.publicnode.com','https://eth.drpc.org')
 S={'getReserves':'0902f1ac','targetReserves':'32176c49','numAssets':'a46fe83b','getAssetInfo':'c8c7fe6b','getCollateralReserves':'9ff567f8','quoteCollateral':'7ac88ed1','baseToken':'c55dae63','isBuyPaused':'d8e5f611'}
-MAX_ASSETS=8
-MAX_RPC_CALLS=38
+MAX_ASSETS=24
+MAX_RPC_CALLS=84
 QUOTE_USDC_RAW=1000*10**6
 class Incomplete(ValueError):pass
 def need(ok,why):
@@ -136,19 +136,26 @@ def attempt():
  reserves=signed(pairs['getReserves'])
  target=uint_word(pairs['targetReserves'],'target')
  n=uint_word(pairs['numAssets'],'assets_count',8)
- need(0<n<=MAX_ASSETS,'ASSET_ENUMERATION_OUTSIDE_CAP')
+ need(n>0,'ZERO_ASSET_COUNT')
  need(addr_word(pairs['baseToken'],'baseToken')==USDC,'NON_USDC_COMET')
  paused=bool(uint_word(pairs['isBuyPaused'],'paused',8))
+ # Compound III forbids buyCollateral if either global base-reserve condition
+ # fails, irrespective of whether the market has 8 or 24 collateral tokens.
+ # No asset enumeration is necessary or permitted for a negative GLOBAL gate.
+ # Crucially, do not call a skipped collateral inventory ZERO.
+ global_buy_gate_open=(reserves<target and not paused)
  assets=[]
- for ix in range(n):
-  info=source_value_quorum(*(p.get('getAssetInfo',height,ix) for p in ps),'asset_'+str(ix))
-  a=asset_info(info,ix)
-  bal=source_value_quorum(*(p.get('getCollateralReserves',height,a['asset']) for p in ps),'balance_'+str(ix))
-  a['reserves_raw']=str(uint_word(bal,'collateral_reserves'))
-  assets.append(a)
- decision=gate(reserves,target,paused,assets)
  quotes=[]
- if decision['candidate_discount_purchase_allowed_on_snapshot']:
+ if global_buy_gate_open:
+  need(n<=MAX_ASSETS,'ASSET_ENUMERATION_OUTSIDE_CAP')
+  for ix in range(n):
+   info=source_value_quorum(*(p.get('getAssetInfo',height,ix) for p in ps),'asset_'+str(ix))
+   a=asset_info(info,ix)
+   bal=source_value_quorum(*(p.get('getCollateralReserves',height,a['asset']) for p in ps),'balance_'+str(ix))
+   a['reserves_raw']=str(uint_word(bal,'collateral_reserves'))
+   assets.append(a)
+  decision=gate(reserves,target,paused,assets)
+  decision['inventory_evaluated']=True
   for a in assets:
    if int(a['reserves_raw'])<=0:continue
    q=source_value_quorum(*(p.get('quoteCollateral',height,a['asset'],QUOTE_USDC_RAW) for p in ps),'quote_'+a['asset'])
@@ -157,11 +164,19 @@ def attempt():
                   'collateral_out_raw_at_quoted_block':str(amount),
                   'full_1000_usdc_purchase_has_sufficient_reserves':0<amount<=int(a['reserves_raw']),
                   'dex_sale_output_proven':False,'pnl_proven':False})
+ else:
+  decision=gate(reserves,target,paused,[])
+  decision['inventory_evaluated']=False
+  decision['inventory_positive_assets']=None
+  decision['explicit_no_available_buy_collateral_if_blocked']=False
+  decision['source_global_gate_closed_without_inventory_claim']=True
+  # Stop after verifying the canonical same-block global gate. This status
+  # does not certify the existence OR absence of any collateral inventory.
  tail=[p.block(height) for p in ps]
  block_identity(*tail);block_identity(headers[0],tail[0])
- return {'status':'SAME_BLOCK_COMET_DISCOUNT_RESERVE_GATE_SOURCE_ONLY',
+ return {'status':('SAME_BLOCK_COMET_DISCOUNT_RESERVE_GATE_SOURCE_ONLY' if global_buy_gate_open else 'SAME_BLOCK_COMET_GLOBAL_BUY_GATE_CLOSED_SOURCE_ONLY'),
          'source_chain':'Ethereum mainnet 1','comet':COMET,'block':bh,'reserve_base_signed_raw_usdc':str(reserves),
-         'target_reserve_raw_usdc':str(target),'asset_count':n,'assets':assets,
+         'target_reserve_raw_usdc':str(target),'asset_count':n,'collateral_inventory_was_fully_enumerated':global_buy_gate_open,'assets':assets,
          'gate':decision,'quotes':quotes,
          'rpc_counts':[p.n for p in ps],
          'quote_is_not_own_capital_or_net_profit':True,

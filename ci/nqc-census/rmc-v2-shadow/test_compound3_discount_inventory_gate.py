@@ -69,7 +69,7 @@ class Check(unittest.TestCase):
   self.assertEqual(p.n,n)
  def test_head_gap_and_limit(self):
   self.assertLess(c.MAX_RPC_CALLS,100)
-  self.assertLessEqual(c.MAX_ASSETS,8)
+  self.assertLessEqual(c.MAX_ASSETS,24)
  def test_no_hypothetical_profit_upgrade(self):
   self.assertFalse(c.gate(100,1000,False,[{'asset':WETH,'reserves_raw':'200'}]).get('nqc_pnl_proven',False))
  def test_simulate_two_rpc_pinned_success(self):
@@ -95,6 +95,39 @@ class Check(unittest.TestCase):
   self.assertTrue(result['gate']['candidate_discount_purchase_allowed_on_snapshot'])
   self.assertEqual(result['quotes'][0]['collateral_out_raw_at_quoted_block'],str(5*10**17))
   self.assertFalse(result['current_dex_selling_quotes_proven'])
+ def test_closed_global_gate_skips_large_market_without_zero_inventory_fiction(self):
+  class Fake:
+   def __init__(self):self.n=0
+   def ask(self,method,args):
+    self.n+=1
+    if method=='eth_chainId':return '0x1'
+    if method=='eth_blockNumber':return '0x16e3600'
+    if method=='eth_getBlockByNumber':return block()
+    if method=='eth_getCode':return '0x'+'abcdef'*40
+    raise AssertionError('UNEXPECTED_RPC_METHOD:'+method)
+   def block(self,height):return self.ask('eth_getBlockByNumber',[hex(height),False])
+   def get(self,name,height,*args):
+    self.n+=1
+    vals={'getReserves':wd(22_000_000000), 'targetReserves':wd(20_000_000000),
+          'numAssets':wd(200), 'baseToken':wd(int(c.USDC,16)),
+          'isBuyPaused':wd(0)}
+    if name not in vals:raise AssertionError('MUST_NOT_READ_INVENTORY_WHEN_GLOBAL_BLOCKED:'+name)
+    return vals[name]
+  with patch.object(c,'Provider',side_effect=[Fake(),Fake()]):result=c.attempt()
+  self.assertEqual(result['status'],'SAME_BLOCK_COMET_GLOBAL_BUY_GATE_CLOSED_SOURCE_ONLY')
+  self.assertEqual(result['asset_count'],200)
+  self.assertFalse(result['collateral_inventory_was_fully_enumerated'])
+  self.assertIsNone(result['gate']['inventory_positive_assets'])
+  self.assertFalse(result['gate']['candidate_discount_purchase_allowed_on_snapshot'])
+  self.assertTrue(result['gate']['source_global_gate_closed_without_inventory_claim'])
+  self.assertEqual(result['quotes'],[])
+ def test_24_asset_market_bounded_when_gate_open(self):
+  self.assertEqual(c.MAX_ASSETS,24)
+  self.assertEqual(c.MAX_RPC_CALLS,84)
+  # Worst accepted scenario: all 24 assets have inventory + price quote,
+  # and request two block headers plus final replay, no arbitrary RPCs.
+  self.assertGreaterEqual(c.MAX_RPC_CALLS, 2+2+1+5+2*24+24+2)
+  self.assertLess(c.MAX_RPC_CALLS,100)
  def test_source_error_fail_closed_integrated(self):
   with tempfile.TemporaryDirectory() as tmp:
    with patch.object(c,'attempt',side_effect=c.Incomplete('RPC_HTTP_403_eth_call')):

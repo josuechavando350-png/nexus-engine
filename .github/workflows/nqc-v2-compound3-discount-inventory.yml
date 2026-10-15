@@ -18,7 +18,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - name: 24 offline adversarial accounting / transport regression tests
+      - name: 25+ offline adversarial accounting / transport regression tests
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/comet-economic/source"
@@ -33,13 +33,18 @@ jobs:
           python3 - "$OUT/discount-reserves.json" <<'PY'
           import json,sys
           r=json.load(open(sys.argv[1]))
-          assert r['status'] in ['INCOMPLETE_COMPOUND_READONLY_RESERVES','SAME_BLOCK_COMET_DISCOUNT_RESERVE_GATE_SOURCE_ONLY']
+          assert r['status'] in ['INCOMPLETE_COMPOUND_READONLY_RESERVES','SAME_BLOCK_COMET_DISCOUNT_RESERVE_GATE_SOURCE_ONLY','SAME_BLOCK_COMET_GLOBAL_BUY_GATE_CLOSED_SOURCE_ONLY']
           assert r['realized_nqc_pnl_usd']=='0' and not r['commercial_promotion_allowed']
           if r['status'].startswith('SAME_BLOCK'):
             assert not r['user_mainnet_transaction_authorized']
             assert not r['morpho_usdc_flash_capacity_proven']
             assert not r['current_dex_selling_quotes_proven']
-            assert len(r['assets']) == r['asset_count']
+            if r['collateral_inventory_was_fully_enumerated']:
+              assert len(r['assets']) == r['asset_count']
+            else:
+              assert not r['gate']['reserves_below_target'] or not r['gate']['buy_not_paused']
+              assert r['gate']['inventory_positive_assets'] is None
+              assert not r['gate']['candidate_discount_purchase_allowed_on_snapshot']
           print('CERTIFIED SOURCE CLASSIFICATION:',r['status'])
           PY
       - name: Save exact git head + immutable source hashes
