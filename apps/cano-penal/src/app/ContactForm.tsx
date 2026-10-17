@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { site } from "./content";
+import { pageGtag, reportAdsConversion } from "./ads-conversions";
 
 const issues = [
   ["", "Selecciona el motivo de contacto"],
@@ -33,7 +34,7 @@ export function ContactForm({ compact = false }: { compact?: boolean }) {
     ].filter(Boolean).join("\n");
     const destination = `${site.whatsapp}?text=${encodeURIComponent(message)}`;
     setPrepared(true);
-    window.location.assign(destination);
+    reportAdsConversion("form", pageGtag(), () => window.location.assign(destination));
   }
 
   return (

@@ -17,6 +17,7 @@ import "./vip-polish.css";
 import { canoTheme } from "./theme";
 import { site } from "./content";
 import { NexusBehavioralSignals } from "./NexusBehavioralSignals";
+import { AdsConversionTracking } from "./AdsConversionTracking";
 
 export const metadata: Metadata = {
   title: {
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body style={themeStyle}>
         <NexusBehavioralSignals />
+        <AdsConversionTracking />
         <a {...skipLink}>Saltar al contenido principal</a>
         {children}
       </body>

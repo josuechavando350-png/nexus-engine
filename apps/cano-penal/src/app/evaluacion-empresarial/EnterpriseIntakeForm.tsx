@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { site } from "../content";
+import { pageGtag, reportAdsConversion } from "../ads-conversions";
 
 const authorityOptions = [
   ["", "Selecciona una opción"],
@@ -33,7 +34,8 @@ export function EnterpriseIntakeForm() {
       reply.trim() ? `Medio de contacto: ${reply.trim()}` : "",
       "Prefiero compartir documentos y detalles sensibles por un canal adecuado después de la revisión inicial.",
     ].filter(Boolean).join("\n");
-    window.location.assign(`${site.whatsapp}?text=${encodeURIComponent(message)}`);
+    const destination = `${site.whatsapp}?text=${encodeURIComponent(message)}`;
+    reportAdsConversion("form", pageGtag(), () => window.location.assign(destination));
   }
 
   return (
