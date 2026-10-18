@@ -1,0 +1,312 @@
+{
+  "schema_version": 1,
+  "contract": "NQC_AGENT_FLEET_350_V1",
+  "status": "ARCHITECTURE_ONLY_NOT_RUNTIME_PROOF",
+  "full_fleet_agent_count": 350,
+  "hard_cap": 350,
+  "canonical_role_count": 48,
+  "instance_id_space": "NQC-A001..NQC-A350",
+  "deterministic_workers_are_agents": false,
+  "readiness_rule": "FULL_FLEET_READY_IFF_REGISTERED_OPERATIONAL_AGENTS_EQ_350_AND_ALL_ROLE_MINIMA_SATISFIED",
+  "overflow_rule": "AGENT_351_FAIL_CLOSED",
+  "degraded_rule": "BELOW_350_REQUIRES_EXPLICIT_DEGRADED_MODE_AND_CANNOT_CLAIM_FULL_FLEET_READY",
+  "authority_rule": "AGENT_OUTPUT_IS_PROPOSAL_OR_EVIDENCE_ONLY; MONEY_MOVING_AUTHORITY_REMAINS_DETERMINISTIC_CERTIFIED_RUNTIME",
+  "desks": [
+    {
+      "id": "A",
+      "name": "MARKET_TRUTH_DISCOVERY",
+      "count": 55,
+      "roles": [
+        {
+          "role": "PROTOCOL_CARTOGRAPHER",
+          "count": 10,
+          "instance_range": "NQC-A001..NQC-A010"
+        },
+        {
+          "role": "MARKET_CENSUS",
+          "count": 10,
+          "instance_range": "NQC-A011..NQC-A020"
+        },
+        {
+          "role": "STATE_RECONSTRUCTION",
+          "count": 10,
+          "instance_range": "NQC-A021..NQC-A030"
+        },
+        {
+          "role": "POSITION_UNIVERSE",
+          "count": 9,
+          "instance_range": "NQC-A031..NQC-A039"
+        },
+        {
+          "role": "ORACLE_TRUTH",
+          "count": 8,
+          "instance_range": "NQC-A040..NQC-A047"
+        },
+        {
+          "role": "TOKEN_SEMANTICS",
+          "count": 8,
+          "instance_range": "NQC-A048..NQC-A055"
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "name": "CAPITAL_FUNDING",
+      "count": 30,
+      "roles": [
+        {
+          "role": "FLASH_LIQUIDITY",
+          "count": 6,
+          "instance_range": "NQC-A056..NQC-A061"
+        },
+        {
+          "role": "FLASH_SWAP",
+          "count": 5,
+          "instance_range": "NQC-A062..NQC-A066"
+        },
+        {
+          "role": "EXTERNAL_CREDIT",
+          "count": 5,
+          "instance_range": "NQC-A067..NQC-A071"
+        },
+        {
+          "role": "GAS_FUNDING",
+          "count": 5,
+          "instance_range": "NQC-A072..NQC-A076"
+        },
+        {
+          "role": "FUNDING_ROUTER",
+          "count": 5,
+          "instance_range": "NQC-A077..NQC-A081"
+        },
+        {
+          "role": "CAPITAL_AUDITOR",
+          "count": 4,
+          "instance_range": "NQC-A082..NQC-A085"
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "name": "LIQUIDITY_ROUTING_MONETIZATION",
+      "count": 45,
+      "roles": [
+        {
+          "role": "VENUE_STATE",
+          "count": 8,
+          "instance_range": "NQC-A086..NQC-A093"
+        },
+        {
+          "role": "ROUTE_DISCOVERY",
+          "count": 8,
+          "instance_range": "NQC-A094..NQC-A101"
+        },
+        {
+          "role": "PRICE_IMPACT",
+          "count": 8,
+          "instance_range": "NQC-A102..NQC-A109"
+        },
+        {
+          "role": "FRAGMENTATION",
+          "count": 7,
+          "instance_range": "NQC-A110..NQC-A116"
+        },
+        {
+          "role": "MONETIZATION",
+          "count": 7,
+          "instance_range": "NQC-A117..NQC-A123"
+        },
+        {
+          "role": "ROUTE_RED_TEAM",
+          "count": 7,
+          "instance_range": "NQC-A124..NQC-A130"
+        }
+      ]
+    },
+    {
+      "id": "D",
+      "name": "EXECUTION_INCLUSION_RESEARCH",
+      "count": 45,
+      "roles": [
+        {
+          "role": "TRANSACTION_CONSTRUCTION",
+          "count": 8,
+          "instance_range": "NQC-A131..NQC-A138"
+        },
+        {
+          "role": "SIMULATION",
+          "count": 8,
+          "instance_range": "NQC-A139..NQC-A146"
+        },
+        {
+          "role": "INCLUSION_INTELLIGENCE",
+          "count": 8,
+          "instance_range": "NQC-A147..NQC-A154"
+        },
+        {
+          "role": "BUILDER_RELAY_RESEARCH",
+          "count": 7,
+          "instance_range": "NQC-A155..NQC-A161"
+        },
+        {
+          "role": "LATENCY_ENGINEERING",
+          "count": 7,
+          "instance_range": "NQC-A162..NQC-A168"
+        },
+        {
+          "role": "REORG_FAILURE",
+          "count": 7,
+          "instance_range": "NQC-A169..NQC-A175"
+        }
+      ]
+    },
+    {
+      "id": "E",
+      "name": "STRATEGY_RESEARCH",
+      "count": 65,
+      "roles": [
+        {
+          "role": "TRANSACTION_ARCHAEOLOGY",
+          "count": 12,
+          "instance_range": "NQC-A176..NQC-A187"
+        },
+        {
+          "role": "HYPOTHESIS_MINER",
+          "count": 11,
+          "instance_range": "NQC-A188..NQC-A198"
+        },
+        {
+          "role": "STRATEGY_GENERATOR",
+          "count": 11,
+          "instance_range": "NQC-A199..NQC-A209"
+        },
+        {
+          "role": "HISTORICAL_REPLAY",
+          "count": 11,
+          "instance_range": "NQC-A210..NQC-A220"
+        },
+        {
+          "role": "REGIME_ANALYSIS",
+          "count": 10,
+          "instance_range": "NQC-A221..NQC-A230"
+        },
+        {
+          "role": "STRATEGY_CHALLENGER",
+          "count": 10,
+          "instance_range": "NQC-A231..NQC-A240"
+        }
+      ]
+    },
+    {
+      "id": "F",
+      "name": "QUANT_RISK_ECONOMICS_PORTFOLIO",
+      "count": 40,
+      "roles": [
+        {
+          "role": "COST_MODEL",
+          "count": 7,
+          "instance_range": "NQC-A241..NQC-A247"
+        },
+        {
+          "role": "CAPTURE_CALIBRATION",
+          "count": 7,
+          "instance_range": "NQC-A248..NQC-A254"
+        },
+        {
+          "role": "CAPACITY_CONFLICT",
+          "count": 7,
+          "instance_range": "NQC-A255..NQC-A261"
+        },
+        {
+          "role": "CORRELATION",
+          "count": 7,
+          "instance_range": "NQC-A262..NQC-A268"
+        },
+        {
+          "role": "TAIL_RISK",
+          "count": 6,
+          "instance_range": "NQC-A269..NQC-A274"
+        },
+        {
+          "role": "PORTFOLIO_RESEARCH",
+          "count": 6,
+          "instance_range": "NQC-A275..NQC-A280"
+        }
+      ]
+    },
+    {
+      "id": "G",
+      "name": "INDEPENDENT_VERIFICATION_SECURITY",
+      "count": 55,
+      "roles": [
+        {
+          "role": "EVIDENCE_VERIFIER",
+          "count": 10,
+          "instance_range": "NQC-A281..NQC-A290"
+        },
+        {
+          "role": "INDEPENDENT_REPRODUCER",
+          "count": 10,
+          "instance_range": "NQC-A291..NQC-A300"
+        },
+        {
+          "role": "STATISTICAL_RED_TEAM",
+          "count": 9,
+          "instance_range": "NQC-A301..NQC-A309"
+        },
+        {
+          "role": "ARITHMETIC_INVARIANT",
+          "count": 9,
+          "instance_range": "NQC-A310..NQC-A318"
+        },
+        {
+          "role": "SECURITY_SUPPLY_CHAIN",
+          "count": 9,
+          "instance_range": "NQC-A319..NQC-A327"
+        },
+        {
+          "role": "CERTIFICATION_GATEKEEPER",
+          "count": 8,
+          "instance_range": "NQC-A328..NQC-A335"
+        }
+      ]
+    },
+    {
+      "id": "H",
+      "name": "PLATFORM_RELIABILITY_META_RESEARCH",
+      "count": 15,
+      "roles": [
+        {
+          "role": "DATA_PLANE",
+          "count": 3,
+          "instance_range": "NQC-A336..NQC-A338"
+        },
+        {
+          "role": "NODE_RPC_RELIABILITY",
+          "count": 3,
+          "instance_range": "NQC-A339..NQC-A341"
+        },
+        {
+          "role": "SRE_OBSERVABILITY",
+          "count": 3,
+          "instance_range": "NQC-A342..NQC-A344"
+        },
+        {
+          "role": "EXPERIMENT_ORCHESTRATOR",
+          "count": 2,
+          "instance_range": "NQC-A345..NQC-A346"
+        },
+        {
+          "role": "AGENT_PERFORMANCE_AUDITOR",
+          "count": 2,
+          "instance_range": "NQC-A347..NQC-A348"
+        },
+        {
+          "role": "META_RESEARCH_CONTROLLER",
+          "count": 2,
+          "instance_range": "NQC-A349..NQC-A350"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+name: NQC Quant Firm Agent Fleet
+
+on:
+  pull_request:
+    paths:
+      - "ci/nqc-quant-firm/**"
+      - "docs/nqc/NQC_QUANT_FIRM_ARCHITECTURE.md"
+      - "scripts/validate-nqc-agent-fleet.mjs"
+      - ".github/workflows/nqc-quant-firm-agent-fleet.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-agent-fleet:
+    name: Validate exact 350-agent fleet contract
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate NQC agent fleet
+        run: node scripts/validate-nqc-agent-fleet.mjs

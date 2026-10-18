@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "contract": "NQC_QUANT_FIRM_AGENT_MESH_V1",
+  "status": "ARCHITECTURE_ONLY",
+  "canonical_role_count": 48,
+  "role_count_semantics": "LOGICAL_RESPONSIBILITY_TOPOLOGY_NOT_ALWAYS_ON_PROCESS_COUNT",
+  "llm_hot_path_allowed": false,
+  "execution_authority": "DETERMINISTIC_CERTIFIED_RUNTIME_ONLY",
+  "worker_multiplicity": "ELASTIC_WITHOUT_AUTHORITY_CHANGE",
+  "own_capital_policy": "OWN_CAPITAL_ZERO",
+  "promotion_lifecycle": [
+    "DISCOVERED",
+    "CANONICALIZED",
+    "REPRODUCIBLE",
+    "HISTORICALLY_REPLAYED",
+    "ADVERSARIALLY_CHALLENGED",
+    "ECONOMICALLY_FEASIBLE",
+    "SHADOW_ELIGIBLE",
+    "SHADOW_CALIBRATED",
+    "CANARY_ELIGIBLE",
+    "CANARY_PROVEN",
+    "PRODUCTION_ELIGIBLE"
+  ],
+  "desks": [
+    {
+      "id": "A",
+      "name": "MARKET_TRUTH_DISCOVERY",
+      "roles": [
+        "PROTOCOL_CARTOGRAPHER",
+        "MARKET_CENSUS",
+        "STATE_RECONSTRUCTION",
+        "POSITION_UNIVERSE",
+        "ORACLE_TRUTH",
+        "TOKEN_SEMANTICS"
+      ]
+    },
+    {
+      "id": "B",
+      "name": "CAPITAL_FUNDING",
+      "roles": [
+        "FLASH_LIQUIDITY",
+        "FLASH_SWAP",
+        "EXTERNAL_CREDIT",
+        "GAS_FUNDING",
+        "FUNDING_ROUTER",
+        "CAPITAL_AUDITOR"
+      ]
+    },
+    {
+      "id": "C",
+      "name": "LIQUIDITY_ROUTING_MONETIZATION",
+      "roles": [
+        "VENUE_STATE",
+        "ROUTE_DISCOVERY",
+        "PRICE_IMPACT",
+        "FRAGMENTATION",
+        "MONETIZATION",
+        "ROUTE_RED_TEAM"
+      ]
+    },
+    {
+      "id": "D",
+      "name": "EXECUTION_INCLUSION_RESEARCH",
+      "roles": [
+        "TRANSACTION_CONSTRUCTION",
+        "SIMULATION",
+        "INCLUSION_INTELLIGENCE",
+        "BUILDER_RELAY_RESEARCH",
+        "LATENCY_ENGINEERING",
+        "REORG_FAILURE"
+      ]
+    },
+    {
+      "id": "E",
+      "name": "STRATEGY_RESEARCH",
+      "roles": [
+        "TRANSACTION_ARCHAEOLOGY",
+        "HYPOTHESIS_MINER",
+        "STRATEGY_GENERATOR",
+        "HISTORICAL_REPLAY",
+        "REGIME_ANALYSIS",
+        "STRATEGY_CHALLENGER"
+      ]
+    },
+    {
+      "id": "F",
+      "name": "QUANT_RISK_ECONOMICS_PORTFOLIO",
+      "roles": [
+        "COST_MODEL",
+        "CAPTURE_CALIBRATION",
+        "CAPACITY_CONFLICT",
+        "CORRELATION",
+        "TAIL_RISK",
+        "PORTFOLIO_RESEARCH"
+      ]
+    },
+    {
+      "id": "G",
+      "name": "INDEPENDENT_VERIFICATION_SECURITY",
+      "roles": [
+        "EVIDENCE_VERIFIER",
+        "INDEPENDENT_REPRODUCER",
+        "STATISTICAL_RED_TEAM",
+        "ARITHMETIC_INVARIANT",
+        "SECURITY_SUPPLY_CHAIN",
+        "CERTIFICATION_GATEKEEPER"
+      ]
+    },
+    {
+      "id": "H",
+      "name": "PLATFORM_RELIABILITY_META_RESEARCH",
+      "roles": [
+        "DATA_PLANE",
+        "NODE_RPC_RELIABILITY",
+        "SRE_OBSERVABILITY",
+        "EXPERIMENT_ORCHESTRATOR",
+        "AGENT_PERFORMANCE_AUDITOR",
+        "META_RESEARCH_CONTROLLER"
+      ]
+    }
+  ],
+  "mandatory_invariants": [
+    "AGENT_OUTPUT_IS_NOT_SELF_AUTHENTICATING_EVIDENCE",
+    "NO_SYNTHETIC_AS_LIVE_EVIDENCE",
+    "NO_UNCALIBRATED_PROBABILITY_FOR_ADMISSION",
+    "GROSS_PNL_NEVER_EQUALS_NET_PNL_BY_ASSUMPTION",
+    "NO_OPERATOR_CAPITAL_SUBSTITUTION",
+    "ALL_MISMATCHES_LEDGERED",
+    "UNKNOWN_NOT_TERMINAL",
+    "PRODUCTION_DECISIONS_REPLAYABLE",
+    "EXACT_INTEGER_OR_PROTOCOL_NATIVE_ARITHMETIC",
+    "DOWNSTREAM_PINS_EXACT_UPSTREAM_AUTHORITY"
+  ],
+  "roadmap": [
+    "PROTOCOL_FORK_TRUTH",
+    "REAL_MARKET_CENSUS",
+    "SHADOW_EXECUTION",
+    "APEX_EXECUTION_HARDENING",
+    "CANARY",
+    "REAL_PNL_EVIDENCE",
+    "FINAL_LIQUIDATION_CERTIFICATION",
+    "MULTI_STRATEGY_EXPANSION",
+    "GLOBAL_CAPACITY_OPTIMIZATION",
+    "NQC_APEX_CONTINUOUS_AUTONOMOUS_OPTIMIZATION"
+  ],
+  "non_claims": [
+    "PROFITABILITY_NOT_PROVEN",
+    "TOP_ONE_PERCENT_NOT_PROVEN",
+    "CAPTURE_ADVANTAGE_NOT_PROVEN",
+    "PRODUCTION_AUTHORITY_NOT_ISSUED"
+  ],
+  "operational_agent_count": 350,
+  "hard_agent_cap": 350,
+  "full_fleet_readiness_requires_exact_count": true,
+  "degraded_mode_below_350": "ALLOWED_ONLY_IF_EXPLICIT_AND_NOT_FULL_FLEET_READY",
+  "agent_351_behavior": "FAIL_CLOSED",
+  "deterministic_workers_count_toward_agent_cap": false,
+  "runtime_reuse": {
+    "capability_bounded_delegation": "runtime/crates/nexus-agents-v4",
+    "evidence_grounded_cognition": "runtime/crates/nexus-intelligence",
+    "event_contract": "runtime/crates/nexus-event",
+    "observability": "runtime/crates/nexus-observability",
+    "distributed_runtime": "V6_PLACEMENT_DISCOVERY_REPLICATION_FEDERATION"
+  }
+}
