@@ -3,7 +3,7 @@ import {
   SEO_PROFESSIONAL_STRATEGIES as CORE_STRATEGIES,
 } from "./topology.js";
 
-export type SeoProfessionalMasterStrategyNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+export type SeoProfessionalMasterStrategyNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 
 export type SeoProfessionalMasterStrategyId =
   | "detector-de-trampas"
@@ -16,7 +16,8 @@ export type SeoProfessionalMasterStrategyId =
   | "resucitador-de-muertos"
   | "parasito-inteligente"
   | "candado-invisible"
-  | "guardian-latencia-cero";
+  | "guardian-latencia-cero"
+  | "incrementalidad-geo-holdout";
 
 export interface SeoProfessionalMasterStrategyDefinition {
   readonly number: SeoProfessionalMasterStrategyNumber;
@@ -43,7 +44,9 @@ export type SeoProfessionalMasterConnectionChannel =
   | "AUTHORIZED_PROGRAMMATIC_LANDING"
   | "VERIFIED_EDGE_OPERATOR_IDENTITY"
   | "RESILIENT_EDGE_RUNTIME_HANDOFF"
-  | "GUARDED_WEB_LANDING";
+  | "GUARDED_WEB_LANDING"
+  | "VERIFIED_EXPERIMENT_OPERATOR_IDENTITY"
+  | "INCREMENTALITY_GATED_OPTIMIZATION";
 
 export interface SeoProfessionalMasterConnection {
   readonly from: SeoProfessionalMasterStrategyNumber;
@@ -101,6 +104,12 @@ export const SEO_PROFESSIONAL_MASTER_STRATEGIES: readonly SeoProfessionalMasterS
     implementationRef: "packages/ontology/cortex/seo-profesional/11-guardian-latencia-cero",
     responsibility: "portable global handler supervision layered inside #10 with cooperative deadlines, logical-operation circuit breaking, bounded fallback execution and isolate pressure containment without zero-latency or forced-GC claims",
   }),
+  Object.freeze({
+    number: 12 as const,
+    id: "incrementalidad-geo-holdout" as const,
+    implementationRef: "packages/ontology/cortex/seo-profesional/12-incrementalidad-geo-holdout",
+    responsibility: "scope-bound SEO incrementality gating that reuses canonical CORTEX #12 durable geo-holdout design and analysis before permitting exact-match optimization",
+  }),
 ] as const);
 
 export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMasterConnection[] = Object.freeze([
@@ -123,6 +132,8 @@ export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMaster
   Object.freeze({ from: 4 as const, to: 10 as const, channel: "VERIFIED_EDGE_OPERATOR_IDENTITY" as const, boundary: "EDGE_DELIVERY" as const }),
   Object.freeze({ from: 10 as const, to: 11 as const, channel: "RESILIENT_EDGE_RUNTIME_HANDOFF" as const, boundary: "EDGE_DELIVERY" as const }),
   Object.freeze({ from: 11 as const, to: 1 as const, channel: "GUARDED_WEB_LANDING" as const, boundary: "EDGE_DELIVERY" as const }),
+  Object.freeze({ from: 4 as const, to: 12 as const, channel: "VERIFIED_EXPERIMENT_OPERATOR_IDENTITY" as const, boundary: "GOOGLE_ADS" as const }),
+  Object.freeze({ from: 12 as const, to: 2 as const, channel: "INCREMENTALITY_GATED_OPTIMIZATION" as const, boundary: "GOOGLE_ADS" as const }),
 ] as const);
 
 function reachable(
