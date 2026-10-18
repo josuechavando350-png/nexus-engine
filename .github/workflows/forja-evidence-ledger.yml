@@ -1,0 +1,79 @@
+name: AXIOMA FORJA Content-Addressed Evidence Ledger
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verified-ledger:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Assert SHA and pristine checkout
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$FORJA_SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            git diff --check "${{ github.event.pull_request.base.sha }}" "$FORJA_SOURCE_SHA"
+          fi
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Test local ledger integrity and replay rejection
+        run: |
+          set -euo pipefail
+          node --check forja/evidence-ledger.mjs
+          node --check forja/tests/evidence-ledger.test.mjs
+          node --test forja/tests/evidence-ledger.test.mjs
+      - name: Capture real evidence and verify content-addressed record
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          node forja/inventory.mjs > "$RUNNER_TEMP/forja-ledger-inventory.json"
+          node forja/audit.mjs > "$RUNNER_TEMP/forja-ledger-audit.json"
+          node forja/contract-probe.mjs > "$RUNNER_TEMP/forja-ledger-contract.json"
+          node forja/evidence-ledger.mjs capture \
+            "$RUNNER_TEMP/forja-ledger-inventory.json" \
+            "$RUNNER_TEMP/forja-ledger-audit.json" \
+            "$RUNNER_TEMP/forja-ledger-contract.json" \
+            "$RUNNER_TEMP/forja-ledger-store" > "$RUNNER_TEMP/forja-ledger-capture.json"
+          ID="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")).id' "$RUNNER_TEMP/forja-ledger-capture.json")"
+          node forja/evidence-ledger.mjs verify "$RUNNER_TEMP/forja-ledger-store" "$ID" > "$RUNNER_TEMP/forja-ledger-verify.json"
+          node -e 'const fs=require("fs"); const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8")); if(x.status!=="INTEGRITY_MATCH" || x.id!==process.argv[2]) process.exit(1)' "$RUNNER_TEMP/forja-ledger-verify.json" "$ID"
+          cat "$RUNNER_TEMP/forja-ledger-capture.json"
+          cat "$RUNNER_TEMP/forja-ledger-verify.json"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Upload bounded evidence package
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forja-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/forja-ledger-inventory.json
+            ${{ runner.temp }}/forja-ledger-audit.json
+            ${{ runner.temp }}/forja-ledger-contract.json
+            ${{ runner.temp }}/forja-ledger-capture.json
+            ${{ runner.temp }}/forja-ledger-verify.json
+            ${{ runner.temp }}/forja-ledger-store/*.json
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Assert checkout remained pristine
+        if: always()
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
