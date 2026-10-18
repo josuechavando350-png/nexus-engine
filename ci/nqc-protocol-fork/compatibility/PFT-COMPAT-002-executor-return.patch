@@ -1,0 +1,10 @@
+diff --git a/crates/nqc-executor/src/lib.rs b/crates/nqc-executor/src/lib.rs
+index f03ce40..87fa1ed 100644
+--- a/crates/nqc-executor/src/lib.rs
++++ b/crates/nqc-executor/src/lib.rs
+@@ -144,3 +144,2 @@ impl AtomicLiquidationPlan {
+-        let decoded = INqcAaveV3Executor::executeCall::abi_decode_returns_validate(output)
+-            .map_err(|error| ExecutorPlanError::AbiDecode(error.to_string()))?;
+-        Ok(decoded.realizedProfitDebtAsset)
++        INqcAaveV3Executor::executeCall::abi_decode_returns_validate(output)
++            .map_err(|error| ExecutorPlanError::AbiDecode(error.to_string()))

@@ -1,0 +1,16 @@
+[package]
+name = "nqc-aave-reader"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+alloy = { workspace = true, features = ["contract", "sol-types"] }
+nqc-aave-sync = { path = "../nqc-aave-sync" }
+nqc-hot-state = { path = "../nqc-hot-state" }
+nqc-state = { path = "../nqc-state" }
+thiserror.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

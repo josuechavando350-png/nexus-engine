@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "source_blocker": "PFT-SRC-001",
+  "component": "NqcV2BackrunExecutor.sol",
+  "classification": "NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE",
+  "recovery_status": "RECOVERY_EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
+  "status": "CLOSED",
+  "evidence": {
+    "reimplementation": {
+      "pr": 474,
+      "head": "feeda6dba609328663eb7626b84f308a66903540",
+      "workflow_run_id": 36333870433,
+      "artifact_id": 10936497997,
+      "artifact_sha256": "06a58815fe79458ccae0c028e8f46a290c3d4af2f1ac74f903f0b9e1bb8f1b5b",
+      "status": "PASS"
+    },
+    "abi_runtime": {
+      "pr": 475,
+      "head": "80789bf80265a4d4273df493ee5d85bb5cb020d2",
+      "workflow_run_id": 36334747344,
+      "artifact_id": 10936547635,
+      "artifact_sha256": "924263018ed49a4994871717fea4520514e577e637702f42ffbb5a5c96dccb3d",
+      "status": "PASS"
+    },
+    "callback_authority_baseline": {
+      "pr": 485,
+      "head": "f1ec76711d873eeeb534ed3f4e4b506d5c6eb742",
+      "workflow_run_id": 36346956715,
+      "artifact_id": 10941204259,
+      "artifact_sha256": "691ace833f6b4f5c6063c3c2cbdd3f4b4acd2e3f0535968f2f3e66bcbefea645",
+      "status": "PASS"
+    },
+    "code_identity": {
+      "pr": 486,
+      "head": "a33375b7188efee3929dc40e1d71af3ff921be44",
+      "workflow_run_id": 36348949749,
+      "artifact_id": 10942070074,
+      "artifact_sha256": "b0af760773f14fc9e927d3fa8c651e3f08e476c3a9d46fa18fab1004408b1a2b",
+      "status": "PASS"
+    },
+    "historical_fork_execution": {
+      "pr": 488,
+      "head": "0456a0df293c41cf249be08ab5cebe5aa0d6d69f",
+      "workflow_run_id": 36353539796,
+      "artifact_id": 10944721679,
+      "artifact_sha256": "8399b26a0e4fd766b832f2a9dbe95da84c977ef2181a7eb5c2e91b63afe82963",
+      "status": "PASS"
+    },
+    "revm_historical_fork_differential": {
+      "pr": 487,
+      "head": "36e32b6f548ab3c3c25b20322fa96e496689778e",
+      "workflow_run_id": 36356263106,
+      "artifact_id": 10946275997,
+      "artifact_sha256": "31f8fe2abc247708c37ac48e47c35519348d809140687eeb33ccb60460b6a0b0",
+      "status": "PASS"
+    }
+  },
+  "close_condition": "historical_fork_execution=PASS AND revm_historical_fork_differential=PASS AND all bound evidence content-addressed AND unexplained_mismatches=0",
+  "unexplained_mismatches": 0,
+  "protocol_fork_truth": "NOT_CLOSED"
+}

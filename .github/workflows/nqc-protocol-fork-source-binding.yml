@@ -1,0 +1,372 @@
+name: NQC T39 Protocol Fork Recovered Source Binding
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-source-binding.yml
+      - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
+      - ci/nqc-protocol-fork/SOURCE_CENSUS.json
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/nqc-protocol-fork-source-binding.yml
+      - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
+      - ci/nqc-protocol-fork/SOURCE_CENSUS.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recovered-source:
+    name: Recovered protocol source physical build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+      SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+      RECOVERED_CHECKPOINT: "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify prerequisite closure and immutable source binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          git diff --check
+          mkdir -p /tmp/nqc-pft/evidence /tmp/nqc-pft/source
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          bt=json.loads(Path("ci/nqc-build-truth/BUILD_TRUTH_CLOSEOUT.json").read_text())
+          assert bt["status"] == "BUILD_TRUTH_CLOSED"
+          assert bt["closeout_attestation_sha256"] == "1bfc0007c988da7b0c3ab590c5fa8918b0d8cd0c4864537f2b5c744f924db22a"
+
+          contract=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
+          assert contract["status"] in {"NOT_TESTED","RUNTIME_CLOSEOUT_CANDIDATE_READY"}
+          assert contract["recovered_physical_source"]["git_bundle_checkpoint"] == "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
+          assert len(contract["current_blockers"]) == 3
+          blockers={b["id"]:b for b in contract["current_blockers"]}
+          assert set(blockers) == {"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+          closeout_paths={
+              "PFT-SRC-001":Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json"
+              ),
+              "PFT-SRC-002":Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json"
+              ),
+              "PFT-SRC-003":Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json"
+              ),
+          }
+          for blocker_id,blocker in blockers.items():
+              assert blocker["status"] in {"OPEN","CLOSED"}
+              if blocker["status"] == "CLOSED":
+                  closeout=json.loads(closeout_paths[blocker_id].read_text())
+                  assert closeout["source_blocker"] == blocker_id
+                  assert closeout["status"] == "CLOSED"
+                  assert closeout["unexplained_mismatches"] == 0
+                  assert closeout["protocol_fork_truth"] == "NOT_CLOSED"
+          if contract["status"] == "RUNTIME_CLOSEOUT_CANDIDATE_READY":
+              assert all(b["status"] == "CLOSED" for b in blockers.values())
+
+          binding=json.loads(Path("ci/nqc-protocol-fork/recovered-source/SOURCE_BINDING.json").read_text())
+          assert binding["physical_checkpoint"] == "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
+          assert binding["classification"] == "CONTENT_PRESERVING_PROTOCOL_SUBSET_FROM_PHYSICAL_GIT_BUNDLE"
+          assert binding["source_bytes_modified"] is False
+          assert binding["wrapper_workspace_manifest_modified"] is True
+          assert binding["target_checkpoint_documented_unavailable"] == "4eba05d1fe15"
+          assert binding["master_head_documented_unavailable"] == "dd5db84"
+          assert binding["missing_documented_components"] == [
+              "contracts/src/NqcV2BackrunExecutor.sol",
+              "crates/nqc-v2-state",
+              "crates/nqc-aave-reconciler",
+          ]
+          PY
+
+          (
+            cd ci/nqc-protocol-fork/recovered-source
+            sha256sum -c SOURCE_FILES.sha256
+          )
+
+          test "$(sha256sum ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol | awk '{print $1}')" = "453a1a55fd9e7852ebc02b15a9ab1cc82cfc1dcf46d73f3667e040b770cd2a2b"
+          test "$(sha256sum ci/nqc-protocol-fork/recovered-source/contracts/test/NqcAaveV3Executor.t.sol | awk '{print $1}')" = "427478747ad6ed78ed08790c8df314e268da326b2af15f610b27a4afd848be66"
+          test "$(sha256sum ci/nqc-protocol-fork/recovered-source/contracts/foundry.toml | awk '{print $1}')" = "0158579a9b6b71944e91563ce2d1d47b73d884e504e14482c9111acb363ce798"
+
+          python3 - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          root=Path("ci/nqc-protocol-fork/recovered-source")
+          doc=tomllib.loads((root/"Cargo.toml").read_text())
+          members=doc["workspace"]["members"]
+          assert len(members) == 15
+          assert set(members) == {
+              "crates/nqc-core",
+              "crates/nqc-aave-math",
+              "crates/nqc-state",
+              "crates/nqc-hot-state",
+              "crates/nqc-aave-sync",
+              "crates/nqc-aave-reader",
+              "crates/nqc-aave-events",
+              "crates/nqc-aave-market",
+              "crates/nqc-aave-opportunity",
+              "crates/nqc-executor",
+              "crates/nqc-v2-router",
+              "crates/nqc-sim",
+              "crates/nqc-replay",
+              "crates/nqc-edge",
+              "crates/nqc-settlement",
+          }
+          assert not (root/"contracts/src/NqcV2BackrunExecutor.sol").exists()
+          assert not (root/"crates/nqc-v2-state").exists()
+          assert not (root/"crates/nqc-aave-reconciler").exists()
+          PY
+
+          cp -a ci/nqc-protocol-fork/recovered-source/. /tmp/nqc-pft/source/
+          cp ci/nqc-protocol-fork/recovered-source/SOURCE_FILES.sha256 /tmp/nqc-pft/evidence/
+          cp ci/nqc-protocol-fork/recovered-source/SOURCE_BINDING.json /tmp/nqc-pft/evidence/
+          git rev-parse HEAD > /tmp/nqc-pft/evidence/repository-source-sha.txt
+          printf 'PASS\n' > /tmp/nqc-pft/evidence/source-hash-manifest.txt
+
+          # Measured compatibility repairs are applied only to the temporary
+          # build copy. Immutable recovered bytes remain hash-identical.
+          PATCH1="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-001-aave-u40.patch"
+          PATCH2="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-002-executor-return.patch"
+          PATCH3="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch"
+          PATCH4="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-004-math-test-wad-import.patch"
+          PATCH5="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch"
+          PATCH6="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-006-revm-blob-fee-fraction.patch"
+          echo "9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca  $PATCH1" | sha256sum -c -
+          echo "3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7  $PATCH2" | sha256sum -c -
+          echo "7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5  $PATCH3" | sha256sum -c -
+          echo "323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720  $PATCH4" | sha256sum -c -
+          echo "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664  $PATCH5" | sha256sum -c -
+          echo "f83b44b92ed52faec14cc4ed119b7addcb618c4d5520afa31c266e950d4820c0  $PATCH6" | sha256sum -c -
+          PATCH7="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch"
+          REGRESSION7="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-repayment-regression.t.sol"
+          echo "bf3d8ad2f5f1ddbbf80cdb50ba60442e08dce2ef990f68a5f29ba48992ea1fae  $PATCH7" | sha256sum -c -
+          echo "e1e78e0132e21fecb9154a6c92af206062145dd01884ce9e2b9247f2c32d3bbd  $REGRESSION7" | sha256sum -c -
+          (
+            cd /tmp/nqc-pft/source
+            git apply --check "$PATCH1"
+            git apply "$PATCH1"
+            git apply --unidiff-zero --check "$PATCH2"
+            git apply --unidiff-zero "$PATCH2"
+            git apply --unidiff-zero --check "$PATCH3"
+            git apply --unidiff-zero "$PATCH3"
+            git apply --unidiff-zero --check "$PATCH4"
+            git apply --unidiff-zero "$PATCH4"
+            git apply --unidiff-zero --check "$PATCH5"
+            git apply --unidiff-zero "$PATCH5"
+            git apply --unidiff-zero --check "$PATCH6"
+            git apply --unidiff-zero "$PATCH6"
+            git apply --unidiff-zero --check "$PATCH7"
+            git apply --unidiff-zero "$PATCH7"
+            cp "$REGRESSION7" contracts/test/PftRepaymentRegression.t.sol
+          )
+          {
+            sha256sum "$PATCH1"
+            sha256sum "$PATCH2"
+            sha256sum "$PATCH3"
+            sha256sum "$PATCH4"
+            sha256sum "$PATCH5"
+            sha256sum "$PATCH6"
+            sha256sum "$PATCH7"
+            sha256sum "$REGRESSION7"
+          } > /tmp/nqc-pft/evidence/compatibility-patches.sha256
+          cat > /tmp/nqc-pft/evidence/compatibility-overlays.txt <<'EOF'
+          PFT-COMPAT-001 LOSSLESS_UINT40_TO_U64
+          PFT-COMPAT-002 ABI_SINGLE_RETURN_DIRECT_U256
+          PFT-COMPAT-003 TEST_ONLY_NQC_CORE_DEV_DEPENDENCY
+          PFT-COMPAT-004 TEST_ONLY_WAD_IMPORT
+          PFT-COMPAT-005 TEST_ONLY_NQC_AAVE_SYNC_DEV_DEPENDENCY
+          PFT-COMPAT-006 REVM_SPEC_AWARE_BLOB_BASE_FEE_UPDATE_FRACTION
+          PFT-COMPAT-007 AAVE_REPAYMENT_PRIVATE_HELPER_STACK_LIFETIME
+          EOF
+
+      - name: Install exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rustfmt,clippy
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee /tmp/nqc-pft/evidence/rustc.txt
+          cargo -V | tee /tmp/nqc-pft/evidence/cargo.txt
+          rustc -V | grep -F "1.98.1"
+
+      - name: Certify pinned dependency lock and recovered Rust workspace
+        shell: bash
+        working-directory: /tmp/nqc-pft/source
+        run: |
+          set -euo pipefail
+          cp "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock" Cargo.lock
+          echo "f32e4cf8ef1896ac982082583ebfda0e65d45a490ffc4dd6bf58be2077d8984a  Cargo.lock" | sha256sum -c -
+          cargo fetch --locked
+          cp Cargo.lock /tmp/nqc-pft/evidence/recovered-Cargo.lock
+          sha256sum Cargo.lock | tee /tmp/nqc-pft/evidence/recovered-Cargo.lock.sha256
+          cargo metadata --locked --format-version 1 > /tmp/nqc-pft/evidence/cargo-metadata.json
+
+          export CARGO_NET_OFFLINE=true
+          export CARGO_INCREMENTAL=0
+
+          # The recovered bytes are immutable historical evidence. Formatter/lint
+          # drift under the 1.98.1 certification toolchain is recorded, never fixed
+          # in place. Physical compile/test/release remain hard gates.
+          set +e
+          cargo fmt --all --check 2>&1 | tee /tmp/nqc-pft/evidence/rustfmt-check.txt
+          fmt_rc=${PIPESTATUS[0]}
+          cargo clippy --locked --offline --workspace --all-targets 2>&1 | tee /tmp/nqc-pft/evidence/cargo-clippy.txt
+          clippy_rc=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$fmt_rc" > /tmp/nqc-pft/evidence/rustfmt-exit-code.txt
+          printf '%s\n' "$clippy_rc" > /tmp/nqc-pft/evidence/clippy-exit-code.txt
+
+          cargo check --locked --offline --workspace --all-targets \
+            2>&1 | tee /tmp/nqc-pft/evidence/cargo-check.txt
+          cargo test --locked --offline --workspace --all-targets \
+            2>&1 | tee /tmp/nqc-pft/evidence/cargo-test.txt
+          cargo build --locked --offline --workspace --release \
+            2>&1 | tee /tmp/nqc-pft/evidence/cargo-release.txt
+          printf 'PASS\n' > /tmp/nqc-pft/evidence/rust-physical-build-pass.txt
+
+      - name: Install exact Foundry and solc
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-pft/foundry
+          curl --fail --location --retry 5 --retry-all-errors             -o /tmp/nqc-pft/foundry.tar.gz             "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  /tmp/nqc-pft/foundry.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/nqc-pft/foundry.tar.gz -C /tmp/nqc-pft/foundry
+          echo "/tmp/nqc-pft/foundry" >> "$GITHUB_PATH"
+          export PATH="/tmp/nqc-pft/foundry:$PATH"
+          forge --version | tee /tmp/nqc-pft/evidence/forge.txt
+          forge --version | grep -F "$FOUNDRY_VERSION"
+
+          curl --fail --location --retry 5 --retry-all-errors             -o /tmp/nqc-pft/solc-0.8.24             "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  /tmp/nqc-pft/solc-0.8.24" | sha256sum -c -
+          chmod +x /tmp/nqc-pft/solc-0.8.24
+          /tmp/nqc-pft/solc-0.8.24 --version | tee /tmp/nqc-pft/evidence/solc.txt
+          /tmp/nqc-pft/solc-0.8.24 --version | grep -F "$SOLC_VERSION"
+
+      - name: Certify recovered Aave V3 executor bytes and deterministic tests
+        shell: bash
+        working-directory: /tmp/nqc-pft/source/contracts
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/nqc-pft/foundry:$PATH"
+
+          set +e
+          forge fmt --check 2>&1 | tee /tmp/nqc-pft/evidence/forge-fmt-check.txt
+          fmt_rc=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "$fmt_rc" > /tmp/nqc-pft/evidence/forge-fmt-exit-code.txt
+
+          forge build --force --offline --use /tmp/nqc-pft/solc-0.8.24 --sizes \
+            2>&1 | tee /tmp/nqc-pft/evidence/forge-build.txt
+          forge test --offline --use /tmp/nqc-pft/solc-0.8.24 --fuzz-seed 0x39 -vvv \
+            2>&1 | tee /tmp/nqc-pft/evidence/forge-test.txt
+          forge inspect --offline --use /tmp/nqc-pft/solc-0.8.24 NqcAaveV3Executor methodIdentifiers \
+            > /tmp/nqc-pft/evidence/aave-method-identifiers.json
+          printf 'PASS\n' > /tmp/nqc-pft/evidence/forge-physical-build-pass.txt
+
+      - name: Emit fail-closed recovered-source evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          ev=Path("/tmp/nqc-pft/evidence")
+          def exists(name):
+              return (ev/name).exists()
+          def fsha(name):
+              p=ev/name
+              if not p.exists():
+                  return None
+              return hashlib.sha256(p.read_bytes()).hexdigest()
+
+          summary={
+              "schema_version":1,
+              "tranche":"T39_PROTOCOL_FORK_TRUTH_55_TO_62",
+              "gate":"RECOVERED_SOURCE_PHYSICAL_BUILD",
+              "repository_source_sha":(ev/"repository-source-sha.txt").read_text().strip(),
+              "physical_checkpoint":"2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
+              "source_hash_manifest_verified":exists("source-hash-manifest.txt"),
+              "compatibility_overlays":[
+                  {"id":"PFT-COMPAT-001","sha256":"9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca"},
+                  {"id":"PFT-COMPAT-002","sha256":"3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7"},
+                  {"id":"PFT-COMPAT-003","sha256":"7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5"},
+                  {"id":"PFT-COMPAT-004","sha256":"323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720"},
+                  {"id":"PFT-COMPAT-005","sha256":"12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664"},
+                  {"id":"PFT-COMPAT-006","sha256":"f83b44b92ed52faec14cc4ed119b7addcb618c4d5520afa31c266e950d4820c0"},
+                  {"id":"PFT-COMPAT-007","sha256":"bf3d8ad2f5f1ddbbf80cdb50ba60442e08dce2ef990f68a5f29ba48992ea1fae","regression_test_sha256":"e1e78e0132e21fecb9154a6c92af206062145dd01884ce9e2b9247f2c32d3bbd"}
+              ],
+              "compatibility_overlay_scope":"TEMP_BUILD_COPY_ONLY; RECOVERED_BYTES_IMMUTABLE",
+              "rustfmt_1_98_1_exact_source_match":(
+                  (ev/"rustfmt-exit-code.txt").read_text().strip() == "0"
+                  if exists("rustfmt-exit-code.txt") else None
+              ),
+              "rust_physical_build_pass":exists("rust-physical-build-pass.txt"),
+              "cargo_lock_generated":False,
+              "cargo_lock_pinned":exists("recovered-Cargo.lock"),
+              "cargo_lock_expected_sha256":"f32e4cf8ef1896ac982082583ebfda0e65d45a490ffc4dd6bf58be2077d8984a",
+              "cargo_lock_sha256":fsha("recovered-Cargo.lock"),
+              "cargo_check_log_present":exists("cargo-check.txt"),
+              "cargo_clippy_log_present":exists("cargo-clippy.txt"),
+              "cargo_test_log_present":exists("cargo-test.txt"),
+              "cargo_release_log_present":exists("cargo-release.txt"),
+              "forge_build_log_present":exists("forge-build.txt"),
+              "forge_test_log_present":exists("forge-test.txt"),
+              "forge_fmt_1_7_1_exact_source_match":(
+                  (ev/"forge-fmt-exit-code.txt").read_text().strip() == "0"
+                  if exists("forge-fmt-exit-code.txt") else None
+              ),
+              "forge_physical_build_pass":exists("forge-physical-build-pass.txt"),
+              "v2_executor_source_recovered":False,
+              "v2_state_source_recovered":False,
+              "aave_reconciler_source_recovered":False,
+              "protocol_fork_truth":"NOT_CLOSED",
+              "real_market_census":"NOT_TESTED",
+              "live_pnl_evidence":False,
+              "production_certification":"NOT_CERTIFIED"
+          }
+          payload=json.dumps(summary,sort_keys=True,separators=(",",":")).encode()
+          summary["attestation_sha256"]=hashlib.sha256(payload).hexdigest()
+          (ev/"recovered-source-summary.json").write_text(json.dumps(summary,indent=2,sort_keys=True)+"\n")
+          PY
+
+          (
+            cd /tmp/nqc-pft/evidence
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Upload recovered source build evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-recovered-source-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-pft/evidence/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,81 @@
+name: NQC T39 Aave Canonical State Witness
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-state-witness.yml
+      - ci/nqc-protocol-fork/parity/**
+      - ci/nqc-protocol-fork/corpus/**
+      - ci/nqc-protocol-fork/discovery/aave_candidates.json
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aave-state-witness:
+    name: Cross-provider Aave canonical state witness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Validate immutable inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          git diff --check
+          python3 ci/nqc-protocol-fork/corpus/validate_corpus.py \
+            | tee /tmp/nqc-pft-corpus-validation.json
+
+      - name: Discover exact canonical Aave account-state witnesses
+        shell: bash
+        env:
+          NQC_PFT_AAVE_STATE_OUT: /tmp/nqc-pft-aave-state
+        run: |
+          set -euo pipefail
+          mkdir -p "$NQC_PFT_AAVE_STATE_OUT"
+          python3 ci/nqc-protocol-fork/parity/discover_aave_state_witness.py \
+            | tee "$NQC_PFT_AAVE_STATE_OUT/stdout-summary.json"
+
+      - name: Validate truth boundary and evidence hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root=Path("/tmp/nqc-pft-aave-state")
+          summary=json.loads((root/"summary.json").read_text())
+          assert summary["case_count"] == 3
+          assert summary["fixture_mutation"] is False
+          assert summary["aave_state_parity"] == "NOT_TESTED"
+          assert summary["aave_math_parity"] == "NOT_TESTED"
+          assert summary["revm_fork_parity"] == "NOT_TESTED"
+          assert summary["protocol_fork_truth"] == "NOT_CLOSED"
+          assert all(case["valid_provider_count"] >= 2 for case in summary["cases"])
+          assert all(case["borrower_count"] >= 1 for case in summary["cases"])
+          PY
+
+          (
+            cd /tmp/nqc-pft-aave-state
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Upload canonical state witness evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-state-witness-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-pft-aave-state/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,13 @@
+[package]
+name = "nqc-state"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+alloy = { workspace = true, features = ["provider-ipc", "pubsub", "rpc-types"] }
+futures-util.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,13 @@
+[package]
+name = "nqc-aave-events"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+alloy = { workspace = true, features = ["rpc-types", "sol-types"] }
+nqc-aave-sync = { path = "../nqc-aave-sync" }
+thiserror.workspace = true
+
+[lints]
+workspace = true

@@ -1,0 +1,15 @@
+[package]
+name = "nqc-sim"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+alloy = { workspace = true, features = ["eips", "providers", "rpc-types"] }
+nqc-executor = { path = "../nqc-executor" }
+nqc-state = { path = "../nqc-state" }
+revm.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

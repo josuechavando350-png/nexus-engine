@@ -1,0 +1,323 @@
+name: NQC T39 Aave Recovered Reader Parity
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-reader-parity.yml
+      - ci/nqc-protocol-fork/parity/aave-user-meta-witness.json
+      - ci/nqc-protocol-fork/parity/ipc_http_bridge.py
+      - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/locks/**
+      - ci/nqc-protocol-fork/corpus/**
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recovered-reader-parity:
+    name: Recovered NQC Aave user-meta parity
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      RECOVERED_CHECKPOINT: "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
+      WITNESS_SHA256: "16a4260977fa7784fd5b1282de8eee71710fdb49ca171b42e99592e8cf870441"
+      CARGO_LOCK_SHA256: "f32e4cf8ef1896ac982082583ebfda0e65d45a490ffc4dd6bf58be2077d8984a"
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify immutable source, witness and truth boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          git diff --check
+          mkdir -p /tmp/nqc-pft-reader/evidence /tmp/nqc-pft-reader/source
+
+          python3 ci/nqc-protocol-fork/corpus/validate_corpus.py \
+            | tee /tmp/nqc-pft-reader/evidence/corpus-validation.json
+
+          echo "$WITNESS_SHA256  ci/nqc-protocol-fork/parity/aave-user-meta-witness.json" | sha256sum -c -
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          witness=json.loads(Path("ci/nqc-protocol-fork/parity/aave-user-meta-witness.json").read_text())
+          assert witness["schema_version"] == 1
+          assert witness["gate"] == "AAVE_CANONICAL_STATE_WITNESS_LOCK"
+          assert witness["physical_checkpoint"] == "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
+          assert witness["discovery_source_sha"] == "7b2408778f5e0b053112220d7f3ee7970861462b"
+          assert witness["discovery_artifact_id"] == 10924684411
+          assert witness["discovery_artifact_sha256"] == "334d5663e5bfe95782683472b5128ca1c0a1ca5e6634e2160f7d6bb86fa28993"
+          assert witness["parity_status"] == "NOT_TESTED"
+          assert len(witness["cases"]) == 2
+          assert sum(len(case["canonical_users"]) for case in witness["cases"]) == 15
+
+          contract=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
+          assert contract["status"] in {"NOT_TESTED","RUNTIME_CLOSEOUT_CANDIDATE_READY"}
+          blockers={b["id"]:b for b in contract["current_blockers"]}
+          assert set(blockers) == {"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+          closeout_paths={
+              "PFT-SRC-001":Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json"
+              ),
+              "PFT-SRC-002":Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json"
+              ),
+              "PFT-SRC-003":Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json"
+              ),
+          }
+          for blocker_id,blocker in blockers.items():
+              assert blocker["status"] in {"OPEN","CLOSED"}
+              if blocker["status"] == "CLOSED":
+                  closeout=json.loads(closeout_paths[blocker_id].read_text())
+                  assert closeout["source_blocker"] == blocker_id
+                  assert closeout["status"] == "CLOSED"
+                  assert closeout["unexplained_mismatches"] == 0
+                  assert closeout["protocol_fork_truth"] == "NOT_CLOSED"
+          if contract["status"] == "RUNTIME_CLOSEOUT_CANDIDATE_READY":
+              assert all(b["status"] == "CLOSED" for b in blockers.values())
+          PY
+
+          (
+            cd ci/nqc-protocol-fork/recovered-source
+            sha256sum -c SOURCE_FILES.sha256
+          )
+          cp -a ci/nqc-protocol-fork/recovered-source/. /tmp/nqc-pft-reader/source/
+
+          # Reproduce only the two already-measured test/dev manifest overlays
+          # that define the pinned certification lock. They are applied to the
+          # temporary copy only; immutable recovered bytes remain untouched.
+          PATCH3="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch"
+          PATCH5="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch"
+          echo "7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5  $PATCH3" | sha256sum -c -
+          echo "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664  $PATCH5" | sha256sum -c -
+          (
+            cd /tmp/nqc-pft-reader/source
+            git apply --unidiff-zero --check "$PATCH3"
+            git apply --unidiff-zero "$PATCH3"
+            git apply --unidiff-zero --check "$PATCH5"
+            git apply --unidiff-zero "$PATCH5"
+          )
+          {
+            sha256sum "$PATCH3"
+            sha256sum "$PATCH5"
+          } > /tmp/nqc-pft-reader/evidence/lock-manifest-overlays.sha256
+
+          git rev-parse HEAD > /tmp/nqc-pft-reader/evidence/repository-source-sha.txt
+          sha256sum ci/nqc-protocol-fork/parity/aave-user-meta-witness.json \
+            > /tmp/nqc-pft-reader/evidence/witness.sha256
+          sha256sum ci/nqc-protocol-fork/parity/ipc_http_bridge.py \
+            > /tmp/nqc-pft-reader/evidence/ipc-http-bridge.sha256
+
+      - name: Install exact Rust toolchain and pinned dependency graph
+        shell: bash
+        working-directory: /tmp/nqc-pft-reader/source
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee /tmp/nqc-pft-reader/evidence/rustc.txt
+          cargo -V | tee /tmp/nqc-pft-reader/evidence/cargo.txt
+          rustc -V | grep -F "1.98.1"
+
+          cp "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock" Cargo.lock
+          echo "$CARGO_LOCK_SHA256  Cargo.lock" | sha256sum -c -
+          cargo fetch --locked
+          cp Cargo.lock /tmp/nqc-pft-reader/evidence/Cargo.lock
+
+      - name: Generate parity-only integration test from locked witness
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-pft-reader/source/crates/nqc-aave-reader/tests
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          witness=json.loads(Path("ci/nqc-protocol-fork/parity/aave-user-meta-witness.json").read_text())
+          cases=[]
+          for case in witness["cases"]:
+              users=[]
+              for address,state in sorted(case["canonical_users"].items()):
+                  raw=int(state["user_configuration_raw"])
+                  if raw >= 2**128:
+                      raise SystemExit(f"user configuration does not fit u128: {address}")
+                  users.append((address,raw,int(state["e_mode_category"])))
+              cases.append((case["case_id"],int(case["block_number"]),case["block_hash"],users))
+
+          lines=[
+              "use alloy::primitives::{Address, B256, U256};",
+              "use nqc_aave_reader::AaveLocalReader;",
+              "use nqc_state::{RethIpcConfig, RethIpcSource};",
+              "use std::{env, str::FromStr};",
+              "",
+              "#[tokio::test]",
+              "async fn recovered_reader_matches_locked_canonical_user_meta() -> Result<(), Box<dyn std::error::Error>> {",
+              "    let socket = env::var(\"NQC_PFT_IPC_PATH\")?;",
+              "    let upstream = env::var(\"NQC_PFT_UPSTREAM_ID\")?;",
+              f"    let pool = Address::from_str(\"{witness['pool']}\")?;",
+              "    let source = RethIpcSource::connect(&RethIpcConfig::new(socket)).await?;",
+              "    let reader = AaveLocalReader::from_reth(&source, pool, 1).await?;",
+              "    let mut matches: u64 = 0;",
+          ]
+          for case_id,block_number,block_hash,users in cases:
+              lines += [
+                  f"    let anchor = source.canonical_block_at({block_number}u64).await?;",
+                  f"    assert_eq!(anchor.hash, B256::from_str(\"{block_hash}\")?, \"{case_id}: block hash\");",
+              ]
+              for address,raw,emode in users:
+                  lines += [
+                      f"    let user = Address::from_str(\"{address}\")?;",
+                      "    let meta = reader.read_user_meta_at(user, anchor).await?;",
+                      f"    assert_eq!(meta.user_configuration.0, U256::from({raw}u128), \"{case_id} {address}: configuration\");",
+                      f"    assert_eq!(meta.e_mode_category, {emode}u8, \"{case_id} {address}: eMode\");",
+                      "    matches += 1;",
+                      f"    println!(\"PFT_USER_META_PASS upstream={{}} case={case_id} user={address}\", upstream);",
+                  ]
+          lines += [
+              '    assert_eq!(matches, 15, "all locked borrowers must execute");',
+              '    println!("PFT_USER_META_TOTAL upstream={} matches={}", upstream, matches);',
+              "    Ok(())",
+              "}",
+              "",
+          ]
+          path=Path("/tmp/nqc-pft-reader/source/crates/nqc-aave-reader/tests/pft_user_meta_parity.rs")
+          path.write_text("\n".join(lines))
+          PY
+          sha256sum /tmp/nqc-pft-reader/source/crates/nqc-aave-reader/tests/pft_user_meta_parity.rs \
+            | tee /tmp/nqc-pft-reader/evidence/generated-parity-test.sha256
+
+      - name: Execute recovered reader against two independent exact-state RPCs
+        shell: bash
+        working-directory: /tmp/nqc-pft-reader/source
+        run: |
+          set -euo pipefail
+          export CARGO_NET_OFFLINE=true
+          export CARGO_INCREMENTAL=0
+
+          providers=(
+            "blastapi-public|https://eth-mainnet.public.blastapi.io"
+            "mevblocker-rpc|https://rpc.mevblocker.io"
+          )
+
+          total=0
+          for entry in "${providers[@]}"; do
+            provider_id="${entry%%|*}"
+            provider_url="${entry#*|}"
+            socket="/tmp/nqc-pft-reader/${provider_id}.ipc"
+            log="/tmp/nqc-pft-reader/evidence/${provider_id}.log"
+            proxy_log="/tmp/nqc-pft-reader/evidence/${provider_id}-bridge.log"
+            rm -f "$socket"
+
+            NQC_PFT_IPC_SOCKET="$socket" \
+            NQC_PFT_UPSTREAM_URL="$provider_url" \
+            NQC_PFT_UPSTREAM_ID="$provider_id" \
+              python3 "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/parity/ipc_http_bridge.py" \
+              >"$proxy_log" 2>&1 &
+            proxy_pid=$!
+
+            for _ in $(seq 1 100); do
+              test -S "$socket" && break
+              sleep 0.1
+            done
+            test -S "$socket"
+
+            set +e
+            NQC_PFT_IPC_PATH="$socket" \
+            NQC_PFT_UPSTREAM_ID="$provider_id" \
+              cargo test --locked --offline -p nqc-aave-reader \
+                --test pft_user_meta_parity -- --nocapture \
+                2>&1 | tee "$log"
+            test_rc=${PIPESTATUS[0]}
+            set -e
+
+            kill "$proxy_pid" || true
+            wait "$proxy_pid" 2>/dev/null || true
+            test "$test_rc" -eq 0
+
+            count="$(grep -c '^PFT_USER_META_PASS ' "$log")"
+            test "$count" -eq 15
+            grep -F "PFT_USER_META_TOTAL upstream=$provider_id matches=15" "$log"
+            printf '%s %s\n' "$provider_id" "$count" >> /tmp/nqc-pft-reader/evidence/provider-match-counts.txt
+            total=$((total + count))
+          done
+
+          test "$total" -eq 30
+          printf '%s\n' "$total" > /tmp/nqc-pft-reader/evidence/total-exact-comparisons.txt
+          printf 'PASS\n' > /tmp/nqc-pft-reader/evidence/recovered-reader-user-meta-parity.txt
+
+      - name: Emit scoped parity evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          ev=Path("/tmp/nqc-pft-reader/evidence")
+          ev.mkdir(parents=True, exist_ok=True)
+          def read(name, default=None):
+              path=ev/name
+              return path.read_text().strip() if path.exists() else default
+          passed=(ev/"recovered-reader-user-meta-parity.txt").exists()
+          total=int(read("total-exact-comparisons.txt", "0"))
+          summary={
+              "schema_version":1,
+              "tranche":"T39_PROTOCOL_FORK_TRUTH_55_TO_62",
+              "gate":"RECOVERED_NQC_AAVE_USER_META_PARITY",
+              "repository_source_sha":read("repository-source-sha.txt"),
+              "physical_checkpoint":"2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
+              "witness_source_sha":"7b2408778f5e0b053112220d7f3ee7970861462b",
+              "witness_artifact_id":10924684411,
+              "witness_artifact_sha256":"334d5663e5bfe95782683472b5128ca1c0a1ca5e6634e2160f7d6bb86fa28993",
+              "providers":["blastapi-public","mevblocker-rpc"],
+              "fixture_cases":2,
+              "unique_borrowers":15,
+              "exact_user_meta_comparisons":total,
+              "recovered_nqc_reader_code_executed":passed,
+              "user_configuration_exact":passed and total == 30,
+              "emode_exact":passed and total == 30,
+              "transport":"RECOVERED_NQC_IPC_CLIENT_VIA_TEST_ONLY_UNIX_TO_HTTP_JSON_RPC_BRIDGE",
+              "transport_bridge_modifies_recovered_source":False,
+              "temporary_lock_manifest_overlays":["PFT-COMPAT-003","PFT-COMPAT-005"],
+              "lock_manifest_overlays_modify_production_runtime":False,
+              "scope_status":"PASS" if passed and total == 30 else "FAIL",
+              "aave_state_parity":"PARTIAL_USER_META_ONLY" if passed and total == 30 else "NOT_TESTED",
+              "aave_full_reserve_state_parity":"NOT_TESTED",
+              "aave_liquidation_math_parity":"NOT_TESTED",
+              "revm_fork_parity":"NOT_TESTED",
+              "v2_state_parity":"NOT_TESTED",
+              "protocol_fork_truth":"NOT_CLOSED",
+              "real_market_census":"NOT_TESTED",
+              "live_pnl_evidence":False,
+              "production_certification":"NOT_CERTIFIED",
+          }
+          payload=json.dumps(summary,sort_keys=True,separators=(",",":")).encode()
+          summary["attestation_sha256"]=hashlib.sha256(payload).hexdigest()
+          (ev/"summary.json").write_text(json.dumps(summary,indent=2,sort_keys=True)+"\n")
+          PY
+
+          (
+            cd /tmp/nqc-pft-reader/evidence
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Upload recovered reader parity evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-reader-parity-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-pft-reader/evidence/
+          if-no-files-found: error
+          retention-days: 30

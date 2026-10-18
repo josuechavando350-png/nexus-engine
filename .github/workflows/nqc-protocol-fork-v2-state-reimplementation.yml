@@ -1,0 +1,110 @@
+name: NQC T39 V2 State Reimplementation
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-v2-state-reimplementation.yml
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-state/**
+      - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-v2-state:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      NQC_V2_WORK: /tmp/nqc-v2-state-reimplementation
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify immutable source and prepare isolated build
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_V2_WORK"
+          mkdir -p "$NQC_V2_WORK/recovered-source" "$NQC_V2_WORK/reimplementation" "$NQC_V2_WORK/evidence"
+          (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+          cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_V2_WORK/recovered-source/"
+          cp -a ci/nqc-protocol-fork/reimplementation/nqc-v2-state "$NQC_V2_WORK/reimplementation/"
+          declare -A patches=(
+            [PFT-COMPAT-001-aave-u40.patch]=9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca
+            [PFT-COMPAT-002-executor-return.patch]=3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7
+            [PFT-COMPAT-003-sync-devdep.patch]=7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5
+            [PFT-COMPAT-005-opportunity-devdep.patch]=12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664
+          )
+          for name in "${!patches[@]}"; do
+            patch="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/$name"
+            test "$(sha256sum "$patch" | cut -d' ' -f1)" = "${patches[$name]}"
+            git -C "$NQC_V2_WORK/recovered-source" apply --unidiff-zero "$patch"
+          done
+          cp ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock "$NQC_V2_WORK/recovered-source/Cargo.lock"
+          cp ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock "$NQC_V2_WORK/reimplementation/nqc-v2-state/Cargo.lock"
+          sha256sum ci/nqc-protocol-fork/reimplementation/nqc-v2-state/Cargo.toml                     ci/nqc-protocol-fork/reimplementation/nqc-v2-state/src/lib.rs                     ci/nqc-protocol-fork/reimplementation/nqc-v2-state/REIMPLEMENTATION_CONTRACT.json             > "$NQC_V2_WORK/evidence/reimplementation-source.sha256"
+          git rev-parse HEAD > "$NQC_V2_WORK/evidence/repo-head.txt"
+
+      - name: Pin toolchain and fetch recovered dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee "$NQC_V2_WORK/evidence/rustc.txt"
+          cargo -V | tee "$NQC_V2_WORK/evidence/cargo.txt"
+          cargo fetch --locked --manifest-path "$NQC_V2_WORK/recovered-source/Cargo.toml"
+
+      - name: Execute deterministic V2 state tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cp "$NQC_V2_WORK/reimplementation/nqc-v2-state/Cargo.lock" "$NQC_V2_WORK/evidence/Cargo.lock.before"
+          cargo test --offline --manifest-path "$NQC_V2_WORK/reimplementation/nqc-v2-state/Cargo.toml" 2>&1             | tee "$NQC_V2_WORK/evidence/cargo-test.log"
+          cp "$NQC_V2_WORK/reimplementation/nqc-v2-state/Cargo.lock" "$NQC_V2_WORK/evidence/Cargo.lock.after"
+          python3 - <<'PY'
+          import tomllib
+          from pathlib import Path
+          root = Path("/tmp/nqc-v2-state-reimplementation/evidence")
+          before = tomllib.loads((root / "Cargo.lock.before").read_text())
+          after = tomllib.loads((root / "Cargo.lock.after").read_text())
+          def external(doc):
+              return {
+                  (p["name"], p["version"], p.get("source"), p.get("checksum"))
+                  for p in doc["package"] if p.get("source") is not None
+              }
+          baseline, resolved = external(before), external(after)
+          unexpected = sorted(resolved - baseline)
+          if unexpected:
+              raise SystemExit(f"new or changed external dependency tuples: {unexpected}")
+          (root / "dependency-pruning.txt").write_text(
+              f"baseline_external={len(baseline)}\nresolved_external={len(resolved)}\n"
+              f"pruned_external={len(baseline - resolved)}\nunexpected_external=0\n"
+          )
+          PY
+          grep -q 'test result: ok' "$NQC_V2_WORK/evidence/cargo-test.log"
+          printf '%s\n' 'NEW_SOURCE_DETERMINISTIC_TESTS_PASS_ONLY' > "$NQC_V2_WORK/evidence/reimplementation-status.txt"
+          printf '%s\n' 'OPEN_PENDING_HISTORICAL_V2_PARITY_AND_REORG' > "$NQC_V2_WORK/evidence/PFT-SRC-002-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_V2_WORK/evidence/protocol-fork-truth.txt"
+
+      - name: Preserve evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-v2-state-reimplementation-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-v2-state-reimplementation/evidence
+          if-no-files-found: error
+          retention-days: 30

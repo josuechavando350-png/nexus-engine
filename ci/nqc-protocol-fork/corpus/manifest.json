@@ -1,0 +1,187 @@
+{
+  "cases": [
+    "ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json",
+    "ci/nqc-protocol-fork/corpus/cases/aave-liquidation-usdc-2026-a36f.json",
+    "ci/nqc-protocol-fork/corpus/cases/aave-liquidation-default-close-2026-09-bc34.json"
+  ],
+  "protocol_fork_truth": "NOT_CLOSED",
+  "provider_contract": {
+    "block_hash_pin_required": true,
+    "moving_head_selector_forbidden": true,
+    "must_serve_exact_historical_state": true,
+    "nearby_block_substitution_forbidden": true
+  },
+  "required_classes": {
+    "aave": [
+      {
+        "id": "ordinary_liquidation",
+        "status": "PASS"
+      },
+      {
+        "id": "emode_account",
+        "status": "PASS"
+      },
+      {
+        "id": "close_factor_boundary",
+        "status": "PASS"
+      },
+      {
+        "id": "multiple_collateral_debt_pairs",
+        "status": "PASS"
+      },
+      {
+        "id": "interest_index_sensitive",
+        "status": "PASS"
+      },
+      {
+        "id": "dust_boundary",
+        "status": "PASS"
+      },
+      {
+        "id": "liquidation_bonus_path",
+        "status": "PASS"
+      },
+      {
+        "id": "protocol_fee_path",
+        "status": "PASS"
+      },
+      {
+        "id": "oracle_dependent_valuation",
+        "status": "PASS"
+      },
+      {
+        "id": "flash_loan_premium_accounting",
+        "status": "PASS"
+      }
+    ],
+    "token_execution": [
+      {
+        "id": "standard_erc20",
+        "status": "PASS"
+      },
+      {
+        "id": "fee_on_transfer_rejection",
+        "status": "PASS"
+      },
+      {
+        "id": "non_standard_erc20_behavior",
+        "status": "PASS"
+      }
+    ],
+    "v2": [
+      {
+        "id": "single_hop_route",
+        "status": "PASS"
+      },
+      {
+        "id": "multi_hop_route",
+        "status": "PASS"
+      },
+      {
+        "id": "sync_reserve_update",
+        "status": "PASS"
+      },
+      {
+        "id": "zero_liquidity_death_revival",
+        "status": "PASS"
+      },
+      {
+        "id": "route_continuity",
+        "status": "PASS"
+      },
+      {
+        "id": "reorged_reserve_state",
+        "status": "PASS"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "source_binding": {
+    "fixture_schema": "ci/nqc-protocol-fork/corpus/fixture.schema.json",
+    "physical_checkpoint": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
+    "repository_head": "5746612d36c4b0b848c484001a0bf6dda1a3ea52"
+  },
+  "status": "PASS",
+  "tranche": "T39_PROTOCOL_FORK_TRUTH_55_TO_62",
+  "truth_boundaries": {
+    "canary_execution": false,
+    "live_pnl_evidence": false,
+    "production_certification": "NOT_CERTIFIED",
+    "real_market_census": "NOT_TESTED",
+    "shadow_live_market_execution": false
+  },
+  "admission": {
+    "discovery_source_sha": "93948f754a3330e52f46cfb985afe373a65be7f5",
+    "discovery_artifact_id": 10955228275,
+    "discovery_artifact_sha256": "cce779341a3331701b2a12859d73b065636f8134234e630990aedfd64d7fd698",
+    "independently_redownloaded_and_sha256_revalidated": true
+  },
+  "external_gate_coverage": {
+    "ordinary_liquidation": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "emode_account": [
+      "NQC T39 Aave Full Account Risk Parity",
+      "NQC T39 Aave Account Risk Exact Parity"
+    ],
+    "close_factor_boundary": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "multiple_collateral_debt_pairs": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "interest_index_sensitive": [
+      "NQC T39 Aave Reserve Balance Parity",
+      "NQC T39 Aave Full Account Risk Parity"
+    ],
+    "dust_boundary": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "liquidation_bonus_path": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "protocol_fee_path": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "oracle_dependent_valuation": [
+      "NQC T39 Aave Full Account Risk Parity",
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "flash_loan_premium_accounting": [
+      "NQC T39 Aave Executor Historical Fork Parity",
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "standard_erc20": [
+      "NQC T39 Aave Executor Historical Fork Parity",
+      "NQC T39 V2 Executor Historical Fork Execution"
+    ],
+    "fee_on_transfer_rejection": [
+      "NQC T39 V2 Executor Authority Baseline Matrix"
+    ],
+    "non_standard_erc20_behavior": [
+      "NQC T39 V2 Executor Authority Baseline Matrix"
+    ],
+    "single_hop_route": [
+      "NQC T39 Protocol Fork Recovered Source Binding"
+    ],
+    "multi_hop_route": [
+      "NQC T39 Protocol Fork Recovered Source Binding",
+      "NQC T39 V2 Executor Historical Fork Execution"
+    ],
+    "sync_reserve_update": [
+      "NQC T39 V2 Historical Sync Parity"
+    ],
+    "zero_liquidity_death_revival": [
+      "NQC T39 V2 Historical Sync Parity",
+      "NQC T39 V2 State Reimplementation"
+    ],
+    "route_continuity": [
+      "NQC T39 V2 Backrun Executor Reimplementation",
+      "NQC T39 V2 Executor Historical Fork Execution"
+    ],
+    "reorged_reserve_state": [
+      "NQC T39 V2 Real Historical Reorg Invalidation",
+      "NQC T39 Reorg Invalidation Replay Refresh"
+    ]
+  }
+}

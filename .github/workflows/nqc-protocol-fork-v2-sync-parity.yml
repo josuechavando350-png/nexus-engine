@@ -1,0 +1,139 @@
+name: NQC T39 V2 Historical Sync Parity
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-v2-sync-parity.yml
+      - ci/nqc-protocol-fork/parity/**
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-state/**
+      - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  historical-v2-sync-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      NQC_V2_SYNC: /tmp/nqc-v2-sync-parity
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify sources and prepare isolated graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_V2_SYNC"
+          mkdir -p "$NQC_V2_SYNC/recovered-source" "$NQC_V2_SYNC/reimplementation" "$NQC_V2_SYNC/evidence"
+          git rev-parse HEAD > "$NQC_V2_SYNC/evidence/repository-source-sha.txt"
+          (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+          cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_V2_SYNC/recovered-source/"
+          cp -a ci/nqc-protocol-fork/reimplementation/nqc-v2-state "$NQC_V2_SYNC/reimplementation/"
+
+          declare -A patches=(
+            [PFT-COMPAT-001-aave-u40.patch]=9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca
+            [PFT-COMPAT-002-executor-return.patch]=3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7
+            [PFT-COMPAT-003-sync-devdep.patch]=7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5
+            [PFT-COMPAT-005-opportunity-devdep.patch]=12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664
+          )
+          for name in "${!patches[@]}"; do
+            patch="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/$name"
+            test "$(sha256sum "$patch" | cut -d' ' -f1)" = "${patches[$name]}"
+            git -C "$NQC_V2_SYNC/recovered-source" apply --unidiff-zero "$patch"
+          done
+
+          cp ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock "$NQC_V2_SYNC/recovered-source/Cargo.lock"
+          cp ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock "$NQC_V2_SYNC/reimplementation/nqc-v2-state/Cargo.lock"
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee "$NQC_V2_SYNC/evidence/rustc.txt"
+          cargo fetch --locked --manifest-path "$NQC_V2_SYNC/recovered-source/Cargo.toml"
+          cargo generate-lockfile --offline --manifest-path "$NQC_V2_SYNC/reimplementation/nqc-v2-state/Cargo.toml"
+
+      - name: Execute deterministic Sync and zero-liquidity regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo test --offline             --manifest-path "$NQC_V2_SYNC/reimplementation/nqc-v2-state/Cargo.toml"             sync_replay -- --nocapture 2>&1 | tee "$NQC_V2_SYNC/evidence/sync-unit.log"
+          grep -F "2 passed; 0 failed" "$NQC_V2_SYNC/evidence/sync-unit.log"
+
+      - name: Capture independent exact historical Sync witnesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u ci/nqc-protocol-fork/parity/v2_sync_witness.py             --out "$NQC_V2_SYNC/evidence"
+          python3 ci/nqc-protocol-fork/parity/generate_v2_sync_parity.py             "$NQC_V2_SYNC/evidence/v2-sync-witness.json"             "$NQC_V2_SYNC/reimplementation/nqc-v2-state/examples/pft_v2_sync_parity.rs"
+          cp "$NQC_V2_SYNC/reimplementation/nqc-v2-state/examples/pft_v2_sync_parity.rs"             "$NQC_V2_SYNC/evidence/"
+          sha256sum             ci/nqc-protocol-fork/parity/v2_sync_witness.py             ci/nqc-protocol-fork/parity/generate_v2_sync_parity.py             ci/nqc-protocol-fork/reimplementation/nqc-v2-state/src/lib.rs             > "$NQC_V2_SYNC/evidence/harness-source.sha256"
+
+      - name: Execute measured Sync replay against both providers
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo build --offline             --manifest-path "$NQC_V2_SYNC/reimplementation/nqc-v2-state/Cargo.toml"             --example pft_v2_sync_parity
+
+          for entry in 'blastapi-public|https://eth-mainnet.public.blastapi.io' 'mevblocker-rpc|https://rpc.mevblocker.io'; do
+            provider_id="${entry%%|*}"
+            provider_url="${entry#*|}"
+            socket="$NQC_V2_SYNC/$provider_id.ipc"
+            if test "$provider_id" = "mevblocker-rpc"; then min_interval="1.25"; else min_interval="0.35"; fi
+
+            NQC_PFT_PROXY_PORT=18548             NQC_PFT_UPSTREAM_URL="$provider_url"             NQC_PFT_UPSTREAM_ID="$provider_id"             NQC_PFT_MIN_INTERVAL_SECONDS="$min_interval"             NQC_PFT_MAX_ATTEMPTS=12             NQC_PFT_PROXY_LOG="$NQC_V2_SYNC/evidence/$provider_id-throttle.jsonl"               python3 ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py               > "$NQC_V2_SYNC/evidence/$provider_id-throttle.log" 2>&1 &
+            throttle_pid=$!
+
+            NQC_PFT_IPC_SOCKET="$socket"             NQC_PFT_UPSTREAM_URL=http://127.0.0.1:18548             NQC_PFT_UPSTREAM_ID="$provider_id"               python3 ci/nqc-protocol-fork/parity/ipc_http_bridge.py               > "$NQC_V2_SYNC/evidence/$provider_id-bridge.log" 2>&1 &
+            bridge_pid=$!
+            trap 'kill "$bridge_pid" "$throttle_pid" 2>/dev/null || true' EXIT
+
+            ready=0
+            for _ in $(seq 1 100); do
+              if test -S "$socket" && curl --silent --fail http://127.0.0.1:18548/health >/dev/null 2>&1; then
+                ready=1; break
+              fi
+              sleep 0.1
+            done
+            test "$ready" -eq 1
+
+            NQC_PFT_IPC_PATH="$socket" NQC_PFT_UPSTREAM_ID="$provider_id"               "$NQC_V2_SYNC/reimplementation/nqc-v2-state/target/debug/examples/pft_v2_sync_parity"               2>&1 | tee "$NQC_V2_SYNC/evidence/$provider_id-sync-parity.log"
+
+            test "$(grep -c '^V2_SYNC_PARITY_PASS ' "$NQC_V2_SYNC/evidence/$provider_id-sync-parity.log")" -eq 1
+            grep '^V2_SYNC_TOTAL ' "$NQC_V2_SYNC/evidence/$provider_id-sync-parity.log"
+            kill "$bridge_pid" "$throttle_pid"
+            wait "$bridge_pid" "$throttle_pid" 2>/dev/null || true
+            trap - EXIT
+          done
+
+          printf '%s\n' 'PASS_HISTORICAL_SYNC_REPLAY' > "$NQC_V2_SYNC/evidence/parity-status.txt"
+          printf '%s\n' 'OPEN_PENDING_REAL_REORG' > "$NQC_V2_SYNC/evidence/PFT-SRC-002-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_V2_SYNC/evidence/protocol-fork-truth.txt"
+          (
+            cd "$NQC_V2_SYNC/evidence"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-v2-sync-parity-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-v2-sync-parity/evidence
+          if-no-files-found: error
+          retention-days: 30

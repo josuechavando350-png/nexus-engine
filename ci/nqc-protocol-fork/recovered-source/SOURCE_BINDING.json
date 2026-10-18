@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "physical_checkpoint": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
+  "classification": "CONTENT_PRESERVING_PROTOCOL_SUBSET_FROM_PHYSICAL_GIT_BUNDLE",
+  "source_bytes_modified": false,
+  "wrapper_workspace_manifest_modified": true,
+  "target_checkpoint_documented_unavailable": "4eba05d1fe15",
+  "master_head_documented_unavailable": "dd5db84",
+  "missing_documented_components": [
+    "contracts/src/NqcV2BackrunExecutor.sol",
+    "crates/nqc-v2-state",
+    "crates/nqc-aave-reconciler"
+  ]
+}

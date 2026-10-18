@@ -1,0 +1,15 @@
+[package]
+name = "nqc-settlement"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+alloy.workspace = true
+nqc-core = { path = "../nqc-core" }
+nqc-edge = { path = "../nqc-edge" }
+nqc-sim = { path = "../nqc-sim" }
+thiserror.workspace = true
+
+[lints]
+workspace = true

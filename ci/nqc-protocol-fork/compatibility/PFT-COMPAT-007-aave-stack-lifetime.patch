@@ -1,0 +1,13 @@
+--- a/contracts/src/NqcAaveV3Executor.sol
++++ b/contracts/src/NqcAaveV3Executor.sol
+@@ -205,0 +206,8 @@
++        _approveRepaymentAndEmit(context, amount, premium);
++        return true;
++    }
++
++    function _approveRepaymentAndEmit(CallbackContext memory context, uint256 amount, uint256 premium)
++        private
++    {
++        ExecutionPlan memory plan = context.plan;
+@@ -226 +233,0 @@
+-        return true;

@@ -1,0 +1,8 @@
+diff --git a/crates/nqc-aave-opportunity/Cargo.toml b/crates/nqc-aave-opportunity/Cargo.toml
+index 9da99c1..0695321 100644
+--- a/crates/nqc-aave-opportunity/Cargo.toml
++++ b/crates/nqc-aave-opportunity/Cargo.toml
+@@ -15,0 +16,3 @@ thiserror.workspace = true
++[dev-dependencies]
++nqc-aave-sync = { path = "../nqc-aave-sync" }
++

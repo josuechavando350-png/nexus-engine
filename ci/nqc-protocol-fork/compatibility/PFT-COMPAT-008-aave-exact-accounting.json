@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "compatibility_id": "PFT-COMPAT-008",
+  "classification": "MEASURED_PROTOCOL_SEMANTIC_REPAIR_APPLIED_ONLY_TO_ISOLATED_RECOVERED_SOURCE_COPY",
+  "measured_failure": {
+    "pr": 476,
+    "head": "3b9a8b6f44e42dc5fd2dccaf8ff759e8fce7e093",
+    "workflow_run": 36338559955,
+    "artifact_id": 10938461325,
+    "artifact_sha256": "4ed96e39479893520939d221c3aee7e458241fee1b0b32d0185f6f66d1e69529",
+    "checks": 39,
+    "mismatches": 34
+  },
+  "root_cause": [
+    "RECOVERED_HOT_STATE_ACCUMULATED_VALUES_IN_1E18_NORMALIZED_USD_INSTEAD_OF_ORACLE_NATIVE_BASE_UNITS",
+    "RECOVERED_HOT_STATE_FLOORED_DEBT_VALUATION_INSTEAD_OF_AAVE_MULDIV_CEIL",
+    "RECOVERED_HOT_STATE_DERIVED_HEALTH_FACTOR_FROM_TRUNCATED_AVERAGE_THRESHOLD_INSTEAD_OF_UNDIVIDED_WEIGHTED_THRESHOLD_NUMERATOR",
+    "RECOVERED_HOT_STATE_USED_RAY_MUL_HALF_UP_FOR_ACTUAL_ATOKEN_AND_VTOKEN_BALANCES_WHILE_DEPLOYED_AAVE_TOKENMATH_USES_ATOKEN_RAY_MUL_FLOOR_AND_VTOKEN_RAY_MUL_CEIL"
+  ],
+  "repair_semantics": [
+    "PRESERVE_RAW_ORACLE_PRICE_AND_BASE_UNIT_FROM_AAVE_MARKET_BOOTSTRAP",
+    "COLLATERAL_BASE_VALUE_FLOOR_PER_RESERVE",
+    "DEBT_BASE_VALUE_CEIL_PER_RESERVE",
+    "HEALTH_FACTOR_WAD_DIV_HALF_UP_ON_WEIGHTED_THRESHOLD_NUMERATOR_THEN_DIVIDE_10000",
+    "EMODE_EFFECTIVE_LIQUIDATION_THRESHOLD_REUSES_EXISTING_BITMAP_SEMANTICS",
+    "ATOKEN_ACTUAL_BALANCE_USES_RAY_MUL_FLOOR",
+    "VTOKEN_ACTUAL_BALANCE_USES_RAY_MUL_CEIL"
+  ],
+  "source_bytes_modified": false,
+  "repair_overlay": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py",
+  "status": "RESOLVED_EXACT_TWO_PROVIDER_PARITY",
+  "protocol_fork_truth": "NOT_CLOSED",
+  "measured_failure_after_first_repair": {
+    "head": "011ae80b92415cd9bf626961850660fab794ad86",
+    "workflow_run": 36339247427,
+    "artifact_id": 10938338618,
+    "artifact_sha256": "e9fe7bdc2181c0b81d2151a8c609629f132dc28c2d3d2986179d9906b91b891c",
+    "checks": 39,
+    "mismatches": 21,
+    "improvement_from_initial_mismatches": 13
+  },
+  "resolved_verification": {
+    "head": "7494e76f9e8b942f021468578de4ff19aef68dbd",
+    "full_account_risk": {
+      "workflow_run": 36341553888,
+      "artifact_id": 10940935416,
+      "artifact_sha256": "de97034024643d11f52f7e28a0b2b52f56919adeed5294c84cea542538fcfa49",
+      "providers": [
+        "blastapi-public",
+        "mevblocker-rpc"
+      ],
+      "users_per_provider": 15,
+      "exact_integer_checks_per_provider": 60,
+      "emode_users_per_provider": 2,
+      "unexplained_mismatches": 0
+    },
+    "exact_emode_zero_account_risk": {
+      "workflow_run": 36341554012,
+      "artifact_id": 10939116521,
+      "artifact_sha256": "d1242e9acff2a1a2eba8fef7d7957b40af247e55107ed35bb508f7ebc6f6eb8c",
+      "users": 13,
+      "exact_integer_checks": 39,
+      "unexplained_mismatches": 0
+    }
+  }
+}

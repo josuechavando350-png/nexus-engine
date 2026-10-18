@@ -1,0 +1,254 @@
+name: NQC RMC-002 Certified Effective Source
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-effective-source.yml
+      - ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md
+      - ci/nqc-census/effective-source-profile.json
+      - ci/nqc-census/materialize_effective_source.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certified-effective-source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      RMC_PARENT: cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+      SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+      OUT_A: /tmp/nqc-rmc-effective-a
+      OUT_B: /tmp/nqc-rmc-effective-b
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact scope and authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          git merge-base --is-ancestor "$PFT_CERTIFIED_COMMIT" HEAD
+          git merge-base --is-ancestor "$RMC_PARENT" HEAD
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            test "${{ github.event.pull_request.base.sha }}" = "$RMC_PARENT"
+          fi
+
+          python3 - <<'PY'
+          import subprocess
+          expected = {
+              ".github/workflows/nqc-census-effective-source.yml",
+              "ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md",
+              "ci/nqc-census/effective-source-profile.json",
+              "ci/nqc-census/materialize_effective_source.py",
+          }
+          changed = set(subprocess.check_output(
+              ["git", "diff", "--name-only", "cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d...HEAD"],
+              text=True,
+          ).splitlines())
+          assert changed == expected, (
+              f"RMC-002 scope mismatch missing={sorted(expected-changed)} "
+              f"extra={sorted(changed-expected)}"
+          )
+          print("RMC_002_SCOPE_PASS files=4")
+          PY
+
+          git diff --check "$RMC_PARENT"...HEAD
+          test -z "$(git status --porcelain)"
+
+      - name: Materialize twice and prove byte determinism
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$OUT_A" "$OUT_B"
+          python3 ci/nqc-census/materialize_effective_source.py --output "$OUT_A"
+          python3 ci/nqc-census/materialize_effective_source.py --output "$OUT_B"
+
+          cmp "$OUT_A/MATERIALIZATION.json" "$OUT_B/MATERIALIZATION.json"
+          diff -qr "$OUT_A/recovered-source" "$OUT_B/recovered-source"
+          diff -qr "$OUT_A/reimplementation" "$OUT_B/reimplementation"
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          d=json.loads(Path("/tmp/nqc-rmc-effective-a/MATERIALIZATION.json").read_text())
+          assert d["authority"]=="NQC_RMC_CERTIFIED_EFFECTIVE_SOURCE_V1"
+          assert d["protocol_fork_certified_commit"]=="5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf"
+          assert d["protocol_fork_certified_tree"]=="ef3498da528f85cdb9fdd82222d64773a557f853"
+          repairs={item["id"] for item in d["ordered_overlays"]}
+          assert {f"PFT-COMPAT-{i:03d}" for i in range(1,10)}.issubset(repairs)
+          assert "PFT-COMPAT-007-REGRESSION" in repairs
+          assert [x["id"] for x in d["reimplementations"]]==[
+              "PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"
+          ]
+          assert all(
+              x["closeout"]["status"]=="CLOSED"
+              and x["closeout"]["unexplained_mismatches"]==0
+              for x in d["reimplementations"]
+          )
+          assert d["invariants"]["immutable_recovered_source_preserved"] is True
+          assert d["invariants"]["all_pft_compat_001_through_009_applied"] is True
+          assert d["invariants"]["all_reimplementations_closed_zero_mismatch"] is True
+          assert d["truth_boundaries"]["real_market_census"]=="NOT_CERTIFIED_BY_THIS_PROFILE"
+          assert d["truth_boundaries"]["production_authority"] is False
+          print("RMC_002_DOUBLE_MATERIALIZATION_PASS")
+          PY
+
+          sha256sum "$OUT_A/MATERIALIZATION.json" | tee /tmp/rmc-002-materialization.sha256
+
+      - name: Prove tamper and unsafe-output failures are closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ci/nqc-census/effective-source-profile.json /tmp/rmc-002-tampered-profile.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("/tmp/rmc-002-tampered-profile.json")
+          d=json.loads(p.read_text())
+          d["overlays"][-1]["sha256"]="0"*64
+          p.write_text(json.dumps(d,indent=2,sort_keys=True)+"\n")
+          PY
+
+          set +e
+          python3 ci/nqc-census/materialize_effective_source.py             --profile /tmp/rmc-002-tampered-profile.json             --output /tmp/nqc-rmc-tampered >/tmp/rmc-002-tamper.out 2>/tmp/rmc-002-tamper.err
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          grep -F "RMC_EFFECTIVE_SOURCE_FAIL" /tmp/rmc-002-tamper.err
+
+          set +e
+          python3 ci/nqc-census/materialize_effective_source.py             --output "$GITHUB_WORKSPACE/ci/nqc-census/derived-source"             >/tmp/rmc-002-unsafe.out 2>/tmp/rmc-002-unsafe.err
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          grep -F "must be materialized outside the repository" /tmp/rmc-002-unsafe.err
+          test ! -e "$GITHUB_WORKSPACE/ci/nqc-census/derived-source"
+          test -z "$(git status --porcelain)"
+          echo RMC_002_FAIL_CLOSED_PASS
+
+      - name: Install exact Rust and compile effective Rust authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv
+          rustc -V | grep -F "1.98.1"
+
+          cargo fetch --locked --manifest-path "$OUT_A/recovered-source/Cargo.toml"
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo check --locked --offline --workspace --all-targets             --manifest-path "$OUT_A/recovered-source/Cargo.toml"
+          cargo test --locked --offline --workspace --all-targets             --manifest-path "$OUT_A/recovered-source/Cargo.toml"
+
+          for crate in nqc-v2-state nqc-aave-reconciler; do
+            manifest="$OUT_A/reimplementation/$crate/Cargo.toml"
+            cargo generate-lockfile --offline --manifest-path "$manifest"
+          done
+
+          python3 - <<'PY'
+          import tomllib
+          from pathlib import Path
+
+          root=Path("/tmp/nqc-rmc-effective-a")
+          def external(path):
+              return {
+                  (p["name"],p["version"],p["source"],p.get("checksum"))
+                  for p in tomllib.loads(path.read_text())["package"]
+                  if "source" in p
+              }
+
+          authority=external(root/"recovered-source/Cargo.lock")
+          for crate in ("nqc-v2-state","nqc-aave-reconciler"):
+              lock=root/"reimplementation"/crate/"Cargo.lock"
+              drift=external(lock)-authority
+              assert not drift, (crate,"external dependency drift",sorted(drift))
+          print("RMC_002_REIMPLEMENTATION_DEPENDENCY_BINDING_PASS")
+          PY
+
+          for crate in nqc-v2-state nqc-aave-reconciler; do
+            cargo test --locked --offline               --manifest-path "$OUT_A/reimplementation/$crate/Cargo.toml"
+          done
+          echo RMC_002_RUST_EFFECTIVE_SOURCE_PASS
+
+      - name: Install exact Foundry and solc
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/rmc-002-toolchain
+          curl --fail --location --retry 5 --retry-all-errors             -o /tmp/rmc-002-toolchain/foundry.tar.gz             "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  /tmp/rmc-002-toolchain/foundry.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/rmc-002-toolchain/foundry.tar.gz -C /tmp/rmc-002-toolchain
+          export PATH="/tmp/rmc-002-toolchain:$PATH"
+          forge --version | grep -F "$FOUNDRY_VERSION"
+
+          curl --fail --location --retry 5 --retry-all-errors             -o /tmp/rmc-002-toolchain/solc-0.8.24             "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  /tmp/rmc-002-toolchain/solc-0.8.24" | sha256sum -c -
+          chmod +x /tmp/rmc-002-toolchain/solc-0.8.24
+          /tmp/rmc-002-toolchain/solc-0.8.24 --version | grep -F "$SOLC_VERSION"
+
+      - name: Compile and test effective Aave and measured V2 executors
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/rmc-002-toolchain:$PATH"
+
+          (
+            cd "$OUT_A/recovered-source/contracts"
+            forge build --force --offline --use /tmp/rmc-002-toolchain/solc-0.8.24
+            forge test --offline --use /tmp/rmc-002-toolchain/solc-0.8.24 --fuzz-seed 0x39 -vv
+          )
+
+          rm -rf /tmp/rmc-002-v2-executor
+          mkdir -p /tmp/rmc-002-v2-executor
+          cp -a "$OUT_A/reimplementation/nqc-v2-backrun-executor/contracts/src"             /tmp/rmc-002-v2-executor/
+          cp -a "$OUT_A/reimplementation/nqc-v2-backrun-executor/contracts/test"             /tmp/rmc-002-v2-executor/
+          cat > /tmp/rmc-002-v2-executor/foundry.toml <<'EOF'
+          [profile.default]
+          src = "src"
+          test = "test"
+          solc_version = "0.8.24"
+          optimizer = true
+          optimizer_runs = 200
+          EOF
+          (
+            cd /tmp/rmc-002-v2-executor
+            forge build --force --offline --use /tmp/rmc-002-toolchain/solc-0.8.24
+            forge test --offline --use /tmp/rmc-002-toolchain/solc-0.8.24 --fuzz-seed 0x39 -vv
+          )
+          echo RMC_002_SOLIDITY_EFFECTIVE_SOURCE_PASS
+
+      - name: Verify Protocol/Fork remained immutable
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD --             ci/nqc-protocol-fork/recovered-source             ci/nqc-protocol-fork/reimplementation             ci/nqc-protocol-fork/compatibility             ci/nqc-protocol-fork/locks             ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
+          echo RMC_002_PROTOCOL_FORK_IMMUTABLE_PASS
+
+      - name: Preserve materialization receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-rmc-002-effective-source-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            /tmp/nqc-rmc-effective-a/MATERIALIZATION.json
+            /tmp/rmc-002-materialization.sha256
+            /tmp/rmc-002-tamper.err
+            /tmp/rmc-002-unsafe.err
+          if-no-files-found: warn
+          retention-days: 30

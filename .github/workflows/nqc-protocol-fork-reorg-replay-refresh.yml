@@ -1,0 +1,213 @@
+name: NQC T39 Reorg Invalidation Replay Refresh
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-reorg-replay-refresh.yml
+      - ci/nqc-protocol-fork/REORG_REPLAY_REFRESH_CONTRACT.json
+      - ci/nqc-protocol-fork/parity/pft_reorg_replay_refresh.rs
+      - ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py
+      - ci/nqc-protocol-fork/recovered-source/crates/nqc-replay/**
+      - ci/nqc-protocol-fork/recovered-source/crates/nqc-state/**
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  reorg-replay-refresh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      NQC_REORG_REPLAY: /tmp/nqc-reorg-replay
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify immutable source and evidence bindings
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_REORG_REPLAY"
+          mkdir -p "$NQC_REORG_REPLAY/source/crates/nqc-replay/examples" "$NQC_REORG_REPLAY/evidence"
+          (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+          cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_REORG_REPLAY/source/"
+          cp ci/nqc-protocol-fork/parity/pft_reorg_replay_refresh.rs             "$NQC_REORG_REPLAY/source/crates/nqc-replay/examples/"
+          cp ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock             "$NQC_REORG_REPLAY/source/Cargo.lock"
+
+          for patch in             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch; do
+            (
+              cd "$NQC_REORG_REPLAY/source"
+              git apply --check "$GITHUB_WORKSPACE/$patch"
+              git apply "$GITHUB_WORKSPACE/$patch"
+            )
+          done
+
+          grep -F '[dev-dependencies]' "$NQC_REORG_REPLAY/source/crates/nqc-aave-sync/Cargo.toml"
+          grep -F 'nqc-core = { path = "../nqc-core" }' "$NQC_REORG_REPLAY/source/crates/nqc-aave-sync/Cargo.toml"
+          grep -F '[dev-dependencies]' "$NQC_REORG_REPLAY/source/crates/nqc-aave-opportunity/Cargo.toml"
+          grep -F 'nqc-aave-sync = { path = "../nqc-aave-sync" }' "$NQC_REORG_REPLAY/source/crates/nqc-aave-opportunity/Cargo.toml"
+          git rev-parse HEAD > "$NQC_REORG_REPLAY/evidence/repository-source-sha.txt"
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          contract=json.loads(Path("ci/nqc-protocol-fork/REORG_REPLAY_REFRESH_CONTRACT.json").read_text())
+          closeout=json.loads(Path("ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json").read_text())
+          aave_closeout=json.loads(Path(
+              "ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json"
+          ).read_text())
+          assert contract["gate"]=="REORG_INVALIDATION_AND_REPLAY_REFRESH"
+          assert closeout["source_blocker"]=="PFT-SRC-002"
+          assert closeout["status"]=="CLOSED"
+          assert closeout["unexplained_mismatches"]==0
+          real=closeout["evidence"]["reorg"]["real_orphan"]
+          bound=contract["real_historical_reorg_binding"]
+          assert real["execution_height"]==bound["execution_height"]==10500011
+          assert bound["including_block_number"]==10500014
+          assert bound["discovery_rule"]=="SCAN_ALL_UNCLES_IN_INCLUDED_BLOCK_AND_REQUIRE_EXACT_ORPHAN_HASH"
+          assert real["orphan_hash"]==bound["orphan_hash"]
+          assert real["canonical_hash"]==bound["canonical_hash"]
+          assert set(real["independently_verified_by"])==set(bound["providers"])
+          assert closeout["evidence"]["reorg"]["deterministic_deep_replacement_blocks"]==2
+          aave=contract["aave_reconciler_deterministic_binding"]
+          assert aave_closeout["source_blocker"]=="PFT-SRC-003"
+          assert aave_closeout["status"]=="CLOSED"
+          assert aave_closeout["unexplained_mismatches"]==0
+          deterministic=aave_closeout["evidence"]["deterministic_reimplementation"]
+          assert aave["head"]==deterministic["head"]=="e6adfe592047ab0ea6e3ed95d3113f7d38887f8e"
+          assert aave["workflow_run_id"]==deterministic["workflow_run_id"]==36349722000
+          assert aave["artifact_id"]==deterministic["artifact_id"]==10941793422
+          deterministic_sha=deterministic.get("artifact_sha256") or deterministic.get("artifact_zip_sha256")
+          assert aave["artifact_zip_sha256"]==deterministic_sha=="1f5f6651ed13bf1b992d713068ed764eb857320108432c9978539a461e2052cc"
+          overlays=contract["build_compatibility_overlays"]
+          assert [x["id"] for x in overlays]==["PFT-COMPAT-003","PFT-COMPAT-005"]
+          assert overlays[0]["sha256"]=="7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5"
+          assert overlays[1]["sha256"]=="12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664"
+          assert all(x["scope"]=="TEST_ONLY_DEV_DEPENDENCY_LOCK_ALIGNMENT" for x in overlays)
+          print("REORG_REPLAY_EVIDENCE_BINDINGS_PASS")
+          PY
+
+          sha256sum             ci/nqc-protocol-fork/REORG_REPLAY_REFRESH_CONTRACT.json             ci/nqc-protocol-fork/parity/pft_reorg_replay_refresh.rs             ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json             ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch             ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock             > "$NQC_REORG_REPLAY/evidence/input-source.sha256"
+
+      - name: Build exact recovered replay harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee "$NQC_REORG_REPLAY/evidence/rustc.txt"
+          cargo -V | tee "$NQC_REORG_REPLAY/evidence/cargo.txt"
+          cargo fetch --locked --manifest-path "$NQC_REORG_REPLAY/source/Cargo.toml"
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo build --locked --offline             --manifest-path "$NQC_REORG_REPLAY/source/Cargo.toml"             -p nqc-replay --example pft_reorg_replay_refresh             2>&1 | tee "$NQC_REORG_REPLAY/evidence/cargo-build.log"
+
+      - name: Reconfirm real canonical replacement and execute replay refresh on two providers
+        shell: bash
+        run: |
+          set -euo pipefail
+          bin="$NQC_REORG_REPLAY/source/target/debug/examples/pft_reorg_replay_refresh"
+
+          for entry in             'blastapi-public|https://eth-mainnet.public.blastapi.io|19101|0.35'             'mevblocker-rpc|https://rpc.mevblocker.io|19102|1.25'; do
+            IFS='|' read -r provider_id provider_url port min_interval <<< "$entry"
+
+            NQC_PFT_PROXY_PORT="$port"             NQC_PFT_UPSTREAM_URL="$provider_url"             NQC_PFT_UPSTREAM_ID="$provider_id"             NQC_PFT_MIN_INTERVAL_SECONDS="$min_interval"             NQC_PFT_MAX_ATTEMPTS=12             NQC_PFT_UPSTREAM_TIMEOUT_SECONDS=60             NQC_PFT_PROXY_LOG="$NQC_REORG_REPLAY/evidence/$provider_id-rpc.jsonl"               python3 ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py               > "$NQC_REORG_REPLAY/evidence/$provider_id-proxy.log" 2>&1 &
+            proxy_pid=$!
+            trap 'kill "$proxy_pid" 2>/dev/null || true' EXIT
+
+            ready=0
+            for _ in $(seq 1 150); do
+              if curl --silent --fail "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
+                ready=1; break
+              fi
+              sleep 0.1
+            done
+            test "$ready" -eq 1
+
+            eval "$(PFT_RPC="http://127.0.0.1:$port" python3 - <<'PY'
+          import json, os, urllib.request
+          url=os.environ["PFT_RPC"]
+          serial=0
+          def rpc(method,params):
+              global serial
+              serial+=1
+              payload=json.dumps({"jsonrpc":"2.0","id":serial,"method":method,"params":params}).encode()
+              req=urllib.request.Request(url,data=payload,headers={"content-type":"application/json"})
+              with urllib.request.urlopen(req,timeout=180) as response:
+                  body=json.loads(response.read())
+              assert body.get("id")==serial and "error" not in body, body
+              return body["result"]
+
+          block=rpc("eth_getBlockByNumber",[hex(10500011),False])
+          assert block is not None
+          assert int(block["number"],16)==10500011
+          assert block["hash"].lower()=="0xa1f5eb25631c2d47d91071fb0c6ff7d925a4a45e07fc1d3fe47d7a268d5ff0c1"
+
+          including=10500014
+          count=int(rpc("eth_getUncleCountByBlockNumber",[hex(including)]),16)
+          assert count>0
+          target="0xb4e222da7f14708b71c9cf64a68e40017e5b49870d840d343412a5f899474f67"
+          found=[]
+          target_uncle=None
+          for index in range(count):
+              uncle=rpc("eth_getUncleByBlockNumberAndIndex",[hex(including),hex(index)])
+              if uncle is not None and uncle["hash"].lower()==target:
+                  assert int(uncle["number"],16)==10500011
+                  found.append(index)
+                  target_uncle=uncle
+          assert len(found)==1 and target_uncle is not None, f"real orphan not uniquely rediscovered: {found}"
+          assert target_uncle["parentHash"].lower()==block["parentHash"].lower(), "orphan/canonical are not direct siblings"
+          print(f"real_orphan_index={found[0]}")
+
+          timestamp=int(block["timestamp"],16)
+          basefee=block.get("baseFeePerGas")
+          orphan_timestamp=int(target_uncle["timestamp"],16)
+          orphan_basefee=target_uncle.get("baseFeePerGas")
+          print(f"timestamp={timestamp}")
+          print("basefee="+("none" if basefee is None else str(int(basefee,16))))
+          print(f"orphan_timestamp={orphan_timestamp}")
+          print("orphan_basefee="+("none" if orphan_basefee is None else str(int(orphan_basefee,16))))
+          PY
+          )"
+
+            "$bin" "$provider_id" "$timestamp" "$basefee" "$orphan_timestamp" "$orphan_basefee"               2>&1 | tee "$NQC_REORG_REPLAY/evidence/$provider_id-replay.log"
+            grep -F "REORG_REPLAY_REFRESH_PASS upstream=$provider_id"               "$NQC_REORG_REPLAY/evidence/$provider_id-replay.log"
+
+            kill "$proxy_pid"
+            wait "$proxy_pid" 2>/dev/null || true
+            trap - EXIT
+          done
+
+          left="$(grep '^REORG_REPLAY_REFRESH_PASS ' "$NQC_REORG_REPLAY/evidence/blastapi-public-replay.log" | sed -E 's/upstream=[^ ]+ //')"
+          right="$(grep '^REORG_REPLAY_REFRESH_PASS ' "$NQC_REORG_REPLAY/evidence/mevblocker-rpc-replay.log" | sed -E 's/upstream=[^ ]+ //')"
+          test "$left" = "$right"
+          echo "$left" > "$NQC_REORG_REPLAY/evidence/canonical-replay-refresh.txt"
+
+          echo 'PASS' > "$NQC_REORG_REPLAY/evidence/REORG_INVALIDATION_AND_REPLAY_REFRESH.txt"
+          echo '0' > "$NQC_REORG_REPLAY/evidence/unexplained-mismatch-count.txt"
+          echo 'NOT_CLOSED' > "$NQC_REORG_REPLAY/evidence/protocol-fork-truth.txt"
+          (
+            cd "$NQC_REORG_REPLAY/evidence"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve exact reorg/replay evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-reorg-replay-refresh-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-reorg-replay/evidence
+          if-no-files-found: error
+          retention-days: 30

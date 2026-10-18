@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "source_blocker": "PFT-SRC-002",
+  "component": "nqc-v2-state",
+  "classification": "NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE",
+  "status": "CLOSED",
+  "source_recovery_status": "EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
+  "closure_basis": [
+    "DETERMINISTIC_REIMPLEMENTATION_TESTS_PASS",
+    "HISTORICAL_FACTORY_PAIR_RESERVE_PARITY_PASS",
+    "SYNC_UPDATE_PARITY_PASS",
+    "ZERO_LIQUIDITY_DEATH_REVIVAL_PASS",
+    "REAL_ONE_BLOCK_ORPHAN_INVALIDATION_PASS",
+    "DETERMINISTIC_MULTI_BLOCK_REORG_REPLACEMENT_PASS",
+    "ZERO_UNEXPLAINED_MISMATCH"
+  ],
+  "evidence": {
+    "deterministic_reimplementation": {
+      "head": "7084554da836d827184d2e9907c2ef6b5c9845e0",
+      "workflow_run_id": 36332841869,
+      "artifact_id": 10935972941,
+      "artifact_zip_sha256": "ab396795cad5ca8a45358c41a69307389c2a8d763d13fc79ed29623bc0508682"
+    },
+    "historical_state_quote": {
+      "head": "855d5256021d75a280af7ad64aab9bfc65597f09",
+      "workflow_run_id": 36341477991,
+      "artifact_id": 10939146753,
+      "artifact_zip_sha256": "2d5c1b3dbbd4a5369acf4ce40cfcfee39d247a4cb8a3d877e94c960873e77969",
+      "state_checks_per_provider": 4,
+      "quote_checks_per_provider": 4,
+      "providers": [
+        "blastapi-public",
+        "mevblocker-rpc"
+      ]
+    },
+    "historical_sync": {
+      "head": "855d5256021d75a280af7ad64aab9bfc65597f09",
+      "workflow_run_id": 36341478032,
+      "artifact_id": 10938987804,
+      "artifact_zip_sha256": "ac3d3f3a5cf41a3579a05e0b752e1020cbd760af9445092cd0dcb46a69e01b38",
+      "sync_updates_per_provider": 2,
+      "providers": [
+        "blastapi-public",
+        "mevblocker-rpc"
+      ]
+    },
+    "reorg": {
+      "head": "05be4342ca07691b01c7f76d7760daf378ff5ce1",
+      "workflow_run_id": 36342992023,
+      "artifact_id": 10939117736,
+      "artifact_zip_sha256": "8778899794de93c72d9d2f0525eb222155842ddaa0ae14e5a8af67baee483da6",
+      "real_orphan": {
+        "execution_height": 10500011,
+        "orphan_hash": "0xb4e222da7f14708b71c9cf64a68e40017e5b49870d840d343412a5f899474f67",
+        "canonical_hash": "0xa1f5eb25631c2d47d91071fb0c6ff7d925a4a45e07fc1d3fe47d7a268d5ff0c1",
+        "observed_depth": 1,
+        "independently_verified_by": [
+          "blastapi-public",
+          "mevblocker-rpc"
+        ]
+      },
+      "deterministic_deep_replacement_blocks": 2
+    }
+  },
+  "unexplained_mismatches": 0,
+  "scope_boundary": "Closes PFT-SRC-002 only. Does not close PFT-SRC-001, PFT-SRC-003, REVM differential, executor identity, or overall Protocol/Fork Truth.",
+  "protocol_fork_truth": "NOT_CLOSED"
+}

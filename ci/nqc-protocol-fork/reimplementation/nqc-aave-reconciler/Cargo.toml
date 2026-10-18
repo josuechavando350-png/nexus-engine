@@ -1,0 +1,28 @@
+[package]
+name = "nqc-aave-reconciler-reimplementation"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+alloy = { version = "=2.5.0", default-features = false, features = ["std"] }
+nqc-aave-events = { path = "../../recovered-source/crates/nqc-aave-events" }
+nqc-aave-market = { path = "../../recovered-source/crates/nqc-aave-market" }
+nqc-aave-reader = { path = "../../recovered-source/crates/nqc-aave-reader" }
+nqc-aave-sync = { path = "../../recovered-source/crates/nqc-aave-sync" }
+nqc-hot-state = { path = "../../recovered-source/crates/nqc-hot-state" }
+nqc-state = { path = "../../recovered-source/crates/nqc-state" }
+thiserror = "2"
+
+[dev-dependencies]
+nqc-core = { path = "../../recovered-source/crates/nqc-core" }
+nqc-replay = { path = "../../recovered-source/crates/nqc-replay" }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"

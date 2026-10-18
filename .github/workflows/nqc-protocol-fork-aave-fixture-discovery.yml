@@ -1,0 +1,334 @@
+name: NQC T39 Aave Historical Fixture Discovery
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-fixture-discovery.yml
+      - ci/nqc-protocol-fork/discovery/**
+      - ci/nqc-protocol-fork/corpus/**
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  aave-fixture-discovery:
+    name: Cross-provider Aave historical anchor discovery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify source prerequisite and fail-closed boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          git diff --check
+          mkdir -p /tmp/nqc-pft-discovery
+          git rev-parse HEAD > /tmp/nqc-pft-discovery/preflight-source-sha.txt
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root=Path(".")
+          contract=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
+          assert contract["status"] in {"NOT_TESTED","RUNTIME_CLOSEOUT_CANDIDATE_READY"}
+          checkpoint=contract["recovered_physical_source"]["git_bundle_checkpoint"]
+          assert checkpoint == "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
+          blockers={b["id"]:b for b in contract["current_blockers"]}
+          assert set(blockers) == {"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+          assert all(b["severity"] == "HARD" for b in blockers.values())
+
+          closeout_paths={
+              "PFT-SRC-001":Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json"
+              ),
+              "PFT-SRC-002":Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json"
+              ),
+              "PFT-SRC-003":Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json"
+              ),
+          }
+
+          for blocker_id,blocker in blockers.items():
+              assert blocker["status"] in {"OPEN","CLOSED"}
+              if blocker["status"] == "CLOSED":
+                  closeout=json.loads(closeout_paths[blocker_id].read_text())
+                  assert closeout["source_blocker"] == blocker_id
+                  assert closeout["status"] == "CLOSED"
+                  assert closeout["unexplained_mismatches"] == 0
+          if contract["status"] == "RUNTIME_CLOSEOUT_CANDIDATE_READY":
+              assert all(b["status"] == "CLOSED" for b in blockers.values())
+
+          corpus=json.loads(Path("ci/nqc-protocol-fork/corpus/manifest.json").read_text())
+          if contract["status"]=="RUNTIME_CLOSEOUT_CANDIDATE_READY":
+              assert corpus["status"]=="PASS"
+              statuses=[
+                  item["status"]
+                  for domain in corpus["required_classes"].values()
+                  for item in domain
+              ]
+              assert statuses and all(status=="PASS" for status in statuses)
+          else:
+              assert corpus["status"]=="NOT_TESTED"
+          assert corpus["protocol_fork_truth"] == "NOT_CLOSED"
+          assert isinstance(corpus["cases"], list)
+
+          # Discovery remains valid after immutable fixtures are admitted.
+          # Admission is allowed only while every committed fixture is still
+          # NOT_TESTED and bound to the same physically recovered checkpoint.
+          for rel in corpus["cases"]:
+              fixture=json.loads((root/rel).read_text())
+              assert fixture["source_commit"] == checkpoint
+              assert fixture["result"]["status"] == "NOT_TESTED"
+              assert fixture["provenance"]["fixture_admitted"] is True
+          PY
+
+      - name: Discover exact Aave historical anchors across independent RPCs
+        shell: bash
+        env:
+          NQC_PFT_DISCOVERY_OUT: /tmp/nqc-pft-discovery
+        run: |
+          set -euo pipefail
+          mkdir -p "$NQC_PFT_DISCOVERY_OUT"
+          python3 ci/nqc-protocol-fork/discovery/discover_aave_fixtures.py \
+            | tee "$NQC_PFT_DISCOVERY_OUT/stdout-summary.json"
+
+      - name: Classify exact default close-factor candidates
+        shell: bash
+        env:
+          NQC_DEFAULT_CLOSE: /tmp/nqc-aave-default-close
+          RUST_TOOLCHAIN: "1.98.1"
+          FOUNDRY_VERSION: "1.7.1"
+          FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+          SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+          SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+        run: |
+          set -euo pipefail
+          rm -rf "$NQC_DEFAULT_CLOSE"
+          mkdir -p \
+            "$NQC_DEFAULT_CLOSE/bin" \
+            "$NQC_DEFAULT_CLOSE/foundry/src" \
+            "$NQC_DEFAULT_CLOSE/foundry/test" \
+            "$NQC_DEFAULT_CLOSE/source" \
+            "$NQC_DEFAULT_CLOSE/evidence/blastapi-public" \
+            "$NQC_DEFAULT_CLOSE/evidence/mevblocker-rpc" \
+            "$NQC_DEFAULT_CLOSE/evidence/canonical"
+
+          git rev-parse HEAD > "$NQC_DEFAULT_CLOSE/evidence/repository-source-sha.txt"
+          (
+            cd ci/nqc-protocol-fork/recovered-source
+            sha256sum -c SOURCE_FILES.sha256
+          )
+          cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_DEFAULT_CLOSE/source/"
+          patch --dry-run --silent -p1 -d "$NQC_DEFAULT_CLOSE/source" < \
+            ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch
+          patch --silent -p1 -d "$NQC_DEFAULT_CLOSE/source" < \
+            ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch
+          python3 ci/nqc-protocol-fork/parity/prepare_reserve_parity.py \
+            "$NQC_DEFAULT_CLOSE/source"
+
+          python3 ci/nqc-protocol-fork/discovery/generate_aave_default_close_candidate_probe.py \
+            witness \
+            --config ci/nqc-protocol-fork/discovery/aave_candidates.json \
+            --discovery-root /tmp/nqc-pft-discovery \
+            --solidity-output "$NQC_DEFAULT_CLOSE/foundry/test/PftAaveDefaultCloseCandidateProbe.t.sol" \
+            --metadata-output "$NQC_DEFAULT_CLOSE/evidence/candidate-events.json"
+
+          candidate_count="$(
+            python3 - <<'PY'
+          import json
+          from pathlib import Path
+          doc=json.loads(
+              Path("/tmp/nqc-aave-default-close/evidence/candidate-events.json").read_text()
+          )
+          count=len(doc["candidates"])
+          if count <= 0:
+              raise SystemExit("no default close-factor candidates")
+          print(count)
+          PY
+          )"
+          printf '%s\n' "$candidate_count" > "$NQC_DEFAULT_CLOSE/evidence/candidate-count.txt"
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o "$NQC_DEFAULT_CLOSE/foundry.tar.gz" \
+            "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  $NQC_DEFAULT_CLOSE/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$NQC_DEFAULT_CLOSE/foundry.tar.gz" -C "$NQC_DEFAULT_CLOSE/bin"
+          export PATH="$NQC_DEFAULT_CLOSE/bin:$PATH"
+          forge --version | tee "$NQC_DEFAULT_CLOSE/evidence/forge.txt"
+          forge --version | grep -F "$FOUNDRY_VERSION"
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o "$NQC_DEFAULT_CLOSE/solc-0.8.24" \
+            "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  $NQC_DEFAULT_CLOSE/solc-0.8.24" | sha256sum -c -
+          chmod +x "$NQC_DEFAULT_CLOSE/solc-0.8.24"
+          "$NQC_DEFAULT_CLOSE/solc-0.8.24" --version | \
+            tee "$NQC_DEFAULT_CLOSE/evidence/solc.txt"
+          "$NQC_DEFAULT_CLOSE/solc-0.8.24" --version | grep -F "$SOLC_VERSION"
+
+          cat > "$NQC_DEFAULT_CLOSE/foundry/foundry.toml" <<'EOF'
+          [profile.default]
+          src = "src"
+          test = "test"
+          solc_version = "0.8.24"
+          optimizer = true
+          optimizer_runs = 200
+          via_ir = true
+          fs_permissions = [{ access = "read-write", path = "../evidence" }]
+          EOF
+
+          for entry in \
+            'blastapi-public|https://eth-mainnet.public.blastapi.io|18911|0.35' \
+            'mevblocker-rpc|https://rpc.mevblocker.io|18912|1.25'; do
+            IFS='|' read -r provider_id provider_url port min_interval <<< "$entry"
+
+            NQC_PFT_PROXY_PORT="$port" \
+            NQC_PFT_UPSTREAM_URL="$provider_url" \
+            NQC_PFT_UPSTREAM_ID="$provider_id" \
+            NQC_PFT_MIN_INTERVAL_SECONDS="$min_interval" \
+            NQC_PFT_MAX_ATTEMPTS=12 \
+            NQC_PFT_UPSTREAM_TIMEOUT_SECONDS=60 \
+            NQC_PFT_PROXY_LOG="$NQC_DEFAULT_CLOSE/evidence/$provider_id-throttle.jsonl" \
+              python3 "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py" \
+              > "$NQC_DEFAULT_CLOSE/evidence/$provider_id-throttle.log" 2>&1 &
+            proxy_pid=$!
+            trap 'kill "$proxy_pid" 2>/dev/null || true' EXIT
+
+            ready=0
+            for _ in $(seq 1 150); do
+              if curl --silent --fail "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
+                ready=1
+                break
+              fi
+              sleep 0.1
+            done
+            test "$ready" -eq 1
+
+            (
+              cd "$NQC_DEFAULT_CLOSE/foundry"
+              PFT_RPC_URL="http://127.0.0.1:$port" \
+              PFT_WITNESS_DIR="$NQC_DEFAULT_CLOSE/evidence/$provider_id" \
+                forge test \
+                  --use "$NQC_DEFAULT_CLOSE/solc-0.8.24" \
+                  --match-contract PftAaveDefaultCloseCandidateProbeTest \
+                  -vvvv 2>&1 | tee "$NQC_DEFAULT_CLOSE/evidence/$provider_id-foundry.log"
+            )
+            grep -F "$candidate_count tests passed, 0 failed, 0 skipped ($candidate_count total tests)" \
+              "$NQC_DEFAULT_CLOSE/evidence/$provider_id-foundry.log"
+            test "$(
+              find "$NQC_DEFAULT_CLOSE/evidence/$provider_id" -maxdepth 1 -name '*.json' | wc -l
+            )" -eq "$candidate_count"
+
+            kill "$proxy_pid"
+            wait "$proxy_pid" 2>/dev/null || true
+            trap - EXIT
+          done
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root=Path("/tmp/nqc-aave-default-close/evidence")
+          count=int((root/"candidate-count.txt").read_text().strip())
+          for index in range(count):
+              left=json.loads((root/"blastapi-public"/f"{index}.json").read_text())
+              right=json.loads((root/"mevblocker-rpc"/f"{index}.json").read_text())
+              if left != right:
+                  keys=sorted(k for k in set(left)|set(right) if left.get(k)!=right.get(k))
+                  raise SystemExit(
+                      f"DEFAULT_CLOSE_PROVIDER_DISSENT case={index} keys={keys}"
+                  )
+              (root/"canonical"/f"{index}.json").write_text(
+                  json.dumps(left,indent=2,sort_keys=True)+"\n"
+              )
+          print(f"AAVE_DEFAULT_CLOSE_TWO_PROVIDER_WITNESS_PASS candidates={count}")
+          PY
+
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee "$NQC_DEFAULT_CLOSE/evidence/rustc.txt"
+          cargo fetch --locked --manifest-path "$NQC_DEFAULT_CLOSE/source/Cargo.toml"
+
+          python3 ci/nqc-protocol-fork/discovery/generate_aave_default_close_candidate_probe.py \
+            classify \
+            --witness-dir "$NQC_DEFAULT_CLOSE/evidence/canonical" \
+            --metadata "$NQC_DEFAULT_CLOSE/evidence/candidate-events.json" \
+            --rust-output "$NQC_DEFAULT_CLOSE/source/crates/nqc-aave-math/examples/pft_default_close_candidate.rs"
+          cp \
+            "$NQC_DEFAULT_CLOSE/source/crates/nqc-aave-math/examples/pft_default_close_candidate.rs" \
+            "$NQC_DEFAULT_CLOSE/evidence/"
+
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo run --locked --offline \
+            --manifest-path "$NQC_DEFAULT_CLOSE/source/Cargo.toml" \
+            -p nqc-aave-math \
+            --example pft_default_close_candidate \
+            2>&1 | tee "$NQC_DEFAULT_CLOSE/evidence/default-close-classification.log"
+
+          grep -E '^AAVE_DEFAULT_CLOSE_CANDIDATE_PASS candidates=[1-9][0-9]* exact_default_close_matches=[1-9][0-9]* unexplained_mismatches=0$' \
+            "$NQC_DEFAULT_CLOSE/evidence/default-close-classification.log"
+          printf '%s\n' 'PASS_EXACT_HISTORICAL_DEFAULT_CLOSE_FACTOR_CANDIDATE' \
+            > "$NQC_DEFAULT_CLOSE/evidence/default-close-candidate-status.txt"
+
+          mkdir -p /tmp/nqc-pft-discovery/default-close-candidate-evidence
+          cp -a "$NQC_DEFAULT_CLOSE/evidence/." \
+            /tmp/nqc-pft-discovery/default-close-candidate-evidence/
+
+      - name: Validate discovery remains non-admitting
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root=Path("/tmp/nqc-pft-discovery")
+          summary=json.loads((root/"discovery-summary.json").read_text())
+          assert summary["fixture_admission"] == "NONE"
+          config=json.loads(
+              Path("ci/nqc-protocol-fork/discovery/aave_candidates.json").read_text()
+          )
+          assert summary["candidate_count"] == len(config["candidates"])
+          assert summary["aave_state_parity"] == "NOT_TESTED"
+          assert summary["aave_math_parity"] == "NOT_TESTED"
+          assert summary["revm_fork_parity"] == "NOT_TESTED"
+          assert summary["protocol_fork_truth"] == "NOT_CLOSED"
+          assert all(c["admission"] == "DISCOVERED_NOT_ADMITTED" for c in summary["candidates"])
+          assert all(c["parity_status"] == "NOT_TESTED" for c in summary["candidates"])
+
+          for path in sorted((root/"candidates").glob("*.json")):
+              candidate=json.loads(path.read_text())
+              assert candidate["result"]["status"] == "NOT_TESTED"
+              assert candidate["provenance"]["fixture_admitted"] is False
+              assert candidate["block_hash"].startswith("0x") and len(candidate["block_hash"]) == 66
+              assert candidate["parent_hash"].startswith("0x") and len(candidate["parent_hash"]) == 66
+          PY
+
+          (
+            cd /tmp/nqc-pft-discovery
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Upload discovery evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-fixture-discovery-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-pft-discovery/
+          if-no-files-found: error
+          retention-days: 30

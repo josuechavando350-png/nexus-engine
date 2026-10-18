@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "gate": "T39_PROTOCOL_FORK_SOURCE_RECOVERY_EXHAUSTION",
+  "source_head": "cb052f93d08a4bfda402c534557cf9bfa883b02f",
+  "classification": "RECOVERY_EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
+  "claims": {
+    "recovered_historical_source_for_missing_components": false,
+    "documentation_is_not_source": true,
+    "reimplementation_authorized_as_repair_only": true,
+    "protocol_fork_truth_closed": false
+  },
+  "targets": [
+    "contracts/src/NqcV2BackrunExecutor.sol",
+    "crates/nqc-v2-state",
+    "crates/nqc-aave-reconciler"
+  ],
+  "physical_archive_scan": {
+    "top_level_available_nqc_tranche_archives": 31,
+    "archives_scanned_recursively": 44,
+    "files_scanned_recursively": 730,
+    "archive_manifest_path": "ci/nqc-protocol-fork/source-recovery/AVAILABLE_TRANCHE_ARCHIVES.sha256",
+    "archive_manifest_sha256": "a9d00327343a5a5340d0b3b04d023bc2018a1f6b7893ab556f45291553658527",
+    "scan_mode": "RECURSIVE_ENTRY_NAME_AND_FILE_BYTE_EXACT_TERM_SCAN_INCLUDING_NESTED_TAR_ZIP",
+    "source_path_hits": 0,
+    "source_content_hits": 0,
+    "documentation_only_hits": 4,
+    "documentation_only_hit_source": "NQC_CERT_ADVANCE_TRANCHE2_2b640cc.tar.gz",
+    "documentation_only_observation": "The baseline artifacts explicitly state that nqc-aave-reconciler and nqc-v2-state are absent at baseline.",
+    "executor_documentation_only_hit": false
+  },
+  "git_bundle_scan": {
+    "bundles_scanned": 3,
+    "bundle_manifest_path": "ci/nqc-protocol-fork/source-recovery/AVAILABLE_GIT_BUNDLES.sha256",
+    "bundle_manifest_sha256": "1993658b6712547b41dce3768aa42fd67ec296c23c8043d2937fd530133007ae",
+    "heads": [
+      {
+        "bundle": "nexus-quant-capital-latest.bundle",
+        "head": "8bddf23cb8a7c3bfe6e188b9b7abfffb9d73d885"
+      },
+      {
+        "bundle": "nexus-quant-capital.bundle",
+        "head": "6cdf02973b21e74834ed66856eb98f076c949d78"
+      },
+      {
+        "bundle": "nqc-inclusion-checkpoint.bundle",
+        "head": "806a71140f5fe003b7c168ac55ded1c522b9b008"
+      }
+    ],
+    "scan_mode": "FULL_GIT_HISTORY_PATH_ENUMERATION_PLUS_GIT_GREP_OVER_ALL_REACHABLE_COMMITS",
+    "target_path_hits": 0,
+    "target_content_hits": 0
+  },
+  "existing_binding": {
+    "physical_checkpoint": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
+    "documented_target_checkpoint": "4eba05d1fe15",
+    "documented_master_head": "dd5db84",
+    "documented_target_checkpoint_status": "NOT_PHYSICALLY_AVAILABLE",
+    "documented_master_head_status": "NOT_PHYSICALLY_AVAILABLE"
+  },
+  "resolution_policy": {
+    "source_blockers_remain_open": true,
+    "prohibited": "DO_NOT_PRESENT_NEW_CODE_AS_RECOVERED_HISTORICAL_SOURCE",
+    "next_resolution": "MEASURED_REIMPLEMENTATION_WITH_EXPLICIT_NEW_SOURCE_IDENTITY_AND_FULL_PARITY_CERTIFICATION",
+    "required_for_blocker_close": [
+      "new source content-addressed",
+      "deterministic tests",
+      "historical canonical state parity",
+      "reorg behavior parity",
+      "ABI/executor identity binding where applicable",
+      "zero unexplained mismatch"
+    ]
+  },
+  "truth_boundaries": {
+    "real_market_census": "NOT_TESTED",
+    "shadow_execution": false,
+    "canary_execution": false,
+    "live_pnl_evidence": false,
+    "production_certification": "NOT_CERTIFIED"
+  }
+}

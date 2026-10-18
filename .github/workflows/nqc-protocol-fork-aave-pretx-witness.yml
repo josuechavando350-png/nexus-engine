@@ -1,0 +1,214 @@
+name: NQC T39 Aave Transaction Pre-State Witness
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-pretx-witness.yml
+      - ci/nqc-protocol-fork/parity/PftAavePreTxWitness.t.sol
+      - ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py
+      - ci/nqc-protocol-fork/corpus/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aave-pretx-witness:
+    name: Historical transaction pre-state liquidation witness
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+      SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify corpus and prepare isolated Foundry harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          git diff --check
+          mkdir -p /tmp/nqc-pft-pretx/test /tmp/nqc-pft-pretx/src /tmp/nqc-pft-pretx/evidence
+          python3 ci/nqc-protocol-fork/corpus/validate_corpus.py \
+            | tee /tmp/nqc-pft-pretx/evidence/corpus-validation.json
+          cp ci/nqc-protocol-fork/parity/PftAavePreTxWitness.t.sol /tmp/nqc-pft-pretx/test/
+          cat > /tmp/nqc-pft-pretx/foundry.toml <<'EOF'
+          [profile.default]
+          src = "src"
+          test = "test"
+          solc_version = "0.8.24"
+          optimizer = true
+          optimizer_runs = 200
+          EOF
+          git rev-parse HEAD > /tmp/nqc-pft-pretx/evidence/repository-source-sha.txt
+          sha256sum ci/nqc-protocol-fork/parity/PftAavePreTxWitness.t.sol \
+            > /tmp/nqc-pft-pretx/evidence/pretx-test.sha256
+          sha256sum ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py \
+            > /tmp/nqc-pft-pretx/evidence/http-rpc-throttle-proxy.sha256
+
+      - name: Install exact Foundry and solc
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-pft-pretx/foundry
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o /tmp/nqc-pft-pretx/foundry.tar.gz \
+            "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  /tmp/nqc-pft-pretx/foundry.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/nqc-pft-pretx/foundry.tar.gz -C /tmp/nqc-pft-pretx/foundry
+          export PATH="/tmp/nqc-pft-pretx/foundry:$PATH"
+          forge --version | tee /tmp/nqc-pft-pretx/evidence/forge.txt
+          forge --version | grep -F "$FOUNDRY_VERSION"
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o /tmp/nqc-pft-pretx/solc-0.8.24 \
+            "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  /tmp/nqc-pft-pretx/solc-0.8.24" | sha256sum -c -
+          chmod +x /tmp/nqc-pft-pretx/solc-0.8.24
+          /tmp/nqc-pft-pretx/solc-0.8.24 --version | tee /tmp/nqc-pft-pretx/evidence/solc.txt
+          /tmp/nqc-pft-pretx/solc-0.8.24 --version | grep -F "$SOLC_VERSION"
+
+      - name: Execute transaction-hash forks against independent providers
+        shell: bash
+        working-directory: /tmp/nqc-pft-pretx
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/nqc-pft-pretx/foundry:$PATH"
+
+          providers=(
+            "blastapi-public|https://eth-mainnet.public.blastapi.io|18545"
+            "mevblocker-rpc|https://rpc.mevblocker.io|18546"
+          )
+
+          passed=0
+          for entry in "${providers[@]}"; do
+            provider_id="${entry%%|*}"
+            rest="${entry#*|}"
+            provider_url="${rest%%|*}"
+            proxy_port="${rest##*|}"
+            log="/tmp/nqc-pft-pretx/evidence/${provider_id}.log"
+            proxy_log="/tmp/nqc-pft-pretx/evidence/${provider_id}-proxy.jsonl"
+            proxy_stdout="/tmp/nqc-pft-pretx/evidence/${provider_id}-proxy-stdout.log"
+
+            NQC_PFT_PROXY_PORT="$proxy_port" \
+            NQC_PFT_UPSTREAM_URL="$provider_url" \
+            NQC_PFT_UPSTREAM_ID="$provider_id" \
+            NQC_PFT_PROXY_LOG="$proxy_log" \
+            NQC_PFT_MIN_INTERVAL_SECONDS="0.25" \
+            NQC_PFT_MAX_ATTEMPTS="9" \
+              python3 "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py" \
+              >"$proxy_stdout" 2>&1 &
+            proxy_pid=$!
+
+            cleanup_proxy() {
+              kill "$proxy_pid" 2>/dev/null || true
+              wait "$proxy_pid" 2>/dev/null || true
+            }
+            trap cleanup_proxy EXIT
+
+            ready=0
+            for _ in $(seq 1 100); do
+              if curl --silent --fail "http://127.0.0.1:${proxy_port}/health" \
+                   >"/tmp/nqc-pft-pretx/evidence/${provider_id}-health-before.json"; then
+                ready=1
+                break
+              fi
+              sleep 0.1
+            done
+            test "$ready" -eq 1
+
+            set +e
+            PFT_RPC_URL="http://127.0.0.1:${proxy_port}" \
+              forge test --use /tmp/nqc-pft-pretx/solc-0.8.24 \
+                --match-contract PftAavePreTxWitnessTest -vvvv \
+                2>&1 | tee "$log"
+            rc=${PIPESTATUS[0]}
+            set -e
+
+            curl --silent --fail "http://127.0.0.1:${proxy_port}/health" \
+              >"/tmp/nqc-pft-pretx/evidence/${provider_id}-health-after.json" || true
+            cleanup_proxy
+            trap - EXIT
+
+            test "$rc" -eq 0
+            grep -F "2 passed; 0 failed" "$log"
+            passed=$((passed + 1))
+          done
+
+          test "$passed" -eq 2
+          printf '%s\n' "$passed" > /tmp/nqc-pft-pretx/evidence/provider-pass-count.txt
+          printf '%s\n' "30" > /tmp/nqc-pft-pretx/evidence/borrower-provider-eligibility-assertions.txt
+          printf 'PASS\n' > /tmp/nqc-pft-pretx/evidence/pretx-witness-pass.txt
+
+      - name: Emit scoped pre-state evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          ev=Path("/tmp/nqc-pft-pretx/evidence")
+          ev.mkdir(parents=True, exist_ok=True)
+          def read(name, default=None):
+              p=ev/name
+              return p.read_text().strip() if p.exists() else default
+          passed=read("pretx-witness-pass.txt") == "PASS"
+          providers=int(read("provider-pass-count.txt","0"))
+          assertions=int(read("borrower-provider-eligibility-assertions.txt","0"))
+          summary={
+              "schema_version":1,
+              "tranche":"T39_PROTOCOL_FORK_TRUTH_55_TO_62",
+              "gate":"AAVE_TRANSACTION_PRESTATE_LIQUIDATION_WITNESS",
+              "repository_source_sha":read("repository-source-sha.txt"),
+              "providers":["blastapi-public","mevblocker-rpc"],
+              "provider_pass_count":providers,
+              "transactions":2,
+              "unique_borrowers":15,
+              "borrower_provider_eligibility_assertions":assertions,
+              "transaction_hash_fork":True,
+              "parent_hash_asserted":True,
+              "rate_controlled_rpc_transport":True,
+              "rpc_transport_modifies_chain_responses":False,
+              "rpc_min_interval_seconds":0.25,
+              "rpc_retry_budget":9,
+              "prestate_debt_positive":passed,
+              "prestate_health_factor_below_one":passed,
+              "scope_status":"PASS" if passed and providers == 2 and assertions == 30 else "FAIL",
+              "canonical_prestate_exact_values":"PRESERVED_IN_FORGE_TRACE_LOGS",
+              "nqc_math_parity":"NOT_TESTED",
+              "revm_fork_parity":"NOT_TESTED",
+              "v2_state_parity":"NOT_TESTED",
+              "protocol_fork_truth":"NOT_CLOSED",
+              "real_market_census":"NOT_TESTED",
+              "live_pnl_evidence":False,
+              "production_certification":"NOT_CERTIFIED",
+          }
+          payload=json.dumps(summary,sort_keys=True,separators=(",",":")).encode()
+          summary["attestation_sha256"]=hashlib.sha256(payload).hexdigest()
+          (ev/"summary.json").write_text(json.dumps(summary,indent=2,sort_keys=True)+"\n")
+          PY
+
+          (
+            cd /tmp/nqc-pft-pretx/evidence
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Upload transaction pre-state evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-pretx-witness-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-pft-pretx/evidence/
+          if-no-files-found: error
+          retention-days: 30
