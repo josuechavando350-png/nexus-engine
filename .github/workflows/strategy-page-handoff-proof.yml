@@ -1,0 +1,55 @@
+name: Strategy Page Handoff Proof
+
+on:
+  push:
+    branches:
+      - feat/strategy-page-handoff-proof-v1
+    paths:
+      - 'seo-avengers-2500/commercial-demand/**'
+      - 'seo-avengers-2500/tests/test_strategy_page_handoff_v1.mjs'
+      - 'seo-avengers-2500/tests/test_strategy_page_content_proof_v1.mjs'
+      - 'seo-avengers-2500/tests/test_publication_guardian_gate_v1.mjs'
+      - '.github/workflows/strategy-page-handoff-proof.yml'
+  pull_request:
+    paths:
+      - 'seo-avengers-2500/commercial-demand/**'
+      - 'seo-avengers-2500/tests/test_strategy_page_handoff_v1.mjs'
+      - 'seo-avengers-2500/tests/test_strategy_page_content_proof_v1.mjs'
+      - 'seo-avengers-2500/tests/test_publication_guardian_gate_v1.mjs'
+      - '.github/workflows/strategy-page-handoff-proof.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact event SHA
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Verify checkout identity
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Use Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Run tournament, handoff, byte-integrity and guardian adversarial tests
+        run: |
+          set -euo pipefail
+          node --check seo-avengers-2500/commercial-demand/strategy-page-handoff.mjs
+          node --check seo-avengers-2500/commercial-demand/strategy-page-content-proof.mjs
+          node --check seo-avengers-2500/commercial-demand/publication-guardian-gate.mjs
+          node --test \
+            seo-avengers-2500/tests/test_nexus_commercial_demand_tournament_v4.mjs \
+            seo-avengers-2500/tests/test_strategy_page_handoff_v1.mjs \
+            seo-avengers-2500/tests/test_strategy_page_content_proof_v1.mjs \
+            seo-avengers-2500/tests/test_publication_guardian_gate_v1.mjs
