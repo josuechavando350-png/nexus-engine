@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "tournamentId": "CANO_PENAL_CDMX_ZERO",
+  "siteId": "cano-penal",
+  "siteHostname": "canopenal.com",
+  "market": {
+    "country": "Mexico",
+    "region": "Ciudad de México",
+    "language": "es-MX"
+  },
+  "priorTournamentReuse": "FORBIDDEN",
+  "productionMutation": "FORBIDDEN"
+}
