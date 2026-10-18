@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "como-aparecer-en-google-maps",
+  "cliente": "nexus",
+  "ruta": "/como-aparecer-en-google-maps",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "Cómo aparecer en Google Maps con tu negocio",
+  "descripcion": "Guía paso a paso para que tu negocio aparezca en Google Maps: crear y verificar el perfil, elegir categoría, completar datos, fotos y reseñas.",
+  "h1": "Cómo aparecer en Google Maps con tu negocio",
+  "respuesta_rapida": [
+    "Crea o reclama tu Perfil de Empresa en Google y verifícalo.",
+    "Elige la categoría principal más precisa y completa todos los datos.",
+    "Sube fotos reales y mantén horario, teléfono y sitio web al día.",
+    "Pide reseñas a todos tus clientes de forma constante y respóndelas."
+  ],
+  "secciones": [
+    {
+      "titulo": "Cómo decide Google qué negocios mostrar",
+      "parrafos": [
+        "Cuando alguien busca un negocio cerca, Google muestra un mapa con unas cuantas opciones. Para elegirlas combina tres factores: relevancia, qué tan bien coincide tu perfil con lo que se busca; distancia, qué tan cerca estás de quien busca o de la zona mencionada; y prominencia, qué tan conocido y bien valorado es tu negocio, con reseñas, menciones y presencia en internet.",
+        "No puedes mover tu local, pero sí puedes trabajar la relevancia y la prominencia. Ahí está casi todo el trabajo."
+      ]
+    },
+    {
+      "titulo": "Paso uno: crear o reclamar el perfil",
+      "parrafos": [
+        "Busca tu negocio en Google Maps. Si ya aparece, porque alguien lo agregó, reclámalo como propietario. Si no aparece, créalo desde Google Business Profile con el nombre real del negocio, la categoría, la dirección o el área de servicio, el teléfono y el sitio web.",
+        "Usa el nombre real, tal como aparece en tu letrero y tus documentos. Agregar palabras clave al nombre va contra las reglas y puede provocar la suspensión."
+      ]
+    },
+    {
+      "titulo": "Paso dos: verificar",
+      "parrafos": [
+        "Google necesita confirmar que el negocio existe y que tú lo administras. Según el caso, ofrece uno o varios métodos: llamada o mensaje de texto, correo, un video del lugar mostrando el letrero, el interior y alguna prueba de que lo administras, o una videollamada. El método lo decide Google.",
+        "Sin verificación, el perfil puede no mostrarse o mostrarse con información que no controlas."
+      ]
+    },
+    {
+      "titulo": "Paso tres: completar todo",
+      "parrafos": [
+        "Categoría principal precisa y secundarias reales. Horario exacto y horarios especiales de días festivos. Teléfono, sitio web, descripción clara de lo que haces. Servicios o productos con descripción y, si quieres, precio. Atributos como accesibilidad, formas de pago o servicios disponibles.",
+        "Un perfil completo es más relevante para más búsquedas, y le da al cliente lo que necesita para decidir sin salir del mapa."
+      ]
+    },
+    {
+      "titulo": "Paso cuatro: fotos",
+      "parrafos": [
+        "Sube fotos reales de la fachada, para que te reconozcan al llegar; del interior; de tus productos o trabajos; y de tu equipo. Agrega fotos nuevas con cierta frecuencia. Los perfiles con fotos reales y recientes generan más confianza y más visitas.",
+        "Evita imágenes de banco: el cliente nota la diferencia y Google también valora el contenido propio."
+      ]
+    },
+    {
+      "titulo": "Paso cinco: reseñas",
+      "parrafos": [
+        "Las reseñas pesan mucho en la prominencia y en la decisión del cliente. Pídelas de forma constante a todos tus clientes, sin filtrar solo a los contentos, con un enlace directo o un código QR. Responde cada una, buena o mala, con amabilidad. Nunca compres reseñas ni ofrezcas descuentos a cambio: Google lo prohíbe y puede borrar reseñas o suspender el perfil.",
+        "Nuestra herramienta gratuita te ayuda a escribir el mensaje para pedirlas."
+      ]
+    },
+    {
+      "titulo": "Paso seis: conectar con tu sitio",
+      "parrafos": [
+        "Tu página web y tu perfil deben decir lo mismo: nombre, dirección, teléfono y horario. Tu sitio debe explicar tus servicios y mencionar de forma natural la zona donde atiendes. Cuando ambos coinciden, Google confía más en tu información. En Nexus Growth hacemos este trabajo junto con la medición de llamadas, rutas y mensajes que trae el perfil."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuánto tarda en aparecer mi negocio?",
+      "respuesta": "La verificación puede tardar desde minutos hasta varios días. Subir posiciones en el mapa es un proceso de semanas y meses."
+    },
+    {
+      "pregunta": "¿Necesito local físico?",
+      "respuesta": "No. Si atiendes a domicilio o a distancia, puedes configurar un área de servicio sin mostrar dirección."
+    },
+    {
+      "pregunta": "¿Puedo tener varios perfiles?",
+      "respuesta": "Uno por cada ubicación real donde atiendes clientes. Crear perfiles falsos para ocupar más espacio va contra las reglas."
+    },
+    {
+      "pregunta": "¿Tiene costo?",
+      "respuesta": "El Perfil de Empresa en Google es gratuito."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/como-verificar-perfil-de-empresa-en-google",
+      "texto": "Cómo verificar tu Perfil de Empresa en Google"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/fotos-para-perfil-de-google",
+      "texto": "Fotos para tu Perfil de Empresa en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:699613adce5f19e732ae562f9e8230b85036b6d7560cb8a765ccea01b020892c",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:699613adce5f19e732ae562f9e8230b85036b6d7560cb8a765ccea01b020892c"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 636,
+    "similitud_max": 0.009,
+    "parecida_a": "/aparecer-en-google-maps-restaurantes"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:8791ced367bcaf93b42c1e5e91d850826b7128fd28279978df250adfaf97c5e4",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-restaurantes",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-restaurantes",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comida",
+  "titulo": "Cómo aparecer en Google Maps: restaurantes",
+  "descripcion": "Guía para que tu restaurante aparezca en Google Maps: categorías, menú vinculado, fotos que abren el apetito, horarios correctos y reseñas respondidas.",
+  "h1": "Cómo hacer que tu restaurante aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Elige la categoría principal más específica: no solo restaurante, sino el tipo de cocina.",
+    "Vincula tu menú en texto y mantén precios y platillos actualizados.",
+    "Sube fotos reales de platillos, del lugar y de la fachada, y renuévalas seguido.",
+    "Responde todas las reseñas y mantén el horario exacto, incluidos días festivos."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué el mapa decide",
+      "parrafos": [
+        "Cuando alguien busca dónde comer cerca, Google muestra primero un mapa con unos cuantos restaurantes. La mayoría de los comensales eligen entre esas opciones sin bajar más. Estar ahí depende de tres cosas que Google combina: qué tan relevante es tu perfil para lo que se busca, qué tan cerca estás de quien busca y qué tan conocido y bien calificado es tu lugar.",
+        "La distancia no la controlas, pero la relevancia y la reputación sí. Un perfil completo, con la categoría correcta, menú, fotos y reseñas, puede ganarle a un competidor más cercano con un perfil descuidado."
+      ]
+    },
+    {
+      "titulo": "Categoría y atributos",
+      "parrafos": [
+        "La categoría principal es la decisión más importante del perfil. Restaurante mexicano, taquería, restaurante de mariscos, pizzería o cafetería: la más específica que describa tu cocina. Puedes agregar categorías secundarias, pero sin exagerar. Los atributos, como terraza, acceso para silla de ruedas, opciones vegetarianas, servicio a domicilio o pago con tarjeta, ayudan a aparecer en búsquedas con esos filtros.",
+        "Revisa también el rango de precios y los servicios marcados, como comer en el lugar, para llevar o entrega."
+      ]
+    },
+    {
+      "titulo": "Menú y fotos",
+      "parrafos": [
+        "El menú vinculado en el perfil, idealmente la misma página de menú de tu sitio, en texto y con precios, responde la pregunta más frecuente antes de visitar. Google también puede destacar platillos que aparecen en reseñas y fotos.",
+        "Las fotos son decisivas en restaurantes. Platillos con buena luz, el interior a la hora de servicio, la fachada para reconocer el lugar al llegar y el equipo trabajando. Subir fotos nuevas con frecuencia mantiene el perfil vivo y le muestra a Google que el negocio está activo. Las fotos de clientes también cuentan, por eso conviene invitar a compartirlas."
+      ]
+    },
+    {
+      "titulo": "Reseñas que se cuidan",
+      "parrafos": [
+        "El número de reseñas, su calificación y qué tan recientes son influyen en la posición y, sobre todo, en la decisión del comensal. La forma honesta de crecer es pedirlas: una tarjeta en la mesa o en la cuenta con un código que lleve directo a dejar reseña funciona mejor que pedirla de palabra.",
+        "Responder cada reseña, agradeciendo las buenas y atendiendo las malas con calma, muestra a los futuros clientes cómo trata el restaurante a su gente. Nunca compres reseñas ni ofrezcas descuentos a cambio de calificaciones altas: Google lo prohíbe y puede eliminar reseñas o suspender el perfil."
+      ]
+    },
+    {
+      "titulo": "Horario sin errores",
+      "parrafos": [
+        "Llegar y encontrar cerrado es una de las quejas más frecuentes en reseñas de restaurantes. Mantén el horario exacto y configura los horarios especiales de días festivos con anticipación. Si cambias horario por temporada, actualízalo el mismo día.",
+        "El horario del perfil debe coincidir con el de tu sitio web. Cuando la información coincide en todas partes, Google confía más en ella."
+      ]
+    },
+    {
+      "titulo": "Publicaciones y reservas",
+      "parrafos": [
+        "Las publicaciones del perfil sirven para anunciar platillos de temporada, eventos o promociones. Los botones de reservar y de pedir pueden llevar directo a tu sistema de reservas o a tu WhatsApp, sin pasar por intermediarios.",
+        "Medir cuántas llamadas, rutas y clics al sitio genera el perfil cada mes te dice si las acciones están funcionando."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, lo alineamos con tu sitio y tu menú, preparamos el sistema para pedir reseñas y medimos llamadas y reservas. Puedes empezar con la herramienta gratuita para generar el mensaje de reseñas. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuánto tarda en notarse una mejora?",
+      "respuesta": "Los cambios en el perfil se reflejan en días; las reseñas y la actividad constante construyen posición durante semanas y meses."
+    },
+    {
+      "pregunta": "¿Puedo tener un perfil por sucursal?",
+      "respuesta": "Sí, cada sucursal con su propio perfil, dirección, horario y reseñas."
+    },
+    {
+      "pregunta": "¿Qué hago con una reseña falsa?",
+      "respuesta": "Responderla con calma y reportarla a Google si incumple sus políticas. No discutas en público."
+    },
+    {
+      "pregunta": "¿Las plataformas de reparto afectan mi perfil?",
+      "respuesta": "No directamente, pero conviene que tu perfil tenga tu propio enlace de pedido para no depender solo de ellas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-restaurantes",
+      "texto": "Página web para restaurantes"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:fb90ca4684831e3125acf9ab67fafbfba03b32d5be6bf943711e1d8cd82e9463",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:fb90ca4684831e3125acf9ab67fafbfba03b32d5be6bf943711e1d8cd82e9463"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 713,
+    "similitud_max": 0.022,
+    "parecida_a": "/aparecer-en-google-maps-fisioterapeutas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:690a6b221cb91713ffdd9e05d779439667bb4c53009cbb0bfc59c99a760b040b",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}

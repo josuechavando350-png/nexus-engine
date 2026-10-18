@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "conversiones-en-google-ads",
+  "cliente": "nexus",
+  "ruta": "/conversiones-en-google-ads",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Medir y vender",
+  "titulo": "Conversiones en Google Ads: medir lo que vende",
+  "descripcion": "Qué es una conversión en Google Ads, cuáles conviene medir en un negocio local, cómo configurarlas y por qué sin ellas la plataforma optimiza a ciegas.",
+  "h1": "Conversiones en Google Ads: cómo medir lo que sí vende",
+  "respuesta_rapida": [
+    "Una conversión es la acción que te interesa: un mensaje, una llamada, un formulario o una compra.",
+    "Sin conversiones, Google Ads solo sabe quién hizo clic, no quién se volvió cliente.",
+    "Mide pocas acciones: las que de verdad acercan una venta.",
+    "Revisa que cada conversión se cuente una sola vez y desde una sola fuente."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué es una conversión",
+      "parrafos": [
+        "En Google Ads, una conversión es una acción valiosa que una persona hace después de ver o tocar tu anuncio. Para un negocio local suele ser un mensaje de WhatsApp, una llamada, un formulario enviado o una cita agendada. Para una tienda en línea, una compra completada.",
+        "La plataforma registra los clics por sí sola, pero no sabe qué pasa después en tu página a menos que tú se lo digas. Configurar conversiones es justamente eso: enseñarle a Google qué resultado buscas y cuándo ocurrió."
+      ]
+    },
+    {
+      "titulo": "Por qué cambian todo",
+      "parrafos": [
+        "Las campañas automáticas de Google Ads aprenden de las conversiones. Si les das datos de quién escribió o llamó, buscan más personas parecidas. Si no tienen conversiones, optimizan hacia lo único que ven: clics. Y los clics baratos no siempre son de gente con intención de comprar.",
+        "Además, sin conversiones no puedes saber cuánto te cuesta conseguir un contacto ni qué palabras clave o anuncios funcionan. Terminas decidiendo por intuición dónde poner el presupuesto, y es fácil seguir pagando por lo que no trae clientes."
+      ]
+    },
+    {
+      "titulo": "Qué conviene medir",
+      "parrafos": [
+        "Para un negocio de servicios, las conversiones principales suelen ser los clics a WhatsApp desde la página, las llamadas desde el anuncio o desde la página y los formularios enviados. Si agendas en línea, la cita confirmada es una señal todavía mejor, porque está más cerca de la venta.",
+        "Evita marcar como conversión acciones como ver una página o pasar cierto tiempo en el sitio. Inflan los números y confunden a las campañas, que terminan buscando gente que mira pero no contacta."
+      ]
+    },
+    {
+      "titulo": "Cómo configurarlas",
+      "parrafos": [
+        "Hay dos caminos comunes. Uno es crear la conversión en Google Ads e instalar su etiqueta en tu página, idealmente con Google Tag Manager. El otro es importar a Google Ads los eventos clave que ya mides en Google Analytics 4. Lo importante es elegir uno como fuente principal para no contar doble.",
+        "Las llamadas desde el anuncio se pueden medir con recursos de llamada y un número de desvío, y las llamadas desde la página con un evento al tocar el enlace de teléfono. Revisa también la configuración de cada conversión: si se cuenta una vez por clic o cada vez que ocurre, y qué ventana de tiempo usa."
+      ]
+    },
+    {
+      "titulo": "Conversiones y ventas reales",
+      "parrafos": [
+        "Un mensaje no es una venta. Si tu negocio lo permite, registra cuáles de esos contactos se volvieron clientes y, con el tiempo, súbelos a Google Ads como conversiones sin conexión. Así la plataforma aprende a distinguir entre contactos que compran y contactos que solo preguntan.",
+        "Aunque no hagas esa integración, llevar la cuenta en una hoja te permite comparar campañas por lo que importa: cuántos clientes trajo cada una y cuánto costó cada uno."
+      ]
+    },
+    {
+      "titulo": "Cómo revisar que estén bien",
+      "parrafos": [
+        "Prueba tú mismo cada conversión: toca el botón, envía el formulario, haz una llamada de prueba y verifica que aparezca en el diagnóstico de etiquetas. Luego compara: el número de conversiones en Google Ads debería parecerse a los mensajes y llamadas que de verdad recibe tu equipo.",
+        "Si Google Ads reporta muchos más contactos de los que llegan, probablemente algo se cuenta doble o se dispara sin una acción real. Si reporta muchos menos, alguna etiqueta dejó de funcionar o no está en todas las páginas."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Nexus Cortex conecta Google Ads con ventas reales: configuramos las conversiones que importan, revisamos que se cuenten bien y ajustamos las campañas con esos datos. Los paquetes de $19,999 y $44,800 incluyen tecnología para Google Ads; la administración fuera de paquete se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cuántas conversiones debo tener?",
+      "respuesta": "Pocas y claras. Una conversión principal por tipo de contacto suele bastar: mensaje, llamada y formulario."
+    },
+    {
+      "pregunta": "¿Puedo usar las conversiones de Analytics?",
+      "respuesta": "Sí, puedes importarlas a Google Ads. Solo evita medir la misma acción también con la etiqueta de Ads, para no contarla dos veces."
+    },
+    {
+      "pregunta": "¿Por qué Google Ads muestra conversiones que no veo?",
+      "respuesta": "Puede ser por la ventana de atribución, por conteos duplicados o por eventos mal configurados. Conviene revisar etiqueta por etiqueta."
+    },
+    {
+      "pregunta": "¿Las conversiones mejoran mis anuncios?",
+      "respuesta": "Le dan a la plataforma la información que necesita para optimizar. No aseguran resultados, pero sin ellas las campañas automáticas trabajan a ciegas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/como-medir-clics-de-whatsapp",
+      "texto": "Cómo medir los clics a WhatsApp de tu página"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:e2ae87938da77bbc038ef5d3aefe5f3de4e9352dd9e015e73691b9036b095d32",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:e2ae87938da77bbc038ef5d3aefe5f3de4e9352dd9e015e73691b9036b095d32"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 762,
+    "similitud_max": 0.007,
+    "parecida_a": "/cuanto-invertir-en-google-ads-negocio-local"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:f11a3a3f9cbd8fcf035c3b82695b2ed000d7a5642b48cb20b824ecd8396c4cf8",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

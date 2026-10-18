@@ -1,0 +1,54 @@
+name: SUPERSEO Observatorio
+
+# Actualiza cada mes el Observatorio del delito con los datos abiertos de la
+# Fiscalía General de Justicia de la CDMX. Solo guarda el agregado verificado.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Opcional: URL directa del CSV (si no, se resuelve desde datos.cdmx.gob.mx)"
+        required: false
+        default: ""
+  schedule:
+    - cron: "41 14 8 * *"
+
+permissions:
+  contents: write
+
+concurrency: superseo-observatorio
+
+jobs:
+  observatorio:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: main
+
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "24"
+
+      - name: Descargar, agregar y verificar
+        env:
+          URL_CSV: ${{ inputs.url }}
+        run: |
+          set -euo pipefail
+          case "$URL_CSV" in ""|https://*) ;; *) echo "la URL debe usar https"; exit 2;; esac
+          if [ -n "$URL_CSV" ]; then
+            node superseo/cli.mjs observatorio --url "$URL_CSV" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            node superseo/cli.mjs observatorio | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Guardar el agregado en main
+        run: |
+          set -euo pipefail
+          git add superseo/arma/datos/observatorio-cdmx.json
+          if git diff --cached --quiet; then echo "Sin cambios"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -q -m "SUPERSEO: actualiza el Observatorio del delito"
+          git push -q origin HEAD:main

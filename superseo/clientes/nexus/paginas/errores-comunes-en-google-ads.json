@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "errores-comunes-en-google-ads",
+  "cliente": "nexus",
+  "ruta": "/errores-comunes-en-google-ads",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Medir y vender",
+  "titulo": "Errores comunes en Google Ads de negocios locales",
+  "descripcion": "Los errores más frecuentes que hacen que Google Ads gaste sin traer clientes a un negocio local, y qué revisar en tu cuenta para corregirlos.",
+  "h1": "Errores comunes en Google Ads de negocios locales",
+  "respuesta_rapida": [
+    "Anunciar sin medir conversiones hace que la plataforma busque clics, no clientes.",
+    "Las palabras clave demasiado amplias traen búsquedas que no tienen que ver con tu negocio.",
+    "Mandar todo el tráfico a la portada desperdicia la intención de cada búsqueda.",
+    "Revisar los términos de búsqueda cada semana evita fugas de presupuesto."
+  ],
+  "secciones": [
+    {
+      "titulo": "No medir conversiones",
+      "parrafos": [
+        "Es el error de fondo, porque contamina todo lo demás. Si la cuenta no sabe quién te escribió o te llamó, las campañas automáticas optimizan hacia clics, y los clics más baratos rara vez son de la gente con más ganas de comprar. Pagas por tráfico que no se convierte y no tienes forma de notarlo.",
+        "Antes de subir el presupuesto o probar otro tipo de campaña, asegúrate de que los mensajes de WhatsApp, las llamadas y los formularios se están contando bien y una sola vez."
+      ]
+    },
+    {
+      "titulo": "Palabras clave demasiado amplias",
+      "parrafos": [
+        "La concordancia amplia puede mostrar tu anuncio en búsquedas muy distintas a las que imaginas. Un taller mecánico que puja por reparación puede aparecer en búsquedas de reparación de celulares o de cursos de mecánica. Sin vigilancia, una parte del presupuesto se va en clics que nunca iban a comprar.",
+        "La solución no es prohibir la concordancia amplia, sino usarla con conversiones bien medidas, revisar el informe de términos de búsqueda y agregar palabras clave negativas: empleo, gratis, curso, PDF, segunda mano o lo que no aplique a tu negocio."
+      ]
+    },
+    {
+      "titulo": "Mandar todo a la portada",
+      "parrafos": [
+        "Si alguien busca un servicio concreto y llega a tu página de inicio, tiene que buscar otra vez lo que ya había buscado en Google. Muchos se van. Cada grupo de anuncios debería llevar a una página que hable exactamente de lo que se anunció, con el botón de contacto a la vista.",
+        "Una página por servicio también mejora la relación que Google percibe entre anuncio y página, lo cual influye en la calidad del anuncio y en cuánto pagas por cada clic."
+      ]
+    },
+    {
+      "titulo": "Ubicación y horario mal configurados",
+      "parrafos": [
+        "Un error silencioso es la opción de ubicación que incluye a personas interesadas en tu zona, no solo a quienes están en ella. Para un negocio que solo atiende localmente, conviene limitar a personas que están o suelen estar en el área que de verdad cubres.",
+        "El horario también importa. Si nadie contesta el teléfono de noche, anunciar llamadas a esa hora genera contactos perdidos. Ajusta la programación a cuando puedes atender, o apóyate en un asistente que responda por WhatsApp fuera de horario."
+      ]
+    },
+    {
+      "titulo": "Aceptar recomendaciones sin revisar",
+      "parrafos": [
+        "La cuenta muestra recomendaciones automáticas: subir presupuestos, agregar palabras clave, ampliar audiencias. Algunas son útiles; otras aumentan el gasto sin mejorar los resultados. Aplicarlas todas de golpe puede desordenar una campaña que funcionaba.",
+        "Revisa cada recomendación con una pregunta sencilla: ¿esto me acerca a más clientes o solo a más clics? Si no tienes datos para responder, espera a tenerlos."
+      ]
+    },
+    {
+      "titulo": "Cambiar demasiado o no cambiar nada",
+      "parrafos": [
+        "Modificar la campaña cada dos días impide que el sistema aprenda y que tú veas tendencias. Lo contrario también es un error: dejarla meses sin revisar. Lo sano es un ritmo fijo: revisar términos y conversiones cada semana y hacer cambios grandes solo con datos suficientes.",
+        "Y una última trampa: comparar tus resultados contra la promesa de un vendedor. Nadie puede asegurar un número de clientes; lo que sí se puede es medir bien, corregir rápido y decidir con datos."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Si ya tienes una cuenta de Google Ads y sientes que gasta sin traer clientes, en el diagnóstico gratuito revisamos conversiones, términos de búsqueda, ubicación y páginas de destino. Con Nexus Cortex conectamos los anuncios a lo que sí vende y te decimos con franqueza qué conviene corregir primero."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cada cuánto debo revisar mi cuenta?",
+      "respuesta": "Los términos de búsqueda y las conversiones, cada semana. Los cambios grandes de estructura, solo cuando tengas datos de varias semanas."
+    },
+    {
+      "pregunta": "¿Qué son las palabras clave negativas?",
+      "respuesta": "Palabras que le indican a Google en qué búsquedas no mostrar tu anuncio, como empleo, gratis o curso."
+    },
+    {
+      "pregunta": "¿Debo usar campañas Performance Max?",
+      "respuesta": "Pueden funcionar, pero necesitan conversiones bien medidas y buen material. Sin eso, es difícil saber dónde se gasta el presupuesto."
+    },
+    {
+      "pregunta": "¿Google Ads funciona para negocios pequeños?",
+      "respuesta": "Puede funcionar si la búsqueda existe en tu zona, la página convierte y alguien atiende rápido. Sin esas tres cosas, es fácil gastar sin resultados."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/cuanto-invertir-en-google-ads-negocio-local",
+      "texto": "¿Cuánto invertir en Google Ads siendo negocio local?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:23775e8610e590778fa542302484dbd13bb6070913992c3a05b7a3268c75718d",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:23775e8610e590778fa542302484dbd13bb6070913992c3a05b7a3268c75718d"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 728,
+    "similitud_max": 0.004,
+    "parecida_a": "/google-ads-para-abogados"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:f0134d7b2077d3699912f0f7fcc62ef7b010bef6ef509a0bc108075abf7b1898",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

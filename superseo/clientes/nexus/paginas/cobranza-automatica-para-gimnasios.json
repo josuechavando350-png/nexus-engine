@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "id": "cobranza-automatica-para-gimnasios",
+  "cliente": "nexus",
+  "ruta": "/cobranza-automatica-para-gimnasios",
+  "tipo": "AGENTE_IA",
+  "servicio": "cobranza",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Cobranza automática para gimnasios",
+  "descripcion": "Cobranza automática de membresías para gimnasios: aviso antes del cargo, enlace de renovación, rescate de pagos fallidos y reportes de socios activos.",
+  "h1": "Cobranza automática para gimnasios",
+  "respuesta_rapida": [
+    "Aviso antes de cada vencimiento con enlace para renovar en línea.",
+    "Rescate automático de cargos rechazados antes de que el socio se dé de baja sin querer.",
+    "Mensajes de regreso para socios vencidos con una invitación a volver.",
+    "Reporte claro de membresías activas, vencidas y por vencer."
+  ],
+  "secciones": [
+    {
+      "titulo": "Socios que se van por olvido",
+      "parrafos": [
+        "En un gimnasio, muchos socios no se van porque decidieron dejar de entrenar, sino porque su membresía venció, no pasaron a renovar esa semana y después perdieron el hábito. Otros tienen cargos domiciliados que fallan por una tarjeta vencida y nadie les avisa. Cada uno de esos casos es ingreso que se pierde sin necesidad.",
+        "La recepción rara vez tiene tiempo de revisar quién está por vencer y escribirle a cada uno.",
+        "El efecto se nota en los números: un gimnasio puede inscribir a muchos socios nuevos al mes y aun así no crecer, porque pierde una cantidad parecida por bajas silenciosas. Reducir esas bajas involuntarias es, muchas veces, la forma más rápida de aumentar los ingresos sin gastar más en publicidad."
+      ]
+    },
+    {
+      "titulo": "Cómo funciona",
+      "parrafos": [
+        "Unos días antes de que venza cada membresía, el socio recibe un mensaje con la fecha y un enlace para renovar en línea, sin hacer fila. Si tiene cargo domiciliado, recibe un aviso antes del cobro, lo que reduce aclaraciones y contracargos.",
+        "Si un cargo es rechazado, el sistema avisa al socio de inmediato con un enlace para actualizar su tarjeta o pagar de otra forma. Muchas bajas involuntarias se evitan así.",
+        "Cuando una membresía vence sin renovación, el socio recibe, después de unos días, un mensaje amable invitándolo a regresar, con alguna promoción si el gimnasio lo decide."
+      ]
+    },
+    {
+      "titulo": "Sin presión, con constancia",
+      "parrafos": [
+        "Los mensajes se escriben con la energía de la marca, sin tono de cobranza. Un recordatorio de renovación es casi un servicio: le ahorra al socio quedarse sin acceso el día que llega a entrenar.",
+        "Las condiciones de la membresía, como cargos de reactivación, deben estar claras desde la inscripción para que ningún mensaje sea una sorpresa."
+      ]
+    },
+    {
+      "titulo": "Reportes que sirven",
+      "parrafos": [
+        "El dueño ve cuántos socios están activos, cuántos vencen esta semana, cuántos renovaron después del recordatorio, cuántos cargos fallaron y cuántos regresaron después de vencer. Con eso puede medir la retención real del gimnasio, que es el número que define su rentabilidad.",
+        "Esos datos también ayudan a diseñar promociones de renovación anticipada en los meses de más bajas."
+      ]
+    },
+    {
+      "titulo": "Clases, paquetes y servicios extra",
+      "parrafos": [
+        "El mismo sistema cobra paquetes de clases, entrenamiento personal, casilleros o cualquier servicio adicional, con su propio recordatorio. Para estudios boutique que venden paquetes de sesiones, avisa cuando quedan pocas sesiones y ofrece renovar.",
+        "Todo queda en el historial de cada socio.",
+        "Si el gimnasio organiza retos o eventos con costo, la inscripción y el pago también se manejan desde el mismo sistema, con recordatorio a los participantes."
+      ]
+    },
+    {
+      "titulo": "Pagos seguros",
+      "parrafos": [
+        "Los pagos se procesan con un procesador reconocido, el gimnasio no guarda datos de tarjetas y la información de los socios queda bajo su aviso de privacidad. En Nexus configuramos cada integración con criterio de ciberseguridad.",
+        "Los comprobantes se envían automáticamente al socio."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos la cobranza con tus planes, fechas y mensajes, conectada a WhatsApp y a pagos en línea. Incluida desde el paquete de $9,999 MXN o como servicio aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Funciona con mi control de acceso?",
+      "respuesta": "Depende del sistema. Si se integra, la renovación en línea reactiva el acceso automáticamente."
+    },
+    {
+      "pregunta": "¿Puedo ofrecer promociones de regreso?",
+      "respuesta": "Sí, con mensajes y vigencia definidos por el gimnasio."
+    },
+    {
+      "pregunta": "¿Y si el socio quiere cancelar?",
+      "respuesta": "El mensaje puede incluir cómo hacerlo. Facilitar la cancelación evita conflictos y reseñas negativas."
+    },
+    {
+      "pregunta": "¿Sirve para varios locales?",
+      "respuesta": "Sí, con reportes por sucursal."
+    },
+    {
+      "pregunta": "¿Puedo cobrar la inscripción en línea a socios nuevos?",
+      "respuesta": "Sí. El nuevo socio puede pagar inscripción y primer mes desde un enlace, y llegar al gimnasio con todo listo."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/soluciones/cobranza",
+      "texto": "Cobranza y recordatorios automáticos"
+    },
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-gimnasios",
+      "texto": "Página web para gimnasios"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:0e28ac2d53f2158e530724e9c47fed915e6d724bf46b1c9e24263555c85388c9",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:0e28ac2d53f2158e530724e9c47fed915e6d724bf46b1c9e24263555c85388c9"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 642,
+    "similitud_max": 0.034,
+    "parecida_a": "/cobranza-automatica-para-academias-y-cursos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:6c86a80987d86bc6b60b6f0ba9fec475a731690517da3476b1502780b19b2455",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

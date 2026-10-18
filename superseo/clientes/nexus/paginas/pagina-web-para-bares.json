@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-bares",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-bares",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comida",
+  "titulo": "Página web para bares y cantinas",
+  "descripcion": "Sitios para bares: carta de bebidas, agenda de eventos y música en vivo, reservas para grupos, promociones y un diseño con la personalidad del lugar.",
+  "h1": "Página web para bares",
+  "respuesta_rapida": [
+    "Un bar se elige por ambiente y por plan: agenda de eventos, música y fotos reales del lugar van primero.",
+    "La carta de bebidas con precios ayuda a decidir, sobre todo en grupo.",
+    "Las reservas para cumpleaños y grupos son una venta grande que se planea con anticipación.",
+    "Horario real, incluidos los días que abren tarde, idéntico en la página y en Google."
+  ],
+  "secciones": [
+    {
+      "titulo": "La gente busca un plan, no solo un bar",
+      "parrafos": [
+        "Nadie busca un bar a secas. Busca dónde ver el partido, un lugar con música en vivo el jueves, una cantina con botana, una terraza para el atardecer o un bar de coctelería para una cita. Tu página tiene que decir con claridad qué tipo de plan ofreces y cuándo, porque esa es la búsqueda real del cliente.",
+        "Las palabras que usa la gente son muy concretas: bar con karaoke, bar para ver el futbol, mezcalería, bar con terraza. Si tu lugar es eso, la página debe decirlo con esas mismas palabras."
+      ]
+    },
+    {
+      "titulo": "Agenda de eventos que se actualiza",
+      "parrafos": [
+        "Música en vivo, noches temáticas, transmisiones deportivas, catas, stand up. Una agenda en la página, fácil de actualizar cada semana, le da a la gente una razón para volver y a Google una señal de que el sitio está vivo. Cada evento importante puede tener su propia entrada con fecha, hora, cover si aplica y forma de reservar.",
+        "Esa agenda también se puede compartir en redes con un enlace limpio, en vez de depender solo de una historia que dura un día."
+      ]
+    },
+    {
+      "titulo": "La carta",
+      "parrafos": [
+        "Cocteles de la casa, cervezas, destilados, botanas y alimentos. Con precios y descripciones breves, en texto legible en el celular. Si el bar tiene una especialidad, como mezcales de distintas regiones, cerveza artesanal o coctelería de autor, esa es la historia que lo distingue y merece fotos y contexto.",
+        "Las promociones, como horas felices o cubetazos, deben estar visibles con días y horarios para evitar malentendidos en la cuenta."
+      ]
+    },
+    {
+      "titulo": "Grupos y celebraciones",
+      "parrafos": [
+        "Cumpleaños, despedidas, reuniones de oficina. Una página para reservas de grupo con capacidad, áreas disponibles, paquetes y condiciones, junto con un formulario o asistente de WhatsApp, captura ventas grandes que de otro modo se pierden en mensajes sin respuesta.",
+        "Un anticipo en línea para reservas grandes reduce las cancelaciones de último minuto, que en un bar cuestan una noche completa de mesa vacía."
+      ]
+    },
+    {
+      "titulo": "Personalidad visual",
+      "parrafos": [
+        "El ambiente de un bar no cabe en una plantilla. La página debe tener la misma personalidad que el lugar: su luz, sus colores, su tipografía, su música. Fotos reales de noche, con gente disfrutando, venden más que cualquier texto.",
+        "Eso sí, el diseño nunca debe sacrificar lo básico: horario, dirección y contacto siempre a un toque de distancia."
+      ]
+    },
+    {
+      "titulo": "Responsabilidad y reglas claras",
+      "parrafos": [
+        "Indicar la política de edad, el código de vestimenta si lo hay, si hay cover y si se admiten reservaciones evita malos ratos en la puerta. También es buena idea recomendar opciones de transporte seguro al salir.",
+        "Son detalles que, además de cuidar al cliente, se reflejan en mejores reseñas."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios de bar con la identidad del lugar, agenda editable, carta y reservas de grupo medidas. Desde $1,999 MXN; con asistente que toma reservas desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo vender boletos para eventos?",
+      "respuesta": "Sí. Se puede integrar venta de boletos o cover anticipado para noches especiales, con lista de acceso para la puerta."
+    },
+    {
+      "pregunta": "¿Cómo actualizo la agenda cada semana?",
+      "respuesta": "La dejamos en un formato sencillo para que tú o tu equipo agreguen eventos sin depender de nosotros."
+    },
+    {
+      "pregunta": "¿Sirve la página si casi todo lo muevo en Instagram?",
+      "respuesta": "Sí. Instagram muestra el ambiente; la página es la que aparece en Google y la que convierte a quien busca un plan concreto."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/reservas-en-linea-para-restaurantes",
+      "texto": "Reservas en línea para restaurantes"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:8b2df7626f21b7a768b7d833fa582d3cfda248e590b52d9fb627a88f38bb105d",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:8b2df7626f21b7a768b7d833fa582d3cfda248e590b52d9fb627a88f38bb105d"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 623,
+    "similitud_max": 0.012,
+    "parecida_a": "/pagina-web-para-restaurantes"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:721e0eea5b1013324c23f455c5cbc61adbd170bb16a70e9ffa779c3eb8997b66",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

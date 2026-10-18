@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-veterinarias",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-veterinarias",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Cómo aparecer en Google Maps: veterinarias",
+  "descripcion": "Guía para que tu veterinaria aparezca en Google Maps: categoría, urgencias y horarios claros, servicios por especie, fotos de la clínica y reseñas de dueños.",
+  "h1": "Cómo hacer que tu veterinaria aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal: veterinario o clínica veterinaria; agrega estética u hotel si los ofreces.",
+    "Horario exacto y si atiendes urgencias, a la vista en el perfil.",
+    "Fotos reales de la clínica, el equipo y los pacientes con permiso de sus dueños.",
+    "Reseñas de dueños, pedidas después de cada consulta."
+  ],
+  "secciones": [
+    {
+      "titulo": "La búsqueda más angustiada",
+      "parrafos": [
+        "Veterinario cerca de mí y veterinario abierto ahora son búsquedas que muchas veces se hacen con angustia. El dueño elige rápido entre las clínicas del mapa, mirando si están abiertas, qué tan cerca están y qué dicen las reseñas. Un perfil con horario confiable y buenas reseñas recibe esas llamadas.",
+        "Las búsquedas de rutina, como vacunas o estética, se hacen con más calma, pero también se resuelven en el mapa.",
+        "Además, los dueños de mascotas son muy fieles cuando encuentran una clínica que les da confianza: el primer contacto desde el mapa puede convertirse en años de consultas, vacunas y estética. Por eso vale la pena cuidar cada detalle del perfil, desde el horario hasta la forma de responder reseñas."
+      ]
+    },
+    {
+      "titulo": "Categorías y servicios",
+      "parrafos": [
+        "La categoría principal es veterinario o clínica veterinaria. Si tienes estética, guardería u hotel, agrégalos como categorías secundarias solo si realmente los ofreces. En servicios, lista consulta, vacunación, esterilización, cirugía, laboratorio, odontología, especialidades y especies que atiendes.",
+        "Si atiendes especies poco comunes, menciónalo: hay pocas opciones y los dueños están dispuestos a viajar."
+      ]
+    },
+    {
+      "titulo": "Horario y urgencias",
+      "parrafos": [
+        "El horario debe ser exacto, con días festivos configurados. Si atiendes urgencias fuera de horario, indícalo en la descripción y con el atributo correspondiente si existe. Si no atiendes urgencias, también conviene decirlo, para evitar que un dueño angustiado llegue y encuentre cerrado.",
+        "Esa honestidad se refleja en reseñas y en confianza."
+      ]
+    },
+    {
+      "titulo": "Fotos con calidez",
+      "parrafos": [
+        "Fotos de la clínica limpia, del consultorio, del área de hospitalización, del equipo médico y de la fachada. Las fotos de pacientes, con permiso de sus dueños, son de lo más visto y compartido: muestran el cariño con el que trabaja la clínica.",
+        "Actualizar fotos con regularidad mantiene el perfil activo."
+      ]
+    },
+    {
+      "titulo": "Reseñas de dueños",
+      "parrafos": [
+        "Pide reseñas a todos los dueños después de cada consulta, cirugía o baño, con un enlace por WhatsApp. Los dueños satisfechos suelen escribir reseñas detalladas que ayudan mucho a otros.",
+        "Responde con empatía, también a las reseñas difíciles, que en veterinaria a veces vienen de momentos dolorosos. Una respuesta humana y respetuosa dice mucho de la clínica."
+      ]
+    },
+    {
+      "titulo": "Publicaciones útiles",
+      "parrafos": [
+        "Las publicaciones del perfil pueden anunciar campañas de vacunación, cuidados en temporada de calor o promociones de estética. Son útiles para el dueño y le dan a Google señales de actividad.",
+        "Medir llamadas y solicitudes de ruta desde el perfil te dice cuántos clientes trae."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, lo alineamos con tu sitio y tu agenda, preparamos el sistema de reseñas y medimos llamadas. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo tener un perfil aparte para la estética?",
+      "respuesta": "Solo si funciona como negocio distinto con su propia entrada o identidad. Si es parte de la clínica, mejor como categoría secundaria."
+    },
+    {
+      "pregunta": "¿Qué hago si el horario de urgencias cambia?",
+      "respuesta": "Actualízalo de inmediato en el perfil y en el sitio. Un horario equivocado genera malas experiencias."
+    },
+    {
+      "pregunta": "¿Cómo pido reseñas sin presionar?",
+      "respuesta": "Con un mensaje breve después de la consulta, agradeciendo la confianza y dejando el enlace."
+    },
+    {
+      "pregunta": "¿Sirven las fotos de mascotas de clientes?",
+      "respuesta": "Sí, con permiso de sus dueños. Son de lo más atractivo para nuevos clientes."
+    },
+    {
+      "pregunta": "¿Puedo mostrar precios de servicios?",
+      "respuesta": "Sí, en la sección de servicios, como precio desde para consulta, vacunas o baño. Para cirugías conviene aclarar que se cotiza después de valorar a la mascota."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-veterinarias",
+      "texto": "Página web para veterinarias"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:20eb0f33bb07e1e1195a5659361eff6451230f5a840bf108cf64ebb80d1483aa",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:20eb0f33bb07e1e1195a5659361eff6451230f5a840bf108cf64ebb80d1483aa"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 613,
+    "similitud_max": 0.034,
+    "parecida_a": "/aparecer-en-google-maps-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:021dd8b7b25015d5bab44a8038ee4e0d364f8f48b947b29194285166c4c9a2fa",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}

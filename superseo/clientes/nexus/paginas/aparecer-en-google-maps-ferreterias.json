@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-ferreterias",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-ferreterias",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Comercio",
+  "titulo": "Cómo aparecer en Google Maps: ferreterías",
+  "descripcion": "Guía para que tu ferretería aparezca en Google Maps: categoría, productos y marcas, horario exacto, fotos de pasillos y reseñas de contratistas y vecinos.",
+  "h1": "Cómo hacer que tu ferretería aparezca en Google Maps",
+  "respuesta_rapida": [
+    "Categoría principal: ferretería; agrega tlapalería, material eléctrico o plomería si aplica.",
+    "Productos y marcas destacadas dentro del perfil, con foto.",
+    "Horario exacto: quien busca ferretería suele necesitarla ya.",
+    "Reseñas de contratistas y vecinos que compran seguido."
+  ],
+  "secciones": [
+    {
+      "titulo": "Se busca cuando algo se descompone",
+      "parrafos": [
+        "Ferretería cerca, ferretería abierta, tlapalería en una colonia. Estas búsquedas suelen hacerse cuando algo se descompuso o una obra necesita material ya. El cliente elige la ferretería más cercana que esté abierta y que parezca tener lo que busca. El perfil de Google es lo que le da esa información.",
+        "Muchas ferreterías excelentes no aparecen porque nunca reclamaron su perfil o lo tienen con horario viejo.",
+        "La buena noticia es que en este giro la competencia en el mapa suele ser poca, así que un perfil bien hecho destaca rápido."
+      ]
+    },
+    {
+      "titulo": "Categoría y productos",
+      "parrafos": [
+        "La categoría principal es ferretería. Agrega secundarias reales, como tlapalería, tienda de material eléctrico, tienda de plomería o tienda de pinturas. En la sección de productos, sube los más buscados o los de especialidad, con foto y precio si es estable.",
+        "En la descripción, menciona marcas que manejas y servicios como corte de llaves, igualado de pintura o entregas.",
+        "Si vendes material para obra, como cemento, varilla o block, o tienes servicio de corte de madera o de tubo, dilo en la descripción y en productos: son búsquedas frecuentes de contratistas que necesitan resolver en el día."
+      ]
+    },
+    {
+      "titulo": "Horario exacto",
+      "parrafos": [
+        "El horario es lo más consultado del perfil de una ferretería. Debe ser exacto, incluidos sábados, domingos y días festivos. Si abres temprano, es una ventaja para contratistas que empiezan su jornada.",
+        "Un horario equivocado manda clientes a una cortina cerrada y genera malas reseñas.",
+        "Si tienes horario extendido o abres en domingo, es una gran ventaja: muchas reparaciones caseras se hacen en fin de semana, y la ferretería que aparece abierta se queda con esas ventas."
+      ]
+    },
+    {
+      "titulo": "Fotos de mostrador y pasillos",
+      "parrafos": [
+        "Fotos del mostrador, de los pasillos, de la variedad de productos y de la fachada desde la calle. El cliente quiere saber si es una ferretería surtida y fácil de encontrar.",
+        "Actualízalas de vez en cuando para mostrar actividad.",
+        "Las fotos de productos de especialidad, como refacciones difíciles de conseguir, también ayudan: quien busca esa pieza y la ve en tus fotos sabe que vale la pena ir."
+      ]
+    },
+    {
+      "titulo": "Reseñas de quienes compran seguido",
+      "parrafos": [
+        "Los contratistas, plomeros y electricistas que compran seguido son los mejores para dejar reseñas sobre surtido, precio y atención. Pídeles con un código QR en el mostrador o un mensaje.",
+        "Responde todas las reseñas con el trato de mostrador que te caracteriza."
+      ]
+    },
+    {
+      "titulo": "Botones útiles",
+      "parrafos": [
+        "Vincula el botón de mensaje a tu WhatsApp para recibir listas de material y el de sitio web a tu catálogo. Si haces entregas, indícalo en la descripción y en los atributos.",
+        "Mide llamadas y mensajes desde el perfil."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos tu perfil, cargamos productos, alineamos la información con tu sitio y medimos contactos. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Mi ferretería ya aparece, pero con datos viejos?",
+      "respuesta": "Reclama el perfil, verifícalo y actualiza horario, teléfono y fotos."
+    },
+    {
+      "pregunta": "¿Conviene subir productos?",
+      "respuesta": "Sí, los más buscados y los de especialidad. Ayudan a aparecer en búsquedas de productos."
+    },
+    {
+      "pregunta": "¿Puedo recibir pedidos por el perfil?",
+      "respuesta": "Sí, vinculando tu WhatsApp para que te manden listas."
+    },
+    {
+      "pregunta": "¿Cómo destaco frente a las cadenas?",
+      "respuesta": "Con atención, especialidad, horario confiable y reseñas de clientes que te conocen."
+    },
+    {
+      "pregunta": "¿Puedo mostrar que doy crédito a contratistas?",
+      "respuesta": "Sí, en la descripción. Es un argumento fuerte para atraer clientes que compran en volumen."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-ferreterias",
+      "texto": "Página web para ferreterías"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:46874de63a835ea52cdb7143d03fad77b7aa3c3621b91fe60c4698e289c89c55",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:46874de63a835ea52cdb7143d03fad77b7aa3c3621b91fe60c4698e289c89c55"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 600,
+    "similitud_max": 0.018,
+    "parecida_a": "/aparecer-en-google-maps-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:6b590f39c5f338846039fa3cdfadd86812331f4b98b373572af30c271edb4edf",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

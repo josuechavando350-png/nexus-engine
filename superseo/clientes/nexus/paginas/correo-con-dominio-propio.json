@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "correo-con-dominio-propio",
+  "cliente": "nexus",
+  "ruta": "/correo-con-dominio-propio",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Seguridad y propiedad",
+  "titulo": "Correo con dominio propio para tu negocio",
+  "descripcion": "Por qué tener correo con el dominio de tu negocio, qué opciones hay, cómo evitar que tus correos lleguen a spam y cómo no perderlo al cambiar de página.",
+  "h1": "Correo con dominio propio para tu negocio",
+  "respuesta_rapida": [
+    "Un correo con tu dominio transmite más seriedad que uno gratuito.",
+    "Puedes contratarlo con proveedores de correo empresarial o con tu hospedaje.",
+    "Configura los registros de autenticación para que tus correos no caigan en spam.",
+    "Al cambiar de página, no toques la configuración del correo sin planearlo."
+  ],
+  "secciones": [
+    {
+      "titulo": "Por qué importa",
+      "parrafos": [
+        "Un correo como contacto en tu dominio le dice al cliente que el negocio es formal y estable. Un correo gratuito genérico puede funcionar al empezar, pero en cotizaciones, contratos o servicios profesionales resta confianza. Además, si un empleado se va, el correo del negocio se queda en el negocio.",
+        "Es uno de los usos más importantes de tu dominio, junto con la página."
+      ]
+    },
+    {
+      "titulo": "Opciones",
+      "parrafos": [
+        "Los servicios de correo empresarial de los grandes proveedores ofrecen buzones con tu dominio, almacenamiento, calendario y aplicaciones, con un costo mensual por usuario. Muchos hospedajes incluyen correo, más básico. Algunos registradores ofrecen reenvío de correo hacia otra cuenta.",
+        "La elección depende de cuántas personas necesitan correo, cuánto lo usan y qué herramientas comparten."
+      ]
+    },
+    {
+      "titulo": "Cómo funciona por dentro",
+      "parrafos": [
+        "Tu dominio tiene una configuración, llamada DNS, con registros que dicen a dónde va cada cosa: los que apuntan a tu página y los que apuntan a tu correo. Los registros de correo indican qué servidor recibe tus mensajes. Por eso puedes tener la página con un proveedor y el correo con otro.",
+        "Y por eso cambiar de página no debería afectar al correo, si solo se tocan los registros de la página."
+      ]
+    },
+    {
+      "titulo": "Que tus correos no lleguen a spam",
+      "parrafos": [
+        "Para que otros servidores confíen en tus correos, el dominio necesita registros de autenticación que demuestran que los mensajes vienen de ti y no de un impostor. Sin ellos, tus cotizaciones pueden caer en la carpeta de spam de tus clientes. También protegen tu dominio de que alguien envíe correos falsos en tu nombre.",
+        "Tu proveedor de correo indica qué registros agregar; vale la pena revisarlo."
+      ]
+    },
+    {
+      "titulo": "Al cambiar de página o de proveedor",
+      "parrafos": [
+        "El error más común en una migración es tocar los registros del correo junto con los de la página, y dejar al negocio sin correo durante días. Antes de cualquier cambio, anota la configuración actual del correo y modifica solo lo necesario. Si el correo está atado a una plataforma, como un constructor de sitios, revisa qué pasa si cancelas la suscripción.",
+        "Con CANO Estrategia Penal migramos el sitio desde Wix sin tocar el correo del despacho."
+      ]
+    },
+    {
+      "titulo": "Buenas prácticas",
+      "parrafos": [
+        "Usa direcciones por función, como contacto o ventas, además de las personales, para que los mensajes no dependan de una sola persona. Activa la verificación en dos pasos. Revisa quién tiene acceso a cada buzón y quita accesos cuando alguien se va. Y usa el correo del negocio para registrar las cuentas importantes, como el dominio y Google.",
+        "Así, el negocio conserva el control aunque cambie el equipo.",
+        "Crea direcciones por función, como ventas o contacto, además de las personales. Así, si alguien deja el negocio, la dirección que conocen tus clientes sigue funcionando y la puedes asignar a otra persona."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Te ayudamos a configurar el correo con tu dominio, sus registros de autenticación y a conservarlo intacto cuando cambiamos tu página. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo usar mi correo con dominio en el celular?",
+      "respuesta": "Sí, en la aplicación del proveedor o en la de correo de tu teléfono."
+    },
+    {
+      "pregunta": "¿Necesito un correo por empleado?",
+      "respuesta": "Para quien atiende clientes, conviene. Para el resto pueden bastar direcciones compartidas."
+    },
+    {
+      "pregunta": "¿Puedo conservar mis correos antiguos al cambiar de proveedor?",
+      "respuesta": "Sí, la mayoría de los proveedores permite migrar los mensajes."
+    },
+    {
+      "pregunta": "¿Por qué mis correos llegan a spam?",
+      "respuesta": "Muchas veces por falta de registros de autenticación en el dominio."
+    },
+    {
+      "pregunta": "¿Puedo usar mi correo con dominio desde el celular?",
+      "respuesta": "Sí. Los servicios de correo para empresas tienen aplicaciones para celular y también funcionan con la app de correo que ya usas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/dominio-com-o-com-mx",
+      "texto": "¿Dominio .com o .com.mx para tu negocio?"
+    },
+    {
+      "ruta": "/migrar-de-wix-sin-perder-el-dominio",
+      "texto": "Migrar de Wix sin perder dominio ni correo"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:aa7244b7553291cff2c9a95a0f9601eb15db6797644b7c1cd0e0010a04357fba",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:aa7244b7553291cff2c9a95a0f9601eb15db6797644b7c1cd0e0010a04357fba"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 650,
+    "similitud_max": 0.006,
+    "parecida_a": "/fotos-para-pagina-web-de-negocio"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:442301354034fab3c332cbedb2c13f6fb98b8546825eb88666920bf4d8a788c2",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

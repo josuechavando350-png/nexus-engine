@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "agenda-de-citas-en-linea-para-fisioterapeutas",
+  "cliente": "nexus",
+  "ruta": "/agenda-de-citas-en-linea-para-fisioterapeutas",
+  "tipo": "AGENTE_IA",
+  "servicio": "automation",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Agenda de citas en línea para fisioterapeutas",
+  "descripcion": "Agenda en línea para fisioterapia: valoración inicial, paquetes de sesiones, citas a domicilio por zona, recordatorios y seguimiento del tratamiento.",
+  "h1": "Agenda de citas en línea para fisioterapeutas",
+  "respuesta_rapida": [
+    "El paciente reserva su valoración inicial desde tu página, a cualquier hora.",
+    "Los paquetes de sesiones se programan de una vez, con recordatorio antes de cada cita.",
+    "Las citas a domicilio se agendan por zona para no perder tiempo en traslados.",
+    "Si un paciente deja de venir, la agenda te avisa para darle seguimiento."
+  ],
+  "secciones": [
+    {
+      "titulo": "El tratamiento se gana en la agenda",
+      "parrafos": [
+        "En fisioterapia, el resultado depende de que el paciente complete su plan. El problema es que entre sesiones la gente se ocupa, se siente un poco mejor y deja de agendar. Cuando la agenda depende de que el paciente escriba cada vez, muchos tratamientos quedan a la mitad, y eso afecta su recuperación y tu reputación.",
+        "Una agenda en línea que programa el plan completo y recuerda cada sesión cambia esa historia.",
+        "Para el fisioterapeuta, además, una agenda ordenada significa saber con anticipación cómo viene la semana, cuántas valoraciones nuevas hay y cuántos pacientes están por terminar su plan. Con esa visibilidad es más fácil decidir si abrir más horarios, contratar apoyo o lanzar una promoción para llenar huecos."
+      ]
+    },
+    {
+      "titulo": "Valoración y plan de sesiones",
+      "parrafos": [
+        "El paciente nuevo reserva su valoración inicial desde tu página. Después de valorarlo, programas en la agenda el plan de sesiones, por ejemplo dos por semana, y el paciente recibe todas sus citas confirmadas. Si necesita mover alguna, lo hace desde el enlace del recordatorio.",
+        "Si vendes paquetes de sesiones, la agenda lleva la cuenta de las sesiones usadas y avisa cuando quedan pocas."
+      ]
+    },
+    {
+      "titulo": "Domicilio sin perder el día",
+      "parrafos": [
+        "Si atiendes a domicilio, el tiempo de traslado es tu mayor enemigo. La agenda puede organizar las citas a domicilio por zona y por día, de modo que los lunes atiendas una parte de la ciudad y los martes otra. El paciente solo ve los horarios disponibles en su zona.",
+        "Así atiendes más pacientes con menos horas en el tráfico."
+      ]
+    },
+    {
+      "titulo": "Recordatorios y ausencias",
+      "parrafos": [
+        "Un recordatorio el día anterior, con la opción de confirmar o mover, reduce las ausencias. Si un paciente falta o no agenda su siguiente sesión, la agenda te avisa para que le escribas tú, con el trato personal que corresponde.",
+        "Las indicaciones previas, como llevar ropa cómoda o los estudios de imagen, también se envían solas."
+      ]
+    },
+    {
+      "titulo": "Si trabajas en equipo",
+      "parrafos": [
+        "En un centro con varios fisioterapeutas, cada uno tiene su agenda y sus especialidades, como deportiva, neurológica o piso pélvico, y la agenda asigna al paciente con quien corresponde. Las cabinas o equipos compartidos también se pueden reservar para evitar empalmes.",
+        "El responsable del centro ve la ocupación de todos y puede planear horarios con datos."
+      ]
+    },
+    {
+      "titulo": "Desde tu página y desde Google",
+      "parrafos": [
+        "El botón de agendar va en tu página, en cada página de lesión o tratamiento y en tu perfil de Google. Quien busca fisioterapeuta cerca y te encuentra puede reservar su valoración en ese momento.",
+        "También puedes compartir el enlace con los médicos que te refieren pacientes."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos tu agenda con valoración, planes, paquetes y zonas de domicilio, integrada a tu página y a WhatsApp. Incluida desde el paquete de $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo cobrar los paquetes en línea?",
+      "respuesta": "Sí, el paciente puede pagar su paquete al reservar o después de la valoración."
+    },
+    {
+      "pregunta": "¿Funciona si atiendo en dos lugares?",
+      "respuesta": "Sí, cada lugar con sus días y horarios."
+    },
+    {
+      "pregunta": "¿El paciente puede ver cuántas sesiones le quedan?",
+      "respuesta": "Sí, en sus confirmaciones y recordatorios."
+    },
+    {
+      "pregunta": "¿Puedo atender con aseguradoras?",
+      "respuesta": "Sí, la reserva puede preguntar si el paciente usará su seguro para preparar la documentación."
+    },
+    {
+      "pregunta": "¿Puedo pedir que suban estudios antes de la valoración?",
+      "respuesta": "Sí. La reserva puede incluir un espacio opcional para subir radiografías o resonancias, que llegan al fisioterapeuta antes de la cita."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/pagina-web-para-fisioterapeutas",
+      "texto": "Página web para fisioterapeutas"
+    },
+    {
+      "ruta": "/como-reducir-inasistencias-a-citas",
+      "texto": "Cómo reducir las citas a las que nadie llega"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:9caacb2e2277cf2808a63f719fad72130679c9f4c52cd52415dd96852ba4776b",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:9caacb2e2277cf2808a63f719fad72130679c9f4c52cd52415dd96852ba4776b"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 617,
+    "similitud_max": 0.025,
+    "parecida_a": "/agenda-de-citas-en-linea-para-dentistas"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:7ef9ffb154263ac1e355fd986cdbce7f967e96a470ff38d167fccda2d0e57386",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "nota": "Feeds públicos por rubro. Google Noticias publica RSS por búsqueda; se pueden agregar más fuentes (DOF, poder judicial, medios) con su URL de RSS o Atom.",
+  "rubros": {
+    "abogados_penal": {
+      "fuentes": [
+        { "nombre": "Google Noticias: reforma penal CDMX", "url": "https://news.google.com/rss/search?q=reforma+penal+Ciudad+de+M%C3%A9xico&hl=es-419&gl=MX&ceid=MX:es-419" },
+        { "nombre": "Google Noticias: Fiscalía CDMX", "url": "https://news.google.com/rss/search?q=Fiscal%C3%ADa+CDMX&hl=es-419&gl=MX&ceid=MX:es-419" },
+        { "nombre": "Google Noticias: Código Nacional de Procedimientos Penales", "url": "https://news.google.com/rss/search?q=%22C%C3%B3digo+Nacional+de+Procedimientos+Penales%22&hl=es-419&gl=MX&ceid=MX:es-419" },
+        { "nombre": "Google Noticias: prisión preventiva oficiosa", "url": "https://news.google.com/rss/search?q=%22prisi%C3%B3n+preventiva%22&hl=es-419&gl=MX&ceid=MX:es-419" },
+        { "nombre": "Google Noticias: defraudación fiscal", "url": "https://news.google.com/rss/search?q=%22defraudaci%C3%B3n+fiscal%22&hl=es-419&gl=MX&ceid=MX:es-419" }
+      ],
+      "terminos": [
+        { "termino": "código nacional de procedimientos penales", "peso": 3 },
+        { "termino": "código penal", "peso": 2 },
+        { "termino": "prisión preventiva", "peso": 2 },
+        { "termino": "orden de aprehensión", "peso": 2 },
+        { "termino": "defraudación fiscal", "peso": 2 },
+        { "termino": "reforma", "peso": 1 },
+        { "termino": "fiscalía", "peso": 1 },
+        { "termino": "ministerio público", "peso": 1 },
+        { "termino": "amparo", "peso": 1 },
+        { "termino": "detenido", "peso": 1 },
+        { "termino": "fraude", "peso": 1 },
+        { "termino": "suprema corte", "peso": 1 },
+        { "termino": "cdmx", "peso": 1 },
+        { "termino": "ciudad de méxico", "peso": 1 }
+      ]
+    }
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-inmobiliarias",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-inmobiliarias",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Chatbot de WhatsApp para inmobiliarias",
+  "descripcion": "Asistente de IA para inmobiliarias: responde por propiedad, califica prospectos, agenda visitas, capta propietarios y da seguimiento sin que se enfríe nadie.",
+  "h1": "Chatbot de WhatsApp para inmobiliarias",
+  "respuesta_rapida": [
+    "Responde al momento las dudas de cada propiedad: precio, superficie, mantenimiento, mascotas, disponibilidad.",
+    "Califica al prospecto: presupuesto, forma de pago, fecha de mudanza o de compra.",
+    "Agenda visitas según la disponibilidad del asesor y confirma un día antes.",
+    "Da seguimiento con propiedades nuevas que coinciden con lo que busca cada prospecto."
+  ],
+  "secciones": [
+    {
+      "titulo": "Donde se pierden las ventas inmobiliarias",
+      "parrafos": [
+        "Una propiedad publicada en portales puede generar decenas de mensajes en un día. El asesor contesta los primeros, pero los demás esperan, y en inmobiliaria el prospecto que espera escribe a otra agencia con una propiedad parecida. Muchos mensajes son preguntas que ya están en el anuncio, pero igual hay que contestarlas.",
+        "El otro gran agujero es el seguimiento. El prospecto que no compró hoy puede comprar en tres meses, pero nadie se acuerda de escribirle."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Identifica por qué propiedad pregunta la persona y responde con los datos de esa ficha: precio, superficie, recámaras, mantenimiento, si acepta mascotas, si hay estacionamiento. Luego hace las preguntas que el asesor necesita para saber si vale la pena una visita: presupuesto, forma de pago o crédito, fecha estimada y zona de interés.",
+        "Con esas respuestas agenda la visita con el asesor responsable de la propiedad y envía la confirmación con la ubicación. Al asesor le llega el resumen del prospecto calificado.",
+        "Si la propiedad ya no está disponible, ofrece opciones similares del inventario en lugar de cerrar la conversación."
+      ]
+    },
+    {
+      "titulo": "Captación de propietarios",
+      "parrafos": [
+        "El asistente también atiende a quien quiere vender o rentar su propiedad: pregunta tipo de inmueble, ubicación, superficie y expectativa, explica cómo trabaja la inmobiliaria y agenda una visita de evaluación con un asesor. Esa línea es la que alimenta el inventario y suele quedar desatendida.",
+        "Cada propietario captado puede significar varias operaciones."
+      ]
+    },
+    {
+      "titulo": "Seguimiento que vende",
+      "parrafos": [
+        "El asistente registra lo que busca cada prospecto y, cuando entra una propiedad que coincide, le avisa con la ficha y la opción de agendar visita. También puede enviar un mensaje amable a quien visitó una propiedad y no ha respondido, para saber si sigue interesado.",
+        "Ese seguimiento, que ningún equipo humano sostiene con cientos de prospectos, es donde se recuperan muchas ventas."
+      ]
+    },
+    {
+      "titulo": "Datos y confianza",
+      "parrafos": [
+        "Los prospectos comparten datos personales y financieros. El asistente pide solo lo necesario, todo queda bajo el aviso de privacidad de la inmobiliaria y con acceso restringido por asesor. En Nexus construimos estas integraciones con criterio de ciberseguridad desde el inicio.",
+        "La inmobiliaria es dueña de su base de prospectos y puede revisar cualquier conversación."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Conectamos el asistente con el inventario de la inmobiliaria, ya sea desde el sitio o desde una hoja que el equipo mantiene, para que siempre responda con datos actuales de cada propiedad. Definimos con el equipo las preguntas de calificación, las reglas para asignar prospectos a cada asesor y los mensajes de seguimiento. Antes de activarlo, cada asesor prueba conversaciones reales. Durante el primer mes revisamos qué preguntas se repiten para mejorar las fichas."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN; los de $19,999 y $44,800 suman tecnología para Google Ads y captación. Como servicio aparte se cotiza según volumen e integraciones."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Funciona con los mensajes que llegan de portales?",
+      "respuesta": "Sí, si esos mensajes llegan a tu WhatsApp. El asistente identifica la propiedad por el enlace o la descripción."
+    },
+    {
+      "pregunta": "¿Puede asignar prospectos a cada asesor?",
+      "respuesta": "Sí, según la propiedad, la zona o reglas de rotación que definas."
+    },
+    {
+      "pregunta": "¿Puede precalificar crédito?",
+      "respuesta": "Puede preguntar si el prospecto tiene crédito aprobado o en trámite y canalizarlo con un asesor hipotecario si trabajas con uno."
+    },
+    {
+      "pregunta": "¿Contesta en inglés?",
+      "respuesta": "Sí, útil en zonas con compradores extranjeros."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-inmobiliarias",
+      "texto": "Página web para inmobiliarias"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:4b164f36fd07b84d968579d5839cc4a8f0fd120dee184af7dc4bbd1916decff5",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:4b164f36fd07b84d968579d5839cc4a8f0fd120dee184af7dc4bbd1916decff5"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 611,
+    "similitud_max": 0.035,
+    "parecida_a": "/chatbot-whatsapp-para-tiendas-en-linea"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:845126c12a77ec68e599384e061872ac3d10eb5e572f43ff36916322f3b54546",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

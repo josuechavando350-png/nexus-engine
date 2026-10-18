@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "como-elegir-agencia-de-diseno-web",
+  "cliente": "nexus",
+  "ruta": "/como-elegir-agencia-de-diseno-web",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "Cómo elegir una agencia de diseño web",
+  "descripcion": "Criterios para elegir agencia de diseño web: trabajos reales, velocidad de sus sitios, proceso, cotización clara, propiedad del dominio y señales de alerta.",
+  "h1": "Cómo elegir una agencia de diseño web",
+  "respuesta_rapida": [
+    "Revisa sus trabajos reales en tu celular: diseño, velocidad y facilidad para contactar.",
+    "Pregunta por su proceso: cómo entienden tu negocio, quién escribe los textos y cómo se aprueban las etapas.",
+    "Exige cotización por escrito y que el dominio quede a tu nombre.",
+    "Desconfía de promesas de posiciones en Google y de precios sin explicación."
+  ],
+  "secciones": [
+    {
+      "titulo": "Empieza por su trabajo",
+      "parrafos": [
+        "La mejor prueba de una agencia son los sitios que ya hizo. Pide enlaces de trabajos publicados, no solo imágenes, y ábrelos en tu celular. ¿Se ven bien? ¿Cargan rápido? ¿Es fácil escribir o llamar? ¿Se parecen todos entre sí o cada uno tiene su propia identidad?",
+        "Si todos los sitios de una agencia se ven iguales, es probable que el tuyo también se parezca a los demás.",
+        "También revisa el sitio de la propia agencia: si su página es lenta, confusa o está descuidada, difícilmente hará algo mejor para ti."
+      ]
+    },
+    {
+      "titulo": "Mide la velocidad",
+      "parrafos": [
+        "Puedes revisar la velocidad de cualquier sitio con PageSpeed Insights de Google o con nuestro analizador gratuito. Una agencia que entrega sitios lentos te va a entregar uno lento. La velocidad en celular afecta tanto a tus clientes como a tu posición en Google.",
+        "Como referencia, el sitio de CANO Estrategia Penal que hicimos marca 99 en rendimiento y 100 en SEO en PageSpeed móvil."
+      ]
+    },
+    {
+      "titulo": "Pregunta por el proceso",
+      "parrafos": [
+        "¿Cómo entienden tu negocio antes de diseñar? ¿Te presentan una dirección visual antes de construir? ¿Quién escribe los textos? ¿Cuántas rondas de cambios incluyen? ¿Cómo se prueba el sitio antes de publicarlo? Una agencia con método responde con claridad; una sin método improvisa.",
+        "Un buen proceso no tiene que ser complicado; tiene que ser claro.",
+        "Pregunta también qué pasa después de publicar: cómo se piden cambios, cuánto tardan en hacerlos y si te enseñan a revisar los resultados de tu página."
+      ]
+    },
+    {
+      "titulo": "Cotización y propiedad",
+      "parrafos": [
+        "La cotización debe detallar alcance, entregables, tiempos, pagos y qué pasa después de publicar. Y debe decir que el dominio, el hosting y los accesos quedan a tu nombre. Este último punto separa a las agencias serias de las que buscan atarte.",
+        "Si una agencia se niega a dejarte el dominio a tu nombre, no es la agencia correcta."
+      ]
+    },
+    {
+      "titulo": "Señales de alerta",
+      "parrafos": [
+        "Promesas de aparecer hasta arriba en Google en poco tiempo. Precios muy bajos sin explicación de qué incluyen. Falta de trabajos reales que se puedan visitar. Presión para firmar rápido. Contratos con permanencia forzosa o costos ocultos de cancelación. Y comunicación lenta antes de firmar, que solo empeora después.",
+        "Una agencia seria no necesita presionarte."
+      ]
+    },
+    {
+      "titulo": "Química y comunicación",
+      "parrafos": [
+        "Vas a trabajar con esta agencia durante semanas, y quizá años. Fíjate si escuchan, si hacen buenas preguntas sobre tu negocio, si te explican las cosas sin tecnicismos y si responden a tiempo. La comunicación durante la venta es la mejor versión de la comunicación que vas a tener.",
+        "Si algo no te convence en esa etapa, no va a mejorar después."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Trabajamos con conversación por WhatsApp, dirección visual antes de construir, cotización por escrito y dominio a tu nombre. Los paquetes van de $1,999 a $44,800 MXN, y el primer diagnóstico es gratuito."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Debo elegir una agencia de mi ciudad?",
+      "respuesta": "No es indispensable; muchas trabajan a distancia. Lo importante es que entiendan tu mercado."
+    },
+    {
+      "pregunta": "¿Cuántas cotizaciones pido?",
+      "respuesta": "Dos o tres bien detalladas son suficientes para comparar alcance, tiempos y precio."
+    },
+    {
+      "pregunta": "¿Conviene una agencia especializada en mi giro?",
+      "respuesta": "Puede ayudar, siempre que no use la misma plantilla para todos los negocios del giro."
+    },
+    {
+      "pregunta": "¿Cómo sé si sus reseñas son reales?",
+      "respuesta": "Pide hablar con algún cliente o revisa que los sitios mencionados existan y funcionen."
+    },
+    {
+      "pregunta": "¿Conviene que la agencia también haga mis anuncios?",
+      "respuesta": "Puede convenir, porque quien diseña la página entiende mejor qué pasa después del clic; lo importante es que mida resultados reales."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/preguntas-antes-de-contratar-una-pagina-web",
+      "texto": "Preguntas antes de contratar una página web"
+    },
+    {
+      "ruta": "/quien-es-dueno-de-mi-pagina-web",
+      "texto": "¿Quién es dueño de tu página web y tu dominio?"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:884b1b3d3099498e114fd4c938f72a5f414f02e45bc630905f2a364f9f48fadc",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:884b1b3d3099498e114fd4c938f72a5f414f02e45bc630905f2a364f9f48fadc"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 638,
+    "similitud_max": 0.021,
+    "parecida_a": "/agencia-vs-freelancer"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:7570919cf95b6577987879c3f425303462543f9dd4a52be668efe70ef6bd8f7b",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

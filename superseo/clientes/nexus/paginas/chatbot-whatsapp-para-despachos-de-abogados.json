@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-despachos-de-abogados",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-despachos-de-abogados",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Chatbot de WhatsApp para despachos de abogados",
+  "descripcion": "Asistente de IA para despachos: recibe consultas a cualquier hora, clasifica por materia y urgencia, agenda la valoración y pasa al abogado lo que importa.",
+  "h1": "Chatbot de WhatsApp para despachos de abogados",
+  "respuesta_rapida": [
+    "El asistente atiende el WhatsApp del despacho a cualquier hora, sin hacer esperar al prospecto.",
+    "Clasifica cada consulta por materia y urgencia y filtra los asuntos que el despacho no atiende.",
+    "Agenda la valoración con disponibilidad real y avisa al abogado con un resumen del caso.",
+    "Nunca da asesoría legal: orienta, ordena la información y entrega el caso a una persona."
+  ],
+  "secciones": [
+    {
+      "titulo": "El problema de los mensajes sin respuesta",
+      "parrafos": [
+        "En un despacho, los mensajes llegan en el peor momento: durante una audiencia, en una reunión con un cliente o a las once de la noche. Quien escribe suele tener prisa y, si no recibe respuesta, le escribe al siguiente abogado de la lista. Muchos despachos pierden consultas valiosas no por falta de capacidad, sino porque nadie pudo contestar a tiempo.",
+        "Además, una parte importante de los mensajes no son para el despacho: materias que no atiende, personas que solo quieren una opinión gratuita o asuntos de otra ciudad. Separarlos cuesta horas de la semana al abogado o a su asistente."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Responde de inmediato con el tono del despacho, pregunta qué ocurre, en qué materia y en qué ciudad, y si hay una fecha o un plazo que corra. Con esas respuestas clasifica la consulta: urgente, para valoración o fuera de la especialidad. A quien no corresponde lo orienta con amabilidad; a quien sí, le ofrece agendar la valoración.",
+        "La agenda puede conectarse al calendario del abogado para proponer solo horarios realmente disponibles. Si la valoración tiene costo, el asistente lo explica y puede enviar el enlace de pago antes de confirmar.",
+        "Cuando el caso es urgente, como una detención o una audiencia próxima, el asistente avisa al abogado de guardia al instante con un resumen, para que llame él directamente."
+      ]
+    },
+    {
+      "titulo": "Una conversación típica",
+      "parrafos": [
+        "Una persona escribe a medianoche: a mi papá le llegó un citatorio de la fiscalía para el jueves. El asistente responde, pregunta la ciudad y si el citatorio indica en qué calidad lo citan, explica que el despacho atiende ese tipo de asuntos y ofrece dos horarios para una valoración al día siguiente. La persona elige uno y recibe la confirmación con la dirección.",
+        "A la mañana siguiente, el abogado encuentra en su teléfono un resumen ordenado: quién escribió, qué ocurre, qué fecha corre y a qué hora es la cita. No tuvo que leer veinte mensajes para entenderlo."
+      ]
+    },
+    {
+      "titulo": "Lo que nunca hace",
+      "parrafos": [
+        "No da asesoría jurídica, no anticipa resultados y no opina sobre la estrategia. Está configurado para orientar y canalizar, con límites claros, y para pasar a una persona cualquier pregunta que requiera criterio legal. Esa frontera protege al despacho y al cliente.",
+        "Tampoco pide más datos de los necesarios. En materias sensibles, el asistente evita solicitar detalles íntimos por chat y deja esa conversación para la valoración con el abogado."
+      ]
+    },
+    {
+      "titulo": "Seguridad y confidencialidad",
+      "parrafos": [
+        "Un asistente conectado al WhatsApp y a la agenda del despacho es una superficie de ataque real. Por eso en Nexus lo construimos con acceso restringido, registros de actividad y la información guardada bajo control del despacho, con un aviso de privacidad acorde.",
+        "Nuestro fundador viene de la ciberseguridad, y ese criterio está en cada integración: validar todo lo que entra, limitar lo que el asistente puede ver y nunca exponer datos de un cliente a otro."
+      ]
+    },
+    {
+      "titulo": "Cuánto cuesta",
+      "parrafos": [
+        "El asistente viene incluido en los paquetes de sitio desde $9,999 MXN. Si el despacho ya tiene página y solo quiere el asistente, se cotiza aparte según volumen de conversaciones e integraciones.",
+        "Es la misma tecnología que usa el agente del propio sitio de Nexus: memoria de la conversación, verificación de respuestas y una salida segura cuando algo falla."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿El cliente sabe que habla con un asistente?",
+      "respuesta": "Sí. Recomendamos que se presente como asistente del despacho. La transparencia genera confianza y evita malentendidos."
+    },
+    {
+      "pregunta": "¿Funciona con mi número actual de WhatsApp?",
+      "respuesta": "En la mayoría de los casos sí, según la versión de WhatsApp que use el despacho. Lo revisamos en el diagnóstico gratuito."
+    },
+    {
+      "pregunta": "¿Puedo revisar las conversaciones?",
+      "respuesta": "Sí. Todas quedan registradas para el despacho, y cualquier persona del equipo puede tomar la conversación en cualquier momento."
+    },
+    {
+      "pregunta": "¿Puede consultar el estado de un expediente?",
+      "respuesta": "Si el despacho tiene sus expedientes en un sistema y decide integrarlo, sí, con verificación de identidad del cliente antes de mostrar cualquier dato."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-abogados-penalistas",
+      "texto": "Página web para abogados penalistas"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:4dc3825c0d1769ff66fb6854970af42b779e58a9e477992936b8f9ebd440b18b",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:4dc3825c0d1769ff66fb6854970af42b779e58a9e477992936b8f9ebd440b18b"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 724,
+    "similitud_max": 0.023,
+    "parecida_a": "/recepcionista-de-voz-con-ia-para-despachos-de-abogados"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:a10b8aa0f9dda4f5f40397e90a6def3ef17e5881bdc0c24ba170abd0f3decc4f",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

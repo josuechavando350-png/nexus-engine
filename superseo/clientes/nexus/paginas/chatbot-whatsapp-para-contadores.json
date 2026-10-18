@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-contadores",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-contadores",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Chatbot de WhatsApp para contadores",
+  "descripcion": "Asistente de IA para despachos contables: atiende prospectos, explica servicios y planes, recibe documentos, agenda citas y recuerda fechas a clientes.",
+  "h1": "Chatbot de WhatsApp para contadores",
+  "respuesta_rapida": [
+    "Atiende a prospectos a cualquier hora y explica servicios por tipo de contribuyente.",
+    "Recibe documentos de clientes con orden y avisa qué falta para cada declaración.",
+    "Agenda citas y asesorías con disponibilidad real.",
+    "Recuerda a cada cliente las fechas de entrega de información y de pago."
+  ],
+  "secciones": [
+    {
+      "titulo": "Fechas límite y mensajes pendientes",
+      "parrafos": [
+        "Un despacho contable vive de fechas. Cerca de cada vencimiento, los mensajes se multiplican: clientes que mandan facturas a última hora, prospectos que necesitan regularizarse, personas que preguntan cuánto cobra la declaración anual. Contestar todo eso mientras se trabaja en las declaraciones es casi imposible, y muchos mensajes de prospectos quedan sin respuesta.",
+        "Además, buena parte del retraso viene de clientes que entregan su información tarde porque nadie se los recordó a tiempo.",
+        "También están los prospectos que escriben en temporada alta, justo cuando el despacho menos puede atenderlos, y que necesitan una respuesta rápida para no buscar a otro contador. Cada uno de ellos puede convertirse en un cliente de iguala por años."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Para prospectos, pregunta su régimen o tipo de actividad, si tiene declaraciones atrasadas o algún requerimiento, y explica los servicios y planes que aplican, con precio desde si el despacho lo autoriza. Luego agenda una cita o asesoría.",
+        "Para clientes, recibe facturas, estados de cuenta y documentos, los ordena por cliente y periodo, y avisa qué falta. Unos días antes de cada fecha, envía recordatorios personalizados para entregar información y, si aplica, para pagar.",
+        "Todo lo que requiere criterio fiscal, como una consulta sobre un caso particular, lo canaliza al contador responsable."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Una diseñadora independiente escribe un domingo: nunca he declarado y me llegó un correo del SAT. El asistente pregunta su tipo de actividad y si tiene firma electrónica, explica que el despacho atiende regularizaciones y agenda una asesoría para el martes. El contador llega a la cita sabiendo exactamente de qué se trata.",
+        "Mientras tanto, otro cliente manda sus facturas del mes y el asistente le confirma que está completo."
+      ]
+    },
+    {
+      "titulo": "Confidencialidad fiscal",
+      "parrafos": [
+        "La información que maneja un despacho contable es de las más sensibles. El asistente pide solo lo necesario, verifica la identidad del cliente antes de compartir información, guarda los documentos con acceso restringido y opera bajo el aviso de privacidad del despacho. No pide contraseñas ni claves del SAT por chat.",
+        "En Nexus construimos cada integración con criterio de ciberseguridad, que en este giro no es negociable."
+      ]
+    },
+    {
+      "titulo": "Lo que gana el despacho",
+      "parrafos": [
+        "Más prospectos atendidos y convertidos, menos retrasos de clientes gracias a los recordatorios, documentos ordenados y contadores que dedican su tiempo a lo que requiere conocimiento. También una base de clientes con historial de comunicación clara.",
+        "Las conversaciones se pueden revisar en cualquier momento."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Definimos con el despacho los servicios por tipo de contribuyente, los planes, las fechas de cada cliente y las reglas para recibir documentos. Escribimos las respuestas, el despacho las aprueba y conectamos la agenda. Probamos con algunos clientes antes de activarlo para todos."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN. Para despachos que ya tienen sitio, se cotiza aparte según número de clientes y volumen."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede recibir archivos XML?",
+      "respuesta": "Sí, recibe archivos y los organiza por cliente y periodo."
+    },
+    {
+      "pregunta": "¿Puede decirle a un cliente cuánto va a pagar de impuestos?",
+      "respuesta": "No. Ese cálculo lo hace el contador; el asistente informa cuando la declaración está lista para revisión."
+    },
+    {
+      "pregunta": "¿Puede cobrar las igualas?",
+      "respuesta": "Sí, con recordatorios y enlaces de pago cada mes."
+    },
+    {
+      "pregunta": "¿Puede atender a clientes de otras ciudades?",
+      "respuesta": "Sí. La contabilidad se trabaja muy bien a distancia, y el asistente hace que la atención sea igual de ágil sin importar dónde esté el cliente."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-contadores",
+      "texto": "Página web para contadores"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:3285ef3eebd437bc8ecffdd937f6f82eed2ea09dcef72f0ddaf028e5716fd71f",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:3285ef3eebd437bc8ecffdd937f6f82eed2ea09dcef72f0ddaf028e5716fd71f"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 617,
+    "similitud_max": 0.015,
+    "parecida_a": "/chatbot-whatsapp-para-escuelas-particulares"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:100bb9c20b229a36a45f5284c693c68d13aaefaa589800173c2b97f4a4765365",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}

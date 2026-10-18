@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "como-vender-ropa-en-linea-en-mexico",
+  "cliente": "nexus",
+  "ruta": "/como-vender-ropa-en-linea-en-mexico",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Medir y vender",
+  "titulo": "Cómo vender ropa en línea en México",
+  "descripcion": "Guía práctica para vender ropa en línea en México: dónde vender, cómo mostrar fotos y tallas, cómo cobrar y enviar, y cómo atender por WhatsApp sin perder pedidos.",
+  "h1": "Cómo vender ropa en línea en México",
+  "respuesta_rapida": [
+    "Empieza donde ya está tu clientela y, cuando crezcas, ten una tienda propia.",
+    "Las fotos y una guía de tallas clara venden más que cualquier descripción.",
+    "Ofrece formas de pago comunes en México y explica tiempos y costos de envío.",
+    "Publica tu política de cambios antes de que te la pregunten."
+  ],
+  "secciones": [
+    {
+      "titulo": "Dónde vender",
+      "parrafos": [
+        "Hay tres caminos que suelen convivir. Las redes sociales sirven para mostrar y generar conversación. Los marketplaces dan acceso a mucha gente, a cambio de comisiones y reglas ajenas. Una tienda propia te da control sobre tu marca, tus precios y tus datos de clientes, pero necesitas llevarle tráfico.",
+        "Para empezar, vende donde ya está tu clientela. Cuando las ventas crecen y repites los mismos mensajes todos los días, una tienda propia con catálogo, tallas y pagos ordena el proceso y te deja menos expuesta a cambios en las reglas de otras plataformas."
+      ]
+    },
+    {
+      "titulo": "Fotos que venden ropa",
+      "parrafos": [
+        "En ropa, la foto hace la mayor parte del trabajo. Muestra cada prenda de frente, de espalda y en detalle de tela, y al menos una foto puesta en una persona. Usa luz natural o luz pareja, fondo limpio y colores fieles: una prenda que llega de otro tono genera devoluciones y malas reseñas.",
+        "Si puedes, indica la talla que usa la modelo y su estatura aproximada. Ese dato sencillo ayuda mucho a que la clienta imagine cómo le quedará y reduce las dudas por mensaje."
+      ]
+    },
+    {
+      "titulo": "Tallas y medidas",
+      "parrafos": [
+        "Las tallas cambian entre marcas, así que una guía con medidas reales de cada prenda vale más que una tabla genérica. Indica largo, busto o pecho, cintura y cadera según la prenda, y explica cómo medirse en casa con una cinta métrica.",
+        "Cuando una prenda talla pequeño o grande, dilo en la descripción. Esa honestidad reduce cambios y genera confianza para la siguiente compra."
+      ]
+    },
+    {
+      "titulo": "Cobros y envíos",
+      "parrafos": [
+        "Ofrece formas de pago que tu clientela ya usa: tarjeta, transferencia y, si tiene sentido, pago en efectivo en tiendas de conveniencia. Mientras menos pasos tenga el pago, menos carritos se abandonan.",
+        "Explica antes de la compra cuánto cuesta el envío, cuánto tarda y qué paquetería usas. Comparte la guía de rastreo en cuanto envíes. Si haces entregas locales o puntos de encuentro, aclara zonas y horarios para evitar malentendidos."
+      ]
+    },
+    {
+      "titulo": "Cambios y devoluciones",
+      "parrafos": [
+        "Publica tu política de cambios en un lugar visible: en qué casos aceptas cambios, en qué plazo, quién paga el envío y en qué condiciones debe regresar la prenda. Una política clara reduce discusiones y le da seguridad a quien compra por primera vez.",
+        "Revisa también qué te pide la normativa de protección al consumidor sobre ventas a distancia y adapta tu política a ella. Mejor tenerlo claro desde el principio que resolverlo con cada clienta molesta."
+      ]
+    },
+    {
+      "titulo": "Atender por WhatsApp",
+      "parrafos": [
+        "En México, muchas ventas de ropa se cierran por WhatsApp aunque la persona haya visto la prenda en tu página o en redes. Ten a la mano respuestas para las preguntas de siempre: disponibilidad, tallas, envío y pago. Un catálogo en WhatsApp Business ayuda a compartir productos sin mandar fotos sueltas.",
+        "Cuando el volumen crece, un asistente puede responder disponibilidad y tallas, apartar pedidos y pasar a una persona los casos especiales. Así no se pierden ventas por responder tarde en temporada alta."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "En Nexus Bot Studio construimos tiendas propias rápidas en celular, con catálogo, guías de tallas, pagos y botón a WhatsApp medible. Si vendes en línea, te recomendamos el paquete según el tamaño de tu catálogo y si necesitas un asistente que atienda pedidos. El primer diagnóstico es gratuito."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Necesito tienda en línea si ya vendo por Instagram?",
+      "respuesta": "No para empezar. Conviene cuando las ventas crecen y quieres ordenar catálogo, pagos y datos de clientes en un lugar propio."
+    },
+    {
+      "pregunta": "¿Qué foto es la más importante?",
+      "respuesta": "La prenda puesta en una persona, con luz pareja y colores fieles. Es la que más ayuda a decidir."
+    },
+    {
+      "pregunta": "¿Cómo reduzco las devoluciones?",
+      "respuesta": "Con medidas reales por prenda, fotos con colores fieles y una nota cuando algo talla pequeño o grande."
+    },
+    {
+      "pregunta": "¿Puedo vender por WhatsApp sin página?",
+      "respuesta": "Sí, pero una página con catálogo te da más confianza ante clientes nuevos y te ayuda a aparecer en Google."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/pagina-web-para-tiendas-de-ropa",
+      "texto": "Página web para tiendas de ropa"
+    },
+    {
+      "ruta": "/shopify-vs-tienda-propia",
+      "texto": "Shopify vs. tienda en línea propia"
+    },
+    {
+      "ruta": "/catalogo-de-whatsapp-business",
+      "texto": "Catálogo y respuestas rápidas de WhatsApp Business"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:e12decb3ac57194ce07dc89167d646472feffe6e88f93fca0a5f17ac6b40019a",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:e12decb3ac57194ce07dc89167d646472feffe6e88f93fca0a5f17ac6b40019a"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 702,
+    "similitud_max": 0.01,
+    "parecida_a": "/pagina-web-para-tiendas-de-ropa"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:89645de0499a66ab69d0250f44b9b9789dd8189994e66fb755df3917f0d3f958",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

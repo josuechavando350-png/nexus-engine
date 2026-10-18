@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-con-ia-vs-hecha-a-mano",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-con-ia-vs-hecha-a-mano",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "Página hecha con IA vs. hecha a la medida",
+  "descripcion": "Qué pueden y qué no pueden hacer los generadores de páginas con inteligencia artificial frente a un sitio hecho a medida, y cuándo conviene cada uno.",
+  "h1": "Página hecha con IA vs. hecha a la medida",
+  "respuesta_rapida": [
+    "Los generadores con IA crean una página en minutos, útil como borrador o para empezar.",
+    "Suelen producir textos genéricos, diseños parecidos entre sí y poca diferenciación.",
+    "Una página a medida usa la IA como herramienta, pero con criterio humano y datos reales del negocio.",
+    "Lo que decide es si la página dice algo verdadero y distinto de tu negocio."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo que hacen bien los generadores",
+      "parrafos": [
+        "Hoy existen herramientas que, con unas cuantas respuestas, generan una página completa con textos, imágenes y estructura en minutos. Para un negocio que necesita algo rápido y no tiene presupuesto, puede ser un punto de partida razonable, o un borrador para aclarar ideas.",
+        "También son útiles para probar una idea de negocio antes de invertir en algo más serio."
+      ]
+    },
+    {
+      "titulo": "Donde se quedan cortos",
+      "parrafos": [
+        "Los textos generados sin datos reales suelen ser genéricos: frases que podrían aplicar a cualquier negocio del mismo giro. Los diseños se parecen entre sí porque parten de las mismas plantillas. Y muchas veces aparecen afirmaciones que el negocio no puede sostener, como años de experiencia inventados o servicios que no ofrece.",
+        "Para Google y para los clientes, una página que no dice nada distinto difícilmente destaca.",
+        "Además, la estructura técnica suele ser genérica: sin datos para que Google entienda tu negocio, sin medición de contactos y a veces con velocidad mediocre en celular."
+      ]
+    },
+    {
+      "titulo": "El problema del contenido falso",
+      "parrafos": [
+        "Un riesgo serio de los textos generados sin control son las cifras y promesas inventadas. Una página que dice más de quinientos clientes satisfechos sin que sea cierto daña la confianza en cuanto alguien lo cuestiona, y en algunos giros puede generar problemas legales.",
+        "Por eso cualquier texto generado con IA necesita revisión humana con datos verdaderos."
+      ]
+    },
+    {
+      "titulo": "La IA como herramienta, no como autor",
+      "parrafos": [
+        "En Nexus usamos inteligencia artificial todos los días, pero como herramienta. Nuestro sistema SUPERSEO, por ejemplo, ayuda a escribir páginas, y las somete a candados que rechazan textos clonados, cifras que no estén en la información real del negocio y promesas prohibidas. La IA acelera; el criterio y los datos reales deciden.",
+        "Esa combinación es la que permite producir rápido sin sacrificar verdad ni calidad."
+      ]
+    },
+    {
+      "titulo": "Lo que da una página a medida",
+      "parrafos": [
+        "Una dirección visual propia, pensada para tu negocio y tu cliente. Textos con tu forma de trabajar, tus servicios reales y tus diferencias. Velocidad, seguridad y estructura técnica cuidadas. Medición de contactos. Y alguien que responde por el resultado.",
+        "Eso es difícil de lograr con una herramienta automática por sí sola."
+      ]
+    },
+    {
+      "titulo": "Cómo decidir",
+      "parrafos": [
+        "Si necesitas algo hoy y con presupuesto mínimo, un generador puede servir como primer paso, revisando con cuidado cada texto. Si tu negocio depende de destacar frente a la competencia, de aparecer en Google o de transmitir confianza en un servicio de alto valor, una página a medida es la inversión adecuada.",
+        "Y en cualquier caso, que el dominio sea tuyo."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Hacemos páginas a medida que aprovechan la IA con criterio y datos reales de tu negocio. Los paquetes van de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Google penaliza el contenido hecho con IA?",
+      "respuesta": "Google no penaliza por la herramienta, sino el contenido de poco valor creado solo para posicionar. Lo que importa es que sea útil y verdadero."
+    },
+    {
+      "pregunta": "¿Puedo usar un generador y luego mejorarlo?",
+      "respuesta": "Sí, aunque a veces conviene empezar de cero con una base técnica sólida."
+    },
+    {
+      "pregunta": "¿Las imágenes generadas con IA sirven?",
+      "respuesta": "Para ilustraciones, sí. Para mostrar tu negocio, tu equipo o tus productos, las fotos reales generan más confianza."
+    },
+    {
+      "pregunta": "¿Ustedes usan IA para escribir?",
+      "respuesta": "Sí, como herramienta, con información real del negocio y candados que rechazan textos sin fuente o clonados."
+    },
+    {
+      "pregunta": "¿Puedo usar IA para escribir mis propios textos?",
+      "respuesta": "Sí, como ayuda para ordenar ideas, siempre revisando que cada dato sea verdadero y que el texto suene a ti."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/wix-vs-pagina-a-medida",
+      "texto": "Wix vs. página a medida: cuándo conviene cada una"
+    },
+    {
+      "ruta": "/como-escribir-los-textos-de-tu-pagina-web",
+      "texto": "Cómo escribir los textos de tu página web"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:5af9941453db472206787283bcaf0fb52d7ddfdfc34aad1bb1167a28c339bd8a",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:5af9941453db472206787283bcaf0fb52d7ddfdfc34aad1bb1167a28c339bd8a"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 638,
+    "similitud_max": 0.01,
+    "parecida_a": "/como-escribir-los-textos-de-tu-pagina-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:793ddceb8f25b57d109613c28559a873d93bf450e580c862c63f88abbf6d6ec4",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

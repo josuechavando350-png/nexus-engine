@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "aparecer-en-google-maps-hoteles-boutique",
+  "cliente": "nexus",
+  "ruta": "/aparecer-en-google-maps-hoteles-boutique",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Cómo aparecer en Google Maps: hoteles boutique",
+  "descripcion": "Guía para que tu hotel boutique destaque en Google Maps: ficha de hotel completa, fotos, amenidades, enlace de reserva directa y respuesta a reseñas en dos idiomas.",
+  "h1": "Cómo hacer que tu hotel boutique destaque en Google Maps",
+  "respuesta_rapida": [
+    "La ficha de hotel en Google muestra precios de varios sitios: asegúrate de que el tuyo aparezca.",
+    "Amenidades completas: desayuno, estacionamiento, mascotas, alberca, accesibilidad.",
+    "Fotos profesionales de habitaciones, áreas comunes y la experiencia del lugar.",
+    "Reseñas respondidas en el idioma del huésped, con calidez."
+  ],
+  "secciones": [
+    {
+      "titulo": "La ficha de hotel es distinta",
+      "parrafos": [
+        "Los hoteles tienen en Google una ficha especial que muestra precios, disponibilidad y opciones de reserva de varios sitios. El viajero compara ahí mismo y muchas veces reserva por la agencia que aparece primero. Si tu propia opción de reserva directa no aparece, pierdes la oportunidad de recibir esa reserva sin comisión.",
+        "Conectar tu motor de reservas para que tus precios directos aparezcan en la ficha suele ser una de las acciones más rentables para un hotel independiente.",
+        "Además, la ficha concentra reseñas de huéspedes que influyen tanto como el precio en la decisión final."
+      ]
+    },
+    {
+      "titulo": "Amenidades y descripción",
+      "parrafos": [
+        "Llena todas las amenidades que ofreces: desayuno, internet, estacionamiento, alberca, gimnasio, spa, mascotas, accesibilidad, traslado. Los viajeros filtran por ellas y una amenidad no marcada es una búsqueda perdida.",
+        "La descripción debe contar lo que hace único al hotel: el edificio, el barrio, el diseño, el trato. Sin superlativos, con detalles concretos.",
+        "Revisa también las preguntas y respuestas del perfil: los viajeros preguntan si hay elevador, si el desayuno está incluido o si pueden dejar el equipaje antes del horario de entrada. Responder con claridad, y agregar tú mismo las preguntas frecuentes, ahorra mensajes y evita malentendidos al llegar."
+      ]
+    },
+    {
+      "titulo": "Fotos que venden la estancia",
+      "parrafos": [
+        "En hotelería las fotos son decisivas. Habitaciones bien iluminadas desde varios ángulos, baños, vistas, áreas comunes, desayuno, fachada y detalles de diseño. Las fotos profesionales se notan y se reflejan en la tarifa que el viajero está dispuesto a pagar.",
+        "Las fotos de huéspedes también aparecen; las tuyas deben ser mejores y más numerosas."
+      ]
+    },
+    {
+      "titulo": "Reseñas en varios idiomas",
+      "parrafos": [
+        "Los huéspedes de un boutique escriben en español, inglés y otros idiomas. Responder en el idioma de cada huésped, con un tono cálido y personal, muestra hospitalidad a todos los que leen. Un mensaje después de la estancia con el enlace directo para reseñar aumenta el número de reseñas recientes.",
+        "Las críticas sobre ruido, limpieza o servicio se responden con hechos y con lo que el hotel hizo para mejorar."
+      ]
+    },
+    {
+      "titulo": "Datos consistentes",
+      "parrafos": [
+        "Nombre, dirección, teléfono y sitio web deben ser idénticos en la ficha, en tu sitio y en las agencias en línea. Las inconsistencias confunden a Google y al viajero. El horario de recepción y las horas de entrada y salida también deben estar claros.",
+        "Si tienes restaurante o spa abiertos al público, pueden tener su propia ficha según las reglas de Google."
+      ]
+    },
+    {
+      "titulo": "Medir lo que trae la ficha",
+      "parrafos": [
+        "Llamadas, clics al sitio, solicitudes de ruta y reservas directas desde la ficha se pueden medir. Con esos datos se sabe cuánto aporta Google frente a las agencias y dónde conviene invertir.",
+        "La meta es que cada temporada una parte mayor de las reservas llegue directo."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Growth",
+      "parrafos": [
+        "Optimizamos la ficha del hotel, la alineamos con tu sitio y tu motor de reservas, preparamos el sistema de reseñas bilingüe y medimos reservas directas. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Cómo hago que mi precio directo aparezca en Google?",
+      "respuesta": "Conectando tu motor de reservas o sistema de gestión con Google mediante un socio compatible. Muchos motores ya lo ofrecen."
+    },
+    {
+      "pregunta": "¿Puedo responder reseñas en inglés?",
+      "respuesta": "Sí, y debes hacerlo en el idioma del huésped."
+    },
+    {
+      "pregunta": "¿Las agencias controlan mi ficha?",
+      "respuesta": "No. La ficha es tuya si la verificas; las agencias solo aparecen como opciones de reserva."
+    },
+    {
+      "pregunta": "¿Cada cuánto actualizo fotos?",
+      "respuesta": "Cuando renueves espacios o cada temporada, para mostrar el hotel como está hoy."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-hoteles-boutique",
+      "texto": "Página web para hoteles boutique"
+    },
+    {
+      "ruta": "/como-pedir-resenas-en-google",
+      "texto": "Cómo pedir reseñas en Google sin incomodar"
+    },
+    {
+      "ruta": "/herramientas/mensaje-resenas",
+      "texto": "Mensaje para pedir reseñas en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:7054726c935c3ef8497b097bca269e36178d095984ec4819c4f97e6faa726ef9",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:02Z",
+    "contenido_digest": "sha256:7054726c935c3ef8497b097bca269e36178d095984ec4819c4f97e6faa726ef9"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 626,
+    "similitud_max": 0.01,
+    "parecida_a": "/aparecer-en-google-maps-veterinarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:fbc5cdf159ebbcb0c238b82169fdcedfeea46c516f2b44ea40300f62546927cc",
+    "generado_en": "2026-10-11T02:04:02Z"
+  }
+}

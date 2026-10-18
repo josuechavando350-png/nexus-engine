@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "recepcionista-de-voz-con-ia-para-despachos-de-abogados",
+  "cliente": "nexus",
+  "ruta": "/recepcionista-de-voz-con-ia-para-despachos-de-abogados",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Legal",
+  "titulo": "Recepcionista de voz con IA para despachos",
+  "descripcion": "Recepcionista con inteligencia artificial para despachos: contesta llamadas a cualquier hora, clasifica la urgencia, agenda valoraciones y avisa al abogado.",
+  "h1": "Recepcionista de voz con IA para despachos de abogados",
+  "respuesta_rapida": [
+    "Contesta las llamadas del despacho a cualquier hora, incluso de madrugada, que es cuando ocurren muchas urgencias.",
+    "Pregunta materia, ciudad y si corre algún plazo, y clasifica la llamada.",
+    "Agenda la valoración o, si es urgente, avisa al abogado de guardia con un resumen.",
+    "Nunca da asesoría legal: canaliza, ordena y deja todo registrado."
+  ],
+  "secciones": [
+    {
+      "titulo": "Las llamadas que llegan a deshoras",
+      "parrafos": [
+        "En materias como la penal o la familiar, las urgencias no respetan horarios. Una detención ocurre de noche, una audiencia se programa con poca anticipación, una orden llega en fin de semana. La persona afectada llama al despacho y, si nadie contesta, llama al siguiente número que encuentra. Para un despacho, cada una de esas llamadas perdidas es un cliente que no llegó.",
+        "En horario de oficina pasa algo parecido: el abogado está en audiencia, la asistente en otra línea y el teléfono suena sin respuesta."
+      ]
+    },
+    {
+      "titulo": "Qué hace en una llamada",
+      "parrafos": [
+        "Contesta con el nombre del despacho, pregunta qué ocurre en términos generales, en qué ciudad y si hay una fecha o un plazo corriendo. Con esas respuestas clasifica la llamada: urgente, para valoración o fuera de la especialidad del despacho.",
+        "Si es urgente, por ejemplo una detención, avisa de inmediato al abogado de guardia por mensaje y llamada, con un resumen, para que él devuelva la llamada en minutos. Si es para valoración, ofrece horarios y agenda, explicando si la valoración tiene costo. Si no corresponde, orienta con amabilidad sobre a dónde acudir.",
+        "Cada llamada queda registrada con un resumen escrito que el abogado puede leer en su teléfono."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Son las dos de la mañana. Una mujer llama porque detuvieron a su esposo hace una hora. La recepcionista le pide su nombre, la ciudad y dónde se encuentra su esposo si lo sabe, le explica que el despacho atiende ese tipo de casos y que un abogado le llamará en breve. En ese momento el abogado de guardia recibe un mensaje y una llamada con el resumen.",
+        "La mujer no tuvo que marcar a diez despachos; el abogado no perdió el caso por estar dormido."
+      ]
+    },
+    {
+      "titulo": "Sin asesoría, con criterio",
+      "parrafos": [
+        "La recepcionista no da asesoría, no opina sobre el caso y no anticipa resultados. Está configurada para escuchar, ordenar la información y canalizar, con límites claros aprobados por el despacho. Tampoco pide detalles sensibles por teléfono que conviene tratar en persona.",
+        "Su tono es sereno y profesional, adecuado para alguien que llama en un momento difícil."
+      ]
+    },
+    {
+      "titulo": "Confidencialidad",
+      "parrafos": [
+        "Las llamadas a un despacho contienen información delicada. Si se graban o se transcriben, se informa al inicio de la llamada y el aviso de privacidad del despacho lo contempla. Los registros se guardan con acceso restringido al equipo autorizado.",
+        "En Nexus aplicamos criterio de ciberseguridad en cada integración, porque en un despacho la confidencialidad es parte del servicio."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Definimos con el despacho las materias que atiende, las reglas de urgencia, quién está de guardia y cómo se le avisa, y la política de la valoración inicial. Escribimos el guion, el despacho lo aprueba y configuramos el desvío de llamadas del número actual. Probamos llamadas simuladas antes de activarla.",
+        "El número del despacho no cambia: las llamadas pasan a la recepcionista cuando nadie contesta o fuera de horario."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Se cotiza aparte según volumen de llamadas e integraciones. Se combina con el asistente de WhatsApp para despachos, incluido en los paquetes de sitio desde $9,999 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puede llamar al abogado de guardia por sí sola?",
+      "respuesta": "Sí. Ante una urgencia, avisa por mensaje y por llamada al número de guardia que el despacho defina, con el resumen del caso."
+    },
+    {
+      "pregunta": "¿Funciona en inglés?",
+      "respuesta": "Sí, puede atender llamadas en inglés si el despacho recibe clientes extranjeros."
+    },
+    {
+      "pregunta": "¿Puede cobrar la valoración?",
+      "respuesta": "Puede enviar por mensaje el enlace de pago al agendar, si el despacho lo decide así."
+    },
+    {
+      "pregunta": "¿Qué pasa si la persona solo quiere una opinión gratis?",
+      "respuesta": "La recepcionista explica con amabilidad cómo funciona la valoración del despacho y ofrece agendarla."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-abogados-penalistas",
+      "texto": "Página web para abogados penalistas"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-despachos-de-abogados",
+      "texto": "Chatbot de WhatsApp para despachos de abogados"
+    },
+    {
+      "ruta": "/chatbot-vs-recepcionista-humana",
+      "texto": "Chatbot vs. recepcionista: qué hace mejor cada uno"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:07418bb1f181f7bcc5afc5cc9a1b840f3aa2d29f3db58ccd6fad3b2ca013c4db",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:59Z",
+    "contenido_digest": "sha256:07418bb1f181f7bcc5afc5cc9a1b840f3aa2d29f3db58ccd6fad3b2ca013c4db"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 670,
+    "similitud_max": 0.023,
+    "parecida_a": "/chatbot-whatsapp-para-despachos-de-abogados"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:f56e19befde318f3a0c82f13d3d7106fcbfafd0c58a690939b4babaa815ed54d",
+    "generado_en": "2026-10-11T02:03:59Z"
+  }
+}

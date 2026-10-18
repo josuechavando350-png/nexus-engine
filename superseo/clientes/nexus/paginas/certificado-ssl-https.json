@@ -1,0 +1,135 @@
+{
+  "schema_version": 1,
+  "id": "certificado-ssl-https",
+  "cliente": "nexus",
+  "ruta": "/certificado-ssl-https",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Seguridad y propiedad",
+  "titulo": "Certificado SSL y HTTPS: qué son",
+  "descripcion": "Qué es un certificado SSL, qué significa HTTPS, por qué tu página dice no seguro y cómo solucionarlo, incluido el contenido mixto.",
+  "h1": "Certificado SSL y HTTPS: qué son",
+  "respuesta_rapida": [
+    "El certificado SSL permite que tu sitio use HTTPS, que cifra la comunicación con el visitante.",
+    "Sin HTTPS, los navegadores muestran no seguro y muchos clientes se van.",
+    "Hoy hay certificados sin costo y muchos hostings los instalan automáticamente.",
+    "Si ya tienes certificado y sigue el aviso, probablemente hay contenido mixto."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué es HTTPS",
+      "parrafos": [
+        "Cuando alguien visita tu página, su navegador y tu servidor intercambian información. Con HTTP, esa información viaja sin cifrar y alguien en la misma red podría leerla o alterarla. Con HTTPS, viaja cifrada. Para usar HTTPS, el sitio necesita un certificado, comúnmente llamado SSL, aunque la tecnología actual se llama TLS.",
+        "El candado o el icono de conexión segura en la barra del navegador indica que el sitio usa HTTPS.",
+        "Puedes revisarlo tú mismo: en la barra del navegador, junto a la dirección, aparece un candado o un ícono de ajustes. Al tocarlo, el navegador te dice si la conexión es segura y quién emitió el certificado."
+      ]
+    },
+    {
+      "titulo": "Por qué importa para tu negocio",
+      "parrafos": [
+        "Los navegadores marcan como no seguro a los sitios sin HTTPS, sobre todo cuando tienen formularios. Para un cliente, ese aviso es motivo suficiente para irse. Además, Google considera HTTPS como parte de la experiencia de la página.",
+        "Si tu página recaba datos, como un formulario de contacto o una tienda, HTTPS no es opcional."
+      ]
+    },
+    {
+      "titulo": "Cómo obtenerlo",
+      "parrafos": [
+        "Muchos proveedores de hospedaje instalan y renuevan certificados sin costo de forma automática. Si el tuyo no lo hace, se puede instalar uno manualmente. Los certificados de pago con validación extendida existen, pero para la mayoría de los negocios uno estándar es suficiente.",
+        "Lo importante es que se renueve solo, porque un certificado vencido muestra un error todavía más alarmante.",
+        "Si tu proveedor te cobra aparte por el certificado básico, pregunta qué incluye. Para la mayoría de los negocios, un certificado gratuito y renovado de forma automática es suficiente; los de pago suelen agregar validaciones de identidad que pocos sitios necesitan."
+      ]
+    },
+    {
+      "titulo": "El contenido mixto",
+      "parrafos": [
+        "A veces el sitio ya tiene certificado y sigue apareciendo un aviso. Suele deberse al contenido mixto: la página carga por HTTPS, pero algunas imágenes, scripts o estilos se cargan todavía por HTTP. El navegador lo considera inseguro. La solución es cambiar esas direcciones a HTTPS.",
+        "Las herramientas del navegador muestran qué elementos causan el problema.",
+        "Este problema aparece mucho después de mudar un sitio viejo: las imágenes y los scripts siguen apuntando a direcciones con http. Una revisión de la página con las herramientas del navegador muestra qué recursos faltan por cambiar."
+      ]
+    },
+    {
+      "titulo": "Forzar HTTPS",
+      "parrafos": [
+        "Tener certificado no basta: el sitio debe redirigir todas las visitas por HTTP a HTTPS, y conviene activar una cabecera que le indique al navegador usar siempre HTTPS con tu dominio. Así nadie llega a una versión sin cifrar por un enlace viejo.",
+        "Al cambiar a HTTPS, también hay que actualizar la propiedad en Search Console y los enlaces internos."
+      ]
+    },
+    {
+      "titulo": "Lo que HTTPS no hace",
+      "parrafos": [
+        "HTTPS protege la comunicación, pero no hace seguro un sitio desactualizado ni asegura que el negocio sea confiable. Un sitio fraudulento también puede tener candado. Por eso HTTPS es lo mínimo, no lo único: también importan las actualizaciones, los accesos y las cabeceras de seguridad.",
+        "Revisa nuestra guía de seguridad básica para el resto."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Todos nuestros sitios usan HTTPS obligatorio, renovación automática del certificado y cabeceras de seguridad desde el primer día. Puedes revisar tu sitio actual con nuestro analizador gratuito."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Mi página necesita HTTPS si no vendo nada?",
+      "respuesta": "Sí. Los navegadores avisan igual, y cualquier formulario o botón de contacto se beneficia."
+    },
+    {
+      "pregunta": "¿El certificado tiene costo?",
+      "respuesta": "Existen certificados sin costo que son suficientes para la mayoría de los negocios."
+    },
+    {
+      "pregunta": "¿Cambiar a HTTPS afecta mi posición?",
+      "respuesta": "Bien hecho, con redirecciones, no afecta negativamente."
+    },
+    {
+      "pregunta": "¿Qué pasa si mi certificado vence?",
+      "respuesta": "Los navegadores muestran un error que bloquea el acceso; por eso conviene la renovación automática."
+    },
+    {
+      "pregunta": "¿El certificado se vence?",
+      "respuesta": "Sí. Todos los certificados tienen fecha de vencimiento. Lo ideal es que tu proveedor los renueve de forma automática para que tu página nunca muestre el aviso de no seguro."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/seguridad-de-pagina-web-para-negocios",
+      "texto": "Seguridad de tu página web: lo básico"
+    },
+    {
+      "ruta": "/herramientas/analizador-web",
+      "texto": "Analizador gratis de páginas web"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:5becda0f006cc266a23842e2e5156e7d9be0a8189ad645f35263f7217828a25b",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:07Z",
+    "contenido_digest": "sha256:5becda0f006cc266a23842e2e5156e7d9be0a8189ad645f35263f7217828a25b"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 684,
+    "similitud_max": 0.002,
+    "parecida_a": "/cuanto-cuesta-un-dominio-y-hosting"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:3673f6d26038d9aa71593aa9ab1b045721166cbdd9ffbb9f861f10f9a2e6a975",
+    "generado_en": "2026-10-11T02:04:07Z"
+  }
+}

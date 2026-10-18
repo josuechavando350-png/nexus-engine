@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "wix-vs-pagina-a-medida",
+  "cliente": "nexus",
+  "ruta": "/wix-vs-pagina-a-medida",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "Wix vs. página a medida: cuándo conviene cada una",
+  "descripcion": "Ventajas y límites de Wix frente a una página a medida: costo, velocidad, control, dominio y correo. Cómo migrar sin perder nada si ya estás en Wix.",
+  "h1": "Wix vs. página a medida: cuándo conviene cada una",
+  "respuesta_rapida": [
+    "Wix es práctico para empezar solo y con poco presupuesto.",
+    "Sus límites aparecen en velocidad, personalización y dependencia de su suscripción.",
+    "Una página a medida da control total, mejor rendimiento y diseño propio.",
+    "Si ya estás en Wix, se puede migrar sin perder dominio ni correo, con cuidado."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo bueno de Wix",
+      "parrafos": [
+        "Wix permite que cualquier persona arme una página arrastrando elementos, sin saber programar. Tiene plantillas, hospedaje incluido, formularios, tienda básica y herramientas de reservas. Para un negocio que empieza y quiere hacerlo por su cuenta, es una opción razonable.",
+        "Su gran ventaja es la autonomía: puedes cambiar textos y fotos tú mismo cuando quieras."
+      ]
+    },
+    {
+      "titulo": "Dónde aparecen los límites",
+      "parrafos": [
+        "Velocidad: los sitios hechos con constructores visuales suelen cargar más código del necesario, y eso se nota en el celular. Personalización: hay cosas que no se pueden hacer o que requieren trucos. Dependencia: tu sitio vive dentro de Wix; si dejas de pagar la suscripción, el sitio deja de funcionar, y no puedes llevarte el diseño a otro lado.",
+        "Además, cuando el dominio y el correo se compraron dentro de Wix, cancelar la suscripción para ahorrar puede afectar también el correo del negocio."
+      ]
+    },
+    {
+      "titulo": "Lo que da una página a medida",
+      "parrafos": [
+        "Una página a medida se construye para tu negocio con tecnología moderna: carga más rápido, se ve exactamente como se diseñó, puede crecer sin límites de plataforma y vive en el hospedaje que tú elijas. El código y el dominio son tuyos.",
+        "A cambio, requiere a alguien que la construya y, si no tiene panel de edición, alguien que haga los cambios."
+      ]
+    },
+    {
+      "titulo": "Migrar de Wix sin perder nada",
+      "parrafos": [
+        "Con CANO Estrategia Penal hicimos exactamente esta migración. Su sitio estaba en Wix, con el dominio y el correo del despacho registrados ahí. Construimos el sitio nuevo sin tocar el anterior, y solo cuando estuvo validado cambiamos los registros del dominio para apuntar al sitio nuevo, sin tocar la configuración del correo. También conservamos la medición de Google Ads.",
+        "El resultado: un sitio a medida que marca 99 en rendimiento y 100 en SEO en PageSpeed móvil, sin perder el correo ni el dominio."
+      ]
+    },
+    {
+      "titulo": "Cómo decidir",
+      "parrafos": [
+        "Si estás empezando, quieres hacerlo tú y tu negocio no depende de Google, Wix puede bastar. Si tu sitio es lento, ya no representa la calidad de tu negocio, necesitas funciones que Wix no hace o quieres dejar de depender de una plataforma, una página a medida es el paso lógico.",
+        "Antes de migrar, revisa dónde está registrado tu dominio y tu correo."
+      ]
+    },
+    {
+      "titulo": "El costo real a largo plazo",
+      "parrafos": [
+        "Wix parece barato porque se paga por mes, pero la suscripción se paga mientras el sitio exista. Con los años, la suma puede superar lo que habría costado una página a medida con hospedaje propio. Además, las funciones avanzadas, como tienda o reservas con más opciones, suelen requerir planes más caros.",
+        "Haz la cuenta a varios años y compara con calma, sumando también lo que te cuesta un sitio lento en clientes que se van."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Construimos páginas a medida, rápidas y seguras, y hacemos migraciones cuidando dominio, correo y medición. Los paquetes van de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo conservar mi dominio de Wix?",
+      "respuesta": "Sí. Se puede dejar registrado en Wix y apuntarlo al sitio nuevo, o transferirlo a otro registrador."
+    },
+    {
+      "pregunta": "¿Pierdo mi posición en Google al migrar?",
+      "respuesta": "Si se conservan las direcciones importantes o se redirigen bien, la migración no debería afectarte; muchas veces mejora por la velocidad."
+    },
+    {
+      "pregunta": "¿Y mi correo?",
+      "respuesta": "Se cuida la configuración del correo para que siga funcionando durante y después de la migración."
+    },
+    {
+      "pregunta": "¿Puedo editar yo mismo la página a medida?",
+      "respuesta": "Si necesitas hacer cambios frecuentes, se puede incluir un panel de edición."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/migrar-de-wix-sin-perder-el-dominio",
+      "texto": "Migrar de Wix sin perder dominio ni correo"
+    },
+    {
+      "ruta": "/casos/cano-estrategia-penal",
+      "texto": "Caso: CANO Estrategia Penal"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:c2dc033df3e54005e7d7924895b59bd80de359251aefb1b97779f30a3f888267",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:c2dc033df3e54005e7d7924895b59bd80de359251aefb1b97779f30a3f888267"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 622,
+    "similitud_max": 0.03,
+    "parecida_a": "/migrar-de-wix-sin-perder-el-dominio"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:01fbfd1013c221a28c7fa5843d5d0dcb1c79ce75b404776437b98a6479edd547",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

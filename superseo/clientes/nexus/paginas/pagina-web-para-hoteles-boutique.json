@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-hoteles-boutique",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-hoteles-boutique",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Página web para hoteles boutique",
+  "descripcion": "Sitios para hoteles boutique: reserva directa sin comisiones, habitaciones con fotos y tarifas, experiencia del lugar, versión en inglés y atención por WhatsApp.",
+  "h1": "Página web para hoteles boutique",
+  "respuesta_rapida": [
+    "Cada reserva directa es una reserva sin comisión: el sitio propio es la mejor inversión de un hotel.",
+    "Las habitaciones con fotos reales, capacidad, amenidades y tarifas deciden la reserva.",
+    "Un motor de reservas sencillo y seguro, en español y en inglés, convierte visitas en noches.",
+    "Contar la experiencia del lugar es lo que distingue a un boutique de una cadena."
+  ],
+  "secciones": [
+    {
+      "titulo": "Recuperar la reserva directa",
+      "parrafos": [
+        "Las agencias de viaje en línea traen huéspedes, pero cobran una comisión por cada reserva. Muchos viajeros encuentran el hotel ahí y luego buscan el nombre en Google para ver si conviene reservar directo. Si en ese momento encuentran un sitio lento, sin tarifas o sin motor de reservas, regresan a la agencia y la comisión se queda allá.",
+        "Un sitio propio, rápido y con reserva directa sencilla, con algún beneficio para quien reserva ahí, recupera una parte importante de esas noches."
+      ]
+    },
+    {
+      "titulo": "Habitaciones que se venden solas",
+      "parrafos": [
+        "Cada tipo de habitación con su página: fotos reales y bien iluminadas, capacidad, tipo de cama, metros, vista, amenidades y tarifa desde. El viajero quiere saber exactamente qué va a encontrar, y las fotos honestas evitan reseñas de decepción.",
+        "Un recorrido en video corto o fotos del baño y de la vista desde la ventana resuelven las dudas más comunes."
+      ]
+    },
+    {
+      "titulo": "La experiencia del lugar",
+      "parrafos": [
+        "Un hotel boutique vende lo que una cadena no puede: el edificio, la historia, el diseño, el desayuno, el barrio, el trato. Contarlo con buena fotografía y textos cuidados es lo que convierte al visitante en huésped. Una guía del barrio con recomendaciones propias de restaurantes, museos y paseos agrega valor y atrae búsquedas de viajeros.",
+        "Si el hotel tiene restaurante, spa o espacio para eventos, cada uno merece su sección."
+      ]
+    },
+    {
+      "titulo": "Bilingüe y seguro",
+      "parrafos": [
+        "Una buena parte de los huéspedes de un boutique son extranjeros. Una versión en inglés revisada, precios en la moneda adecuada y un proceso de pago seguro y reconocible son indispensables. El sitio debe cargar rápido desde cualquier conexión y verse impecable en el celular.",
+        "Las políticas de cancelación, horarios de entrada y salida, mascotas y estacionamiento deben estar claras antes de reservar."
+      ]
+    },
+    {
+      "titulo": "Atención antes y durante la estancia",
+      "parrafos": [
+        "Un asistente de WhatsApp que conteste en español e inglés a cualquier hora resuelve dudas sobre disponibilidad, traslados o recomendaciones, y puede tomar solicitudes especiales. Mensajes automáticos antes de la llegada, con indicaciones y opciones de traslado, mejoran la experiencia desde el principio.",
+        "Después de la estancia, un mensaje pidiendo reseña con el enlace directo fortalece tu reputación en Google."
+      ]
+    },
+    {
+      "titulo": "Eventos y grupos",
+      "parrafos": [
+        "Bodas pequeñas, retiros, reuniones de empresa. Una página para grupos con capacidad, espacios, opciones de alimentos y forma de cotizar abre ventas grandes que se planean con meses de anticipación.",
+        "Son clientes que buscan exclusividad, justo lo que un boutique ofrece."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos sitios para hoteles boutique, bilingües, con reserva directa, asistente de WhatsApp y guía del barrio. Los paquetes van de $1,999 a $44,800 MXN; los de $19,999 y $44,800 incluyen tecnología para Google Ads y captación."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo conectar mi sistema de reservas actual?",
+      "respuesta": "En la mayoría de los casos sí. Muchos sistemas de gestión hotelera ofrecen un motor de reservas que se integra al sitio."
+    },
+    {
+      "pregunta": "¿Cómo convenzo de reservar directo?",
+      "respuesta": "Con un beneficio claro, como desayuno incluido o mejor política de cancelación, y un proceso de reserva tan fácil como el de las agencias."
+    },
+    {
+      "pregunta": "¿El asistente puede reservar?",
+      "respuesta": "Puede consultar disponibilidad, tomar los datos y enviar el enlace de pago, según cómo esté conectado tu sistema."
+    },
+    {
+      "pregunta": "¿Necesito blog?",
+      "respuesta": "Una guía del destino bien hecha suele funcionar mejor que un blog genérico."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/chatbot-whatsapp-para-hoteles-boutique",
+      "texto": "Chatbot de WhatsApp para hoteles boutique"
+    },
+    {
+      "ruta": "/aparecer-en-google-maps-hoteles-boutique",
+      "texto": "Cómo aparecer en Google Maps: hoteles boutique"
+    },
+    {
+      "ruta": "/que-paginas-debe-tener-un-sitio-web",
+      "texto": "Qué páginas debe tener el sitio de un negocio"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:2eb8c27cb74bf4d33ee105a94bf158b1400c83b9297932db1ac85637b1ff5060",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:57Z",
+    "contenido_digest": "sha256:2eb8c27cb74bf4d33ee105a94bf158b1400c83b9297932db1ac85637b1ff5060"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 601,
+    "similitud_max": 0.017,
+    "parecida_a": "/pagina-web-para-inmobiliarias"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:2a66e86363be02fa63028cf6e2420fc62ab726ff8256ac997f88cb6db9287cbf",
+    "generado_en": "2026-10-11T02:03:57Z"
+  }
+}

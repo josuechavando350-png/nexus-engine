@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "id": "que-paginas-debe-tener-un-sitio-web",
+  "cliente": "nexus",
+  "ruta": "/que-paginas-debe-tener-un-sitio-web",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "Qué páginas debe tener el sitio de un negocio",
+  "descripcion": "Las páginas y secciones que necesita el sitio web de un negocio: inicio, servicios, nosotros, casos, preguntas frecuentes, contacto y aviso de privacidad.",
+  "h1": "Qué páginas debe tener el sitio de un negocio",
+  "respuesta_rapida": [
+    "Inicio que diga qué haces, para quién y cómo contactarte.",
+    "Una página por cada servicio importante.",
+    "Nosotros, pruebas de confianza y preguntas frecuentes.",
+    "Contacto claro y aviso de privacidad."
+  ],
+  "secciones": [
+    {
+      "titulo": "Menos páginas, mejor pensadas",
+      "parrafos": [
+        "Un sitio no necesita decenas de páginas para funcionar. Necesita las páginas correctas, cada una con un propósito claro: atraer a quien busca algo concreto, convencerlo y llevarlo al contacto. Las páginas que no cumplen ningún propósito solo distraen.",
+        "Esta es la estructura base que funciona para la mayoría de los negocios, y que luego puede crecer.",
+        "Antes de decidir qué páginas crear, piensa en las preguntas que hace tu cliente antes de contratarte. Cada pregunta importante merece una respuesta clara en algún lugar del sitio, y muchas veces esa respuesta es una página completa."
+      ]
+    },
+    {
+      "titulo": "La página de inicio",
+      "parrafos": [
+        "Es la puerta principal, pero no tiene que contarlo todo. Debe decir en la primera pantalla qué haces, para quién y cómo contactarte. Después, un resumen de tus servicios con enlaces a sus páginas, pruebas de confianza como fotos reales, reseñas o casos, y una invitación final a escribir o llamar.",
+        "Si alguien solo ve tu portada, debe entender lo esencial en segundos.",
+        "Evita llenar la portada de carruseles, animaciones y bloques que nadie lee. Una portada clara, con jerarquía, se entiende rápido y lleva a cada visitante a la página que le interesa."
+      ]
+    },
+    {
+      "titulo": "Una página por servicio",
+      "parrafos": [
+        "Cada servicio importante merece su página: qué es, para quién, cómo funciona, cuánto tarda, cuánto cuesta o de qué depende el precio, y preguntas frecuentes. Estas páginas son las que más aparecen en Google, porque responden búsquedas específicas, y las que más convencen, porque hablan del problema exacto del cliente.",
+        "Un sitio con una sola página que lista diez servicios difícilmente posiciona alguno."
+      ]
+    },
+    {
+      "titulo": "Nosotros y confianza",
+      "parrafos": [
+        "La página de nosotros cuenta quién está detrás: el dueño, el equipo, la historia, la forma de trabajar, con fotos reales. En servicios profesionales, la formación y las credenciales verificables. Las pruebas de confianza, como casos, reseñas, certificaciones o fotos de trabajos, pueden tener su propia sección o integrarse en las páginas de servicio.",
+        "En muchos giros, esta es la página que decide la contratación."
+      ]
+    },
+    {
+      "titulo": "Preguntas frecuentes",
+      "parrafos": [
+        "Reúne las preguntas que te hacen siempre: precios, tiempos, formas de pago, zonas de atención, requisitos. Contestarlas en una página ahorra tiempo a tu equipo, acelera la decisión del cliente y atrae búsquedas en Google, porque mucha gente busca justamente esas preguntas.",
+        "Las respuestas deben ser concretas y verdaderas, sin rodeos."
+      ]
+    },
+    {
+      "titulo": "Contacto y legal",
+      "parrafos": [
+        "La página de contacto debe tener WhatsApp, teléfono, correo, dirección con mapa y horario, todo a la vista. El aviso de privacidad es obligatorio si recabas datos personales, por ejemplo con un formulario. Si vendes en línea, también necesitas políticas de envío, cambios y devoluciones.",
+        "Según tu giro, puedes sumar páginas de casos, blog, precios, tienda o agenda."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Definimos contigo la estructura según tu negocio y tus clientes, y la construimos para que pueda crecer sin rehacerse. Usa gratis nuestro checklist de página web por giro. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Necesito blog?",
+      "respuesta": "No es obligatorio. Unas cuantas guías útiles sobre preguntas de tus clientes suelen funcionar mejor que un blog con noticias genéricas."
+    },
+    {
+      "pregunta": "¿Una página de una sola sección sirve?",
+      "respuesta": "Para empezar, sí; para aparecer en Google con varios servicios, conviene tener páginas separadas."
+    },
+    {
+      "pregunta": "¿Debo publicar precios?",
+      "respuesta": "Si puedes, al menos precios desde o de qué depende el costo: es de lo más buscado."
+    },
+    {
+      "pregunta": "¿El aviso de privacidad es obligatorio?",
+      "respuesta": "Si recabas datos personales, sí. Revisa nuestra guía sobre el aviso de privacidad."
+    },
+    {
+      "pregunta": "¿Cuántas páginas necesita mi sitio?",
+      "respuesta": "Las suficientes para cubrir tus servicios principales y las dudas de tus clientes. Para muchos negocios, entre cinco y quince páginas bien hechas es un buen inicio."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/como-escribir-los-textos-de-tu-pagina-web",
+      "texto": "Cómo escribir los textos de tu página web"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:efe9764a0406b66c3fb9700b5aa73e1023cf7ff6d8ee00c7f9822457833bfe2b",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:efe9764a0406b66c3fb9700b5aa73e1023cf7ff6d8ee00c7f9822457833bfe2b"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 635,
+    "similitud_max": 0.033,
+    "parecida_a": "/como-escribir-los-textos-de-tu-pagina-web"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:00757c92f77991c5a5303c0d04cba21b9f980e5229b76d8dbf7bb981e5d5d5f4",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

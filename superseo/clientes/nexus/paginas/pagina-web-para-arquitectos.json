@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "id": "pagina-web-para-arquitectos",
+  "cliente": "nexus",
+  "ruta": "/pagina-web-para-arquitectos",
+  "tipo": "GIRO",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Inmuebles y obra",
+  "titulo": "Página web para arquitectos y despachos",
+  "descripcion": "Sitios para arquitectos: portafolio de proyectos con fotografía de calidad, filosofía de diseño, proceso de trabajo y contacto para nuevos encargos.",
+  "h1": "Página web para arquitectos",
+  "respuesta_rapida": [
+    "Para un arquitecto, el sitio es el portafolio: pocos proyectos bien presentados valen más que muchos mal fotografiados.",
+    "Cada proyecto merece su página con contexto, reto, solución y fotografías profesionales.",
+    "Explica tu proceso y tus honorarios de forma general para que el cliente sepa qué esperar.",
+    "La velocidad importa: las imágenes deben verse impecables sin hacer lento el sitio."
+  ],
+  "secciones": [
+    {
+      "titulo": "El portafolio como argumento",
+      "parrafos": [
+        "Un cliente que busca arquitecto quiere ver si tu forma de pensar el espacio coincide con lo que imagina. No le basta una galería de renders; quiere entender el contexto de cada proyecto, el problema que resolviste y cómo se vive el resultado. Un sitio de arquitectura bien hecho se parece más a una publicación editorial que a un catálogo.",
+        "Por eso conviene elegir con rigor qué proyectos mostrar. Diez obras bien documentadas, con fotografía de calidad y textos breves, comunican más criterio que cuarenta imágenes sueltas sin explicación."
+      ]
+    },
+    {
+      "titulo": "Cómo presentar cada proyecto",
+      "parrafos": [
+        "Una página por proyecto con datos básicos, como ubicación general, año, superficie y tipo de encargo, seguida de una narración corta: el terreno, el cliente, las restricciones, las decisiones clave. Después, la fotografía, ordenada para recorrer el espacio como si el visitante caminara por él. Planos simplificados o croquis ayudan a entender la lógica del proyecto.",
+        "Si el proyecto ganó un premio o fue publicado, se menciona con sobriedad, al final, como dato y no como titular."
+      ]
+    },
+    {
+      "titulo": "Filosofía y forma de trabajar",
+      "parrafos": [
+        "Más allá de las imágenes, el cliente quiere saber cómo vas a trabajar con él. Una página que explique tu forma de abordar un encargo, tu postura frente a la sostenibilidad, los materiales o el contexto, y las etapas del servicio, desde el anteproyecto hasta la supervisión de obra, reduce la incertidumbre de un encargo grande.",
+        "Hablar de honorarios de forma general, por ejemplo si cobras por etapa o por porcentaje de obra, filtra a quien no está listo y muestra profesionalismo."
+      ]
+    },
+    {
+      "titulo": "Fotografía y rendimiento",
+      "parrafos": [
+        "La fotografía de arquitectura es una inversión que se recupera, pero también es pesada. Un sitio que muestra imágenes a gran tamaño debe servirlas en formatos modernos y en la resolución que cada pantalla necesita, para que el visitante en el celular vea calidad sin esperar. Un portafolio lento pierde justo al cliente que más valora el detalle.",
+        "Los renders de proyectos en proceso pueden incluirse, siempre señalados como tales para no confundir con obra construida."
+      ]
+    },
+    {
+      "titulo": "Encargos y contacto",
+      "parrafos": [
+        "Un formulario breve que pregunte tipo de proyecto, ubicación, superficie aproximada, si ya hay terreno y en qué etapa está el cliente ayuda a preparar la primera reunión. WhatsApp funciona para conversaciones rápidas, pero en arquitectura muchos clientes prefieren dejar una solicitud por escrito.",
+        "Responder cada solicitud con cuidado y rapidez es parte de la primera impresión del despacho."
+      ]
+    },
+    {
+      "titulo": "Contenido que trae encargos",
+      "parrafos": [
+        "Notas sobre temas que el cliente consulta antes de construir, como cuánto cuesta construir una casa en general, qué permisos se necesitan o cómo elegir un terreno, atraen a personas en la etapa justa. Escritas con tu voz, muestran conocimiento y abren la conversación.",
+        "También ayudan las páginas por tipo de encargo: casa habitación, interiorismo comercial, oficinas, restauración, para que cada cliente encuentre su caso."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Diseñamos portafolios a medida para despachos de arquitectura, con fotografía optimizada, narrativa por proyecto y contacto medido. Desde $1,999 MXN; el paquete adecuado depende del número de proyectos y secciones."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo administrar los proyectos yo mismo?",
+      "respuesta": "Sí. Dejamos el portafolio en un formato donde agregar un proyecto nuevo no requiere rehacer el sitio."
+    },
+    {
+      "pregunta": "¿Conviene tener versión en inglés?",
+      "respuesta": "Si buscas clientes extranjeros o publicaciones internacionales, sí. Para un mercado local, el español bien escrito es suficiente."
+    },
+    {
+      "pregunta": "¿Muestro renders o solo obra terminada?",
+      "respuesta": "Ambos, separados y señalados. La obra construida pesa más como prueba; los renders muestran hacia dónde va el despacho."
+    },
+    {
+      "pregunta": "¿Cuánto tarda?",
+      "respuesta": "Entre dos y cuatro semanas desde que se aprueba la dirección visual, según cuántos proyectos haya que documentar."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/automatizar-cotizaciones",
+      "texto": "Cómo automatizar cotizaciones sin perder clientes"
+    },
+    {
+      "ruta": "/herramientas/checklist-pagina-web",
+      "texto": "Checklist de página web por giro"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:a69a978ce640071d273b9ca5a574e4ec9ed4ec7fc3cc938f0be52d6eb4786c1a",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:56Z",
+    "contenido_digest": "sha256:a69a978ce640071d273b9ca5a574e4ec9ed4ec7fc3cc938f0be52d6eb4786c1a"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 657,
+    "similitud_max": 0.008,
+    "parecida_a": "/pagina-web-para-escuelas-particulares"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:d058487dfd6ea8712ce425ad35cfb1ee2261575bcc9fc2c45216a9050dbb2aaf",
+    "generado_en": "2026-10-11T02:03:56Z"
+  }
+}

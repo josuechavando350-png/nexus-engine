@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-hoteles-boutique",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-hoteles-boutique",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Google Ads para hoteles boutique",
+  "descripcion": "Google Ads para hoteles boutique: campañas de marca para recuperar reservas directas, anuncios por destino y experiencia, y medición de reservas reales.",
+  "h1": "Google Ads para hoteles boutique",
+  "respuesta_rapida": [
+    "Una campaña de marca protege a quien busca tu hotel por nombre y lo lleva a reservar directo.",
+    "Campañas por destino y por experiencia atraen a viajeros que no te conocen.",
+    "La conversión es la reserva en tu motor, con su valor, no el clic.",
+    "Anuncios en inglés y en los mercados de origen de tus huéspedes."
+  ],
+  "secciones": [
+    {
+      "titulo": "Defender tu propio nombre",
+      "parrafos": [
+        "Cuando un viajero busca el nombre de tu hotel, muchas veces los primeros resultados son anuncios de agencias en línea ofreciendo tu misma habitación. Si el viajero hace clic ahí y reserva, pagas comisión por un huésped que ya te estaba buscando a ti. Una campaña de marca, con presupuesto modesto, pone tu propio anuncio arriba con el enlace a tu reserva directa.",
+        "Es, casi siempre, la inversión publicitaria más rentable que puede hacer un hotel."
+      ]
+    },
+    {
+      "titulo": "Atraer a quien no te conoce",
+      "parrafos": [
+        "Más allá de la marca, las campañas por destino y por experiencia llegan a viajeros que buscan hotel boutique en una ciudad, hotel con alberca en un barrio, hotel para luna de miel o escapada romántica en un destino. Cada búsqueda lleva a una página que muestra la habitación o la experiencia correspondiente, con fotos reales y reserva directa.",
+        "Las campañas en inglés, dirigidas a los países de donde vienen tus huéspedes, amplían el alcance."
+      ]
+    },
+    {
+      "titulo": "Medir reservas con su valor",
+      "parrafos": [
+        "La conversión que importa es la reserva completada en el motor del hotel, con su valor. Con esa medición, Google puede optimizar hacia reservas más valiosas, como estancias más largas o habitaciones superiores, y el hotel puede comparar el costo de los anuncios contra la comisión que habría pagado a una agencia.",
+        "Sin esta medición, es imposible saber si los anuncios son rentables."
+      ]
+    },
+    {
+      "titulo": "Temporadas y anticipación",
+      "parrafos": [
+        "Los viajeros reservan con distintos tiempos de anticipación según el destino y el tipo de viaje. La inversión se ajusta a las temporadas altas, a los puentes y a los eventos de la ciudad, y se reduce cuando el hotel está casi lleno.",
+        "Si el hotel tiene paquetes especiales, cada uno puede tener su anuncio en su temporada."
+      ]
+    },
+    {
+      "titulo": "Página de destino a la altura",
+      "parrafos": [
+        "El anuncio solo funciona si la página de destino convence: fotos reales de la habitación, precio claro, beneficio de reservar directo y un motor de reservas tan fácil como el de una agencia. Un sitio lento o confuso devuelve al viajero a la agencia.",
+        "Por eso trabajamos los anuncios junto con el sitio y el motor de reservas."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "No tener campaña de marca y dejar que las agencias se queden con quien busca el hotel por nombre. Llevar los anuncios a una portada sin precios ni disponibilidad. No medir reservas en el motor y juzgar la campaña por clics. Mantener la misma inversión cuando el hotel ya está lleno. Y anunciar solo en español cuando buena parte de los huéspedes busca en inglés desde otro país, que es donde suelen estar las reservas de mayor valor."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Configuramos la campaña de marca, campañas por destino y experiencia, medición de reservas con valor y páginas de destino. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Por qué pagar por mi propio nombre?",
+      "respuesta": "Porque si no apareces tú, aparecen las agencias, y cada reserva por ahí te cuesta comisión."
+    },
+    {
+      "pregunta": "¿Puedo medir reservas de mi motor actual?",
+      "respuesta": "En la mayoría de los motores sí; lo revisamos en el diagnóstico gratuito."
+    },
+    {
+      "pregunta": "¿Conviene anunciarme en otros idiomas?",
+      "respuesta": "Sí, si una parte relevante de tus huéspedes viene del extranjero."
+    },
+    {
+      "pregunta": "¿Qué pasa en temporada baja?",
+      "respuesta": "Se reduce la inversión o se enfoca en paquetes y escapadas para atraer viajeros locales."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-hoteles-boutique",
+      "texto": "Página web para hoteles boutique"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:045be14e1a7c30ee209d7446723cdc956697b288c74536e9b910522d6d55ca4d",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:045be14e1a7c30ee209d7446723cdc956697b288c74536e9b910522d6d55ca4d"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 618,
+    "similitud_max": 0.016,
+    "parecida_a": "/google-ads-para-psicologos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:df9e84226351806223a0e097354d6335de75bb07cb2d51739748634994aa48d1",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

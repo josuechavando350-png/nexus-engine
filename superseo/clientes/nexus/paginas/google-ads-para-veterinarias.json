@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "google-ads-para-veterinarias",
+  "cliente": "nexus",
+  "ruta": "/google-ads-para-veterinarias",
+  "tipo": "ADS_MAPS",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salud",
+  "titulo": "Google Ads para veterinarias",
+  "descripcion": "Google Ads para clínicas veterinarias: urgencias con llamada directa, servicios por especie, estética y hotel, radio cercano y medición de citas.",
+  "h1": "Google Ads para veterinarias",
+  "respuesta_rapida": [
+    "Las urgencias se anuncian aparte, con llamada directa y solo en horario de atención.",
+    "Estética, hotel y especialidades tienen búsquedas propias que conviene separar.",
+    "El radio debe ser cercano: los dueños buscan veterinario cerca de casa.",
+    "Se miden llamadas, citas y mensajes, no visitas."
+  ],
+  "secciones": [
+    {
+      "titulo": "Urgencia y rutina",
+      "parrafos": [
+        "En veterinaria conviven búsquedas urgentes, como veterinario de urgencia o veterinario abierto ahora, y búsquedas de rutina, como vacunas, esterilización, estética o hotel para perros. Las primeras requieren respuesta inmediata y una llamada; las segundas permiten agendar con calma. Mezclarlas en un mismo anuncio hace que ninguna funcione bien.",
+        "Una campaña de urgencias solo tiene sentido si alguien puede contestar el teléfono en el horario en que corre.",
+        "También conviene pensar en el dueño primerizo: busca cosas como primera consulta de cachorro o vacunas para gatito, y suele elegir una clínica para muchos años. Un anuncio y una página que le hablen a ese dueño, con calendario de vacunas y paquete de inicio, atraen a clientes de largo plazo."
+      ]
+    },
+    {
+      "titulo": "Estructura recomendada",
+      "parrafos": [
+        "Una campaña de urgencias con radio corto, horario real de atención y extensión de llamada. Campañas de servicios, como consulta, vacunas, esterilización, odontología o especialidades, con anuncios que lleven a la página de cada servicio y permitan agendar. Campañas aparte para estética y hotel, que tienen otro cliente y otra temporada.",
+        "Si la clínica atiende especies poco comunes, una campaña específica puede ser muy rentable porque hay pocas opciones."
+      ]
+    },
+    {
+      "titulo": "Temporadas",
+      "parrafos": [
+        "El hotel y la guardería se buscan antes de las vacaciones y los puentes; la estética, antes de fiestas; las campañas de vacunación, en ciertos meses. Ajustar la inversión a esos momentos hace rendir el presupuesto y llena la agenda justo cuando hay demanda.",
+        "En temporadas bajas, la campaña de servicios básicos mantiene el flujo.",
+        "La temporada de calor también trae búsquedas de golpe de calor, garrapatas y pulgas, que conviene atender con anuncios informativos que lleven a agendar."
+      ]
+    },
+    {
+      "titulo": "Medir lo que llena la agenda",
+      "parrafos": [
+        "Las conversiones son llamadas, mensajes de WhatsApp y citas agendadas en línea. Con esa medición se sabe qué servicios traen más clientes nuevos y cuánto cuesta cada uno. Como los clientes de veterinaria regresan por años, un cliente nuevo vale mucho más que su primera consulta.",
+        "Ese valor de largo plazo justifica invertir en atraerlos."
+      ]
+    },
+    {
+      "titulo": "Reseñas y mapa",
+      "parrafos": [
+        "Los anuncios rinden más cuando el perfil de Google tiene buenas reseñas y fotos reales. Las extensiones de ubicación muestran la distancia y las estrellas, que influyen mucho en la decisión del dueño.",
+        "La página de destino debe mostrar horarios, servicios, equipo y forma de contacto inmediata."
+      ]
+    },
+    {
+      "titulo": "Errores que vemos seguido",
+      "parrafos": [
+        "Anuncios de urgencias corriendo de noche cuando nadie contesta. Un solo anuncio genérico para todos los servicios. Radios amplios que atraen a dueños que no harían el trayecto. Llevar todo a la portada. Y no medir llamadas, lo que impide saber si los anuncios traen clientes o solo visitas que se pierden en el camino."
+      ]
+    },
+    {
+      "titulo": "Con Nexus Cortex",
+      "parrafos": [
+        "Configuramos campañas de urgencias, servicios, estética y hotel, con medición de llamadas y citas. Los paquetes de $19,999 y $44,800 MXN incluyen tecnología para Google Ads y captación; la administración se cotiza aparte."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo anunciar urgencias si no atiendo de noche?",
+      "respuesta": "Sí, solo en tu horario de atención. Fuera de ese horario, la campaña se pausa automáticamente."
+    },
+    {
+      "pregunta": "¿Conviene anunciar precios de vacunas?",
+      "respuesta": "Para servicios básicos suele ayudar, porque atrae a dueños decididos."
+    },
+    {
+      "pregunta": "¿Funcionan los anuncios para tienda de alimento?",
+      "respuesta": "Sí, sobre todo para alimentos de prescripción o con entrega a domicilio."
+    },
+    {
+      "pregunta": "¿Puedo anunciar varias sucursales?",
+      "respuesta": "Sí, cada una con su radio y su horario."
+    },
+    {
+      "pregunta": "¿Puedo anunciar la esterilización con precio?",
+      "respuesta": "Sí, un precio desde para esterilización suele atraer a dueños decididos. Conviene aclarar que el costo final depende de la especie, el tamaño y la valoración previa."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/pagina-web-para-veterinarias",
+      "texto": "Página web para veterinarias"
+    },
+    {
+      "ruta": "/conversiones-en-google-ads",
+      "texto": "Conversiones en Google Ads: medir lo que vende"
+    },
+    {
+      "ruta": "/errores-comunes-en-google-ads",
+      "texto": "Errores comunes en Google Ads de negocios locales"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:a56ef58fdea4ffff7da273e1b78583c7ead8bb319cab6b3d7f2b173c943677f0",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:01Z",
+    "contenido_digest": "sha256:a56ef58fdea4ffff7da273e1b78583c7ead8bb319cab6b3d7f2b173c943677f0"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 631,
+    "similitud_max": 0.032,
+    "parecida_a": "/google-ads-para-talleres-mecanicos"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:6242456b792bf24f2217ef724a20c879363a5994f43293cf36fa55476f87ccd7",
+    "generado_en": "2026-10-11T02:04:01Z"
+  }
+}

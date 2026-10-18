@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "shopify-vs-tienda-propia",
+  "cliente": "nexus",
+  "ruta": "/shopify-vs-tienda-propia",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Decidir bien",
+  "titulo": "Shopify vs. tienda en línea propia",
+  "descripcion": "Shopify o una tienda en línea propia: costos mensuales, comisiones, control, diseño, pagos en México y cuándo conviene cada opción según tu volumen.",
+  "h1": "Shopify vs. tienda en línea propia",
+  "respuesta_rapida": [
+    "Shopify permite empezar rápido, con mensualidad, aplicaciones de pago y comisiones según el plan.",
+    "Una tienda propia evita mensualidades de plataforma y da control total, pero requiere desarrollo y mantenimiento.",
+    "Con pocas ventas, una plataforma suele ser práctica; con volumen, una tienda propia puede salir mejor.",
+    "En ambos casos, el dominio, el catálogo y la base de clientes deben ser tuyos."
+  ],
+  "secciones": [
+    {
+      "titulo": "Lo que ofrece Shopify",
+      "parrafos": [
+        "Shopify es una de las plataformas de comercio electrónico más usadas. Ofrece plantillas, carrito, pagos, gestión de inventario y una gran tienda de aplicaciones. Para quien quiere empezar a vender rápido sin desarrollar nada, es una opción sólida.",
+        "Su modelo es de suscripción: pagas una mensualidad según el plan, y muchas funciones adicionales se resuelven con aplicaciones que tienen su propio costo."
+      ]
+    },
+    {
+      "titulo": "Los costos que se acumulan",
+      "parrafos": [
+        "A la mensualidad del plan se suman las aplicaciones, las comisiones del procesador de pagos y, según el plan y el procesador, comisiones adicionales por venta. Con un volumen bajo, el total es razonable. Con un volumen alto o muchas aplicaciones, el costo anual puede crecer bastante.",
+        "Antes de decidir, conviene sumar todo con tu volumen de ventas esperado y compararlo con el costo de una tienda propia."
+      ]
+    },
+    {
+      "titulo": "Lo que da una tienda propia",
+      "parrafos": [
+        "Una tienda construida a medida no paga mensualidad de plataforma ni comisiones adicionales por venta, solo las del procesador de pagos y el hospedaje. Permite cualquier diseño y cualquier flujo de compra, integrar exactamente los pagos y envíos que usas en México y conectar con tus sistemas.",
+        "A cambio, requiere una inversión inicial mayor y alguien responsable del mantenimiento técnico."
+      ]
+    },
+    {
+      "titulo": "Pagos y envíos en México",
+      "parrafos": [
+        "Sea cual sea la opción, la tienda debe ofrecer las formas de pago que usa tu cliente: tarjeta, transferencia, pago en tiendas de conveniencia y, si aplica, meses sin intereses. Y debe calcular envíos con las paqueterías que usas. Revisa que la plataforma o el desarrollo lo permitan sin depender de demasiadas piezas.",
+        "Una forma de pago que falta puede costarte una buena parte de las ventas."
+      ]
+    },
+    {
+      "titulo": "Cómo decidir",
+      "parrafos": [
+        "Si estás validando tu producto y tu volumen es bajo, una plataforma como Shopify, o incluso un catálogo con pedido por WhatsApp, te permite empezar rápido. Si ya vendes con constancia, tienes un catálogo definido y quieres reducir costos o personalizar la experiencia, una tienda propia suele ser mejor a largo plazo.",
+        "No hay respuesta universal; hay números que se pueden calcular."
+      ]
+    },
+    {
+      "titulo": "Lo que nunca debes perder",
+      "parrafos": [
+        "Sea cual sea la tecnología, protege tres cosas: tu dominio, tu catálogo y tu base de clientes. El dominio debe estar a tu nombre; el catálogo, exportable; la lista de clientes, descargable. Con eso puedes cambiar de plataforma cuando lo necesites sin empezar de cero.",
+        "Pregunta cómo se exportan productos, pedidos y clientes antes de construir tu tienda, no cuando ya quieres irte."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Construimos tiendas propias con pagos para México y te ayudamos a calcular qué opción te conviene. Los paquetes van de $1,999 a $44,800 MXN; el adecuado se confirma según tu catálogo. Tu tienda, tu dominio y tus clientes quedan a tu nombre."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo migrar de Shopify a una tienda propia?",
+      "respuesta": "Sí. Se exportan productos y clientes, y se redirigen las direcciones para conservar el posicionamiento."
+    },
+    {
+      "pregunta": "¿Una tienda propia es más segura?",
+      "respuesta": "Puede serlo si se construye con buenas prácticas y se mantiene; las plataformas grandes también son seguras, pero dependes de ellas."
+    },
+    {
+      "pregunta": "¿Y si solo vendo por WhatsApp?",
+      "respuesta": "Un catálogo con pedido por WhatsApp puede ser el primer paso antes de cualquier tienda."
+    },
+    {
+      "pregunta": "¿Quién maneja el inventario?",
+      "respuesta": "En ambas opciones se puede llevar inventario en línea; en la tienda propia se puede conectar con tus sistemas."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/pagina-web-para-tiendas-en-linea",
+      "texto": "Página web para tiendas en línea"
+    },
+    {
+      "ruta": "/cuanto-cuesta-una-tienda-en-linea",
+      "texto": "¿Cuánto cuesta una tienda en línea?"
+    },
+    {
+      "ruta": "/como-vender-ropa-en-linea-en-mexico",
+      "texto": "Cómo vender ropa en línea en México"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:1fd4be9811d3c4e95eb69b9aacf790c85ee9b719ce5a7792bb3b7db26abbbe62",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:04Z",
+    "contenido_digest": "sha256:1fd4be9811d3c4e95eb69b9aacf790c85ee9b719ce5a7792bb3b7db26abbbe62"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 614,
+    "similitud_max": 0.019,
+    "parecida_a": "/cuanto-cuesta-una-tienda-en-linea"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:dbe91b2cd7d499d1c5d003abaf34221783ef09f2781c7213bd20d8e5877941d8",
+    "generado_en": "2026-10-11T02:04:04Z"
+  }
+}

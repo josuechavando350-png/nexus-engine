@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "chatbot-whatsapp-para-barberias",
+  "cliente": "nexus",
+  "ruta": "/chatbot-whatsapp-para-barberias",
+  "tipo": "AGENTE_IA",
+  "servicio": "sales",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Belleza",
+  "titulo": "Chatbot de WhatsApp para barberías",
+  "descripcion": "Asistente de IA para barberías: reserva con el barbero favorito, muestra lugares libres, cobra anticipo en horario pico y recuerda al cliente su próximo corte.",
+  "h1": "Chatbot de WhatsApp para barberías",
+  "respuesta_rapida": [
+    "El cliente escribe y en segundos tiene su lugar con su barbero de confianza.",
+    "Muestra solo los horarios libres reales, sin empalmes ni filas sorpresa.",
+    "En sábado o en horario pico puede pedir un anticipo para asegurar la silla.",
+    "Recuerda al cliente su próximo corte antes de que se le ocurra ir a otro lado."
+  ],
+  "secciones": [
+    {
+      "titulo": "La silla vacía y la fila llena",
+      "parrafos": [
+        "Las barberías viven dos problemas a la vez. Entre semana hay horas con sillas vacías, y el sábado hay fila y clientes que se van porque no quieren esperar una hora. Los mensajes para apartar lugar llegan mientras los barberos cortan, y muchos se contestan tarde o nunca.",
+        "Un asistente en el WhatsApp de la barbería ordena todo eso sin que nadie tenga que soltar la máquina."
+      ]
+    },
+    {
+      "titulo": "Qué hace el asistente",
+      "parrafos": [
+        "Saluda, pregunta qué servicio quiere el cliente, como corte, barba o ambos, y con qué barbero. Muestra los horarios libres de ese barbero y aparta el lugar al momento. Si el cliente no tiene preferencia, ofrece el primer espacio disponible con cualquier barbero.",
+        "En horarios de alta demanda puede pedir un pequeño anticipo con enlace de pago, lo que reduce las ausencias. Una hora antes, o el día anterior, envía un recordatorio con opción de cancelar para liberar la silla.",
+        "Cuando han pasado las semanas habituales desde el último corte de cada cliente, envía un mensaje corto con un enlace para reservar."
+      ]
+    },
+    {
+      "titulo": "Un ejemplo",
+      "parrafos": [
+        "Viernes, once de la noche. Un cliente escribe: ¿hay lugar mañana con Toño? El asistente le muestra los tres espacios que le quedan a Toño el sábado, el cliente elige el de las once, paga el anticipo y recibe su confirmación. El sábado a las diez recibe el recordatorio.",
+        "Toño llega y ve su agenda completa, sin mensajes pendientes."
+      ]
+    },
+    {
+      "titulo": "Membresías y lealtad",
+      "parrafos": [
+        "Si la barbería maneja membresía mensual o tarjeta de lealtad, el asistente lleva la cuenta de los cortes usados, avisa al cliente cuándo le toca su servicio de cortesía y puede vender la renovación con un enlace de pago. Esa constancia es la que sostiene el negocio mes con mes.",
+        "También puede anunciar productos nuevos, como ceras o aceites, a quien ya los ha comprado antes."
+      ]
+    },
+    {
+      "titulo": "Con la voz de tu barbería",
+      "parrafos": [
+        "El asistente habla como habla tu barbería: relajado, directo, con los nombres de tus servicios y de tus barberos. No suena a centro de atención telefónica, suena a tu recepción. Y si el cliente quiere hablar con alguien, la conversación pasa al equipo con todo el contexto.",
+        "Puedes revisar todas las conversaciones y la agenda desde tu celular."
+      ]
+    },
+    {
+      "titulo": "Cómo se pone en marcha",
+      "parrafos": [
+        "Cargamos los servicios con su duración y precio, los horarios y días de descanso de cada barbero, y las reglas de anticipo para sábado o para horario pico. Escribimos las respuestas con el estilo de la barbería y conectamos la agenda. Cada barbero prueba su propia agenda desde el teléfono antes de activarlo. Si después cambian horarios o entra un barbero nuevo, el ajuste es rápido."
+      ]
+    },
+    {
+      "titulo": "Costo",
+      "parrafos": [
+        "Incluido en los paquetes de sitio desde $9,999 MXN. Para barberías que ya tienen sitio, se cotiza aparte según número de barberos y volumen."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Funciona si también atiendo sin cita?",
+      "respuesta": "Sí. El asistente reserva lugares y puede informar cuánto se está esperando para quien llega sin cita."
+    },
+    {
+      "pregunta": "¿Cada barbero ve su agenda?",
+      "respuesta": "Sí, cada uno puede consultar sus citas desde su teléfono."
+    },
+    {
+      "pregunta": "¿Y si un cliente no llega?",
+      "respuesta": "Con anticipo, el lugar queda pagado; sin anticipo, el asistente puede registrar ausencias y pedir anticipo a quien falla seguido."
+    },
+    {
+      "pregunta": "¿Sirve para dos sucursales?",
+      "respuesta": "Sí, el cliente elige sucursal y barbero."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/sales",
+      "texto": "Nexus Sales: atención y ventas con IA"
+    },
+    {
+      "ruta": "/pagina-web-para-barberias",
+      "texto": "Página web para barberías"
+    },
+    {
+      "ruta": "/soluciones/ventas-whatsapp",
+      "texto": "Ventas por WhatsApp con agentes de IA"
+    },
+    {
+      "ruta": "/herramientas/calculadora-whatsapp",
+      "texto": "Calculadora de clientes perdidos en WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:37285791bdee671f7d5cedd991264bfa49dbeae722bdd3674dea4f7103268ecd",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:03:58Z",
+    "contenido_digest": "sha256:37285791bdee671f7d5cedd991264bfa49dbeae722bdd3674dea4f7103268ecd"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 605,
+    "similitud_max": 0.021,
+    "parecida_a": "/chatbot-whatsapp-para-salones-de-belleza"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:8daf9261f451eedcd80294829b3cf1c7ea50e9d064a8bf881d5ada2de237afd7",
+    "generado_en": "2026-10-11T02:03:58Z"
+  }
+}

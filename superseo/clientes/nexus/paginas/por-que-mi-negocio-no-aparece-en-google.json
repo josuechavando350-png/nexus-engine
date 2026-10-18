@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "id": "por-que-mi-negocio-no-aparece-en-google",
+  "cliente": "nexus",
+  "ruta": "/por-que-mi-negocio-no-aparece-en-google",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "¿Por qué mi negocio no aparece en Google?",
+  "descripcion": "Las razones más comunes por las que un negocio no aparece en Google ni en Maps, cómo diagnosticarlas y qué hacer en cada caso.",
+  "h1": "¿Por qué mi negocio no aparece en Google?",
+  "respuesta_rapida": [
+    "Revisa primero si tu sitio está indexado: busca site: seguido de tu dominio.",
+    "Si no apareces en Maps, revisa que tu perfil esté verificado y completo.",
+    "Un error técnico, como una etiqueta canónica mal puesta, puede esconder páginas enteras.",
+    "Un dominio nuevo necesita tiempo, contenido útil y reseñas para competir."
+  ],
+  "secciones": [
+    {
+      "titulo": "Primero, distinguir el problema",
+      "parrafos": [
+        "No aparecer en Google puede significar cosas distintas: que tu sitio no está indexado, que está indexado pero en posiciones muy bajas, o que tu negocio no aparece en el mapa. Cada caso tiene causas y soluciones diferentes.",
+        "Una prueba rápida: escribe en Google site: seguido de tu dominio. Si no aparece nada, Google no tiene tu sitio indexado. Si aparecen páginas, el problema es de posición, no de existencia."
+      ]
+    },
+    {
+      "titulo": "Si tu sitio no está indexado",
+      "parrafos": [
+        "Puede que el sitio sea muy nuevo y Google no lo haya descubierto, que esté bloqueado con una etiqueta de no indexar o una regla en el archivo robots, o que nunca se haya enviado a Search Console. Da de alta tu sitio en Search Console, envía tu sitemap y revisa el reporte de indexación.",
+        "Si el sitio fue hackeado o tiene contenido sospechoso, Google también puede excluirlo; Search Console te avisa en la sección de seguridad."
+      ]
+    },
+    {
+      "titulo": "Errores técnicos que esconden páginas",
+      "parrafos": [
+        "Hay errores silenciosos que hacen que páginas completas no se indexen. Uno frecuente es la etiqueta canónica mal configurada: cuando varias páginas le dicen a Google que la versión principal es otra, por ejemplo la portada, Google las ignora. Lo encontramos incluso en sitios bien diseñados. Otro es redirigir páginas a direcciones que a su vez redirigen.",
+        "Nuestro analizador gratuito revisa estos puntos en segundos."
+      ]
+    },
+    {
+      "titulo": "Si no apareces en Maps",
+      "parrafos": [
+        "Revisa que tu Perfil de Empresa en Google exista, esté verificado y tenga la categoría correcta. Un perfil sin verificar o suspendido no aparece. Si el perfil está bien pero no sales, puede ser por distancia, porque hay muchos competidores más cerca de quien busca, o por prominencia: menos reseñas y menos presencia en internet que otros.",
+        "Completar el perfil, subir fotos y pedir reseñas a todos tus clientes mejora tus posibilidades con el tiempo."
+      ]
+    },
+    {
+      "titulo": "Si apareces, pero muy abajo",
+      "parrafos": [
+        "Tu sitio puede estar indexado pero sin contenido suficiente para competir: una sola página con poca información difícilmente gana frente a sitios con páginas detalladas de cada servicio. También influyen la velocidad en celular, la experiencia del usuario y la autoridad, es decir, cuántos sitios confiables te mencionan.",
+        "Search Console te muestra en qué búsquedas apareces y en qué posición, para saber por dónde empezar."
+      ]
+    },
+    {
+      "titulo": "Paciencia con dominios nuevos",
+      "parrafos": [
+        "Un dominio con pocos meses de vida compite contra sitios con años. Google necesita tiempo para confiar. Publicar contenido útil de forma constante, conseguir menciones reales y mantener un perfil activo acorta ese camino, pero no lo elimina.",
+        "Desconfía de quien promete resultados en días."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Hacemos un diagnóstico gratuito de por qué no apareces y te decimos qué corregir primero. SUPERSEO rastrea tu sitio, detecta errores técnicos y propone las páginas que faltan. Es parte de Nexus Growth."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Por qué mi competencia aparece y yo no?",
+      "respuesta": "Puede tener más contenido, más reseñas, más antigüedad o estar más cerca de quien busca. Search Console y el análisis de su sitio dan pistas concretas."
+    },
+    {
+      "pregunta": "¿Pagar anuncios me ayuda a aparecer orgánicamente?",
+      "respuesta": "No directamente. Los anuncios y el posicionamiento orgánico son sistemas separados."
+    },
+    {
+      "pregunta": "¿Cambiar de dominio me hace aparecer?",
+      "respuesta": "No. Un dominio nuevo empieza de cero; conviene mejorar el actual."
+    },
+    {
+      "pregunta": "¿Cuánto tarda en notarse una corrección?",
+      "respuesta": "Los errores técnicos corregidos se reflejan en días o semanas; el contenido nuevo, en semanas o meses."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/herramientas/analizador-web",
+      "texto": "Analizador gratis de páginas web"
+    },
+    {
+      "ruta": "/como-hacer-que-google-indexe-mi-pagina",
+      "texto": "Cómo hacer que Google indexe tu página"
+    },
+    {
+      "ruta": "/como-aparecer-en-google-maps",
+      "texto": "Cómo aparecer en Google Maps con tu negocio"
+    },
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:1838327820c040077f454184d1f7aed652a22bb5eed0a6d8ab9027edab564934",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:1838327820c040077f454184d1f7aed652a22bb5eed0a6d8ab9027edab564934"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 611,
+    "similitud_max": 0.012,
+    "parecida_a": "/como-hacer-que-google-indexe-mi-pagina"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:90bbe6aee5cc57780cdbefb1ba65d5e756aa86cbab759bb80d6c8238a16bde6a",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

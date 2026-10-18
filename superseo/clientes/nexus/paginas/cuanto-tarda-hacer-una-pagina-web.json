@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "id": "cuanto-tarda-hacer-una-pagina-web",
+  "cliente": "nexus",
+  "ruta": "/cuanto-tarda-hacer-una-pagina-web",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Costos y tiempos",
+  "titulo": "¿Cuánto tarda hacer una página web?",
+  "descripcion": "Cuánto tarda hacer una página web según su alcance, qué etapas tiene, qué suele retrasarla y cómo acelerar la entrega sin sacrificar calidad.",
+  "h1": "¿Cuánto tarda hacer una página web?",
+  "respuesta_rapida": [
+    "Depende del alcance: una página sencilla puede estar en días; un sitio completo, en semanas.",
+    "En Nexus, entre dos y cuatro semanas desde que se aprueba la dirección visual, según el contenido.",
+    "Lo que más retrasa un proyecto suele ser el contenido: textos, fotos y decisiones.",
+    "Tener claro qué quieres y quién aprueba acelera todo."
+  ],
+  "secciones": [
+    {
+      "titulo": "Las etapas de un proyecto",
+      "parrafos": [
+        "Toda página pasa por las mismas etapas, aunque cambie su duración. Primero entender el negocio: qué vendes, a quién, qué necesita el cliente para decidir. Después la dirección visual: cómo se va a ver. Luego la construcción: diseño, textos, funciones. Por último, la revisión, los ajustes y la publicación.",
+        "Saltarse la primera etapa para ir rápido suele terminar en más vueltas al final."
+      ]
+    },
+    {
+      "titulo": "Tiempos reales",
+      "parrafos": [
+        "En Nexus, un sitio se entrega en un plazo de entre dos y cuatro semanas desde que se aprueba la dirección visual, según el alcance y el contenido disponible. Algunos proyectos con contenido listo y alcance acotado salen mucho más rápido: con CANO Estrategia Penal el plazo acordado fue de tres días a partir del pago.",
+        "El propio sitio de Nexus se diseñó, desarrolló y publicó en cinco días. Entregamos rápido porque no empezamos desde cero: nuestro motor reúne arquitectura, seguridad y tecnología en un solo sistema."
+      ]
+    },
+    {
+      "titulo": "Lo que suele retrasar",
+      "parrafos": [
+        "El contenido. Textos que no llegan, fotos que hay que tomar, precios que hay que confirmar. También las decisiones: cuando varias personas opinan y nadie tiene la última palabra, el proyecto se estanca. Y los cambios de rumbo a mitad del camino, como agregar una tienda cuando ya se estaba terminando un catálogo.",
+        "Las integraciones con otros sistemas, como facturación o agendas existentes, también pueden alargar los tiempos."
+      ]
+    },
+    {
+      "titulo": "Cómo acelerar",
+      "parrafos": [
+        "Ten claro qué necesitas y qué no, al menos para la primera versión. Designa a una sola persona que apruebe. Reúne fotos y datos básicos antes de empezar. Si no tienes textos, una conversación de media hora suele bastar para que alguien los escriba por ti.",
+        "En Nexus el primer contacto es por WhatsApp, con pocas preguntas, y los textos se pueden desarrollar a partir de esa conversación."
+      ]
+    },
+    {
+      "titulo": "Rápido no significa improvisado",
+      "parrafos": [
+        "Una página hecha en pocos días puede ser excelente si hay método y una base técnica sólida. Lo que no conviene es apurar a costa de la velocidad del sitio, la seguridad o la propiedad del dominio. Esos atajos se pagan después.",
+        "Pregunta siempre cómo se logra el tiempo prometido."
+      ]
+    },
+    {
+      "titulo": "Un calendario típico",
+      "parrafos": [
+        "La primera semana suele dedicarse a entender el negocio y presentar la dirección visual. Con la dirección aprobada, la construcción y los textos avanzan en paralelo. La última etapa es de revisión: se prueba en celulares reales, se ajustan detalles y se publica. Cuando el cliente responde rápido en cada etapa, el proyecto avanza al ritmo previsto.",
+        "Si hay integraciones con otros sistemas o mucho contenido por cargar, se suman días a la construcción, y conviene saberlo desde la cotización."
+      ]
+    },
+    {
+      "titulo": "Después de publicar",
+      "parrafos": [
+        "Publicar no es el final. Las primeras semanas sirven para revisar cómo se comporta el sitio, medir los primeros contactos y hacer ajustes. Google también tarda en descubrir e indexar las páginas nuevas, sobre todo en dominios nuevos.",
+        "Un buen proveedor te acompaña en esa etapa."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Se puede hacer en una semana?",
+      "respuesta": "Para alcances acotados y con contenido listo, sí. Para sitios con tienda, varias integraciones o mucho contenido, se necesita más tiempo."
+    },
+    {
+      "pregunta": "¿Qué necesito tener listo para empezar?",
+      "respuesta": "Logo si lo tienes, fotos de tu negocio, datos de contacto y una idea de tus servicios. Lo demás se trabaja en el proceso."
+    },
+    {
+      "pregunta": "¿Cuántas rondas de cambios hay?",
+      "respuesta": "Se define en la cotización; lo habitual es un número de rondas incluidas y cambios extra cotizados."
+    },
+    {
+      "pregunta": "¿Cuándo aparece en Google?",
+      "respuesta": "Google puede tardar días o semanas en indexar un sitio nuevo; avisarle con Search Console ayuda."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/casos/cano-estrategia-penal",
+      "texto": "Caso: CANO Estrategia Penal"
+    },
+    {
+      "ruta": "/como-escribir-los-textos-de-tu-pagina-web",
+      "texto": "Cómo escribir los textos de tu página web"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:051bef4700696edd1984d33c7970915d48b44270c33db084a0186ad0268b2214",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:03Z",
+    "contenido_digest": "sha256:051bef4700696edd1984d33c7970915d48b44270c33db084a0186ad0268b2214"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 645,
+    "similitud_max": 0.017,
+    "parecida_a": "/diseno-de-paginas-web-en-colima"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:bf595529f81d6e7cba68cf97402c31b7115d4b1585a57f81c9fc609f1e333955",
+    "generado_en": "2026-10-11T02:04:03Z"
+  }
+}

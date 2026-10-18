@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "cliente": "cano",
+  "origen": "https://canopenal.com",
+  "estado": "PREPARACION",
+  "publicadas": [],
+  "redirecciones": [],
+  "relacionadas_por_ruta": {},
+  "paquete_digest": "sha256:9b60ffc4b9bbf29e50cab4399a3d11d0ad0b2131da39c88715e4952f6d2782ae"
+}

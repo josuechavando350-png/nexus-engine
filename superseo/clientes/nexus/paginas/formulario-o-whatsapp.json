@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "id": "formulario-o-whatsapp",
+  "cliente": "nexus",
+  "ruta": "/formulario-o-whatsapp",
+  "tipo": "GUIA",
+  "servicio": "web",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Página que funciona",
+  "titulo": "¿Formulario o WhatsApp en tu página?",
+  "descripcion": "Cuándo conviene un formulario de contacto, cuándo WhatsApp y cuándo ambos. Ventajas, desventajas y cómo diseñar cada uno para que convierta.",
+  "h1": "¿Formulario o WhatsApp en tu página?",
+  "respuesta_rapida": [
+    "Para la mayoría de los negocios locales en México, WhatsApp convierte más.",
+    "El formulario sirve cuando necesitas información ordenada o registro por escrito, como en cotizaciones de empresas.",
+    "Lo mejor suele ser ofrecer ambos, con WhatsApp como opción principal.",
+    "Un formulario corto convierte mucho más que uno largo."
+  ],
+  "secciones": [
+    {
+      "titulo": "Dos formas de contacto, dos clientes",
+      "parrafos": [
+        "WhatsApp es inmediato y conversacional: el cliente escribe como habla y espera respuesta pronto. El formulario es ordenado y deja registro: el cliente responde preguntas concretas y espera que lo contacten después. Cada uno se adapta a un tipo de cliente y de servicio.",
+        "La pregunta no es cuál es mejor en general, sino cuál conviene a tu negocio y a tu cliente."
+      ]
+    },
+    {
+      "titulo": "Cuándo gana WhatsApp",
+      "parrafos": [
+        "En negocios locales con clientes que quieren respuesta rápida: restaurantes, salones, talleres, clínicas, despachos con urgencias. El cliente escribe en segundos y siente que habla con una persona. En México, donde WhatsApp es el canal principal, suele generar muchos más contactos que un formulario.",
+        "La condición es contestar rápido; si no, el cliente se va con quien sí lo hace."
+      ]
+    },
+    {
+      "titulo": "Cuándo gana el formulario",
+      "parrafos": [
+        "Cuando necesitas datos específicos para cotizar, como medidas, tipo de proyecto o número de personas; cuando el cliente es una empresa que necesita dejar registro por escrito; cuando quieres recibir archivos o planos; o cuando prefieres responder con calma una propuesta formal. También es útil para quien no usa WhatsApp o prefiere no compartir su número.",
+        "En servicios corporativos y obras grandes, el formulario puede ser el canal principal."
+      ]
+    },
+    {
+      "titulo": "Ofrecer ambos",
+      "parrafos": [
+        "En la mayoría de los casos, lo mejor es ofrecer las dos opciones: WhatsApp como acción principal, visible y destacada, y un formulario breve para quien lo prefiera. Así no pierdes a ningún tipo de cliente.",
+        "Mide ambos para saber cuál usa más tu cliente y ajusta el diseño con esos datos.",
+        "En algunos giros también funciona un tercer camino: un botón de llamada directa, sobre todo para urgencias o para clientes mayores que prefieren hablar. Lo importante es que cada opción esté clara y no compitan entre sí por la atención."
+      ]
+    },
+    {
+      "titulo": "Si usas formulario, que sea corto",
+      "parrafos": [
+        "Cada campo extra reduce las probabilidades de que lo llenen. Pide solo lo indispensable: nombre, forma de contacto y un mensaje o el dato clave para cotizar. Lo demás se pregunta después. Usa etiquetas claras, el teclado adecuado para teléfono o correo en celular y un mensaje de confirmación que diga cuándo vas a responder.",
+        "Y asegúrate de que los mensajes del formulario lleguen a un correo que alguien revise todos los días."
+      ]
+    },
+    {
+      "titulo": "Lo que nadie revisa",
+      "parrafos": [
+        "Es más común de lo que parece: formularios que envían a un correo viejo, que caen en la carpeta de spam o que dejaron de funcionar hace meses sin que nadie se diera cuenta. Prueba tu formulario cada cierto tiempo enviándote un mensaje. Y protege el formulario contra spam con medidas que no molesten al cliente.",
+        "Un formulario roto es peor que no tener formulario."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Diseñamos el contacto según tu negocio: WhatsApp medido, formulario breve protegido contra spam o ambos, y conectamos los mensajes con tu equipo. Paquetes de $1,999 a $44,800 MXN."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo conectar el formulario a WhatsApp?",
+      "respuesta": "Sí, puede enviarte una notificación por WhatsApp o Telegram cuando llega un mensaje."
+    },
+    {
+      "pregunta": "¿Un chat en la página es mejor que WhatsApp?",
+      "respuesta": "Depende: el chat retiene al usuario en la página, WhatsApp le permite seguir la conversación después. Muchos negocios combinan ambos."
+    },
+    {
+      "pregunta": "¿Debo pedir el correo o el teléfono?",
+      "respuesta": "El dato que realmente usarás para responder. En México, el teléfono suele ser más útil."
+    },
+    {
+      "pregunta": "¿Cómo evito el spam?",
+      "respuesta": "Con validación en el servidor y campos ocultos que detectan robots, sin obligar al cliente a resolver acertijos."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/boton-de-whatsapp-en-pagina-web",
+      "texto": "Botón de WhatsApp en tu página web"
+    },
+    {
+      "ruta": "/como-medir-clics-de-whatsapp",
+      "texto": "Cómo medir los clics a WhatsApp de tu página"
+    },
+    {
+      "ruta": "/web",
+      "texto": "Nexus Web: páginas web para negocios"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:b51a04c380ea0f30389534195daab6c9b874c6bc8c0133ff62732cade5288bc2",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:06Z",
+    "contenido_digest": "sha256:b51a04c380ea0f30389534195daab6c9b874c6bc8c0133ff62732cade5288bc2"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 623,
+    "similitud_max": 0.008,
+    "parecida_a": "/pagina-web-rapida-en-celular"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:8a902ea23ccda12d873e13781762ebb9a0a414ef14fe79079a960178ccdf22a9",
+    "generado_en": "2026-10-11T02:04:06Z"
+  }
+}

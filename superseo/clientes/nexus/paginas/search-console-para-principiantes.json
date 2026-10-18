@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "id": "search-console-para-principiantes",
+  "cliente": "nexus",
+  "ruta": "/search-console-para-principiantes",
+  "tipo": "GUIA",
+  "servicio": "growth",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Salir en Google",
+  "titulo": "Google Search Console para principiantes",
+  "descripcion": "Qué es Google Search Console, cómo darlo de alta y qué reportes revisar cada mes para saber cómo te encuentra la gente en Google y qué corregir.",
+  "h1": "Google Search Console para principiantes",
+  "respuesta_rapida": [
+    "Search Console es gratis y te muestra cómo ve Google tu sitio y por qué búsquedas apareces.",
+    "Lo das de alta verificando tu dominio, idealmente con un registro DNS.",
+    "Revisa cada mes el rendimiento, la indexación y la experiencia en celular.",
+    "Es la fuente más confiable para saber si tu SEO funciona."
+  ],
+  "secciones": [
+    {
+      "titulo": "Qué es y por qué importa",
+      "parrafos": [
+        "Google Search Console es una herramienta gratuita de Google para dueños de sitios web. Te dice en qué búsquedas aparece tu sitio, cuántas veces se mostró, cuántas personas hicieron clic, qué páginas están indexadas, qué errores encontró Google y si hay problemas de seguridad.",
+        "Sin Search Console, cualquier opinión sobre tu posicionamiento es una suposición. Con él, tienes datos directos de Google."
+      ]
+    },
+    {
+      "titulo": "Cómo darlo de alta",
+      "parrafos": [
+        "Entra a Search Console con una cuenta de Google del negocio y agrega tu sitio. Hay dos tipos de propiedad: de dominio, que cubre todo el dominio y sus variantes, y de prefijo de URL, que cubre una dirección concreta. La de dominio es la más completa y se verifica agregando un registro en la configuración DNS de tu dominio.",
+        "Si no sabes dónde está tu DNS, quien administra tu dominio puede ayudarte. Después, envía tu sitemap desde la sección correspondiente."
+      ]
+    },
+    {
+      "titulo": "El reporte de rendimiento",
+      "parrafos": [
+        "Es el más útil. Muestra impresiones, cuántas veces apareció tu sitio en resultados; clics, cuántas veces entraron; el porcentaje de clics, y la posición promedio. Puedes verlo por búsqueda, por página, por país y por dispositivo.",
+        "Revisa qué búsquedas te traen impresiones pero pocos clics: a veces basta mejorar el título y la descripción de esa página para recibir más visitas.",
+        "También compara periodos: el mismo mes del año anterior o los últimos tres meses contra los tres anteriores. Así distingues una caída real de una variación de temporada, que en muchos giros es normal."
+      ]
+    },
+    {
+      "titulo": "El reporte de indexación",
+      "parrafos": [
+        "Te dice qué páginas están indexadas y cuáles no, y por qué. Estados como descubierta pero sin indexar, rastreada pero sin indexar, excluida por etiqueta de no indexar o página alternativa con etiqueta canónica adecuada te indican qué revisar.",
+        "Con la inspección de URL puedes revisar una página concreta y solicitar que Google la rastree."
+      ]
+    },
+    {
+      "titulo": "Experiencia y seguridad",
+      "parrafos": [
+        "El reporte de métricas web principales muestra si tus páginas cargan rápido y se comportan bien en celular y computadora, según datos de usuarios reales. La sección de acciones manuales y problemas de seguridad te avisa si Google detectó algo grave, como contenido hackeado.",
+        "Revisar estas secciones de vez en cuando evita sorpresas."
+      ]
+    },
+    {
+      "titulo": "Una rutina mensual sencilla",
+      "parrafos": [
+        "Una vez al mes, revisa la tendencia de impresiones y clics de los últimos tres meses, las búsquedas nuevas que aparecieron, las páginas que más crecen o caen y si hay errores nuevos de indexación. Con quince minutos al mes ya sabes más de tu sitio que la mayoría de tus competidores.",
+        "Si das acceso a tu proveedor como usuario, puede preparar ese análisis por ti."
+      ]
+    },
+    {
+      "titulo": "En Nexus",
+      "parrafos": [
+        "Configuramos Search Console, enviamos el sitemap y usamos sus datos para decidir qué páginas mejorar o crear. SUPERSEO lee esos datos para reemplazar estimaciones por búsquedas reales. Es parte de Nexus Growth."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Search Console es lo mismo que Google Analytics?",
+      "respuesta": "No. Search Console muestra cómo apareces en Google; Analytics muestra qué hacen las personas dentro de tu sitio."
+    },
+    {
+      "pregunta": "¿Cuánto tarda en mostrar datos?",
+      "respuesta": "Unos días después de verificar empiezas a ver información; los datos completos se acumulan con las semanas."
+    },
+    {
+      "pregunta": "¿Puedo dar acceso a otra persona?",
+      "respuesta": "Sí, agregándola como usuario con permisos limitados, sin compartir tu contraseña."
+    },
+    {
+      "pregunta": "¿Afecta mi posicionamiento tenerlo?",
+      "respuesta": "No te sube por sí mismo, pero te da la información para mejorar."
+    },
+    {
+      "pregunta": "¿Sirve para tiendas en línea?",
+      "respuesta": "Sí. Además de búsquedas, muestra si tus productos aparecen en resultados enriquecidos y si hay errores en sus datos."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/growth",
+      "texto": "Nexus Growth: presencia en Google"
+    },
+    {
+      "ruta": "/como-hacer-que-google-indexe-mi-pagina",
+      "texto": "Cómo hacer que Google indexe tu página"
+    },
+    {
+      "ruta": "/como-saber-cuantos-clientes-trae-mi-pagina",
+      "texto": "Cuántos clientes trae tu página: cómo saberlo"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:cbca4d2be07d87bcda9074f107b1be70d4d725ec507e4a067484be67ba5fd1b4",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:05Z",
+    "contenido_digest": "sha256:cbca4d2be07d87bcda9074f107b1be70d4d725ec507e4a067484be67ba5fd1b4"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 634,
+    "similitud_max": 0.007,
+    "parecida_a": "/como-hacer-que-google-indexe-mi-pagina"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:174f7fca4c9f5bc2f90eb1bf1a84b5c257bc17e91d52201fc77baf4f63d48929",
+    "generado_en": "2026-10-11T02:04:05Z"
+  }
+}

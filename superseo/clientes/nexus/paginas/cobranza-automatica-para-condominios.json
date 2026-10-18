@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "id": "cobranza-automatica-para-condominios",
+  "cliente": "nexus",
+  "ruta": "/cobranza-automatica-para-condominios",
+  "tipo": "AGENTE_IA",
+  "servicio": "cobranza",
+  "zona": "mx",
+  "situacion": null,
+  "grupo": "Servicios",
+  "titulo": "Cobranza automática de cuotas de condominio",
+  "descripcion": "Cobranza automática de cuotas de mantenimiento para condominios: recordatorios a cada unidad, pago en línea, estados de cuenta y reportes para el comité.",
+  "h1": "Cobranza automática para condominios",
+  "respuesta_rapida": [
+    "Cada unidad recibe su recordatorio de cuota con monto, fecha y forma de pago.",
+    "Pago en línea con comprobante inmediato y estado de cuenta siempre disponible.",
+    "Seguimiento respetuoso de adeudos, sin exhibir a nadie frente a los vecinos.",
+    "Reportes claros para el administrador y el comité de vigilancia."
+  ],
+  "secciones": [
+    {
+      "titulo": "El problema de siempre en un condominio",
+      "parrafos": [
+        "La cuota de mantenimiento sostiene la limpieza, la vigilancia, los elevadores y las áreas comunes. Cuando varios condóminos se atrasan, el condominio se queda sin dinero para lo básico y la convivencia se tensa. El administrador pasa horas revisando depósitos, preguntando quién pagó y enviando avisos generales que no le llegan a quien debe.",
+        "Además, las listas de morosos en el elevador o en el grupo de vecinos generan conflictos y, más que cobrar, rompen la convivencia."
+      ]
+    },
+    {
+      "titulo": "Cómo funciona",
+      "parrafos": [
+        "Cada unidad está registrada con sus responsables y su cuota. Antes de la fecha de pago, cada responsable recibe un recordatorio personal con el monto, la fecha y un enlace para pagar en línea o los datos para transferencia. Al pagar, recibe su comprobante y su estado de cuenta actualizado.",
+        "Si la fecha pasa sin pago, el sistema envía un recordatorio privado, amable y claro. Si el condómino responde con una fecha, queda registrada y se le recuerda ese día. Los adeudos que persisten pasan al administrador con el historial, para que decida los siguientes pasos conforme al reglamento.",
+        "Cuotas extraordinarias, multas o rentas de áreas comunes se manejan igual, cada una con su concepto."
+      ]
+    },
+    {
+      "titulo": "Privacidad entre vecinos",
+      "parrafos": [
+        "Los recordatorios son siempre privados. Nadie recibe información de otra unidad ni aparece en listas públicas. La transparencia hacia la comunidad se logra con reportes generales de ingresos y gastos, sin exhibir a nadie en particular.",
+        "La información se guarda con acceso restringido al administrador y al comité, bajo el aviso de privacidad del condominio."
+      ]
+    },
+    {
+      "titulo": "Transparencia para el comité",
+      "parrafos": [
+        "El administrador y el comité de vigilancia ven en todo momento cuánto se ha recaudado en el mes, cuántas unidades están al corriente, cuántas tienen adeudos y desde cuándo. Eso facilita las asambleas y da confianza a los condóminos que pagan puntualmente.",
+        "Los reportes se pueden exportar para la contabilidad del condominio."
+      ]
+    },
+    {
+      "titulo": "Menos trabajo para el administrador",
+      "parrafos": [
+        "Lo que antes era revisar estados de cuenta bancarios, conciliar depósitos y escribir uno por uno a los condóminos, ahora sucede solo. El administrador se concentra en los casos que requieren una conversación y en la operación del condominio.",
+        "Para administradoras profesionales con varios condominios, cada uno se maneja por separado con sus propias reglas."
+      ]
+    },
+    {
+      "titulo": "Avisos además de cobros",
+      "parrafos": [
+        "El mismo canal sirve para avisos importantes, como cortes de agua, mantenimiento de elevadores o asambleas, enviados a los responsables de cada unidad. Es más ordenado que un grupo de mensajería donde los avisos se pierden entre conversaciones.",
+        "Cada condómino puede consultar su estado de cuenta cuando quiera, sin tener que preguntarle al administrador."
+      ]
+    },
+    {
+      "titulo": "Con Nexus",
+      "parrafos": [
+        "Configuramos la cobranza con las unidades, cuotas, fechas y reglas del condominio, con pagos en línea y reportes. Se cotiza según el número de unidades; se incluye en paquetes desde $9,999 MXN cuando va junto con un sitio."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "pregunta": "¿Puedo aplicar recargos por atraso?",
+      "respuesta": "Sí, si el reglamento lo establece. El sistema los calcula y los muestra en el estado de cuenta."
+    },
+    {
+      "pregunta": "¿Y si la unidad está rentada?",
+      "respuesta": "Se registra quién es responsable del pago, propietario o inquilino, y a quién se envían los avisos."
+    },
+    {
+      "pregunta": "¿Funciona para administradoras con varios condominios?",
+      "respuesta": "Sí, cada condominio con su configuración y sus reportes."
+    },
+    {
+      "pregunta": "¿Los condóminos necesitan instalar algo?",
+      "respuesta": "No. Reciben mensajes por WhatsApp y pagan desde un enlace."
+    }
+  ],
+  "enlaces": [
+    {
+      "ruta": "/soluciones/cobranza",
+      "texto": "Cobranza y recordatorios automáticos"
+    },
+    {
+      "ruta": "/automation",
+      "texto": "Nexus Automation: automatización de procesos"
+    },
+    {
+      "ruta": "/recordatorios-automaticos-de-citas",
+      "texto": "Recordatorios automáticos de citas por WhatsApp"
+    },
+    {
+      "ruta": "/",
+      "texto": "Nexus Bot Studio"
+    }
+  ],
+  "datos_locales": [],
+  "aviso": null,
+  "estado": "APROBADA",
+  "contenido_digest": "sha256:7714ea3f2fd1a361c5295a89b819c79ed32d82f764961916e5c133cf391a961b",
+  "aprobacion": {
+    "revisor": "CANDADO_AVENGERS",
+    "por": "SUPERSEO",
+    "en": "2026-10-11T02:04:00Z",
+    "contenido_digest": "sha256:7714ea3f2fd1a361c5295a89b819c79ed32d82f764961916e5c133cf391a961b"
+  },
+  "candados": {
+    "ok": true,
+    "motivos": [],
+    "palabras": 601,
+    "similitud_max": 0.029,
+    "parecida_a": "/cobranza-automatica-para-arrendadores"
+  },
+  "origen": {
+    "redactor": "manual",
+    "brief_digest": "sha256:a11172c7566199dbf2c0cfef95a6032963a8bf137c17513209b6887a79bc64c7",
+    "generado_en": "2026-10-11T02:04:00Z"
+  }
+}
