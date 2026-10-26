@@ -58,8 +58,9 @@ describe("CANO organic integration contract", () => {
     expect(home).toContain("<ContactForm compact />");
     expect(home).not.toContain('<form className="cp-form">');
     expect(home).toContain('href="/detenido-cdmx"');
-    expect(home).toContain('href="/evaluacion-empresarial"');
-    expect(home).toContain('href="/intelligence"');
+    // Oct 2026: el cliente pidió quitar del home los bloques de defensa empresarial.
+    expect(home).not.toContain('href="/evaluacion-empresarial"');
+    expect(home).not.toContain('href="/intelligence"');
   });
 
   it("displays the approved informative fiscal notice prominently", () => {
@@ -77,16 +78,10 @@ describe("CANO organic integration contract", () => {
     const nav = readFileSync(new URL("./content.ts", import.meta.url), "utf8");
     for (const path of [
       "/detenido-cdmx",
-      "/evaluacion-empresarial",
-      "/intelligence",
-      "/defensa-penal-fiscal",
-      "/defraudacion-fiscal",
-      "/delitos-financieros",
-      "/fraude-empresarial",
-      "/representante-legal-investigacion-penal",
-      "/guias/requerimiento-sat-riesgo-penal",
-      "/guias/responsabilidad-penal-representante-legal-contador",
-      "/guias/defensa-penal-empresa-delitos-financieros",
+      "/citatorio-ministerio-publico-cdmx",
+      "/audiencia-inicial-control-detencion-cdmx",
+      "/diagnostico-penal",
+      "/guias/honorarios-abogado-penalista-cdmx",
     ]) expect(home).toContain('href="' + path + '"');
     expect(nav).toContain('["Inicio", "/"]');
     expect(nav).toContain('["Acerca de mí", "/acerca-de-mi"]');
@@ -157,8 +152,10 @@ describe("CANO organic integration contract", () => {
     const home = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
     const about = readFileSync(new URL("./acerca-de-mi/page.tsx", import.meta.url), "utf8");
     const intelligence = readFileSync(new URL("./intelligence/page.tsx", import.meta.url), "utf8");
-    expect(home).toContain("Defensa penal <strong>patrimonial, fiscal y empresarial.</strong>");
+    // Oct 2026: el bloque "Empresas y directivos" salió del home a petición del cliente.
+    expect(home).not.toContain("Defensa penal <strong>patrimonial, fiscal y empresarial.</strong>");
     expect(home).not.toContain("Defensa penal económica");
+    expect(home.indexOf("¿Cuál es tu <strong>situación?</strong>")).toBeLessThan(home.indexOf('id="acerca"'));
     expect(about).toContain("Primero investigué. Ahora defiendo.");
     expect(intelligence).not.toContain("Penal económico");
   });

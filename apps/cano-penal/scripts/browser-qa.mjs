@@ -131,14 +131,7 @@ for (const spec of [
           for (const destination of [
             "/detenido-cdmx", "/citatorio-ministerio-publico-cdmx",
             "/audiencia-inicial-control-detencion-cdmx", "/diagnostico-penal",
-            "/guias/requerimiento-sat-riesgo-penal",
-            "/guias/responsabilidad-penal-representante-legal-contador",
-            "/guias/defensa-penal-empresa-delitos-financieros",
             "/guias/honorarios-abogado-penalista-cdmx",
-            "/evaluacion-empresarial", "/intelligence",
-            "/defensa-penal-fiscal", "/defraudacion-fiscal",
-            "/defensa-penal-empresarial", "/delitos-financieros",
-            "/fraude-empresarial", "/representante-legal-investigacion-penal",
           ]) {
             assert(await page.locator('main a[href="' + destination + '"]').count() > 0,
               "homepage commercial route missing " + destination);
