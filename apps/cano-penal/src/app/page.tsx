@@ -54,6 +54,11 @@ export default async function HomePage() {
         <div className="cp-hero-shade" aria-hidden="true" />
         <div className="cp-wrap cp-hero-content">
           <div className="cp-hero-copy">
+            <div className="cp-hero-brandmark" aria-hidden="true">
+              <img className="cp-hero-brandmark-logo" src="/media/logo-cano.png" alt="" />
+              <span className="cp-hero-brandmark-line" />
+              <p>Experiencia desde dentro. Defensa de frente.</p>
+            </div>
             <div className="cp-hero-identification" aria-label="Eduardo Cano, abogado penalista">
               <span className="cp-hero-name">Eduardo Cano</span>
               <span className="cp-hero-role">Abogado penalista</span>
