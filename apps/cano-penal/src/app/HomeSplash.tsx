@@ -18,7 +18,8 @@ export const AD_CLICK_PARAMS = ["gclid", "gbraid", "wbraid"] as const;
  * Visitors who arrive from a Google Ads click (approved by the client, Oct 2026) skip the
  * full-screen splash so the page is usable from the first paint, which is what Google
  * scores as landing page experience. They still get the brand moment: `data-ad` reveals
- * the in-hero brand mark (logo, line and tagline with the same animation). Every other
+ * the in-hero brand mark (the splash line and tagline with the same animation, under the
+ * header logo that is already on screen). Every other
  * visitor keeps the splash exactly as before.
  */
 export const SPLASH_SCRIPT = `(function(){var s=document.currentScript&&document.currentScript.previousElementSibling;if(!s)return;var ad=false;try{ad=/[?&](?:${AD_CLICK_PARAMS.join("|")})=[^&]/.test(window.location.search);}catch(e){}var seen=false;try{seen=sessionStorage.getItem(${JSON.stringify(SPLASH_SESSION_KEY)})==="1";if(!seen)sessionStorage.setItem(${JSON.stringify(SPLASH_SESSION_KEY)},"1");}catch(e){}if(ad){s.setAttribute("data-ad","");s.setAttribute("data-skip","");return;}if(seen){s.setAttribute("data-skip","");return;}var r=document.documentElement;r.classList.add("cp-splash-lock");var reduce=window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches;setTimeout(function(){r.classList.remove("cp-splash-lock");s.setAttribute("data-done","");},reduce?950:2200);})();`;
