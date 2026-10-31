@@ -1,8 +1,39 @@
-# Bot MD — 0.2.1
+# Bot MD — 0.3.0
 
-Bot MD extrae el contenido renderizado de páginas web a Markdown, captura sus recursos, reconstruye una copia local y compara el resultado con las observaciones originales. Antes se llamaba Nexus Replica.
+Bot MD captura la apariencia y el comportamiento observado de una web para reconstruir una versión local con contenido editable. Conserva HTML, CSS, JavaScript, fuentes y recursos; además genera documentación Markdown de estilos y movimiento.
 
-**Sí genera `.md`. No existe en esta versión una garantía de copiar cualquier web al 100 %.** El Markdown conserva principalmente contenido y estructura textual. La reconstrucción visual utiliza además HTML, CSS, JavaScript, fuentes, recursos y estados capturados. No recupera el backend ni el repositorio privado del sitio.
+La versión 0.3.0 añade **ESTILOS.md**, **MOVIMIENTO.md**, un catálogo de contenido, sustitución de textos sin destruir elementos anidados, trazas SVG durante el scroll y detección de diferencias. El Markdown documenta la experiencia; el código y los recursos la ejecutan.
+
+La reconstrucción conserva el frontend que recibe el navegador. No genera automáticamente componentes fuente nuevos. La aprobación corresponde a tamaños, estados y muestras medidos; no equivale a copiar cualquier web al 100 %.
+
+## Estilos, movimiento y contenido editable
+
+```bash
+npm run bot-md -- styles --capture runs/captura --out runs/estilos
+npm run bot-md -- catalog --capture runs/captura --out runs/contenido
+# Editar los valores en runs/contenido/content.json.
+npm run bot-md -- template --site runs/copia --content runs/contenido/content.json --out runs/plantilla
+npm run bot-md -- serve --site runs/plantilla
+```
+
+`styles` exporta colores, tipografía, medidas observadas, variables CSS, condiciones responsive, reglas de fuentes y keyframes; también conserva las hojas CSS capturadas. Los valores computados provienen de los estados de la captura, sin inventar roles como «color principal» por su frecuencia.
+
+`catalog` descubre nodos de texto y etiquetas accesibles en todos los estados. `template` sustituye campos declarados después de la preparación de la página, conserva los elementos y notifica cambios de tamaño. Los conflictos se exponen en `window.__BOT_MD_CONTENT__`. La sustitución visible no elimina la información incrustada en imágenes, JavaScript o respuestas conservadas: revisar y reemplazar todos esos elementos sigue siendo necesario para una publicación con contenido propio.
+
+```bash
+npm run bot-md -- motion --url https://dakshgajjar.com/ --config validation/daksh/motion-config.json --out runs/movimiento-origen
+npm run bot-md -- enrich --capture runs/captura --trace runs/movimiento-origen --out runs/captura-ampliada
+npm run bot-md -- build --capture runs/captura-ampliada --out runs/copia-ampliada
+npm run bot-md -- motion --site runs/copia-ampliada --config validation/daksh/motion-config.json --out runs/movimiento-local
+npm run bot-md -- compare-motion --reference runs/movimiento-origen --candidate runs/movimiento-local --out runs/comparacion
+```
+
+`motion` mantiene las animaciones activas, mide puntos/longitud/progreso SVG durante scroll de ida y regreso y registra las condiciones de entrada. El perfil móvil usa entrada táctil. Las rutas vacías se conservan como geometría de longitud cero. `enrich --trace` obtiene variantes GET observadas durante el movimiento, conservando sus parámetros y cabeceras de enrutamiento.
+
+Para medir la variación del propio origen, genera una segunda traza remota con el mismo perfil y añade `--repeat-reference RUTA` a `compare-motion`. Una referencia que cambia produce `unstable`; no se amplían umbrales para forzar una aprobación. Las comparaciones exigen el mismo navegador y perfil. Las trazas se sellan con SHA-256.
+
+- [Prueba de movimiento y contenido en Daksh](docs/EXPERIENCIA.md)
+- [Configuración de textos de ejemplo](validation/daksh/editable-content.json)
 
 ## Instalación
 
@@ -31,7 +62,7 @@ npm run bot-md -- run --url https://example.com/ --max-pages 1 --out runs/sitio
 npm run bot-md -- serve --site runs/sitio/site --port 4173
 ```
 
-Abrir http://127.0.0.1:4173/. El resultado de `run` incluye Markdown en `capture/states/`, código conservado en `site/` e informe en `verification/`. Cada ejecución necesita una carpeta de salida nueva.
+Abrir http://127.0.0.1:4173/. El resultado de `run` incluye Markdown en `capture/states/`, documentación visual en `styles/`, catálogo editable en `content/`, código conservado en `site/` e informe en `verification/`. Cada ejecución necesita una carpeta de salida nueva.
 
 La copia conserva y adapta el frontend entregado al navegador; no genera automáticamente componentes React nuevos. El servidor de previsualización escucha en loopback y reproduce las respuestas GET registradas. Las solicitudes no capturadas fallan y se registran.
 
@@ -48,6 +79,14 @@ La prueba documentada cubrió siete páginas, tres tamaños y 47 estados. En el 
 - [Estado de incorporación a Nexus Engine](docs/GITHUB_STATUS.md)
 
 Esta carpeta contiene el motor, las pruebas, configuraciones y evidencia numérica. Los Markdown y recursos de terceros se generan localmente al ejecutar la captura. La copia preconstruida y sus 47 Markdown fueron entregados en el paquete histórico; no están incluidos en esta carpeta del repositorio.
+
+Para ejecutar el flujo completo con movimiento y la plantilla de ejemplo:
+
+```bash
+npm run bot-md -- run --config validation/daksh/full-config.json --motion-config validation/daksh/motion-config.json --content validation/daksh/editable-content.json --out runs/daksh-completo
+```
+
+Un código de salida 2 significa que alguna validación no aprobó; los resultados y la plantilla permanecen disponibles para inspección. Cambiar contenido requiere comprobar su adaptación, no exigir píxeles iguales a textos distintos.
 
 ## Comandos adicionales
 
@@ -83,6 +122,6 @@ Las pruebas de integración y la demo necesitan Chromium. La demo usa un sitio d
 
 Un estado aprobado exige integridad, dimensiones compatibles, diferencia visual dentro del umbral, geometría/texto coherentes, aserciones aprobadas y ausencia de errores de red/JavaScript observados. Los umbrales predeterminados son `pixelThreshold=0.1`, `maxDiffRatio=0.005` y `geometryTolerance=1` píxel CSS; se excluye antialiasing. Ninguna región se enmascara.
 
-La validación cubre los estados medidos en Chromium. No certifica todos los estados posibles, Safari/Firefox, animación temporal completa, autenticación, formularios reales, WebSockets, lógica del servidor ni datos futuros. Se solicita movimiento reducido para las capturas.
+La validación cubre los estados medidos en Chromium. No certifica todos los estados posibles, Safari/Firefox, animación temporal completa, autenticación, formularios reales, WebSockets, lógica del servidor ni datos futuros. Las capturas visuales estáticas solicitan movimiento reducido; el comando `motion` usa movimiento normal y no reemplaza esas pruebas.
 
 [Arquitectura y límites operativos](docs/ARQUITECTURA.md).

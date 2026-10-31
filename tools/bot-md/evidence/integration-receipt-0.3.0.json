@@ -1,0 +1,29 @@
+{
+  "sourceOffline": true,
+  "states": 7,
+  "baseline": {
+    "pass": 7,
+    "fail": 0,
+    "unstable": 0,
+    "error": 0
+  },
+  "defect": {
+    "pass": 0,
+    "fail": 7,
+    "unstable": 0,
+    "error": 0
+  },
+  "repair": {
+    "pass": 7,
+    "fail": 0,
+    "unstable": 0,
+    "error": 0
+  },
+  "missingAPI": {
+    "pass": 0,
+    "fail": 7,
+    "unstable": 0,
+    "error": 0
+  },
+  "tamperDetected": true
+}

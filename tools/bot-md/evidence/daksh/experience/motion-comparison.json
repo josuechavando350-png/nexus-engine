@@ -1,0 +1,1812 @@
+{
+  "status": "unstable",
+  "comparison": {
+    "status": "fail",
+    "expectedFrames": 48,
+    "referenceFrames": 48,
+    "candidateFrames": 48,
+    "complete": true,
+    "tolerancePx": 2,
+    "maxPointDelta": 506.24381749783794,
+    "maxLengthDelta": 5.501800537109375,
+    "maxDashDelta": 478.842,
+    "referenceIssues": [],
+    "candidateIssues": [],
+    "failures": [
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(6)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Estilo opacity html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 3,
+        "sampleMs": 150,
+        "detail": "Estilo opacity html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 5,
+        "sampleMs": 150,
+        "detail": "Estilo opacity html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Estilo opacity html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 7,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 7,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 0,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 0,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 0,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 0,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 0,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 0,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 0,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 0,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 0,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(6)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(6)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(6)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(9)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(10)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(6)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      }
+    ],
+    "scope": "Solo geometría, progreso y estilos SVG muestreados con el mismo contenido; no certifica igualdad visual de toda la página ni cada frame intermedio."
+  },
+  "baselineRepeat": {
+    "status": "fail",
+    "expectedFrames": 48,
+    "referenceFrames": 48,
+    "candidateFrames": 48,
+    "complete": true,
+    "tolerancePx": 2,
+    "maxPointDelta": 506.24381749783794,
+    "maxLengthDelta": 4.7112274169921875,
+    "maxDashDelta": 478.842,
+    "referenceIssues": [],
+    "candidateIssues": [],
+    "failures": [
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 0,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(6)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Estilo opacity html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Estilo opacity html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "desktop",
+        "step": 7,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(6)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(6)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > path:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 1,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(6)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 2,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 3,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(9)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(10)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 4,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 5,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 0,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 600,
+        "detail": "Estilo stroke-dasharray #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > path:nth-of-type(7)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 6,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > path:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(4)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 0,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 150,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(2)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso html > body:nth-of-type(1) > svg:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > g:nth-of-type(1) > circle:nth-of-type(3)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(1) > circle:nth-of-type(5)"
+      },
+      {
+        "viewport": "mobile",
+        "step": 7,
+        "sampleMs": 600,
+        "detail": "Geometría/progreso #main-content > section:nth-of-type(1) > svg:nth-of-type(2) > circle:nth-of-type(1)"
+      }
+    ],
+    "scope": "Solo geometría, progreso y estilos SVG muestreados con el mismo contenido; no certifica igualdad visual de toda la página ni cada frame intermedio."
+  },
+  "note": "El origen también cambia entre ejecuciones. Se conservan ambas comparaciones; no se amplían umbrales ni se certifica identidad temporal."
+}

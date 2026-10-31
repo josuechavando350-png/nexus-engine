@@ -1,0 +1,57 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> bot-md@0.3.0 pretest
+> npm run build --silent
+
+
+> bot-md@0.3.0 test
+> node --test --test-concurrency=1 dist/tests/*.test.js
+
+✔ CSS closure fetches unused nested dependencies without changing sealed observations (63.642769ms)
+✔ CSS dependency extraction ignores embedded data and local fragment references (0.747862ms)
+✔ CLI run emits styles, catalog and template, and refuses to certify an unmatched motion selector (2772.910649ms)
+✔ motion profiles and editable fields reject ambiguous or unsafe input (1.369411ms)
+✔ SVG comparison rejects changed curves, missing frames and disabled motion (1.182518ms)
+Experience receipt: /workspace/scratch/51223ab9c43e/bot-md-github/tools/bot-md/test-output/experience-1793485828584/receipt.json
+✔ styles, content and active SVG motion work offline and adapt without destroying nested elements (2640.934898ms)
+✔ Next.js replay retains routing metadata while omitting cookies and transport headers (1.203481ms)
+✔ only browser-cancelled recorded RSC prefetches are classified as optional (0.177429ms)
+Verificado: p0-mobile-s0 · fail · diferencia 12.4809%
+Verificado: p0-mobile-s1 · fail · diferencia 12.6963%
+Verificado: p0-mobile-s3 · fail · diferencia 12.1569%
+Verificado: p0-mobile-s2 · fail · diferencia 12.1903%
+Verificado: p0-desktop-s1 · fail · diferencia 12.0640%
+Verificado: p0-desktop-s0 · fail · diferencia 12.0121%
+Verificado: p0-desktop-s2 · fail · diferencia 11.6401%
+Verificado: p0-mobile-s0 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s1 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s2 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s3 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s0 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s1 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s2 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s0 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s1 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s3 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s2 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s0 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s1 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s2 · pass · diferencia 0.0000%
+Integration receipt: /workspace/scratch/51223ab9c43e/bot-md-github/tools/bot-md/test-output/integration-1793485831754/test-receipt.json
+✔ offline capture → reconstruction → verification → defect detection → measured repair (35080.739087ms)
+✔ motion enrichment preserves exact routing queries, UTF-8 bytes and provenance; rejects mismatched origin/type (45.410135ms)
+✔ proxy DNS delegation is explicit, exact-host and cannot allow private IP literals (1.292306ms)
+✔ configuration rejects invalid bounds and unrelated scenario origins (1.265144ms)
+✔ private and metadata networks are rejected; localhost is explicit (0.644816ms)
+✔ CSS imports, relative URLs and data URLs survive remapping (3.071728ms)
+✔ JS rewrites observed URL literals without modifying comments or regex (3.321045ms)
+✔ HTML removes stale integrity and rewrites style resources (2.998478ms)
+✔ visual comparator detects dimension mismatch and paint defects (7.160356ms)
+ℹ tests 17
+ℹ suites 0
+ℹ pass 17
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 42636.387952

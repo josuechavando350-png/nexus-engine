@@ -1,0 +1,2364 @@
+{
+  "version": "0.3.0",
+  "status": "partial",
+  "motionIdentity": "unstable",
+  "staticCaptureStatesUsed": 47,
+  "computedProperties": 36,
+  "externalCSSFiles": 5,
+  "declaredMediaQueries": 16,
+  "contentFieldsCataloged": 1763,
+  "contentVariantConflicts": 53,
+  "editedFieldsDemonstrated": 6,
+  "adaptationViewportsPassed": [
+    "desktop",
+    "mobile"
+  ],
+  "addedObservedResources": [
+    "https://dakshgajjar.com/work/mealops?_rsc=5CB68i4pnAekjehf"
+  ],
+  "resourcesAfterEnrichment": 89,
+  "existingResourceBytesChanged": false,
+  "sourceDigest": "2f97fcdb25cf68d90f5c447bb711e2bf07d4bb9a399279cdd896d65870251ba2",
+  "traces": {
+    "source": {
+      "sha256": "e04194bc3f97096ae65c2400744b23176256550ddf60163b5b8b4fb2257d1943",
+      "createdAt": "2026-10-31T22:24:30.710Z",
+      "browser": "138.0.7204.0",
+      "profileHash": "42bfb35c742f738ea68a7eba6509b7a553d005d2a8341e87538115ff031ed59b",
+      "frames": 48,
+      "issues": [],
+      "summaries": [
+        {
+          "viewport": "desktop",
+          "step": 0,
+          "sampleMs": 0,
+          "elapsedMs": 145.40000000037253,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 0,
+          "sampleMs": 150,
+          "elapsedMs": 252.5,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 0,
+          "sampleMs": 600,
+          "elapsedMs": 702.5,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 1,
+          "sampleMs": 0,
+          "elapsedMs": 103.10000000149012,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 1,
+          "sampleMs": 150,
+          "elapsedMs": 241,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 1,
+          "sampleMs": 600,
+          "elapsedMs": 698.4000000003725,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 2,
+          "sampleMs": 0,
+          "elapsedMs": 103.89999999850988,
+          "scrollY": 2573,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 2,
+          "sampleMs": 150,
+          "elapsedMs": 242.2999999988824,
+          "scrollY": 2573,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 2,
+          "sampleMs": 600,
+          "elapsedMs": 692.7999999988824,
+          "scrollY": 2573,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 3,
+          "sampleMs": 0,
+          "elapsedMs": 118.70000000111759,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 3,
+          "sampleMs": 150,
+          "elapsedMs": 258.7000000011176,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 3,
+          "sampleMs": 600,
+          "elapsedMs": 725.5999999996275,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 4,
+          "sampleMs": 0,
+          "elapsedMs": 119.19999999925494,
+          "scrollY": 10292,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 4,
+          "sampleMs": 150,
+          "elapsedMs": 253.09999999962747,
+          "scrollY": 10292,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 4,
+          "sampleMs": 600,
+          "elapsedMs": 712.1999999992549,
+          "scrollY": 10292,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 5,
+          "sampleMs": 0,
+          "elapsedMs": 116.59999999962747,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 5,
+          "sampleMs": 150,
+          "elapsedMs": 261.30000000074506,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 5,
+          "sampleMs": 600,
+          "elapsedMs": 743,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 6,
+          "sampleMs": 0,
+          "elapsedMs": 151.5,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 6,
+          "sampleMs": 150,
+          "elapsedMs": 297.90000000037253,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 6,
+          "sampleMs": 600,
+          "elapsedMs": 707.7999999988824,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 7,
+          "sampleMs": 0,
+          "elapsedMs": 98.70000000111759,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 7,
+          "sampleMs": 150,
+          "elapsedMs": 250.5,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 7,
+          "sampleMs": 600,
+          "elapsedMs": 703.9000000003725,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 0,
+          "sampleMs": 0,
+          "elapsedMs": 86.90000000037253,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 0,
+          "sampleMs": 150,
+          "elapsedMs": 235,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 0,
+          "sampleMs": 600,
+          "elapsedMs": 686.7000000011176,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 1,
+          "sampleMs": 0,
+          "elapsedMs": 91.5,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 1,
+          "sampleMs": 150,
+          "elapsedMs": 241.10000000149012,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 1,
+          "sampleMs": 600,
+          "elapsedMs": 684.1000000014901,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 2,
+          "sampleMs": 0,
+          "elapsedMs": 99.59999999962747,
+          "scrollY": 2675,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 2,
+          "sampleMs": 150,
+          "elapsedMs": 243.39999999850988,
+          "scrollY": 2675,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 2,
+          "sampleMs": 600,
+          "elapsedMs": 685.8999999985099,
+          "scrollY": 2675,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 3,
+          "sampleMs": 0,
+          "elapsedMs": 107.89999999850988,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 3,
+          "sampleMs": 150,
+          "elapsedMs": 255,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 3,
+          "sampleMs": 600,
+          "elapsedMs": 709.3999999985099,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 4,
+          "sampleMs": 0,
+          "elapsedMs": 106.69999999925494,
+          "scrollY": 10700,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 4,
+          "sampleMs": 150,
+          "elapsedMs": 249.69999999925494,
+          "scrollY": 10700,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 4,
+          "sampleMs": 600,
+          "elapsedMs": 695,
+          "scrollY": 10700,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 5,
+          "sampleMs": 0,
+          "elapsedMs": 110.59999999962747,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 5,
+          "sampleMs": 150,
+          "elapsedMs": 237.59999999962747,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 5,
+          "sampleMs": 600,
+          "elapsedMs": 694.4000000003725,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 6,
+          "sampleMs": 0,
+          "elapsedMs": 113.20000000111759,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 6,
+          "sampleMs": 150,
+          "elapsedMs": 257.80000000074506,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 6,
+          "sampleMs": 600,
+          "elapsedMs": 692,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 7,
+          "sampleMs": 0,
+          "elapsedMs": 108.90000000037253,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 7,
+          "sampleMs": 150,
+          "elapsedMs": 246.5,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 7,
+          "sampleMs": 600,
+          "elapsedMs": 698.5999999996275,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        }
+      ]
+    },
+    "repeat": {
+      "sha256": "03b88a233bd0e83f45a5fa73fbc7638cb8edbc34efba14b60d9ecc41d8012e4b",
+      "createdAt": "2026-10-31T22:20:52.665Z",
+      "browser": "138.0.7204.0",
+      "profileHash": "42bfb35c742f738ea68a7eba6509b7a553d005d2a8341e87538115ff031ed59b",
+      "frames": 48,
+      "issues": [],
+      "summaries": [
+        {
+          "viewport": "desktop",
+          "step": 0,
+          "sampleMs": 0,
+          "elapsedMs": 120,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 0,
+          "sampleMs": 150,
+          "elapsedMs": 248.5,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 0,
+          "sampleMs": 600,
+          "elapsedMs": 693.5,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 1,
+          "sampleMs": 0,
+          "elapsedMs": 110.29999999888241,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 1,
+          "sampleMs": 150,
+          "elapsedMs": 249.7999999988824,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 1,
+          "sampleMs": 600,
+          "elapsedMs": 695.5999999996275,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 2,
+          "sampleMs": 0,
+          "elapsedMs": 96.59999999962747,
+          "scrollY": 2573,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 2,
+          "sampleMs": 150,
+          "elapsedMs": 238,
+          "scrollY": 2573,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 2,
+          "sampleMs": 600,
+          "elapsedMs": 690.1999999992549,
+          "scrollY": 2573,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 3,
+          "sampleMs": 0,
+          "elapsedMs": 113.5,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 3,
+          "sampleMs": 150,
+          "elapsedMs": 253.2999999988824,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 3,
+          "sampleMs": 600,
+          "elapsedMs": 697.6999999992549,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 4,
+          "sampleMs": 0,
+          "elapsedMs": 131.40000000037253,
+          "scrollY": 10292,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 4,
+          "sampleMs": 150,
+          "elapsedMs": 256.7000000011176,
+          "scrollY": 10292,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 4,
+          "sampleMs": 600,
+          "elapsedMs": 716.5,
+          "scrollY": 10292,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 5,
+          "sampleMs": 0,
+          "elapsedMs": 126,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 5,
+          "sampleMs": 150,
+          "elapsedMs": 276.5,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 5,
+          "sampleMs": 600,
+          "elapsedMs": 702.5999999996275,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 6,
+          "sampleMs": 0,
+          "elapsedMs": 108.80000000074506,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 6,
+          "sampleMs": 150,
+          "elapsedMs": 248.5,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 6,
+          "sampleMs": 600,
+          "elapsedMs": 704.5,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 7,
+          "sampleMs": 0,
+          "elapsedMs": 123.29999999888241,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 7,
+          "sampleMs": 150,
+          "elapsedMs": 262.09999999962747,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 7,
+          "sampleMs": 600,
+          "elapsedMs": 712.5999999996275,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 0,
+          "sampleMs": 0,
+          "elapsedMs": 89.09999999962747,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 0,
+          "sampleMs": 150,
+          "elapsedMs": 231.69999999925494,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 0,
+          "sampleMs": 600,
+          "elapsedMs": 709.8999999985099,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 1,
+          "sampleMs": 0,
+          "elapsedMs": 95.19999999925494,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 1,
+          "sampleMs": 150,
+          "elapsedMs": 240.59999999962747,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 1,
+          "sampleMs": 600,
+          "elapsedMs": 690.5,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 2,
+          "sampleMs": 0,
+          "elapsedMs": 82.5,
+          "scrollY": 2675,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 2,
+          "sampleMs": 150,
+          "elapsedMs": 234.5,
+          "scrollY": 2675,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 2,
+          "sampleMs": 600,
+          "elapsedMs": 677.5999999996275,
+          "scrollY": 2675,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 3,
+          "sampleMs": 0,
+          "elapsedMs": 94.80000000074506,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 3,
+          "sampleMs": 150,
+          "elapsedMs": 236.19999999925494,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 3,
+          "sampleMs": 600,
+          "elapsedMs": 691.8000000007451,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 4,
+          "sampleMs": 0,
+          "elapsedMs": 91.80000000074506,
+          "scrollY": 10700,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 4,
+          "sampleMs": 150,
+          "elapsedMs": 240.5,
+          "scrollY": 10700,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 4,
+          "sampleMs": 600,
+          "elapsedMs": 691.5,
+          "scrollY": 10700,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 5,
+          "sampleMs": 0,
+          "elapsedMs": 99.5,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 5,
+          "sampleMs": 150,
+          "elapsedMs": 316.7999999988824,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 5,
+          "sampleMs": 600,
+          "elapsedMs": 732.3999999985099,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 6,
+          "sampleMs": 0,
+          "elapsedMs": 95.5,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 6,
+          "sampleMs": 150,
+          "elapsedMs": 248.09999999962747,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 6,
+          "sampleMs": 600,
+          "elapsedMs": 695.3000000007451,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 7,
+          "sampleMs": 0,
+          "elapsedMs": 101.09999999962747,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 7,
+          "sampleMs": 150,
+          "elapsedMs": 258.90000000037253,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 7,
+          "sampleMs": 600,
+          "elapsedMs": 727.3000000007451,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        }
+      ]
+    },
+    "local": {
+      "sha256": "bc8677219d88853a4c0c4c980a6892321ac91d413f0b2e4ab4c7537c64db24ca",
+      "createdAt": "2026-10-31T22:27:49.385Z",
+      "browser": "138.0.7204.0",
+      "profileHash": "42bfb35c742f738ea68a7eba6509b7a553d005d2a8341e87538115ff031ed59b",
+      "frames": 48,
+      "issues": [],
+      "summaries": [
+        {
+          "viewport": "desktop",
+          "step": 0,
+          "sampleMs": 0,
+          "elapsedMs": 112.30000000074506,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 0,
+          "sampleMs": 150,
+          "elapsedMs": 258.40000000037253,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 0,
+          "sampleMs": 600,
+          "elapsedMs": 698.4000000003725,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 1,
+          "sampleMs": 0,
+          "elapsedMs": 116.70000000111759,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 1,
+          "sampleMs": 150,
+          "elapsedMs": 247.2000000011176,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 1,
+          "sampleMs": 600,
+          "elapsedMs": 703.5,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 2,
+          "sampleMs": 0,
+          "elapsedMs": 107.40000000037253,
+          "scrollY": 2573,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 2,
+          "sampleMs": 150,
+          "elapsedMs": 238.5,
+          "scrollY": 2573,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 2,
+          "sampleMs": 600,
+          "elapsedMs": 688.5,
+          "scrollY": 2573,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 3,
+          "sampleMs": 0,
+          "elapsedMs": 149.90000000037253,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 3,
+          "sampleMs": 150,
+          "elapsedMs": 286.6000000014901,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 3,
+          "sampleMs": 600,
+          "elapsedMs": 698.3000000007451,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 4,
+          "sampleMs": 0,
+          "elapsedMs": 133.69999999925494,
+          "scrollY": 10292,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 4,
+          "sampleMs": 150,
+          "elapsedMs": 261.30000000074506,
+          "scrollY": 10292,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 4,
+          "sampleMs": 600,
+          "elapsedMs": 720.6999999992549,
+          "scrollY": 10292,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 5,
+          "sampleMs": 0,
+          "elapsedMs": 117.30000000074506,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 5,
+          "sampleMs": 150,
+          "elapsedMs": 247.80000000074506,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 5,
+          "sampleMs": 600,
+          "elapsedMs": 709.4000000003725,
+          "scrollY": 5146,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 6,
+          "sampleMs": 0,
+          "elapsedMs": 120,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 6,
+          "sampleMs": 150,
+          "elapsedMs": 265.40000000037253,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 6,
+          "sampleMs": 600,
+          "elapsedMs": 740.6000000014901,
+          "scrollY": 823,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 7,
+          "sampleMs": 0,
+          "elapsedMs": 111.90000000037253,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 7,
+          "sampleMs": 150,
+          "elapsedMs": 261.5,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "desktop",
+          "step": 7,
+          "sampleMs": 600,
+          "elapsedMs": 709.5,
+          "scrollY": 0,
+          "scrollHeight": 11192,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 0,
+          "input": {
+            "reduced": false,
+            "touchPoints": 0,
+            "hover": true
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 0,
+          "sampleMs": 0,
+          "elapsedMs": 93.69999999925494,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 0,
+          "sampleMs": 150,
+          "elapsedMs": 232.5,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 0,
+          "sampleMs": 600,
+          "elapsedMs": 690.3999999985099,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 1,
+          "sampleMs": 0,
+          "elapsedMs": 95.89999999850988,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 1,
+          "sampleMs": 150,
+          "elapsedMs": 252.09999999962747,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 1,
+          "sampleMs": 600,
+          "elapsedMs": 697.0999999996275,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 2,
+          "sampleMs": 0,
+          "elapsedMs": 92.59999999962747,
+          "scrollY": 2675,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 2,
+          "sampleMs": 150,
+          "elapsedMs": 226.80000000074506,
+          "scrollY": 2675,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 2,
+          "sampleMs": 600,
+          "elapsedMs": 709.0999999996275,
+          "scrollY": 2675,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 3,
+          "sampleMs": 0,
+          "elapsedMs": 102.20000000111759,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 3,
+          "sampleMs": 150,
+          "elapsedMs": 253.40000000037253,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 3,
+          "sampleMs": 600,
+          "elapsedMs": 684.1000000014901,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 4,
+          "sampleMs": 0,
+          "elapsedMs": 124.39999999850988,
+          "scrollY": 10700,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 4,
+          "sampleMs": 150,
+          "elapsedMs": 245.19999999925494,
+          "scrollY": 10700,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 4,
+          "sampleMs": 600,
+          "elapsedMs": 695.3999999985099,
+          "scrollY": 10700,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 5,
+          "sampleMs": 0,
+          "elapsedMs": 107,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 5,
+          "sampleMs": 150,
+          "elapsedMs": 254.30000000074506,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 5,
+          "sampleMs": 600,
+          "elapsedMs": 699.2000000011176,
+          "scrollY": 5350,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 6,
+          "sampleMs": 0,
+          "elapsedMs": 102.80000000074506,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 6,
+          "sampleMs": 150,
+          "elapsedMs": 244.19999999925494,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 6,
+          "sampleMs": 600,
+          "elapsedMs": 690.6999999992549,
+          "scrollY": 856,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 7,
+          "sampleMs": 0,
+          "elapsedMs": 105.59999999962747,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 7,
+          "sampleMs": 150,
+          "elapsedMs": 233.5,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        },
+        {
+          "viewport": "mobile",
+          "step": 7,
+          "sampleMs": 600,
+          "elapsedMs": 697.8000000007451,
+          "scrollY": 0,
+          "scrollHeight": 11544,
+          "overflowX": 0,
+          "paths": 36,
+          "emptyPaths": 2,
+          "input": {
+            "reduced": false,
+            "touchPoints": 1,
+            "hover": false
+          }
+        }
+      ]
+    }
+  },
+  "limits": [
+    "Homepage SVG sampling in Chromium; no frame-by-frame certification.",
+    "Six text fields edited; not every original content item replaced.",
+    "Original source/resources may still contain original information.",
+    "Monorepo global checks not run; branch not merged."
+  ]
+}

@@ -1,6 +1,6 @@
 # Estado de incorporación a Nexus Engine
 
-Bot MD 0.2.1 se conserva como herramienta independiente en `tools/bot-md`. No modifica los paquetes Core/Experience, el runtime Rust ni aplicaciones de clientes. No forma parte de los patrones actuales del workspace pnpm. Usa su propio `package-lock.json`.
+Bot MD 0.3.0 se conserva como herramienta independiente en `tools/bot-md`. No modifica los paquetes Core/Experience, el runtime Rust ni aplicaciones de clientes. No forma parte de los patrones actuales del workspace pnpm. Usa su propio `package-lock.json`.
 
 La versión 0.2.1 cambia el nombre público y añade el comando `npm run bot-md`; conserva `npm run replica` como alias compatible. Las rutas internas de capturas anteriores no cambian.
 
@@ -17,3 +17,11 @@ Esta rama es una incorporación pendiente de integración. Los comandos globales
 - La captura del sitio de prueba generó Markdown no vacío por estado; `examples/sample-content.md` conserva una muestra real de esa ejecución.
 
 Los registros de esta versión están en `evidence/tests-0.2.1.log` y `evidence/integration-receipt-0.2.1.json`. Las pruebas locales del módulo no sustituyen los checks globales pendientes del monorepo.
+
+## Versión 0.3.0
+
+Añade exportación de estilos, catálogo y plantilla con texto editable, captura/comparación de SVG con movimiento activo y ampliación de recursos observados durante el scroll. Las pruebas de esta entrega y sus límites están en [EXPERIENCIA.md](EXPERIENCIA.md).
+
+La rama continúa separada de main; siguen pendientes las verificaciones globales del monorepo.
+
+Validación 0.3.0: 17 pruebas aprobadas, cero fallidas; compilación, typecheck y formato aprobados. Daksh: adaptación de seis campos aprobada en móvil/escritorio; comparación temporal marcada como inestable.

@@ -1,0 +1,14 @@
+{
+  "offline": true,
+  "styles": true,
+  "content": true,
+  "nestedElementsPreserved": true,
+  "sourceConflictsDetected": true,
+  "runtimeValidation": true,
+  "menu": true,
+  "reapplyAfterRerender": true,
+  "activeMotionFrames": 4,
+  "unchangedComparison": "pass",
+  "adaptationChangesCurve": true,
+  "tamperDetected": true
+}

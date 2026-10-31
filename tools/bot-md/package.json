@@ -1,9 +1,9 @@
 {
   "name": "bot-md",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Bot MD: extracción Markdown, captura de recursos y reconstrucción web verificable",
+  "description": "Bot MD: captura de estilos, movimiento SVG y reconstrucción web con contenido editable",
   "engines": {
     "node": ">=22"
   },

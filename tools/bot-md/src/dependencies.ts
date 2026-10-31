@@ -17,6 +17,8 @@ import { transportOptions } from "./transport.js";
 import { replayResponseHeaders } from "./http-metadata.js";
 import type { Manifest } from "./types.js";
 import { refreshComponentResponses } from "./raw-responses.js";
+import { readMotion } from "./motion.js";
+import { collectObservedResources } from "./observed-resources.js";
 
 /** Include unused CSS dependencies: viewport/state changes may request them later. */
 export function cssDependencies(css: string, base: string) {
@@ -125,13 +127,20 @@ export async function collectCSSDependencies(manifest: Manifest, out: string) {
 }
 
 /** Derive a new capture, preserving every original observation byte for byte. */
-export async function enrich(captureDir: string, out: string) {
+export async function enrich(
+  captureDir: string,
+  out: string,
+  motionDir?: string,
+) {
   if (path.resolve(out).startsWith(path.resolve(captureDir) + path.sep))
     throw new Error("La salida debe estar fuera de la captura original.");
   const { manifest, digest } = await integrity(captureDir);
   await newDirectory(out);
   await cp(captureDir, out, { recursive: true });
-  const addedURLs = await collectCSSDependencies(manifest, out);
+  const addedURLs = motionDir
+    ? await collectObservedResources(manifest, await readMotion(motionDir), out)
+    : [];
+  addedURLs.push(...(await collectCSSDependencies(manifest, out)));
   await refreshComponentResponses(manifest, out);
   manifest.enrichment = {
     parentDigest: digest,
