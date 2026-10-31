@@ -1,0 +1,7 @@
+:root {
+  --ink: #18212b;
+  --paper: #f4f3ef;
+}
+::selection {
+  background: #bdd5f5;
+}

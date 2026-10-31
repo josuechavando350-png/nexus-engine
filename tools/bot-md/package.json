@@ -1,0 +1,43 @@
+{
+  "name": "bot-md",
+  "version": "0.2.1",
+  "private": true,
+  "type": "module",
+  "description": "Bot MD: extracción Markdown, captura de recursos y reconstrucción web verificable",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc --noEmit false --outDir dist --rootDir .",
+    "prereplica": "npm run build --silent",
+    "replica": "node dist/src/cli.js",
+    "pretest": "npm run build --silent",
+    "test": "node --test --test-concurrency=1 dist/tests/*.test.js",
+    "typecheck": "tsc --noEmit",
+    "browsers": "playwright install chromium",
+    "predemo": "npm run build --silent",
+    "demo": "node dist/src/demo.js",
+    "format": "prettier --write src tests examples docs validation README.md package.json tsconfig.json",
+    "format:check": "prettier --check src tests examples docs validation README.md package.json tsconfig.json",
+    "prebot-md": "npm run build --silent",
+    "bot-md": "node dist/src/cli.js"
+  },
+  "dependencies": {
+    "acorn": "8.15.0",
+    "acorn-walk": "8.3.4",
+    "parse5": "7.3.0",
+    "pixelmatch": "7.1.0",
+    "playwright": "1.62.1",
+    "pngjs": "7.0.0",
+    "postcss": "8.5.6",
+    "postcss-value-parser": "4.2.0",
+    "turndown": "7.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "@types/pngjs": "6.0.5",
+    "@types/turndown": "5.0.5",
+    "prettier": "3.6.2",
+    "typescript": "5.9.3"
+  }
+}

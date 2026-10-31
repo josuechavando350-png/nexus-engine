@@ -1,0 +1,15 @@
+{
+  "url": "https://example.com/",
+  "maxPages": 1,
+  "maxStates": 6,
+  "autoExplore": true,
+  "viewports": [
+    { "name": "mobile", "width": 390, "height": 844 },
+    { "name": "tablet", "width": 820, "height": 1000 },
+    { "name": "desktop", "width": 1440, "height": 900 }
+  ],
+  "scenarios": [],
+  "pixelThreshold": 0.1,
+  "maxDiffRatio": 0.005,
+  "geometryTolerance": 1
+}

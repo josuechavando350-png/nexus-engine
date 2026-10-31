@@ -1,0 +1,51 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> bot-md@0.2.1 pretest
+> npm run build --silent
+
+
+> bot-md@0.2.1 test
+> node --test --test-concurrency=1 dist/tests/*.test.js
+
+✔ CSS closure fetches unused nested dependencies without changing sealed observations (57.939121ms)
+✔ CSS dependency extraction ignores embedded data and local fragment references (0.723365ms)
+✔ Next.js replay retains routing metadata while omitting cookies and transport headers (1.257593ms)
+✔ only browser-cancelled recorded RSC prefetches are classified as optional (0.177378ms)
+Verificado: p0-mobile-s1 · fail · diferencia 12.6963%
+Verificado: p0-mobile-s0 · fail · diferencia 12.4809%
+Verificado: p0-mobile-s3 · fail · diferencia 12.1569%
+Verificado: p0-mobile-s2 · fail · diferencia 12.1903%
+Verificado: p0-desktop-s0 · fail · diferencia 12.0121%
+Verificado: p0-desktop-s1 · fail · diferencia 12.0640%
+Verificado: p0-desktop-s2 · fail · diferencia 11.6401%
+Verificado: p0-mobile-s1 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s0 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s3 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s2 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s0 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s1 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s2 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s1 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s0 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s3 · pass · diferencia 0.0000%
+Verificado: p0-mobile-s2 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s0 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s1 · pass · diferencia 0.0000%
+Verificado: p0-desktop-s2 · pass · diferencia 0.0000%
+Integration receipt: /workspace/scratch/51223ab9c43e/bot-md-github/tools/bot-md/test-output/integration-1793483884134/test-receipt.json
+✔ offline capture → reconstruction → verification → defect detection → measured repair (34937.377453ms)
+✔ proxy DNS delegation is explicit, exact-host and cannot allow private IP literals (1.333998ms)
+✔ configuration rejects invalid bounds and unrelated scenario origins (1.251563ms)
+✔ private and metadata networks are rejected; localhost is explicit (0.684135ms)
+✔ CSS imports, relative URLs and data URLs survive remapping (3.315676ms)
+✔ JS rewrites observed URL literals without modifying comments or regex (3.384479ms)
+✔ HTML removes stale integrity and rewrites style resources (3.358861ms)
+✔ visual comparator detects dimension mismatch and paint defects (7.287635ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 36283.390436

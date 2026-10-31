@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Orbital — sitio de prueba</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/styles/main.css" />
+    <script defer src="/app.js"></script>
+  </head>
+  <body>
+    <header>
+      <a class="logo" href="/">ORBITAL<span>®</span></a>
+      <nav id="nav">
+        <a href="/work/">Trabajo</a><a href="#contact">Contacto</a>
+      </nav>
+      <button type="button" id="menu" aria-expanded="false" aria-controls="nav">
+        Menú
+      </button>
+    </header>
+    <main>
+      <section class="hero">
+        <div>
+          <p class="eyebrow">Estudio independiente / Ciudad de México</p>
+          <h1>Ideas que<br /><em>se mueven.</em></h1>
+          <p class="intro">
+            Diseñamos experiencias digitales con claridad, intención y carácter.
+          </p>
+          <a class="cta" href="/work/">Explorar proyectos ↗</a>
+        </div>
+        <div class="art" role="img" aria-label="Composición orbital">
+          <div class="orbit"></div>
+          <img src="/assets/shape.svg" alt="Esfera azul" />
+        </div>
+      </section>
+      <section class="stats">
+        <p id="badge">ESTUDIO ACTIVO</p>
+        <p id="stat">Cargando datos…</p>
+      </section>
+      <section class="services">
+        <h2>El trabajo, de cerca.</h2>
+        <div class="tabs" role="tablist">
+          <button id="design" type="button" role="tab" aria-selected="true">
+            Diseño</button
+          ><button
+            id="engineering"
+            type="button"
+            role="tab"
+            aria-selected="false"
+          >
+            Ingeniería
+          </button>
+        </div>
+        <p id="panel">Identidades y experiencias que se sienten propias.</p>
+        <details id="faq">
+          <summary>¿Cómo trabajamos?</summary>
+          <p>Investigación, prototipos y validación con evidencia.</p>
+        </details>
+      </section>
+      <footer id="contact">
+        Construyamos algo que importe.<br /><a href="mailto:hola@example.test"
+          >hola@example.test</a
+        >
+      </footer>
+    </main>
+  </body>
+</html>

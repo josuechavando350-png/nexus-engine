@@ -1,0 +1,22 @@
+{
+  "mode": "deterministic-evidence-only",
+  "trials": [
+    {
+      "selector": "#badge",
+      "property": "font-size",
+      "value": "13px",
+      "accepted": true,
+      "reason": "Mejora medida sin regresiones en los estados comprobados."
+    },
+    {
+      "selector": "#badge",
+      "property": "margin-top",
+      "value": "13px",
+      "accepted": false,
+      "reason": "Sin mejora suficiente o con regresión; revertido."
+    }
+  ],
+  "candidates": 3,
+  "remaining": 1,
+  "scope": "Solo propiedades CSS constantes en todos los estados observados. No genera lógica ni modifica las referencias."
+}

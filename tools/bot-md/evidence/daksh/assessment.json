@@ -1,0 +1,258 @@
+{
+  "source": "https://dakshgajjar.com/",
+  "sourceDigest": "13de8b4b1f5c7f5ea0566d2b2d06ebf6b3e0c4ea2c9a2e69177424dd46aa4af2",
+  "pages": 7,
+  "capturedStates": 47,
+  "fullRunTotals": {
+    "pass": 45,
+    "fail": 2,
+    "unstable": 0,
+    "error": 0
+  },
+  "targetedRecheckTotals": {
+    "pass": 2,
+    "fail": 0,
+    "unstable": 0,
+    "error": 0
+  },
+  "statesWithPassingVerification": 47,
+  "method": "45 pasan en el barrido completo; los 2 restantes pasan en una repetición explícita y secuencial. Los resultados previos se conservan. No equivale a 47/47 a primer intento.",
+  "maxObservedDiffRatioFullRun": 0,
+  "stateEvidence": [
+    {
+      "id": "p0-desktop-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-desktop-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-desktop-s2",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-desktop-s3",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-desktop-s4",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-tablet-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-tablet-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-tablet-s2",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-tablet-s3",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-tablet-s4",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-tablet-s5",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-mobile-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-mobile-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-mobile-s2",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-mobile-s3",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-mobile-s4",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p0-mobile-s5",
+      "status": "pass",
+      "evidence": "recheck-verification.json"
+    },
+    {
+      "id": "p1-desktop-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p1-tablet-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p1-tablet-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p1-mobile-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p1-mobile-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p2-desktop-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p2-tablet-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p2-tablet-s1",
+      "status": "pass",
+      "evidence": "recheck-verification.json"
+    },
+    {
+      "id": "p2-mobile-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p2-mobile-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p3-desktop-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p3-tablet-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p3-tablet-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p3-mobile-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p3-mobile-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p4-desktop-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p4-tablet-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p4-tablet-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p4-mobile-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p4-mobile-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p5-desktop-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p5-tablet-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p5-tablet-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p5-mobile-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p5-mobile-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p6-desktop-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p6-tablet-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p6-tablet-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p6-mobile-s0",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    },
+    {
+      "id": "p6-mobile-s1",
+      "status": "pass",
+      "evidence": "full-verification.json"
+    }
+  ]
+}

@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-31T21:03:19.192Z",
+  "sourceDigest": "3b2ebb921c4730ffe38a1acae672a8d98d3c328e8650620fe8f0df01d16c2c57",
+  "baselineIntegrity": true,
+  "scope": "Solo páginas, viewports y estados capturados; no mide cobertura universal ni equivalencia del backend.",
+  "captureCoverage": {
+    "capturedStates": 13,
+    "failedStates": 0,
+    "failedPageLoads": 0,
+    "truncatedStates": 0,
+    "exhaustive": false
+  },
+  "environment": {
+    "browser": "138.0.7204.0",
+    "platform": "linux"
+  },
+  "results": [
+    {
+      "id": "p0-mobile-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-mobile-s0/actual.png",
+      "diff": "p0-mobile-s0/diff.png"
+    },
+    {
+      "id": "p0-mobile-s1",
+      "name": "engineering-tab",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true,
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-mobile-s1/actual.png",
+      "diff": "p0-mobile-s1/diff.png"
+    },
+    {
+      "id": "p0-mobile-s2",
+      "name": "Menú",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-mobile-s2/actual.png",
+      "diff": "p0-mobile-s2/diff.png"
+    },
+    {
+      "id": "p0-mobile-s3",
+      "name": "¿Cómo trabajamos?",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-mobile-s3/actual.png",
+      "diff": "p0-mobile-s3/diff.png"
+    },
+    {
+      "id": "p0-tablet-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-tablet-s0/actual.png",
+      "diff": "p0-tablet-s0/diff.png"
+    },
+    {
+      "id": "p0-tablet-s1",
+      "name": "engineering-tab",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true,
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-tablet-s1/actual.png",
+      "diff": "p0-tablet-s1/diff.png"
+    },
+    {
+      "id": "p0-tablet-s2",
+      "name": "¿Cómo trabajamos?",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-tablet-s2/actual.png",
+      "diff": "p0-tablet-s2/diff.png"
+    },
+    {
+      "id": "p0-desktop-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-desktop-s0/actual.png",
+      "diff": "p0-desktop-s0/diff.png"
+    },
+    {
+      "id": "p0-desktop-s1",
+      "name": "engineering-tab",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [
+        true,
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-desktop-s1/actual.png",
+      "diff": "p0-desktop-s1/diff.png"
+    },
+    {
+      "id": "p0-desktop-s2",
+      "name": "¿Cómo trabajamos?",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-desktop-s2/actual.png",
+      "diff": "p0-desktop-s2/diff.png"
+    },
+    {
+      "id": "p1-mobile-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p1-mobile-s0/actual.png",
+      "diff": "p1-mobile-s0/diff.png"
+    },
+    {
+      "id": "p1-tablet-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p1-tablet-s0/actual.png",
+      "diff": "p1-tablet-s0/diff.png"
+    },
+    {
+      "id": "p1-desktop-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p1-desktop-s0/actual.png",
+      "diff": "p1-desktop-s0/diff.png"
+    }
+  ],
+  "totals": {
+    "pass": 13,
+    "fail": 0,
+    "unstable": 0,
+    "error": 0
+  },
+  "limitations": [
+    "APIs GET reproducidas desde respuestas capturadas; no se implementó un backend.",
+    "Las capturas estáticas desactivan animaciones; no certifican el movimiento completo.",
+    "Solo Chromium; no se certificó Safari ni Firefox.",
+    "El sello SHA-256 detecta cambios accidentales; no es una firma externa."
+  ]
+}

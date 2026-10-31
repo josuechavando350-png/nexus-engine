@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-31T21:49:33.478Z",
+  "sourceDigest": "13de8b4b1f5c7f5ea0566d2b2d06ebf6b3e0c4ea2c9a2e69177424dd46aa4af2",
+  "baselineIntegrity": true,
+  "scope": "Verificación parcial: 2 de 47 estados capturados. Solo páginas, viewports y estados capturados; no mide cobertura universal ni equivalencia del backend.",
+  "selection": [
+    "p0-mobile-s5",
+    "p2-tablet-s1"
+  ],
+  "captureCoverage": {
+    "capturedStates": 47,
+    "failedStates": 0,
+    "failedPageLoads": 0,
+    "truncatedStates": 0,
+    "exhaustive": false
+  },
+  "environment": {
+    "browser": "138.0.7204.0",
+    "platform": "linux",
+    "legacyCDPReplay": true
+  },
+  "results": [
+    {
+      "id": "p0-mobile-s5",
+      "name": "MENU",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:33075/work/scribe?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "assertionErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-mobile-s5/actual.png",
+      "diff": "p0-mobile-s5/diff.png"
+    },
+    {
+      "id": "p2-tablet-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:33075/?_rsc=Etb1SYKHhpkIrsr5",
+        "http://127.0.0.1:33075/?_rsc=Bg_C45LWTuroZwui"
+      ],
+      "environmentErrors": [],
+      "assertionErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p2-tablet-s1/actual.png",
+      "diff": "p2-tablet-s1/diff.png"
+    }
+  ],
+  "totals": {
+    "pass": 2,
+    "fail": 0,
+    "unstable": 0,
+    "error": 0
+  },
+  "limitations": [
+    "APIs GET reproducidas desde respuestas capturadas; no se implementó un backend.",
+    "Las capturas estáticas desactivan animaciones; no certifican el movimiento completo.",
+    "Solo Chromium; no se certificó Safari ni Firefox.",
+    "El sello SHA-256 detecta cambios accidentales; no es una firma externa.",
+    "Compatibilidad explícita con captura antigua: se reproduce la desconexión CDP antes del primer estado posterior al inicial (s1). Las capturas full-page restauraban el puntero después. Las referencias y tolerancias permanecen intactas.",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1"
+  ]
+}

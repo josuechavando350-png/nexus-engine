@@ -1,0 +1,1292 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-31T21:45:40.581Z",
+  "sourceDigest": "13de8b4b1f5c7f5ea0566d2b2d06ebf6b3e0c4ea2c9a2e69177424dd46aa4af2",
+  "baselineIntegrity": true,
+  "scope": "Solo páginas, viewports y estados capturados; no mide cobertura universal ni equivalencia del backend.",
+  "captureCoverage": {
+    "capturedStates": 47,
+    "failedStates": 0,
+    "failedPageLoads": 0,
+    "truncatedStates": 0,
+    "exhaustive": false
+  },
+  "environment": {
+    "browser": "138.0.7204.0",
+    "platform": "linux",
+    "legacyCDPReplay": true
+  },
+  "results": [
+    {
+      "id": "p0-desktop-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-desktop-s0/actual.png",
+      "diff": "p0-desktop-s0/diff.png"
+    },
+    {
+      "id": "p0-desktop-s1",
+      "name": "region-us",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0.0000037849455960606782,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=8nTjltbQWvg6NcbE",
+        "http://127.0.0.1:36267/work/papertrail?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-desktop-s1/actual.png",
+      "diff": "p0-desktop-s1/diff.png"
+    },
+    {
+      "id": "p0-desktop-s2",
+      "name": "contact-open",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0.000004219283615280756,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/scribe?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-desktop-s2/actual.png",
+      "diff": "p0-desktop-s2/diff.png"
+    },
+    {
+      "id": "p0-desktop-s3",
+      "name": "contact-close",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0.000004219283615280756,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/mealops?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/papertrail?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/scribe?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-desktop-s3/actual.png",
+      "diff": "p0-desktop-s3/diff.png"
+    },
+    {
+      "id": "p0-desktop-s4",
+      "name": "navigate-eigna",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/work/eigna?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/work/eigna?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-desktop-s4/actual.png",
+      "diff": "p0-desktop-s4/diff.png"
+    },
+    {
+      "id": "p0-tablet-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=8nTjltbQWvg6NcbE",
+        "http://127.0.0.1:36267/work/mealops?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-tablet-s0/actual.png",
+      "diff": "p0-tablet-s0/diff.png"
+    },
+    {
+      "id": "p0-tablet-s1",
+      "name": "region-us",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-tablet-s1/actual.png",
+      "diff": "p0-tablet-s1/diff.png"
+    },
+    {
+      "id": "p0-tablet-s2",
+      "name": "contact-open",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0.000009666258219873259,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/work/eigna?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/papertrail?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/mealops?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-tablet-s2/actual.png",
+      "diff": "p0-tablet-s2/diff.png"
+    },
+    {
+      "id": "p0-tablet-s3",
+      "name": "contact-close",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0.000009666258219873259,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/work/eigna?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/work/orbit?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/scribe?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-tablet-s3/actual.png",
+      "diff": "p0-tablet-s3/diff.png"
+    },
+    {
+      "id": "p0-tablet-s4",
+      "name": "navigate-eigna",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/?_rsc=8nTjltbQWvg6NcbE",
+        "http://127.0.0.1:36267/work/orbit?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/papertrail?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/mealops?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/scribe?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-tablet-s4/actual.png",
+      "diff": "p0-tablet-s4/diff.png"
+    },
+    {
+      "id": "p0-tablet-s5",
+      "name": "MENU",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/orbit?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/scribe?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-tablet-s5/actual.png",
+      "diff": "p0-tablet-s5/diff.png"
+    },
+    {
+      "id": "p0-mobile-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/work/eigna?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/orbit?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/mealops?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/papertrail?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/scribe?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/crediflow?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-mobile-s0/actual.png",
+      "diff": "p0-mobile-s0/diff.png"
+    },
+    {
+      "id": "p0-mobile-s1",
+      "name": "region-us",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0.000008884624269239653,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/?_rsc=8nTjltbQWvg6NcbE",
+        "http://127.0.0.1:36267/work/eigna?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/mealops?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-mobile-s1/actual.png",
+      "diff": "p0-mobile-s1/diff.png"
+    },
+    {
+      "id": "p0-mobile-s2",
+      "name": "contact-open",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0.000011772127156742541,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/work/orbit?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/papertrail?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/scribe?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/crediflow?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-mobile-s2/actual.png",
+      "diff": "p0-mobile-s2/diff.png"
+    },
+    {
+      "id": "p0-mobile-s3",
+      "name": "contact-close",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0.000012882705190397499,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/work/eigna?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/papertrail?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/crediflow?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-mobile-s3/actual.png",
+      "diff": "p0-mobile-s3/diff.png"
+    },
+    {
+      "id": "p0-mobile-s4",
+      "name": "navigate-eigna",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/orbit?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/mealops?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/papertrail?_rsc=y6pgQWwLckoW4aDt",
+        "http://127.0.0.1:36267/work/scribe?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-mobile-s4/actual.png",
+      "diff": "p0-mobile-s4/diff.png"
+    },
+    {
+      "id": "p0-mobile-s5",
+      "name": "MENU",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "fail",
+      "assertions": [
+        false
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/?_rsc=8nTjltbQWvg6NcbE",
+        "http://127.0.0.1:36267/work/eigna?_rsc=5CB68i4pnAekjehf",
+        "http://127.0.0.1:36267/work/eigna?_rsc=y6pgQWwLckoW4aDt"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p0-mobile-s5/actual.png",
+      "diff": "p0-mobile-s5/diff.png"
+    },
+    {
+      "id": "p1-desktop-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=fs4bqz0LKRd7ThJ3"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p1-desktop-s0/actual.png",
+      "diff": "p1-desktop-s0/diff.png"
+    },
+    {
+      "id": "p1-tablet-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p1-tablet-s0/actual.png",
+      "diff": "p1-tablet-s0/diff.png"
+    },
+    {
+      "id": "p1-tablet-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=aeJm1mFSGRGxQ1ld",
+        "http://127.0.0.1:36267/?_rsc=fs4bqz0LKRd7ThJ3",
+        "http://127.0.0.1:36267/work/orbit?_rsc=aeJm1mFSGRGxQ1ld"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p1-tablet-s1/actual.png",
+      "diff": "p1-tablet-s1/diff.png"
+    },
+    {
+      "id": "p1-mobile-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=fs4bqz0LKRd7ThJ3",
+        "http://127.0.0.1:36267/work/orbit?_rsc=aeJm1mFSGRGxQ1ld",
+        "http://127.0.0.1:36267/work/orbit?_rsc=d1gA0Ajb7-CAWgYR"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p1-mobile-s0/actual.png",
+      "diff": "p1-mobile-s0/diff.png"
+    },
+    {
+      "id": "p1-mobile-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=fs4bqz0LKRd7ThJ3",
+        "http://127.0.0.1:36267/work/orbit?_rsc=d1gA0Ajb7-CAWgYR"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p1-mobile-s1/actual.png",
+      "diff": "p1-mobile-s1/diff.png"
+    },
+    {
+      "id": "p2-desktop-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p2-desktop-s0/actual.png",
+      "diff": "p2-desktop-s0/diff.png"
+    },
+    {
+      "id": "p2-tablet-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/work/papertrail?_rsc=Etb1SYKHhpkIrsr5"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p2-tablet-s0/actual.png",
+      "diff": "p2-tablet-s0/diff.png"
+    },
+    {
+      "id": "p2-tablet-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "fail",
+      "assertions": [
+        false
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=Bg_C45LWTuroZwui"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p2-tablet-s1/actual.png",
+      "diff": "p2-tablet-s1/diff.png"
+    },
+    {
+      "id": "p2-mobile-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p2-mobile-s0/actual.png",
+      "diff": "p2-mobile-s0/diff.png"
+    },
+    {
+      "id": "p2-mobile-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=Bg_C45LWTuroZwui"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p2-mobile-s1/actual.png",
+      "diff": "p2-mobile-s1/diff.png"
+    },
+    {
+      "id": "p3-desktop-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=JNQwckdc_Ex8YosQ"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p3-desktop-s0/actual.png",
+      "diff": "p3-desktop-s0/diff.png"
+    },
+    {
+      "id": "p3-tablet-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=6-Jk8OeHJn9d0reX"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p3-tablet-s0/actual.png",
+      "diff": "p3-tablet-s0/diff.png"
+    },
+    {
+      "id": "p3-tablet-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/work/scribe?_rsc=6-Jk8OeHJn9d0reX"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p3-tablet-s1/actual.png",
+      "diff": "p3-tablet-s1/diff.png"
+    },
+    {
+      "id": "p3-mobile-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=JNQwckdc_Ex8YosQ"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p3-mobile-s0/actual.png",
+      "diff": "p3-mobile-s0/diff.png"
+    },
+    {
+      "id": "p3-mobile-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p3-mobile-s1/actual.png",
+      "diff": "p3-mobile-s1/diff.png"
+    },
+    {
+      "id": "p4-desktop-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=ddX5TfSGvuHupkJ2",
+        "http://127.0.0.1:36267/?_rsc=B7NDLsE2UXkrl4rh"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p4-desktop-s0/actual.png",
+      "diff": "p4-desktop-s0/diff.png"
+    },
+    {
+      "id": "p4-tablet-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=ddX5TfSGvuHupkJ2",
+        "http://127.0.0.1:36267/?_rsc=B7NDLsE2UXkrl4rh"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p4-tablet-s0/actual.png",
+      "diff": "p4-tablet-s0/diff.png"
+    },
+    {
+      "id": "p4-tablet-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=B7NDLsE2UXkrl4rh",
+        "http://127.0.0.1:36267/work/mealops?_rsc=uP875pIKkWnBOUIB"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p4-tablet-s1/actual.png",
+      "diff": "p4-tablet-s1/diff.png"
+    },
+    {
+      "id": "p4-mobile-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p4-mobile-s0/actual.png",
+      "diff": "p4-mobile-s0/diff.png"
+    },
+    {
+      "id": "p4-mobile-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=B7NDLsE2UXkrl4rh"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p4-mobile-s1/actual.png",
+      "diff": "p4-mobile-s1/diff.png"
+    },
+    {
+      "id": "p5-desktop-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p5-desktop-s0/actual.png",
+      "diff": "p5-desktop-s0/diff.png"
+    },
+    {
+      "id": "p5-tablet-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=bOit_-YWjeb1P-Us"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p5-tablet-s0/actual.png",
+      "diff": "p5-tablet-s0/diff.png"
+    },
+    {
+      "id": "p5-tablet-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=bOit_-YWjeb1P-Us"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p5-tablet-s1/actual.png",
+      "diff": "p5-tablet-s1/diff.png"
+    },
+    {
+      "id": "p5-mobile-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=bOit_-YWjeb1P-Us"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p5-mobile-s0/actual.png",
+      "diff": "p5-mobile-s0/diff.png"
+    },
+    {
+      "id": "p5-mobile-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=bOit_-YWjeb1P-Us"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p5-mobile-s1/actual.png",
+      "diff": "p5-mobile-s1/diff.png"
+    },
+    {
+      "id": "p6-desktop-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=htByKqG9KtKURRjM",
+        "http://127.0.0.1:36267/?_rsc=Ius-IKmADEiOLvbo"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p6-desktop-s0/actual.png",
+      "diff": "p6-desktop-s0/diff.png"
+    },
+    {
+      "id": "p6-tablet-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=htByKqG9KtKURRjM"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p6-tablet-s0/actual.png",
+      "diff": "p6-tablet-s0/diff.png"
+    },
+    {
+      "id": "p6-tablet-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "tablet",
+        "width": 820,
+        "height": 1000
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=Ius-IKmADEiOLvbo"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p6-tablet-s1/actual.png",
+      "diff": "p6-tablet-s1/diff.png"
+    },
+    {
+      "id": "p6-mobile-s0",
+      "name": "initial",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=Ius-IKmADEiOLvbo",
+        "http://127.0.0.1:36267/work/eigna?_rsc=c0sZTJ_S78IrlQ6n"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p6-mobile-s0/actual.png",
+      "diff": "p6-mobile-s0/diff.png"
+    },
+    {
+      "id": "p6-mobile-s1",
+      "name": "MENU",
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      "status": "pass",
+      "assertions": [
+        true
+      ],
+      "missingRequests": [],
+      "consoleErrors": [],
+      "baselineNoiseRatio": 0,
+      "cancelledPrefetches": [
+        "http://127.0.0.1:36267/?_rsc=Ius-IKmADEiOLvbo"
+      ],
+      "environmentErrors": [],
+      "diffPixels": 0,
+      "diffRatio": 0,
+      "dimensionsMatch": true,
+      "geometryErrors": [],
+      "screenshot": "p6-mobile-s1/actual.png",
+      "diff": "p6-mobile-s1/diff.png"
+    }
+  ],
+  "totals": {
+    "pass": 45,
+    "fail": 2,
+    "unstable": 0,
+    "error": 0
+  },
+  "limitations": [
+    "APIs GET reproducidas desde respuestas capturadas; no se implementó un backend.",
+    "Las capturas estáticas desactivan animaciones; no certifican el movimiento completo.",
+    "Solo Chromium; no se certificó Safari ni Firefox.",
+    "El sello SHA-256 detecta cambios accidentales; no es una firma externa.",
+    "Compatibilidad explícita con captura antigua: se reproduce la desconexión CDP antes del primer estado posterior al inicial (s1). Las capturas full-page restauraban el puntero después. Las referencias y tolerancias permanecen intactas.",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1",
+    "COMPLEX_CONTENT: shadowHosts: 1"
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "browser": "138.0.7204.0",
+  "initial": {
+    "hover": true,
+    "pointerFine": true,
+    "maxTouchPoints": 0
+  },
+  "duringInspection": {
+    "hover": true,
+    "pointerFine": true,
+    "maxTouchPoints": 0
+  },
+  "afterDetach": {
+    "hover": false,
+    "pointerFine": false,
+    "maxTouchPoints": 0
+  },
+  "afterScreenshot": {
+    "hover": true,
+    "pointerFine": true,
+    "maxTouchPoints": 0
+  }
+}

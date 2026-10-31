@@ -1,0 +1,42 @@
+{
+  "url": "https://dakshgajjar.com/",
+  "maxPages": 1,
+  "maxStates": 6,
+  "settleMs": 1400,
+  "navigationTimeoutMs": 60000,
+  "readySelector": ".hero[data-hero-entrance=complete]",
+  "maxScrollSteps": 60,
+  "viewports": [
+    { "name": "desktop", "width": 1440, "height": 900 },
+    { "name": "tablet", "width": 820, "height": 1000 },
+    { "name": "mobile", "width": 390, "height": 844 }
+  ],
+  "autoExplore": true,
+  "scenarios": [
+    {
+      "name": "region-us",
+      "steps": [{ "action": "click", "selector": "button:text-is(\"US\")" }],
+      "assertions": [
+        {
+          "selector": "button:text-is(\"US\")",
+          "kind": "attribute",
+          "attribute": "aria-pressed",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "name": "contact-open",
+      "steps": [{ "action": "click", "selector": ".contact-pull" }],
+      "assertions": [{ "selector": ".contact-dialog", "kind": "visible" }]
+    },
+    {
+      "name": "contact-close",
+      "steps": [
+        { "action": "click", "selector": ".contact-pull" },
+        { "action": "click", "selector": ".contact-form-close" }
+      ],
+      "assertions": [{ "selector": ".contact-dialog", "kind": "hidden" }]
+    }
+  ]
+}

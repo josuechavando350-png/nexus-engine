@@ -1,0 +1,42 @@
+{
+  "url": "https://dakshgajjar.com/",
+  "maxPages": 7,
+  "maxStates": 2,
+  "settleMs": 1200,
+  "navigationTimeoutMs": 60000,
+  "maxScrollSteps": 60,
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "autoExplore": false,
+  "scenarios": [
+    {
+      "name": "navigate-eigna",
+      "path": "/",
+      "steps": [
+        {
+          "action": "click",
+          "selector": "a[href=\"/work/eigna#main-content\"]"
+        }
+      ],
+      "assertions": [
+        {
+          "selector": "h1",
+          "kind": "visible"
+        }
+      ]
+    }
+  ],
+  "readySelectors": {
+    "/": ".hero[data-hero-entrance=complete]"
+  }
+}
