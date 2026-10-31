@@ -2,10 +2,14 @@
 import path from "node:path";
 import { launch } from "../../dist/src/browser.js";
 import { serve } from "../../dist/src/server.js";
-import { hash, saveJson } from "../../dist/src/common.js";
+import { hash, saveJson, json } from "../../dist/src/common.js";
 const [original, editable, output] = process.argv.slice(2);
 if (!original || !editable || !output)
   throw new Error("Provide original site, editable site and output JSON.");
+const content = await json(path.join(path.resolve(editable), "content.json"));
+const expectedBindings = content.bindings.filter(
+  (b) => b.route === "/" && b.expected !== b.value,
+).length;
 const sources = [
   await serve(path.resolve(original)),
   await serve(path.resolve(editable)),
@@ -47,6 +51,13 @@ try {
       if (i) await page.waitForFunction(() => window.__BOT_MD_CONTENT__?.ready);
       await page.waitForTimeout(1800);
       const geometry = await page.evaluate(() => ({
+        documentTitle: document.title,
+        description: document
+          .querySelector("meta[name=description]")
+          ?.getAttribute("content"),
+        brand:
+          document.querySelector(".site-header a")?.textContent ??
+          document.querySelector("header a")?.textContent,
         title: document.querySelector("#hero-title").textContent,
         titleLines: document.querySelectorAll("#hero-title .hero-line").length,
         heroHeight: document.querySelector(".hero").getBoundingClientRect()
@@ -131,7 +142,7 @@ try {
       curveChanged &&
       after.introHeight !== before.introHeight &&
       after.titleLines === before.titleLines &&
-      after.content?.applied.length === 6 &&
+      after.content?.applied.length === expectedBindings &&
       !after.content?.missing.length &&
       !after.content?.conflicts.length &&
       (viewport.touch
@@ -156,7 +167,8 @@ try {
 await saveJson(path.resolve(output), {
   createdAt: new Date().toISOString(),
   scope:
-    "Six visible text fields on the homepage; adaptation, not identity or removal of every original content item.",
+    "Declared homepage fields; adaptation, not identity or removal of every original content item. Metadata is checked in the rendered DOM, not certified for non-JavaScript crawlers.",
+  expectedBindings,
   results,
 });
 console.log(

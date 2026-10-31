@@ -1,0 +1,1280 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-10-31T23:08:23.953Z",
+  "sourceDigest": "2f97fcdb25cf68d90f5c447bb711e2bf07d4bb9a399279cdd896d65870251ba2",
+  "status": "blocked",
+  "policy": {
+    "forbiddenTerms": [
+      "Daksh",
+      "Gajjar",
+      "dakshgajjar.com"
+    ],
+    "reviewedResources": []
+  },
+  "summary": {
+    "catalogFields": 1784,
+    "replacementsDeclared": 19,
+    "pendingFields": 1765,
+    "filesScanned": 94,
+    "filesWithForbiddenTerms": 31,
+    "resourcesRequiringReview": 51
+  },
+  "files": [
+    {
+      "route": "/__replica/runtime.js",
+      "file": "runtime.js",
+      "mime": "application/javascript",
+      "sha256": "f71ee46dc767abe4392056fa05a6d5d5050dcae6e2eb221f4014d5acc8c6c4e6",
+      "bytes": 11593,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/__replica/repairs.css",
+      "file": "repairs.css",
+      "mime": "text/css",
+      "sha256": "dbe94541219d9887bf48325cfa69a9de7579f9584a95165f9d6a66b7773993d3",
+      "bytes": 66,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/",
+      "file": "site/ee319944c3862076c21ffbb9.html",
+      "mime": "text/html; charset=utf-8",
+      "sha256": "8ce4af8d1d2bc2e075f8074a19ee920b62264ce2683d68ec4703e48781d390a2",
+      "bytes": 221258,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/1cgj_16e_57q_.css",
+      "file": "site/82f88775a9cca8a9583279f8.css",
+      "mime": "text/css; charset=utf-8",
+      "sha256": "500030d1334e0b40bb089dfa206ad330b5adc14e1ebdfdd17ed184811971604f",
+      "bytes": 9528,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm_plex_mono_latin_500_normal.p.25_05y-blbp24.woff2",
+      "file": "site/d2d3fb0da88c771a5de713fd.bin",
+      "mime": "font/woff2",
+      "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+      "bytes": 14888,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/1r8-qx65y4q_n.css",
+      "file": "site/3cc8154323e18c3c22aed6f0.css",
+      "mime": "text/css; charset=utf-8",
+      "sha256": "b656f68b3aaf06e73e6c980f037f0af6e3dc0db6f882795be0dd67b4f1933ed1",
+      "bytes": 15982,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/0laygpwkvzk1d.css",
+      "file": "site/e751937043771e879b84b4bc.css",
+      "mime": "text/css; charset=utf-8",
+      "sha256": "6082b1310ac1ca110f507b2c8630b32c91a25010297169fcbe20292b1c470158",
+      "bytes": 10386,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm_plex_mono_latin_400_normal.p.19gbeb610ur4n.woff2",
+      "file": "site/9948dcf605c6c2da0a9016de.bin",
+      "mime": "font/woff2",
+      "sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+      "bytes": 14708,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-latin-ext-400-normal.1ih4rrmj883u6.woff2",
+      "file": "site/e18f4d10809c74038ea858f7.bin",
+      "mime": "font/woff2",
+      "sha256": "6bc0f226a5b7884a8170e3f62c63d7675609d4631bdc5931b5cdab81821f00eb",
+      "bytes": 13348,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/archivo-latin-ext-wght-normal.3cxrhsknk8wrd.woff2",
+      "file": "site/8c632d63408ae873364cc442.bin",
+      "mime": "font/woff2",
+      "sha256": "ff4f17d21930e36d6d93baba663e624cb767afc3feebf7adaebd82242638de05",
+      "bytes": 32608,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/0ykyzfd0mwwu3.js",
+      "file": "site/7bd5f971e17e119d6f9ffbce.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "c9dbc9d74b2ea0fefb8491e70ab13111e063fb197ce025dd15898a61ee5a1adb",
+      "bytes": 29981,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/00z4pmesk2f4f.js",
+      "file": "site/36cc1f6f150031bcf491d10b.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "c410d0f2543e080768fc14f73b2bd1fdf103e26956e9730390b5e41c4fb5ff8b",
+      "bytes": 13822,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/0d0ufq30qg-mw.js",
+      "file": "site/290bc0d43dcc6b0753f14498.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "7934544c066b63d712f56110aa3a2185f39f4116aab79ba11f2376d48b1632f1",
+      "bytes": 110994,
+      "matches": [
+        "Daksh",
+        "Gajjar"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/turbopack-1cvbnb3nlabgn.js",
+      "file": "site/0079a4dbcd65300f0d1b4a78.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "8bbb58cbfd4633c1d828c6bc37bc32abc768a149c01b1dfc4f5131fd81274551",
+      "bytes": 10030,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/309a0-ee_4j8g.js",
+      "file": "site/44361e47d3977783b8389b33.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "7f5e63bc3827acbf8ff06946918b68ca80e023308259673e0d2aedc4b3812da4",
+      "bytes": 19315,
+      "matches": [
+        "Daksh",
+        "Gajjar"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/2q-mefux0b24-.js",
+      "file": "site/ff22725d014c97a7b40acb7b.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "6b2e7b430ef4ffb060528ee5bd81fb067590c38c00e69b45fea932186404c5c1",
+      "bytes": 45663,
+      "matches": [
+        "Daksh",
+        "Gajjar"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/0siys_97wtvhj.css",
+      "file": "site/564fd527158366813d475110.css",
+      "mime": "text/css; charset=utf-8",
+      "sha256": "8744f22b92e4c7badd30e226a05fe8ab25e5de730457a9bfc8b811c55c9d29ca",
+      "bytes": 32307,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/archivo_latin_wght_normal.p.0inx24hl2eswd.woff2",
+      "file": "site/169f6f1c4d0363928cacd886.bin",
+      "mime": "font/woff2",
+      "sha256": "8f704806dbedeaaeca334b11ec348bc3ac3a439d6431544b3afb54f534ee4967",
+      "bytes": 34928,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/282l8gzrvryyu.js",
+      "file": "site/bdd51881a35586417da67591.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "110d728001564483da57e1dbc9b354d03eee33f0f813677d4bf26b406da04e80",
+      "bytes": 159015,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/1t4bcl8dhrqmz.js",
+      "file": "site/d36151635dab6590b37f13a4.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "feb08558ca316e12e607f22c1bc0bc905281b8a64e8fbc920294be322a65b6ef",
+      "bytes": 229113,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/34bwmeolpwmql.js",
+      "file": "site/3bd1eafee60fdead53b45332.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "23b6ababc7dc3dbfa2edb202952b19390990a4694112604db18aac530c71cc5c",
+      "bytes": 14438,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/2kcm_pyekkj_i.js",
+      "file": "site/e7caf4e9d281cfa3ae5b0e7e.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "d1a1840b3fdcda34700394a0bad94d38513016ecf8a20391501d136b748c1722",
+      "bytes": 12401,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/2685zr8hkjq4p.js",
+      "file": "site/ad3a2e61a501015b51f100dc.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "86ea54107b2fd0daeaf8e4fab771e5ddc308fb9e07d2950df8c61eb24fc89d95",
+      "bytes": 9531,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/0m8mlyu34u_vt.js",
+      "file": "site/a0cd9c4d1cb9fe6c61555325.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "969234b43e39968a1ba1c9137a2ef99f171076e9e7747c4864e7dcd6797e1366",
+      "bytes": 44629,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/249alxhww9wiw.js",
+      "file": "site/3b83e58849cebc844ea71b8b.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "b615ae0ee09502e7796c0913d26748a35f46c968e8b953a3dbbda97a7a5c6b3c",
+      "bytes": 70153,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=5CB68i4pnAekjehf",
+      "file": "site/2675925c2b5371e0f3285ba6.bin",
+      "mime": "text/x-component",
+      "sha256": "a6b9e1af63db5832de252f0e411f4fc4d8eb875513830508a975c694530515b2",
+      "bytes": 1040,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/1989c20815d40cbd/script.js",
+      "file": "site/48c2eeec6b857fa4af64b94c.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "050e35bf7e6e96590f2a9de114c14ff792806ed28457b3248762944350c0ba4c",
+      "bytes": 4522,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/43caa98fd336de3a/script.js",
+      "file": "site/e6dcfda897d48f8ebd88e34b.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "c703720710415599d2f0b3f31fbfda63e34d6d19e730bada78b9b92197564f5b",
+      "bytes": 12567,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=8nTjltbQWvg6NcbE",
+      "file": "site/53f1fd06770bdc33530186df.bin",
+      "mime": "text/x-component",
+      "sha256": "a28a0ae201284df6d788f547b3524b34e7d2a1204b6a44e04ca18a81ea87985c",
+      "bytes": 104264,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/eigna?_rsc=5CB68i4pnAekjehf",
+      "file": "site/15a724d84cc093d055ed0976.bin",
+      "mime": "text/x-component",
+      "sha256": "050b0f6b3e810399bc4cbf2dac7d7fa34fbba3ad36282064832d9e6137c50e4d",
+      "bytes": 832,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/202-42ukld0cp.css",
+      "file": "site/9a8b6021162a37fd4a1a06a5.css",
+      "mime": "text/css; charset=utf-8",
+      "sha256": "f0129593bc23f0ef12dada274bae0ce5b00d2f0d5bfcb0424719661c0fe8193e",
+      "bytes": 11991,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+      "file": "site/bd537ce0025142ff3d89fbb0.bin",
+      "mime": "text/x-component",
+      "sha256": "8a89cbf8ca7e94a0054f2cdc834a37e34f32ead5e4c3f97a117da1aa56172290",
+      "bytes": 40414,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/orbit?_rsc=y6pgQWwLckoW4aDt",
+      "file": "site/f1cff46256a70745a68c7f0f.bin",
+      "mime": "text/x-component",
+      "sha256": "6f2b9cbba6253872b391a9819e8df41705154814659fd4dddf083b4c22b2bb90",
+      "bytes": 39738,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/chunks/2gmu2g15akzyd.js",
+      "file": "site/f88e4f165780fd10dce93c33.js",
+      "mime": "application/javascript; charset=utf-8",
+      "sha256": "ff8948fef667ec17cb1ff62b604fffea162d7a7292394c69e7ae480272d28905",
+      "bytes": 24496,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/mealops?_rsc=y6pgQWwLckoW4aDt",
+      "file": "site/bc0a9a2547574508c5f96faf.bin",
+      "mime": "text/x-component",
+      "sha256": "5a88ad7493d04932d525ac1aecdeae802226f091938672f5ee12f64a302cadcc",
+      "bytes": 43074,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/scribe?_rsc=y6pgQWwLckoW4aDt",
+      "file": "site/4e1abf9bdd4bfad50727a360.bin",
+      "mime": "text/x-component",
+      "sha256": "9f38cf40b6a683b84794067cbe3f99a0b5d5474b2388cc84e5d021bc6f818f63",
+      "bytes": 44257,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/papertrail?_rsc=y6pgQWwLckoW4aDt",
+      "file": "site/383a5d4db79ba3f7cfaa566e.bin",
+      "mime": "text/x-component",
+      "sha256": "240ada3ad2a2ead1e532604f5ed644d22a8cbc7f5b8c93729442304ba4035f6f",
+      "bytes": 39921,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/crediflow?_rsc=y6pgQWwLckoW4aDt",
+      "file": "site/4941a7d9950576a2fd5651f2.bin",
+      "mime": "text/x-component",
+      "sha256": "82709ed5b24e47653a23ad5339a9c8ca4aaf457ca24e9af668fa4625eda131ef",
+      "bytes": 39238,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/orbit?_rsc=5CB68i4pnAekjehf",
+      "file": "site/87edf2d980bf815c7d179cf1.bin",
+      "mime": "text/x-component",
+      "sha256": "a1a9367626c5eec635ed610c52fdf1152bce54e7c5ab1a85ad8005cc72e59850",
+      "bytes": 832,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/eigna",
+      "file": "site/df59a08b0cca8e5a297c36c6.html",
+      "mime": "text/html; charset=utf-8",
+      "sha256": "ef41fc9da2072fae1bc24d7c74749eb8ff16f6fa8a18faf93de19167a4d25bc7",
+      "bytes": 79855,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=aeJm1mFSGRGxQ1ld",
+      "file": "site/f0e76868c189b0979f1dcbdb.bin",
+      "mime": "text/x-component",
+      "sha256": "a6b9e1af63db5832de252f0e411f4fc4d8eb875513830508a975c694530515b2",
+      "bytes": 1040,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=fs4bqz0LKRd7ThJ3",
+      "file": "site/e50b3c82622c4ec12aa7d200.bin",
+      "mime": "text/x-component",
+      "sha256": "a28a0ae201284df6d788f547b3524b34e7d2a1204b6a44e04ca18a81ea87985c",
+      "bytes": 104264,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/orbit?_rsc=aeJm1mFSGRGxQ1ld",
+      "file": "site/7c34437eb310bdfecf52af60.bin",
+      "mime": "text/x-component",
+      "sha256": "a1a9367626c5eec635ed610c52fdf1152bce54e7c5ab1a85ad8005cc72e59850",
+      "bytes": 832,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/orbit?_rsc=d1gA0Ajb7-CAWgYR",
+      "file": "site/089527410512b774038a12e0.bin",
+      "mime": "text/x-component",
+      "sha256": "6f2b9cbba6253872b391a9819e8df41705154814659fd4dddf083b4c22b2bb90",
+      "bytes": 39738,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/orbit",
+      "file": "site/c0826a22adf17b2dbed3f489.html",
+      "mime": "text/html; charset=utf-8",
+      "sha256": "652656e03c573ccb08400a5b2997494966b162b57d08be29fb99c4b6c4e69194",
+      "bytes": 79064,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=Etb1SYKHhpkIrsr5",
+      "file": "site/42bc1dfd887cf4745a09889e.bin",
+      "mime": "text/x-component",
+      "sha256": "a6b9e1af63db5832de252f0e411f4fc4d8eb875513830508a975c694530515b2",
+      "bytes": 1040,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=Bg_C45LWTuroZwui",
+      "file": "site/4cf8ce39402181225a6a38ce.bin",
+      "mime": "text/x-component",
+      "sha256": "a28a0ae201284df6d788f547b3524b34e7d2a1204b6a44e04ca18a81ea87985c",
+      "bytes": 104264,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/papertrail?_rsc=Etb1SYKHhpkIrsr5",
+      "file": "site/741449d486ad9a3f2cc1b133.bin",
+      "mime": "text/x-component",
+      "sha256": "8b886d216b5dea41186e9c767f80c437dfafb57bd4f3afbca14d7ea1c8cbfc12",
+      "bytes": 837,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/papertrail?_rsc=pSrN-WUH5NK7kptd",
+      "file": "site/054b3d3c67c96ac75063ae0d.bin",
+      "mime": "text/x-component",
+      "sha256": "240ada3ad2a2ead1e532604f5ed644d22a8cbc7f5b8c93729442304ba4035f6f",
+      "bytes": 39921,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/mealops",
+      "file": "site/cb3864a3e8f524ea698f8bc9.html",
+      "mime": "text/html; charset=utf-8",
+      "sha256": "4b19fc896065afa612e6a8ebf5357bf18b0a9e71173e3852401d549f24cf0809",
+      "bytes": 85725,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=6-Jk8OeHJn9d0reX",
+      "file": "site/604c3a01132afda3d4ed4646.bin",
+      "mime": "text/x-component",
+      "sha256": "a6b9e1af63db5832de252f0e411f4fc4d8eb875513830508a975c694530515b2",
+      "bytes": 1040,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=JNQwckdc_Ex8YosQ",
+      "file": "site/45463aa1850c917936d2fd24.bin",
+      "mime": "text/x-component",
+      "sha256": "a28a0ae201284df6d788f547b3524b34e7d2a1204b6a44e04ca18a81ea87985c",
+      "bytes": 104264,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/scribe?_rsc=6-Jk8OeHJn9d0reX",
+      "file": "site/a8d6ac03d84935fdb89fe3d0.bin",
+      "mime": "text/x-component",
+      "sha256": "cb651d851d8fdaad6215fc5a85fa588aa28e253968a3e515ce2f77fb1e153ed3",
+      "bytes": 833,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/scribe?_rsc=A6tv5qL0h5gyZs1G",
+      "file": "site/5223483740ebdc21063cb616.bin",
+      "mime": "text/x-component",
+      "sha256": "9f38cf40b6a683b84794067cbe3f99a0b5d5474b2388cc84e5d021bc6f818f63",
+      "bytes": 44257,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/papertrail",
+      "file": "site/926d591fd56cda751bd75862.html",
+      "mime": "text/html; charset=utf-8",
+      "sha256": "330d4d2f56587f8b459ae5c9ffccde806d2c0ff58107eae84c1d4a1a558a5d53",
+      "bytes": 79353,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=ddX5TfSGvuHupkJ2",
+      "file": "site/e558abc808140604f6c70229.bin",
+      "mime": "text/x-component",
+      "sha256": "a6b9e1af63db5832de252f0e411f4fc4d8eb875513830508a975c694530515b2",
+      "bytes": 1040,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=B7NDLsE2UXkrl4rh",
+      "file": "site/aaa0041d8add1e116cae9a60.bin",
+      "mime": "text/x-component",
+      "sha256": "a28a0ae201284df6d788f547b3524b34e7d2a1204b6a44e04ca18a81ea87985c",
+      "bytes": 104264,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/mealops?_rsc=ddX5TfSGvuHupkJ2",
+      "file": "site/aeb125296c5ed8ac28e13663.bin",
+      "mime": "text/x-component",
+      "sha256": "c5bdc3bc9f3e39cbe21b160f413e306bf1aa43ff8d8af1c14d37d8faba2e2a5a",
+      "bytes": 834,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/mealops?_rsc=uP875pIKkWnBOUIB",
+      "file": "site/08ff0ab1e2b411b06e49029c.bin",
+      "mime": "text/x-component",
+      "sha256": "5a88ad7493d04932d525ac1aecdeae802226f091938672f5ee12f64a302cadcc",
+      "bytes": 43074,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/scribe",
+      "file": "site/769caa36b3635818b58e92b1.html",
+      "mime": "text/html; charset=utf-8",
+      "sha256": "906b761545470dd6d7bc04d4c80273878203e0e17a7fcc9b37929e9fd4dadd92",
+      "bytes": 87719,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=6tIbBtwNe4yfeO1T",
+      "file": "site/b98166f197989b6583e5a856.bin",
+      "mime": "text/x-component",
+      "sha256": "a6b9e1af63db5832de252f0e411f4fc4d8eb875513830508a975c694530515b2",
+      "bytes": 1040,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=bOit_-YWjeb1P-Us",
+      "file": "site/1112912d853a8bba5a1a6e2f.bin",
+      "mime": "text/x-component",
+      "sha256": "a28a0ae201284df6d788f547b3524b34e7d2a1204b6a44e04ca18a81ea87985c",
+      "bytes": 104264,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/crediflow?_rsc=6tIbBtwNe4yfeO1T",
+      "file": "site/87b1d3200778333b267bb3b2.bin",
+      "mime": "text/x-component",
+      "sha256": "49deead2ad1829118f95c0153e596f8c04d60d50dcae1e04c427f21b7b097913",
+      "bytes": 836,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/crediflow?_rsc=YQjE8pxqQpuztOnT",
+      "file": "site/cf8f975566b6c4f23aa88b7a.bin",
+      "mime": "text/x-component",
+      "sha256": "82709ed5b24e47653a23ad5339a9c8ca4aaf457ca24e9af668fa4625eda131ef",
+      "bytes": 39238,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/crediflow",
+      "file": "site/18e0e538e01597f8b9e21705.html",
+      "mime": "text/html; charset=utf-8",
+      "sha256": "9887b9ec2501c982feefd749b8ab0483cd41e26860fb794f4c3039af0b07064a",
+      "bytes": 77936,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=htByKqG9KtKURRjM",
+      "file": "site/e282ab65c40be10ec2af6170.bin",
+      "mime": "text/x-component",
+      "sha256": "a6b9e1af63db5832de252f0e411f4fc4d8eb875513830508a975c694530515b2",
+      "bytes": 1040,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/?_rsc=Ius-IKmADEiOLvbo",
+      "file": "site/9778bd06183e715b53d68d75.bin",
+      "mime": "text/x-component",
+      "sha256": "a28a0ae201284df6d788f547b3524b34e7d2a1204b6a44e04ca18a81ea87985c",
+      "bytes": 104264,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/eigna?_rsc=htByKqG9KtKURRjM",
+      "file": "site/04ed3e68ba110cbf26807dae.bin",
+      "mime": "text/x-component",
+      "sha256": "050b0f6b3e810399bc4cbf2dac7d7fa34fbba3ad36282064832d9e6137c50e4d",
+      "bytes": 832,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/work/eigna?_rsc=c0sZTJ_S78IrlQ6n",
+      "file": "site/d9d07a866e181381ebb16145.bin",
+      "mime": "text/x-component",
+      "sha256": "8a89cbf8ca7e94a0054f2cdc834a37e34f32ead5e4c3f97a117da1aa56172290",
+      "bytes": 40414,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/archivo-vietnamese-wght-normal.3cbdnbmi1hpzs.woff2",
+      "file": "site/98fcba7359a512da79cdee21.bin",
+      "mime": "font/woff2",
+      "sha256": "5a621c5598a31392555104ccdc41a46c3104f1cc22666024a8afb881ca9adaab",
+      "bytes": 13240,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/archivo-latin-wght-normal.0inx24hl2eswd.woff2",
+      "file": "site/ace54c89cac0bfde1cd3dcd5.bin",
+      "mime": "font/woff2",
+      "sha256": "8f704806dbedeaaeca334b11ec348bc3ac3a439d6431544b3afb54f534ee4967",
+      "bytes": 34928,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-cyrillic-ext-400-normal.0_q8wa_t-7-c7.woff2",
+      "file": "site/0c03d6f8544195c78d3cd46e.bin",
+      "mime": "font/woff2",
+      "sha256": "f8c22ec1804bd6966b70f43ac7c327025645b4c09597117fca2a5a6c750106fe",
+      "bytes": 6912,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-cyrillic-ext-400-normal.1-h66gx1kjeux.woff",
+      "file": "site/678123d8f1648d374c7c3d42.bin",
+      "mime": "font/woff",
+      "sha256": "0e4a2393e8ed3185ae300e4a202b6d9149d47d8a0e5bb8f1d1db33e76b86ecd1",
+      "bytes": 5820,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-cyrillic-400-normal.2dcg25_89g34d.woff2",
+      "file": "site/49722326279b7f7f8c3b3a39.bin",
+      "mime": "font/woff2",
+      "sha256": "7635422bd10ddbbcb0e0caa1154b928298f5c8319b8c00b30978d4395f4783ce",
+      "bytes": 8356,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-cyrillic-400-normal.1r3eey-1tdqwh.woff",
+      "file": "site/fa8812ad6e2fec5d57c05e7e.bin",
+      "mime": "font/woff",
+      "sha256": "42da81a28bbcddda6768a25a4b3105ee291e69d5fa6c74747bc51bbc6718c538",
+      "bytes": 7204,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-vietnamese-400-normal.40ek894ady0so.woff2",
+      "file": "site/b63f4c94c4b07d08441d435d.bin",
+      "mime": "font/woff2",
+      "sha256": "62632b6375305e70ddcafdd895218e6ae41a184fcd280a69c739460604ca00a9",
+      "bytes": 5868,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-vietnamese-400-normal.0blsyrk14nago.woff",
+      "file": "site/770e6f0a2646a8694517d205.bin",
+      "mime": "font/woff",
+      "sha256": "bced561d991e3f81c150c08e71f7fa849fcbff523560f6059245f2edce19b600",
+      "bytes": 5620,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-latin-ext-400-normal.0hj8bqnym411c.woff",
+      "file": "site/85b99bb17ce914a8273b24c2.bin",
+      "mime": "font/woff",
+      "sha256": "f8ddaa0ab9d3c052c9fe035751c8214b7e0d59e6e7b69b045f8659c2fe4dced2",
+      "bytes": 11768,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-latin-400-normal.19gbeb610ur4n.woff2",
+      "file": "site/744b4cec6d7ae48cdb9ca9dc.bin",
+      "mime": "font/woff2",
+      "sha256": "08949f728dc52d528e69b1667d15c89a5686a4ee9a296ff90983985f99c380f7",
+      "bytes": 14708,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-latin-400-normal.3nj-glub930lh.woff",
+      "file": "site/0154971825d7aea4f66163d8.bin",
+      "mime": "font/woff",
+      "sha256": "328d50b6ece9ca25c46eea3e885ba497f6237f2fb84ef7b92f88e14a1a25e381",
+      "bytes": 13144,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-cyrillic-ext-500-normal.2tfs-ajhr_27q.woff2",
+      "file": "site/121b9a0d5506b171339770ce.bin",
+      "mime": "font/woff2",
+      "sha256": "3febe5c7f22e4b07b4552738673c3dbe8bced2dc5f48b866edf7ccd9552d109a",
+      "bytes": 6972,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-cyrillic-ext-500-normal.29wincfdhpbow.woff",
+      "file": "site/1e41a5e6011e72bc5b95c3c9.bin",
+      "mime": "font/woff",
+      "sha256": "eadb2c427859b185761380143d1f42187fd7cbd94704b543e4c76c6368fbab52",
+      "bytes": 5772,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-cyrillic-500-normal.30hm7mcic8nak.woff2",
+      "file": "site/024137a727912717b33c19af.bin",
+      "mime": "font/woff2",
+      "sha256": "1d89462e86cb8e87e7e9d6f6635605bd7c3081baca6caaecee84916bf7b60edc",
+      "bytes": 8460,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-cyrillic-500-normal.1g2cl4geicio1.woff",
+      "file": "site/49c7b5ef7da7c407518a2794.bin",
+      "mime": "font/woff",
+      "sha256": "55a3af5e5ba0f565b4e66149cfe077ba88ac42cc3f68650a901d58eadbf9cd9b",
+      "bytes": 7208,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-vietnamese-500-normal.400h8-n7y356b.woff2",
+      "file": "site/f49d79adb8121657e0b8843f.bin",
+      "mime": "font/woff2",
+      "sha256": "781633d95de88040fb77141d1e65d928c87c0144691fbc74da5a64d137a7e910",
+      "bytes": 6040,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-vietnamese-500-normal.2w9-mj8vy__-b.woff",
+      "file": "site/08abf7219b6a8516a0c873b5.bin",
+      "mime": "font/woff",
+      "sha256": "755f62b418df17518aa0ea16b4232e546ce949a4ab7acc577071fa9be9e3dc88",
+      "bytes": 5616,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-latin-ext-500-normal.2yypdhrkbqnza.woff2",
+      "file": "site/e0ba3e0429a560e108de7116.bin",
+      "mime": "font/woff2",
+      "sha256": "6bb06407c97584b0867a959e05e8874693bfeb8c317de190811c51598f2d99ea",
+      "bytes": 13432,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-latin-ext-500-normal.3-fgi0nn_mag-.woff",
+      "file": "site/5f9c2432421ca34553e47dd1.bin",
+      "mime": "font/woff",
+      "sha256": "ff5da89c3ee20d38359943b61a7aae9200d2a0f61cf95ca10a7cccef81da2ff5",
+      "bytes": 11768,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-latin-500-normal.25_05y-blbp24.woff2",
+      "file": "site/9732910e4856c635e2b489bc.bin",
+      "mime": "font/woff2",
+      "sha256": "01d285447409c8a588692162439a038b8cbd7871309ee20267b0d2d91c6e8e22",
+      "bytes": 14888,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/_next/static/immutable/media/ibm-plex-mono-latin-500-normal.20ixcot5hpnm-.woff",
+      "file": "site/0ab130d92218e4b93a38ba46.bin",
+      "mime": "font/woff",
+      "sha256": "09f018c58556e5801ecc49d5b5275dcff4c73311c2af6b88e31c51d76d076a9d",
+      "bytes": 13156,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/work/mealops?_rsc=5CB68i4pnAekjehf",
+      "file": "site/72ea8f580896e1bbf8ae1a95.bin",
+      "mime": "text/x-component",
+      "sha256": "c5bdc3bc9f3e39cbe21b160f413e306bf1aa43ff8d8af1c14d37d8faba2e2a5a",
+      "bytes": 834,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": true,
+      "reviewRequired": true,
+      "review": null
+    },
+    {
+      "route": "/__botmd/media/preview.svg",
+      "file": "media/262b18c89c74c43fadf95115f14460698fa114574ed7df7d0435000f7ba072ce.svg",
+      "mime": "image/svg+xml",
+      "sha256": "262b18c89c74c43fadf95115f14460698fa114574ed7df7d0435000f7ba072ce",
+      "bytes": 350,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/__botmd/content.js",
+      "file": "content.js",
+      "mime": "application/javascript",
+      "sha256": "d8bb79c037c0c33320f8b0ea65ab31ee518c00c2f0137804a2e4a62ef96e8316",
+      "bytes": 9135,
+      "matches": [],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    },
+    {
+      "route": "/__botmd/content.json",
+      "file": "content.json",
+      "mime": "application/json",
+      "sha256": "ae549511eed5c37088949eb844a5fe166c65a640dc19fd5bd4c73378cf284bea",
+      "bytes": 6932,
+      "matches": [
+        "Daksh",
+        "Gajjar",
+        "dakshgajjar.com"
+      ],
+      "originalMedia": false,
+      "opaqueOriginalCodeOrData": false,
+      "reviewRequired": false,
+      "review": null
+    }
+  ],
+  "limitations": [
+    "Las sustituciones declaradas no prueban su aplicación: verificar la plantilla en el navegador.",
+    "Coincidencias literales y normalizadas de los términos declarados; no es un detector semántico universal ni OCR.",
+    "El código y los datos conservados pueden ocultar o reconstruir información no detectable por estas reglas.",
+    "Una revisión de un recurso nunca silencia una coincidencia de término prohibido.",
+    "Los informes y la captura original son material de trabajo, no parte del paquete público."
+  ]
+}

@@ -13,6 +13,8 @@ export type MotionConfig = {
   maxPaths: number;
   pointSamples: number;
   allowLocalhost: boolean;
+  clockMode: "realtime" | "controlled";
+  renderWaitMs: number;
 };
 export type MotionPath = {
   key: string;
@@ -34,6 +36,7 @@ export type MotionFrame = {
   input: { reduced: boolean; touchPoints: number; hover: boolean };
   paths: MotionPath[];
   truncated: boolean;
+  capturedAtMs?: number;
 };
 export type MotionTrace = {
   schemaVersion: 1;
@@ -50,6 +53,7 @@ export type MotionTrace = {
     requestHeaders: Record<string, string>;
   }[];
   issues: string[];
+  readiness?: { viewport: string; virtualReadyMs: number; clockMode: string }[];
   limitations: string[];
 };
 export type ContentBinding = {

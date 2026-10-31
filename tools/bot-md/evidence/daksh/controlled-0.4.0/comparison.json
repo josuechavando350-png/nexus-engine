@@ -1,0 +1,34 @@
+{
+  "status": "pass",
+  "comparison": {
+    "status": "pass",
+    "expectedFrames": 48,
+    "referenceFrames": 48,
+    "candidateFrames": 48,
+    "complete": true,
+    "tolerancePx": 2,
+    "maxPointDelta": 0.0301513671875,
+    "maxLengthDelta": 0.0205078125,
+    "maxDashDelta": 0,
+    "referenceIssues": [],
+    "candidateIssues": [],
+    "failures": [],
+    "scope": "Solo geometría, progreso y estilos SVG muestreados con el mismo contenido; no certifica igualdad visual de toda la página ni cada frame intermedio."
+  },
+  "baselineRepeat": {
+    "status": "pass",
+    "expectedFrames": 48,
+    "referenceFrames": 48,
+    "candidateFrames": 48,
+    "complete": true,
+    "tolerancePx": 2,
+    "maxPointDelta": 0.0301513671875,
+    "maxLengthDelta": 0.0205078125,
+    "maxDashDelta": 0,
+    "referenceIssues": [],
+    "candidateIssues": [],
+    "failures": [],
+    "scope": "Solo geometría, progreso y estilos SVG muestreados con el mismo contenido; no certifica igualdad visual de toda la página ni cada frame intermedio."
+  },
+  "note": "La aprobación se limita al perfil y muestras declarados."
+}

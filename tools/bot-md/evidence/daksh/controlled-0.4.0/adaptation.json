@@ -1,0 +1,587 @@
+{
+  "createdAt": "2026-10-31T23:10:34.533Z",
+  "scope": "Declared homepage fields; adaptation, not identity or removal of every original content item. Metadata is checked in the rendered DOM, not certified for non-JavaScript crawlers.",
+  "expectedBindings": 19,
+  "results": [
+    {
+      "viewport": "desktop",
+      "status": "pass",
+      "curveChanged": true,
+      "original": {
+        "documentTitle": "Daksh Gajjar",
+        "description": "Product designer working across digital experiences, AI products and intelligent systems.",
+        "brand": "DG",
+        "title": "I DESIGNPRODUCTSTHAT THINK.",
+        "titleLines": 3,
+        "heroHeight": 900,
+        "introHeight": 49.59375,
+        "documentHeight": 11192,
+        "overflowX": 0,
+        "paths": [
+          {
+            "dHash": "cafdb16badabaf2d8a30006364469b16317c1e993f24f4b368aa1cb20f417c21",
+            "length": 2531.323486328125
+          },
+          {
+            "dHash": "f369a865d3328114489a922e16e045d90f1317405ebd1a61865d4fe9acdc7098",
+            "length": 2929.63232421875
+          },
+          {
+            "dHash": "ef6678e31509b2837d934a31dcf04309d9877d280291b13655138ef090ced34d",
+            "length": 1200.962890625
+          },
+          {
+            "dHash": "5dd351de0df3adb24aa88e777883bb97a879444adf7bae21533bea469755616c",
+            "length": 1200.962890625
+          },
+          {
+            "dHash": "9a2a755e3d83be3ca4954a7c88ed723d3c94f334a74eb2a033e93c87a61fe24a",
+            "length": 100.796875
+          },
+          {
+            "dHash": "918ee11a513da29be7e6c712e613981e58f284d803f9126d7e542c1efbc00a6e",
+            "length": 4218.45703125
+          },
+          {
+            "dHash": "ec9e587feb2eda2ebfbc39fccc11768a3473d0d3697c39f2080c0c323b55c32c",
+            "length": 1970.367431640625
+          },
+          {
+            "dHash": "99d05a1ab7b2228b1ed20401b8ddedcbf625323320ad9d75b051152a8063903b",
+            "length": 3645.4931640625
+          },
+          {
+            "dHash": "929073fac3974f05cf6156ce22a51ffbffca12723cd0e4fc57054122e3278399",
+            "length": 3091.087890625
+          },
+          {
+            "dHash": "8710c5b6165eb58bf029812ac010c188df5d6c6998b7c9627e2be7c9f0157619",
+            "length": 2872.036376953125
+          },
+          {
+            "dHash": "5186a192b1cebca79962cd7e3571dd6f6f27d9741b4f7cf55a96037b8aaf4547",
+            "length": 3191.904541015625
+          },
+          {
+            "dHash": "10bf28e78d0224e58e9562ddd283c9585cc382a3fe255200f8e57a42f2ca962f",
+            "length": 10557.1259765625
+          },
+          {
+            "dHash": "a87ebb3ed78c571bff41a71edb76344bf658dbdc5d1f54ad2c3bdb1d1b69a18c",
+            "length": 1031.4266357421875
+          },
+          {
+            "dHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "dHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "dHash": "fdd5180688fbd6cedcdeb714c1246043aa98f0fe3887d6e7f851989b6c9a462c",
+            "length": 416.1735534667969
+          },
+          {
+            "dHash": "c7ceafbccf0704380bf8d5f9f3086986098a29dcc6bc605b5f33303c859343a2",
+            "length": 278.0741882324219
+          },
+          {
+            "dHash": "d9d625417ae6df26d0dcdfd5994a21c6f8bdc16d2652367f626a660a45f2c7a8",
+            "length": 101.88066864013672
+          },
+          {
+            "dHash": "e5ac1c955c88e723096878b8f30a3fe60127b7f88db7ccbc5f39c996fd453e3a",
+            "length": 266.0916748046875
+          },
+          {
+            "dHash": "39624973d28770e9bcc4538559141dd46b51ffb9947492ad697833bd2b29f91b",
+            "length": 164.48275756835938
+          },
+          {
+            "dHash": "201266e01dc90d68ac1fb649b482065f2516e9332349d80ec84346994429b16d",
+            "length": 94.75039672851562
+          },
+          {
+            "dHash": "e929130543173816e8f83fae3d388f923892af9ab8b320de0e5cce845d936f45",
+            "length": 118.98723602294922
+          },
+          {
+            "dHash": "924952289bdef333fe828dbd7174bbb01e608fe5ac5c65211750c7a25c2c7774",
+            "length": 89.96913146972656
+          },
+          {
+            "dHash": "20ccd62e0f17b2c3a53949effe78d8b617fdbe685a029233a1f4e0ca6619779f",
+            "length": 73.6428451538086
+          },
+          {
+            "dHash": "53042b908c16636f67bdffd9c3ed182fe53ba43931c22410bc40e8a969a31c60",
+            "length": 940.2306518554688
+          },
+          {
+            "dHash": "7d6414355a96acc2826fd14ff1a0df8998a7a99cad7ed9061dbf13de3c81891a",
+            "length": 213.1110076904297
+          }
+        ],
+        "content": null,
+        "input": {
+          "reduced": false,
+          "touchPoints": 0
+        },
+        "menuVisible": false,
+        "menuOpened": null,
+        "menuClosed": null,
+        "desktopNavigationVisible": true,
+        "motionChanged": true,
+        "jsErrors": [],
+        "httpErrors": []
+      },
+      "edited": {
+        "documentTitle": "Bot MD — demostración",
+        "description": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo.",
+        "brand": "BM",
+        "title": "CREAMOSSISTEMASQUE AVANZAN.",
+        "titleLines": 3,
+        "heroHeight": 900,
+        "introHeight": 99.1875,
+        "documentHeight": 11192,
+        "overflowX": 0,
+        "paths": [
+          {
+            "dHash": "cafdb16badabaf2d8a30006364469b16317c1e993f24f4b368aa1cb20f417c21",
+            "length": 2531.323486328125
+          },
+          {
+            "dHash": "f369a865d3328114489a922e16e045d90f1317405ebd1a61865d4fe9acdc7098",
+            "length": 2929.63232421875
+          },
+          {
+            "dHash": "ef6678e31509b2837d934a31dcf04309d9877d280291b13655138ef090ced34d",
+            "length": 1200.962890625
+          },
+          {
+            "dHash": "5dd351de0df3adb24aa88e777883bb97a879444adf7bae21533bea469755616c",
+            "length": 1200.962890625
+          },
+          {
+            "dHash": "9a2a755e3d83be3ca4954a7c88ed723d3c94f334a74eb2a033e93c87a61fe24a",
+            "length": 100.796875
+          },
+          {
+            "dHash": "918ee11a513da29be7e6c712e613981e58f284d803f9126d7e542c1efbc00a6e",
+            "length": 4218.45703125
+          },
+          {
+            "dHash": "ec9e587feb2eda2ebfbc39fccc11768a3473d0d3697c39f2080c0c323b55c32c",
+            "length": 1970.367431640625
+          },
+          {
+            "dHash": "99d05a1ab7b2228b1ed20401b8ddedcbf625323320ad9d75b051152a8063903b",
+            "length": 3645.4931640625
+          },
+          {
+            "dHash": "929073fac3974f05cf6156ce22a51ffbffca12723cd0e4fc57054122e3278399",
+            "length": 3091.087890625
+          },
+          {
+            "dHash": "8710c5b6165eb58bf029812ac010c188df5d6c6998b7c9627e2be7c9f0157619",
+            "length": 2872.036376953125
+          },
+          {
+            "dHash": "5186a192b1cebca79962cd7e3571dd6f6f27d9741b4f7cf55a96037b8aaf4547",
+            "length": 3191.904541015625
+          },
+          {
+            "dHash": "10bf28e78d0224e58e9562ddd283c9585cc382a3fe255200f8e57a42f2ca962f",
+            "length": 10557.1259765625
+          },
+          {
+            "dHash": "a87ebb3ed78c571bff41a71edb76344bf658dbdc5d1f54ad2c3bdb1d1b69a18c",
+            "length": 1031.4266357421875
+          },
+          {
+            "dHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "dHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "dHash": "85e304b2ac7d56bc5d89a3c2af22887c0aa39b95373c0e44a1d8535ad5731873",
+            "length": 628.5660400390625
+          },
+          {
+            "dHash": "d4d1266c707424a47d9e1783cd564beea4b78ac2a5cb22fd0ee9217995341841",
+            "length": 476.6360168457031
+          },
+          {
+            "dHash": "33bb428ec8126b10d85f78e7fde677e280d6f14445b0bc7f8c42cf5b87ffc833",
+            "length": 101.78717041015625
+          },
+          {
+            "dHash": "b973ec4088e26fed9371f15ab3f8ea5b91aedd40f977394bc23dc235d9909b71",
+            "length": 245.1543731689453
+          },
+          {
+            "dHash": "07205ee81f3edb21df9a80f6082de11a2491da717447e36bc20891faf58c0664",
+            "length": 156.50799560546875
+          },
+          {
+            "dHash": "42b803eb68bd313e214fda6c63e34c11fc8e22411cae382c4e9c346fbfe685ad",
+            "length": 94.75042724609375
+          },
+          {
+            "dHash": "562fe73024f19cea92a35c9af8415922155e9293314cba1db8027af97118de4d",
+            "length": 168.29278564453125
+          },
+          {
+            "dHash": "0c630e54430b55fb30242a6a89a7b8a0d7ea379eb25cf7e2b30ce13546fcf2fa",
+            "length": 125.71223449707031
+          },
+          {
+            "dHash": "33c367c4ad86046387e669ca68d263554b0b6431c18a05ea889c868bb0bf3b17",
+            "length": 72.82127380371094
+          },
+          {
+            "dHash": "920d1ff4f79fed0a381080ee2e59370b2c0f10e0ea9926961c60fb830fd58632",
+            "length": 1067.8638916015625
+          },
+          {
+            "dHash": "1369b125dec2c302bfb21b10b5e2071ef35e853bd6c2a59c460b252353fbfffe",
+            "length": 202.94000244140625
+          }
+        ],
+        "content": {
+          "route": "/",
+          "ready": true,
+          "applied": [
+            "field-1",
+            "field-2",
+            "field-3",
+            "field-4",
+            "field-5",
+            "field-6",
+            "field-7",
+            "field-8",
+            "field-9",
+            "field-10",
+            "field-11",
+            "field-14",
+            "field-15",
+            "field-27",
+            "field-28",
+            "field-29",
+            "field-30",
+            "field-468",
+            "field-469"
+          ],
+          "unchanged": [],
+          "missing": [],
+          "conflicts": []
+        },
+        "input": {
+          "reduced": false,
+          "touchPoints": 0
+        },
+        "menuVisible": false,
+        "menuOpened": null,
+        "menuClosed": null,
+        "desktopNavigationVisible": true,
+        "motionChanged": true,
+        "jsErrors": [],
+        "httpErrors": []
+      }
+    },
+    {
+      "viewport": "mobile",
+      "status": "pass",
+      "curveChanged": true,
+      "original": {
+        "documentTitle": "Daksh Gajjar",
+        "description": "Product designer working across digital experiences, AI products and intelligent systems.",
+        "brand": "DG",
+        "title": "I DESIGNPRODUCTSTHAT THINK.",
+        "titleLines": 3,
+        "heroHeight": 844,
+        "introHeight": 36.65625,
+        "documentHeight": 11544,
+        "overflowX": 0,
+        "paths": [
+          {
+            "dHash": "e31be2d2fe5fa6ed604bf5df92e39dc88d1c23064a74998b3c053e603886c063",
+            "length": 2499.62109375
+          },
+          {
+            "dHash": "66b17da4af2dd6399bdb2d43f7bfe956b17eac5b94167a6ff1e5daabda40e579",
+            "length": 467.8392333984375
+          },
+          {
+            "dHash": "d047d7dfdab049a3a6518da0d5086a87c957223214e0715e2cc2cc547ab605f4",
+            "length": 821.4937744140625
+          },
+          {
+            "dHash": "c859f1d0db3e2be78f05bcba96a0d6a4e0a392e472ababf8b669bd25b3bc89d0",
+            "length": 821.4937744140625
+          },
+          {
+            "dHash": "6498f683d1b1e259e92eacc5325ddda06df844667f49ba426b4aad79291d5501",
+            "length": 118.93911743164062
+          },
+          {
+            "dHash": "9eb9c87fc50c16051510e41293a0da08b517d091b9713631780b4f8b45d99d26",
+            "length": 2348.102294921875
+          },
+          {
+            "dHash": "a114dd30deedf5f00fb8895a7e211721bf2664238e43de7ed69a6c3be6009610",
+            "length": 1236.2122802734375
+          },
+          {
+            "dHash": "ab6bd3f441c8467995065af6be681d86343dfc5ce310a1bfb7b95c7bc1514ce3",
+            "length": 1349.01904296875
+          },
+          {
+            "dHash": "a61e5de5bae7fbc00458daf2b7c5f27f94154a5d6d5f4670b39a245004bc79e4",
+            "length": 1718.4619140625
+          },
+          {
+            "dHash": "f6f93724d8a99e3279689445198453399fc4bc3d77d4502db2914bc7c29d542b",
+            "length": 1429.890380859375
+          },
+          {
+            "dHash": "ba195564056b00fb2ed63268a90d6d2241f55fedf245035e3d9bcb91f87c8b40",
+            "length": 1546.3826904296875
+          },
+          {
+            "dHash": "42b29df71cd5a3df869200dd608583dcb3ec843e4ecfc5d5933adc7dfdc64885",
+            "length": 5502.5224609375
+          },
+          {
+            "dHash": "44f97edd79d0f2fdfc6dc164b15ac1ef97737b303b9815f52b4268efca22b2b6",
+            "length": 879.2037963867188
+          },
+          {
+            "dHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "dHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "dHash": "84b93039c9558b83e1aa44f293999550b7f201c425bc6f51b910b4218e8b5206",
+            "length": 327.21392822265625
+          },
+          {
+            "dHash": "925b245ff6d3a50712e2305e67484d0f3f086e4a27f9ca01b21ebd24235331bc",
+            "length": 78.55201721191406
+          },
+          {
+            "dHash": "fcbf097cadcdf44ce1565776a33de7b0ad5f6a6c8674f0bb07623f9f6cabd1c2",
+            "length": 28.93053436279297
+          },
+          {
+            "dHash": "448e76b40f4d772bb0ff188a72c63acea3b8804624644c2978bf0778e07a5c76",
+            "length": 75.0082015991211
+          },
+          {
+            "dHash": "503a1be249b0f7e7ad26605822f578fd2d6a596697b1a7e6dd8f858f717584bc",
+            "length": 46.35826873779297
+          },
+          {
+            "dHash": "fb27aa486f6bc86706bc3e852445458bb89c5b22c351d133be101365998ccaf9",
+            "length": 159.09442138671875
+          },
+          {
+            "dHash": "f39a17b474188ef1152b9561dec2b081a82056b1b64a8d1963c5a064bb559325",
+            "length": 288.3470764160156
+          },
+          {
+            "dHash": "332b78635372efcc5affa28291495659fadbac33d14792dd23e6b5d89a1150be",
+            "length": 25.393983840942383
+          },
+          {
+            "dHash": "e0a60b39c1bf73d8a4167fc05d3e500889e3146c980d2c2b390911b2ce7d8ac5",
+            "length": 20.755456924438477
+          },
+          {
+            "dHash": "0d5a2ddc35856495b7b0ff5513496d49dc4276fd510db680c86187e3af49b3a7",
+            "length": 265.1262512207031
+          },
+          {
+            "dHash": "a07a8fcf61d720d90d76f2ad10d7205ab58d20b30d352e9e6be11d661438068c",
+            "length": 60.07208251953125
+          }
+        ],
+        "content": null,
+        "input": {
+          "reduced": false,
+          "touchPoints": 1
+        },
+        "menuVisible": true,
+        "menuOpened": "true",
+        "menuClosed": "false",
+        "desktopNavigationVisible": false,
+        "motionChanged": true,
+        "jsErrors": [],
+        "httpErrors": []
+      },
+      "edited": {
+        "documentTitle": "Bot MD — demostración",
+        "description": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo.",
+        "brand": "BM",
+        "title": "CREAMOSSISTEMASQUE AVANZAN.",
+        "titleLines": 3,
+        "heroHeight": 844,
+        "introHeight": 73.3125,
+        "documentHeight": 11544,
+        "overflowX": 0,
+        "paths": [
+          {
+            "dHash": "e31be2d2fe5fa6ed604bf5df92e39dc88d1c23064a74998b3c053e603886c063",
+            "length": 2499.62109375
+          },
+          {
+            "dHash": "66b17da4af2dd6399bdb2d43f7bfe956b17eac5b94167a6ff1e5daabda40e579",
+            "length": 467.8392333984375
+          },
+          {
+            "dHash": "d047d7dfdab049a3a6518da0d5086a87c957223214e0715e2cc2cc547ab605f4",
+            "length": 821.4937744140625
+          },
+          {
+            "dHash": "c859f1d0db3e2be78f05bcba96a0d6a4e0a392e472ababf8b669bd25b3bc89d0",
+            "length": 821.4937744140625
+          },
+          {
+            "dHash": "6498f683d1b1e259e92eacc5325ddda06df844667f49ba426b4aad79291d5501",
+            "length": 118.93911743164062
+          },
+          {
+            "dHash": "9eb9c87fc50c16051510e41293a0da08b517d091b9713631780b4f8b45d99d26",
+            "length": 2348.102294921875
+          },
+          {
+            "dHash": "a114dd30deedf5f00fb8895a7e211721bf2664238e43de7ed69a6c3be6009610",
+            "length": 1236.2122802734375
+          },
+          {
+            "dHash": "ab6bd3f441c8467995065af6be681d86343dfc5ce310a1bfb7b95c7bc1514ce3",
+            "length": 1349.01904296875
+          },
+          {
+            "dHash": "a61e5de5bae7fbc00458daf2b7c5f27f94154a5d6d5f4670b39a245004bc79e4",
+            "length": 1718.4619140625
+          },
+          {
+            "dHash": "f6f93724d8a99e3279689445198453399fc4bc3d77d4502db2914bc7c29d542b",
+            "length": 1429.890380859375
+          },
+          {
+            "dHash": "ba195564056b00fb2ed63268a90d6d2241f55fedf245035e3d9bcb91f87c8b40",
+            "length": 1546.3826904296875
+          },
+          {
+            "dHash": "42b29df71cd5a3df869200dd608583dcb3ec843e4ecfc5d5933adc7dfdc64885",
+            "length": 5502.5224609375
+          },
+          {
+            "dHash": "44f97edd79d0f2fdfc6dc164b15ac1ef97737b303b9815f52b4268efca22b2b6",
+            "length": 879.2037963867188
+          },
+          {
+            "dHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "dHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "dHash": "37276c2616df423bc08a74eb6d5b9461c115119b2a4a82f67543fdd5add07821",
+            "length": 365.4761962890625
+          },
+          {
+            "dHash": "00cb181f1ea199e74e0135a29c51a719df8f92cb7dac891aa10eda9ad3933db4",
+            "length": 134.4444122314453
+          },
+          {
+            "dHash": "be283e5d5f52735778b1b4f30ea791c6a13e4223f68c94c78cdd2ff13f3628a7",
+            "length": 28.903900146484375
+          },
+          {
+            "dHash": "d8ae9c1dca162873472cf8cff027f0621700164ce82ca98061a0d4cc6f1d5ebf",
+            "length": 69.09973907470703
+          },
+          {
+            "dHash": "9e4b985dd08daa600f363d65c73c356e61b98aa5b4984595d8133186bdcdac42",
+            "length": 44.10793685913086
+          },
+          {
+            "dHash": "fd37ebffd80f91c0acd6f584d943862b1b2ebdabbc459b0c2c827b9d9db195c6",
+            "length": 135.78143310546875
+          },
+          {
+            "dHash": "877caf0714e1f78bf1ba05eebdfbc1f44688a3c4b148747ed2a0e806fd7d554a",
+            "length": 281.733642578125
+          },
+          {
+            "dHash": "e2864b052d2919681f5114786ee784b9c85a2021fd49407ea36a773df13391e9",
+            "length": 35.452728271484375
+          },
+          {
+            "dHash": "059fe060341563ca3bf03325cf0752b0b29d0318c6da1ef267e554e4010b4301",
+            "length": 20.52066421508789
+          },
+          {
+            "dHash": "0af8f373ce66eb8ab672c5899f93068207440583fa17bb88085aa0415c03812f",
+            "length": 301.104736328125
+          },
+          {
+            "dHash": "cbd5810a80ea9b28d0f5b7e2ac0f2233a2b86d60d9a4225cb7fda05e1d9ea5fc",
+            "length": 57.20195007324219
+          }
+        ],
+        "content": {
+          "route": "/",
+          "ready": true,
+          "applied": [
+            "field-1",
+            "field-2",
+            "field-3",
+            "field-4",
+            "field-5",
+            "field-6",
+            "field-7",
+            "field-8",
+            "field-9",
+            "field-10",
+            "field-11",
+            "field-14",
+            "field-15",
+            "field-27",
+            "field-28",
+            "field-29",
+            "field-30",
+            "field-468",
+            "field-469"
+          ],
+          "unchanged": [],
+          "missing": [],
+          "conflicts": []
+        },
+        "input": {
+          "reduced": false,
+          "touchPoints": 1
+        },
+        "menuVisible": true,
+        "menuOpened": "true",
+        "menuClosed": "false",
+        "desktopNavigationVisible": false,
+        "motionChanged": true,
+        "jsErrors": [],
+        "httpErrors": []
+      }
+    }
+  ]
+}

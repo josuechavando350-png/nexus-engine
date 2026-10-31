@@ -3,10 +3,40 @@ import { cp, readFile } from "node:fs/promises";
 import { parse, type DefaultTreeAdapterMap as Tree } from "parse5";
 import { integrity } from "./build.js";
 import { hash, inside, json, newDirectory, save, saveJson } from "./common.js";
-import type { Build } from "./types.js";
+import type { Build, Layout } from "./types.js";
 import type { ContentMap, ContentBinding } from "./experience-types.js";
+import { createMapper } from "./rewrite.js";
+import { addMediaAssets } from "./assets.js";
 
-const attributes = ["alt", "title", "aria-label", "placeholder", "href", "src"];
+const attributes = [
+  "alt",
+  "title",
+  "aria-label",
+  "placeholder",
+  "href",
+  "src",
+  "srcset",
+  "poster",
+  "content",
+];
+const metadataNames = [
+  "description",
+  "author",
+  "keywords",
+  "application-name",
+  "og:title",
+  "og:description",
+  "og:site_name",
+  "og:url",
+  "og:image",
+  "og:image:alt",
+  "twitter:title",
+  "twitter:description",
+  "twitter:image",
+  "twitter:image:alt",
+  "twitter:site",
+  "twitter:creator",
+];
 export function validateContent(map: ContentMap): ContentMap {
   if (
     map.schemaVersion !== 1 ||
@@ -64,14 +94,35 @@ export function validateContent(map: ContentMap): ContentMap {
       if (!attributes.includes(b.attribute ?? ""))
         throw new Error("Atributo no editable: " + b.attribute);
       if (
-        b.attribute === "src" &&
-        (!b.value.startsWith("/") || b.value.startsWith("//"))
+        ["src", "poster"].includes(b.attribute ?? "") &&
+        b.value !== b.expected &&
+        (!b.value.startsWith("/") ||
+          b.value.startsWith("//") ||
+          b.value.includes("\\"))
       )
         throw new Error(
           "Las imágenes nuevas requieren una ruta local registrada.",
         );
       if (
+        b.attribute === "srcset" &&
+        b.value !== b.expected &&
+        b.value.split(",").some((part) => {
+          const tokens = part.trim().split(/\s+/);
+          return (
+            tokens.length > 2 ||
+            !tokens[0].startsWith("/") ||
+            tokens[0].startsWith("//") ||
+            tokens[0].includes("\\") ||
+            (tokens[1] && !/^\d+(?:\.\d+)?[wx]$/.test(tokens[1]))
+          );
+        })
+      )
+        throw new Error(
+          "srcset requiere rutas locales y descriptores válidos.",
+        );
+      if (
         b.attribute === "href" &&
+        b.value !== b.expected &&
         !["https:", "http:", "mailto:", "tel:"].includes(
           new URL(b.value, "https://bot-md.invalid/").protocol,
         )
@@ -96,7 +147,9 @@ export async function catalogContent(captureDir: string, out: string) {
   }[] = [];
   const fields = new Map<string, ContentBinding>();
   for (const state of manifest.states) {
-    const url = new URL(state.url),
+    // State.url is the replay entry route; a click scenario can finish on another page.
+    const observed = await json<Layout>(inside(captureDir, state.layout));
+    const url = new URL(observed.url),
       route = url.pathname + url.search;
     const doc = parse(
       await readFile(inside(captureDir, state.renderedHtml), "utf8"),
@@ -108,15 +161,9 @@ export async function catalogContent(captureDir: string, out: string) {
         return;
       }
       if (
-        [
-          "script",
-          "style",
-          "noscript",
-          "template",
-          "link",
-          "meta",
-          "base",
-        ].includes(node.tagName)
+        ["script", "style", "noscript", "template", "link", "base"].includes(
+          node.tagName,
+        )
       )
         return;
       const siblings =
@@ -173,7 +220,17 @@ export async function catalogContent(captureDir: string, out: string) {
       });
       for (const attr of node.attrs)
         if (
-          ["alt", "title", "aria-label", "placeholder"].includes(attr.name) &&
+          (["alt", "title", "aria-label", "placeholder"].includes(attr.name) ||
+            (attr.name === "href" && ["a", "area"].includes(node.tagName)) ||
+            (["src", "srcset", "poster"].includes(attr.name) &&
+              ["img", "source", "video", "audio"].includes(node.tagName)) ||
+            (attr.name === "content" &&
+              node.tagName === "meta" &&
+              node.attrs.some(
+                (a) =>
+                  ["name", "property"].includes(a.name) &&
+                  metadataNames.includes(a.value.toLowerCase()),
+              ))) &&
           attr.value.trim()
         )
           add("attribute", attr.value, undefined, attr.name);
@@ -192,7 +249,7 @@ export async function catalogContent(captureDir: string, out: string) {
   });
   await save(
     path.join(out, "CONTENIDO.md"),
-    "# Contenido editable\n\nEdita solo value en content.json; expected conserva el texto observado y detecta discrepancias. textIndex identifica un nodo de texto directo, no reemplaza los elementos anidados.\n\nCampos: " +
+    "# Contenido editable\n\nEdita solo value en content.json; expected conserva el texto observado y detecta discrepancias. textIndex identifica un nodo de texto directo, no reemplaza los elementos anidados. El catálogo incluye enlaces, imágenes/srcset/poster y metadatos de contenido.\n\nCampos: " +
       bindings.length +
       ". Variantes entre estados: " +
       conflicts.length +
@@ -202,7 +259,10 @@ export async function catalogContent(captureDir: string, out: string) {
 }
 
 // Compiled to plain JS and embedded as a self-contained runtime. No eval or innerHTML.
-function contentRuntime(validate: (map: ContentMap) => ContentMap) {
+function contentRuntime(
+  validate: (map: ContentMap) => ContentMap,
+  metadata: string[],
+) {
   type Status = {
     route: string;
     ready: boolean;
@@ -279,6 +339,18 @@ function contentRuntime(validate: (map: ContentMap) => ContentMap) {
             continue;
           }
           const el = matches[0];
+          const editableMeta =
+            el.tagName === "META" &&
+            b.kind === "attribute" &&
+            b.attribute === "content" &&
+            !el.hasAttribute("http-equiv") &&
+            metadata.includes(
+              (
+                el.getAttribute("name") ??
+                el.getAttribute("property") ??
+                ""
+              ).toLowerCase(),
+            );
           if (
             [
               "SCRIPT",
@@ -289,7 +361,8 @@ function contentRuntime(validate: (map: ContentMap) => ContentMap) {
               "IFRAME",
               "OBJECT",
               "EMBED",
-            ].includes(el.tagName)
+            ].includes(el.tagName.toUpperCase()) &&
+            !editableMeta
           ) {
             status.conflicts.push(b.id + ":element");
             continue;
@@ -348,6 +421,9 @@ function contentRuntime(validate: (map: ContentMap) => ContentMap) {
           "placeholder",
           "href",
           "src",
+          "srcset",
+          "poster",
+          "content",
         ],
       });
       window.addEventListener("popstate", schedule);
@@ -377,15 +453,57 @@ export async function createTemplate(
   site: string,
   map: ContentMap,
   out: string,
+  assetsDir?: string,
 ) {
   validateContent(map);
   const index = await json<Build>(path.join(site, "routes.json"));
+  // Match the URL transformation already performed by build, including srcset.
+  const urls = new Set(Object.values(index.routes).map((r) => r.sourceUrl));
+  const translate = createMapper(index.origin, urls, new Set());
+  map = structuredClone(map);
+  for (const b of map.bindings) {
+    if (
+      b.kind !== "attribute" ||
+      !["href", "src", "srcset", "poster"].includes(b.attribute ?? "")
+    )
+      continue;
+    const original = b.expected;
+    const base = new URL(b.route, index.origin).href;
+    const mapped =
+      b.attribute === "srcset" && !original.includes("data:")
+        ? original
+            .split(",")
+            .map((p) => {
+              const tokens = p.trim().split(/\s+/);
+              tokens[0] = translate(tokens[0], base);
+              return tokens.join(" ");
+            })
+            .join(", ")
+        : translate(original, base);
+    b.expected = mapped;
+    if (b.value === original) b.value = mapped;
+  }
   if (index.routes["/__botmd/content.js"])
     throw new Error("La entrada ya contiene una plantilla editable.");
   if (path.resolve(out).startsWith(path.resolve(site) + path.sep))
     throw new Error("La salida no puede estar dentro de la entrada.");
   await newDirectory(out);
   await cp(site, out, { recursive: true });
+  if (assetsDir) await addMediaAssets(assetsDir, out, index);
+  for (const b of map.bindings) {
+    if (
+      b.kind !== "attribute" ||
+      b.expected === b.value ||
+      !["src", "srcset", "poster"].includes(b.attribute ?? "")
+    )
+      continue;
+    const urls =
+      b.attribute === "srcset"
+        ? b.value.split(",").map((s) => s.trim().split(/\s+/)[0])
+        : [b.value];
+    for (const u of urls)
+      if (!index.routes[u]) throw new Error("Medio nuevo no registrado: " + u);
+  }
   const runtime =
     "(()=>{const attributes=" +
     JSON.stringify(attributes) +
@@ -393,7 +511,9 @@ export async function createTemplate(
     validateContent.toString() +
     ";(" +
     contentRuntime.toString() +
-    ")(validateContent);})();\n";
+    ")(validateContent," +
+    JSON.stringify(metadataNames) +
+    ");})();\n";
   await save(path.join(out, "content.js"), runtime);
   await saveJson(path.join(out, "content.json"), map);
   for (const [url, file, mime] of [

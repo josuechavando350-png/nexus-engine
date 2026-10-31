@@ -5,11 +5,7 @@ import { launch } from "./browser.js";
 import { allowedURL, installCapturePolicy } from "./network.js";
 import { hash, json, newDirectory, save, saveJson } from "./common.js";
 import { serve } from "./server.js";
-import type {
-  MotionConfig,
-  MotionFrame,
-  MotionTrace,
-} from "./experience-types.js";
+import type { MotionConfig, MotionTrace } from "./experience-types.js";
 import type { Issue } from "./types.js";
 import { routingRequestHeaders } from "./http-metadata.js";
 
@@ -30,6 +26,8 @@ export function motionConfig(input: Partial<MotionConfig>): MotionConfig {
     maxPaths: 200,
     pointSamples: 17,
     allowLocalhost: false,
+    clockMode: "realtime",
+    renderWaitMs: 20,
     ...input,
   };
   if (
@@ -72,6 +70,7 @@ export function motionConfig(input: Partial<MotionConfig>): MotionConfig {
     ["pointSamples", 3, 65],
     ["timeoutMs", 1000, 120000],
     ["initialWaitMs", 0, 10000],
+    ["renderWaitMs", 0, 200],
   ] as const)
     if (!Number.isInteger(c[key]) || c[key] < min || c[key] > max)
       throw new Error("Límite inválido: " + key);
@@ -100,6 +99,10 @@ export function motionConfig(input: Partial<MotionConfig>): MotionConfig {
     throw new Error("Selector de preparación inválido.");
   if (typeof c.allowLocalhost !== "boolean")
     throw new Error("allowLocalhost inválido.");
+  if (!["realtime", "controlled"].includes(c.clockMode))
+    throw new Error("Reloj inválido.");
+  if (c.clockMode === "controlled" && !c.readySelector)
+    throw new Error("El reloj controlado requiere readySelector explícito.");
   return c;
 }
 
@@ -166,6 +169,7 @@ export async function motionFrame(page: Page, c: MotionConfig) {
         };
       });
       return {
+        capturedAtMs: performance.now(),
         scrollY,
         scrollHeight: document.documentElement.scrollHeight,
         overflowX: Math.max(
@@ -219,6 +223,7 @@ export async function captureMotion(
       "Scroll programático por fracción de altura; no certifica la latencia de gestos físicos.",
       "Puntos SVG en coordenadas de documento. No interpreta shaders, Canvas, vídeo ni Shadow DOM cerrado.",
       "La comparación estricta corresponde al mismo contenido; al cambiarlo se necesita una prueba de adaptación independiente.",
+      "El reloj controlado gobierna temporizadores y requestAnimationFrame de JavaScript; no certifica relojes de vídeo, WebGL, workers ni animaciones CSS del compositor.",
     ],
   };
   try {
@@ -258,6 +263,25 @@ export async function captureMotion(
       page.setDefaultTimeout(c.timeoutMs);
       page.setDefaultNavigationTimeout(c.timeoutMs);
       let observing = true;
+      const loading = new Set<import("playwright").Request>();
+      page.on("request", (r) => {
+        if (
+          ["document", "script", "stylesheet", "font"].includes(
+            r.resourceType(),
+          )
+        )
+          loading.add(r);
+      });
+      page.on("requestfinished", (r) => loading.delete(r));
+      page.on("requestfailed", (r) => loading.delete(r));
+      const deadline = () => Date.now() + c.timeoutMs;
+      async function waitAssets() {
+        const limit = deadline();
+        while (loading.size) {
+          if (Date.now() > limit) throw new Error("BOOTSTRAP_ASSETS_TIMEOUT");
+          await page.waitForTimeout(20);
+        }
+      }
       page.on("pageerror", (e) => {
         if (observing) trace.issues.push("JS_ERROR " + e.message);
       });
@@ -299,19 +323,48 @@ export async function captureMotion(
         void d.dismiss();
       });
       try {
-        await page.goto(url, { waitUntil: "domcontentloaded" });
-        if (c.readySelector)
-          await page
-            .locator(c.readySelector)
-            .first()
-            .waitFor({ state: "attached" });
-        await page.evaluate(async () => {
-          await Promise.race([
-            document.fonts.ready,
-            new Promise((r) => setTimeout(r, 5000)),
-          ]);
+        if (c.clockMode === "controlled") {
+          await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+          await page.clock.pauseAt(new Date("2026-01-01T00:00:01Z"));
+        }
+        await page.goto(url, {
+          waitUntil: c.clockMode === "controlled" ? "load" : "domcontentloaded",
         });
-        await page.waitForTimeout(c.initialWaitMs);
+        if (c.clockMode === "controlled") {
+          await waitAssets();
+          await page.evaluate(() => document.fonts.ready);
+          await page.waitForTimeout(300);
+          const limit = deadline();
+          let ticks = 0;
+          while (!(await page.locator(c.readySelector!).count())) {
+            if (Date.now() > limit || ticks >= c.timeoutMs)
+              throw new Error("CONTROLLED_READY_TIMEOUT");
+            await waitAssets();
+            await page.clock.runFor(100);
+            ticks += 100;
+            await page.waitForTimeout(c.renderWaitMs);
+          }
+          (trace.readiness ??= []).push({
+            viewport: viewport.name,
+            virtualReadyMs: await page.evaluate(() => performance.now()),
+            clockMode: c.clockMode,
+          });
+          await page.clock.runFor(c.initialWaitMs);
+          await page.waitForTimeout(c.renderWaitMs);
+        } else {
+          if (c.readySelector)
+            await page
+              .locator(c.readySelector)
+              .first()
+              .waitFor({ state: "attached" });
+          await page.evaluate(async () => {
+            await Promise.race([
+              document.fonts.ready,
+              new Promise((r) => setTimeout(r, 5000)),
+            ]);
+          });
+          await page.waitForTimeout(c.initialWaitMs);
+        }
         for (let step = 0; step < c.steps.length; step++) {
           const started = await page.evaluate((progress) => {
             window.scrollTo({
@@ -323,24 +376,30 @@ export async function captureMotion(
             });
             return performance.now();
           }, c.steps[step].progress);
+          if (c.clockMode === "controlled")
+            await page.waitForTimeout(c.renderWaitMs);
+          let previousSample = 0;
           for (const sampleMs of c.sampleMs) {
-            await page.evaluate(
-              async ({ started, at }) => {
-                const delay = started + at - performance.now();
-                if (delay > 0) await new Promise((r) => setTimeout(r, delay));
-                await new Promise(requestAnimationFrame);
-              },
-              { started, at: sampleMs },
-            );
+            if (c.clockMode === "controlled") {
+              if (sampleMs > previousSample)
+                await page.clock.runFor(sampleMs - previousSample);
+              await page.waitForTimeout(c.renderWaitMs);
+              previousSample = sampleMs;
+            } else
+              await page.evaluate(
+                async ({ started, at }) => {
+                  const delay = started + at - performance.now();
+                  if (delay > 0) await new Promise((r) => setTimeout(r, delay));
+                  await new Promise(requestAnimationFrame);
+                },
+                { started, at: sampleMs },
+              );
             const measured = await motionFrame(page, c);
             trace.frames.push({
               viewport: viewport.name,
               step,
               sampleMs,
-              elapsedMs: await page.evaluate(
-                (start) => performance.now() - start,
-                started,
-              ),
+              elapsedMs: measured.capturedAtMs - started,
               ...measured,
             });
             if (measured.truncated)
@@ -421,6 +480,12 @@ export function compareMotion(a: MotionTrace, b: MotionTrace, tolerance = 2) {
     }
     if (JSON.stringify(frame.input) !== JSON.stringify(candidate.input))
       fail("Condiciones de entrada diferentes");
+    if (
+      a.config.clockMode === "controlled" &&
+      (Math.abs(frame.elapsedMs - frame.sampleMs) > 1 ||
+        Math.abs(candidate.elapsedMs - candidate.sampleMs) > 1)
+    )
+      fail("Tiempo virtual de muestreo diferente del perfil");
     if (
       Math.abs(frame.scrollY - candidate.scrollY) > tolerance ||
       Math.abs(frame.scrollHeight - candidate.scrollHeight) > tolerance
@@ -529,15 +594,26 @@ export function assessMotion(
 ) {
   const comparison = compareMotion(reference, candidate);
   const baselineRepeat = repeat ? compareMotion(reference, repeat) : undefined;
+  const invalidEvidence =
+    !comparison.complete ||
+    reference.issues.length > 0 ||
+    candidate.issues.length > 0 ||
+    Boolean(
+      baselineRepeat && (!baselineRepeat.complete || repeat!.issues.length > 0),
+    );
+  const unstable =
+    !invalidEvidence && baselineRepeat && baselineRepeat.status !== "pass";
   return {
-    status:
-      baselineRepeat && baselineRepeat.status !== "pass"
+    status: invalidEvidence
+      ? "fail"
+      : unstable
         ? "unstable"
         : comparison.status,
     comparison,
     ...(baselineRepeat ? { baselineRepeat } : {}),
-    note:
-      baselineRepeat && baselineRepeat.status !== "pass"
+    note: invalidEvidence
+      ? "La evidencia contiene muestras ausentes o incidencias. No se clasifica como variación temporal del origen."
+      : unstable
         ? "El origen también cambia entre ejecuciones. Se conservan ambas comparaciones; no se amplían umbrales ni se certifica identidad temporal."
         : "La aprobación se limita al perfil y muestras declarados.",
   };
@@ -560,7 +636,9 @@ async function motionReport(trace: MotionTrace, out: string) {
       trace.browser +
       " · Movimiento: no-preference · Captura sin desactivar animaciones.\n\nPerfil SHA-256: `" +
       trace.profileHash +
-      "`\n\n## Muestreo\n\n| Tamaño | Paso | Muestra solicitada (ms) | Tiempo real (ms) | Scroll Y | Trazos |\n|---|---|---:|---:|---:|---:|\n" +
+      "`\n\nReloj: " +
+      trace.config.clockMode +
+      ". En modo controlado, el tiempo medido es virtual.\n\n## Muestreo\n\n| Tamaño | Paso | Muestra solicitada (ms) | Tiempo medido (ms) | Scroll Y | Trazos |\n|---|---|---:|---:|---:|---:|\n" +
       trace.frames
         .map(
           (f) =>

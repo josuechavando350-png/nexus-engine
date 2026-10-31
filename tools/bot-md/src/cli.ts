@@ -12,9 +12,10 @@ import { exportStyles } from "./styles.js";
 import { catalogContent, createTemplate } from "./content.js";
 import { captureMotion, assessMotion, readMotion } from "./motion.js";
 import type { ContentMap, MotionConfig } from "./experience-types.js";
+import { auditContent, type ContentAuditPolicy } from "./content-audit.js";
 
 const HELP =
-  "Bot MD 0.3.0\n\n" +
+  "Bot MD 0.4.0\n\n" +
   "npm run bot-md -- run --url https://sitio.example --out runs/ejemplo\n" +
   "npm run bot-md -- run --config examples/config.json --out runs/ejemplo\n" +
   "npm run bot-md -- capture --url URL --out CAPTURA\n" +
@@ -26,10 +27,12 @@ const HELP =
   "npm run bot-md -- styles --capture CAPTURA --out ESTILOS\n" +
   "npm run bot-md -- catalog --capture CAPTURA --out CONTENIDO\n" +
   "npm run bot-md -- template --site SITIO --content content.json --out PLANTILLA\n" +
+  "npm run bot-md -- audit-content --capture CAPTURA --site PLANTILLA --content content.json --policy politica.json --out AUDITORIA\n" +
   "npm run bot-md -- motion --url URL --config motion.json --out TRAZA\n" +
   "npm run bot-md -- motion --site SITIO --config motion.json --out TRAZA_LOCAL\n" +
   "npm run bot-md -- compare-motion --reference TRAZA --candidate TRAZA_LOCAL --out INFORME\n\n" +
   "Opciones: --allow-localhost (solo pruebas locales), --max-pages N, --config ARCHIVO.\n" +
+  "template/run: --assets CARPETA agrega medios propios; run: --motion-config PERFIL --content MAPA --policy POLITICA.\n" +
   "verify: --legacy-cdp-replay reproduce el entorno de capturas anteriores a la corrección de hover.\n" +
   "No sobrescribe capturas. Las respuestas API son grabaciones; no hay backend recuperado.\n";
 async function main() {
@@ -52,6 +55,8 @@ async function main() {
       trace: { type: "string" },
       "motion-config": { type: "string" },
       "repeat-reference": { type: "string" },
+      policy: { type: "string" },
+      assets: { type: "string" },
       help: { type: "boolean" },
     },
   });
@@ -61,7 +66,14 @@ async function main() {
     return;
   }
   const required = (
-    key: "out" | "capture" | "site" | "content" | "reference" | "candidate",
+    key:
+      | "out"
+      | "capture"
+      | "site"
+      | "content"
+      | "reference"
+      | "candidate"
+      | "policy",
   ) => {
     const v = values[key];
     if (!v) throw new Error("Falta --" + key);
@@ -80,7 +92,27 @@ async function main() {
       required("site"),
       await json<ContentMap>(required("content")),
       required("out"),
+      values.assets ? path.resolve(values.assets) : undefined,
     );
+    return;
+  }
+  if (command === "audit-content") {
+    const result = await auditContent(
+      required("capture"),
+      required("site"),
+      await json<ContentMap>(required("content")),
+      await json<ContentAuditPolicy>(required("policy")),
+      required("out"),
+    );
+    console.log(
+      "Contenido: " +
+        result.status +
+        " · campos pendientes: " +
+        result.summary.pendingFields +
+        " · archivos con términos de origen: " +
+        result.summary.filesWithForbiddenTerms,
+    );
+    process.exitCode = 2;
     return;
   }
   if (command === "motion") {
@@ -207,6 +239,11 @@ async function main() {
       path.join(out, "motion-source"),
     );
     motionFailed = trace.issues.length > 0;
+    await captureMotion(
+      { url: c.url },
+      { ...activeMotion, allowLocalhost: c.allowLocalhost },
+      path.join(out, "motion-source-repeat"),
+    );
     buildCapture = path.join(out, "capture-completed");
     await enrich(
       originalCapture,
@@ -215,7 +252,10 @@ async function main() {
     );
   }
   await exportStyles(buildCapture, path.join(out, "styles"));
-  await catalogContent(buildCapture, path.join(out, "content"));
+  const generatedCatalog = await catalogContent(
+    buildCapture,
+    path.join(out, "content"),
+  );
   await build(buildCapture, path.join(out, "site"));
   const v = await verify(
     buildCapture,
@@ -235,6 +275,7 @@ async function main() {
     const assessment = assessMotion(
       await readMotion(path.join(out, "motion-source")),
       await readMotion(path.join(out, "motion-local")),
+      await readMotion(path.join(out, "motion-source-repeat")),
     );
     await saveJson(path.join(out, "motion-comparison.json"), assessment);
     motionFailed ||= assessment.status !== "pass";
@@ -244,9 +285,23 @@ async function main() {
       path.join(out, "site"),
       await json<ContentMap>(values.content),
       path.join(out, "template"),
+      values.assets ? path.resolve(values.assets) : undefined,
     );
+  let contentPending = false;
+  if (values.policy) {
+    await auditContent(
+      buildCapture,
+      path.join(out, values.content ? "template" : "site"),
+      values.content
+        ? await json<ContentMap>(values.content)
+        : generatedCatalog,
+      await json<ContentAuditPolicy>(values.policy),
+      path.join(out, "content-audit"),
+    );
+    contentPending = true;
+  }
   console.log("Informe: " + path.join(out, "verification", "index.html"));
-  process.exitCode = hasFailures(v) || motionFailed ? 2 : 0;
+  process.exitCode = hasFailures(v) || motionFailed || contentPending ? 2 : 0;
 }
 main().catch((e) => {
   console.error("Error: " + (e instanceof Error ? e.message : String(e)));

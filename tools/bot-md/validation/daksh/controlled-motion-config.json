@@ -1,0 +1,24 @@
+{
+  "route": "/",
+  "clockMode": "controlled",
+  "readySelector": "html[data-hero-thread-complete=true][data-signature-complete=true]",
+  "viewports": [
+    { "name": "desktop", "width": 1440, "height": 900, "touch": false },
+    { "name": "mobile", "width": 390, "height": 844, "touch": true }
+  ],
+  "svgSelector": ".hero-thread-path,.hero-thread-head,.thread-path,.thread-head,.thread-head-ring",
+  "steps": [
+    { "name": "inicio", "progress": 0 },
+    { "name": "introduccion", "progress": 0.08 },
+    { "name": "trabajo", "progress": 0.25 },
+    { "name": "centro", "progress": 0.5 },
+    { "name": "contacto", "progress": 1 },
+    { "name": "regreso-centro", "progress": 0.5 },
+    { "name": "regreso-introduccion", "progress": 0.08 },
+    { "name": "regreso-inicio", "progress": 0 }
+  ],
+  "sampleMs": [0, 160, 640],
+  "initialWaitMs": 1600,
+  "renderWaitMs": 20,
+  "pointSamples": 25
+}

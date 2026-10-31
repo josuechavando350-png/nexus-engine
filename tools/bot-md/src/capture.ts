@@ -39,7 +39,7 @@ export async function capture(
   const browser = await launch(true);
   const manifest: Manifest = {
     schemaVersion: 1,
-    version: "0.3.0",
+    version: "0.4.0",
     createdAt: new Date().toISOString(),
     browserVersion: browser.version(),
     config: c,

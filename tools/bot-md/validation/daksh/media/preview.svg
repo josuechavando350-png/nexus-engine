@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#101010"/>
+  <path d="M80 90C80 480 750 150 1060 480" fill="none" stroke="#ff4b24" stroke-width="5"/>
+  <text x="80" y="330" fill="#eeece4" font-family="sans-serif" font-size="160" font-weight="700">BOT MD</text>
+</svg>

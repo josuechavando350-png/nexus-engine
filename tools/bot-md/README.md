@@ -1,10 +1,20 @@
-# Bot MD — 0.3.0
+# Bot MD — 0.4.0
 
 Bot MD captura la apariencia y el comportamiento observado de una web para reconstruir una versión local con contenido editable. Conserva HTML, CSS, JavaScript, fuentes y recursos; además genera documentación Markdown de estilos y movimiento.
 
-La versión 0.3.0 añade **ESTILOS.md**, **MOVIMIENTO.md**, un catálogo de contenido, sustitución de textos sin destruir elementos anidados, trazas SVG durante el scroll y detección de diferencias. El Markdown documenta la experiencia; el código y los recursos la ejecutan.
+La versión 0.3.0 añadió **ESTILOS.md**, **MOVIMIENTO.md**, un catálogo de contenido, sustitución de textos sin destruir elementos anidados, trazas SVG durante el scroll y detección de diferencias. El Markdown documenta la experiencia; el código y los recursos la ejecutan.
 
 La reconstrucción conserva el frontend que recibe el navegador. No genera automáticamente componentes fuente nuevos. La aprobación corresponde a tamaños, estados y muestras medidos; no equivale a copiar cualquier web al 100 %.
+
+## Novedades 0.4.0
+
+El perfil de reloj controlado espera una señal explícita de preparación y avanza temporizadores/requestAnimationFrame en pasos medidos. El flujo `run` repite el origen antes de comparar, para detectar una referencia inestable. No controla animaciones CSS del compositor, vídeo ni todos los subsistemas del navegador.
+
+En Daksh, la comparación controlada aprobó 48 muestras del hilo SVG en escritorio/móvil, y también aprobó la repetición del origen. Diferencia máxima de puntos: 0,031 px; tolerancia: 2 px, sin ampliarla. Esto valida las muestras y condiciones declaradas, no cada frame posible ni toda la web.
+
+El catálogo ahora incluye enlaces, medios y metadatos de contenido. Corrige la asignación de ruta cuando una interacción termina en otra página. La plantilla admite archivos propios con `--assets`; `audit-content` identifica campos pendientes y restos de información en los archivos realmente servidos.
+
+[Resultados y pendientes de 0.4.0](docs/CONTROL_Y_CONTENIDO.md).
 
 ## Estilos, movimiento y contenido editable
 
@@ -21,16 +31,16 @@ npm run bot-md -- serve --site runs/plantilla
 `catalog` descubre nodos de texto y etiquetas accesibles en todos los estados. `template` sustituye campos declarados después de la preparación de la página, conserva los elementos y notifica cambios de tamaño. Los conflictos se exponen en `window.__BOT_MD_CONTENT__`. La sustitución visible no elimina la información incrustada en imágenes, JavaScript o respuestas conservadas: revisar y reemplazar todos esos elementos sigue siendo necesario para una publicación con contenido propio.
 
 ```bash
-npm run bot-md -- motion --url https://dakshgajjar.com/ --config validation/daksh/motion-config.json --out runs/movimiento-origen
+npm run bot-md -- motion --url https://dakshgajjar.com/ --config validation/daksh/controlled-motion-config.json --out runs/movimiento-origen
 npm run bot-md -- enrich --capture runs/captura --trace runs/movimiento-origen --out runs/captura-ampliada
 npm run bot-md -- build --capture runs/captura-ampliada --out runs/copia-ampliada
-npm run bot-md -- motion --site runs/copia-ampliada --config validation/daksh/motion-config.json --out runs/movimiento-local
+npm run bot-md -- motion --site runs/copia-ampliada --config validation/daksh/controlled-motion-config.json --out runs/movimiento-local
 npm run bot-md -- compare-motion --reference runs/movimiento-origen --candidate runs/movimiento-local --out runs/comparacion
 ```
 
 `motion` mantiene las animaciones activas, mide puntos/longitud/progreso SVG durante scroll de ida y regreso y registra las condiciones de entrada. El perfil móvil usa entrada táctil. Las rutas vacías se conservan como geometría de longitud cero. `enrich --trace` obtiene variantes GET observadas durante el movimiento, conservando sus parámetros y cabeceras de enrutamiento.
 
-Para medir la variación del propio origen, genera una segunda traza remota con el mismo perfil y añade `--repeat-reference RUTA` a `compare-motion`. Una referencia que cambia produce `unstable`; no se amplían umbrales para forzar una aprobación. Las comparaciones exigen el mismo navegador y perfil. Las trazas se sellan con SHA-256.
+Para medir la variación del propio origen, genera una segunda traza remota con el mismo perfil y añade `--repeat-reference RUTA` a `compare-motion`. Una referencia completa, sin incidencias, que cambia produce `unstable`; una referencia incompleta o con errores falla. no se amplían umbrales para forzar una aprobación. Las comparaciones exigen el mismo navegador y perfil. Las trazas se sellan con SHA-256.
 
 - [Prueba de movimiento y contenido en Daksh](docs/EXPERIENCIA.md)
 - [Configuración de textos de ejemplo](validation/daksh/editable-content.json)
@@ -83,7 +93,7 @@ Esta carpeta contiene el motor, las pruebas, configuraciones y evidencia numéri
 Para ejecutar el flujo completo con movimiento y la plantilla de ejemplo:
 
 ```bash
-npm run bot-md -- run --config validation/daksh/full-config.json --motion-config validation/daksh/motion-config.json --content validation/daksh/editable-content.json --out runs/daksh-completo
+npm run bot-md -- run --config validation/daksh/full-config.json --motion-config validation/daksh/controlled-motion-config.json --content validation/daksh/branding-content.json --assets validation/daksh/media --policy validation/daksh/content-audit-policy.json --out runs/daksh-completo
 ```
 
 Un código de salida 2 significa que alguna validación no aprobó; los resultados y la plantilla permanecen disponibles para inspección. Cambiar contenido requiere comprobar su adaptación, no exigir píxeles iguales a textos distintos.
@@ -125,3 +135,16 @@ Un estado aprobado exige integridad, dimensiones compatibles, diferencia visual 
 La validación cubre los estados medidos en Chromium. No certifica todos los estados posibles, Safari/Firefox, animación temporal completa, autenticación, formularios reales, WebSockets, lógica del servidor ni datos futuros. Las capturas visuales estáticas solicitan movimiento reducido; el comando `motion` usa movimiento normal y no reemplaza esas pruebas.
 
 [Arquitectura y límites operativos](docs/ARQUITECTURA.md).
+
+## Revisar la sustitución de contenido
+
+```bash
+npm run bot-md -- template --site runs/copia --content content.json --assets mis-medios --out runs/plantilla
+npm run bot-md -- audit-content --capture runs/captura --site runs/plantilla --content content.json --policy validation/daksh/content-audit-policy.json --out runs/auditoria
+```
+
+Usa la captura exacta de la que se construyó el sitio (si se amplió, `capture-completed`). Los medios se registran bajo `/__botmd/media/NOMBRE`; `media-manifest.json` contiene las rutas. El mapa valida `src`, `srcset`, `poster`, enlaces y metadatos permitidos. Los SVG aportados deben ser estáticos, sin acciones ni referencias externas. Los medios no registrados producen error.
+
+La auditoría escribe `SUSTITUCION.md` y `audit.json`. Busca términos declarados en HTML, JavaScript, respuestas y mapas servidos, y enumera contenido y recursos pendientes. No aplica OCR ni promete detectar toda información semántica. Una revisión por hash no silencia términos prohibidos. Tanto `blocked` como `review-required` devuelven código 2; no existe una aprobación automática de eliminación total.
+
+Los cambios de metadatos de la plantilla actual ocurren en el DOM del navegador. El HTML inicial y las respuestas del framework pueden conservar datos anteriores; la auditoría los detecta cuando coinciden con las reglas. La publicación y las tarjetas sociales para rastreadores sin JavaScript requieren reconstruir esos datos iniciales.

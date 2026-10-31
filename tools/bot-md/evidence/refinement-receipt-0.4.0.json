@@ -1,0 +1,48 @@
+{
+  "controlledSourceRepeat": {
+    "status": "pass",
+    "expectedFrames": 9,
+    "referenceFrames": 9,
+    "candidateFrames": 9,
+    "complete": true,
+    "tolerancePx": 2,
+    "maxPointDelta": 0,
+    "maxLengthDelta": 0,
+    "maxDashDelta": 0,
+    "referenceIssues": [],
+    "candidateIssues": [],
+    "failures": [],
+    "scope": "Solo geometría, progreso y estilos SVG muestreados con el mismo contenido; no certifica igualdad visual de toda la página ni cada frame intermedio."
+  },
+  "controlledOffline": {
+    "status": "pass",
+    "expectedFrames": 9,
+    "referenceFrames": 9,
+    "candidateFrames": 9,
+    "complete": true,
+    "tolerancePx": 2,
+    "maxPointDelta": 0,
+    "maxLengthDelta": 0,
+    "maxDashDelta": 0,
+    "referenceIssues": [],
+    "candidateIssues": [],
+    "failures": [],
+    "scope": "Solo geometría, progreso y estilos SVG muestreados con el mismo contenido; no certifica igualdad visual de toda la página ni cada frame intermedio."
+  },
+  "content": {
+    "metadata": true,
+    "srcset": true,
+    "newMediaLoaded": true,
+    "links": true,
+    "nestedElementsPreserved": true,
+    "retainedOriginalDetected": true,
+    "audit": {
+      "catalogFields": 13,
+      "replacementsDeclared": 8,
+      "pendingFields": 5,
+      "filesScanned": 8,
+      "filesWithForbiddenTerms": 3,
+      "resourcesRequiringReview": 1
+    }
+  }
+}

@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "traces": [
+    {
+      "name": "motion-source-a",
+      "archive": "motion-source-a.json.xz",
+      "sha256": "37f8926fda92ff17cf079e1d4bd0889de835d8001f861716fcc7ffd62655caa2",
+      "archiveSha256": "4c97f11cf3aeb50d1e755e0a59826cdd5a8965f871903e1bb45ef240395d8da5",
+      "bytes": 10396936,
+      "browser": "138.0.7204.0",
+      "profileHash": "dc4808a85cb580ab4481e4dde6d74cac7a6df60aa1e26327142776f0a60cd42f",
+      "frames": 48,
+      "issues": [],
+      "readiness": [
+        {
+          "viewport": "desktop",
+          "virtualReadyMs": 8001,
+          "clockMode": "controlled"
+        },
+        {
+          "viewport": "mobile",
+          "virtualReadyMs": 8001,
+          "clockMode": "controlled"
+        }
+      ]
+    },
+    {
+      "name": "motion-source-b",
+      "archive": "motion-source-b.json.xz",
+      "sha256": "db867b41043271ab0b8949fbf6e31593597112fde7b0b4c7d4803630d0a9b332",
+      "archiveSha256": "d42761205f71bbac3dcc48592c9eaf3e31670c5d3d5d1167d86ed650848652b6",
+      "bytes": 10396937,
+      "browser": "138.0.7204.0",
+      "profileHash": "dc4808a85cb580ab4481e4dde6d74cac7a6df60aa1e26327142776f0a60cd42f",
+      "frames": 48,
+      "issues": [],
+      "readiness": [
+        {
+          "viewport": "desktop",
+          "virtualReadyMs": 8002,
+          "clockMode": "controlled"
+        },
+        {
+          "viewport": "mobile",
+          "virtualReadyMs": 8001,
+          "clockMode": "controlled"
+        }
+      ]
+    },
+    {
+      "name": "motion-local-a",
+      "archive": "motion-local-a.json.xz",
+      "sha256": "31769fed65b146eb6d5d6900bfae2e9b73377da03cb34e85ae4eab596ce5732d",
+      "archiveSha256": "e9d0f7dc15e3e9a33cd0021d08385c57ff2ed043fad17392ac375bc33375304c",
+      "bytes": 10389145,
+      "browser": "138.0.7204.0",
+      "profileHash": "dc4808a85cb580ab4481e4dde6d74cac7a6df60aa1e26327142776f0a60cd42f",
+      "frames": 48,
+      "issues": [],
+      "readiness": [
+        {
+          "viewport": "desktop",
+          "virtualReadyMs": 8002,
+          "clockMode": "controlled"
+        },
+        {
+          "viewport": "mobile",
+          "virtualReadyMs": 8001,
+          "clockMode": "controlled"
+        }
+      ]
+    }
+  ]
+}

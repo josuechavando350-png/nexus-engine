@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "readySelectors": {
+    "/": ".hero[data-hero-entrance=complete]"
+  },
+  "timeoutMs": 30000,
+  "bindings": [
+    {
+      "id": "field-1",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > head:nth-of-type(1) > title:nth-of-type(1)",
+      "kind": "text",
+      "expected": "Daksh Gajjar",
+      "value": "Bot MD — demostración",
+      "textIndex": 0
+    },
+    {
+      "id": "field-2",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > head:nth-of-type(1) > meta:nth-of-type(4)",
+      "kind": "attribute",
+      "expected": "Product designer working across digital experiences, AI products and intelligent systems.",
+      "value": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo.",
+      "attribute": "content"
+    },
+    {
+      "id": "field-3",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > head:nth-of-type(1) > meta:nth-of-type(5)",
+      "kind": "attribute",
+      "expected": "Daksh Gajjar",
+      "value": "Bot MD — demostración",
+      "attribute": "content"
+    },
+    {
+      "id": "field-4",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > head:nth-of-type(1) > meta:nth-of-type(6)",
+      "kind": "attribute",
+      "expected": "Product design, interaction, AI products and intelligent systems in one continuous practice.",
+      "value": "Demostración de estilos y movimiento con contenido editable.",
+      "attribute": "content"
+    },
+    {
+      "id": "field-5",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > head:nth-of-type(1) > meta:nth-of-type(7)",
+      "kind": "attribute",
+      "expected": "https://dakshgajjar.com",
+      "value": "https://example.com/",
+      "attribute": "content"
+    },
+    {
+      "id": "field-6",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > head:nth-of-type(1) > meta:nth-of-type(8)",
+      "kind": "attribute",
+      "expected": "https://dakshgajjar.com/opengraph-image.png?opengraph-image.1t1js2kw1z8rt.png",
+      "value": "/__botmd/media/preview.svg",
+      "attribute": "content"
+    },
+    {
+      "id": "field-7",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > head:nth-of-type(1) > meta:nth-of-type(12)",
+      "kind": "attribute",
+      "expected": "Daksh Gajjar — I design products that think. Ivory lettering woven with a vermilion thread on black.\n",
+      "value": "Bot MD: demostración con texto propio y un hilo naranja.",
+      "attribute": "content"
+    },
+    {
+      "id": "field-8",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > head:nth-of-type(1) > meta:nth-of-type(15)",
+      "kind": "attribute",
+      "expected": "Daksh Gajjar",
+      "value": "Bot MD — demostración",
+      "attribute": "content"
+    },
+    {
+      "id": "field-9",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > head:nth-of-type(1) > meta:nth-of-type(16)",
+      "kind": "attribute",
+      "expected": "From interface to intelligence.",
+      "value": "Diseño y movimiento editables.",
+      "attribute": "content"
+    },
+    {
+      "id": "field-10",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > head:nth-of-type(1) > meta:nth-of-type(17)",
+      "kind": "attribute",
+      "expected": "https://dakshgajjar.com/opengraph-image.png?opengraph-image.1t1js2kw1z8rt.png",
+      "value": "/__botmd/media/preview.svg",
+      "attribute": "content"
+    },
+    {
+      "id": "field-11",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > head:nth-of-type(1) > meta:nth-of-type(18)",
+      "kind": "attribute",
+      "expected": "Daksh Gajjar — I design products that think. Ivory lettering woven with a vermilion thread on black.\n",
+      "value": "Bot MD: demostración con texto propio y un hilo naranja.",
+      "attribute": "content"
+    },
+    {
+      "id": "field-14",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > body:nth-of-type(1) > header:nth-of-type(1) > a:nth-of-type(1)",
+      "kind": "text",
+      "expected": "DG",
+      "value": "BM",
+      "textIndex": 0
+    },
+    {
+      "id": "field-15",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > body:nth-of-type(1) > header:nth-of-type(1) > a:nth-of-type(1)",
+      "kind": "attribute",
+      "expected": "DG — Daksh Gajjar home",
+      "value": "Bot MD — inicio",
+      "attribute": "aria-label"
+    },
+    {
+      "id": "field-27",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > body:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(1) > h1:nth-of-type(1) > span:nth-of-type(1) > span:nth-of-type(1)",
+      "kind": "text",
+      "expected": "I DESIGN",
+      "value": "CREAMOS",
+      "textIndex": 0
+    },
+    {
+      "id": "field-28",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > body:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(1) > h1:nth-of-type(1) > span:nth-of-type(2) > span:nth-of-type(1)",
+      "kind": "text",
+      "expected": "PRODUCTS",
+      "value": "SISTEMAS",
+      "textIndex": 0
+    },
+    {
+      "id": "field-29",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > body:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(1) > h1:nth-of-type(1) > span:nth-of-type(3) > span:nth-of-type(1)",
+      "kind": "text",
+      "expected": "THAT THINK.",
+      "value": "QUE AVANZAN.",
+      "textIndex": 0
+    },
+    {
+      "id": "field-30",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > body:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(1) > p:nth-of-type(1)",
+      "kind": "text",
+      "expected": "Product designer working across digital experiences, AI products and intelligent systems.",
+      "value": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo.",
+      "textIndex": 0
+    },
+    {
+      "id": "field-468",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > body:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > p:nth-of-type(1)",
+      "kind": "text",
+      "expected": "DAKSH GAJJAR.",
+      "value": "NEXUS ENGINE.",
+      "textIndex": 0
+    },
+    {
+      "id": "field-469",
+      "route": "/",
+      "selector": "html:nth-of-type(1) > body:nth-of-type(1) > main:nth-of-type(1) > section:nth-of-type(3) > div:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > p:nth-of-type(2)",
+      "kind": "text",
+      "expected": "Product designer. Curious builder.",
+      "value": "Diseño y tecnología. Ideas en movimiento.",
+      "textIndex": 0
+    }
+  ]
+}
