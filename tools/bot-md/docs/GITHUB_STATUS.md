@@ -1,6 +1,6 @@
 # Estado de incorporación a Nexus Engine
 
-Bot MD 0.5.0 se conserva como herramienta independiente en `tools/bot-md`. No modifica los paquetes Core/Experience, el runtime Rust ni aplicaciones de clientes. No forma parte de los patrones actuales del workspace pnpm. Usa su propio `package-lock.json`.
+Bot MD 0.6.0 se conserva como herramienta independiente en `tools/bot-md`. No modifica los paquetes Core/Experience, el runtime Rust ni aplicaciones de clientes. No forma parte de los patrones actuales del workspace pnpm. Usa su propio `package-lock.json`.
 
 La versión 0.2.1 cambia el nombre público y añade el comando `npm run bot-md`; conserva `npm run replica` como alias compatible. Las rutas internas de capturas anteriores no cambian.
 
@@ -41,3 +41,13 @@ Añade materialización de contenido en HTML, JavaScript, JSON/JSON-LD y Flight 
 26 pruebas del módulo aprobadas. La prueba de control del compilador, con contenido idéntico, mantiene aprobadas las 48 muestras SVG y la repetición del origen. La portada y los seis proyectos pasaron el recorrido de ida/regreso, historial y recarga en escritorio y móvil, sin errores de JavaScript ni HTTP. Se comprobaron 19 campos de la portada y cero recorte visible del título. Los resultados de adaptación y navegación están en `evidence/daksh/materialized-0.5.0/` y el estado explícito en `COMPLETION.json`.
 
 Siguen pendientes el reemplazo completo de textos y gráficos de los proyectos, componentes propios y los checks globales de Nexus. El término `materialized` describe la operación aplicada y la búsqueda literal declarada; no significa que la eliminación de toda información ni la integración estén completas.
+
+## Versión 0.6.0
+
+Añade reglas de geometría SVG que se materializan en HTML y datos de JavaScript/JSON/Flight. Se reemplazan las dos firmas declaradas por gráficos propios, sin introducir un parche del DOM. La demostración pasa a 140 reglas de texto y 11 trazos; 231 campos del catálogo se comprueban en navegador. El resto del catálogo y otros gráficos continúan pendientes de revisión.
+
+28 pruebas del módulo aprobadas. La adaptación aprobó 56 escenarios de las siete rutas en 1440×900 y 390×844, incluyendo recarga de cada proyecto y navegación de regreso, con cero errores JavaScript/HTTP. Se comprobó avance y regreso del hilo. El compilador también reproduce byte a byte los 91 archivos de la copia sin cambios de 0.5 y los 115 de su adaptación, conservando esa evidencia histórica sin atribuir igualdad visual a textos nuevos.
+
+Una solicitud GET de Orbit detectada al recargar se completó desde el origen y se repitió la validación; se conserva el informe anterior que detectó el 404. Evidencia y pendientes: `evidence/daksh/materialized-0.6.0/` y `COMPLETION.json`.
+
+Los checks globales de Nexus y la integración a main siguen pendientes. En el commit padre `c313f925b9c06b3161262b5eee7f32fa3a5ba240` solo se observó el check `Vercel Preview Comments`; ese check no equivale a `validate` ni a pruebas del monorepo. No se utiliza como aprobación del código de Bot MD.

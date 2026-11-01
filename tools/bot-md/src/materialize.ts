@@ -13,6 +13,7 @@ import { rewriteFlight } from "./flight.js";
 import { literalMatches } from "./content-audit.js";
 import { addMediaAssets } from "./assets.js";
 import type { Build } from "./types.js";
+import { validateSVGPaths, type SVGPathRule } from "./svg-paths.js";
 import {
   textFitRuntime,
   validateTextFit,
@@ -30,9 +31,11 @@ export type ReplacementPlan = {
   }[];
   forbiddenTerms?: string[];
   fitText?: TextFitRule[];
+  svgPaths?: SVGPathRule[];
 };
 export function validateReplacements(plan: ReplacementPlan) {
   if (plan.fitText !== undefined) validateTextFit(plan.fitText);
+  if (plan.svgPaths !== undefined) validateSVGPaths(plan.svgPaths);
   if (
     plan.schemaVersion !== 1 ||
     !Array.isArray(plan.replacements) ||
@@ -176,6 +179,7 @@ export function materializeJS(
   source: string,
   replace: Replace,
   overrides: Map<number, string> = new Map(),
+  replacePath: Replace = (value) => value,
 ) {
   const patches: Patch[] = [];
   ancestor(ast(source), {
@@ -203,7 +207,9 @@ export function materializeJS(
         (parent?.type === "ExpressionStatement" && parent.directive)
       )
         return;
-      const value = replace(node.value, "javascript");
+      const graphic = replacePath(node.value, "javascript");
+      const value =
+        graphic !== node.value ? graphic : replace(node.value, "javascript");
       if (value !== node.value) {
         if (parent?.type === "Property")
           assertURL(propertyName(parent.key), value);
@@ -222,7 +228,9 @@ export function materializeJS(
         return;
       const original = node.quasis[0].value.cooked;
       if (original == null) return;
-      const value = replace(original, "javascript");
+      const graphic = replacePath(original, "javascript");
+      const value =
+        graphic !== original ? graphic : replace(original, "javascript");
       if (value !== original)
         patches.push({
           start: node.start,
@@ -233,7 +241,7 @@ export function materializeJS(
   });
   return patch(source, patches);
 }
-function rewriteJSON(raw: string, replace: Replace) {
+function rewriteJSON(raw: string, replace: Replace, replacePath: Replace) {
   // Whole-document rules cover JSON-LD also embedded as a Flight string.
   const document = replace(raw, "json");
   const original: unknown = JSON.parse(document);
@@ -241,7 +249,8 @@ function rewriteJSON(raw: string, replace: Replace) {
     return JSON.stringify(original).replace(/</g, "\\u003c");
   function walk(v: unknown, key?: string): unknown {
     if (typeof v === "string") {
-      const n = replace(v, "json");
+      const graphic = replacePath(v, "json");
+      const n = graphic !== v ? graphic : replace(v, "json");
       if (n !== v) assertURL(key, n);
       return n;
     }
@@ -257,7 +266,11 @@ function rewriteJSON(raw: string, replace: Replace) {
     ? raw
     : JSON.stringify(changed).replace(/</g, "\\u003c");
 }
-export function materializeHTML(raw: string, replace: Replace) {
+export function materializeHTML(
+  raw: string,
+  replace: Replace,
+  replacePath: Replace = (value) => value,
+) {
   const document = parseHTML(raw);
   const scripts: {
     node: Tree["textNode"];
@@ -286,7 +299,10 @@ export function materializeHTML(raw: string, replace: Replace) {
   const chunks = scripts.flatMap((s) => s.chunks),
     original = chunks.map((c) => c.value).join("");
   const changed = chunks.length
-    ? rewriteFlight(original, (value) => replace(value, "flight"))
+    ? rewriteFlight(original, (value) => {
+        const graphic = replacePath(value, "flight");
+        return graphic !== value ? graphic : replace(value, "flight");
+      })
     : "";
   let cursor = 0,
     chunkIndex = 0;
@@ -306,7 +322,12 @@ export function materializeHTML(raw: string, replace: Replace) {
       overrides.set(chunk.start, changed.slice(cursor, end));
       cursor = end;
     }
-    script.node.value = materializeJS(script.source, replace, overrides);
+    script.node.value = materializeJS(
+      script.source,
+      replace,
+      overrides,
+      replacePath,
+    );
   }
   function visit(n: Tree["node"], parent?: Tree["element"]) {
     if (n.nodeName === "#comment" && "data" in n) return; // React markers are structural.
@@ -344,6 +365,14 @@ export function materializeHTML(raw: string, replace: Replace) {
       ]);
       for (const a of n.attrs) {
         if (
+          n.namespaceURI === "http://www.w3.org/2000/svg" &&
+          n.tagName === "path" &&
+          a.name === "d"
+        ) {
+          a.value = replacePath(a.value, "html");
+          continue;
+        }
+        if (
           (editable.has(a.name) &&
             ![
               "script",
@@ -369,7 +398,7 @@ export function materializeHTML(raw: string, replace: Replace) {
       )
         for (const c of n.childNodes)
           if (c.nodeName === "#text" && "value" in c)
-            c.value = rewriteJSON(c.value, replace);
+            c.value = rewriteJSON(c.value, replace, replacePath);
     }
     if ("childNodes" in n)
       for (const c of n.childNodes) visit(c, "tagName" in n ? n : parent);
@@ -435,6 +464,19 @@ export async function materialize(
     counts[r.id][surface]++;
     return r.to;
   };
+  const svgCounts = Object.fromEntries(
+    (plan.svgPaths ?? []).map((r) => [
+      r.id,
+      { html: 0, javascript: 0, json: 0, flight: 0 },
+    ]),
+  );
+  const svgLookup = new Map((plan.svgPaths ?? []).map((r) => [r.from, r]));
+  const replacePath: Replace = (value, surface) => {
+    const r = svgLookup.get(value);
+    if (!r) return value;
+    svgCounts[r.id][surface]++;
+    return r.to;
+  };
   const files: {
     route: string;
     file: string;
@@ -462,6 +504,7 @@ export async function materialize(
           materializeHTML(
             new TextDecoder("utf-8", { fatal: true }).decode(original),
             replace,
+            replacePath,
           ),
         );
       else if (/javascript|ecmascript/i.test(record.mime))
@@ -469,13 +512,18 @@ export async function materialize(
           materializeJS(
             new TextDecoder("utf-8", { fatal: true }).decode(original),
             replace,
+            new Map(),
+            replacePath,
           ),
         );
       else if (/x-component/i.test(record.mime))
         body = Buffer.from(
           rewriteFlight(
             new TextDecoder("utf-8", { fatal: true }).decode(original),
-            (value) => replace(value, "flight"),
+            (value) => {
+              const graphic = replacePath(value, "flight");
+              return graphic !== value ? graphic : replace(value, "flight");
+            },
           ),
         );
       else if (/json/i.test(record.mime))
@@ -483,6 +531,7 @@ export async function materialize(
           rewriteJSON(
             new TextDecoder("utf-8", { fatal: true }).decode(original),
             replace,
+            replacePath,
           ),
         );
     } catch (e) {
@@ -566,21 +615,29 @@ export async function materialize(
   const unmatchedRules = Object.entries(counts)
     .filter(([, v]) => Object.values(v).every((n) => n === 0))
     .map(([id]) => id);
+  const unmatchedSVGPaths = Object.entries(svgCounts)
+    .filter(([, v]) => Object.values(v).every((n) => n === 0))
+    .map(([id]) => id);
   const report = {
     schemaVersion: 1,
     sourceDigest: index.sourceDigest,
     status:
-      unmatchedRules.length || files.some((f) => f.matches.length)
+      unmatchedRules.length ||
+      unmatchedSVGPaths.length ||
+      files.some((f) => f.matches.length)
         ? "blocked"
         : "materialized",
     counts,
     unmatchedRules,
+    svgCounts,
+    unmatchedSVGPaths,
     files,
     limitations: [
       "Sustitución literal explícita; no demuestra eliminación semántica de toda información.",
       "Conserva el código de comportamiento y sus dependencias; no recupera los componentes fuente del framework.",
       "Flight limitado al formato textual observado; binarios y etiquetas desconocidas detienen la exportación.",
       "La fidelidad visual, navegación y movimiento deben comprobarse en navegador después de sustituir el contenido.",
+      "SVG: sustituye valores d de path en HTML y literales exactos en JS/JSON/Flight, incluidos arreglos y registros T. No resuelve geometrías calculadas ni SVG externos.",
     ],
   };
   await saveJson(path.join(out, "materialization.json"), report);

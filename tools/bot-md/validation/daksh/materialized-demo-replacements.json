@@ -1,0 +1,724 @@
+{
+  "schemaVersion": 1,
+  "replacements": [
+    { "id": "copy-1", "from": "Daksh Gajjar", "to": "Bot MD — demostración" },
+    {
+      "id": "copy-2",
+      "from": "Product designer working across digital experiences, AI products and intelligent systems.",
+      "to": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+    },
+    {
+      "id": "copy-3",
+      "from": "Product design, interaction, AI products and intelligent systems in one continuous practice.",
+      "to": "Demostración de estilos y movimiento con contenido editable."
+    },
+    {
+      "id": "copy-4",
+      "from": "https://dakshgajjar.com",
+      "to": "https://example.com/"
+    },
+    {
+      "id": "copy-5",
+      "from": "https://dakshgajjar.com/opengraph-image.png?opengraph-image.1t1js2kw1z8rt.png",
+      "to": "/__botmd/media/preview.svg"
+    },
+    {
+      "id": "copy-6",
+      "from": "Daksh Gajjar — I design products that think. Ivory lettering woven with a vermilion thread on black.\n",
+      "to": "Bot MD: demostración con texto propio y un hilo naranja."
+    },
+    {
+      "id": "copy-7",
+      "from": "From interface to intelligence.",
+      "to": "Diseño y movimiento editables."
+    },
+    { "id": "copy-8", "from": "DG", "to": "BM" },
+    {
+      "id": "copy-9",
+      "from": "DG — Daksh Gajjar home",
+      "to": "Bot MD — inicio"
+    },
+    { "id": "copy-10", "from": "I DESIGN", "to": "CREAMOS" },
+    { "id": "copy-11", "from": "PRODUCTS", "to": "SISTEMAS" },
+    { "id": "copy-12", "from": "THAT THINK.", "to": "QUE AVANZAN." },
+    { "id": "copy-13", "from": "DAKSH GAJJAR.", "to": "NEXUS ENGINE." },
+    {
+      "id": "copy-14",
+      "from": "Product designer. Curious builder.",
+      "to": "Diseño y tecnología. Ideas en movimiento."
+    },
+    {
+      "id": "identity-14",
+      "from": "{\"@context\":\"https://schema.org\",\"@type\":\"Person\",\"name\":\"Daksh Gajjar\",\"jobTitle\":\"Product Designer\",\"url\":\"https://dakshgajjar.com\",\"knowsAbout\":[\"Product Design\",\"Interaction Design\",\"Artificial Intelligence\",\"Agentic Systems\",\"Rapid Prototyping\"]}",
+      "to": "{\"@context\":\"https://schema.org\",\"@type\":\"WebSite\",\"name\":\"Bot MD\",\"url\":\"https://example.com/\",\"description\":\"Demostración de diseño y movimiento con contenido editable.\"}"
+    },
+    {
+      "id": "identity-15",
+      "from": "Opening Daksh Gajjar’s portfolio",
+      "to": "Abriendo la demostración de Bot MD"
+    },
+    {
+      "id": "identity-16",
+      "from": "mailto:dakshgajjar.design@gmail.com",
+      "to": "mailto:contacto@example.com"
+    },
+    {
+      "id": "identity-17",
+      "from": "https://dakshgajjar.com/work/eigna",
+      "to": "https://example.com/work/eigna"
+    },
+    {
+      "id": "identity-18",
+      "from": "https://dakshgajjar.com/work/orbit",
+      "to": "https://example.com/work/orbit"
+    },
+    {
+      "id": "identity-19",
+      "from": "https://dakshgajjar.com/work/mealops",
+      "to": "https://example.com/work/mealops"
+    },
+    {
+      "id": "identity-20",
+      "from": "https://dakshgajjar.com/work/scribe",
+      "to": "https://example.com/work/scribe"
+    },
+    {
+      "id": "identity-21",
+      "from": "https://dakshgajjar.com/work/papertrail",
+      "to": "https://example.com/work/papertrail"
+    },
+    {
+      "id": "identity-22",
+      "from": "https://dakshgajjar.com/work/crediflow",
+      "to": "https://example.com/work/crediflow"
+    },
+    { "id": "demo-name-EIGNA", "from": "EIGNA", "to": "DEMO01" },
+    {
+      "id": "demo-intro-eigna",
+      "from": "One connected product for the full working life of a rental property.",
+      "to": "Demostración editable para revisar el catálogo de contenido."
+    },
+    {
+      "id": "demo-metadata-eigna",
+      "from": "A landlord property management experience for properties, tenants, rent and maintenance.",
+      "to": "DEMO01: maqueta provisional sobre el catálogo de contenido."
+    },
+    {
+      "id": "demo-heading-field-566",
+      "from": "Everything a landlord manages. Connected.",
+      "to": "Una demostración con contenido editable."
+    },
+    {
+      "id": "demo-paragraph-field-567",
+      "from": "Eigna is a property management platform for small landlords managing roughly one to ten units. It brings properties, tenants, leases, inspections, deposits, rent, maintenance, expenses and tax into one connected product. Designed for India and the US, it adapts to local currencies, terminology, payment methods and compliance requirements without asking landlords to manage each responsibility through a separate tool.",
+      "to": "DEMO01 explora el catálogo de contenido. Es una maqueta de trabajo con texto provisional. Sirve para revisar la composición de esta página, sus espacios y la relación entre títulos, párrafos y gráficos. No representa un cliente real, un resultado comercial ni una funcionalidad nueva del producto. Antes de publicar, cada bloque debe recibir el contenido definitivo de su propietario."
+    },
+    {
+      "id": "demo-heading-field-569",
+      "from": "A small portfolio can still create a lot of work.",
+      "to": "Definir el alcance antes de comprobarlo."
+    },
+    {
+      "id": "demo-paragraph-field-570",
+      "from": "A landlord with three properties may track rent in one place, store leases somewhere else, handle maintenance through messages and keep inspection photos on their phone. At tax time, they have to reconstruct the financial story. These are ordinary tasks, but each affects the next while the information needed to connect them lives in different places.",
+      "to": "DEMO01 explora el catálogo de contenido. El punto de partida es una página observada en un tamaño y un estado concretos. La revisión conserva esa referencia para poder explicar cada cambio. Un bloque que todavía contiene información ajena sigue pendiente, aunque el encabezado ya tenga otro nombre. Esta demostración permite localizar esos pendientes sin presentarlos como un trabajo terminado."
+    },
+    {
+      "id": "demo-heading-field-572",
+      "from": "Design around the landlord lifecycle.",
+      "to": "Cambios explícitos, revisión visible."
+    },
+    {
+      "id": "demo-paragraph-field-573",
+      "from": "I started with the relationships between responsibilities. A move out inspection can lead to a deposit deduction. A maintenance request becomes an expense. Lease information affects compliance, while rent and expenses feed reporting and tax. Following those connections made the property record the natural foundation for the product.",
+      "to": "DEMO01 explora el catálogo de contenido. El texto se edita mediante reglas explícitas que indican el valor de origen y el valor de destino. Esas reglas se aplican a los formatos de entrega compatibles. Cambiar una frase requiere volver a generar la salida y comprobarla en el navegador. La edición conserva los elementos anidados que pueden participar en la composición y en las animaciones."
+    },
+    {
+      "id": "demo-heading-field-584",
+      "from": "The property became the connecting layer.",
+      "to": "La estructura que conecta los bloques."
+    },
+    {
+      "id": "demo-paragraph-field-585",
+      "from": "Portfolio, tenancy, inspections, deposits, maintenance, financials and tax share the same property context. The map groups related responsibilities so their connections stay readable: inspections support deposit decisions, while rent and maintenance expenses feed the financial record. India and US requirements adapt the details of this common structure.",
+      "to": "DEMO01 explora el catálogo de contenido. La organización visual se mantiene como referencia de trabajo: un título presenta la sección, el texto desarrolla la idea y el siguiente bloque muestra una relación. Los gráficos todavía requieren una revisión propia. Un diagrama puede contener nombres, cifras o símbolos del sitio de origen que una búsqueda de texto no alcanza a identificar por sí sola."
+    },
+    {
+      "id": "demo-heading-field-596",
+      "from": "The decisions that shaped the product.",
+      "to": "Decisiones de la demostración."
+    },
+    {
+      "id": "demo-heading-field-608",
+      "from": "The whole property, at the right level of detail.",
+      "to": "Recorrer la página en distintos tamaños."
+    },
+    {
+      "id": "demo-paragraph-field-611",
+      "from": "The everyday journey starts with work requiring attention, then moves into the relevant property or tenancy. Current state and upcoming actions belong at portfolio level; lease detail, condition records and financial history belong in the context of the property. Completing one task should leave its information useful for the next.",
+      "to": "DEMO01 explora el catálogo de contenido. La lectura se revisa en escritorio y en una ventana móvil. Las palabras nuevas pueden ocupar un espacio distinto, desplazar el siguiente bloque o cambiar la longitud del recorrido. Por eso la comprobación incluye el navegador y no termina al escribir un archivo. Los tamaños, las rutas y los escenarios aprobados deben aparecer en la evidencia guardada."
+    },
+    {
+      "id": "demo-paragraph-field-623",
+      "from": "An inspection does not end with a set of photos. Its findings can inform a repair, an expense or a deposit decision. The workflow keeps the condition record, tenancy and financial consequence together, while leaving the landlord responsible for the decision.",
+      "to": "DEMO01 explora el catálogo de contenido. La navegación forma parte de la experiencia observada. Se comprueba la entrada a esta página, el regreso a la portada, el historial y la recarga. El contenido sustituido debe permanecer después de esas acciones. Si una respuesta requerida falta en la captura, el informe debe mostrarla; completar un recorrido no significa cubrir todas las interacciones posibles."
+    },
+    {
+      "id": "demo-paragraph-field-641",
+      "from": "The assistant uses the context already connected throughout Eigna. A landlord can ask when a lease expires, how much was spent on repairs, which payments were late or which property needed the most maintenance. The question starts with an everyday concern, rather than a search across several unrelated records.",
+      "to": "DEMO01 explora el catálogo de contenido. El movimiento requiere una verificación independiente del contenido. Un trazo puede adaptarse a la posición de un título y cambiar cuando ese título ocupa más espacio. Las muestras comparadas deben utilizar condiciones equivalentes y una tolerancia declarada. Una firma reemplazada se valida como un gráfico nuevo; no se exige que conserve la forma de la firma anterior."
+    },
+    {
+      "id": "demo-heading-field-649",
+      "from": "A property record that carries the work forward.",
+      "to": "Conservar evidencia de cada comprobación."
+    },
+    {
+      "id": "demo-paragraph-field-650",
+      "from": "My design contribution was the product architecture connecting the landlord lifecycle: a shared property record, a hierarchy for everyday work and deeper detail, and a common structure for India and US workflows. The inspection to deposit journey shows why those connections matter. Information captured for one task stays useful when the landlord makes the next decision.",
+      "to": "DEMO01 explora el catálogo de contenido. Esta sección conserva un borrador editable y una lista de comprobaciones pendientes. El resultado útil es una salida que puede revisarse, reproducirse y corregirse con evidencia. Las etiquetas del proceso describen operaciones realizadas. No sustituyen la revisión visual ni demuestran que se haya eliminado toda la información de la referencia."
+    },
+    {
+      "id": "demo-paragraph-field-656",
+      "from": "Designing the connections between workflows can matter more than designing each workflow individually. A clearer inspection screen only solves part of the problem if its findings still have to be copied into a deposit decision or reconstructed as an expense later.",
+      "to": "DEMO01 explora el catálogo de contenido. El siguiente paso consiste en revisar los detalles que aún no tienen sustitución: etiquetas de ejemplos, cifras, imágenes y gráficos. Cada cambio debe tener un propósito claro y una comprobación acorde con ese propósito. La integración en Nexus requiere además sus pruebas globales; las pruebas aisladas de esta herramienta no permiten dar esa integración por concluida."
+    },
+    {
+      "id": "demo-heading-field-658",
+      "from": "Success criteria: measure the work across the lifecycle.",
+      "to": "Criterios de revisión y trabajo pendiente."
+    },
+    { "id": "demo-name-ORBIT", "from": "ORBIT", "to": "DEMO02" },
+    {
+      "id": "demo-intro-orbit",
+      "from": "An AI workspace that coordinates tools while keeping people in control of the work.",
+      "to": "Demostración editable para revisar el movimiento de la interfaz."
+    },
+    {
+      "id": "demo-metadata-orbit",
+      "from": "An assistant experience connecting intent, context and tools.",
+      "to": "DEMO02: maqueta provisional sobre el movimiento de la interfaz."
+    },
+    {
+      "id": "demo-heading-field-785",
+      "from": "One request. The right tools.",
+      "to": "Una demostración con contenido editable."
+    },
+    {
+      "id": "demo-paragraph-field-786",
+      "from": "Orbit is an agentic AI workspace for tasks that normally require moving between applications. A request can involve finding information, reading email, working with business data, writing a response and preparing an action. Orbit coordinates the capabilities needed to complete that work, while the conversation gives the person a consistent place to understand progress and decide what happens next.",
+      "to": "DEMO02 explora el movimiento de la interfaz. Es una maqueta de trabajo con texto provisional. Sirve para revisar la composición de esta página, sus espacios y la relación entre títulos, párrafos y gráficos. No representa un cliente real, un resultado comercial ni una funcionalidad nueva del producto. Antes de publicar, cada bloque debe recibir el contenido definitivo de su propietario."
+    },
+    {
+      "id": "demo-heading-field-789",
+      "from": "The more an AI can do, the more important control becomes.",
+      "to": "Definir el alcance antes de comprobarlo."
+    },
+    {
+      "id": "demo-paragraph-field-790",
+      "from": "A conventional assistant mostly produces an answer. An agent can retrieve information, combine context from different systems and prepare actions that affect the world outside the conversation. The interaction needs enough visibility for someone to understand what is happening, without making them supervise every internal step or manage the tools themselves.",
+      "to": "DEMO02 explora el movimiento de la interfaz. El punto de partida es una página observada en un tamaño y un estado concretos. La revisión conserva esa referencia para poder explicar cada cambio. Un bloque que todavía contiene información ajena sigue pendiente, aunque el encabezado ya tenga otro nombre. Esta demostración permite localizar esos pendientes sin presentarlos como un trabajo terminado."
+    },
+    {
+      "id": "demo-heading-field-794",
+      "from": "Asking and acting need different boundaries.",
+      "to": "Cambios explícitos, revisión visible."
+    },
+    {
+      "id": "demo-paragraph-field-795",
+      "from": "The distinction that shaped Orbit was consequence. Searching can happen quietly, and a draft can be reviewed before it goes anywhere. Sending an email or changing business data requires a different level of control. I used that distinction to decide where the system could move independently and where the person needed to make a decision.",
+      "to": "DEMO02 explora el movimiento de la interfaz. El texto se edita mediante reglas explícitas que indican el valor de origen y el valor de destino. Esas reglas se aplican a los formatos de entrega compatibles. Cambiar una frase requiere volver a generar la salida y comprobarla en el navegador. La edición conserva los elementos anidados que pueden participar en la composición y en las animaciones."
+    },
+    {
+      "id": "demo-heading-field-808",
+      "from": "A conversation with a system behind it.",
+      "to": "La estructura que conecta los bloques."
+    },
+    {
+      "id": "demo-paragraph-field-809",
+      "from": "A request becomes a plan, relevant tools are discovered, and the context they return informs the proposed action. Confirmation sits between preparation and execution when the consequence requires it. The result returns to the same conversation, so the person can continue the task without navigating a separate interface for each capability.",
+      "to": "DEMO02 explora el movimiento de la interfaz. La organización visual se mantiene como referencia de trabajo: un título presenta la sección, el texto desarrolla la idea y el siguiente bloque muestra una relación. Los gráficos todavía requieren una revisión propia. Un diagrama puede contener nombres, cifras o símbolos del sitio de origen que una búsqueda de texto no alcanza a identificar por sí sola."
+    },
+    {
+      "id": "demo-paragraph-field-828",
+      "from": "An agent needs to make its work understandable, but exposing every tool call makes the user manage the system instead of the task. An unexplained final answer creates the opposite problem: there is no basis for reviewing an action.",
+      "to": "DEMO02 explora el movimiento de la interfaz. La lectura se revisa en escritorio y en una ventana móvil. Las palabras nuevas pueden ocupar un espacio distinto, desplazar el siguiente bloque o cambiar la longitud del recorrido. Por eso la comprobación incluye el navegador y no termina al escribir un archivo. Los tamaños, las rutas y los escenarios aprobados deben aparecer en la evidencia guardada."
+    },
+    {
+      "id": "demo-heading-field-838",
+      "from": "Make the work visible at the moments that matter.",
+      "to": "Recorrer la página en distintos tamaños."
+    },
+    {
+      "id": "demo-paragraph-field-842",
+      "from": "A request involving mail, search and writing needs more than tool selection. The useful information has to carry into a draft that the person can inspect. This example makes the interaction concrete: find context, prepare a response, then let the person decide whether it should be sent.",
+      "to": "DEMO02 explora el movimiento de la interfaz. La navegación forma parte de la experiencia observada. Se comprueba la entrada a esta página, el regreso a la portada, el historial y la recarga. El contenido sustituido debe permanecer después de esas acciones. Si una respuesta requerida falta en la captura, el informe debe mostrarla; completar un recorrido no significa cubrir todas las interacciones posibles."
+    },
+    {
+      "id": "demo-paragraph-field-855",
+      "from": "Tool discovery, MCP connections and context passing sit behind the conversation. The interface needs to distinguish what the agent is preparing, what requires a decision and what has actually completed. Recovery belongs to that same task, rather than a separate technical error screen.",
+      "to": "DEMO02 explora el movimiento de la interfaz. El movimiento requiere una verificación independiente del contenido. Un trazo puede adaptarse a la posición de un título y cambiar cuando ese título ocupa más espacio. Las muestras comparadas deben utilizar condiciones equivalentes y una tolerancia declarada. Una firma reemplazada se valida como un gráfico nuevo; no se exige que conserve la forma de la firma anterior."
+    },
+    {
+      "id": "demo-paragraph-field-864",
+      "from": "If one step fails after another succeeds, keep those outcomes distinct. Recovery should address the unfinished work without implying that the whole task completed or inviting the user to repeat a successful action.",
+      "to": "DEMO02 explora el movimiento de la interfaz. Esta sección conserva un borrador editable y una lista de comprobaciones pendientes. El resultado útil es una salida que puede revisarse, reproducirse y corregirse con evidencia. Las etiquetas del proceso describen operaciones realizadas. No sustituyen la revisión visual ni demuestran que se haya eliminado toda la información de la referencia."
+    },
+    {
+      "id": "demo-heading-field-868",
+      "from": "An interaction model for work across tools.",
+      "to": "Conservar evidencia de cada comprobación."
+    },
+    {
+      "id": "demo-paragraph-field-869",
+      "from": "My contribution was connecting the system’s capabilities to a readable interaction: useful progress, reviewable drafts, consequence based confirmation and recovery in the same task context. The mail and writing example shows how context can move between tools while the person retains control over sending. Prepared work and completed work remain separate states.",
+      "to": "DEMO02 explora el movimiento de la interfaz. El siguiente paso consiste en revisar los detalles que aún no tienen sustitución: etiquetas de ejemplos, cifras, imágenes y gráficos. Cada cambio debe tener un propósito claro y una comprobación acorde con ese propósito. La integración en Nexus requiere además sus pruebas globales; las pruebas aisladas de esta herramienta no permiten dar esa integración por concluida."
+    },
+    {
+      "id": "demo-paragraph-field-875",
+      "from": "Greater AI capability makes boundaries more important. Deciding where an agent should pause, explain or ask for confirmation is part of the product experience. Those moments give people a reason to trust the work without asking them to understand the system’s internals.",
+      "to": "DEMO02 explora el movimiento de la interfaz. Esta maqueta permanece identificada como demostración mientras el contenido sea provisional. Los datos mostrados por componentes sin revisar no deben interpretarse como información propia. El paquete conserva los informes para que otra persona pueda distinguir qué se cambió, qué se comprobó y qué necesita trabajo adicional antes de una publicación."
+    },
+    {
+      "id": "demo-heading-field-879",
+      "from": "Success criteria: measure completed work and informed control.",
+      "to": "Criterios de revisión y trabajo pendiente."
+    },
+    { "id": "demo-name-MealOPS", "from": "MealOPS", "to": "DEMO03" },
+    {
+      "id": "demo-intro-mealops",
+      "from": "A workplace meal platform built around employees, employers and food operations.",
+      "to": "Demostración editable para revisar la adaptación entre tamaños."
+    },
+    {
+      "id": "demo-metadata-mealops",
+      "from": "A connected workplace meal experience from conversation to delivery.",
+      "to": "DEMO03: maqueta provisional sobre la adaptación entre tamaños."
+    },
+    {
+      "id": "demo-heading-field-999",
+      "from": "Workplace meals, without the operational mess.",
+      "to": "Una demostración con contenido editable."
+    },
+    {
+      "id": "demo-paragraph-field-1000",
+      "from": "MealOPS connects employees, company administrators and food operations through one workplace meal experience. Employees can discover and order meals using company benefits, while organizations manage budgets, policies and usage. The product brings those perspectives together so the ordering experience can stay simple while the program behind it remains manageable for employers and food partners.",
+      "to": "DEMO03 explora la adaptación entre tamaños. Es una maqueta de trabajo con texto provisional. Sirve para revisar la composición de esta página, sus espacios y la relación entre títulos, párrafos y gráficos. No representa un cliente real, un resultado comercial ni una funcionalidad nueva del producto. Antes de publicar, cada bloque debe recibir el contenido definitivo de su propietario."
+    },
+    {
+      "id": "demo-heading-field-1003",
+      "from": "Ordering food is easy. Running workplace meals isn’t.",
+      "to": "Definir el alcance antes de comprobarlo."
+    },
+    {
+      "id": "demo-paragraph-field-1004",
+      "from": "Workplace meals involve more than choosing lunch. Company budgets and meal policies affect what an employee can order, while vendors, payments and operations determine whether that order can be fulfilled. If those parts are handled separately, a small decision for the employee creates coordination work for everyone else involved in getting the meal to them.",
+      "to": "DEMO03 explora la adaptación entre tamaños. El punto de partida es una página observada en un tamaño y un estado concretos. La revisión conserva esa referencia para poder explicar cada cambio. Un bloque que todavía contiene información ajena sigue pendiente, aunque el encabezado ya tenga otro nombre. Esta demostración permite localizar esos pendientes sin presentarlos como un trabajo terminado."
+    },
+    {
+      "id": "demo-heading-field-1008",
+      "from": "Understand the ecosystem before the screens.",
+      "to": "Cambios explícitos, revisión visible."
+    },
+    {
+      "id": "demo-paragraph-field-1009",
+      "from": "Employees need a quick way to choose and order. Employers need policy, budget control and visibility. Food operations need predictable demand and fulfilment. I mapped those relationships before shaping the individual experiences, so decisions about benefits, ordering and administration could support the same meal program rather than pull it in different directions.",
+      "to": "DEMO03 explora la adaptación entre tamaños. El texto se edita mediante reglas explícitas que indican el valor de origen y el valor de destino. Esas reglas se aplican a los formatos de entrega compatibles. Cambiar una frase requiere volver a generar la salida y comprobarla en el navegador. La edición conserva los elementos anidados que pueden participar en la composición y en las animaciones."
+    },
+    {
+      "id": "demo-heading-field-1022",
+      "from": "The meal connects the whole program.",
+      "to": "La estructura que conecta los bloques."
+    },
+    {
+      "id": "demo-paragraph-field-1023",
+      "from": "Discovery and choice lead into the company wallet, ordering, fulfilment and feedback. The employee journey runs alongside an administrative layer for policy and usage, and an operational layer for delivery. MealOPS connects these responsibilities around the same order, giving each participant the information needed for their part of the work.",
+      "to": "DEMO03 explora la adaptación entre tamaños. La organización visual se mantiene como referencia de trabajo: un título presenta la sección, el texto desarrolla la idea y el siguiente bloque muestra una relación. Los gráficos todavía requieren una revisión propia. Un diagrama puede contener nombres, cifras o símbolos del sitio de origen que una búsqueda de texto no alcanza a identificar por sí sola."
+    },
+    {
+      "id": "demo-paragraph-field-1040",
+      "from": "A company meal program needs budget and policy controls, but asking employees to manage those rules would make a routine meal choice harder. Ignoring them would move the coordination burden to administrators and food partners.",
+      "to": "DEMO03 explora la adaptación entre tamaños. La lectura se revisa en escritorio y en una ventana móvil. Las palabras nuevas pueden ocupar un espacio distinto, desplazar el siguiente bloque o cambiar la longitud del recorrido. Por eso la comprobación incluye el navegador y no termina al escribir un archivo. Los tamaños, las rutas y los escenarios aprobados deben aparecer en la evidencia guardada."
+    },
+    {
+      "id": "demo-heading-field-1050",
+      "from": "A quick meal choice, backed by a managed program.",
+      "to": "Recorrer la página en distintos tamaños."
+    },
+    {
+      "id": "demo-paragraph-field-1054",
+      "from": "The employee experience brings food discovery and conversational ordering into a short path to lunch. Workplace benefits are part of that path, rather than another process to complete first. Choice, company wallet and order state stay together, so the employee can understand what they are ordering and how the benefit applies.",
+      "to": "DEMO03 explora la adaptación entre tamaños. La navegación forma parte de la experiencia observada. Se comprueba la entrada a esta página, el regreso a la portada, el historial y la recarga. El contenido sustituido debe permanecer después de esas acciones. Si una respuesta requerida falta en la captura, el informe debe mostrarla; completar un recorrido no significa cubrir todas las interacciones posibles."
+    },
+    {
+      "id": "demo-paragraph-field-1067",
+      "from": "Orders connect the employee’s next meal to the employer’s program and the food partner’s work. The responsibilities are different, so the product needs a clear handoff between participant views rather than a shared interface exposing every control to everyone.",
+      "to": "DEMO03 explora la adaptación entre tamaños. El movimiento requiere una verificación independiente del contenido. Un trazo puede adaptarse a la posición de un título y cambiar cuando ese título ocupa más espacio. Las muestras comparadas deben utilizar condiciones equivalentes y una tolerancia declarada. Una firma reemplazada se valida como un gráfico nuevo; no se exige que conserve la forma de la firma anterior."
+    },
+    {
+      "id": "demo-paragraph-field-1076",
+      "from": "The employee needs to understand how the company wallet applies and whether the meal is still being ordered or is moving toward delivery. An unavailable choice or benefit limitation should lead to a clear next action.",
+      "to": "DEMO03 explora la adaptación entre tamaños. Esta sección conserva un borrador editable y una lista de comprobaciones pendientes. El resultado útil es una salida que puede revisarse, reproducirse y corregirse con evidencia. Las etiquetas del proceso describen operaciones realizadas. No sustituyen la revisión visual ni demuestran que se haya eliminado toda la información de la referencia."
+    },
+    {
+      "id": "demo-heading-field-1080",
+      "from": "A meal program with clear participant responsibilities.",
+      "to": "Conservar evidencia de cada comprobación."
+    },
+    {
+      "id": "demo-paragraph-field-1081",
+      "from": "My contribution was the product direction and ecosystem structure joining employee choice, company benefits, administration and food operations. The design puts benefit information at the point of ordering while keeping policy and usage control in the employer’s view. The same order connects the employee experience to fulfilment, so each participant has a focused role in the program.",
+      "to": "DEMO03 explora la adaptación entre tamaños. El siguiente paso consiste en revisar los detalles que aún no tienen sustitución: etiquetas de ejemplos, cifras, imágenes y gráficos. Cada cambio debe tener un propósito claro y una comprobación acorde con ese propósito. La integración en Nexus requiere además sus pruebas globales; las pruebas aisladas de esta herramienta no permiten dar esa integración por concluida."
+    },
+    {
+      "id": "demo-paragraph-field-1087",
+      "from": "Products with several participants become clearer when the ecosystem is designed before individual screens. A choice that looks simple for an employee can create work for an administrator or food partner. Mapping those effects early helped me see where complexity should be handled within the product.",
+      "to": "DEMO03 explora la adaptación entre tamaños. Esta maqueta permanece identificada como demostración mientras el contenido sea provisional. Los datos mostrados por componentes sin revisar no deben interpretarse como información propia. El paquete conserva los informes para que otra persona pueda distinguir qué se cambió, qué se comprobó y qué necesita trabajo adicional antes de una publicación."
+    },
+    {
+      "id": "demo-heading-field-1091",
+      "from": "Success criteria for workplace meals.",
+      "to": "Criterios de revisión y trabajo pendiente."
+    },
+    { "id": "demo-name-PAPERTRAIL", "from": "PAPERTRAIL", "to": "DEMO04" },
+    {
+      "id": "demo-intro-papertrail",
+      "from": "Accounting documents become structured data, with uncertainty kept open to review.",
+      "to": "Demostración editable para revisar la sustitución del contenido."
+    },
+    {
+      "id": "demo-metadata-papertrail",
+      "from": "From document intake to extracted data and structured review.",
+      "to": "DEMO04: maqueta provisional sobre la sustitución del contenido."
+    },
+    {
+      "id": "demo-heading-field-1217",
+      "from": "Turning accounting documents into usable data.",
+      "to": "Una demostración con contenido editable."
+    },
+    {
+      "id": "demo-paragraph-field-1218",
+      "from": "Papertrail is a document processing workflow for accounting operations. It identifies uploaded documents, extracts relevant fields and prepares structured information for review and downstream accounting systems. The experience connects the original source to the data it produces, so reviewers can check and correct the information before it becomes part of an accounting record.",
+      "to": "DEMO04 explora la sustitución del contenido. Es una maqueta de trabajo con texto provisional. Sirve para revisar la composición de esta página, sus espacios y la relación entre títulos, párrafos y gráficos. No representa un cliente real, un resultado comercial ni una funcionalidad nueva del producto. Antes de publicar, cada bloque debe recibir el contenido definitivo de su propietario."
+    },
+    {
+      "id": "demo-heading-field-1221",
+      "from": "The document is digital. The work often isn’t.",
+      "to": "Definir el alcance antes de comprobarlo."
+    },
+    {
+      "id": "demo-paragraph-field-1222",
+      "from": "An invoice or receipt may arrive electronically, but someone still has to identify its type, locate the right fields, enter values, check accuracy and transfer the information into another system. Papertrail needed to reduce that repeated work while keeping human oversight available wherever the document or extracted data left room for uncertainty.",
+      "to": "DEMO04 explora la sustitución del contenido. El punto de partida es una página observada en un tamaño y un estado concretos. La revisión conserva esa referencia para poder explicar cada cambio. Un bloque que todavía contiene información ajena sigue pendiente, aunque el encabezado ya tenga otro nombre. Esta demostración permite localizar esos pendientes sin presentarlos como un trabajo terminado."
+    },
+    {
+      "id": "demo-heading-field-1226",
+      "from": "Design for everything after upload.",
+      "to": "Cambios explícitos, revisión visible."
+    },
+    {
+      "id": "demo-paragraph-field-1227",
+      "from": "The workflow could not stop at upload and success. A document moves through identification, extraction, checking and posting, with incomplete information and exceptions along the way. I treated review as a working part of that lifecycle: the person needs to know what requires attention, see the source and correct a field without starting over.",
+      "to": "DEMO04 explora la sustitución del contenido. El texto se edita mediante reglas explícitas que indican el valor de origen y el valor de destino. Esas reglas se aplican a los formatos de entrega compatibles. Cambiar una frase requiere volver a generar la salida y comprobarla en el navegador. La edición conserva los elementos anidados que pueden participar en la composición y en las animaciones."
+    },
+    {
+      "id": "demo-heading-field-1240",
+      "from": "Document in. Structure out.",
+      "to": "La estructura que conecta los bloques."
+    },
+    {
+      "id": "demo-paragraph-field-1241",
+      "from": "OCR makes the document readable, classification establishes its type, and extraction gives the relevant fields a structure. Confidence guides human review before validated data reaches the accounting system. Keeping these stages connected makes it possible to trace an accounting value back to the document that supplied it.",
+      "to": "DEMO04 explora la sustitución del contenido. La organización visual se mantiene como referencia de trabajo: un título presenta la sección, el texto desarrolla la idea y el siguiente bloque muestra una relación. Los gráficos todavía requieren una revisión propia. Un diagrama puede contener nombres, cifras o símbolos del sitio de origen que una búsqueda de texto no alcanza a identificar por sí sola."
+    },
+    {
+      "id": "demo-heading-field-1272",
+      "from": "Keep the document and its data in view.",
+      "to": "Recorrer la página en distintos tamaños."
+    },
+    {
+      "id": "demo-paragraph-field-1276",
+      "from": "Extraction is not equally reliable across every document and field. Papertrail distinguishes information ready to continue from information requiring judgement. The review experience keeps the source and extracted fields together, so attention follows the specific uncertainty.",
+      "to": "DEMO04 explora la sustitución del contenido. La lectura se revisa en escritorio y en una ventana móvil. Las palabras nuevas pueden ocupar un espacio distinto, desplazar el siguiente bloque o cambiar la longitud del recorrido. Por eso la comprobación incluye el navegador y no termina al escribir un archivo. Los tamaños, las rutas y los escenarios aprobados deben aparecer en la evidencia guardada."
+    },
+    {
+      "id": "demo-paragraph-field-1289",
+      "from": "The correction journey starts with a specific field, not with the entire pipeline. The reviewer checks the source, adjusts the value and validates the record before it continues. This preserves completed work and keeps the accounting value connected to its origin.",
+      "to": "DEMO04 explora la sustitución del contenido. La navegación forma parte de la experiencia observada. Se comprueba la entrada a esta página, el regreso a la portada, el historial y la recarga. El contenido sustituido debe permanecer después de esas acciones. Si una respuesta requerida falta en la captura, el informe debe mostrarla; completar un recorrido no significa cubrir todas las interacciones posibles."
+    },
+    {
+      "id": "demo-heading-field-1302",
+      "from": "A review model built around the uncertain field.",
+      "to": "Conservar evidencia de cada comprobación."
+    },
+    {
+      "id": "demo-paragraph-field-1303",
+      "from": "My design contribution was a document lifecycle that connects extraction to focused review, correction and accounting handoff. Confidence determines where human attention is needed; the original document supplies the context for resolving it. A corrected field stays within the existing record, and a reviewed record remains distinct from one that has reached the accounting system.",
+      "to": "DEMO04 explora la sustitución del contenido. El movimiento requiere una verificación independiente del contenido. Un trazo puede adaptarse a la posición de un título y cambiar cuando ese título ocupa más espacio. Las muestras comparadas deben utilizar condiciones equivalentes y una tolerancia declarada. Una firma reemplazada se valida como un gráfico nuevo; no se exige que conserve la forma de la firma anterior."
+    },
+    {
+      "id": "demo-paragraph-field-1309",
+      "from": "Automation works better when uncertainty is part of the experience. A confident result and an uncertain result call for different kinds of attention. Designing that difference is as important as designing the successful path, because it determines how useful the automation is to a reviewer.",
+      "to": "DEMO04 explora la sustitución del contenido. Esta sección conserva un borrador editable y una lista de comprobaciones pendientes. El resultado útil es una salida que puede revisarse, reproducirse y corregirse con evidencia. Las etiquetas del proceso describen operaciones realizadas. No sustituyen la revisión visual ni demuestran que se haya eliminado toda la información de la referencia."
+    },
+    {
+      "id": "demo-heading-field-1313",
+      "from": "Success criteria: measure accuracy alongside review effort.",
+      "to": "Criterios de revisión y trabajo pendiente."
+    },
+    { "id": "demo-name-SCRIBE", "from": "SCRIBE", "to": "DEMO05" },
+    {
+      "id": "demo-intro-scribe",
+      "from": "Meeting conversations become structured business documents that teams can review and use.",
+      "to": "Demostración editable para revisar la documentación de estilos."
+    },
+    {
+      "id": "demo-metadata-scribe",
+      "from": "From meeting conversations to decisions, actions and structured documentation.",
+      "to": "DEMO05: maqueta provisional sobre la documentación de estilos."
+    },
+    {
+      "id": "demo-heading-field-1427",
+      "from": "Conversations shouldn’t end with the meeting.",
+      "to": "Una demostración con contenido editable."
+    },
+    {
+      "id": "demo-paragraph-field-1428",
+      "from": "Scribe turns meeting audio and video into structured business documentation. It identifies requirements, decisions, actions, processes, owners, risks and dependencies within the conversation, then organizes them into useful documents. SOPs, business requirements documents and project charters give that information a working form, rather than leaving teams with another recording or transcript to interpret.",
+      "to": "DEMO05 explora la documentación de estilos. Es una maqueta de trabajo con texto provisional. Sirve para revisar la composición de esta página, sus espacios y la relación entre títulos, párrafos y gráficos. No representa un cliente real, un resultado comercial ni una funcionalidad nueva del producto. Antes de publicar, cada bloque debe recibir el contenido definitivo de su propietario."
+    },
+    {
+      "id": "demo-heading-field-1431",
+      "from": "Meetings contain more than notes.",
+      "to": "Definir el alcance antes de comprobarlo."
+    },
+    {
+      "id": "demo-paragraph-field-1432",
+      "from": "A transcript preserves what was said, but not necessarily what matters. Requirements can be scattered across an hour of conversation, decisions can depend on earlier context, and actions can have owners without a clear structure. Turning those details into a business requirements document, SOP or project charter still requires someone to understand, organize and rewrite them.",
+      "to": "DEMO05 explora la documentación de estilos. El punto de partida es una página observada en un tamaño y un estado concretos. La revisión conserva esa referencia para poder explicar cada cambio. Un bloque que todavía contiene información ajena sigue pendiente, aunque el encabezado ya tenga otro nombre. Esta demostración permite localizar esos pendientes sin presentarlos como un trabajo terminado."
+    },
+    {
+      "id": "demo-heading-field-1436",
+      "from": "Find the meaning before giving it form.",
+      "to": "Cambios explícitos, revisión visible."
+    },
+    {
+      "id": "demo-paragraph-field-1437",
+      "from": "I separated the work into understanding the conversation, identifying meaningful information and building a structure for the intended document. A decision, a requirement and an action may appear in the same discussion, but they serve different purposes. Those distinctions need to survive the transformation from meeting content to working documentation.",
+      "to": "DEMO05 explora la documentación de estilos. El texto se edita mediante reglas explícitas que indican el valor de origen y el valor de destino. Esas reglas se aplican a los formatos de entrega compatibles. Cambiar una frase requiere volver a generar la salida y comprobarla en el navegador. La edición conserva los elementos anidados que pueden participar en la composición y en las animaciones."
+    },
+    {
+      "id": "demo-heading-field-1450",
+      "from": "From conversation to working knowledge.",
+      "to": "La estructura que conecta los bloques."
+    },
+    {
+      "id": "demo-paragraph-field-1451",
+      "from": "Audio and video become a transcript, then extraction and classification identify the information that matters. Structure connects that information to the needs of a business document before generation begins. Human review follows, with an editable output rather than a final answer that assumes the conversation supplied every detail correctly.",
+      "to": "DEMO05 explora la documentación de estilos. La organización visual se mantiene como referencia de trabajo: un título presenta la sección, el texto desarrolla la idea y el siguiente bloque muestra una relación. Los gráficos todavía requieren una revisión propia. Un diagrama puede contener nombres, cifras o símbolos del sitio de origen que una búsqueda de texto no alcanza a identificar por sí sola."
+    },
+    {
+      "id": "demo-paragraph-field-1472",
+      "from": "A summary organizes a meeting around what was discussed. A business document organizes information around what people need to do with it. Using the same outline for every output would preserve words while losing that purpose.",
+      "to": "DEMO05 explora la documentación de estilos. La lectura se revisa en escritorio y en una ventana móvil. Las palabras nuevas pueden ocupar un espacio distinto, desplazar el siguiente bloque o cambiar la longitud del recorrido. Por eso la comprobación incluye el navegador y no termina al escribir un archivo. Los tamaños, las rutas y los escenarios aprobados deben aparecer en la evidencia guardada."
+    },
+    {
+      "id": "demo-heading-field-1482",
+      "from": "Give the conversation a useful working form.",
+      "to": "Recorrer la página en distintos tamaños."
+    },
+    {
+      "id": "demo-paragraph-field-1486",
+      "from": "The output’s purpose determines what the conversation needs to become. A person choosing a BRD, SOP or project charter is choosing an information structure, not just a different format for the same summary.",
+      "to": "DEMO05 explora la documentación de estilos. La navegación forma parte de la experiencia observada. Se comprueba la entrada a esta página, el regreso a la portada, el historial y la recarga. El contenido sustituido debe permanecer después de esas acciones. Si una respuesta requerida falta en la captura, el informe debe mostrarla; completar un recorrido no significa cubrir todas las interacciones posibles."
+    },
+    {
+      "id": "demo-paragraph-field-1499",
+      "from": "A generated document is a working draft. The reviewer checks requirements, decisions and ownership, resolves ambiguity, then refines the output into something the team can use. Structured information makes that review more specific than rewriting a broad summary.",
+      "to": "DEMO05 explora la documentación de estilos. El movimiento requiere una verificación independiente del contenido. Un trazo puede adaptarse a la posición de un título y cambiar cuando ese título ocupa más espacio. Las muestras comparadas deben utilizar condiciones equivalentes y una tolerancia declarada. Una firma reemplazada se valida como un gráfico nuevo; no se exige que conserve la forma de la firma anterior."
+    },
+    {
+      "id": "demo-heading-field-1515",
+      "from": "An information model before a generated document.",
+      "to": "Conservar evidencia de cada comprobación."
+    },
+    {
+      "id": "demo-paragraph-field-1516",
+      "from": "My design contribution was separating meeting understanding, meaningful information, document structure and review. That distinction lets a BRD preserve requirements, an SOP preserve a process and a charter preserve project context. The review journey keeps ambiguity and missing ownership visible, so a polished draft does not turn an unresolved discussion into an apparently settled decision.",
+      "to": "DEMO05 explora la documentación de estilos. Esta sección conserva un borrador editable y una lista de comprobaciones pendientes. El resultado útil es una salida que puede revisarse, reproducirse y corregirse con evidencia. Las etiquetas del proceso describen operaciones realizadas. No sustituyen la revisión visual ni demuestran que se haya eliminado toda la información de la referencia."
+    },
+    {
+      "id": "demo-paragraph-field-1522",
+      "from": "Structuring information is often the difficult part of document generation. The final wording only becomes useful when requirements, decisions and ownership are understood in relation to one another. Designing that transformation made me think more carefully about the information a document needs before thinking about its format.",
+      "to": "DEMO05 explora la documentación de estilos. El siguiente paso consiste en revisar los detalles que aún no tienen sustitución: etiquetas de ejemplos, cifras, imágenes y gráficos. Cada cambio debe tener un propósito claro y una comprobación acorde con ese propósito. La integración en Nexus requiere además sus pruebas globales; las pruebas aisladas de esta herramienta no permiten dar esa integración por concluida."
+    },
+    {
+      "id": "demo-heading-field-1526",
+      "from": "Success criteria: measure useful documents, not generated words.",
+      "to": "Criterios de revisión y trabajo pendiente."
+    },
+    { "id": "demo-name-Crediflow", "from": "Crediflow", "to": "DEMO06" },
+    {
+      "id": "demo-intro-crediflow",
+      "from": "A guided business lending journey with clear requirements, decision states and next steps.",
+      "to": "Demostración editable para revisar la verificación del resultado."
+    },
+    {
+      "id": "demo-metadata-crediflow",
+      "from": "Product design for a digital lending journey from application and assessment to approval and disbursement.",
+      "to": "DEMO06: maqueta provisional sobre la verificación del resultado."
+    },
+    {
+      "id": "demo-heading-field-1658",
+      "from": "From application to disbursement.",
+      "to": "Una demostración con contenido editable."
+    },
+    {
+      "id": "demo-paragraph-field-1659",
+      "from": "Crediflow brings application, financial documents, assessment, eligibility, approval and disbursement into one guided digital experience. Applicants provide business details and supporting financial information in stages, then move toward a credit decision. The product focuses on making that progression understandable, so a person can see what is needed now and what comes next.",
+      "to": "DEMO06 explora la verificación del resultado. Es una maqueta de trabajo con texto provisional. Sirve para revisar la composición de esta página, sus espacios y la relación entre títulos, párrafos y gráficos. No representa un cliente real, un resultado comercial ni una funcionalidad nueva del producto. Antes de publicar, cada bloque debe recibir el contenido definitivo de su propietario."
+    },
+    {
+      "id": "demo-heading-field-1662",
+      "from": "Borrowing for a business comes with a lot of paperwork.",
+      "to": "Definir el alcance antes de comprobarlo."
+    },
+    {
+      "id": "demo-paragraph-field-1663",
+      "from": "A business loan can require identity information, GST records, several years of tax returns, bank statements and detailed business information before eligibility can be assessed. Collecting that material takes effort. The experience needed to make the requirements manageable while giving applicants a clear sense of what had been received, what remained and where they were in the process.",
+      "to": "DEMO06 explora la verificación del resultado. El punto de partida es una página observada en un tamaño y un estado concretos. La revisión conserva esa referencia para poder explicar cada cambio. Un bloque que todavía contiene información ajena sigue pendiente, aunque el encabezado ya tenga otro nombre. Esta demostración permite localizar esos pendientes sin presentarlos como un trabajo terminado."
+    },
+    {
+      "id": "demo-heading-field-1667",
+      "from": "Make each requirement part of the journey.",
+      "to": "Cambios explícitos, revisión visible."
+    },
+    {
+      "id": "demo-paragraph-field-1668",
+      "from": "I followed the applicant’s path from starting an application through documents, assessment and the credit decision. Document collection is a stage of that path, rather than a separate administrative task. The interface needs to explain why information is requested and distinguish completing the application from being assessed, approved or ready for disbursement.",
+      "to": "DEMO06 explora la verificación del resultado. El texto se edita mediante reglas explícitas que indican el valor de origen y el valor de destino. Esas reglas se aplican a los formatos de entrega compatibles. Cambiar una frase requiere volver a generar la salida y comprobarla en el navegador. La edición conserva los elementos anidados que pueden participar en la composición y en las animaciones."
+    },
+    {
+      "id": "demo-heading-field-1681",
+      "from": "One application, a clear path forward.",
+      "to": "La estructura que conecta los bloques."
+    },
+    {
+      "id": "demo-paragraph-field-1682",
+      "from": "The journey keeps the lending stages in a readable sequence. Business details and documents support financial assessment; eligibility and approval communicate the decision before disbursement. This is an applicant view of the process, designed to explain progress without making the person navigate the technical machinery behind a credit assessment.",
+      "to": "DEMO06 explora la verificación del resultado. La organización visual se mantiene como referencia de trabajo: un título presenta la sección, el texto desarrolla la idea y el siguiente bloque muestra una relación. Los gráficos todavía requieren una revisión propia. Un diagrama puede contener nombres, cifras o símbolos del sitio de origen que una búsqueda de texto no alcanza a identificar por sí sola."
+    },
+    {
+      "id": "demo-heading-field-1713",
+      "from": "Make progress clear from the first requirement.",
+      "to": "Recorrer la página en distintos tamaños."
+    },
+    {
+      "id": "demo-paragraph-field-1717",
+      "from": "Document requirements are work the applicant can complete within the lending journey. The experience needs to show the relevant document, the required period and its current state, rather than presenting every file as an identical upload task.",
+      "to": "DEMO06 explora la verificación del resultado. La lectura se revisa en escritorio y en una ventana móvil. Las palabras nuevas pueden ocupar un espacio distinto, desplazar el siguiente bloque o cambiar la longitud del recorrido. Por eso la comprobación incluye el navegador y no termina al escribir un archivo. Los tamaños, las rutas y los escenarios aprobados deben aparecer en la evidencia guardada."
+    },
+    {
+      "id": "demo-paragraph-field-1730",
+      "from": "After information collection, the interface shifts from asking for documents to explaining assessment and decisions. Applicants and operational reviewers need different views of that work, but both should refer to a consistent application state.",
+      "to": "DEMO06 explora la verificación del resultado. La navegación forma parte de la experiencia observada. Se comprueba la entrada a esta página, el regreso a la portada, el historial y la recarga. El contenido sustituido debe permanecer después de esas acciones. Si una respuesta requerida falta en la captura, el informe debe mostrarla; completar un recorrido no significa cubrir todas las interacciones posibles."
+    },
+    {
+      "id": "demo-paragraph-field-1739",
+      "from": "An approval should not imply that money has already been disbursed. If the application cannot proceed, explain the decision state and any available next action without presenting it as successful completion.",
+      "to": "DEMO06 explora la verificación del resultado. El movimiento requiere una verificación independiente del contenido. Un trazo puede adaptarse a la posición de un título y cambiar cuando ese título ocupa más espacio. Las muestras comparadas deben utilizar condiciones equivalentes y una tolerancia declarada. Una firma reemplazada se valida como un gráfico nuevo; no se exige que conserve la forma de la firma anterior."
+    },
+    {
+      "id": "demo-heading-field-1743",
+      "from": "A clear application and decision state model.",
+      "to": "Conservar evidencia de cada comprobación."
+    },
+    {
+      "id": "demo-paragraph-field-1744",
+      "from": "My contribution was structuring document collection and lending progression into understandable requirements, states and next actions. The design distinguishes a received document from one accepted for assessment, and a completed application from an approved or disbursed loan. Those distinctions give applicants a practical way to understand progress while keeping the financial decision separate from task completion.",
+      "to": "DEMO06 explora la verificación del resultado. Esta sección conserva un borrador editable y una lista de comprobaciones pendientes. El resultado útil es una salida que puede revisarse, reproducirse y corregirse con evidencia. Las etiquetas del proceso describen operaciones realizadas. No sustituyen la revisión visual ni demuestran que se haya eliminado toda la información de la referencia."
+    },
+    {
+      "id": "demo-paragraph-field-1750",
+      "from": "A complex process does not always need fewer steps. It needs clearer progression between them. Keeping collection, assessment and approval distinct helped me focus on the information someone needs at each point, instead of treating a shorter flow as the only measure of a better experience.",
+      "to": "DEMO06 explora la verificación del resultado. El siguiente paso consiste en revisar los detalles que aún no tienen sustitución: etiquetas de ejemplos, cifras, imágenes y gráficos. Cada cambio debe tener un propósito claro y una comprobación acorde con ese propósito. La integración en Nexus requiere además sus pruebas globales; las pruebas aisladas de esta herramienta no permiten dar esa integración por concluida."
+    },
+    {
+      "id": "demo-heading-field-1754",
+      "from": "Success criteria: measure completeness and status clarity.",
+      "to": "Criterios de revisión y trabajo pendiente."
+    },
+    {
+      "id": "demo-about",
+      "from": "Mine comes from understanding people, shaping how things feel, and building the systems that make them work.",
+      "to": "Esta es una demostración de Bot MD con textos provisionales. Permite revisar el diseño, la navegación y el movimiento antes de incorporar contenido definitivo."
+    }
+  ],
+  "forbiddenTerms": ["Daksh", "Gajjar", "dakshgajjar.com"],
+  "fitText": [
+    {
+      "id": "hero-lines",
+      "route": "/",
+      "selector": "#hero-title",
+      "lineSelector": ".hero-line",
+      "minFontSizePx": 32
+    }
+  ],
+  "svgPaths": [
+    {
+      "id": "loader-1",
+      "from": "M -100 511 C -40 513 50 510 117 505",
+      "to": "M 180 350 L 180 650"
+    },
+    {
+      "id": "loader-2",
+      "from": "M 117 505 C 142 454 379 374 555 374 C 710 369 765 431 637 514 C 567 559 444 612 408 604 C 374 599 424 551 501 529",
+      "to": "M 180 350 C 420 350 420 500 180 500 C 440 500 440 650 180 650"
+    },
+    {
+      "id": "loader-3",
+      "from": "M 685 296 C 621 389 539 505 466 592 L 473 574",
+      "to": "M 540 350 C 360 350 360 650 540 650 C 720 650 720 350 540 350"
+    },
+    {
+      "id": "loader-4",
+      "from": "M 117 505 C 104 533 197 532 311 527 C 484 521 600 513 692 505 C 709 485 729 479 719 494 C 707 511 683 526 695 509 C 707 493 719 485 726 487 C 710 513 712 515 730 503 L 817 402 L 731 526 C 747 502 768 479 782 476 C 796 472 758 493 753 494 C 763 518 779 506 799 494 C 824 471 811 468 800 485 C 795 494 807 505 791 509 C 776 512 791 500 811 493 C 846 479 867 442 883 417 L 822 512 C 838 495 856 472 858 482 C 861 487 844 497 855 499 C 889 510 938 485 972 475",
+      "to": "M 740 350 L 920 350"
+    },
+    {
+      "id": "loader-5",
+      "from": "M 972 475 C 932 496 881 539 868 515 C 835 461 1016 285 1102 254 C 1187 222 1093 371 1045 397",
+      "to": "M 830 350 L 830 650"
+    },
+    {
+      "id": "loader-6",
+      "from": "M 972 475 L 1053 419 C 1023 475 916 686 880 725 C 849 759 895 643 992 569",
+      "to": "M 1000 650 L 1000 350 L 1100 520 L 1200 350 L 1200 650"
+    },
+    {
+      "id": "loader-7",
+      "from": "M 922 508 C 975 505 1015 501 1045 500 C 1060 482 1081 468 1070 485 C 1056 506 1039 513 1047 499 C 1053 488 1064 480 1072 478 C 1067 490 1064 500 1072 499 C 1086 494 1098 479 1103 473 C 1087 506 1059 576 1041 596 C 1021 618 1058 541 1086 514 C 1109 494 1124 486 1132 472 C 1113 511 1085 575 1072 590 C 1057 608 1074 555 1100 517 C 1113 502 1130 498 1144 490 C 1159 478 1176 461 1162 472 C 1147 481 1134 499 1144 495 C 1155 491 1164 477 1168 472 C 1156 498 1164 495 1179 484 C 1190 475 1202 453 1195 460 C 1177 475 1208 463 1200 477 C 1184 501 1216 497 1244 492",
+      "to": "M 1300 350 L 1300 650"
+    },
+    {
+      "id": "loader-8",
+      "from": "M 1244 492 C 1351 482 1451 471 1519 471 C 1545 470 1517 477 1517 477",
+      "to": "M 1300 350 C 1550 350 1550 650 1300 650"
+    },
+    {
+      "id": "loader-9",
+      "from": "M 1112 459 L 1115 456",
+      "to": "M 180 720 L 1440 720"
+    },
+    {
+      "id": "loader-10",
+      "from": "M 1138 458 L 1141 455",
+      "to": "M 1440 720 L 1441 720"
+    },
+    {
+      "id": "small-monogram",
+      "from": "M23 178c58-68 46-32 4 2c18-8 24-44 23-16s17-23 13-5s20-16 17 0s15-14 14 0s15-9 24-3l-91 29",
+      "to": "M 25 150 L 25 185 L 40 185 C 58 185 58 168 40 168 L 25 168 L 40 168 C 55 168 55 150 40 150 Z M 65 185 L 65 150 L 80 172 L 95 150 L 95 185"
+    }
+  ]
+}

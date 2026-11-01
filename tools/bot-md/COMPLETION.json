@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "status": "in-progress",
   "universal100PercentClaim": false,
   "scope": "Frontend público observado: estilos, contenido sustituible, navegación y movimiento. Referencia inicial dakshgajjar.com; la aprobación se limita a rutas, estados, tamaños y muestras explícitos.",
@@ -8,35 +8,62 @@
     {
       "id": "styles-and-md",
       "status": "pass",
-      "evidence": ["docs/daksh/ESTILOS.md", "docs/daksh/MOVIMIENTO_0_4.md"]
+      "evidence": [
+        "docs/daksh/ESTILOS.md",
+        "docs/daksh/MOVIMIENTO_0_4.md"
+      ]
     },
     {
       "id": "motion-sampled",
       "status": "pass",
-      "evidence": ["evidence/daksh/materialized-0.5.0/motion-comparison.json"]
+      "evidence": [
+        "evidence/daksh/materialized-0.5.0/motion-comparison.json",
+        "evidence/daksh/materialized-0.6.0/regression.json"
+      ],
+      "scope": "48 historical same-content samples; the 0.6 compiler reproduces that served artifact byte for byte. Changed demo layout is checked for forward/back scroll separately."
     },
     {
       "id": "declared-content-ssr-navigation",
       "status": "pass",
-      "evidence": ["evidence/daksh/materialized-0.5.0/adaptation.json"]
+      "evidence": [
+        "evidence/daksh/materialized-0.6.0/adaptation.json"
+      ],
+      "scope": "231 declared fields across 7 routes, 56 scenarios, Chromium 1440x900 and 390x844; hydrated title clipping checked."
     },
     {
       "id": "title-fitting",
       "status": "pass",
       "evidence": [
-        "evidence/daksh/materialized-0.5.0/adaptation.json",
-        "tests/text-fit.test.ts"
+        "evidence/daksh/materialized-0.6.0/adaptation.json"
+      ],
+      "scope": "231 declared fields across 7 routes, 56 scenarios, Chromium 1440x900 and 390x844; hydrated title clipping checked."
+    },
+    {
+      "id": "authored-signature-paths",
+      "status": "pass",
+      "scope": "Only the 11 declared signature path geometries. Other graphics remain pending.",
+      "evidence": [
+        "evidence/daksh/materialized-0.6.0/adaptation.json",
+        "evidence/daksh/materialized-0.6.0/materialization.json",
+        "tests/svg-paths.test.ts"
       ]
     },
     {
       "id": "module-tests",
       "status": "pass",
-      "evidence": ["evidence/tests-0.5.0.log"]
+      "evidence": [
+        "evidence/tests-0.6.0.log",
+        "evidence/module-validation-0.6.0.json"
+      ]
     },
     {
       "id": "full-source-content-and-graphics-replacement",
       "status": "pending",
-      "reason": "Siguen nombres, casos, textos y elementos gráficos de la referencia fuera de las 23 reglas. La búsqueda literal de identidad no los certifica."
+      "reason": "140 text rules and 11 authored SVG paths applied. Catalog: 231 covered fields; 1553 remain unreviewed or unchanged, including generic labels and links. Other diagrams and sample data still retain reference content.",
+      "evidence": [
+        "evidence/daksh/materialized-0.6.0/coverage.json",
+        "evidence/daksh/materialized-0.6.0/adaptation.json"
+      ]
     },
     {
       "id": "clean-editable-components",
@@ -46,8 +73,10 @@
     {
       "id": "broader-navigation-and-site-coverage",
       "status": "partial",
-      "reason": "Se verificaron portada y seis proyectos con ida/regreso, historial y recarga, en Chromium de escritorio y móvil. Falta ampliar la cobertura de estados y navegadores del alcance final.",
-      "evidence": ["evidence/daksh/materialized-0.5.0/adaptation.json"]
+      "reason": "Seven observed routes passed with project reloads, back/forward and returns, in Chromium desktop/mobile. Other states, browsers and sites remain outside this validation.",
+      "evidence": [
+        "evidence/daksh/materialized-0.6.0/adaptation.json"
+      ]
     },
     {
       "id": "nexus-validation-and-integration",

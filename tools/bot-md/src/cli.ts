@@ -20,7 +20,7 @@ import {
 } from "./request-completion.js";
 
 const HELP =
-  "Bot MD 0.5.0\n\n" +
+  "Bot MD 0.6.0\n\n" +
   "npm run bot-md -- run --url https://sitio.example --out runs/ejemplo\n" +
   "npm run bot-md -- run --config examples/config.json --out runs/ejemplo\n" +
   "npm run bot-md -- capture --url URL --out CAPTURA\n" +
@@ -136,6 +136,8 @@ async function main() {
         result.status +
         " · reglas sin coincidencias: " +
         result.unmatchedRules.length +
+        " · trazos SVG sin coincidencias: " +
+        result.unmatchedSVGPaths.length +
         " · archivos con términos de origen: " +
         result.files.filter((f) => f.matches.length).length,
     );

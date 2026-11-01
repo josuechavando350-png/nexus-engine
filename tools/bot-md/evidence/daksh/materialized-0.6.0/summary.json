@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "version": "0.6.0",
+  "status": "in-progress",
+  "sourceDigest": "78f2e6bd0e2cbf920832604701e2c2ba513e9c1542a7e41d773409c10a3138a7",
+  "validated": {
+    "routes": [
+      "/",
+      "/work/crediflow",
+      "/work/eigna",
+      "/work/mealops",
+      "/work/orbit",
+      "/work/papertrail",
+      "/work/scribe"
+    ],
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 900,
+        "touch": false
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "touch": true
+      }
+    ],
+    "scenarios": 56,
+    "declaredFields": 231,
+    "fieldAssertions": 1776,
+    "textRules": 140,
+    "svgPaths": 11,
+    "servedFilesScanned": 116,
+    "jsErrors": 0,
+    "httpErrors": 0,
+    "moduleTests": 28
+  },
+  "pendingCatalogFields": 1553,
+  "universal100PercentClaim": false,
+  "notes": [
+    "Draft demo copy; other text, sample data and diagrams remain.",
+    "Scroll checks forward/back behavior; no temporal equivalence claim for altered copy.",
+    "Nexus global validation and integration remain pending."
+  ],
+  "evidence": {
+    "adaptation.json": "756bc4d7d7ffb6b2a58bc2c28e9ebd15299f7a34657645221b2517890789997b",
+    "coverage.json": "29ced54cf8e29ae39ac5741faf433e8137e4f6c2b2311672b878431423445ff4",
+    "desktop-home.png": "0c26ce6c2be61ec52b54acbac6027df3a257170258b87d271e1c515f5adac034",
+    "desktop-loader.png": "f8160d65ad534b8c8bdb618a32e07a7c28bc0a6d111371f52053814d799f1c62",
+    "desktop-project.png": "c10a72a9deac15a881382a002743d917ca071f3fbf56645d46a3c89cadc8ad1d",
+    "earlier-navigation-failure.json": "3708272e4cc79a1268cb5ccd26f047f1cec1dad840de676b11a11f6b783dc10c",
+    "materialization.json": "a8646ff36a143f4fcd7eb83d2d56bed67258626ea8cddecd78c313a508e38a33",
+    "missing-requests.json": "57f7d27765492384a12220de64c1c082b03679c673ec5fa2242a808e12fe78fa",
+    "mobile-home.png": "cfd85c317c2f62b05e2726d2f866c0903c6059b923c6d64cc38c3a1757ec1206",
+    "mobile-loader.png": "768c8d75286a14655f26e9e7b2c8fb3a2d9d76a86ea7aedb40c46db532d5c3ad",
+    "mobile-project.png": "0e3b5384bee779335df36c3d8e1932c835f2575eaf066f50a9d9aa8d16bc1634",
+    "regression.json": "2afc704f4b6bbc39b3b4a6534fc8f518e9660139d816a0332931d6cc9b007413",
+    "request-completion.json": "31fe47edbc2432a6b6489ba86dddf069072a08e597b6ee2532bb4f6835ee3a40"
+  }
+}

@@ -1,4 +1,4 @@
-# Contenido compilado — Bot MD 0.5.0
+# Contenido compilado — Bot MD 0.6.0
 
 `materialize` sustituye valores explícitos antes de servir la página. El mismo cambio puede aplicarse a HTML inicial, cadenas de JavaScript, JSON/JSON-LD y respuestas de navegación React Flight. No utiliza el runtime de sustitución posterior ni publica un mapa con los valores `expected` originales.
 
@@ -29,6 +29,14 @@ El lector no ejecuta Flight. Reescribe valores JSON y registros de texto `T`, ca
 
 El encuadre se contrastó con [ReactFlightClient.js de React 19.0.0](https://github.com/react/react/blob/v19.0.0/packages/react-client/src/ReactFlightClient.js). Esta es una implementación limitada al formato textual observado: un registro binario, etiqueta desconocida, trama incompleta o UTF-8 inválido detiene la exportación. No se anuncia compatibilidad con todas las versiones de React ni con otros protocolos.
 
+## Geometrías SVG propias
+
+El plan puede añadir `svgPaths` con reglas `{ "id": "marca", "from": "M0 0L20 20", "to": "M 0 20 L 20 0" }`. En HTML solo se modifica el atributo `d` de elementos SVG `path`. En JavaScript, JSON y Flight se sustituyen las cadenas completas declaradas, incluidos arreglos de trazos y registros de texto, porque los componentes pueden construir `d` desde esos datos. La coincidencia es global: si el mismo trazo aparece en dos gráficos, se cambia en ambos.
+
+La geometría nueva acepta comandos explícitos `M L H V C S Q T A Z`, también en minúsculas, con argumentos finitos; los arcos requieren radios no negativos y flags separados. Las repeticiones implícitas de argumentos deben expandirse. Las rutas calculadas en tiempo de ejecución, las imágenes y los SVG externos requieren otro tratamiento. No se interpreta el significado visual de un trazo ni se identifica automáticamente qué firma pertenece a quién.
+
+`svgCounts` registra las coincidencias y `unmatchedSVGPaths` las reglas pendientes. El exportador no inyecta un parche de DOM ni un mapa público de geometrías originales. La sintaxis válida no prueba un resultado visual correcto: hay que comprobar la forma en navegador y el movimiento que depende de ella. [Caso real y límites](GRAFICOS_Y_COBERTURA.md).
+
 ## Resultado y límites
 
 `materialization.json` registra las sustituciones por superficie, archivos modificados, hashes, reglas sin coincidencias y términos de origen todavía presentes. `blocked` produce código de salida 2; `materialized` significa que las reglas encontraron coincidencias y la búsqueda literal declarada no encontró restos. **No es aprobación de fidelidad ni certificación de limpieza semántica.**
@@ -37,7 +45,7 @@ La búsqueda incluye los SVG propios añadidos; no interpreta texto dentro de im
 
 Una exportación con error de análisis o integridad no recibe `routes.json`, por lo que no queda una copia parcial que el servidor pueda abrir. No se modifica la captura sellada.
 
-## Prueba real
+## Prueba real de 0.5.0
 
 El plan [materialized-replacements.json](../validation/daksh/materialized-replacements.json) contiene 23 reglas revisadas. Sustituye los 19 campos declarados de la portada y las referencias literales de identidad detectadas en las siete rutas. Incluye metadatos, JSON-LD, correo de contacto y texto de carga. Los nombres y contenidos de los proyectos de la referencia siguen pendientes; el plan no pretende cubrirlos.
 

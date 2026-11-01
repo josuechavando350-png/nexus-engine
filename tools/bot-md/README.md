@@ -1,10 +1,16 @@
-# Bot MD — 0.5.0
+# Bot MD — 0.6.0
 
 Bot MD captura la apariencia y el comportamiento observado de una web para reconstruir una versión local con contenido editable. Conserva HTML, CSS, JavaScript, fuentes y recursos; además genera documentación Markdown de estilos y movimiento.
 
 La versión 0.3.0 añadió **ESTILOS.md**, **MOVIMIENTO.md**, un catálogo de contenido, sustitución de textos sin destruir elementos anidados, trazas SVG durante el scroll y detección de diferencias. El Markdown documenta la experiencia; el código y los recursos la ejecutan.
 
 La reconstrucción conserva el frontend que recibe el navegador. No genera automáticamente componentes fuente nuevos. La aprobación corresponde a tamaños, estados y muestras medidos; no equivale a copiar cualquier web al 100 %.
+
+## Novedades 0.6.0
+
+`materialize` admite `svgPaths`: geometrías propias que sustituyen trazos declarados en HTML, JavaScript y datos JSON/Flight. La sustitución permanece al hidratar y recargar. Las reglas registran coincidencias por formato y una geometría inválida o una regla sin coincidencias impide declarar la operación aprobada.
+
+La demostración de Daksh amplía el plan a 140 reglas de texto y 11 trazos de dos firmas. Incluye textos provisionales identificados como demostración, sin atribuir proyectos o resultados del autor a Nexus. El catálogo mantiene visibles los campos sin revisar. [Uso, evidencia y pendientes de 0.6.0](docs/GRAFICOS_Y_COBERTURA.md).
 
 ## Novedades 0.5.0
 

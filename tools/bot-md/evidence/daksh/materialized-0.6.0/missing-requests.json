@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "sourceOrigin": "https://dakshgajjar.com",
+  "requests": [
+    {
+      "path": "/work/orbit?_rsc=hY_hg9rCRXgRPmwD",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-state-tree": "%5B%22%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C160%5D%7D%2Cnull%2Cnull%2C80%5D",
+        "next-url": "/"
+      }
+    }
+  ]
+}
