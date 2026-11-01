@@ -1,0 +1,220 @@
+TAP version 13
+# Subtest: CSS closure fetches unused nested dependencies without changing sealed observations
+ok 1 - CSS closure fetches unused nested dependencies without changing sealed observations
+  ---
+  duration_ms: 55.502806
+  type: 'test'
+  ...
+# Subtest: CSS dependency extraction ignores embedded data and local fragment references
+ok 2 - CSS dependency extraction ignores embedded data and local fragment references
+  ---
+  duration_ms: 0.677804
+  type: 'test'
+  ...
+# Subtest: detail configuration rejects ambiguous breakpoints and active data
+ok 3 - detail configuration rejects ambiguous breakpoints and active data
+  ---
+  duration_ms: 1.507197
+  type: 'test'
+  ...
+# Subtest: selected SVG exports a standalone package; scroll painting, responsive variants, reduced motion and cleanup work without source resources
+ok 4 - selected SVG exports a standalone package; scroll painting, responsive variants, reduced motion and cleanup work without source resources
+  ---
+  duration_ms: 2119.344907
+  type: 'test'
+  ...
+# Subtest: multiple targets, non-path elements and tampered source cannot create a routable detail
+ok 5 - multiple targets, non-path elements and tampered source cannot create a routable detail
+  ---
+  duration_ms: 233.369117
+  type: 'test'
+  ...
+# Subtest: CLI run emits styles, catalog and template, and refuses to certify an unmatched motion selector
+ok 6 - CLI run emits styles, catalog and template, and refuses to certify an unmatched motion selector
+  ---
+  duration_ms: 2855.797994
+  type: 'test'
+  ...
+# Subtest: motion profiles and editable fields reject ambiguous or unsafe input
+ok 7 - motion profiles and editable fields reject ambiguous or unsafe input
+  ---
+  duration_ms: 1.021413
+  type: 'test'
+  ...
+# Subtest: SVG comparison rejects changed curves, missing frames and disabled motion
+ok 8 - SVG comparison rejects changed curves, missing frames and disabled motion
+  ---
+  duration_ms: 1.015634
+  type: 'test'
+  ...
+# Experience receipt: /workspace/scratch/51223ab9c43e/bot-md-github/tools/bot-md/test-output/experience-1793497376482/receipt.json
+# Subtest: styles, content and active SVG motion work offline and adapt without destroying nested elements
+ok 9 - styles, content and active SVG motion work offline and adapt without destroying nested elements
+  ---
+  duration_ms: 2491.000434
+  type: 'test'
+  ...
+# Subtest: Next.js replay retains routing metadata while omitting cookies and transport headers
+ok 10 - Next.js replay retains routing metadata while omitting cookies and transport headers
+  ---
+  duration_ms: 2.400681
+  type: 'test'
+  ...
+# Subtest: only browser-cancelled recorded RSC prefetches are classified as optional
+ok 11 - only browser-cancelled recorded RSC prefetches are classified as optional
+  ---
+  duration_ms: 0.221595
+  type: 'test'
+  ...
+# Verificado: p0-mobile-s0 · fail · diferencia 12.4809%
+# Verificado: p0-mobile-s1 · fail · diferencia 12.6963%
+# Verificado: p0-mobile-s3 · fail · diferencia 12.1569%
+# Verificado: p0-mobile-s2 · fail · diferencia 12.1903%
+# Verificado: p0-desktop-s1 · fail · diferencia 12.0640%
+# Verificado: p0-desktop-s0 · fail · diferencia 12.0121%
+# Verificado: p0-desktop-s2 · fail · diferencia 11.6401%
+# Verificado: p0-mobile-s0 · pass · diferencia 0.0000%
+# Verificado: p0-mobile-s1 · pass · diferencia 0.0000%
+# Verificado: p0-mobile-s2 · pass · diferencia 0.0000%
+# Verificado: p0-mobile-s3 · pass · diferencia 0.0000%
+# Verificado: p0-desktop-s0 · pass · diferencia 0.0000%
+# Verificado: p0-desktop-s1 · pass · diferencia 0.0000%
+# Verificado: p0-desktop-s2 · pass · diferencia 0.0000%
+# Verificado: p0-mobile-s0 · pass · diferencia 0.0000%
+# Verificado: p0-mobile-s1 · pass · diferencia 0.0000%
+# Verificado: p0-mobile-s2 · pass · diferencia 0.0000%
+# Verificado: p0-mobile-s3 · pass · diferencia 0.0000%
+# Verificado: p0-desktop-s0 · pass · diferencia 0.0000%
+# Verificado: p0-desktop-s1 · pass · diferencia 0.0000%
+# Verificado: p0-desktop-s2 · pass · diferencia 0.0000%
+# Integration receipt: /workspace/scratch/51223ab9c43e/bot-md-github/tools/bot-md/test-output/integration-1793497379427/test-receipt.json
+# Subtest: offline capture → reconstruction → verification → defect detection → measured repair
+ok 12 - offline capture → reconstruction → verification → defect detection → measured repair
+  ---
+  duration_ms: 34545.611034
+  type: 'test'
+  ...
+# Subtest: Flight preserves references and modules, recalculates UTF-8 framing, and rejects incomplete or unknown records
+ok 13 - Flight preserves references and modules, recalculates UTF-8 framing, and rejects incomplete or unknown records
+  ---
+  duration_ms: 1.775924
+  type: 'test'
+  ...
+# Subtest: materialization parses split Flight streams and treats hostile replacement text as data
+ok 14 - materialization parses split Flight streams and treats hostile replacement text as data
+  ---
+  duration_ms: 9.984342
+  type: 'test'
+  ...
+# Subtest: compiled copy has replacement text before JavaScript, after hydration, data fetches and reload, with original CSS/font bytes intact
+ok 15 - compiled copy has replacement text before JavaScript, after hydration, data fetches and reload, with original CSS/font bytes intact
+  ---
+  duration_ms: 349.598114
+  type: 'test'
+  ...
+# Subtest: unmatched rules and terms in supplied media block status; parse or integrity failures never create routes.json
+ok 16 - unmatched rules and terms in supplied media block status; parse or integrity failures never create routes.json
+  ---
+  duration_ms: 27.231271
+  type: 'test'
+  ...
+# Subtest: motion enrichment preserves exact routing queries, UTF-8 bytes and provenance; rejects mismatched origin/type
+ok 17 - motion enrichment preserves exact routing queries, UTF-8 bytes and provenance; rejects mismatched origin/type
+  ---
+  duration_ms: 40.82612
+  type: 'test'
+  ...
+# Subtest: identity audit recognizes encoded text and split DOM text; content/clock policies reject unsafe or ambiguous inputs
+ok 18 - identity audit recognizes encoded text and split DOM text; content/clock policies reject unsafe or ambiguous inputs
+  ---
+  duration_ms: 5.70293
+  type: 'test'
+  ...
+# Refinement receipt: /workspace/scratch/51223ab9c43e/bot-md-github/tools/bot-md/test-output/refinement-1793497415415/receipt.json
+# Subtest: controlled SVG timing repeats against a live origin and offline copy; metadata/media edits expose retained source content
+ok 19 - controlled SVG timing repeats against a live origin and offline copy; metadata/media edits expose retained source content
+  ---
+  duration_ms: 5569.491701
+  type: 'test'
+  ...
+# Subtest: candidate misses become resources only after real successful origin responses; queries and input seal remain intact
+ok 20 - candidate misses become resources only after real successful origin responses; queries and input seal remain intact
+  ---
+  duration_ms: 51.757421
+  type: 'test'
+  ...
+# Subtest: SVG replacement rejects ambiguous, malformed, empty and executable shapes
+ok 21 - SVG replacement rejects ambiguous, malformed, empty and executable shapes
+  ---
+  duration_ms: 1.427176
+  type: 'test'
+  ...
+# Subtest: authored SVG replaces SSR, JS arrays, JSON and Flight data, survives reload, and preserves independent scroll animation
+ok 22 - authored SVG replaces SSR, JS arrays, JSON and Flight data, survives reload, and preserves independent scroll animation
+  ---
+  duration_ms: 327.957148
+  type: 'test'
+  ...
+# Subtest: text fitting rejects ambiguous rules and unreadably small font limits
+ok 23 - text fitting rejects ambiguous rules and unreadably small font limits
+  ---
+  duration_ms: 1.092681
+  type: 'test'
+  ...
+# Subtest: text fitting detects clipping hidden by overflow, preserves nested content, regrows on resize and reports an impossible minimum
+ok 24 - text fitting detects clipping hidden by overflow, preserves nested content, regrows on resize and reports an impossible minimum
+  ---
+  duration_ms: 195.028771
+  type: 'test'
+  ...
+# Subtest: proxy DNS delegation is explicit, exact-host and cannot allow private IP literals
+ok 25 - proxy DNS delegation is explicit, exact-host and cannot allow private IP literals
+  ---
+  duration_ms: 1.271652
+  type: 'test'
+  ...
+# Subtest: configuration rejects invalid bounds and unrelated scenario origins
+ok 26 - configuration rejects invalid bounds and unrelated scenario origins
+  ---
+  duration_ms: 1.277521
+  type: 'test'
+  ...
+# Subtest: private and metadata networks are rejected; localhost is explicit
+ok 27 - private and metadata networks are rejected; localhost is explicit
+  ---
+  duration_ms: 0.6752
+  type: 'test'
+  ...
+# Subtest: CSS imports, relative URLs and data URLs survive remapping
+ok 28 - CSS imports, relative URLs and data URLs survive remapping
+  ---
+  duration_ms: 3.114216
+  type: 'test'
+  ...
+# Subtest: JS rewrites observed URL literals without modifying comments or regex
+ok 29 - JS rewrites observed URL literals without modifying comments or regex
+  ---
+  duration_ms: 3.403203
+  type: 'test'
+  ...
+# Subtest: HTML removes stale integrity and rewrites style resources
+ok 30 - HTML removes stale integrity and rewrites style resources
+  ---
+  duration_ms: 2.864729
+  type: 'test'
+  ...
+# Subtest: visual comparator detects dimension mismatch and paint defects
+ok 31 - visual comparator detects dimension mismatch and paint defects
+  ---
+  duration_ms: 8.07949
+  type: 'test'
+  ...
+1..31
+# tests 31
+# suites 0
+# pass 31
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 52774.059514

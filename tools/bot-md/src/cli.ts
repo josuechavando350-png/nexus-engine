@@ -14,13 +14,15 @@ import { captureMotion, assessMotion, readMotion } from "./motion.js";
 import type { ContentMap, MotionConfig } from "./experience-types.js";
 import { auditContent, type ContentAuditPolicy } from "./content-audit.js";
 import { materialize, type ReplacementPlan } from "./materialize.js";
+import { extractScrollDetail } from "./details.js";
+import type { DetailConfig } from "./detail-types.js";
 import {
   completeRequests,
   type MissingRequestLog,
 } from "./request-completion.js";
 
 const HELP =
-  "Bot MD 0.6.0\n\n" +
+  "Bot MD 0.7.0\n\n" +
   "npm run bot-md -- run --url https://sitio.example --out runs/ejemplo\n" +
   "npm run bot-md -- run --config examples/config.json --out runs/ejemplo\n" +
   "npm run bot-md -- capture --url URL --out CAPTURA\n" +
@@ -31,6 +33,7 @@ const HELP =
   "npm run bot-md -- repair --capture CAPTURA --site SITIO --out REPARACION\n" +
   "npm run bot-md -- serve --site SITIO --port 4173\n\n" +
   "npm run bot-md -- styles --capture CAPTURA --out ESTILOS\n" +
+  "npm run bot-md -- extract-detail --site SITIO --config detalle.json --out COMPONENTE\n" +
   "npm run bot-md -- catalog --capture CAPTURA --out CONTENIDO\n" +
   "npm run bot-md -- template --site SITIO --content content.json --out PLANTILLA\n" +
   "npm run bot-md -- materialize --site SITIO_BASE --replacements sustituciones.json --out PLANTILLA [--assets CARPETA]\n" +
@@ -92,6 +95,20 @@ async function main() {
   };
   if (command === "styles") {
     await exportStyles(required("capture"), required("out"));
+    return;
+  }
+  if (command === "extract-detail") {
+    if (!values.config) throw new Error("Falta --config");
+    const result = await extractScrollDetail(
+      required("site"),
+      await json<DetailConfig>(path.resolve(values.config)),
+      required("out"),
+    );
+    console.log(
+      "Detalle SVG exportado: " +
+        result.observations.length +
+        " variantes. Requiere validación en la composición de destino.",
+    );
     return;
   }
   if (command === "complete-requests") {

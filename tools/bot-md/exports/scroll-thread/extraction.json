@@ -1,0 +1,367 @@
+{
+  "schemaVersion": 1,
+  "kind": "scroll-svg",
+  "status": "exported-needs-validation",
+  "sourceDigest": "78f2e6bd0e2cbf920832604701e2c2ba513e9c1542a7e41d773409c10a3138a7",
+  "sourceRoute": "/",
+  "selector": "path.thread-path[data-thread-route=\"capabilities-entry\"]",
+  "browser": "Chromium",
+  "config": {
+    "schemaVersion": 1,
+    "kind": "scroll-svg",
+    "route": "/",
+    "selector": "path.thread-path[data-thread-route=\"capabilities-entry\"]",
+    "readySelector": "html[data-hero-thread-complete=true][data-signature-complete=true]",
+    "viewports": [
+      {
+        "name": "mobile",
+        "width": 390,
+        "height": 844,
+        "minWidth": 0,
+        "touch": true
+      },
+      {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 768
+      }
+    ],
+    "padding": 20,
+    "timeoutMs": 30000
+  },
+  "observations": [
+    {
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844,
+        "minWidth": 0,
+        "touch": true
+      },
+      "length": 467.8392333984375,
+      "points": [
+        {
+          "x": 378,
+          "y": 1825.9375
+        },
+        {
+          "x": 378,
+          "y": 1840.5574951171875
+        },
+        {
+          "x": 378,
+          "y": 1855.177490234375
+        },
+        {
+          "x": 378,
+          "y": 1869.79736328125
+        },
+        {
+          "x": 378,
+          "y": 1884.4173583984375
+        },
+        {
+          "x": 378,
+          "y": 1899.037353515625
+        },
+        {
+          "x": 378,
+          "y": 1913.6573486328125
+        },
+        {
+          "x": 378,
+          "y": 1928.27734375
+        },
+        {
+          "x": 378,
+          "y": 1942.8973388671875
+        },
+        {
+          "x": 378,
+          "y": 1957.517333984375
+        },
+        {
+          "x": 378,
+          "y": 1972.13720703125
+        },
+        {
+          "x": 378,
+          "y": 1986.7572021484375
+        },
+        {
+          "x": 376.3622131347656,
+          "y": 2001.2371826171875
+        },
+        {
+          "x": 370.1693420410156,
+          "y": 2014.39013671875
+        },
+        {
+          "x": 359.6087646484375,
+          "y": 2024.3824462890625
+        },
+        {
+          "x": 346.3546142578125,
+          "y": 2030.4293212890625
+        },
+        {
+          "x": 331.98583984375,
+          "y": 2032.9637451171875
+        },
+        {
+          "x": 317.3872375488281,
+          "y": 2032.6690673828125
+        },
+        {
+          "x": 303.01513671875,
+          "y": 2030.0615234375
+        },
+        {
+          "x": 289.14306640625,
+          "y": 2025.47998046875
+        },
+        {
+          "x": 275.9765319824219,
+          "y": 2019.1474609375
+        },
+        {
+          "x": 263.2915344238281,
+          "y": 2011.881103515625
+        },
+        {
+          "x": 250.1649169921875,
+          "y": 2005.4539794921875
+        },
+        {
+          "x": 236.4277801513672,
+          "y": 2000.4849853515625
+        },
+        {
+          "x": 222.02255249023438,
+          "y": 1998.2574462890625
+        },
+        {
+          "x": 208.03529357910156,
+          "y": 2001.7974853515625
+        },
+        {
+          "x": 198.8832550048828,
+          "y": 2012.903076171875
+        },
+        {
+          "x": 195.44700622558594,
+          "y": 2027.055908203125
+        },
+        {
+          "x": 195,
+          "y": 2041.66064453125
+        },
+        {
+          "x": 195,
+          "y": 2056.28076171875
+        },
+        {
+          "x": 195,
+          "y": 2070.900634765625
+        },
+        {
+          "x": 195,
+          "y": 2085.520751953125
+        },
+        {
+          "x": 195,
+          "y": 2100.140625
+        }
+      ],
+      "inherited": [],
+      "sourcePathSha256": "66b17da4af2dd6399bdb2d43f7bfe956b17eac5b94167a6ff1e5daabda40e579",
+      "geometryStableAtTwoScrollStates": true
+    },
+    {
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 768
+      },
+      "length": 2929.63232421875,
+      "points": [
+        {
+          "x": 1003.3218994140625,
+          "y": 1800
+        },
+        {
+          "x": 1066.5943603515625,
+          "y": 1836
+        },
+        {
+          "x": 1158.1453857421875,
+          "y": 1836
+        },
+        {
+          "x": 1249.6964111328125,
+          "y": 1836
+        },
+        {
+          "x": 1341.2474365234375,
+          "y": 1836
+        },
+        {
+          "x": 1414.800048828125,
+          "y": 1861.7197265625
+        },
+        {
+          "x": 1414.800048828125,
+          "y": 1953.270751953125
+        },
+        {
+          "x": 1414.800048828125,
+          "y": 2044.82177734375
+        },
+        {
+          "x": 1414.800048828125,
+          "y": 2136.372802734375
+        },
+        {
+          "x": 1374.80419921875,
+          "y": 2199.984375
+        },
+        {
+          "x": 1283.253173828125,
+          "y": 2199.984375
+        },
+        {
+          "x": 1191.7022705078125,
+          "y": 2199.984375
+        },
+        {
+          "x": 1100.1512451171875,
+          "y": 2199.984375
+        },
+        {
+          "x": 1008.6002197265625,
+          "y": 2199.984375
+        },
+        {
+          "x": 917.0491943359375,
+          "y": 2199.984375
+        },
+        {
+          "x": 825.4981689453125,
+          "y": 2199.984375
+        },
+        {
+          "x": 733.9471435546875,
+          "y": 2199.984375
+        },
+        {
+          "x": 642.3961181640625,
+          "y": 2199.984375
+        },
+        {
+          "x": 550.8450927734375,
+          "y": 2199.984375
+        },
+        {
+          "x": 459.2940368652344,
+          "y": 2199.984375
+        },
+        {
+          "x": 367.7430114746094,
+          "y": 2199.984375
+        },
+        {
+          "x": 276.1921081542969,
+          "y": 2199.984375
+        },
+        {
+          "x": 184.64108276367188,
+          "y": 2199.984375
+        },
+        {
+          "x": 93.0899429321289,
+          "y": 2199.984375
+        },
+        {
+          "x": 63.93490982055664,
+          "y": 2258.122314453125
+        },
+        {
+          "x": 154.265869140625,
+          "y": 2263.984375
+        },
+        {
+          "x": 245.81689453125,
+          "y": 2263.984375
+        },
+        {
+          "x": 337.367919921875,
+          "y": 2263.984375
+        },
+        {
+          "x": 428.9189453125,
+          "y": 2263.984375
+        },
+        {
+          "x": 520.469970703125,
+          "y": 2263.984375
+        },
+        {
+          "x": 612.02099609375,
+          "y": 2263.984375
+        },
+        {
+          "x": 703.2881469726562,
+          "y": 2266.44921875
+        },
+        {
+          "x": 719.9921875,
+          "y": 2351.171875
+        }
+      ],
+      "inherited": [],
+      "sourcePathSha256": "f369a865d3328114489a922e16e045d90f1317405ebd1a61865d4fe9acdc7098",
+      "geometryStableAtTwoScrollStates": true
+    }
+  ],
+  "exportedFiles": [
+    {
+      "route": "/",
+      "file": "index.html",
+      "sha256": "0ae731c8d088734459722e857167819d4ee5dbc68b7159cd7a29dfaf5064414e"
+    },
+    {
+      "route": "/scroll-thread.js",
+      "file": "scroll-thread.js",
+      "sha256": "91d1d397e1928b72e5c650a1bdc05b89ee2648f7d0b17fdfb708c2395b235757"
+    },
+    {
+      "route": "/effect.json",
+      "file": "effect.json",
+      "sha256": "f508f6d5a24ceb02ca1fbcb5e2b2ab0db81b2bf836a4bb7ad49ab830557f5f7e"
+    },
+    {
+      "route": "/scroll-thread.css",
+      "file": "scroll-thread.css",
+      "sha256": "5a392da5e5fed28b6b15fbd821883e1eb5bda3c6ccb83badc86ed5d64c6016d1"
+    },
+    {
+      "route": "/demo.css",
+      "file": "demo.css",
+      "sha256": "e0102950aa8f3dc0490a1c233ff149d53f5d3188031f6c1e7f777269637be155"
+    },
+    {
+      "route": "/demo.js",
+      "file": "demo.js",
+      "sha256": "09d5990d33f5fac23a78fc8b96ddc14d5048d60145b80c404483407912293e96"
+    }
+  ],
+  "limitations": [
+    "Exports one explicitly selected stroke and observed responsive variants, not arbitrary components or websites.",
+    "Controller is newly authored; original easing, trigger timing, clipping, masks, filters and surrounding content are not transplanted.",
+    "Preserves aspect ratio. The trajectory scales inside the host; it does not automatically bend around newly authored text.",
+    "Inherited visual dependencies are listed for review. Geometric comparison does not certify identical painted pixels.",
+    "Intermediate widths select the declared breakpoint variant; only tested sizes can be claimed as validated."
+  ]
+}

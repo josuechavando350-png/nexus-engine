@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "scroll-svg",
+  "route": "/",
+  "selector": "path.thread-path[data-thread-route=\"capabilities-entry\"]",
+  "readySelector": "html[data-hero-thread-complete=true][data-signature-complete=true]",
+  "viewports": [
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844,
+      "minWidth": 0,
+      "touch": true
+    },
+    { "name": "desktop", "width": 1440, "height": 900, "minWidth": 768 }
+  ],
+  "padding": 20,
+  "timeoutMs": 30000
+}

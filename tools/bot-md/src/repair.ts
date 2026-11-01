@@ -1,9 +1,9 @@
 import path from "node:path";
 import { readFile, mkdir } from "node:fs/promises";
 import { integrity } from "./build.js";
-import { inside, json, save, saveJson, newDirectory } from "./common.js";
+import { inside, json, save, saveJson, newDirectory, hash } from "./common.js";
 import { verify } from "./verify.js";
-import type { Layout, Verification } from "./types.js";
+import type { Layout, Verification, Build } from "./types.js";
 
 const ALLOWED = [
   "color",
@@ -130,6 +130,9 @@ export async function repair(
       log.push({ ...candidate, accepted: false, error: String(e) });
     }
   }
+  const index = await json<Build>(path.join(siteDir, "routes.json"));
+  index.routes["/__replica/repairs.css"].sha256 = hash(css);
+  await saveJson(path.join(siteDir, "routes.json"), index);
   await saveJson(path.join(out, "repair-log.json"), {
     mode: "deterministic-evidence-only",
     trials: log,

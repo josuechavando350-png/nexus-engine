@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { fixture } from "./fixture-server.js";
-import { config, json, saveJson } from "../src/common.js";
+import { config, json, saveJson, hash } from "../src/common.js";
 import { capture } from "../src/capture.js";
 import { build, integrity } from "../src/build.js";
 import { verify } from "../src/verify.js";
@@ -131,6 +131,11 @@ test(
     assert.equal(fixed.verification.totals.pass, manifest.states.length);
     // Missing API data cannot silently pass as a complete replica.
     const routes = await json<Build>(path.join(site, "routes.json"));
+    assert.equal(
+      routes.routes["/__replica/repairs.css"].sha256,
+      hash(await readFile(path.join(site, "repairs.css"))),
+      "Measured repair must update the CSS integrity record",
+    );
     delete routes.routes["/api/stats"];
     await saveJson(path.join(site, "routes.json"), routes);
     const missing = await verify(

@@ -1,10 +1,23 @@
-# Bot MD — 0.6.0
+# Bot MD — 0.7.0
 
 Bot MD captura la apariencia y el comportamiento observado de una web para reconstruir una versión local con contenido editable. Conserva HTML, CSS, JavaScript, fuentes y recursos; además genera documentación Markdown de estilos y movimiento.
 
 La versión 0.3.0 añadió **ESTILOS.md**, **MOVIMIENTO.md**, un catálogo de contenido, sustitución de textos sin destruir elementos anidados, trazas SVG durante el scroll y detección de diferencias. El Markdown documenta la experiencia; el código y los recursos la ejecutan.
 
 La reconstrucción conserva el frontend que recibe el navegador. No genera automáticamente componentes fuente nuevos. La aprobación corresponde a tamaños, estados y muestras medidos; no equivale a copiar cualquier web al 100 %.
+
+## Extraer un detalle para otra web — 0.7.0
+
+`extract-detail` genera un componente independiente a partir de un trazo SVG seleccionado. Exporta la geometría y estilos observados, un controlador de scroll propio, variantes por ancho, una demostración y `DETAIL.md`. El paquete funciona sin el JavaScript, framework, textos ni imágenes de la web de referencia.
+
+```bash
+npm run bot-md -- extract-detail --site runs/base --config validation/daksh/scroll-detail.json --out runs/detalle
+npm run bot-md -- serve --site runs/detalle
+```
+
+[Paquete editable de ejemplo](exports/scroll-thread/DETAIL.md) · [Uso, pruebas y límites](docs/DETALLES_SELECTIVOS.md).
+
+El primer adaptador cubre un trazo decorativo SVG estable. La selección se configura por selector; aún no hay selector visual ni exportación automática de menús, WebGL o cualquier animación. El controlador nuevo no reproduce automáticamente los tiempos o las dependencias de la animación original.
 
 ## Novedades 0.6.0
 

@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 1,
+  "version": "0.7.0",
+  "status": "pass",
+  "sourceDigest": "78f2e6bd0e2cbf920832604701e2c2ba513e9c1542a7e41d773409c10a3138a7",
+  "scope": "Selected SVG trajectory and styles; own portable scroll controller. No claim of matching original timing or complete source page.",
+  "results": [
+    {
+      "viewport": {
+        "name": "mobile",
+        "width": 390,
+        "height": 844,
+        "minWidth": 0,
+        "touch": true
+      },
+      "sourcePointErrorMax": 0,
+      "sourceLengthError": 0,
+      "sourcePathMatches": true,
+      "steps": [
+        {
+          "desired": 0,
+          "variant": "mobile",
+          "progress": 0,
+          "target": 0,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 467.839,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        },
+        {
+          "desired": 0.25,
+          "variant": "mobile",
+          "progress": 0.24985189573459712,
+          "target": 0.24985189573459712,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 350.949,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        },
+        {
+          "desired": 0.5,
+          "variant": "mobile",
+          "progress": 0.5001481042654028,
+          "target": 0.5001481042654028,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 233.85,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        },
+        {
+          "desired": 0.75,
+          "variant": "mobile",
+          "progress": 0.7497037914691942,
+          "target": 0.7497037914691942,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 117.098,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        },
+        {
+          "desired": 1,
+          "variant": "mobile",
+          "progress": 1,
+          "target": 1,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 0,
+          "headErrorPx": 0,
+          "ringVisibility": "visible"
+        },
+        {
+          "desired": 0.5,
+          "variant": "mobile",
+          "progress": 0.5001481042654028,
+          "target": 0.5001481042654028,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 233.85,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        },
+        {
+          "desired": 0,
+          "variant": "mobile",
+          "progress": 0.00029620853080567037,
+          "target": 0.00029620853080567037,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 467.701,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        }
+      ],
+      "reduced": {
+        "variant": "mobile",
+        "progress": 1,
+        "target": 1,
+        "reducedMotion": true,
+        "destroyed": false
+      },
+      "integration": {
+        "variant": "mobile",
+        "clicks": 1,
+        "clean": true
+      },
+      "status": "pass"
+    },
+    {
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 768
+      },
+      "sourcePointErrorMax": 0,
+      "sourceLengthError": 0,
+      "sourcePathMatches": true,
+      "steps": [
+        {
+          "desired": 0,
+          "variant": "desktop",
+          "progress": 0,
+          "target": 0,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 2929.63,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        },
+        {
+          "desired": 0.25,
+          "variant": "desktop",
+          "progress": 0.25,
+          "target": 0.25,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 2197.22,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        },
+        {
+          "desired": 0.5,
+          "variant": "desktop",
+          "progress": 0.5,
+          "target": 0.5,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 1464.82,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        },
+        {
+          "desired": 0.75,
+          "variant": "desktop",
+          "progress": 0.75,
+          "target": 0.75,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 732.408,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        },
+        {
+          "desired": 1,
+          "variant": "desktop",
+          "progress": 1,
+          "target": 1,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 0,
+          "headErrorPx": 0,
+          "ringVisibility": "visible"
+        },
+        {
+          "desired": 0.5,
+          "variant": "desktop",
+          "progress": 0.5,
+          "target": 0.5,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 1464.82,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        },
+        {
+          "desired": 0,
+          "variant": "desktop",
+          "progress": 0,
+          "target": 0,
+          "reducedMotion": false,
+          "destroyed": false,
+          "dashoffset": 2929.63,
+          "headErrorPx": 0,
+          "ringVisibility": "hidden"
+        }
+      ],
+      "reduced": {
+        "variant": "desktop",
+        "progress": 1,
+        "target": 1,
+        "reducedMotion": true,
+        "destroyed": false
+      },
+      "integration": {
+        "variant": "mobile",
+        "clicks": 1,
+        "clean": true
+      },
+      "status": "pass"
+    }
+  ],
+  "errors": [],
+  "httpErrors": [],
+  "requestedRoutes": [
+    "/",
+    "/scroll-thread.css",
+    "/demo.css",
+    "/demo.js",
+    "/scroll-thread.js",
+    "/effect.json"
+  ],
+  "files": [
+    {
+      "route": "/",
+      "file": "index.html",
+      "sha256": "0ae731c8d088734459722e857167819d4ee5dbc68b7159cd7a29dfaf5064414e",
+      "bytes": 1011
+    },
+    {
+      "route": "/scroll-thread.js",
+      "file": "scroll-thread.js",
+      "sha256": "91d1d397e1928b72e5c650a1bdc05b89ee2648f7d0b17fdfb708c2395b235757",
+      "bytes": 9646
+    },
+    {
+      "route": "/effect.json",
+      "file": "effect.json",
+      "sha256": "f508f6d5a24ceb02ca1fbcb5e2b2ab0db81b2bf836a4bb7ad49ab830557f5f7e",
+      "bytes": 1330
+    },
+    {
+      "route": "/scroll-thread.css",
+      "file": "scroll-thread.css",
+      "sha256": "5a392da5e5fed28b6b15fbd821883e1eb5bda3c6ccb83badc86ed5d64c6016d1",
+      "bytes": 95
+    },
+    {
+      "route": "/demo.css",
+      "file": "demo.css",
+      "sha256": "e0102950aa8f3dc0490a1c233ff149d53f5d3188031f6c1e7f777269637be155",
+      "bytes": 702
+    },
+    {
+      "route": "/demo.js",
+      "file": "demo.js",
+      "sha256": "09d5990d33f5fac23a78fc8b96ddc14d5048d60145b80c404483407912293e96",
+      "bytes": 260
+    }
+  ],
+  "definitionSha256": "f508f6d5a24ceb02ca1fbcb5e2b2ab0db81b2bf836a4bb7ad49ab830557f5f7e",
+  "extractionSha256": "355317fe42c778aa1b3038f05d3d2ec3ebfffba3bb78310225ed49d82bd3cf01"
+}

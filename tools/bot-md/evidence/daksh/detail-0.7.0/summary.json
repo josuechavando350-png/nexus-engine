@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "version": "0.7.0",
+  "overallStatus": "in-progress",
+  "detailStatus": "pass",
+  "scope": "Selected SVG trajectory and styles; own portable scroll controller. No claim of matching original timing or complete source page.",
+  "validatedViewports": [
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844,
+      "minWidth": 0,
+      "touch": true
+    },
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900,
+      "minWidth": 768
+    }
+  ],
+  "geometryPoints": 66,
+  "scrollStates": 14,
+  "moduleTests": 31,
+  "httpErrors": 0,
+  "jsErrors": 0,
+  "sourceRequests": 0,
+  "package": "exports/scroll-thread",
+  "zip": "exports/scroll-thread.zip",
+  "zipSha256": "1beddaf7b4009ef4cb92280c27a32a1b35c56eaf4d06180bf127c628bbcbf0a3",
+  "evidenceSha256": {
+    "evidence/daksh/detail-0.7.0/report.json": "c0c53918e4b2a20192fa1fc6def31462fd56d7c9abeb53cb874779cb978fcc3f",
+    "evidence/daksh/detail-0.7.0/desktop-complete.png": "08fa9fbd6bb14115d43a32169b97d9423710ecb24dac73a9be57a123fec5ffe7",
+    "evidence/daksh/detail-0.7.0/desktop-middle.png": "36bb4456497f558bba502e70e7a357466a59892a9e0de556a76920c76d8f5473",
+    "evidence/daksh/detail-0.7.0/mobile-complete.png": "e29b58123f0f920eba78f001ded92d886d02471be27d2f5fed02f630c620cbfa",
+    "evidence/daksh/detail-0.7.0/mobile-middle.png": "85a6753e7239383c44602ac8bc66b3049cfbba142fb15e9578519ea2ccf72ed9"
+  },
+  "pending": [
+    "Other effect kinds and visual selection",
+    "Adapting a trajectory around new text",
+    "Validation in the destination website",
+    "Full source-content replacement and clean full-page reconstruction",
+    "Nexus monorepo checks and integration"
+  ]
+}

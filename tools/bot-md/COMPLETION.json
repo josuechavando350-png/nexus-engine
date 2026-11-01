@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "status": "in-progress",
   "universal100PercentClaim": false,
   "scope": "Frontend público observado: estilos, contenido sustituible, navegación y movimiento. Referencia inicial dakshgajjar.com; la aprobación se limita a rutas, estados, tamaños y muestras explícitos.",
@@ -52,8 +52,8 @@
       "id": "module-tests",
       "status": "pass",
       "evidence": [
-        "evidence/tests-0.6.0.log",
-        "evidence/module-validation-0.6.0.json"
+        "evidence/tests-0.7.0.log",
+        "evidence/module-validation-0.7.0.json"
       ]
     },
     {
@@ -68,7 +68,7 @@
     {
       "id": "clean-editable-components",
       "status": "pending",
-      "reason": "Se conservan módulos del frontend entregado; no hay reconstrucción completa en componentes propios limpios."
+      "reason": "A selected SVG now has an authored standalone editable controller. The full website replica still retains the delivered frontend and has not been rebuilt completely into owned components."
     },
     {
       "id": "broader-navigation-and-site-coverage",
@@ -82,6 +82,21 @@
       "id": "nexus-validation-and-integration",
       "status": "pending",
       "reason": "Faltan checks globales pnpm lint/typecheck/test/build y validate del commit exacto; rama bot-md separada de main."
+    },
+    {
+      "id": "portable-selected-svg-detail",
+      "status": "pass",
+      "scope": "One selected stable SVG trajectory, two observed viewport variants, new independent scroll controller; not arbitrary component extraction or source timing equivalence.",
+      "evidence": [
+        "exports/scroll-thread/extraction.json",
+        "evidence/daksh/detail-0.7.0/report.json",
+        "tests/details.test.ts"
+      ]
+    },
+    {
+      "id": "broader-selective-detail-support",
+      "status": "pending",
+      "reason": "Visual selector, other effect types, automatic adaptation around new text, and integration in the destination website remain unimplemented or unvalidated."
     }
   ]
 }

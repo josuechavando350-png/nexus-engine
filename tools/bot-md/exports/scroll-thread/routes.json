@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "origin": "https://bot-md.invalid",
+  "sourceDigest": "78f2e6bd0e2cbf920832604701e2c2ba513e9c1542a7e41d773409c10a3138a7",
+  "routes": {
+    "/": {
+      "file": "index.html",
+      "mime": "text/html; charset=utf-8",
+      "status": 200,
+      "sourceUrl": "generated:scroll-detail",
+      "sha256": "0ae731c8d088734459722e857167819d4ee5dbc68b7159cd7a29dfaf5064414e"
+    },
+    "/scroll-thread.js": {
+      "file": "scroll-thread.js",
+      "mime": "application/javascript",
+      "status": 200,
+      "sourceUrl": "generated:scroll-detail",
+      "sha256": "91d1d397e1928b72e5c650a1bdc05b89ee2648f7d0b17fdfb708c2395b235757"
+    },
+    "/effect.json": {
+      "file": "effect.json",
+      "mime": "application/json",
+      "status": 200,
+      "sourceUrl": "generated:scroll-detail",
+      "sha256": "f508f6d5a24ceb02ca1fbcb5e2b2ab0db81b2bf836a4bb7ad49ab830557f5f7e"
+    },
+    "/scroll-thread.css": {
+      "file": "scroll-thread.css",
+      "mime": "text/css",
+      "status": 200,
+      "sourceUrl": "generated:scroll-detail",
+      "sha256": "5a392da5e5fed28b6b15fbd821883e1eb5bda3c6ccb83badc86ed5d64c6016d1"
+    },
+    "/demo.css": {
+      "file": "demo.css",
+      "mime": "text/css",
+      "status": 200,
+      "sourceUrl": "generated:scroll-detail",
+      "sha256": "e0102950aa8f3dc0490a1c233ff149d53f5d3188031f6c1e7f777269637be155"
+    },
+    "/demo.js": {
+      "file": "demo.js",
+      "mime": "application/javascript",
+      "status": 200,
+      "sourceUrl": "generated:scroll-detail",
+      "sha256": "09d5990d33f5fac23a78fc8b96ddc14d5048d60145b80c404483407912293e96"
+    }
+  },
+  "missing": [],
+  "patches": []
+}

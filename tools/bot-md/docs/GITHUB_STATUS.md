@@ -1,6 +1,6 @@
 # Estado de incorporación a Nexus Engine
 
-Bot MD 0.6.0 se conserva como herramienta independiente en `tools/bot-md`. No modifica los paquetes Core/Experience, el runtime Rust ni aplicaciones de clientes. No forma parte de los patrones actuales del workspace pnpm. Usa su propio `package-lock.json`.
+Bot MD 0.7.0 se conserva como herramienta independiente en `tools/bot-md`. No modifica los paquetes Core/Experience, el runtime Rust ni aplicaciones de clientes. No forma parte de los patrones actuales del workspace pnpm. Usa su propio `package-lock.json`.
 
 La versión 0.2.1 cambia el nombre público y añade el comando `npm run bot-md`; conserva `npm run replica` como alias compatible. Las rutas internas de capturas anteriores no cambian.
 
@@ -51,3 +51,11 @@ Añade reglas de geometría SVG que se materializan en HTML y datos de JavaScrip
 Una solicitud GET de Orbit detectada al recargar se completó desde el origen y se repitió la validación; se conserva el informe anterior que detectó el 404. Evidencia y pendientes: `evidence/daksh/materialized-0.6.0/` y `COMPLETION.json`.
 
 Los checks globales de Nexus y la integración a main siguen pendientes. En el commit padre `c313f925b9c06b3161262b5eee7f32fa3a5ba240` solo se observó el check `Vercel Preview Comments`; ese check no equivale a `validate` ni a pruebas del monorepo. No se utiliza como aprobación del código de Bot MD.
+
+## Versión 0.7.0
+
+Añade `extract-detail` para seleccionar un trazo SVG y generar un paquete independiente con geometría, estilos, controlador propio y Markdown. El ejemplo `exports/scroll-thread/` conserva variantes observadas en móvil y escritorio; no contiene el frontend ni la información de la página original. El controlador se puede montar en otros contenedores, modificar y desmontar sin borrar su contenido.
+
+La validación del ejemplo comprobó 66 puntos de la geometría y 14 posiciones de scroll, movimiento reducido, seguimiento del extremo, variantes por ancho del contenedor y desmontaje. No hubo errores JavaScript/HTTP ni solicitudes al origen. La comparación geométrica no implica igualdad del tiempo, easing o todos los píxeles del efecto original; se usa un controlador nuevo.
+
+También se añade el hash de `repairs.css` al construir y se actualiza al completar una reparación medida, para que el exportador pueda comprobar su integridad. Los checks globales de Nexus y la integración siguen pendientes. La web de Nexus Bot Studio no se ha modificado ni desplegado. El estado completo permanece en `in-progress`.

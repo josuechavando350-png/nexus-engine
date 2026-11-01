@@ -46,10 +46,9 @@ export async function build(captureDir: string, out: string) {
     JSON.stringify(manifest.origin) +
     ";const translate=u=>{try{const x=new URL(String(u),original+location.pathname);return urls[x.href]||u}catch{return u}};const f=window.fetch;window.fetch=function(u,o){if(u instanceof Request){const target=translate(u.url);return f.call(this,target===u.url?u:new Request(new URL(target,location.origin),u),o)}return f.call(this,translate(u),o)};const open=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u,...a){return open.call(this,m,translate(u),...a)};})();";
   await save(path.join(out, "runtime.js"), runtime);
-  await save(
-    path.join(out, "repairs.css"),
-    "/* Correcciones medidas; vacío en la reconstrucción inicial. */\n",
-  );
+  const repairs =
+    "/* Correcciones medidas; vacío en la reconstrucción inicial. */\n";
+  await save(path.join(out, "repairs.css"), repairs);
   index.routes["/__replica/runtime.js"] = {
     file: "runtime.js",
     mime: "application/javascript",
@@ -62,7 +61,7 @@ export async function build(captureDir: string, out: string) {
     mime: "text/css",
     status: 200,
     sourceUrl: "generated:repair",
-    sha256: "",
+    sha256: hash(repairs),
   };
   const injection =
     '<script src="/__replica/runtime.js"></script><link rel="stylesheet" href="/__replica/repairs.css">';
