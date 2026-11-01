@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "sourceOrigin": "https://dakshgajjar.com",
+  "requests": [
+    {
+      "path": "/work/mealops?_rsc=H0WGzZUWWfBOH6CC",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-state-tree": "%5B%22%22%2C%7B%22children%22%3A%5B%22work%22%2C%7B%22children%22%3A%5B%5B%22slug%22%2C%22mealops%22%2C%22d%22%2Cnull%5D%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C160%5D%7D%2Cnull%2C%22refetch%22%2C96%5D%7D%2Cnull%2Cnull%2C96%5D%7D%2Cnull%2Cnull%2C80%5D",
+        "next-url": "/"
+      }
+    },
+    {
+      "path": "/work/mealops?_rsc=A6tv5qL0h5gyZs1G",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/work/mealops"
+      }
+    },
+    {
+      "path": "/work/papertrail?_rsc=hY_hg9rCRXgRPmwD",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-state-tree": "%5B%22%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C160%5D%7D%2Cnull%2Cnull%2C80%5D",
+        "next-url": "/"
+      }
+    },
+    {
+      "path": "/work/papertrail?_rsc=5CB68i4pnAekjehf",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/_tree",
+        "next-router-prefetch": "1",
+        "next-url": "/"
+      }
+    },
+    {
+      "path": "/work/scribe?_rsc=hY_hg9rCRXgRPmwD",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-state-tree": "%5B%22%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C160%5D%7D%2Cnull%2Cnull%2C80%5D",
+        "next-url": "/"
+      }
+    },
+    {
+      "path": "/work/scribe?_rsc=5CB68i4pnAekjehf",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/_tree",
+        "next-router-prefetch": "1",
+        "next-url": "/"
+      }
+    },
+    {
+      "path": "/work/crediflow?_rsc=hY_hg9rCRXgRPmwD",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-state-tree": "%5B%22%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C160%5D%7D%2Cnull%2Cnull%2C80%5D",
+        "next-url": "/"
+      }
+    },
+    {
+      "path": "/work/orbit?_rsc=xNH9KPURsx2vkjrt",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-state-tree": "%5B%22%22%2C%7B%22children%22%3A%5B%22work%22%2C%7B%22children%22%3A%5B%5B%22slug%22%2C%22orbit%22%2C%22d%22%2Cnull%5D%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C160%5D%7D%2Cnull%2C%22refetch%22%2C96%5D%7D%2Cnull%2Cnull%2C96%5D%7D%2Cnull%2Cnull%2C80%5D",
+        "next-url": "/"
+      }
+    },
+    {
+      "path": "/work/orbit?_rsc=pSrN-WUH5NK7kptd",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/work/orbit"
+      }
+    },
+    {
+      "path": "/work/mealops?_rsc=hY_hg9rCRXgRPmwD",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-state-tree": "%5B%22%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C160%5D%7D%2Cnull%2Cnull%2C80%5D",
+        "next-url": "/"
+      }
+    },
+    {
+      "path": "/work/crediflow?_rsc=5CB68i4pnAekjehf",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/_tree",
+        "next-router-prefetch": "1",
+        "next-url": "/"
+      }
+    }
+  ]
+}

@@ -1,10 +1,20 @@
-# Bot MD — 0.4.0
+# Bot MD — 0.5.0
 
 Bot MD captura la apariencia y el comportamiento observado de una web para reconstruir una versión local con contenido editable. Conserva HTML, CSS, JavaScript, fuentes y recursos; además genera documentación Markdown de estilos y movimiento.
 
 La versión 0.3.0 añadió **ESTILOS.md**, **MOVIMIENTO.md**, un catálogo de contenido, sustitución de textos sin destruir elementos anidados, trazas SVG durante el scroll y detección de diferencias. El Markdown documenta la experiencia; el código y los recursos la ejecutan.
 
 La reconstrucción conserva el frontend que recibe el navegador. No genera automáticamente componentes fuente nuevos. La aprobación corresponde a tamaños, estados y muestras medidos; no equivale a copiar cualquier web al 100 %.
+
+## Novedades 0.5.0
+
+El nuevo comando `materialize` aplica cambios antes de servir HTML, JavaScript, JSON y datos de navegación React Flight. El contenido declarado permanece sustituido al hidratar, navegar y recargar; no depende de modificar el DOM después de cargar. Conserva los recursos de estilo y registra cada sustitución. Las tramas no soportadas detienen la exportación. El ajuste opcional de títulos comprueba recortes de texto y `complete-requests` obtiene variantes RSC GET faltantes desde el origen, conservando sus parámetros.
+
+```bash
+npm run bot-md -- materialize --site runs/copia --replacements sustituciones.json --out runs/compilada
+```
+
+[Uso, formato del plan y límites](docs/CONTENIDO_COMPILADO.md). La eliminación completa del contenido de la referencia y la integración global de Nexus siguen pendientes.
 
 ## Novedades 0.4.0
 

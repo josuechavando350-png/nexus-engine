@@ -12,8 +12,9 @@ import type { MotionTrace } from "./experience-types.js";
 /** Add exact GET variants observed with motion active; never strip routing query parameters. */
 export async function collectObservedResources(
   manifest: Manifest,
-  trace: MotionTrace,
+  trace: Pick<MotionTrace, "source" | "observedRequests">,
   out: string,
+  options: { allowUnverifiedRequests?: boolean } = {},
 ) {
   if (new URL(trace.source).origin !== manifest.origin)
     throw new Error("La traza pertenece a otro origen.");
@@ -39,8 +40,8 @@ export async function collectObservedResources(
       const url = canonical(observed.url);
       if (
         manifest.resources[url] ||
-        observed.status < 200 ||
-        observed.status >= 300
+        (!(options.allowUnverifiedRequests && observed.status === 0) &&
+          (observed.status < 200 || observed.status >= 300))
       )
         continue;
       try {
@@ -74,7 +75,10 @@ export async function collectObservedResources(
             url,
             status: response.status(),
             mime: received["content-type"] ?? "application/octet-stream",
-            kind: "motion-observed-get",
+            kind:
+              observed.status === 0
+                ? "candidate-requested-get"
+                : "motion-observed-get",
             sha256,
             bytes: body.length,
             file,
@@ -91,7 +95,10 @@ export async function collectObservedResources(
         }
       } catch (error) {
         manifest.issues.push({
-          code: "MOTION_RESOURCE_FAILED",
+          code:
+            observed.status === 0
+              ? "REQUEST_RESOURCE_FAILED"
+              : "MOTION_RESOURCE_FAILED",
           detail: url + ": " + String(error),
         });
       }

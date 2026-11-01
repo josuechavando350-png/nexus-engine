@@ -10,9 +10,9 @@ from pathlib import Path
 import re
 import sys
 
-if len(sys.argv) != 2:
-    raise SystemExit("Provide a new output directory.")
-evidence = Path(__file__).resolve().parents[2] / "evidence/daksh/controlled-0.4.0"
+if len(sys.argv) not in (2, 3):
+    raise SystemExit("Provide a new output directory and optionally an evidence directory.")
+evidence = (Path(sys.argv[2]).resolve() if len(sys.argv) == 3 else Path(__file__).resolve().parents[2] / "evidence/daksh/controlled-0.4.0")
 destination = Path(sys.argv[1]).resolve()
 destination.mkdir(parents=True, exist_ok=False)
 manifest = json.loads((evidence / "traces.json").read_text())

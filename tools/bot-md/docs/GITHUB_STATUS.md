@@ -1,6 +1,6 @@
 # Estado de incorporación a Nexus Engine
 
-Bot MD 0.4.0 se conserva como herramienta independiente en `tools/bot-md`. No modifica los paquetes Core/Experience, el runtime Rust ni aplicaciones de clientes. No forma parte de los patrones actuales del workspace pnpm. Usa su propio `package-lock.json`.
+Bot MD 0.5.0 se conserva como herramienta independiente en `tools/bot-md`. No modifica los paquetes Core/Experience, el runtime Rust ni aplicaciones de clientes. No forma parte de los patrones actuales del workspace pnpm. Usa su propio `package-lock.json`.
 
 La versión 0.2.1 cambia el nombre público y añade el comando `npm run bot-md`; conserva `npm run replica` como alias compatible. Las rutas internas de capturas anteriores no cambian.
 
@@ -33,3 +33,11 @@ Reloj controlado y preparación completa del hilo: 48 muestras original/copia ap
 19 pruebas del módulo aprobadas, cero fallidas. La adaptación de 19 campos aprobó en escritorio/móvil. La eliminación completa de información original continúa pendiente: la auditoría de la demostración detecta 31 archivos con términos del origen. Ver [CONTROL_Y_CONTENIDO.md](CONTROL_Y_CONTENIDO.md).
 
 Los checks globales y la integración a main continúan pendientes.
+
+## Versión 0.5.0
+
+Añade materialización de contenido en HTML, JavaScript, JSON/JSON-LD y Flight antes de servir la copia. El plan revisado contiene 23 sustituciones; no se publica el mapa con los valores originales. El ajuste opcional de títulos detecta recortes ocultos por overflow y conserva elementos anidados.
+
+26 pruebas del módulo aprobadas. La prueba de control del compilador, con contenido idéntico, mantiene aprobadas las 48 muestras SVG y la repetición del origen. La portada y los seis proyectos pasaron el recorrido de ida/regreso, historial y recarga en escritorio y móvil, sin errores de JavaScript ni HTTP. Se comprobaron 19 campos de la portada y cero recorte visible del título. Los resultados de adaptación y navegación están en `evidence/daksh/materialized-0.5.0/` y el estado explícito en `COMPLETION.json`.
+
+Siguen pendientes el reemplazo completo de textos y gráficos de los proyectos, componentes propios y los checks globales de Nexus. El término `materialized` describe la operación aplicada y la búsqueda literal declarada; no significa que la eliminación de toda información ni la integración estén completas.

@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "replacements": [
+    {
+      "id": "copy-1",
+      "from": "Daksh Gajjar",
+      "to": "Bot MD — demostración"
+    },
+    {
+      "id": "copy-2",
+      "from": "Product designer working across digital experiences, AI products and intelligent systems.",
+      "to": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+    },
+    {
+      "id": "copy-3",
+      "from": "Product design, interaction, AI products and intelligent systems in one continuous practice.",
+      "to": "Demostración de estilos y movimiento con contenido editable."
+    },
+    {
+      "id": "copy-4",
+      "from": "https://dakshgajjar.com",
+      "to": "https://example.com/"
+    },
+    {
+      "id": "copy-5",
+      "from": "https://dakshgajjar.com/opengraph-image.png?opengraph-image.1t1js2kw1z8rt.png",
+      "to": "/__botmd/media/preview.svg"
+    },
+    {
+      "id": "copy-6",
+      "from": "Daksh Gajjar — I design products that think. Ivory lettering woven with a vermilion thread on black.\n",
+      "to": "Bot MD: demostración con texto propio y un hilo naranja."
+    },
+    {
+      "id": "copy-7",
+      "from": "From interface to intelligence.",
+      "to": "Diseño y movimiento editables."
+    },
+    {
+      "id": "copy-8",
+      "from": "DG",
+      "to": "BM"
+    },
+    {
+      "id": "copy-9",
+      "from": "DG — Daksh Gajjar home",
+      "to": "Bot MD — inicio"
+    },
+    {
+      "id": "copy-10",
+      "from": "I DESIGN",
+      "to": "CREAMOS"
+    },
+    {
+      "id": "copy-11",
+      "from": "PRODUCTS",
+      "to": "SISTEMAS"
+    },
+    {
+      "id": "copy-12",
+      "from": "THAT THINK.",
+      "to": "QUE AVANZAN."
+    },
+    {
+      "id": "copy-13",
+      "from": "DAKSH GAJJAR.",
+      "to": "NEXUS ENGINE."
+    },
+    {
+      "id": "copy-14",
+      "from": "Product designer. Curious builder.",
+      "to": "Diseño y tecnología. Ideas en movimiento."
+    },
+    {
+      "id": "identity-14",
+      "from": "{\"@context\":\"https://schema.org\",\"@type\":\"Person\",\"name\":\"Daksh Gajjar\",\"jobTitle\":\"Product Designer\",\"url\":\"https://dakshgajjar.com\",\"knowsAbout\":[\"Product Design\",\"Interaction Design\",\"Artificial Intelligence\",\"Agentic Systems\",\"Rapid Prototyping\"]}",
+      "to": "{\"@context\":\"https://schema.org\",\"@type\":\"WebSite\",\"name\":\"Bot MD\",\"url\":\"https://example.com/\",\"description\":\"Demostración de diseño y movimiento con contenido editable.\"}"
+    },
+    {
+      "id": "identity-15",
+      "from": "Opening Daksh Gajjar’s portfolio",
+      "to": "Abriendo la demostración de Bot MD"
+    },
+    {
+      "id": "identity-16",
+      "from": "mailto:dakshgajjar.design@gmail.com",
+      "to": "mailto:contacto@example.com"
+    },
+    {
+      "id": "identity-17",
+      "from": "https://dakshgajjar.com/work/eigna",
+      "to": "https://example.com/work/eigna"
+    },
+    {
+      "id": "identity-18",
+      "from": "https://dakshgajjar.com/work/orbit",
+      "to": "https://example.com/work/orbit"
+    },
+    {
+      "id": "identity-19",
+      "from": "https://dakshgajjar.com/work/mealops",
+      "to": "https://example.com/work/mealops"
+    },
+    {
+      "id": "identity-20",
+      "from": "https://dakshgajjar.com/work/scribe",
+      "to": "https://example.com/work/scribe"
+    },
+    {
+      "id": "identity-21",
+      "from": "https://dakshgajjar.com/work/papertrail",
+      "to": "https://example.com/work/papertrail"
+    },
+    {
+      "id": "identity-22",
+      "from": "https://dakshgajjar.com/work/crediflow",
+      "to": "https://example.com/work/crediflow"
+    }
+  ],
+  "forbiddenTerms": ["Daksh", "Gajjar", "dakshgajjar.com"],
+  "fitText": [
+    {
+      "id": "hero-lines",
+      "route": "/",
+      "selector": "#hero-title",
+      "lineSelector": ".hero-line",
+      "minFontSizePx": 32
+    }
+  ]
+}

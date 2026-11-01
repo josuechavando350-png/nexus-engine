@@ -1,0 +1,11 @@
+{
+  "traces": [
+    {
+      "name": "motion-noop",
+      "archive": "motion-noop.json.xz",
+      "archiveSha256": "d170ded6e7358768a9ce65d0a4400e5e71eb2a7936a11151a691e6b4d3c0e12d",
+      "bytes": 10389275,
+      "sha256": "c37e34fd45d3f6f18e2c9ce6348312cd851eca5f63bc428ede400d63902cdc96"
+    }
+  ]
+}

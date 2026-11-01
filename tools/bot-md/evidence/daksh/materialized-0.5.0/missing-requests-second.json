@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "sourceOrigin": "https://dakshgajjar.com",
+  "requests": [
+    {
+      "path": "/work/scribe?_rsc=tCTSLQTg20HwuKVW",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-state-tree": "%5B%22%22%2C%7B%22children%22%3A%5B%22work%22%2C%7B%22children%22%3A%5B%5B%22slug%22%2C%22scribe%22%2C%22d%22%2Cnull%5D%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C160%5D%7D%2Cnull%2C%22refetch%22%2C96%5D%7D%2Cnull%2Cnull%2C96%5D%7D%2Cnull%2Cnull%2C80%5D",
+        "next-url": "/"
+      }
+    },
+    {
+      "path": "/work/scribe?_rsc=YQjE8pxqQpuztOnT",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/work/scribe"
+      }
+    },
+    {
+      "path": "/work/papertrail?_rsc=toAR0eJ37fLaqGMx",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-state-tree": "%5B%22%22%2C%7B%22children%22%3A%5B%22work%22%2C%7B%22children%22%3A%5B%5B%22slug%22%2C%22papertrail%22%2C%22d%22%2Cnull%5D%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C160%5D%7D%2Cnull%2C%22refetch%22%2C96%5D%7D%2Cnull%2Cnull%2C96%5D%7D%2Cnull%2Cnull%2C80%5D",
+        "next-url": "/"
+      }
+    },
+    {
+      "path": "/work/papertrail?_rsc=uP875pIKkWnBOUIB",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/work/papertrail"
+      }
+    },
+    {
+      "path": "/work/crediflow?_rsc=IvbtkUSAwMGtvVTK",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-state-tree": "%5B%22%22%2C%7B%22children%22%3A%5B%22work%22%2C%7B%22children%22%3A%5B%5B%22slug%22%2C%22crediflow%22%2C%22d%22%2Cnull%5D%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C160%5D%7D%2Cnull%2C%22refetch%22%2C96%5D%7D%2Cnull%2Cnull%2C96%5D%7D%2Cnull%2Cnull%2C80%5D",
+        "next-url": "/"
+      }
+    },
+    {
+      "path": "/work/scribe?_rsc=c0sZTJ_S78IrlQ6n",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/work/crediflow"
+      }
+    },
+    {
+      "path": "/work/crediflow?_rsc=c0sZTJ_S78IrlQ6n",
+      "method": "GET",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/work/crediflow"
+      }
+    }
+  ]
+}

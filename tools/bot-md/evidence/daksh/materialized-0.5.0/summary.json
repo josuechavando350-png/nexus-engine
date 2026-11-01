@@ -1,0 +1,84 @@
+{
+  "version": "0.5.0",
+  "moduleTests": {
+    "total": 26,
+    "pass": 26,
+    "fail": 0,
+    "log": "evidence/tests-0.5.0.log"
+  },
+  "rules": 23,
+  "substitutionsBySurface": {
+    "html": 81,
+    "javascript": 10,
+    "json": 7,
+    "flight": 437
+  },
+  "filesScanned": 115,
+  "filesWithForbiddenTerms": 0,
+  "forbiddenTerms": [
+    "Daksh",
+    "Gajjar",
+    "dakshgajjar.com"
+  ],
+  "unmatchedRules": [],
+  "noJavaScriptDocuments": 7,
+  "declaredFields": 19,
+  "adaptation": [
+    {
+      "viewport": "desktop",
+      "status": "pass",
+      "projectsVisited": 6,
+      "titleClippingPx": 0,
+      "fontSizePx": 196.37,
+      "jsErrors": [],
+      "httpErrors": []
+    },
+    {
+      "viewport": "mobile",
+      "status": "pass",
+      "projectsVisited": 6,
+      "titleClippingPx": 0,
+      "fontSizePx": 51.49,
+      "jsErrors": [],
+      "httpErrors": []
+    }
+  ],
+  "sameContentMotion": {
+    "status": "pass",
+    "comparison": {
+      "status": "pass",
+      "expectedFrames": 48,
+      "referenceFrames": 48,
+      "candidateFrames": 48,
+      "complete": true,
+      "tolerancePx": 2,
+      "maxPointDelta": 0.0301513671875,
+      "maxLengthDelta": 0.0205078125,
+      "maxDashDelta": 0,
+      "referenceIssues": [],
+      "candidateIssues": [],
+      "failures": [],
+      "scope": "Solo geometr\u00eda, progreso y estilos SVG muestreados con el mismo contenido; no certifica igualdad visual de toda la p\u00e1gina ni cada frame intermedio."
+    },
+    "baselineRepeat": {
+      "status": "pass",
+      "expectedFrames": 48,
+      "referenceFrames": 48,
+      "candidateFrames": 48,
+      "complete": true,
+      "tolerancePx": 2,
+      "maxPointDelta": 0.0301513671875,
+      "maxLengthDelta": 0.0205078125,
+      "maxDashDelta": 0,
+      "referenceIssues": [],
+      "candidateIssues": [],
+      "failures": [],
+      "scope": "Solo geometr\u00eda, progreso y estilos SVG muestreados con el mismo contenido; no certifica igualdad visual de toda la p\u00e1gina ni cada frame intermedio."
+    },
+    "note": "La aprobaci\u00f3n se limita al perfil y muestras declarados."
+  },
+  "scope": "Sustituci\u00f3n declarada y ausencia literal de los t\u00e9rminos enumerados. No cubre todo el contenido fuente ni componentes nuevos.",
+  "completedMissingGetVariants": 18,
+  "navigationScope": "Home \u2192 each of the six projects \u2192 home; history and reload; Chromium at 1440x900 and touch 390x844.",
+  "sourceDigest": "c1b00754cb37a0f3ac0cc38c6e82a260e97350496c01cd797dd2fc34b93b1549"
+}

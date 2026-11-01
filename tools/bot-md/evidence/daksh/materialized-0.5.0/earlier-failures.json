@@ -1,0 +1,117 @@
+[
+  {
+    "run": "adaptation-all-navigation.json",
+    "createdAt": "2026-11-01T00:04:10.070Z",
+    "results": [
+      {
+        "viewport": "desktop",
+        "status": "fail",
+        "titleClippingPx": 13.859375,
+        "httpErrors": [
+          "404 /work/mealops?_rsc=H0WGzZUWWfBOH6CC",
+          "404 /work/mealops?_rsc=A6tv5qL0h5gyZs1G",
+          "404 /work/papertrail?_rsc=5CB68i4pnAekjehf",
+          "404 /work/papertrail?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/papertrail?_rsc=5CB68i4pnAekjehf",
+          "404 /work/scribe?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/papertrail?_rsc=5CB68i4pnAekjehf",
+          "404 /work/scribe?_rsc=5CB68i4pnAekjehf",
+          "404 /work/crediflow?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/scribe?_rsc=5CB68i4pnAekjehf",
+          "404 /work/crediflow?_rsc=5CB68i4pnAekjehf"
+        ],
+        "jsErrors": []
+      },
+      {
+        "viewport": "mobile",
+        "status": "fail",
+        "titleClippingPx": 3.625,
+        "httpErrors": [
+          "404 /work/orbit?_rsc=xNH9KPURsx2vkjrt",
+          "404 /work/orbit?_rsc=pSrN-WUH5NK7kptd",
+          "404 /work/mealops?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/papertrail?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/papertrail?_rsc=5CB68i4pnAekjehf",
+          "404 /work/scribe?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/papertrail?_rsc=5CB68i4pnAekjehf",
+          "404 /work/scribe?_rsc=5CB68i4pnAekjehf",
+          "404 /work/crediflow?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/scribe?_rsc=5CB68i4pnAekjehf",
+          "404 /work/crediflow?_rsc=5CB68i4pnAekjehf"
+        ],
+        "jsErrors": []
+      }
+    ]
+  },
+  {
+    "run": "adaptation-v2-all-navigation.json",
+    "createdAt": "2026-11-01T00:07:50.881Z",
+    "results": [
+      {
+        "viewport": "desktop",
+        "status": "fail",
+        "titleClippingPx": 0,
+        "httpErrors": [
+          "404 /work/mealops?_rsc=H0WGzZUWWfBOH6CC",
+          "404 /work/mealops?_rsc=A6tv5qL0h5gyZs1G",
+          "404 /work/papertrail?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/papertrail?_rsc=5CB68i4pnAekjehf",
+          "404 /work/scribe?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/papertrail?_rsc=5CB68i4pnAekjehf",
+          "404 /work/scribe?_rsc=5CB68i4pnAekjehf",
+          "404 /work/crediflow?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/scribe?_rsc=5CB68i4pnAekjehf"
+        ],
+        "jsErrors": []
+      },
+      {
+        "viewport": "mobile",
+        "status": "fail",
+        "titleClippingPx": 0,
+        "httpErrors": [
+          "404 /work/orbit?_rsc=xNH9KPURsx2vkjrt",
+          "404 /work/orbit?_rsc=pSrN-WUH5NK7kptd",
+          "404 /work/mealops?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/papertrail?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/papertrail?_rsc=5CB68i4pnAekjehf",
+          "404 /work/scribe?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/papertrail?_rsc=5CB68i4pnAekjehf",
+          "404 /work/scribe?_rsc=5CB68i4pnAekjehf",
+          "404 /work/crediflow?_rsc=hY_hg9rCRXgRPmwD",
+          "404 /work/scribe?_rsc=5CB68i4pnAekjehf",
+          "404 /work/crediflow?_rsc=5CB68i4pnAekjehf"
+        ],
+        "jsErrors": []
+      }
+    ]
+  },
+  {
+    "run": "adaptation-complete-variants.json",
+    "createdAt": "2026-11-01T00:10:33.372Z",
+    "results": [
+      {
+        "viewport": "desktop",
+        "status": "fail",
+        "titleClippingPx": 0,
+        "httpErrors": [
+          "404 /work/scribe?_rsc=tCTSLQTg20HwuKVW",
+          "404 /work/scribe?_rsc=YQjE8pxqQpuztOnT"
+        ],
+        "jsErrors": []
+      },
+      {
+        "viewport": "mobile",
+        "status": "fail",
+        "titleClippingPx": 0,
+        "httpErrors": [
+          "404 /work/papertrail?_rsc=toAR0eJ37fLaqGMx",
+          "404 /work/papertrail?_rsc=uP875pIKkWnBOUIB",
+          "404 /work/crediflow?_rsc=IvbtkUSAwMGtvVTK",
+          "404 /work/scribe?_rsc=c0sZTJ_S78IrlQ6n",
+          "404 /work/crediflow?_rsc=c0sZTJ_S78IrlQ6n"
+        ],
+        "jsErrors": []
+      }
+    ]
+  }
+]

@@ -13,20 +13,27 @@ import { catalogContent, createTemplate } from "./content.js";
 import { captureMotion, assessMotion, readMotion } from "./motion.js";
 import type { ContentMap, MotionConfig } from "./experience-types.js";
 import { auditContent, type ContentAuditPolicy } from "./content-audit.js";
+import { materialize, type ReplacementPlan } from "./materialize.js";
+import {
+  completeRequests,
+  type MissingRequestLog,
+} from "./request-completion.js";
 
 const HELP =
-  "Bot MD 0.4.0\n\n" +
+  "Bot MD 0.5.0\n\n" +
   "npm run bot-md -- run --url https://sitio.example --out runs/ejemplo\n" +
   "npm run bot-md -- run --config examples/config.json --out runs/ejemplo\n" +
   "npm run bot-md -- capture --url URL --out CAPTURA\n" +
   "npm run bot-md -- build --capture CAPTURA --out SITIO\n" +
   "npm run bot-md -- enrich --capture CAPTURA --out CAPTURA_NUEVA\n" +
+  "npm run bot-md -- complete-requests --capture CAPTURA --requests SOLICITUDES.json --out CAPTURA_NUEVA\n" +
   "npm run bot-md -- verify --capture CAPTURA --site SITIO --out INFORME\n" +
   "npm run bot-md -- repair --capture CAPTURA --site SITIO --out REPARACION\n" +
   "npm run bot-md -- serve --site SITIO --port 4173\n\n" +
   "npm run bot-md -- styles --capture CAPTURA --out ESTILOS\n" +
   "npm run bot-md -- catalog --capture CAPTURA --out CONTENIDO\n" +
   "npm run bot-md -- template --site SITIO --content content.json --out PLANTILLA\n" +
+  "npm run bot-md -- materialize --site SITIO_BASE --replacements sustituciones.json --out PLANTILLA [--assets CARPETA]\n" +
   "npm run bot-md -- audit-content --capture CAPTURA --site PLANTILLA --content content.json --policy politica.json --out AUDITORIA\n" +
   "npm run bot-md -- motion --url URL --config motion.json --out TRAZA\n" +
   "npm run bot-md -- motion --site SITIO --config motion.json --out TRAZA_LOCAL\n" +
@@ -57,6 +64,8 @@ async function main() {
       "repeat-reference": { type: "string" },
       policy: { type: "string" },
       assets: { type: "string" },
+      replacements: { type: "string" },
+      requests: { type: "string" },
       help: { type: "boolean" },
     },
   });
@@ -73,6 +82,8 @@ async function main() {
       | "content"
       | "reference"
       | "candidate"
+      | "replacements"
+      | "requests"
       | "policy",
   ) => {
     const v = values[key];
@@ -81,6 +92,23 @@ async function main() {
   };
   if (command === "styles") {
     await exportStyles(required("capture"), required("out"));
+    return;
+  }
+  if (command === "complete-requests") {
+    const result = await completeRequests(
+      required("capture"),
+      await json<MissingRequestLog>(required("requests")),
+      required("out"),
+    );
+    console.log(
+      "Solicitudes: " +
+        result.status +
+        " · añadidas: " +
+        result.added.length +
+        " · pendientes: " +
+        result.unresolved.length,
+    );
+    process.exitCode = result.unresolved.length ? 2 : 0;
     return;
   }
   if (command === "catalog") {
@@ -94,6 +122,24 @@ async function main() {
       required("out"),
       values.assets ? path.resolve(values.assets) : undefined,
     );
+    return;
+  }
+  if (command === "materialize") {
+    const result = await materialize(
+      required("site"),
+      await json<ReplacementPlan>(required("replacements")),
+      required("out"),
+      values.assets ? path.resolve(values.assets) : undefined,
+    );
+    console.log(
+      "Contenido compilado: " +
+        result.status +
+        " · reglas sin coincidencias: " +
+        result.unmatchedRules.length +
+        " · archivos con términos de origen: " +
+        result.files.filter((f) => f.matches.length).length,
+    );
+    process.exitCode = result.status === "materialized" ? 0 : 2;
     return;
   }
   if (command === "audit-content") {

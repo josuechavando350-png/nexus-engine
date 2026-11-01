@@ -1,0 +1,3706 @@
+{
+  "createdAt": "2026-11-01T00:12:40.441Z",
+  "scope": "19 declared homepage fields compiled before delivery; 7 SSR documents; desktop/mobile hydration, menu, SVG reflow, scroll, client navigation across all six projects, history and reload, text clipping. Identity terms only; not removal of all source content.",
+  "expectedBindings": 19,
+  "missingRequestLog": {
+    "schemaVersion": 1,
+    "sourceOrigin": "https://dakshgajjar.com",
+    "requests": []
+  },
+  "noScript": [
+    {
+      "route": "/",
+      "title": "Bot MD — demostración",
+      "identityAbsent": true
+    },
+    {
+      "route": "/work/eigna",
+      "title": "EIGNA",
+      "identityAbsent": true
+    },
+    {
+      "route": "/work/orbit",
+      "title": "ORBIT",
+      "identityAbsent": true
+    },
+    {
+      "route": "/work/mealops",
+      "title": "MealOPS",
+      "identityAbsent": true
+    },
+    {
+      "route": "/work/papertrail",
+      "title": "PAPERTRAIL",
+      "identityAbsent": true
+    },
+    {
+      "route": "/work/scribe",
+      "title": "SCRIBE",
+      "identityAbsent": true
+    },
+    {
+      "route": "/work/crediflow",
+      "title": "Crediflow",
+      "identityAbsent": true
+    }
+  ],
+  "results": [
+    {
+      "viewport": "desktop",
+      "checks": [
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        }
+      ],
+      "back": [
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        }
+      ],
+      "navigation": [
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        },
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        },
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        },
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        },
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        },
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        }
+      ],
+      "reload": [
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        }
+      ],
+      "overlayAbsent": true,
+      "caseIdentityAbsent": true,
+      "cases": [
+        {
+          "route": "/work/eigna",
+          "title": "EIGNA",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        },
+        {
+          "route": "/work/orbit",
+          "title": "ORBIT",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        },
+        {
+          "route": "/work/mealops",
+          "title": "MealOPS",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        },
+        {
+          "route": "/work/papertrail",
+          "title": "PAPERTRAIL",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        },
+        {
+          "route": "/work/scribe",
+          "title": "SCRIBE",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        },
+        {
+          "route": "/work/crediflow",
+          "title": "Crediflow",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        }
+      ],
+      "titleClippingPx": 0,
+      "textFit": {
+        "route": "/",
+        "results": [
+          {
+            "id": "hero-lines",
+            "status": "fitted",
+            "fontSize": 196.37,
+            "clippedPx": 0.25,
+            "lines": 3
+          }
+        ]
+      },
+      "menu": null,
+      "motionChanged": true,
+      "curveChanged": true,
+      "introReflowed": true,
+      "overflow": 0,
+      "lines": 3,
+      "jsErrors": [],
+      "httpErrors": [],
+      "rscRequests": [
+        {
+          "url": "/?_rsc=5CB68i4pnAekjehf",
+          "status": 200
+        },
+        {
+          "url": "/?_rsc=8nTjltbQWvg6NcbE",
+          "status": 200
+        },
+        {
+          "url": "/?_rsc=5CB68i4pnAekjehf",
+          "status": 200
+        },
+        {
+          "url": "/?_rsc=8nTjltbQWvg6NcbE",
+          "status": 200
+        },
+        {
+          "url": "/work/eigna?_rsc=Kj5MPPJ2XCusE5Hx",
+          "status": 200
+        },
+        {
+          "url": "/work/eigna?_rsc=5CB68i4pnAekjehf",
+          "status": 200
+        },
+        {
+          "url": "/work/orbit?_rsc=5CB68i4pnAekjehf",
+          "status": 200
+        },
+        {
+          "url": "/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+          "status": 200
+        },
+        {
+          "url": "/work/orbit?_rsc=y6pgQWwLckoW4aDt",
+          "status": 200
+        },
+        {
+          "url": "/work/mealops?_rsc=H0WGzZUWWfBOH6CC",
+          "status": 200
+        },
+        {
+          "url": "/work/mealops?_rsc=A6tv5qL0h5gyZs1G",
+          "status": 200
+        },
+        {
+          "url": "/work/papertrail?_rsc=A6tv5qL0h5gyZs1G",
+          "status": 200
+        },
+        {
+          "url": "/work/scribe?_rsc=tCTSLQTg20HwuKVW",
+          "status": 200
+        },
+        {
+          "url": "/work/scribe?_rsc=YQjE8pxqQpuztOnT",
+          "status": 200
+        },
+        {
+          "url": "/work/crediflow?_rsc=IvbtkUSAwMGtvVTK",
+          "status": 200
+        },
+        {
+          "url": "/work/crediflow?_rsc=c0sZTJ_S78IrlQ6n",
+          "status": 200
+        },
+        {
+          "url": "/?_rsc=5CB68i4pnAekjehf",
+          "status": 200
+        },
+        {
+          "url": "/?_rsc=8nTjltbQWvg6NcbE",
+          "status": 200
+        }
+      ],
+      "before": {
+        "title": "Daksh Gajjar",
+        "hero": "I DESIGNPRODUCTSTHAT THINK.",
+        "lines": 3,
+        "titleClippingPx": 0,
+        "textFit": null,
+        "introHeight": 49.59375,
+        "overflow": 0,
+        "paths": [
+          {
+            "hash": "cafdb16badabaf2d8a30006364469b16317c1e993f24f4b368aa1cb20f417c21",
+            "length": 2531.323486328125
+          },
+          {
+            "hash": "f369a865d3328114489a922e16e045d90f1317405ebd1a61865d4fe9acdc7098",
+            "length": 2929.63232421875
+          },
+          {
+            "hash": "ef6678e31509b2837d934a31dcf04309d9877d280291b13655138ef090ced34d",
+            "length": 1200.962890625
+          },
+          {
+            "hash": "5dd351de0df3adb24aa88e777883bb97a879444adf7bae21533bea469755616c",
+            "length": 1200.962890625
+          },
+          {
+            "hash": "9a2a755e3d83be3ca4954a7c88ed723d3c94f334a74eb2a033e93c87a61fe24a",
+            "length": 100.796875
+          },
+          {
+            "hash": "918ee11a513da29be7e6c712e613981e58f284d803f9126d7e542c1efbc00a6e",
+            "length": 4218.45703125
+          },
+          {
+            "hash": "ec9e587feb2eda2ebfbc39fccc11768a3473d0d3697c39f2080c0c323b55c32c",
+            "length": 1970.367431640625
+          },
+          {
+            "hash": "99d05a1ab7b2228b1ed20401b8ddedcbf625323320ad9d75b051152a8063903b",
+            "length": 3645.4931640625
+          },
+          {
+            "hash": "929073fac3974f05cf6156ce22a51ffbffca12723cd0e4fc57054122e3278399",
+            "length": 3091.087890625
+          },
+          {
+            "hash": "8710c5b6165eb58bf029812ac010c188df5d6c6998b7c9627e2be7c9f0157619",
+            "length": 2872.036376953125
+          },
+          {
+            "hash": "5186a192b1cebca79962cd7e3571dd6f6f27d9741b4f7cf55a96037b8aaf4547",
+            "length": 3191.904541015625
+          },
+          {
+            "hash": "10bf28e78d0224e58e9562ddd283c9585cc382a3fe255200f8e57a42f2ca962f",
+            "length": 10557.1259765625
+          },
+          {
+            "hash": "a87ebb3ed78c571bff41a71edb76344bf658dbdc5d1f54ad2c3bdb1d1b69a18c",
+            "length": 1031.4266357421875
+          },
+          {
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "hash": "fdd5180688fbd6cedcdeb714c1246043aa98f0fe3887d6e7f851989b6c9a462c",
+            "length": 416.1735534667969
+          },
+          {
+            "hash": "c7ceafbccf0704380bf8d5f9f3086986098a29dcc6bc605b5f33303c859343a2",
+            "length": 278.0741882324219
+          },
+          {
+            "hash": "d9d625417ae6df26d0dcdfd5994a21c6f8bdc16d2652367f626a660a45f2c7a8",
+            "length": 101.88066864013672
+          },
+          {
+            "hash": "e5ac1c955c88e723096878b8f30a3fe60127b7f88db7ccbc5f39c996fd453e3a",
+            "length": 266.0916748046875
+          },
+          {
+            "hash": "39624973d28770e9bcc4538559141dd46b51ffb9947492ad697833bd2b29f91b",
+            "length": 164.48275756835938
+          },
+          {
+            "hash": "201266e01dc90d68ac1fb649b482065f2516e9332349d80ec84346994429b16d",
+            "length": 94.75039672851562
+          },
+          {
+            "hash": "e929130543173816e8f83fae3d388f923892af9ab8b320de0e5cce845d936f45",
+            "length": 118.98723602294922
+          },
+          {
+            "hash": "924952289bdef333fe828dbd7174bbb01e608fe5ac5c65211750c7a25c2c7774",
+            "length": 89.96913146972656
+          },
+          {
+            "hash": "20ccd62e0f17b2c3a53949effe78d8b617fdbe685a029233a1f4e0ca6619779f",
+            "length": 73.6428451538086
+          },
+          {
+            "hash": "53042b908c16636f67bdffd9c3ed182fe53ba43931c22410bc40e8a969a31c60",
+            "length": 940.2306518554688
+          },
+          {
+            "hash": "7d6414355a96acc2826fd14ff1a0df8998a7a99cad7ed9061dbf13de3c81891a",
+            "length": 213.1110076904297
+          }
+        ]
+      },
+      "after": {
+        "title": "Bot MD — demostración",
+        "hero": "CREAMOSSISTEMASQUE AVANZAN.",
+        "lines": 3,
+        "titleClippingPx": 0,
+        "textFit": {
+          "route": "/",
+          "results": [
+            {
+              "id": "hero-lines",
+              "status": "fitted",
+              "fontSize": 196.37,
+              "clippedPx": 0.25,
+              "lines": 3
+            }
+          ]
+        },
+        "introHeight": 99.1875,
+        "overflow": 0,
+        "paths": [
+          {
+            "hash": "cafdb16badabaf2d8a30006364469b16317c1e993f24f4b368aa1cb20f417c21",
+            "length": 2531.323486328125
+          },
+          {
+            "hash": "f369a865d3328114489a922e16e045d90f1317405ebd1a61865d4fe9acdc7098",
+            "length": 2929.63232421875
+          },
+          {
+            "hash": "ef6678e31509b2837d934a31dcf04309d9877d280291b13655138ef090ced34d",
+            "length": 1200.962890625
+          },
+          {
+            "hash": "5dd351de0df3adb24aa88e777883bb97a879444adf7bae21533bea469755616c",
+            "length": 1200.962890625
+          },
+          {
+            "hash": "9a2a755e3d83be3ca4954a7c88ed723d3c94f334a74eb2a033e93c87a61fe24a",
+            "length": 100.796875
+          },
+          {
+            "hash": "918ee11a513da29be7e6c712e613981e58f284d803f9126d7e542c1efbc00a6e",
+            "length": 4218.45703125
+          },
+          {
+            "hash": "ec9e587feb2eda2ebfbc39fccc11768a3473d0d3697c39f2080c0c323b55c32c",
+            "length": 1970.367431640625
+          },
+          {
+            "hash": "99d05a1ab7b2228b1ed20401b8ddedcbf625323320ad9d75b051152a8063903b",
+            "length": 3645.4931640625
+          },
+          {
+            "hash": "929073fac3974f05cf6156ce22a51ffbffca12723cd0e4fc57054122e3278399",
+            "length": 3091.087890625
+          },
+          {
+            "hash": "8710c5b6165eb58bf029812ac010c188df5d6c6998b7c9627e2be7c9f0157619",
+            "length": 2872.036376953125
+          },
+          {
+            "hash": "5186a192b1cebca79962cd7e3571dd6f6f27d9741b4f7cf55a96037b8aaf4547",
+            "length": 3191.904541015625
+          },
+          {
+            "hash": "10bf28e78d0224e58e9562ddd283c9585cc382a3fe255200f8e57a42f2ca962f",
+            "length": 10557.1259765625
+          },
+          {
+            "hash": "a87ebb3ed78c571bff41a71edb76344bf658dbdc5d1f54ad2c3bdb1d1b69a18c",
+            "length": 1031.4266357421875
+          },
+          {
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "hash": "2cbb96a1863d8cc72923caaa3c591ddac99bcee4174a1bfd0c582e8b0ece7248",
+            "length": 593.7415161132812
+          },
+          {
+            "hash": "dedb21880d88079c0a8dc008b54a00690114fcdd1f81b7f8973c020fb2d0f9cd",
+            "length": 442.1549377441406
+          },
+          {
+            "hash": "7894b93ffa8a11716fb8982a85f4adba8de6115bd4978baa6463e756affaa940",
+            "length": 94.42449188232422
+          },
+          {
+            "hash": "c47856c2a6ffad88d717030406cb6c729f202019fa91fdc1fdba8abf19cbf428",
+            "length": 227.41946411132812
+          },
+          {
+            "hash": "b63a735476c1c8fb8f98306fc92045c5a769295c2487374d362531b467819544",
+            "length": 145.18695068359375
+          },
+          {
+            "hash": "89829a0bf144e787581c9dcf20dccb97d68b97d2258e39aa8de6c5325e20a71e",
+            "length": 87.89784240722656
+          },
+          {
+            "hash": "8958c215f3a803c82c7da2d451f7aa8e10b552e92042d64847e73fc1afd06777",
+            "length": 145.4551239013672
+          },
+          {
+            "hash": "fb1a4200085448c08e0c1de8bb8a4ddcd31da96cdd91074bde6450d9870933b1",
+            "length": 116.61625671386719
+          },
+          {
+            "hash": "273e85dd05faf744ed0eaadb85f395c1cd8a67c08b167de8a94f479a8fbf1ec4",
+            "length": 67.55013275146484
+          },
+          {
+            "hash": "a36db4e1716024300c994b96c830f15e954b455392f11660f909eb7f36a6c7ab",
+            "length": 990.6323852539062
+          },
+          {
+            "hash": "4def5a824e3cd7e409b0d603b08c5ed4d501b00a1c9b0ccad79e39e3de64b449",
+            "length": 188.2588653564453
+          }
+        ]
+      },
+      "status": "pass"
+    },
+    {
+      "viewport": "mobile",
+      "checks": [
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        }
+      ],
+      "back": [
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        }
+      ],
+      "navigation": [
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        },
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        },
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        },
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        },
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        },
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        }
+      ],
+      "reload": [
+        {
+          "id": "field-1",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-2",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-3",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-4",
+          "pass": true,
+          "actual": "Demostración de estilos y movimiento con contenido editable."
+        },
+        {
+          "id": "field-5",
+          "pass": true,
+          "actual": "https://example.com/"
+        },
+        {
+          "id": "field-6",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-7",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-8",
+          "pass": true,
+          "actual": "Bot MD — demostración"
+        },
+        {
+          "id": "field-9",
+          "pass": true,
+          "actual": "Diseño y movimiento editables."
+        },
+        {
+          "id": "field-10",
+          "pass": true,
+          "actual": "/__botmd/media/preview.svg"
+        },
+        {
+          "id": "field-11",
+          "pass": true,
+          "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+        },
+        {
+          "id": "field-14",
+          "pass": true,
+          "actual": "BM"
+        },
+        {
+          "id": "field-15",
+          "pass": true,
+          "actual": "Bot MD — inicio"
+        },
+        {
+          "id": "field-27",
+          "pass": true,
+          "actual": "CREAMOS"
+        },
+        {
+          "id": "field-28",
+          "pass": true,
+          "actual": "SISTEMAS"
+        },
+        {
+          "id": "field-29",
+          "pass": true,
+          "actual": "QUE AVANZAN."
+        },
+        {
+          "id": "field-30",
+          "pass": true,
+          "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+        },
+        {
+          "id": "field-468",
+          "pass": true,
+          "actual": "NEXUS ENGINE."
+        },
+        {
+          "id": "field-469",
+          "pass": true,
+          "actual": "Diseño y tecnología. Ideas en movimiento."
+        }
+      ],
+      "overlayAbsent": true,
+      "caseIdentityAbsent": true,
+      "cases": [
+        {
+          "route": "/work/eigna",
+          "title": "EIGNA",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        },
+        {
+          "route": "/work/orbit",
+          "title": "ORBIT",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        },
+        {
+          "route": "/work/mealops",
+          "title": "MealOPS",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        },
+        {
+          "route": "/work/papertrail",
+          "title": "PAPERTRAIL",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        },
+        {
+          "route": "/work/scribe",
+          "title": "SCRIBE",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        },
+        {
+          "route": "/work/crediflow",
+          "title": "Crediflow",
+          "identityAbsent": true,
+          "returned": [
+            {
+              "id": "field-1",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-2",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-3",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-4",
+              "pass": true,
+              "actual": "Demostración de estilos y movimiento con contenido editable."
+            },
+            {
+              "id": "field-5",
+              "pass": true,
+              "actual": "https://example.com/"
+            },
+            {
+              "id": "field-6",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-7",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-8",
+              "pass": true,
+              "actual": "Bot MD — demostración"
+            },
+            {
+              "id": "field-9",
+              "pass": true,
+              "actual": "Diseño y movimiento editables."
+            },
+            {
+              "id": "field-10",
+              "pass": true,
+              "actual": "/__botmd/media/preview.svg"
+            },
+            {
+              "id": "field-11",
+              "pass": true,
+              "actual": "Bot MD: demostración con texto propio y un hilo naranja."
+            },
+            {
+              "id": "field-14",
+              "pass": true,
+              "actual": "BM"
+            },
+            {
+              "id": "field-15",
+              "pass": true,
+              "actual": "Bot MD — inicio"
+            },
+            {
+              "id": "field-27",
+              "pass": true,
+              "actual": "CREAMOS"
+            },
+            {
+              "id": "field-28",
+              "pass": true,
+              "actual": "SISTEMAS"
+            },
+            {
+              "id": "field-29",
+              "pass": true,
+              "actual": "QUE AVANZAN."
+            },
+            {
+              "id": "field-30",
+              "pass": true,
+              "actual": "Diseñamos experiencias digitales para proyectos que necesitan claridad, movimiento y una identidad propia. Este texto es editable y puede crecer sin eliminar los elementos que dibujan el hilo."
+            },
+            {
+              "id": "field-468",
+              "pass": true,
+              "actual": "NEXUS ENGINE."
+            },
+            {
+              "id": "field-469",
+              "pass": true,
+              "actual": "Diseño y tecnología. Ideas en movimiento."
+            }
+          ],
+          "titleClippingPx": 0
+        }
+      ],
+      "titleClippingPx": 0,
+      "textFit": {
+        "route": "/",
+        "results": [
+          {
+            "id": "hero-lines",
+            "status": "fitted",
+            "fontSize": 51.49,
+            "clippedPx": 0.15625,
+            "lines": 3
+          }
+        ]
+      },
+      "menu": {
+        "opened": "true",
+        "closed": "false"
+      },
+      "motionChanged": true,
+      "curveChanged": true,
+      "introReflowed": true,
+      "overflow": 0,
+      "lines": 3,
+      "jsErrors": [],
+      "httpErrors": [],
+      "rscRequests": [
+        {
+          "url": "/?_rsc=5CB68i4pnAekjehf",
+          "status": 200
+        },
+        {
+          "url": "/?_rsc=8nTjltbQWvg6NcbE",
+          "status": 200
+        },
+        {
+          "url": "/?_rsc=5CB68i4pnAekjehf",
+          "status": 200
+        },
+        {
+          "url": "/?_rsc=8nTjltbQWvg6NcbE",
+          "status": 200
+        },
+        {
+          "url": "/work/eigna?_rsc=Kj5MPPJ2XCusE5Hx",
+          "status": 200
+        },
+        {
+          "url": "/work/eigna?_rsc=5CB68i4pnAekjehf",
+          "status": 200
+        },
+        {
+          "url": "/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+          "status": 200
+        },
+        {
+          "url": "/work/orbit?_rsc=xNH9KPURsx2vkjrt",
+          "status": 200
+        },
+        {
+          "url": "/work/orbit?_rsc=pSrN-WUH5NK7kptd",
+          "status": 200
+        },
+        {
+          "url": "/work/mealops?_rsc=H0WGzZUWWfBOH6CC",
+          "status": 200
+        },
+        {
+          "url": "/work/mealops?_rsc=A6tv5qL0h5gyZs1G",
+          "status": 200
+        },
+        {
+          "url": "/work/papertrail?_rsc=toAR0eJ37fLaqGMx",
+          "status": 200
+        },
+        {
+          "url": "/work/papertrail?_rsc=uP875pIKkWnBOUIB",
+          "status": 200
+        },
+        {
+          "url": "/work/scribe?_rsc=tCTSLQTg20HwuKVW",
+          "status": 200
+        },
+        {
+          "url": "/work/scribe?_rsc=YQjE8pxqQpuztOnT",
+          "status": 200
+        },
+        {
+          "url": "/work/crediflow?_rsc=IvbtkUSAwMGtvVTK",
+          "status": 200
+        },
+        {
+          "url": "/work/crediflow?_rsc=c0sZTJ_S78IrlQ6n",
+          "status": 200
+        },
+        {
+          "url": "/?_rsc=5CB68i4pnAekjehf",
+          "status": 200
+        },
+        {
+          "url": "/?_rsc=8nTjltbQWvg6NcbE",
+          "status": 200
+        }
+      ],
+      "before": {
+        "title": "Daksh Gajjar",
+        "hero": "I DESIGNPRODUCTSTHAT THINK.",
+        "lines": 3,
+        "titleClippingPx": 0,
+        "textFit": null,
+        "introHeight": 36.65625,
+        "overflow": 0,
+        "paths": [
+          {
+            "hash": "e31be2d2fe5fa6ed604bf5df92e39dc88d1c23064a74998b3c053e603886c063",
+            "length": 2499.62109375
+          },
+          {
+            "hash": "66b17da4af2dd6399bdb2d43f7bfe956b17eac5b94167a6ff1e5daabda40e579",
+            "length": 467.8392333984375
+          },
+          {
+            "hash": "d047d7dfdab049a3a6518da0d5086a87c957223214e0715e2cc2cc547ab605f4",
+            "length": 821.4937744140625
+          },
+          {
+            "hash": "c859f1d0db3e2be78f05bcba96a0d6a4e0a392e472ababf8b669bd25b3bc89d0",
+            "length": 821.4937744140625
+          },
+          {
+            "hash": "6498f683d1b1e259e92eacc5325ddda06df844667f49ba426b4aad79291d5501",
+            "length": 118.93911743164062
+          },
+          {
+            "hash": "9eb9c87fc50c16051510e41293a0da08b517d091b9713631780b4f8b45d99d26",
+            "length": 2348.102294921875
+          },
+          {
+            "hash": "a114dd30deedf5f00fb8895a7e211721bf2664238e43de7ed69a6c3be6009610",
+            "length": 1236.2122802734375
+          },
+          {
+            "hash": "ab6bd3f441c8467995065af6be681d86343dfc5ce310a1bfb7b95c7bc1514ce3",
+            "length": 1349.01904296875
+          },
+          {
+            "hash": "a61e5de5bae7fbc00458daf2b7c5f27f94154a5d6d5f4670b39a245004bc79e4",
+            "length": 1718.4619140625
+          },
+          {
+            "hash": "f6f93724d8a99e3279689445198453399fc4bc3d77d4502db2914bc7c29d542b",
+            "length": 1429.890380859375
+          },
+          {
+            "hash": "ba195564056b00fb2ed63268a90d6d2241f55fedf245035e3d9bcb91f87c8b40",
+            "length": 1546.3826904296875
+          },
+          {
+            "hash": "42b29df71cd5a3df869200dd608583dcb3ec843e4ecfc5d5933adc7dfdc64885",
+            "length": 5502.5224609375
+          },
+          {
+            "hash": "44f97edd79d0f2fdfc6dc164b15ac1ef97737b303b9815f52b4268efca22b2b6",
+            "length": 879.2037963867188
+          },
+          {
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "hash": "84b93039c9558b83e1aa44f293999550b7f201c425bc6f51b910b4218e8b5206",
+            "length": 327.21392822265625
+          },
+          {
+            "hash": "925b245ff6d3a50712e2305e67484d0f3f086e4a27f9ca01b21ebd24235331bc",
+            "length": 78.55201721191406
+          },
+          {
+            "hash": "fcbf097cadcdf44ce1565776a33de7b0ad5f6a6c8674f0bb07623f9f6cabd1c2",
+            "length": 28.93053436279297
+          },
+          {
+            "hash": "448e76b40f4d772bb0ff188a72c63acea3b8804624644c2978bf0778e07a5c76",
+            "length": 75.0082015991211
+          },
+          {
+            "hash": "503a1be249b0f7e7ad26605822f578fd2d6a596697b1a7e6dd8f858f717584bc",
+            "length": 46.35826873779297
+          },
+          {
+            "hash": "fb27aa486f6bc86706bc3e852445458bb89c5b22c351d133be101365998ccaf9",
+            "length": 159.09442138671875
+          },
+          {
+            "hash": "f39a17b474188ef1152b9561dec2b081a82056b1b64a8d1963c5a064bb559325",
+            "length": 288.3470764160156
+          },
+          {
+            "hash": "332b78635372efcc5affa28291495659fadbac33d14792dd23e6b5d89a1150be",
+            "length": 25.393983840942383
+          },
+          {
+            "hash": "e0a60b39c1bf73d8a4167fc05d3e500889e3146c980d2c2b390911b2ce7d8ac5",
+            "length": 20.755456924438477
+          },
+          {
+            "hash": "0d5a2ddc35856495b7b0ff5513496d49dc4276fd510db680c86187e3af49b3a7",
+            "length": 265.1262512207031
+          },
+          {
+            "hash": "a07a8fcf61d720d90d76f2ad10d7205ab58d20b30d352e9e6be11d661438068c",
+            "length": 60.07208251953125
+          }
+        ]
+      },
+      "after": {
+        "title": "Bot MD — demostración",
+        "hero": "CREAMOSSISTEMASQUE AVANZAN.",
+        "lines": 3,
+        "titleClippingPx": 0,
+        "textFit": {
+          "route": "/",
+          "results": [
+            {
+              "id": "hero-lines",
+              "status": "fitted",
+              "fontSize": 51.49,
+              "clippedPx": 0.15625,
+              "lines": 3
+            }
+          ]
+        },
+        "introHeight": 73.3125,
+        "overflow": 0,
+        "paths": [
+          {
+            "hash": "e31be2d2fe5fa6ed604bf5df92e39dc88d1c23064a74998b3c053e603886c063",
+            "length": 2499.62109375
+          },
+          {
+            "hash": "66b17da4af2dd6399bdb2d43f7bfe956b17eac5b94167a6ff1e5daabda40e579",
+            "length": 467.8392333984375
+          },
+          {
+            "hash": "d047d7dfdab049a3a6518da0d5086a87c957223214e0715e2cc2cc547ab605f4",
+            "length": 821.4937744140625
+          },
+          {
+            "hash": "c859f1d0db3e2be78f05bcba96a0d6a4e0a392e472ababf8b669bd25b3bc89d0",
+            "length": 821.4937744140625
+          },
+          {
+            "hash": "6498f683d1b1e259e92eacc5325ddda06df844667f49ba426b4aad79291d5501",
+            "length": 118.93911743164062
+          },
+          {
+            "hash": "9eb9c87fc50c16051510e41293a0da08b517d091b9713631780b4f8b45d99d26",
+            "length": 2348.102294921875
+          },
+          {
+            "hash": "a114dd30deedf5f00fb8895a7e211721bf2664238e43de7ed69a6c3be6009610",
+            "length": 1236.2122802734375
+          },
+          {
+            "hash": "ab6bd3f441c8467995065af6be681d86343dfc5ce310a1bfb7b95c7bc1514ce3",
+            "length": 1349.01904296875
+          },
+          {
+            "hash": "a61e5de5bae7fbc00458daf2b7c5f27f94154a5d6d5f4670b39a245004bc79e4",
+            "length": 1718.4619140625
+          },
+          {
+            "hash": "f6f93724d8a99e3279689445198453399fc4bc3d77d4502db2914bc7c29d542b",
+            "length": 1429.890380859375
+          },
+          {
+            "hash": "ba195564056b00fb2ed63268a90d6d2241f55fedf245035e3d9bcb91f87c8b40",
+            "length": 1546.3826904296875
+          },
+          {
+            "hash": "42b29df71cd5a3df869200dd608583dcb3ec843e4ecfc5d5933adc7dfdc64885",
+            "length": 5502.5224609375
+          },
+          {
+            "hash": "44f97edd79d0f2fdfc6dc164b15ac1ef97737b303b9815f52b4268efca22b2b6",
+            "length": 879.2037963867188
+          },
+          {
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "length": 0
+          },
+          {
+            "hash": "73a40c95be3b1e3205ee0290182f2058f2afcdf71a5f3c53e082bbae008e9bb8",
+            "length": 356.5209045410156
+          },
+          {
+            "hash": "bbe015399ff98b7ba97e1d1b88f739966d79e91a8990c4e4af02c244251467f5",
+            "length": 116.02288055419922
+          },
+          {
+            "hash": "537a71f3a8348d26ca6e106bbc516b0f6d61550f7b78d8d2cc5ffda79795b734",
+            "length": 24.941728591918945
+          },
+          {
+            "hash": "bbf7c4ef1b00f16407740fa8585fd746fd5d25aeb6b1dfb9a0d7d6054c82650e",
+            "length": 59.64577102661133
+          },
+          {
+            "hash": "d906f43e622fa67c689bf3a9f2b954e55b1c5e1b33aca129be584bbc8bcf490d",
+            "length": 38.067623138427734
+          },
+          {
+            "hash": "9c5abc09a2f5dde24886a92e31ed02cb078f928d66939fceb5c4aa0d24542001",
+            "length": 141.75860595703125
+          },
+          {
+            "hash": "c560ae85add06f44c5706d33cc9882f20c886897f03ebc6d08d1b03c2f9d884f",
+            "length": 322.9827575683594
+          },
+          {
+            "hash": "213ace06874b600f908ec364690e0f9876958b9476b3f53f9892fca2e755ef04",
+            "length": 30.59786605834961
+          },
+          {
+            "hash": "ec97ffab8c24b0679e47a039603ed6c1e53abfbab3b0d440260a88c3b6624acc",
+            "length": 17.708473205566406
+          },
+          {
+            "hash": "b8dd6e2a43a0ed2c0fe2f9c14154dc12d7a5fe0c914abc24bbd5e70b8672d250",
+            "length": 259.858642578125
+          },
+          {
+            "hash": "0b0cb3ba2c59baebb094ff5cfc42f70053c64741217750cd0fdc5aa389054e79",
+            "length": 49.36781311035156
+          }
+        ]
+      },
+      "status": "pass"
+    }
+  ]
+}

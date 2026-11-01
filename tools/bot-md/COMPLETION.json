@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "version": "0.5.0",
+  "status": "in-progress",
+  "universal100PercentClaim": false,
+  "scope": "Frontend público observado: estilos, contenido sustituible, navegación y movimiento. Referencia inicial dakshgajjar.com; la aprobación se limita a rutas, estados, tamaños y muestras explícitos.",
+  "gates": [
+    {
+      "id": "styles-and-md",
+      "status": "pass",
+      "evidence": ["docs/daksh/ESTILOS.md", "docs/daksh/MOVIMIENTO_0_4.md"]
+    },
+    {
+      "id": "motion-sampled",
+      "status": "pass",
+      "evidence": ["evidence/daksh/materialized-0.5.0/motion-comparison.json"]
+    },
+    {
+      "id": "declared-content-ssr-navigation",
+      "status": "pass",
+      "evidence": ["evidence/daksh/materialized-0.5.0/adaptation.json"]
+    },
+    {
+      "id": "title-fitting",
+      "status": "pass",
+      "evidence": [
+        "evidence/daksh/materialized-0.5.0/adaptation.json",
+        "tests/text-fit.test.ts"
+      ]
+    },
+    {
+      "id": "module-tests",
+      "status": "pass",
+      "evidence": ["evidence/tests-0.5.0.log"]
+    },
+    {
+      "id": "full-source-content-and-graphics-replacement",
+      "status": "pending",
+      "reason": "Siguen nombres, casos, textos y elementos gráficos de la referencia fuera de las 23 reglas. La búsqueda literal de identidad no los certifica."
+    },
+    {
+      "id": "clean-editable-components",
+      "status": "pending",
+      "reason": "Se conservan módulos del frontend entregado; no hay reconstrucción completa en componentes propios limpios."
+    },
+    {
+      "id": "broader-navigation-and-site-coverage",
+      "status": "partial",
+      "reason": "Se verificaron portada y seis proyectos con ida/regreso, historial y recarga, en Chromium de escritorio y móvil. Falta ampliar la cobertura de estados y navegadores del alcance final.",
+      "evidence": ["evidence/daksh/materialized-0.5.0/adaptation.json"]
+    },
+    {
+      "id": "nexus-validation-and-integration",
+      "status": "pending",
+      "reason": "Faltan checks globales pnpm lint/typecheck/test/build y validate del commit exacto; rama bot-md separada de main."
+    }
+  ]
+}

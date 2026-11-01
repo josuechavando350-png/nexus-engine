@@ -1,0 +1,318 @@
+{
+  "createdAt": "2026-11-01T00:01:40.011Z",
+  "source": "https://dakshgajjar.com/",
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "visited": [
+    {
+      "route": "/work/eigna",
+      "title": "EIGNA"
+    },
+    {
+      "route": "/work/orbit",
+      "title": "ORBIT"
+    },
+    {
+      "route": "/work/mealops",
+      "title": "MealOPS"
+    },
+    {
+      "route": "/work/papertrail",
+      "title": "PAPERTRAIL"
+    },
+    {
+      "route": "/work/scribe",
+      "title": "SCRIBE"
+    },
+    {
+      "route": "/work/crediflow",
+      "title": "Crediflow"
+    }
+  ],
+  "observedRequests": [
+    {
+      "url": "https://dakshgajjar.com/",
+      "status": 200,
+      "mime": "text/html; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/media/archivo-latin-ext-wght-normal.3cxrhsknk8wrd.woff2",
+      "status": 200,
+      "mime": "font/woff2",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/0siys_97wtvhj.css",
+      "status": 200,
+      "mime": "text/css; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/media/ibm_plex_mono_latin_500_normal.p.25_05y-blbp24.woff2",
+      "status": 200,
+      "mime": "font/woff2",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/media/archivo_latin_wght_normal.p.0inx24hl2eswd.woff2",
+      "status": 200,
+      "mime": "font/woff2",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/1r8-qx65y4q_n.css",
+      "status": 200,
+      "mime": "text/css; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/1cgj_16e_57q_.css",
+      "status": 200,
+      "mime": "text/css; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/00z4pmesk2f4f.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/2q-mefux0b24-.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/2685zr8hkjq4p.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/0laygpwkvzk1d.css",
+      "status": 200,
+      "mime": "text/css; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/media/ibm_plex_mono_latin_400_normal.p.19gbeb610ur4n.woff2",
+      "status": 200,
+      "mime": "font/woff2",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/1t4bcl8dhrqmz.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/249alxhww9wiw.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/34bwmeolpwmql.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/309a0-ee_4j8g.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/282l8gzrvryyu.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/turbopack-1cvbnb3nlabgn.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/0ykyzfd0mwwu3.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/0m8mlyu34u_vt.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/media/ibm-plex-mono-latin-ext-400-normal.1ih4rrmj883u6.woff2",
+      "status": 200,
+      "mime": "font/woff2",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/2kcm_pyekkj_i.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/0d0ufq30qg-mw.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/43caa98fd336de3a/script.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/1989c20815d40cbd/script.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/?_rsc=5CB68i4pnAekjehf",
+      "status": 200,
+      "mime": "text/x-component",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/_tree",
+        "next-router-prefetch": "1",
+        "next-url": "/"
+      }
+    },
+    {
+      "url": "https://dakshgajjar.com/?_rsc=8nTjltbQWvg6NcbE",
+      "status": 200,
+      "mime": "text/x-component",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/"
+      }
+    },
+    {
+      "url": "https://dakshgajjar.com/work/eigna?_rsc=Kj5MPPJ2XCusE5Hx",
+      "status": 200,
+      "mime": "text/x-component",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-state-tree": "%5B%22%22%2C%7B%22children%22%3A%5B%22__PAGE__%22%2C%7B%7D%2Cnull%2Cnull%2C512%5D%7D%2Cnull%2Cnull%2C528%5D",
+        "next-url": "/"
+      }
+    },
+    {
+      "url": "https://dakshgajjar.com/work/orbit?_rsc=5CB68i4pnAekjehf",
+      "status": 200,
+      "mime": "text/x-component",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/_tree",
+        "next-router-prefetch": "1",
+        "next-url": "/"
+      }
+    },
+    {
+      "url": "https://dakshgajjar.com/work/eigna?_rsc=5CB68i4pnAekjehf",
+      "status": 200,
+      "mime": "text/x-component",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/_tree",
+        "next-router-prefetch": "1",
+        "next-url": "/"
+      }
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/202-42ukld0cp.css",
+      "status": 200,
+      "mime": "text/css; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/work/orbit?_rsc=y6pgQWwLckoW4aDt",
+      "status": 200,
+      "mime": "text/x-component",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/"
+      }
+    },
+    {
+      "url": "https://dakshgajjar.com/_next/static/immutable/chunks/2gmu2g15akzyd.js",
+      "status": 200,
+      "mime": "application/javascript; charset=utf-8",
+      "requestHeaders": {}
+    },
+    {
+      "url": "https://dakshgajjar.com/work/eigna?_rsc=y6pgQWwLckoW4aDt",
+      "status": 200,
+      "mime": "text/x-component",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/"
+      }
+    },
+    {
+      "url": "https://dakshgajjar.com/work/mealops?_rsc=pSrN-WUH5NK7kptd",
+      "status": 200,
+      "mime": "text/x-component",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/work/orbit"
+      }
+    },
+    {
+      "url": "https://dakshgajjar.com/work/papertrail?_rsc=A6tv5qL0h5gyZs1G",
+      "status": 200,
+      "mime": "text/x-component",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/work/mealops"
+      }
+    },
+    {
+      "url": "https://dakshgajjar.com/work/scribe?_rsc=uP875pIKkWnBOUIB",
+      "status": 200,
+      "mime": "text/x-component",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/work/papertrail"
+      }
+    },
+    {
+      "url": "https://dakshgajjar.com/work/crediflow?_rsc=YQjE8pxqQpuztOnT",
+      "status": 200,
+      "mime": "text/x-component",
+      "requestHeaders": {
+        "rsc": "1",
+        "next-router-segment-prefetch": "/work/$d$slug/__PAGE__",
+        "next-router-prefetch": "1",
+        "next-url": "/work/scribe"
+      }
+    }
+  ]
+}
