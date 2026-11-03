@@ -605,3 +605,12 @@ body:not(:has(.cp-hero)) .cp-header{background:var(--surface-overlay)}
 .cp-route-index h2{font-size:clamp(1.9rem,3.4vw,2.6rem)!important;line-height:1.05!important;letter-spacing:-.01em!important;font-weight:300}
 .cp-route-index h2 em{font-style:normal;font-weight:700;color:var(--content-primary)}
 .cp-contact-form-bottom p{color:var(--content-secondary)}
+
+/* Floating WhatsApp never covers a page CTA (Nov 2026). On phones the hero buttons stop short
+   of the floating button; ClientInteractions hides the label (or, if a page CTA would still sit
+   under it, the whole button) only while it would cover a .cp-btn or a form field. */
+@media(max-width:640px){.cp-hero .cp-actions{padding-right:4rem}.cp-hero .cp-actions .cp-btn{letter-spacing:.05em;padding-inline:.7rem}}
+.cp-wa{transition:transform 180ms ease,background-color 180ms ease,opacity 180ms ease}
+.cp-wa.is-label-yielding .cp-wa-cta{visibility:hidden}
+.cp-wa.is-yielding{opacity:0;pointer-events:none}
+@media(prefers-reduced-motion:reduce){.cp-wa{transition:none}}

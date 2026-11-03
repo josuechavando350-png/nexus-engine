@@ -45,6 +45,19 @@ const FADE_SELECTOR = [
   ".cp-sat-next > div > div",
 ].join(",");
 
+/**
+ * Page CTAs the floating WhatsApp button must never cover: the site's buttons and form fields.
+ * On a phone the hero buttons sit right where the floating button is fixed, so the label
+ * ("Atención inmediata") covered "Hablemos de tu caso" on the first screen of ad visitors.
+ */
+export const FLOATING_WA_GUARDED_SELECTOR = "main .cp-btn, main input, main textarea, main select, main button";
+
+type RectLike = Pick<DOMRect, "left" | "right" | "top" | "bottom">;
+
+export function rectsOverlap(a: RectLike, b: RectLike, gap = 0) {
+  return a.left - gap < b.right && a.right + gap > b.left && a.top - gap < b.bottom && a.bottom + gap > b.top;
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
@@ -56,10 +69,26 @@ export function ClientInteractions() {
     const tactileCards = Array.from(document.querySelectorAll<HTMLElement>(".cp-path, .cp-why article, .cp-area, .cp-case"));
     const fadeItems = Array.from(document.querySelectorAll<HTMLElement>(FADE_SELECTOR));
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const floatingWa = document.querySelector<HTMLElement>(".cp-wa");
+    const floatingLabel = floatingWa?.querySelector<HTMLElement>(".cp-wa-cta") ?? null;
+    const guardedTargets = Array.from(document.querySelectorAll<HTMLElement>(FLOATING_WA_GUARDED_SELECTOR));
     let previousScrollY = window.scrollY;
     let frame = 0;
 
     fadeItems.forEach((item) => item.classList.add("cp-scroll-fade"));
+
+    // Hide the label, or the whole floating button, only while it would cover a page CTA.
+    const updateFloatingWhatsapp = () => {
+      if (!floatingWa) return;
+      const viewportHeight = window.innerHeight;
+      const onScreen = guardedTargets
+        .map((target) => target.getBoundingClientRect())
+        .filter((rect) => rect.width > 0 && rect.height > 0 && rect.bottom > 0 && rect.top < viewportHeight);
+      const covers = (rect: RectLike) => onScreen.some((target) => rectsOverlap(rect, target, 6));
+      const label = floatingLabel?.getBoundingClientRect();
+      floatingWa.classList.toggle("is-yielding", covers(floatingWa.getBoundingClientRect()));
+      floatingWa.classList.toggle("is-label-yielding", Boolean(label && label.width > 0 && covers(label)));
+    };
 
     const updateScrollExperience = () => {
       frame = 0;
@@ -92,6 +121,7 @@ export function ClientInteractions() {
         header?.classList.remove("is-hidden");
       }
 
+      updateFloatingWhatsapp();
       previousScrollY = y;
     };
 
@@ -142,6 +172,9 @@ export function ClientInteractions() {
 
     updateScrollExperience();
     updateAudience();
+    // Layout can still move after hydration (images, fonts) and the label slides in at ~2.6 s.
+    const settleTimer = window.setTimeout(requestScrollUpdate, 3300);
+    window.addEventListener("load", requestScrollUpdate);
     window.addEventListener("scroll", requestScrollUpdate, { passive: true });
     window.addEventListener("resize", requestScrollUpdate, { passive: true });
     audience?.addEventListener("scroll", updateAudience, { passive: true });
@@ -149,10 +182,13 @@ export function ClientInteractions() {
 
     return () => {
       if (frame) window.cancelAnimationFrame(frame);
+      window.clearTimeout(settleTimer);
+      window.removeEventListener("load", requestScrollUpdate);
       window.removeEventListener("scroll", requestScrollUpdate);
       window.removeEventListener("resize", requestScrollUpdate);
       audience?.removeEventListener("scroll", updateAudience);
       reducedMotion.removeEventListener("change", requestScrollUpdate);
+      floatingWa?.classList.remove("is-yielding", "is-label-yielding");
       fadeItems.forEach((item) => {
         item.classList.remove("cp-scroll-fade");
         item.style.removeProperty("--cp-scroll-opacity");
