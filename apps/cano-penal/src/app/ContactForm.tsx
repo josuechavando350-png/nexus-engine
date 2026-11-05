@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { site } from "./content";
 import { pageGtag, reportAdsConversion } from "./ads-conversions";
+import { isBrowserAdVisit, whatsappDestination } from "./ad-visitor";
 
 const issues = [
   ["", "Selecciona el motivo de contacto"],
@@ -32,7 +32,7 @@ export function ContactForm({ compact = false }: { compact?: boolean }) {
       reply.trim() ? `Medio de respuesta: ${reply.trim()}` : "",
       "Prefiero compartir los detalles de forma privada con el despacho.",
     ].filter(Boolean).join("\n");
-    const destination = `${site.whatsapp}?text=${encodeURIComponent(message)}`;
+    const destination = whatsappDestination(message, isBrowserAdVisit());
     setPrepared(true);
     reportAdsConversion("form", pageGtag(), () => window.location.assign(destination));
   }

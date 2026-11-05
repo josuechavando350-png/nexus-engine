@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { site } from "../content";
 import { pageGtag, reportAdsConversion } from "../ads-conversions";
+import { isBrowserAdVisit, whatsappDestination } from "../ad-visitor";
 
 const authorityOptions = [
   ["", "Selecciona una opción"],
@@ -34,7 +34,7 @@ export function EnterpriseIntakeForm() {
       reply.trim() ? `Medio de contacto: ${reply.trim()}` : "",
       "Prefiero compartir documentos y detalles sensibles por un canal adecuado después de la revisión inicial.",
     ].filter(Boolean).join("\n");
-    const destination = `${site.whatsapp}?text=${encodeURIComponent(message)}`;
+    const destination = whatsappDestination(message, isBrowserAdVisit());
     reportAdsConversion("form", pageGtag(), () => window.location.assign(destination));
   }
 

@@ -65,7 +65,7 @@ export default async function HomePage() {
             <h1><span>{hero.lineOne}</span><br /><strong>{hero.lineTwo}</strong></h1>
             <p className="cp-lead">{hero.lead}</p>
             <div className="cp-actions">
-              <Link className="cp-btn cp-btn-solid" href="#contacto">{hero.primaryCta}</Link>
+              <Link className="cp-btn cp-btn-solid" href="#contacto" data-cp-hero-primary="">{hero.primaryCta}</Link>
               <Link className="cp-btn" href="#asesoria">{hero.secondaryCta}</Link>
             </div>
           </div>
