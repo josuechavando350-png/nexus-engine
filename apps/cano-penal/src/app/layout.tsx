@@ -14,6 +14,7 @@ import "./organic-editorial.css";
 import "./fiscal-calendar.css";
 import "./areas-unique.css";
 import "./vip-polish.css";
+import "./consulta-penal.css";
 import { canoTheme } from "./theme";
 import { site } from "./content";
 import { NexusBehavioralSignals } from "./NexusBehavioralSignals";

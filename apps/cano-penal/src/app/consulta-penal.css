@@ -1,0 +1,72 @@
+/* /consulta-penal — Google Ads landing page. Every rule is scoped to .cp-lp so no other page changes. */
+.cp-lp{--cp-lp-line:var(--border-subtle);--cp-lp-panel:var(--surface-elevated)}
+.cp-lp h1,.cp-lp h2,.cp-lp h3{margin:0}
+.cp-lp h2{font-size:clamp(1.9rem,3.4vw,2.6rem);font-weight:300;line-height:1.05;letter-spacing:-.01em}
+.cp-lp h2 strong,.cp-lp h1 strong{font:inherit;font-weight:700}
+
+/* Hero: compact, so the promise and both buttons fit on the first screen of a phone. */
+.cp-lp-hero{position:relative;isolation:isolate;overflow:hidden;background:var(--surface-elevated);border-bottom:1px solid var(--cp-lp-line)}
+.cp-lp-hero::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(11,15,20,.97) 0%,rgba(11,15,20,.9) 38%,rgba(11,15,20,.45) 62%,rgba(11,15,20,.1) 82%)}
+.cp-lp-hero-image{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;object-position:right center}
+.cp-lp-hero-content{padding:calc(78px + clamp(3rem,7vw,6rem)) 0 clamp(3rem,7vw,5.5rem)}
+.cp-lp-hero-content>*{max-width:40rem}
+.cp-lp-hero .cp-eyebrow{color:var(--content-secondary);margin:0 0 1rem}
+.cp-lp h1{font-size:clamp(2.4rem,5vw,4.1rem);font-weight:300;line-height:1.02;letter-spacing:-.02em}
+.cp-lp h1 strong{display:block}
+.cp-lp-lead{margin:1.25rem 0 0;font-size:clamp(1rem,1.6vw,1.15rem);line-height:1.65;color:var(--content-secondary)}
+.cp-lp .cp-lp-actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.75rem}
+.cp-lp .cp-lp-actions .cp-btn{min-height:52px;padding:.95rem 1.35rem;font-size:.78rem;letter-spacing:.08em;margin:0}
+.cp-lp .cp-lp-actions .cp-btn:not(.cp-btn-solid){background:rgba(11,15,20,.55);color:var(--content-primary)}
+
+/* Situations: one tap opens WhatsApp with the message already written. */
+.cp-lp-situations,.cp-lp-steps,.cp-lp-contact{padding:clamp(3.5rem,7vw,6rem) 0;border-bottom:1px solid var(--cp-lp-line)}
+.cp-lp-hint{margin:.85rem 0 0;color:var(--content-secondary)}
+.cp-lp-situation-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;margin-top:2rem}
+.cp-lp .cp-lp-situation{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;column-gap:1rem;row-gap:.45rem;align-items:center;justify-content:stretch;width:100%;min-height:0;margin:0;padding:1.35rem 1.4rem;text-align:left;text-transform:none;letter-spacing:normal;font-size:1rem;background:var(--cp-lp-panel);border:1px solid var(--cp-lp-line);color:var(--content-primary)}
+.cp-lp .cp-lp-situation:hover,.cp-lp .cp-lp-situation:focus-visible{border-color:var(--border-strong);background:#151c25}
+.cp-lp-situation-title{grid-column:1;font-family:"Arial Narrow","Helvetica Neue Condensed",Arial,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:-.01em;font-size:clamp(1.2rem,2vw,1.5rem);line-height:1.1}
+.cp-lp-situation-copy{grid-column:1;color:var(--content-secondary);font-size:.92rem;line-height:1.5}
+.cp-lp-situation-arrow{grid-column:2;grid-row:1/span 2;font-size:1.35rem;color:var(--content-secondary)}
+
+/* Proof */
+.cp-lp-proof{background:var(--accent-default);color:var(--content-inverse);padding:clamp(2.5rem,5vw,4rem) 0}
+.cp-lp-proof-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:1px solid rgba(11,15,20,.18)}
+.cp-lp-proof-grid>div{display:grid;gap:.5rem;padding:0 1.5rem 2rem 0}
+.cp-lp-proof-grid>div+div{padding-left:1.5rem;border-left:1px solid rgba(11,15,20,.18)}
+.cp-lp-proof-grid strong{font-family:"Arial Narrow","Helvetica Neue Condensed",Arial,sans-serif;font-weight:700;text-transform:uppercase;font-size:clamp(2rem,4.5vw,3.6rem);line-height:.95;letter-spacing:-.02em}
+.cp-lp-proof-grid span{text-transform:uppercase;letter-spacing:.08em;font-size:.74rem;line-height:1.5}
+.cp-lp-proof-note{margin:1.75rem 0 0;max-width:48rem;line-height:1.7;color:#2a333d}
+
+/* Steps */
+.cp-lp-step-list{list-style:none;margin:2rem 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--cp-lp-line)}
+.cp-lp-step-list li{display:flex;gap:1rem;padding:1.75rem 1.5rem 0 0}
+.cp-lp-step-list li+li{padding-left:1.5rem;border-left:1px solid var(--cp-lp-line)}
+.cp-lp-step-number{flex:none;display:inline-flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border:1px solid var(--border-strong);font-family:"Arial Narrow",Arial,sans-serif;font-weight:700}
+.cp-lp-step-list h3{font-size:1.3rem;line-height:1.1}
+.cp-lp-step-list p{margin:.6rem 0 0;color:var(--content-secondary);line-height:1.65}
+
+/* Contact */
+.cp-lp-contact-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(2.5rem,6vw,5rem);align-items:start}
+.cp-lp-address{display:grid;gap:.35rem;margin:2rem 0 0;color:var(--content-secondary);line-height:1.6}
+.cp-lp-address strong{color:var(--content-primary);font-weight:600}
+
+@media(max-width:900px){
+  .cp-lp-situation-list,.cp-lp-contact-grid{grid-template-columns:1fr}
+  .cp-lp-step-list{grid-template-columns:1fr}
+  .cp-lp-step-list li{padding:1.5rem 0;border-bottom:1px solid var(--cp-lp-line)}
+  .cp-lp-step-list li+li{padding-left:0;border-left:0}
+}
+@media(max-width:640px){
+  .cp-lp-hero::after{background:linear-gradient(180deg,rgba(11,15,20,.62) 0%,rgba(11,15,20,.55) 30%,rgba(11,15,20,.88) 55%,rgba(11,15,20,.97) 100%)}
+  .cp-lp-hero-image{object-position:74% center}
+  .cp-lp-hero-content{padding:calc(68px + 2.75rem) 0 2.25rem}
+  .cp-lp h1{font-size:clamp(2.15rem,10vw,2.9rem)}
+  .cp-lp-lead{font-size:1rem;line-height:1.6;margin-top:1rem}
+  .cp-lp .cp-lp-actions{display:grid;grid-template-columns:1fr;gap:.65rem;margin-top:1.5rem}
+  .cp-lp .cp-lp-actions .cp-btn{width:100%;font-size:.78rem}
+  .cp-lp .cp-lp-situation{padding:1.15rem 1.1rem}
+  .cp-lp-proof-grid{grid-template-columns:1fr;border-bottom:0}
+  .cp-lp-proof-grid>div,.cp-lp-proof-grid>div+div{padding:1.1rem 0;border-left:0;border-bottom:1px solid rgba(11,15,20,.18)}
+  .cp-lp-proof-grid>div{grid-template-columns:auto 1fr;align-items:baseline;gap:1rem}
+  .cp-lp-proof-grid strong{font-size:2rem}
+}
