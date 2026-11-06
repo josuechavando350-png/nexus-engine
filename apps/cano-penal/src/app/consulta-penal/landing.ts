@@ -36,7 +36,7 @@ export const CONSULTA_SITUATIONS = [
 export const CONSULTA_PROOF = [
   ["20", "años ejerciendo exclusivamente en penal"],
   ["700+", "casos atendidos"],
-  ["Común y federal", "defensa en ambos fueros"],
+  ["CDMX", "fuero común y federal"],
 ] as const;
 
 export const CONSULTA_STEPS = [
