@@ -1,72 +1,149 @@
-/* /consulta-penal — Google Ads landing page. Every rule is scoped to .cp-lp so no other page changes. */
-.cp-lp{--cp-lp-line:var(--border-subtle);--cp-lp-panel:var(--surface-elevated)}
-.cp-lp h1,.cp-lp h2,.cp-lp h3{margin:0}
-.cp-lp h2{font-size:clamp(1.9rem,3.4vw,2.6rem);font-weight:300;line-height:1.05;letter-spacing:-.01em}
-.cp-lp h2 strong,.cp-lp h1 strong{font:inherit;font-weight:700}
-
-/* Hero: compact, so the promise and both buttons fit on the first screen of a phone. */
-.cp-lp-hero{position:relative;isolation:isolate;overflow:hidden;background:var(--surface-elevated);border-bottom:1px solid var(--cp-lp-line)}
-.cp-lp-hero::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(11,15,20,.97) 0%,rgba(11,15,20,.9) 38%,rgba(11,15,20,.45) 62%,rgba(11,15,20,.1) 82%)}
-.cp-lp-hero-image{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;object-position:right center}
-.cp-lp-hero-content{padding:calc(78px + clamp(3rem,7vw,6rem)) 0 clamp(3rem,7vw,5.5rem)}
-.cp-lp-hero-content>*{max-width:40rem}
-.cp-lp-hero .cp-eyebrow{color:var(--content-secondary);margin:0 0 1rem}
-.cp-lp h1{font-size:clamp(2.4rem,5vw,4.1rem);font-weight:300;line-height:1.02;letter-spacing:-.02em}
-.cp-lp h1 strong{display:block}
-.cp-lp-lead{margin:1.25rem 0 0;font-size:clamp(1rem,1.6vw,1.15rem);line-height:1.65;color:var(--content-secondary)}
-.cp-lp .cp-lp-actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.75rem}
-.cp-lp .cp-lp-actions .cp-btn{min-height:52px;padding:.95rem 1.35rem;font-size:.78rem;letter-spacing:.08em;margin:0}
-.cp-lp .cp-lp-actions .cp-btn:not(.cp-btn-solid){background:rgba(11,15,20,.55);color:var(--content-primary)}
-
-/* Situations: one tap opens WhatsApp with the message already written. */
-.cp-lp-situations,.cp-lp-steps,.cp-lp-contact{padding:clamp(3.5rem,7vw,6rem) 0;border-bottom:1px solid var(--cp-lp-line)}
-.cp-lp-hint{margin:.85rem 0 0;color:var(--content-secondary)}
-.cp-lp-situation-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.75rem;margin-top:2rem}
-.cp-lp .cp-lp-situation{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;column-gap:1rem;row-gap:.45rem;align-items:center;justify-content:stretch;width:100%;min-height:0;margin:0;padding:1.35rem 1.4rem;text-align:left;text-transform:none;letter-spacing:normal;font-size:1rem;background:var(--cp-lp-panel);border:1px solid var(--cp-lp-line);color:var(--content-primary)}
-.cp-lp .cp-lp-situation:hover,.cp-lp .cp-lp-situation:focus-visible{border-color:var(--border-strong);background:#151c25}
-.cp-lp-situation-title{grid-column:1;font-family:"Arial Narrow","Helvetica Neue Condensed",Arial,sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:-.01em;font-size:clamp(1.2rem,2vw,1.5rem);line-height:1.1}
-.cp-lp-situation-copy{grid-column:1;color:var(--content-secondary);font-size:.92rem;line-height:1.5}
-.cp-lp-situation-arrow{grid-column:2;grid-row:1/span 2;font-size:1.35rem;color:var(--content-secondary)}
-
-/* Proof */
-.cp-lp-proof{background:var(--accent-default);color:var(--content-inverse);padding:clamp(2.5rem,5vw,4rem) 0}
-.cp-lp-proof-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-bottom:1px solid rgba(11,15,20,.18)}
-.cp-lp-proof-grid>div{display:grid;gap:.5rem;padding:0 1.5rem 2rem 0}
-.cp-lp-proof-grid>div+div{padding-left:1.5rem;border-left:1px solid rgba(11,15,20,.18)}
-.cp-lp-proof-grid strong{font-family:"Arial Narrow","Helvetica Neue Condensed",Arial,sans-serif;font-weight:700;text-transform:uppercase;font-size:clamp(2rem,4.5vw,3.6rem);line-height:.95;letter-spacing:-.02em}
-.cp-lp-proof-grid span{text-transform:uppercase;letter-spacing:.08em;font-size:.74rem;line-height:1.5}
-.cp-lp-proof-note{margin:1.75rem 0 0;max-width:48rem;line-height:1.7;color:#2a333d}
-
-/* Steps */
-.cp-lp-step-list{list-style:none;margin:2rem 0 0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid var(--cp-lp-line)}
-.cp-lp-step-list li{display:flex;gap:1rem;padding:1.75rem 1.5rem 0 0}
-.cp-lp-step-list li+li{padding-left:1.5rem;border-left:1px solid var(--cp-lp-line)}
-.cp-lp-step-number{flex:none;display:inline-flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border:1px solid var(--border-strong);font-family:"Arial Narrow",Arial,sans-serif;font-weight:700}
-.cp-lp-step-list h3{font-size:1.3rem;line-height:1.1}
-.cp-lp-step-list p{margin:.6rem 0 0;color:var(--content-secondary);line-height:1.65}
-
-/* Contact */
-.cp-lp-contact-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(2.5rem,6vw,5rem);align-items:start}
-.cp-lp-address{display:grid;gap:.35rem;margin:2rem 0 0;color:var(--content-secondary);line-height:1.6}
-.cp-lp-address strong{color:var(--content-primary);font-weight:600}
-
-@media(max-width:900px){
-  .cp-lp-situation-list,.cp-lp-contact-grid{grid-template-columns:1fr}
-  .cp-lp-step-list{grid-template-columns:1fr}
-  .cp-lp-step-list li{padding:1.5rem 0;border-bottom:1px solid var(--cp-lp-line)}
-  .cp-lp-step-list li+li{padding-left:0;border-left:0}
+/*
+ * /consulta-penal: the Google Ads landing page. Imported by its page only and scoped to .cp-lp,
+ * so no other page of the site changes.
+ * Direction: a quiet top-floor office. Deep ink, cool silver, Newsreader set light and large,
+ * the lawyer's portrait as the one strong image, and generous space instead of boxes.
+ */
+.cp-lp{
+  --lp-ink:#0B0F14;
+  --lp-raised:#10151C;
+  --lp-silver:#E8EDF3;
+  --lp-mist:#A9B4C2;
+  --lp-steel:#6F7C8C;
+  --lp-line:rgba(200,215,235,.14);
+  --lp-display:var(--cp-lp-display),Georgia,"Times New Roman",serif;
+  --lp-display-italic:var(--cp-lp-display-italic),Georgia,"Times New Roman",serif;
+  --lp-text:var(--cp-lp-text),Georgia,"Times New Roman",serif;
+  --lp-text-italic:var(--cp-lp-text-italic),Georgia,"Times New Roman",serif;
+  background:var(--lp-ink);
+  color:var(--lp-mist);
+  font-family:var(--lp-text);
+  font-feature-settings:"kern","liga","pnum","lnum";
 }
+.cp-lp a{-webkit-tap-highlight-color:transparent}
+.cp-lp h1,.cp-lp h2,.cp-lp h3{margin:0;text-transform:none;color:var(--lp-silver)}
+.cp-lp h2{font-family:var(--lp-display-italic);font-style:italic;font-weight:300;font-size:clamp(2.2rem,4.6vw,3.4rem);line-height:1.06;letter-spacing:-.012em}
+.cp-lp p{margin:0}
+
+/* Header: logo and phone only, transparent over the portrait until the visitor scrolls. */
+.cp-lp .cp-header.cp-lp-header{background:transparent;border-bottom-color:transparent;box-shadow:none}
+.cp-lp .cp-header.cp-lp-header.is-scrolled{background:var(--surface-overlay);border-bottom:1px solid var(--lp-line);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.cp-lp .cp-lp-nav{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.cp-lp .cp-lp-header-call{display:inline-block;padding:.7rem 0;font-family:var(--lp-text);font-weight:500;font-size:1rem;line-height:1.2;letter-spacing:.01em;color:var(--lp-silver);white-space:nowrap;text-decoration:underline;text-decoration-thickness:1px;text-decoration-color:rgba(232,237,243,.35);text-underline-offset:.35em}
+.cp-lp .cp-lp-header-call:hover{text-decoration-color:var(--lp-silver)}
+
+/* Hero: the portrait on top on phones, beside the words on wide screens. */
+.cp-lp-hero{position:relative;isolation:isolate;overflow:hidden;background:var(--lp-ink)}
+.cp-lp-hero-media{position:relative;height:54vh;height:clamp(300px,54svh,540px)}
+.cp-lp-hero-media img{display:block;width:100%;height:100%;object-fit:cover;object-position:74% 22%;filter:saturate(.5) brightness(.8) contrast(1.06)}
+.cp-lp-hero-media::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(11,15,20,.72) 0%,rgba(11,15,20,.12) 24%,rgba(11,15,20,0) 46%,rgba(11,15,20,.8) 80%,#0B0F14 100%)}
+.cp-lp-hero-body{position:relative;z-index:1;margin-top:-5.25rem;padding-bottom:clamp(3.75rem,9vw,5.5rem)}
+.cp-lp-name{display:flex;align-items:center;gap:.8rem;margin:0 0 1rem;font-family:var(--lp-text);font-weight:500;font-size:.95rem;letter-spacing:.05em;color:var(--lp-silver)}
+.cp-lp-name::before{content:"";width:1.75rem;height:1px;background:rgba(232,237,243,.55)}
+.cp-lp h1{font-family:var(--lp-display);font-weight:300;font-size:clamp(2.4rem,10.4vw,4.75rem);line-height:1.03;letter-spacing:-.022em}
+.cp-lp .cp-lp-lead{margin-top:1.15rem;max-width:34rem;font-size:1.08rem;line-height:1.62;color:var(--lp-mist)}
+
+/* Buttons: one silver action, one quiet one. Sentence case, no arrows. */
+.cp-lp .cp-lp-actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.9rem}
+.cp-lp .cp-lp-actions .cp-btn{display:inline-flex;align-items:center;justify-content:center;gap:.7rem;width:auto;min-height:56px;margin:0;padding:0 1.75rem;border:1px solid transparent;border-radius:0;font-family:var(--lp-text);font-weight:500;font-size:1.02rem;line-height:1.2;letter-spacing:.005em;text-transform:none;text-align:center;transform:none;filter:none;box-shadow:none}
+.cp-lp .cp-lp-actions .cp-lp-primary{background:var(--lp-silver);border-color:var(--lp-silver);color:var(--lp-ink)}
+.cp-lp .cp-lp-actions .cp-lp-primary:hover{background:#fff;border-color:#fff}
+.cp-lp .cp-lp-actions .cp-lp-secondary{background:rgba(11,15,20,.4);border-color:rgba(232,237,243,.34);color:var(--lp-silver)}
+.cp-lp .cp-lp-actions .cp-lp-secondary:hover{border-color:var(--lp-silver)}
+.cp-lp .cp-lp-primary-glyph{flex:none;width:19px;height:19px}
+
+/* Two-column sections: the heading holds still while the content runs beside it. */
+.cp-lp-situations,.cp-lp-process{padding:clamp(4.5rem,11vw,8.5rem) 0}
+.cp-lp-split{display:grid;gap:2.25rem}
+.cp-lp-intro p{margin-top:1.1rem;max-width:24rem;font-size:1.02rem;line-height:1.6;color:var(--lp-mist)}
+
+/* Situations: each row opens WhatsApp with the message already written. */
+.cp-lp-situation-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--lp-line)}
+.cp-lp-situation-list li{border-bottom:1px solid var(--lp-line)}
+.cp-lp .cp-lp-situation{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;width:100%;min-height:0;margin:0;padding:1.45rem .2rem;border:0;border-radius:0;background:transparent;color:var(--lp-silver);font-family:var(--lp-text);font-size:1rem;letter-spacing:normal;text-transform:none;text-align:left;transform:none;transition:background-color .25s ease,padding .25s ease}
+.cp-lp .cp-lp-situation:active{background:rgba(232,237,243,.05)}
+.cp-lp-situation-text{display:grid;gap:.4rem}
+.cp-lp-situation-title{font-family:var(--lp-text);font-weight:400;font-size:clamp(1.22rem,2vw,1.42rem);line-height:1.25;color:var(--lp-silver)}
+.cp-lp-situation-copy{font-family:var(--lp-text-italic);font-style:italic;font-size:.98rem;line-height:1.5;color:var(--lp-mist)}
+.cp-lp .cp-lp-situation-glyph{flex:none;width:20px;height:20px;color:var(--lp-steel);transition:color .25s ease}
+
+/* Authority: the desk portrait and his own sentence. */
+.cp-lp-authority{display:grid;background:var(--lp-raised)}
+.cp-lp-authority-media{position:relative;margin:0;overflow:hidden;aspect-ratio:1/1}
+.cp-lp-authority-media img{display:block;width:100%;height:100%;object-fit:cover;object-position:58% 34%;filter:saturate(.42) brightness(.8) contrast(1.05)}
+.cp-lp-authority-media::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(16,21,28,0) 52%,#10151C 100%)}
+.cp-lp-authority-body{position:relative;margin-top:-2.5rem;padding:0 clamp(1.25rem,4vw,3.5rem) clamp(4.5rem,10vw,7rem)}
+.cp-lp-quote{margin:0}
+.cp-lp-quote p{max-width:21ch;font-family:var(--lp-display-italic);font-style:italic;font-weight:300;font-size:clamp(1.95rem,4.2vw,3.15rem);line-height:1.12;letter-spacing:-.01em;color:var(--lp-silver)}
+.cp-lp-quote p::before{content:"\201C";margin-left:-.42em;padding-right:.04em}
+.cp-lp-quote p::after{content:"\201D"}
+.cp-lp .cp-lp-credential{margin-top:1.75rem;max-width:34rem;font-size:1rem;line-height:1.65;color:var(--lp-mist)}
+.cp-lp-credential-name{font-weight:500;color:var(--lp-silver)}
+.cp-lp .cp-lp-record{margin-top:2.5rem;padding-top:2rem;border-top:1px solid var(--lp-line);max-width:34rem;font-size:clamp(1.12rem,1.6vw,1.3rem);line-height:1.55;color:var(--lp-silver)}
+
+/* Process: a real sequence, marked by a line instead of numbers. */
+.cp-lp-steps{list-style:none;margin:0;padding:0}
+.cp-lp-steps li{position:relative;padding:0 0 2.6rem 2.1rem}
+.cp-lp-steps li:last-child{padding-bottom:0}
+.cp-lp-steps li::before{content:"";position:absolute;left:0;top:.7rem;width:7px;height:7px;background:var(--lp-silver)}
+.cp-lp-steps li::after{content:"";position:absolute;left:3px;top:1.55rem;bottom:.2rem;width:1px;background:var(--lp-line)}
+.cp-lp-steps li:last-child::after{display:none}
+.cp-lp-steps h3{font-family:var(--lp-text);font-weight:400;font-size:clamp(1.25rem,2vw,1.45rem);line-height:1.25}
+.cp-lp-steps p{margin-top:.55rem;max-width:34rem;line-height:1.65;color:var(--lp-mist)}
+
+/* Closing */
+.cp-lp-close{padding:clamp(4.5rem,11vw,8.5rem) 0;border-top:1px solid var(--lp-line)}
+.cp-lp-close-grid{display:grid;gap:2.25rem}
+.cp-lp .cp-lp-close h2{max-width:15ch;font-family:var(--lp-display);font-style:normal;font-size:clamp(2.5rem,6.2vw,4.6rem);line-height:1.03;letter-spacing:-.02em}
+.cp-lp .cp-lp-close .cp-lp-actions{margin-top:2.25rem}
+.cp-lp-address{display:grid;gap:.15rem;margin:0;font-style:normal;font-size:.98rem;line-height:1.6;color:var(--lp-mist)}
+.cp-lp-address span:first-child{color:var(--lp-silver)}
+.cp-lp .cp-lp-maplink{display:inline-flex;align-items:center;width:auto;min-height:44px;margin:.35rem 0 0;padding:0;border:0;border-radius:0;background:none;font-family:var(--lp-text);font-size:.98rem;letter-spacing:normal;text-transform:none;color:var(--lp-silver);text-decoration:underline;text-decoration-color:rgba(232,237,243,.35);text-underline-offset:.3em;transform:none}
+.cp-lp .cp-lp-maplink:hover{text-decoration-color:var(--lp-silver)}
+
+/* One orchestrated moment on load; nothing else moves by itself. */
+@media(prefers-reduced-motion:no-preference){
+  .cp-lp-hero-media img{animation:cp-lp-settle 1.8s cubic-bezier(.16,1,.3,1) both}
+  .cp-lp-hero-body{animation:cp-lp-rise .9s .12s cubic-bezier(.16,1,.3,1) both}
+}
+@keyframes cp-lp-settle{from{transform:scale(1.05)}to{transform:none}}
+@keyframes cp-lp-rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+@media(hover:hover){
+  .cp-lp .cp-lp-situation:hover{padding-left:.9rem;padding-right:.9rem;background:rgba(232,237,243,.035)}
+  .cp-lp .cp-lp-situation:hover .cp-lp-situation-glyph{color:var(--lp-silver)}
+}
+
 @media(max-width:640px){
-  .cp-lp-hero::after{background:linear-gradient(180deg,rgba(11,15,20,.62) 0%,rgba(11,15,20,.55) 30%,rgba(11,15,20,.88) 55%,rgba(11,15,20,.97) 100%)}
-  .cp-lp-hero-image{object-position:74% center}
-  .cp-lp-hero-content{padding:calc(68px + 2.75rem) 0 2.25rem}
-  .cp-lp h1{font-size:clamp(2.15rem,10vw,2.9rem)}
-  .cp-lp-lead{font-size:1rem;line-height:1.6;margin-top:1rem}
-  .cp-lp .cp-lp-actions{display:grid;grid-template-columns:1fr;gap:.65rem;margin-top:1.5rem}
-  .cp-lp .cp-lp-actions .cp-btn{width:100%;font-size:.78rem}
-  .cp-lp .cp-lp-situation{padding:1.15rem 1.1rem}
-  .cp-lp-proof-grid{grid-template-columns:1fr;border-bottom:0}
-  .cp-lp-proof-grid>div,.cp-lp-proof-grid>div+div{padding:1.1rem 0;border-left:0;border-bottom:1px solid rgba(11,15,20,.18)}
-  .cp-lp-proof-grid>div{grid-template-columns:auto 1fr;align-items:baseline;gap:1rem}
-  .cp-lp-proof-grid strong{font-size:2rem}
+  .cp-lp .cp-lp-header-call-label{display:none}
+  .cp-lp .cp-lp-actions{display:grid;grid-template-columns:minmax(0,1fr);gap:.65rem}
+  .cp-lp .cp-lp-actions .cp-btn{width:100%;padding:0 1.25rem}
+}
+@media(max-width:640px) and (max-height:800px){
+  .cp-lp-hero-media{height:46vh;height:clamp(260px,46svh,420px)}
+  .cp-lp-hero-body{margin-top:-4.25rem}
+}
+
+@media(min-width:641px) and (max-width:1023px){
+  .cp-lp-hero-media{height:58vh;height:clamp(360px,58svh,620px)}
+  .cp-lp-hero-body>*{max-width:38rem}
+}
+
+@media(min-width:1024px){
+  .cp-lp-hero{display:flex;align-items:center;min-height:100vh;min-height:min(100svh,960px)}
+  .cp-lp-hero-media{position:absolute;inset:0;height:auto}
+  .cp-lp-hero-media img{object-position:right 28%}
+  .cp-lp-hero-media::after{background:linear-gradient(90deg,#0B0F14 0%,rgba(11,15,20,.94) 30%,rgba(11,15,20,.5) 50%,rgba(11,15,20,.06) 72%),linear-gradient(180deg,rgba(11,15,20,.6) 0%,rgba(11,15,20,0) 22%,rgba(11,15,20,0) 72%,#0B0F14 100%)}
+  .cp-lp-hero-body{margin-block:0;margin-inline:auto;padding-top:7rem;padding-bottom:3rem}
+  .cp-lp-hero-body>*{max-width:36rem}
+  .cp-lp-hero-body>h1{max-width:12em;font-size:clamp(3.6rem,4.9vw,4.75rem)}
+  .cp-lp .cp-lp-lead{font-size:1.2rem}
+  .cp-lp-split{grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(3rem,7vw,7rem);align-items:start}
+  .cp-lp-intro{position:sticky;top:8rem}
+  .cp-lp-authority{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center}
+  .cp-lp-authority-media{aspect-ratio:auto;height:100%;min-height:640px}
+  .cp-lp-authority-media::after{background:linear-gradient(90deg,rgba(16,21,28,0) 60%,#10151C 100%)}
+  .cp-lp-authority-body{margin-top:0;padding:clamp(4rem,8vw,7rem) clamp(2.5rem,6vw,6rem)}
+  .cp-lp-close-grid{grid-template-columns:minmax(0,7fr) minmax(0,5fr);align-items:start;gap:clamp(3rem,7vw,7rem)}
+  .cp-lp-close-place{padding-top:1.1rem}
 }
