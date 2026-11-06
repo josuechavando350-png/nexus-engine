@@ -5,16 +5,15 @@ import localFont from "next/font/local";
  * build stays hermetic. Each file is one static cut subset to Spanish Latin (about 24 KB each):
  * a Light display cut for the large headlines and Regular/Medium text cuts for reading and buttons.
  * Only the cuts the first screen needs are preloaded; the italics load when they scroll into use.
+ * next/font requires every option to be an inline literal, hence the repeated fallback list.
  */
-const serifFallback = ["Georgia", "Times New Roman", "serif"];
-
 const display = localFont({
   src: "./fonts/newsreader-display-light.woff2",
   weight: "300",
   style: "normal",
   variable: "--cp-lp-display",
   display: "swap",
-  fallback: serifFallback,
+  fallback: ["Georgia", "Times New Roman", "serif"],
 });
 
 const displayItalic = localFont({
@@ -24,7 +23,7 @@ const displayItalic = localFont({
   variable: "--cp-lp-display-italic",
   display: "swap",
   preload: false,
-  fallback: serifFallback,
+  fallback: ["Georgia", "Times New Roman", "serif"],
 });
 
 const text = localFont({
@@ -34,7 +33,7 @@ const text = localFont({
   ],
   variable: "--cp-lp-text",
   display: "swap",
-  fallback: serifFallback,
+  fallback: ["Georgia", "Times New Roman", "serif"],
 });
 
 const textItalic = localFont({
@@ -44,7 +43,7 @@ const textItalic = localFont({
   variable: "--cp-lp-text-italic",
   display: "swap",
   preload: false,
-  fallback: serifFallback,
+  fallback: ["Georgia", "Times New Roman", "serif"],
 });
 
 /** Class names that expose the four font families as CSS variables on the landing wrapper. */
