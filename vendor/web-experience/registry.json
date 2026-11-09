@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-11-09",
+  "status": "experimental-opt-in",
+  "modules": [
+    {
+      "id": "scroll-rig",
+      "name": "14islands Scroll Rig",
+      "repository": "https://github.com/14islands/r3f-scroll-rig.git",
+      "commit": "123663599e4b31af56f1845a19132d17e6a9b81f",
+      "path": "vendor/web-experience/scroll-rig",
+      "kind": "react-webgl-library",
+      "npmPackage": "@14islands/r3f-scroll-rig",
+      "licenseFile": "LICENSE",
+      "licenseBlob": "65e923b35c191f1f7f12be17621d66824545bcd5",
+      "sourceLicense": "MIT",
+      "licenseNote": "The pinned LICENSE says MIT; package.json says ISC. Preserve both and review the exact distribution before shipping.",
+      "activation": "App-owned React/WebGL integration; requires compatible React, React DOM, Three, R3F and Drei. Keep a DOM fallback.",
+      "npmVersion": "8.15.0"
+    },
+    {
+      "id": "seam-transitions",
+      "name": "Codrops SeamTransitions",
+      "repository": "https://github.com/codrops/SeamTransitions.git",
+      "commit": "54ce5b6480b0502e0afa8781a6130b84638b77a3",
+      "path": "vendor/web-experience/seam-transitions",
+      "kind": "demo-collection",
+      "npmPackage": null,
+      "licenseFile": "LICENSE",
+      "licenseBlob": "a5ef20beccc243ab7bfbc164294f0053333032a8",
+      "sourceLicense": "MIT",
+      "licenseNote": "MIT covers this source. GSAP/plugins, fonts and assets retain their own notices and terms. Do not copy demo branding into Core.",
+      "activation": "11 reference demos, not an npm library or production-ready NEXUS component. Adapt only the selected effect within the client app."
+    },
+    {
+      "id": "photoswipe",
+      "name": "PhotoSwipe",
+      "repository": "https://github.com/dimsemenov/PhotoSwipe.git",
+      "commit": "cd41cb587a460634e4cae53134f3d01d06e284a6",
+      "path": "vendor/web-experience/photoswipe",
+      "kind": "gallery-library",
+      "npmPackage": "photoswipe",
+      "licenseFile": "LICENSE",
+      "licenseBlob": "5e0ff4d6c825895d919e888b6985caef745bbb74",
+      "sourceLicense": "MIT",
+      "licenseNote": "Preserve Dmitry Semenov's copyright and license notice.",
+      "activation": "Use mountPhotoSwipe with an app-supplied PhotoSwipeLightbox factory and lazy core import.",
+      "npmVersion": "5.4.4"
+    },
+    {
+      "id": "embla-carousel",
+      "name": "Embla Carousel",
+      "repository": "https://github.com/davidjerleke/embla-carousel.git",
+      "commit": "0fe65834136f1aa35e4c1a4a477e5ccb4bb5ee54",
+      "path": "vendor/web-experience/embla-carousel",
+      "kind": "carousel-library",
+      "npmPackage": "embla-carousel",
+      "licenseFile": "LICENSE",
+      "licenseBlob": "2376624f527f4f1e53887552e42b004ab4056898",
+      "sourceLicense": "MIT",
+      "licenseNote": "Preserve David Jerleke's copyright and license notice.",
+      "activation": "Use mountEmbla with the app-supplied Embla factory and native labelled previous/next buttons.",
+      "npmVersion": "8.6.0"
+    }
+  ]
+}

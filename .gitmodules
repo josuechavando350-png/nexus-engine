@@ -1,0 +1,12 @@
+[submodule "web-experience-scroll-rig"]
+	path = vendor/web-experience/scroll-rig
+	url = https://github.com/14islands/r3f-scroll-rig.git
+[submodule "web-experience-seam-transitions"]
+	path = vendor/web-experience/seam-transitions
+	url = https://github.com/codrops/SeamTransitions.git
+[submodule "web-experience-photoswipe"]
+	path = vendor/web-experience/photoswipe
+	url = https://github.com/dimsemenov/PhotoSwipe.git
+[submodule "web-experience-embla-carousel"]
+	path = vendor/web-experience/embla-carousel
+	url = https://github.com/davidjerleke/embla-carousel.git
