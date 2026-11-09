@@ -34,7 +34,7 @@ describe("CANO growth attribution ingress", () => {
     process.env.NEXUS_GROWTH_ATTRIBUTION_ENDPOINT = "https://growth.example/ingest";
     process.env.NEXUS_GROWTH_ATTRIBUTION_TOKEN = "a".repeat(32);
     process.env.NEXUS_CANO_GROWTH_WRITE_TOKEN = "b".repeat(32);
-    const fetchMock = vi.fn(async () => new Response("{}", { status: 202 }));
+    const fetchMock = vi.fn<typeof fetch>(async () => new Response("{}", { status: 202 }));
     vi.stubGlobal("fetch", fetchMock);
     const event = {
       siteId: "cano-penal",
