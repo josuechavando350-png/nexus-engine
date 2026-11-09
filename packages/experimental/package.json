@@ -6,6 +6,7 @@
   "exports": {
     ".": "./index.ts",
     "./style-fingerprint": "./style-fingerprint/index.ts",
-    "./capability-budget": "./capability-budget/index.ts"
+    "./capability-budget": "./capability-budget/index.ts",
+    "./web-experience": "./web-experience/index.ts"
   }
 }

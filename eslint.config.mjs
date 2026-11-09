@@ -36,6 +36,8 @@ export default tseslint.config(
       "**/dist/**",
       "**/coverage/**",
       "*.ts",
+      // Upstream source submodules retain their own tooling; NEXUS adapters remain linted.
+      "vendor/web-experience/*/**",
       // The 297 imported Némesis sources are byte-locked and run their own tests;
       // root ESLint must not rewrite or reinterpret this immutable upstream snapshot.
       "gauss/nemesis/engine/**",
@@ -105,7 +107,7 @@ export default tseslint.config(
           ],
         },
       ],
-    },
+    }
   },
 
   {

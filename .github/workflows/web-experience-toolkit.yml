@@ -1,0 +1,41 @@
+name: Web experience toolkit
+on:
+  pull_request:
+    paths:
+      - '.gitmodules'
+      - 'vendor/web-experience/**'
+      - 'packages/experimental/**'
+      - 'scripts/web-experience.mjs'
+      - 'scripts/verify-web-experience-toolkit.mjs'
+      - '.github/workflows/web-experience-toolkit.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.gitmodules'
+      - 'vendor/web-experience/**'
+      - 'packages/experimental/**'
+      - 'scripts/web-experience.mjs'
+      - 'scripts/verify-web-experience-toolkit.mjs'
+      - '.github/workflows/web-experience-toolkit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-toolkit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Adapter and registry contract checks
+        run: node scripts/verify-web-experience-toolkit.mjs
+      - name: Verify registered submodules without network
+        run: node scripts/web-experience.mjs verify all
+      - name: Retrieve exact upstream source revisions and verify licenses
+        run: node scripts/web-experience.mjs fetch all
+      - name: Read back actual source identities
+        run: node scripts/web-experience.mjs verify all --sources
