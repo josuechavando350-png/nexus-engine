@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Optional source registry. Does not install npm packages, run upstream code or deploy. */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, realpathSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -42,27 +42,30 @@ export function selectSources(catalog, selection = 'all') {
 export function git(root, args) {
   return execFileSync('git', ['-C', root, ...args], {
     encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], maxBuffer: 8 * 1024 * 1024,
+    env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_LFS_SKIP_SMUDGE: '1' },
   }).trim();
 }
 
+/** Reject gitlinks and prove sources are excluded from the tracked FORJA inventory. */
 export function verifyRegistration(root, entries, run = git) {
+  const ignore = readFileSync(resolve(root, '.gitignore'), 'utf8').split(/\r?\n/);
   for (const entry of entries) {
-    const key = `submodule.nexus-web-${entry.id}`;
-    const registeredPath = run(root, ['config', '--file', '.gitmodules', '--get', `${key}.path`]);
-    const registeredUrl = run(root, ['config', '--file', '.gitmodules', '--get', `${key}.url`]);
-    const link = run(root, ['ls-files', '--stage', '--', entry.path]);
-    if (registeredPath !== entry.path || registeredUrl !== entry.repository ||
-        link !== `160000 ${entry.commit} 0\t${entry.path}`) {
-      throw new Error(`Registration mismatch for ${entry.id}; refusing to fetch.`);
+    if (!ignore.includes(`/${entry.path}/`)) throw new Error(`Missing exact cache ignore rule: ${entry.id}`);
+    if (run(root, ['ls-files', '--cached', '--', entry.path])) {
+      throw new Error(`Tracked source or gitlink is forbidden: ${entry.id}`);
     }
+    run(root, ['check-ignore', '--quiet', '--', `${entry.path}/.nexus-ignore-proof`]);
   }
 }
 
-export function sourceState(root, entry, run = git) {
-  const directory = resolve(root, entry.path);
-  if (!existsSync(resolve(directory, '.git'))) return 'not-initialized';
-  if (realpathSync(directory) !== directory || run(directory, ['rev-parse', '--show-toplevel']) !== directory) {
-    throw new Error(`Unexpected checkout location: ${entry.id}`);
+/** Treat third-party clones as untrusted until commit, license and status match the lock. */
+export function checkoutState(directory, entry, run = git) {
+  if (!existsSync(directory)) return 'not-initialized';
+  if (realpathSync(directory) !== directory || !existsSync(resolve(directory, '.git'))) {
+    throw new Error(`Unexpected source checkout: ${entry.id}`);
+  }
+  if (run(directory, ['rev-parse', '--show-toplevel']) !== directory) {
+    throw new Error(`Checkout escapes its directory: ${entry.id}`);
   }
   if (run(directory, ['status', '--porcelain', '--untracked-files=all'])) return 'dirty';
   if (run(directory, ['rev-parse', 'HEAD']) !== entry.commit) return 'wrong-commit';
@@ -70,20 +73,41 @@ export function sourceState(root, entry, run = git) {
   return 'verified';
 }
 
+export function sourceState(root, entry, run = git) {
+  return checkoutState(resolve(root, entry.path), entry, run);
+}
+
+/** Pinned, opt-in clone into an ignored stage; no remote HEAD or user-work overwrite. */
 export function initializeSources(root, entries, run = git, inspect = sourceState) {
   verifyRegistration(root, entries, run);
-  for (const entry of entries) {
-    if (inspect(root, entry, run) === 'dirty') {
-      throw new Error(`Local changes in ${entry.id}; preserve them before updating.`);
+  const states = entries.map((entry) => inspect(root, entry, run));
+  for (let i = 0; i < entries.length; i++) {
+    if (!['not-initialized', 'verified'].includes(states[i])) {
+      throw new Error(`Local source is ${states[i]}: ${entries[i].id}; no automatic overwrite.`);
     }
   }
-  const paths = entries.map((entry) => entry.path);
-  // Sync only the selected, validated URLs. Never use --remote, --force or recursive checkout.
-  run(root, ['submodule', 'sync', '--', ...paths]);
-  run(root, ['-c', 'protocol.file.allow=never', 'submodule', 'update', '--init', '--checkout', '--', ...paths]);
-  for (const entry of entries) {
-    const state = inspect(root, entry, run);
-    if (state !== 'verified') throw new Error(`Checkout verification failed: ${entry.id}: ${state}`);
+  const sourceRoot = resolve(root, 'vendor/web-experience');
+  if (realpathSync(sourceRoot) !== sourceRoot) throw new Error('Unexpected source cache root.');
+  for (let i = 0; i < entries.length; i++) {
+    if (states[i] === 'verified') continue;
+    const entry = entries[i];
+    const target = resolve(root, entry.path);
+    if (existsSync(target)) throw new Error(`Source directory appeared unexpectedly: ${entry.id}`);
+    const temporary = mkdtempSync(resolve(sourceRoot, `.nexus-init-${entry.id}-`));
+    let published = false;
+    try {
+      run(root, ['-c', 'protocol.file.allow=never', '-c', 'protocol.ext.allow=never',
+        'clone', '--no-checkout', '--filter=blob:none', '--', entry.repository, temporary]);
+      run(temporary, ['-c', 'core.hooksPath=/dev/null', 'checkout', '--detach', entry.commit]);
+      const actual = checkoutState(temporary, entry, run);
+      if (actual !== 'verified') throw new Error(`Checkout verification failed: ${entry.id}: ${actual}`);
+      if (existsSync(target)) throw new Error(`Source directory appeared unexpectedly: ${entry.id}`);
+      renameSync(temporary, target);
+      published = true;
+    } finally {
+      if (!published) rmSync(temporary, { recursive: true, force: true });
+    }
+    if (inspect(root, entry, run) !== 'verified') throw new Error(`Published source verification failed: ${entry.id}`);
   }
 }
 
@@ -109,7 +133,7 @@ export function main(argv = process.argv.slice(2), root = ROOT) {
       throw new Error(`Source verification failed: ${entry.id}: ${state}`);
     }
   }
-  console.log(strict || command === 'init' ? 'Sources verified; runtime integration remains opt-in.' : 'Registrations verified; uninitialized checkouts are allowed.');
+  console.log(strict || command === 'init' ? 'Sources verified; runtime integration remains opt-in.' : 'Cache rules verified; uninitialized sources are allowed.');
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

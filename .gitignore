@@ -20,3 +20,10 @@ coverage/
 runtime/target/
 runtime/.env
 **/*.cdx.json
+
+# Pinned optional web-experience source caches; never Git-tracked.
+/vendor/web-experience/r3f-scroll-rig/
+/vendor/web-experience/seam-transitions/
+/vendor/web-experience/photoswipe/
+/vendor/web-experience/embla-carousel/
+/vendor/web-experience/.nexus-init-*/

@@ -15,24 +15,28 @@ function registeredRepository(t) {
   const directory = mkdtempSync(resolve(tmpdir(), 'nexus-web-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
   git(directory, ['init', '-q']);
-  copyFileSync(resolve(root, '.gitmodules'), resolve(directory, '.gitmodules'));
-  for (const entry of entries) git(directory, ['update-index', '--add', '--cacheinfo', `160000,${entry.commit},${entry.path}`]);
+  copyFileSync(resolve(root, '.gitignore'), resolve(directory, '.gitignore'));
+  mkdirSync(resolve(directory, 'vendor/web-experience'), { recursive: true });
   return directory;
 }
 
-function mockGit(log, overrides = {}) {
-  return (_root, args) => {
-    log.push(args);
-    if (args.includes('--get')) {
-      const key = args.at(-1);
-      const entry = entries.find((item) => key.startsWith(`submodule.nexus-web-${item.id}.`));
-      return key.endsWith('.url') ? (overrides.url ?? entry.repository) : entry.path;
+function simulatedClone(log, entry) {
+  return (cwd, args) => {
+    log.push({ cwd, args });
+    if (args.includes('clone')) {
+      assert.equal(args.at(-2), entry.repository);
+      mkdirSync(resolve(args.at(-1), '.git'));
+      return '';
     }
-    if (args[0] === 'ls-files') {
-      const entry = entries.find((item) => item.path === args.at(-1));
-      return `160000 ${entry.commit} 0\t${entry.path}`;
+    if (args.includes('checkout')) {
+      assert.deepEqual(args.slice(-3), ['checkout', '--detach', entry.commit]);
+      return '';
     }
-    return '';
+    if (args[0] === 'rev-parse' && args[1] === '--show-toplevel') return cwd;
+    if (args[0] === 'rev-parse' && args[1] === 'HEAD') return entry.commit;
+    if (args[0] === 'rev-parse' && args[1] === 'HEAD:LICENSE') return entry.license.blob;
+    if (args[0] === 'status') return '';
+    return git(cwd, args);
   };
 }
 
@@ -72,18 +76,18 @@ test('selects a single project without activating others', () => {
   assert.equal(selectSources(fixture()).length, 4);
   assert.throws(() => selectSources(fixture(), '--remote'), /Unknown source/);
 });
-test('verifies real gitlinks without network or npm', (t) => {
+test('verifies cache paths are ignored and not tracked', (t) => {
   verifyRegistration(registeredRepository(t), entries);
 });
-test('rejects a tampered URL before fetching', (t) => {
+test('fails closed when an exact ignore rule is missing', (t) => {
   const directory = registeredRepository(t);
-  git(directory, ['config', '--file', '.gitmodules', 'submodule.nexus-web-photoswipe.url', 'https://example.com/not-approved.git']);
-  assert.throws(() => verifyRegistration(directory, entries), /Registration mismatch/);
+  writeFileSync(resolve(directory, '.gitignore'), '/vendor/web-experience/photoswipe/\n');
+  assert.throws(() => verifyRegistration(directory, entries), /Missing exact cache ignore rule/);
 });
-test('rejects a gitlink that differs from the locked commit', (t) => {
+test('rejects a tracked gitlink even when cache is ignored', (t) => {
   const directory = registeredRepository(t);
-  git(directory, ['update-index', '--cacheinfo', `160000,${'a'.repeat(40)},${entries[0].path}`]);
-  assert.throws(() => verifyRegistration(directory, entries), /Registration mismatch/);
+  git(directory, ['update-index', '--add', '--cacheinfo', `160000,${entries[0].commit},${entries[0].path}`]);
+  assert.throws(() => verifyRegistration(directory, entries), /Tracked source or gitlink/);
 });
 test('an absent checkout is not reported as installed', (t) => {
   assert.equal(sourceState(registeredRepository(t), entries[0]), 'not-initialized');
@@ -107,22 +111,34 @@ test('checks a real checkout, commit, license identity and local changes', (t) =
   writeFileSync(resolve(checkout, 'local.txt'), 'Untracked user work');
   assert.equal(sourceState(directory, entry), 'dirty');
 });
-test('initialization is explicit, selected-only and never follows remote HEAD', () => {
+test('initialization clones selected SHA only, not floating HEAD', (t) => {
+  const directory = registeredRepository(t);
   const log = [];
-  const run = mockGit(log);
-  let inspections = 0;
-  initializeSources('/unused', [entries[2]], run, () => ++inspections === 1 ? 'not-initialized' : 'verified');
-  const update = log.find((args) => args.includes('update'));
-  assert.deepEqual(update, ['-c', 'protocol.file.allow=never', 'submodule', 'update', '--init', '--checkout', '--', entries[2].path]);
-  assert.ok(!update.includes('--remote') && !update.includes('--force') && !update.includes('--recursive'));
+  initializeSources(directory, [entries[2]], simulatedClone(log, entries[2]));
+  const clone = log.find((item) => item.args.includes('clone'))?.args;
+  assert.ok(clone);
+  assert.ok(clone.includes('--no-checkout') && clone.includes('--filter=blob:none'));
+  assert.ok(!clone.includes('--remote') && !clone.includes('--force') && !clone.includes('--recursive'));
+  assert.ok(log.some((item) => item.args.includes('checkout') && item.args.includes(entries[2].commit)));
+  assert.equal(sourceState(directory, entries[2], simulatedClone([], entries[2])), 'verified');
+  assert.equal(sourceState(directory, entries[0]), 'not-initialized');
 });
-test('preserves dirty checkouts instead of overwriting user work', () => {
+test('preserves dirty checkouts instead of attempting clones', (t) => {
+  const directory = registeredRepository(t);
   const log = [];
-  assert.throws(() => initializeSources('/unused', [entries[0]], mockGit(log), () => 'dirty'), /Local changes/);
-  assert.ok(!log.some((args) => args.includes('update')));
+  assert.throws(() => initializeSources(directory, [entries[0]], simulatedClone(log, entries[0]), () => 'dirty'), /no automatic overwrite/);
+  assert.ok(!log.some((item) => item.args.includes('clone')));
 });
-test('a failed post-fetch verification is not reported as success', () => {
-  assert.throws(() => initializeSources('/unused', [entries[0]], mockGit([]), () => 'wrong-commit'), /Checkout verification failed/);
+test('post-publication verification failure is never reported as success', (t) => {
+  const directory = registeredRepository(t);
+  let seen = 0;
+  assert.throws(() => initializeSources(directory, [entries[0]], simulatedClone([], entries[0]), () =>
+    ++seen === 1 ? 'not-initialized' : 'wrong-commit'), /Published source verification failed/);
+});
+test('rejects unmanaged folders in the cache instead of overwriting them', (t) => {
+  const directory = registeredRepository(t);
+  mkdirSync(resolve(directory, entries[0].path));
+  assert.throws(() => sourceState(directory, entries[0]), /Unexpected source checkout/);
 });
 test('list runs offline and exposes all four pinned sources', () => {
   const output = execFileSync(process.execPath, [resolve(root, 'scripts/web-experience.mjs'), 'list'], { encoding: 'utf8' });

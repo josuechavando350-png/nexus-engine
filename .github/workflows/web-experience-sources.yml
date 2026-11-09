@@ -3,7 +3,7 @@ name: NEXUS Web Experience Sources
 on:
   pull_request:
     paths:
-      - '.gitmodules'
+      - '.gitignore'
       - 'vendor/web-experience/**'
       - 'scripts/web-experience.mjs'
       - 'tests/web-experience*'
@@ -11,7 +11,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.gitmodules'
+      - '.gitignore'
       - 'vendor/web-experience/**'
       - 'scripts/web-experience.mjs'
       - 'tests/web-experience*'
@@ -51,7 +51,7 @@ jobs:
         run: node --test tests/web-experience.contract.mjs
       - name: Verify pinned registrations before downloading
         run: node scripts/web-experience.mjs verify all
-      - name: Retrieve the four pinned upstream checkouts
+      - name: Clone the four pinned upstream sources into ignored cache
         run: node scripts/web-experience.mjs init all
       - name: Verify every checkout and license identity
         run: node scripts/web-experience.mjs verify all --checkout
@@ -61,11 +61,12 @@ jobs:
           node scripts/web-experience.mjs verify all --checkout
           git diff --exit-code
           git diff --cached --exit-code
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Record bounded verification result
         run: |
           {
             printf '## Web experience source verification\n\n'
             printf 'Source commit: `%s`\n\n' "$SOURCE_SHA"
-            printf 'All four pinned repositories were retrieved and their commit and LICENSE blob identities verified.\n\n'
-            printf 'No upstream npm scripts, demos, production website or visual adapter were executed. This proves source availability, not browser or production readiness.\n'
+            printf 'All four pinned repositories were cloned into ignored directories; commits and LICENSE blobs were verified.\n\n'
+            printf 'No upstream npm scripts, demos, production website or visual adapter were executed. The tracked Git inventory stayed clean. This proves source availability, not browser or production readiness.\n'
           } >> "$GITHUB_STEP_SUMMARY"

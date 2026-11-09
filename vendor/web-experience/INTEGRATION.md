@@ -1,31 +1,26 @@
-# Integracion del kit en NEXUS ENGINE
+# Integración del kit Web Experience en NEXUS ENGINE
 
-Los cuatro repositorios se mantienen en `vendor/web-experience/` como submodulos fijados, con el catalogo como fuente de verdad. Son recursos reutilizables optativos, no dependencias globales de todos los clientes.
+Este módulo es un **registro de procedencia + gestor de descargas bajo demanda**. No importa dependencias en Core ni genera bundles por defecto.
 
-## Comandos del workspace
+## Aislamiento FORJA
+
+FORJA inventaría los archivos regulares rastreados. Los submódulos Git (`mode 160000`) violan ese contrato; por eso este kit no usa `.gitmodules` ni gitlinks. Los cuatro clones se guardan en `vendor/web-experience/<id>/` con reglas exactas de `.gitignore`, fuera del índice y del inventario FORJA. El código versionado del kit consiste en catálogo, gestor, pruebas y documentación.
+
+Git clona solo URLs HTTPS validadas de GitHub (`file:` y `ext:` deshabilitados), usa `--no-checkout` y fija el commit. Hooks de checkout deshabilitados y `GIT_LFS_SKIP_SMUDGE=1`. El gestor comprueba las copias en una carpeta temporal ignorada antes de publicarlas, verifica Git HEAD y LICENSE, y rechaza cambios locales en vez de sobrescribirlos.
+
+## Comandos
 
 ```sh
 pnpm web-experience list
+pnpm web-experience verify all
 pnpm web-experience init photoswipe
 pnpm web-experience:init
 pnpm web-experience:verify
 pnpm test:web-experience
 ```
 
-`web-experience:init` recupera las cuatro fuentes. `web-experience:verify` exige que esten presentes y limpias, y comprueba commits y archivos LICENSE. No instala paquetes npm ni activa componentes en una web. Para comprobar solo el registro sin descargar, usar `pnpm web-experience verify all`.
+## Aplicaciones consumidoras
 
-La suite `pnpm test` ya ejecuta el puente Vitest `tests/web-experience.test.ts`. El comando separado permite ejecutar los 26 contratos sin instalar dependencias del monorepo.
+El uso real requiere seleccionar una app, instalar y fijar sus dependencias compatibles en esa app y desarrollar su adaptador. Verificar ciclo de vida, SSR, accesibilidad, teclado/tacto, movimiento reducido, fallback y rendimiento móvil. Scroll Rig requiere GPU y React/Fiber/Three; SeamTransitions son demos experimentales para adaptar. No importar fuentes upstream desde Core, Experience Engine ni Rust.
 
-## Comprobacion remota de las fuentes
-
-`.github/workflows/web-experience-sources.yml` ejecuta los contratos con Node 24, comprueba el registro, descarga los cuatro commits y exige que sus licencias y estados Git coincidan. Tambien comprueba que repetir la inicializacion no cambia el checkout. Usa permisos de solo lectura, acciones fijadas por SHA y no ejecuta scripts upstream ni usa secretos de clientes.
-
-La existencia del workflow no acredita un resultado aprobado. Consultar el run del SHA concreto. Tampoco sustituye las validaciones completas de lint, TypeScript, pruebas y build del monorepo, ni ensayos de accesibilidad y rendimiento en una web consumidora.
-
-## Correccion necesaria para validar la integracion
-
-El run Full Validation del commit inicial `f6e0df1b9db759cee07b34f1390643bcee49237b` termino en TypeScript con TS2493 en `apps/cano-penal/src/app/api/nexus/growth/route.test.ts:56`. El mock de fetch se inferia como funcion sin argumentos, pero la prueba inspecciona el segundo argumento de una llamada. El commit `ed1f947316587c2688464ec96cc54e26f4d62794` lo tipa con `vi.fn<typeof fetch>`; no cambia la ruta de produccion ni elimina ninguna asercion. Se conserva ese cambio y su workflow, sin duplicarlos.
-
-## Limites de esta incorporacion
-
-Core, Experience Engine, Rust, NQC, credenciales y despliegues no cambian. PhotoSwipe, Embla y Scroll Rig siguen necesitando montaje y configuracion en cada aplicacion consumidora. SeamTransitions se conserva como coleccion de demos para adaptar, no como paquete npm ni componentes de produccion certificados. Consultar `README.md` y `catalog.json` para requisitos, procedencia y la discrepancia de licencia de Scroll Rig.
+La corrección de TypeScript en un mock `fetch` de la prueba Cano quedó separada y fusionada en PR #760; **este PR del kit no modifica `apps/cano-penal/`**. Revisar los checks sobre el SHA exacto antes de fusionar; los controles de registro no sustituyen las suites generales.
