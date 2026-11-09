@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "verifiedAt": "2026-11-09",
+  "activation": "opt-in-source-only",
+  "repositories": [
+    {
+      "id": "r3f-scroll-rig",
+      "name": "14islands Scroll Rig",
+      "repository": "https://github.com/14islands/r3f-scroll-rig.git",
+      "commit": "123663599e4b31af56f1845a19132d17e6a9b81f",
+      "path": "vendor/web-experience/r3f-scroll-rig",
+      "purpose": "Sincronizar escenas WebGL con elementos DOM y scroll.",
+      "kind": "react-library",
+      "packages": ["@14islands/r3f-scroll-rig", "@react-three/fiber", "three"],
+      "license": {
+        "file": "LICENSE",
+        "fileDeclaration": "MIT",
+        "packageDeclaration": "ISC",
+        "blob": "65e923b35c191f1f7f12be17621d66824545bcd5",
+        "note": "Discrepancia upstream: LICENSE declara MIT y package.json ISC. Conservar ambos avisos y revisar el artefacto distribuido antes de entrega comercial."
+      },
+      "productionStatus": "not-validated",
+      "requirements": ["React y Fiber compatibles", "Montaje solo cliente", "Fallback DOM", "Movimiento reducido", "Presupuesto GPU medido"]
+    },
+    {
+      "id": "seam-transitions",
+      "name": "Codrops SeamTransitions",
+      "repository": "https://github.com/codrops/SeamTransitions.git",
+      "commit": "54ce5b6480b0502e0afa8781a6130b84638b77a3",
+      "path": "vendor/web-experience/seam-transitions",
+      "purpose": "Referencia experimental de once transiciones entre hero y contenido.",
+      "kind": "experimental-demo-collection",
+      "packages": [],
+      "license": {
+        "file": "LICENSE",
+        "fileDeclaration": "MIT",
+        "blob": "a5ef20beccc243ab7bfbc164294f0053333032a8",
+        "note": "La licencia del demo no sustituye las licencias de GSAP, plugins, fuentes ni otros recursos. No copiar marca, textos o activos a Core."
+      },
+      "productionStatus": "not-validated",
+      "requirements": ["Adaptar el efecto elegido", "Retirar scripts externos no necesarios", "Revisar dependencias y activos", "Cleanup", "Movimiento reducido"]
+    },
+    {
+      "id": "photoswipe",
+      "name": "PhotoSwipe",
+      "repository": "https://github.com/dimsemenov/PhotoSwipe.git",
+      "commit": "cd41cb587a460634e4cae53134f3d01d06e284a6",
+      "path": "vendor/web-experience/photoswipe",
+      "purpose": "Galerias fotograficas ampliables con navegacion tactil.",
+      "kind": "framework-independent-library",
+      "packages": ["photoswipe"],
+      "license": {
+        "file": "LICENSE",
+        "fileDeclaration": "MIT",
+        "blob": "5e0ff4d6c825895d919e888b6985caef745bbb74"
+      },
+      "productionStatus": "not-validated",
+      "requirements": ["Dimensiones reales de imagen", "CSS local", "Texto alternativo", "Gestion de foco", "Destroy al desmontar"]
+    },
+    {
+      "id": "embla-carousel",
+      "name": "Embla Carousel",
+      "repository": "https://github.com/davidjerleke/embla-carousel.git",
+      "commit": "0423b61463dd6f095d7aca810a49bbf194d6c291",
+      "path": "vendor/web-experience/embla-carousel",
+      "purpose": "Carruseles de proyectos con desplazamiento tactil preciso.",
+      "kind": "framework-independent-library",
+      "packages": ["embla-carousel"],
+      "license": {
+        "file": "LICENSE",
+        "fileDeclaration": "MIT",
+        "blob": "2376624f527f4f1e53887552e42b004ab4056898"
+      },
+      "productionStatus": "not-validated",
+      "requirements": ["Controles accesibles", "Foco visible", "Sin autoplay por defecto", "Estilos del cliente", "Destroy al desmontar"]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+[submodule "nexus-web-r3f-scroll-rig"]
+	path = vendor/web-experience/r3f-scroll-rig
+	url = https://github.com/14islands/r3f-scroll-rig.git
+[submodule "nexus-web-seam-transitions"]
+	path = vendor/web-experience/seam-transitions
+	url = https://github.com/codrops/SeamTransitions.git
+[submodule "nexus-web-photoswipe"]
+	path = vendor/web-experience/photoswipe
+	url = https://github.com/dimsemenov/PhotoSwipe.git
+[submodule "nexus-web-embla-carousel"]
+	path = vendor/web-experience/embla-carousel
+	url = https://github.com/davidjerleke/embla-carousel.git
